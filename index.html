@@ -1,59 +1,259 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>임성혁 | Java 백엔드 개발자</title>
-    <link rel="stylesheet" href="index.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>선교 웹페이지 - Supabase 연동</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    
-    <main>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="brand">
+        <span class="brand__logo">✦</span>
+        <div>
+          <h1>선교 웹페이지</h1>
+          <p>소개 · 선교 편지 · 갤러리</p>
+        </div>
+      </div>
 
-        <section class="left">
+      <div class="topbar__right">
+        <nav class="nav">
+          <button class="nav__btn" data-scroll="intro">소개</button>
+          <button class="nav__btn" data-scroll="letters">선교 편지</button>
+          <button class="nav__btn" data-scroll="gallery">갤러리</button>
+        </nav>
 
-            <div id="profileImg" >
-                <img src="source/3x4_event12.jpg">
-            </div>
-            <div>임성혁</div>
-            <div>Java 백엔드 개발자</div>
+        <div class="admin-auth card">
+          <input
+            type="email"
+            id="adminEmail"
+            class="auth-input"
+            placeholder="관리자 이메일"
+            autocomplete="username"
+          />
+          <input
+            type="password"
+            id="adminPassword"
+            class="auth-input"
+            placeholder="비밀번호"
+            autocomplete="current-password"
+          />
+          <button id="loginBtn" class="small-btn">로그인</button>
+          <button id="logoutBtn" class="small-btn hidden">로그아웃</button>
+          <span id="authStatus" class="auth-status">읽기 전용</span>
+        </div>
+      </div>
+    </div>
+  </header>
 
-            <div id="a-list">
-                <div>
-                    <a href="#a">Introduce</a>
-                </div>
-                <div>
-                    <a href="#b">Skills</a>
-                </div>
-                <div>
-                    <a href="#c">Projects</a>
-                </div>
-                <div>
-                    <a href="#">Experience</a>
-                </div>
-                <div>
-                    <a href="#">Education</a>
-                </div>
-            </div>
+  <main class="container">
+    <!-- 소개 -->
+    <section id="intro" class="page-section">
+      <div class="hero card">
+        <div class="hero__text">
+          <p class="eyebrow">MISSION</p>
+          <h2>복음과 사랑을 전하는 공간</h2>
+          <p class="hero__desc">
+            이 페이지는 선교 소식과 편지, 그리고 현장 사진들을 함께 나누기 위한 공간입니다.
+            소개, 선교 편지, 갤러리 섹션을 통해 사역의 이야기와 기도 제목을 확인할 수 있습니다.
+          </p>
+          <div class="hero__actions">
+            <button class="primary-btn" data-scroll="letters">선교 편지 보기</button>
+            <button class="ghost-btn" data-scroll="gallery">갤러리 보기</button>
+          </div>
+        </div>
 
-        </section>
+        <div class="hero__side">
+          <div class="quote-box">
+            <p class="quote-box__label">오늘의 메시지</p>
+            <p class="quote-box__text">
+              “한 사람 한 사람에게 사랑으로 다가가며,
+              삶 속에서 복음을 전합니다.”
+            </p>
+          </div>
+        </div>
+      </div>
 
-        <section class="right">
+      <div class="intro-grid">
+        <article class="card info-card">
+          <h3>소개</h3>
+          <p>
+            이 공간은 선교 사역을 소개하고, 후원자와 공동체에 소식을 전하기 위해 준비된 웹페이지입니다.
+          </p>
+        </article>
 
-            <div id="a">a</div>
-            <div id="b">b</div>
-            <div id="c">c</div>
+        <article class="card info-card">
+          <h3>선교 편지</h3>
+          <p>
+            Supabase와 연동하여 선교 편지를 등록하고, 수정/삭제하며 이미지도 함께 첨부할 수 있습니다.
+          </p>
+        </article>
 
-        </section>
+        <article class="card info-card">
+          <h3>갤러리</h3>
+          <p>
+            최신순 카드형 갤러리로 사역 사진을 한눈에 볼 수 있으며, 클릭하면 크게 확대해서 볼 수 있습니다.
+          </p>
+        </article>
+      </div>
+    </section>
 
-    </main>
+    <!-- 선교 편지 -->
+    <section id="letters" class="page-section">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">BOARD</p>
+          <h2>선교 편지</h2>
+          <p class="section-desc">방문자는 조회만, 로그인한 관리자는 등록/수정/삭제가 가능합니다.</p>
+        </div>
+        <button id="openLetterModalBtn" class="primary-btn">편지 등록</button>
+      </div>
 
-    <script src="index.js"></script>
+      <div class="card board-card">
+        <div class="board-toolbar">
+          <input
+            type="text"
+            id="letterSearchInput"
+            class="search-input"
+            placeholder="제목 또는 내용 검색"
+          />
+        </div>
 
+        <div class="board-table-wrap">
+          <table class="board-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">번호</th>
+                <th>제목</th>
+                <th style="width: 180px;">작성일</th>
+                <th style="width: 240px;">관리</th>
+              </tr>
+            </thead>
+            <tbody id="lettersTableBody"></tbody>
+          </table>
+        </div>
+
+        <div id="lettersPagination" class="pagination"></div>
+      </div>
+    </section>
+
+    <!-- 갤러리 -->
+    <section id="gallery" class="page-section">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">GALLERY</p>
+          <h2>사역 갤러리</h2>
+          <p class="section-desc">이미지는 Supabase Storage에서 관리됩니다.</p>
+        </div>
+        <button id="openGalleryModalBtn" class="primary-btn">사진 등록</button>
+      </div>
+
+      <div class="gallery-toolbar card">
+        <input
+          type="text"
+          id="gallerySearchInput"
+          class="search-input"
+          placeholder="제목 또는 설명 검색"
+        />
+      </div>
+
+      <div id="galleryGrid" class="gallery-grid"></div>
+    </section>
+  </main>
+
+  <!-- 선교 편지 모달 -->
+  <div id="letterModal" class="modal hidden">
+    <div class="modal__backdrop" data-close="letter"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 id="letterModalTitle">선교 편지 등록</h3>
+        <button class="icon-btn" data-close="letter" type="button">✕</button>
+      </div>
+
+      <form id="letterForm" class="form">
+        <input type="hidden" id="letterId" />
+
+        <label class="form-label">
+          제목
+          <input type="text" id="letterTitle" class="form-input" required />
+        </label>
+
+        <label class="form-label">
+          내용
+          <textarea id="letterContent" class="form-textarea" rows="8" required></textarea>
+        </label>
+
+        <label class="form-label">
+          이미지 첨부
+          <input type="file" id="letterImage" class="form-input" accept="image/*" />
+        </label>
+
+        <div id="letterImagePreviewWrap" class="image-preview-wrap hidden">
+          <img id="letterImagePreview" class="image-preview" alt="선교 편지 이미지 미리보기" />
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="ghost-btn" data-close="letter">취소</button>
+          <button type="submit" class="primary-btn">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 갤러리 모달 -->
+  <div id="galleryModal" class="modal hidden">
+    <div class="modal__backdrop" data-close="gallery"></div>
+    <div class="modal__content">
+      <div class="modal__header">
+        <h3 id="galleryModalTitle">갤러리 등록</h3>
+        <button class="icon-btn" data-close="gallery" type="button">✕</button>
+      </div>
+
+      <form id="galleryForm" class="form">
+        <input type="hidden" id="galleryId" />
+
+        <label class="form-label">
+          제목
+          <input type="text" id="galleryTitle" class="form-input" required />
+        </label>
+
+        <label class="form-label">
+          설명
+          <textarea id="galleryDescription" class="form-textarea" rows="5"></textarea>
+        </label>
+
+        <label class="form-label">
+          이미지 첨부
+          <input type="file" id="galleryImage" class="form-input" accept="image/*" />
+        </label>
+
+        <div id="galleryImagePreviewWrap" class="image-preview-wrap hidden">
+          <img id="galleryImagePreview" class="image-preview" alt="갤러리 이미지 미리보기" />
+        </div>
+
+        <div class="modal__footer">
+          <button type="button" class="ghost-btn" data-close="gallery">취소</button>
+          <button type="submit" class="primary-btn">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 이미지 확대 보기 -->
+  <div id="viewerModal" class="modal hidden viewer-modal">
+    <div class="modal__backdrop" data-close="viewer"></div>
+    <div class="viewer">
+      <button class="viewer__close" data-close="viewer" type="button">✕</button>
+      <img id="viewerImage" class="viewer__image" alt="확대 이미지" />
+      <div class="viewer__caption">
+        <h3 id="viewerTitle"></h3>
+        <p id="viewerDescription"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="app.js"></script>
 </body>
 </html>
-
-
-
-
-
