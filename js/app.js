@@ -9,6 +9,8 @@ import { confirmDialog } from "./components/modal.js";
 import { showToast } from "./components/toast.js";
 import { renderLogin } from "./pages/login.js";
 import { renderSignup } from "./pages/signup.js";
+import { renderAuthConfirm } from "./pages/authConfirm.js";
+import { renderForgotPassword, renderPasswordUpdate } from "./pages/passwordReset.js";
 import { renderPending, renderSuspended } from "./pages/pending.js";
 import { renderHome } from "./pages/home.js";
 import { renderActivities } from "./pages/activities.js";
@@ -92,6 +94,12 @@ function route(pattern, title, auth, renderer, options = {}) {
 
 route("/login", "로그인", "guest", renderLogin, { shell: false });
 route("/signup", "회원가입", "guest", renderSignup, { shell: false });
+route("/auth/confirm", "이메일 인증", null, renderAuthConfirm, { shell: false });
+route("/password/forgot", "비밀번호 찾기", null, renderForgotPassword, { shell: false });
+route("/forgot-password", "비밀번호 찾기", null, renderForgotPassword, { shell: false });
+route("/password/update", "새 비밀번호 설정", null, renderPasswordUpdate, { shell: false });
+route("/reset-password", "새 비밀번호 설정", null, renderPasswordUpdate, { shell: false });
+route("/update-password", "새 비밀번호 설정", null, renderPasswordUpdate, { shell: false });
 route("/pending", "가입 승인 대기", "signed", renderPending, { shell: false });
 route("/suspended", "이용 정지 안내", "signed", renderSuspended, { shell: false });
 route("/", "홈", "approved", renderHome);
@@ -171,6 +179,7 @@ setNotFound((routeInfo) => renderPage(routeInfo, async () => el("div", { classNa
 window.addEventListener("app:auth-changed", () => {
   const auth = getAuthState();
   const current = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
+  if (["/auth/confirm", "/password/update", "/reset-password", "/update-password"].includes(current)) return;
   if (current === "/login" || current === "/signup" || auth.profile?.status !== "approved") {
     const destination = authDestination(auth);
     app.replaceChildren(el("main", { id: "main-content", className: "auth-layout" }, loadingState("접근 상태 확인 중…")));

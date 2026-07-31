@@ -5,6 +5,7 @@ const ERROR_MESSAGES = [
   [/User already registered/i, "이미 가입된 이메일입니다."],
   [/Password should be at least/i, "비밀번호는 8자 이상 입력해 주세요."],
   [/JWT expired/i, "로그인 시간이 만료되었습니다. 다시 로그인해 주세요."],
+  [/429|rate.?limit|too many requests|over_email_send_rate_limit/i, "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요."],
   [/row-level security|42501|permission denied/i, "이 작업을 수행할 권한이 없습니다."],
   [/duplicate key|23505/i, "이미 등록된 정보입니다."],
   [/capacity|정원/i, "모집 정원이 마감되었습니다."],

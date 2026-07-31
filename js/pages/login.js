@@ -78,9 +78,19 @@ export function renderLogin() {
         ? el("div", { className: "notice-box", text: "이메일 인증이 완료되었습니다. 로그인해 주세요." })
         : null,
       form,
-      el("p", { className: "small subtle" }, [
-        "아직 계정이 없나요? ",
-        el("a", { href: "#/signup", text: "회원가입", style: { color: "var(--forest-700)", fontWeight: "800" } }),
+      el("div", { className: "page-stack small subtle" }, [
+        el("p", {}, [
+          "비밀번호가 기억나지 않나요? ",
+          el("a", {
+            href: "#/password/forgot",
+            text: "비밀번호 찾기",
+            style: { color: "var(--forest-700)", fontWeight: "800" },
+          }),
+        ]),
+        el("p", {}, [
+          "아직 계정이 없나요? ",
+          el("a", { href: "#/signup", text: "회원가입", style: { color: "var(--forest-700)", fontWeight: "800" } }),
+        ]),
       ]),
     ]),
   ]);

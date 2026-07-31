@@ -166,7 +166,7 @@ export async function signIn(email, password) {
 }
 
 export async function signUp({ email, password, metadata }) {
-  const redirect = `${window.location.origin}${window.location.pathname}?auth=callback#/login`;
+  const redirect = `${window.location.origin}${window.location.pathname}`;
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -177,6 +177,42 @@ export async function signUp({ email, password, metadata }) {
   });
   if (error) throw error;
   if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function verifyEmailToken(tokenHash, type = "email") {
+  const otpType = ["email", "signup"].includes(type) ? type : "email";
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: otpType,
+  });
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function requestPasswordReset(email) {
+  const redirectTo = `${window.location.origin}${window.location.pathname}`;
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function verifyRecoveryToken(tokenHash) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "recovery",
+  });
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function updatePassword(password) {
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
   return data;
 }
 
