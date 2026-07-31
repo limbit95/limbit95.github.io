@@ -57,12 +57,13 @@ export function formatDate(value, options = {}) {
     ? new Date(`${value}T00:00:00`)
     : new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
+  const { weekday = "short", ...dateOptions } = options;
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "long",
     day: "numeric",
-    weekday: options.weekday === false ? undefined : "short",
-    ...options,
+    weekday: weekday === false ? undefined : weekday,
+    ...dateOptions,
   }).format(date);
 }
 
