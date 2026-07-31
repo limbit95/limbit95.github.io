@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">기본 프로필 이미지</title>
+  <rect width="160" height="160" rx="80" fill="#E3ECDD"/>
+  <circle cx="80" cy="61" r="30" fill="#6E927E"/>
+  <path d="M27 146c4-36 24-54 53-54s49 18 53 54" fill="#6E927E"/>
+</svg>

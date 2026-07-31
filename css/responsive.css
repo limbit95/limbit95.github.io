@@ -1,0 +1,43 @@
+@media (min-width: 640px) {
+  .main-content { padding-top: 1.75rem; }
+  .card, .activity-card { padding: 1.25rem; }
+  .form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .form-grid--2 .field--full { grid-column: 1 / -1; }
+  .form-actions { flex-direction: row; justify-content: flex-end; }
+  .modal__actions { flex-direction: row; justify-content: flex-end; }
+  .activity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-grid { grid-template-columns: repeat(4, 1fr); }
+  .activity-card__footer { grid-template-columns: 1fr auto; align-items: end; }
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .admin-grid { grid-template-columns: repeat(4, 1fr); }
+  .notification-panel { position: absolute; top: calc(100% + .55rem); left: auto; right: 0; width: 390px; }
+  .calendar-day { min-height: 105px; }
+}
+@media (min-width: 900px) {
+  .desktop-nav { display: flex; align-items: center; gap: .2rem; }
+  .desktop-nav a { min-height: 42px; display: inline-flex; align-items: center; padding: .5rem .75rem; border-radius: 12px; font-weight: 800; color: var(--muted); }
+  .desktop-nav a[aria-current="page"], .desktop-nav a:hover { background: var(--forest-100); color: var(--forest-900); }
+  .bottom-nav { display: none; }
+  .main-content { padding-bottom: 3rem; }
+  .toast-region { bottom: 1rem; }
+  .activity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sidebar-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+  .sticky-action { bottom: 1rem; }
+  .content-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1100px) {
+  .activity-grid--home { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@media (max-width: 380px) {
+  .header-inner { gap: .65rem; }
+  .brand span { font-size: .96rem; }
+  .brand img { width: 38px; height: 38px; }
+  .header-actions { gap: .25rem; }
+  .header-actions .button { padding-inline: .7rem; }
+  .calendar-day { padding: .25rem; }
+  .calendar-event { padding-inline: .2rem; }
+}

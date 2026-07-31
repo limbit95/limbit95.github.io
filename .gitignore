@@ -1,0 +1,5 @@
+# 실제 Supabase 연결값은 배포 저장소에서 관리합니다.
+# config.js에는 공개 가능한 publishable(anon) key만 사용하세요.
+.DS_Store
+Thumbs.db
+
