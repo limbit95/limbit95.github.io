@@ -176,10 +176,14 @@ setNotFound((routeInfo) => renderPage(routeInfo, async () => el("div", { classNa
   ]),
 ])));
 
-window.addEventListener("app:auth-changed", () => {
+window.addEventListener("app:auth-changed", (event) => {
   const auth = getAuthState();
   const current = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
   if (["/auth/confirm", "/password/update", "/reset-password", "/update-password"].includes(current)) return;
+  // Returning to a background tab may make Supabase repeat SIGNED_IN for the
+  // same account. The access context was refreshed, but rerendering here would
+  // replace an in-progress form and discard all of its DOM-held values.
+  if (event.detail?.event === "SIGNED_IN" && event.detail.sameUser) return;
   if (current === "/login" || current === "/signup" || auth.profile?.status !== "approved") {
     const destination = authDestination(auth);
     app.replaceChildren(el("main", { id: "main-content", className: "auth-layout" }, loadingState("접근 상태 확인 중…")));

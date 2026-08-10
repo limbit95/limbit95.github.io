@@ -135,11 +135,18 @@ export async function initializeAuth() {
           window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           return;
         }
+        // Supabase can emit SIGNED_IN again when an already authenticated tab
+        // becomes active. Remember whether this is the existing account before
+        // the async refresh so consumers can avoid rebuilding the current page.
+        const sameUser = Boolean(state.user?.id && state.user.id === session?.user?.id);
         window.setTimeout(async () => {
           try {
             await refreshAuthContext(session, {
               force: event === "USER_UPDATED",
             });
+            window.dispatchEvent(new CustomEvent("app:auth-changed", {
+              detail: { event, sameUser },
+            }));
             window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           } catch (authError) {
             window.dispatchEvent(new CustomEvent("app:error", { detail: authError }));
