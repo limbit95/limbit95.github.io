@@ -325,8 +325,9 @@ begin
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id;
  if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
- select jsonb_build_object(
+  select jsonb_build_object(
   'room',jsonb_build_object('id',r.id,'room_code',r.room_code,'status',r.status,'host_player_id',r.host_player_id,'current_game_id',r.current_game_id,'current_round_id',r.current_round_id,'version',r.version,'expires_at',r.expires_at),
+  'me',jsonb_build_object('player_id',v_player.id,'nickname',v_player.nickname,'is_host',r.host_player_id=v_player.id),
   'game',(select jsonb_build_object('id',g.id,'game_no',g.game_no,'status',g.status,'selected_categories',g.selected_categories,'difficulty',g.difficulty,'liar_count',g.liar_count,'guess_limit',g.guess_limit,'started_at',g.started_at) from public.liar_games g where g.id=r.current_game_id),
   'players',(select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'nickname',p.nickname,'ready',p.ready,'membership_status',p.membership_status) order by p.joined_at),'[]'::jsonb) from public.liar_players p where p.room_id=r.id and p.membership_status='active'),
   'round',(select jsonb_build_object('id',x.id,'round_no',x.round_no,'status',x.status,'current_speaker_index',x.current_speaker_index,'version',x.version) from public.liar_rounds x where x.id=r.current_round_id),

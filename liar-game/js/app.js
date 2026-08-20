@@ -20,7 +20,7 @@ function render(state=store.get()){
  if(state.signedOut||!state.session){root.innerHTML=accessView();return;}
  if(!state.nickname){root.innerHTML=nicknameView();return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message);return;}
- const s=state.snapshot;let html=roomView(s,state.message);if(!s.round)html+=setupView(s,true);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
 }
 store.subscribe(render);
 async function perform(task,{reload=true}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){store.set({message:messageFor(error)});}}
@@ -32,7 +32,7 @@ root.addEventListener("submit",async(event)=>{event.preventDefault();const form=
 });
 root.addEventListener("click",async(event)=>{const action=event.target.closest("[data-action]")?.dataset.action;if(!action)return;const s=store.get().snapshot;
  if(action==="change-nickname"){setNickname("");store.set({nickname:""});}
- if(action==="ready"){const mine=s.players.find(p=>p.nickname===store.get().nickname);await perform(()=>commands.setReady(!mine?.ready));}
+ if(action==="ready"){const mine=s.players.find(p=>p.id===s.me?.player_id);await perform(()=>commands.setReady(!mine?.ready));}
  if(action==="edit-nickname"){const value=prompt("새 닉네임 (1~20자)",store.get().nickname)?.trim();if(value&&value.length<=20)await perform(async()=>{await commands.updateNickname(value);setNickname(value);store.set({nickname:value});});}
  if(action==="leave"&&confirm("방에서 나가시겠습니까?"))await perform(async()=>{await commands.leaveRoom();setCurrentRoom("");store.set({snapshot:null,myRole:null});},{reload:false});
  if(action==="start-round")await perform(()=>commands.startRound(s.room.version));
