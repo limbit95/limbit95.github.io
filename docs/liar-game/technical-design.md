@@ -196,7 +196,7 @@ liar-game/
 | `joined_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 | `left_at` | `timestamptz`, nullable |
 
-UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱스는 `(room_id, membership_status)`, `(auth_user_id, membership_status)`, `(player_key)`다. 또한 `auth_user_id WHERE membership_status='active'` 부분 UNIQUE 인덱스로 한 Auth 계정에 active membership을 하나만 허용한다. 참가 RPC도 이를 재검증하며, 다른 방에 참가하려면 기존 active room에서 먼저 나가야 한다.
+UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱스는 `(room_id, membership_status)`, `(auth_user_id, membership_status)`, `(player_key)`다. 또한 `auth_user_id WHERE membership_status='active'` 부분 UNIQUE 인덱스로 한 Auth 계정에 active membership을 하나만 허용한다. `create_room`/`join_room` RPC는 기존 active membership을 재검증한다. 그 membership의 room이 유효하면 새 방 생성/참가를 거부하지만, `now() >= expires_at`이거나 `status='expired'`이면 기존 membership을 `membership_status='left'`, `ready=false`, `left_at=now()`로 갱신한 뒤 새 room 생성/참가를 허용한다.
 
 `spectator`, `round_participant` boolean은 저장하지 않는다. 현재 round에 `liar_round_players` 행이 있으면 참가자이고, active membership만 있으면 관전자다. 중복 상태 플래그의 모순을 방지한다.
 
@@ -279,7 +279,7 @@ UNIQUE `(round_id, stage_no)`. 배열에는 FK를 걸 수 없으므로 RPC가 �
 |---|---|
 | `id` | `uuid`, PK |
 | `vote_stage_id` | `uuid`, NOT NULL FK vote stages, CASCADE |
-| `voter_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
+| `voter_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, CASCADE |
 | `revision` | `integer`, NOT NULL DEFAULT 1 CHECK >= 1 |
 | `submitted_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
@@ -291,7 +291,7 @@ UNIQUE `(vote_stage_id, voter_round_player_id)`. ballot 행을 제출 완료 기
 |---|---|
 | `id` | `uuid`, PK |
 | `ballot_id` | `uuid`, NOT NULL FK ballots, CASCADE |
-| `target_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
+| `target_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, CASCADE |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
 UNIQUE `(ballot_id, target_round_player_id)`를 둔다. 이 UNIQUE 인덱스의 선두 `ballot_id`를 ballot별 선택 조회에도 사용하고, target별 역조회용 `(target_round_player_id, ballot_id)` 인덱스를 별도로 둔다. `round_id`, stage, voter는 중복 저장하지 않고 `liar_votes.ballot_id → liar_ballots.vote_stage_id → liar_vote_stages.round_id/stage_no` 및 `liar_ballots.voter_round_player_id`로 조회한다. 따라서 round/stage 집계와 voter 상세 조회도 이 관계를 JOIN하여 수행한다. voter와 target이 다른지, target이 같은 round와 stage의 후보인지, 정확한 선택 수와 stage open 여부인지는 교차 행 CHECK 대신 `submit_ballot` RPC가 검증한다.
@@ -302,7 +302,7 @@ UNIQUE `(ballot_id, target_round_player_id)`를 둔다. 이 UNIQUE 인덱스의 
 |---|---|
 | `id` | `uuid`, PK |
 | `round_id` | `uuid`, NOT NULL FK rounds, CASCADE |
-| `guesser_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
+| `guesser_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, CASCADE |
 | `attempt_no` | `smallint`, NOT NULL CHECK 1~3 |
 | `guess_text` | `text`, NOT NULL, trim non-empty/길이 CHECK |
 | `normalized_guess` | `text`, NOT NULL |
@@ -425,8 +425,8 @@ liar-room:{roomId}
 liar-round:{roundId}
 ```
 
-- room channel: rooms, players, games와 rounds의 공개 가능한 변경 신호를 room ID로 구독한다. 진행 중 round 이벤트 payload에는 `word_snapshot`을 포함하지 않으며 일반 snapshot RPC를 다시 호출하는 신호로만 사용한다.
-- round channel: 진행 상태와 공개 가능한 participant 변경 신호, vote stages, guesses를 current round 범위로 구독한다. 진행 중 `liar_round_players` 원본 payload는 role을 포함하므로 일반 참가자·관전자에게 직접 구독시키지 않는다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
+- room channel: rooms, players, games와 rounds의 공개 가능한 변경 신호를 room ID로 구독한다. `liar_rounds`를 구독할 때는 `id`, `room_id`, `status`, `version`처럼 안전한 컬럼만 명시적으로 select하여 `word_snapshot`이 payload에 포함되지 않게 하거나, 별도의 공개 version 변경 이벤트만 구독한 뒤 일반 snapshot RPC를 다시 호출한다.
+- round channel: 진행 상태와 공개 가능한 participant 변경 신호, vote stages, guesses를 current round 범위로 구독한다. `liar_round_players`를 구독할 때는 `id`, `round_id`, `nickname_snapshot`, `turn_order`, `role_checked_at`처럼 안전한 컬럼만 명시적으로 select하여 `role`이 payload에 포함되지 않게 하거나, 별도의 공개 version 변경 이벤트만 구독한 뒤 snapshot RPC를 재조회한다. 안전 컬럼 projection을 보장할 수 없다면 진행 중인 `liar_rounds`와 `liar_round_players` base table의 Postgres Changes는 일반 참가자·관전자에게 직접 구독시키지 않는다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
 - votes 개별 row 구독은 이벤트 폭주와 투표 중 정보 노출을 피하기 위해 생략할 수 있다. round/stage version 변경을 통해 결과 snapshot을 재조회한다.
 
 ballot 진행률 구독은 다음 순서를 따른다.
@@ -525,7 +525,7 @@ round participant가 있으면 해당 화면, membership만 있으면 관전자,
 
 ### L.1 Soft expiration
 
-별도 서버가 없으므로 접근 시 지연 판정을 기본으로 한다. 모든 room mutation RPC는 `status='expired' OR now() >= expires_at`이면 expired 상태를 기록하고 요청을 거부한다. 유효한 주요 게임 동작 성공 시 `last_activity_at=now()`, `expires_at=now()+24h`로 갱신한다.
+별도 서버가 없으므로 접근 시 지연 판정을 기본으로 한다. 모든 room mutation RPC는 `status='expired' OR now() >= expires_at`이면 expired 상태를 기록하고 요청을 거부한다. 단, `create_room`/`join_room` RPC가 호출자의 기존 active membership을 검사할 때 그 membership의 room이 `status='expired'`이거나 `now() >= expires_at`이면, 기존 membership을 `membership_status='left'`, `ready=false`, `left_at=now()`로 처리한 후 새 room 생성/참가를 계속한다. 유효한 주요 게임 동작 성공 시 `last_activity_at=now()`, `expires_at=now()+24h`로 갱신한다.
 
 활동에는 create/join/leave, ready/nickname, 설정/start, role check, speaker, vote, guess, lifecycle, host transfer/force end를 포함한다. 단순 SELECT, Realtime reconnect, 열린 탭 heartbeat는 활동으로 보지 않는다.
 
