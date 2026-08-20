@@ -20,19 +20,19 @@ revoke all on table public.liar_rooms, public.liar_players, public.liar_games,
   public.liar_ballots, public.liar_votes, public.liar_guesses, public.liar_words
 from anon, authenticated;
 
-revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon;
-revoke all on function public.liar_join_room(text,uuid,text) from public, anon;
-revoke all on function public.liar_leave_room(uuid) from public, anon;
-revoke all on function public.liar_update_nickname(uuid,text) from public, anon;
-revoke all on function public.liar_set_ready(uuid,boolean) from public, anon;
-revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon;
-revoke all on function public.liar_start_round(uuid,bigint) from public, anon;
-revoke all on function public.liar_mark_role_checked(uuid) from public, anon;
-revoke all on function public.liar_get_my_round_role(uuid) from public, anon;
-revoke all on function public.liar_get_room_snapshot(uuid) from public, anon;
-revoke all on function public.liar_start_speaking(uuid,bigint) from public, anon;
-revoke all on function public.liar_move_speaker(uuid,text,bigint) from public, anon;
-revoke all on function public.liar_finish_speaking(uuid,bigint) from public, anon;
+revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
+revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
+revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
+revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;
+revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_mark_role_checked(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_my_round_role(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_room_snapshot(uuid) from public, anon, authenticated;
+revoke all on function public.liar_start_speaking(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_move_speaker(uuid,text,bigint) from public, anon, authenticated;
+revoke all on function public.liar_finish_speaking(uuid,bigint) from public, anon, authenticated;
 
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
