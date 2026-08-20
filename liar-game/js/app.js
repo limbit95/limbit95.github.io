@@ -1,6 +1,6 @@
 import { ERROR_MESSAGES, ROUND_STATUS } from "./constants.js";
 import { initializeSession } from "./sessionGuard.js";
-import { getCurrentRoom, getNickname, getPlayerKey, setCurrentRoom, setNickname } from "./storage.js";
+import { getNickname, getPlayerKey, setCurrentRoom, setNickname } from "./storage.js";
 import { store } from "./store.js";
 import { getMyRoundRole, getRoomSnapshot } from "./api.js";
 import { commands } from "./commands.js";
@@ -23,11 +23,16 @@ function render(state=store.get()){
  const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
 }
 store.subscribe(render);
-async function perform(task,{reload=true}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){store.set({message:messageFor(error)});}}
+async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
+ if(recoverRoom&&errorCode(error)==="ALREADY_IN_ACTIVE_ROOM"){
+  try{await refresh();if(store.get().snapshot)return;}catch{}
+ }
+ store.set({message:messageFor(error)});
+}}
 root.addEventListener("submit",async(event)=>{event.preventDefault();const form=event.target;const data=new FormData(form);
  if(form.dataset.action==="nickname"){const nickname=data.get("nickname").trim();if(!nickname||nickname.length>20)return;setNickname(nickname);store.set({nickname});return;}
- if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:["음식","장소","직업","동물","물건","인물","기타"],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");});
- if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");});
+ if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:["음식","장소","직업","동물","물건","인물","기타"],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
+ if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit"))},s.room.version));}
 });
 root.addEventListener("click",async(event)=>{const action=event.target.closest("[data-action]")?.dataset.action;if(!action)return;const s=store.get().snapshot;
@@ -44,5 +49,5 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="finish-speaking")await perform(()=>commands.finishSpeaking(s.round.version));
 });
 
-async function boot(){try{getPlayerKey();const session=await initializeSession();if(!session)return;const nickname=getNickname();store.set({nickname});if(nickname&&getCurrentRoom())await refresh();}catch(error){store.set({message:messageFor(error)});}finally{render();}}
+async function boot(){try{getPlayerKey();const session=await initializeSession();if(!session)return;const nickname=getNickname();store.set({nickname});if(nickname)await refresh();}catch(error){store.set({message:messageFor(error)});}finally{render();}}
 boot();
