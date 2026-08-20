@@ -1,18 +1,32 @@
 <!doctype html>
 <html lang="ko">
   <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="로그인 사용자용 라이어게임">
-    <title>LIAR GAME</title>
+    <meta name="theme-color" content="#2f6b4f">
+    <meta name="description" content="청년 공동체의 문화생활과 야외 활동을 함께하는 청파 같이">
+    <title>청파 같이</title>
+    <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./css/reset.css">
-    <link rel="stylesheet" href="./css/tokens.css">
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/layout.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/pages.css">
+    <link rel="stylesheet" href="./css/responsive.css">
   </head>
   <body>
-    <main id="app" class="app-shell" aria-live="polite">
-      <section class="card"><p>로그인 상태를 확인하고 있습니다…</p></section>
-    </main>
+    <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="app" class="app-shell">
+      <div class="app-initial-loading" role="status" aria-live="polite">
+        <img src="./assets/images/logo.svg" alt="" width="64" height="64">
+        <p>청파 같이 불러오는 중…</p>
+      </div>
+    </div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div id="modal-root"></div>
+    <noscript>
+      <div class="noscript-message">이 서비스를 이용하려면 JavaScript를 활성화해 주세요.</div>
+    </noscript>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="./js/app.js"></script>
   </body>
