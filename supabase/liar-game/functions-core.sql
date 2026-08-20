@@ -10,6 +10,12 @@ set search_path = pg_catalog, public
 as $$
 declare v_categories text[];
 begin
+  if p_categories is null
+     or p_difficulty is null
+     or p_liar_count is null
+     or p_guess_limit is null then
+    raise exception using message = 'INVALID_GAME_SETTINGS', errcode = 'P0001';
+  end if;
   select array_agg(x order by first_pos) into v_categories
   from (
     select x, min(pos) first_pos
@@ -81,7 +87,9 @@ declare v_auth uuid := auth.uid(); v_categories text[]; v_room uuid; v_code text
         v_player uuid; v_game uuid; v_try integer;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
-  if p_player_key is null or char_length(btrim(p_nickname)) not between 1 and 20 then
+  if p_player_key is null
+     or p_nickname is null
+     or char_length(btrim(p_nickname)) not between 1 and 20 then
     raise exception using message='INVALID_NICKNAME', errcode='P0001';
   end if;
   perform pg_advisory_xact_lock(hashtextextended(v_auth::text, 0));
@@ -115,7 +123,7 @@ as $$
 declare v_auth uuid:=auth.uid(); v_room public.liar_rooms%rowtype; v_player uuid; v_count integer;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
-  if p_player_key is null or char_length(btrim(p_nickname)) not between 1 and 20 then raise exception using message='INVALID_NICKNAME', errcode='P0001'; end if;
+  if p_player_key is null or p_nickname is null or char_length(btrim(p_nickname)) not between 1 and 20 then raise exception using message='INVALID_NICKNAME', errcode='P0001'; end if;
   perform pg_advisory_xact_lock(hashtextextended(v_auth::text, 0));
   perform public.liar_clear_expired_membership(v_auth);
   select * into v_room from public.liar_rooms where room_code=upper(btrim(p_room_code)) for update;
@@ -148,6 +156,7 @@ as $$
 declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_others integer;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
+  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
   select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
   if not found then raise exception using message='NOT_ROOM_MEMBER', errcode='P0001'; end if;
   select * into v_room from public.liar_rooms where id=v_player.room_id for update;
@@ -175,7 +184,8 @@ returns bigint language plpgsql security definer set search_path=pg_catalog,publ
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
- if char_length(btrim(p_nickname)) not between 1 and 20 then raise exception using message='INVALID_NICKNAME',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+ if p_nickname is null or char_length(btrim(p_nickname)) not between 1 and 20 then raise exception using message='INVALID_NICKNAME',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
@@ -190,12 +200,14 @@ returns bigint language plpgsql security definer set search_path=pg_catalog,publ
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  if p_ready is null then raise exception using message='INVALID_READY',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
- -- ready always means opting into the next snapshot; it does not alter current participation.
+ if v_room.current_round_id is not null then raise exception using message='INVALID_ROOM_STATE',errcode='P0001'; end if;
+ -- ready opts the player into the next round snapshot while no round is active.
  update public.liar_players set ready=p_ready where id=v_player.id;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id returning version into v_room.version;
  return v_room.version;
@@ -206,13 +218,14 @@ returns bigint language plpgsql security definer set search_path=pg_catalog,publ
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_game public.liar_games%rowtype; v_categories text[];
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  v_categories:=public.liar_validate_settings(p_selected_categories,p_difficulty,p_liar_count,p_guess_limit);
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
- if v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
  if not found or v_game.status<>'setup' or v_game.started_at is not null then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  update public.liar_games set selected_categories=v_categories,difficulty=p_difficulty,liar_count=p_liar_count,guess_limit=p_guess_limit where id=v_game.id;
@@ -228,12 +241,13 @@ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room pu
  v_count integer; v_max integer; v_round_no integer; v_round uuid; v_word public.liar_words%rowtype; v_last_word uuid; v_candidates integer;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
- if v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  if v_room.current_round_id is not null then raise exception using message='INVALID_ROOM_STATE',errcode='P0001'; end if;
  select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
  if not found or v_game.status not in ('setup','active') then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
@@ -267,18 +281,21 @@ end $$;
 
 create or replace function public.liar_mark_role_checked(p_player_key uuid)
 returns timestamptz language plpgsql security definer set search_path=pg_catalog,public
-as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_checked timestamptz;
+as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype; v_checked timestamptz;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
+ if not found or v_round.status<>'ROLE_REVEAL' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
  update public.liar_round_players rp set role_checked_at=coalesce(role_checked_at,now())
- where rp.round_id=v_room.current_round_id and rp.player_id=v_player.id returning role_checked_at into v_checked;
+ where rp.round_id=v_round.id and rp.player_id=v_player.id returning role_checked_at into v_checked;
  if not found then raise exception using message='NOT_ROUND_PARTICIPANT',errcode='P0001'; end if;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id;
- update public.liar_rounds set version=version+1 where id=v_room.current_round_id and status='ROLE_REVEAL';
+ update public.liar_rounds set version=version+1 where id=v_round.id;
  return v_checked;
 end $$;
 
@@ -288,6 +305,7 @@ language plpgsql security definer stable set search_path=pg_catalog,public
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id;
@@ -303,6 +321,7 @@ returns jsonb language plpgsql security definer stable set search_path=pg_catalo
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_result jsonb;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id;
@@ -322,12 +341,13 @@ returns bigint language plpgsql security definer set search_path=pg_catalog,publ
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'ROLE_REVEAL' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
- if v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  if exists(select 1 from public.liar_round_players where round_id=v_round.id and role_checked_at is null) then raise exception using message='ROLE_NOT_CONFIRMED',errcode='P0001'; end if;
  update public.liar_rounds set status='SPEAKING',current_speaker_index=0,version=version+1 where id=v_round.id returning version into v_round.version;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id;
@@ -340,14 +360,15 @@ language plpgsql security definer set search_path=pg_catalog,public
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype; v_count integer; v_new integer;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
- if v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_round_players rp where rp.round_id=v_round.id;
- if upper(p_direction) not in ('NEXT','PREVIOUS') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
+ if p_direction is null or upper(p_direction) not in ('NEXT','PREVIOUS') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
  v_new:=v_round.current_speaker_index + case when upper(p_direction)='NEXT' then 1 else -1 end;
  if v_new<0 or v_new>=v_count then raise exception using message='SPEAKER_INDEX_OUT_OF_RANGE',errcode='P0001'; end if;
  update public.liar_rounds set current_speaker_index=v_new,version=version+1 where id=v_round.id returning liar_rounds.current_speaker_index,version into current_speaker_index,round_version;
@@ -360,12 +381,13 @@ returns bigint language plpgsql security definer set search_path=pg_catalog,publ
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype; v_count integer;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+ if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
- if v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_round_players where round_id=v_round.id;
  if v_round.current_speaker_index<>v_count-1 then raise exception using message='SPEAKING_NOT_FINISHED',errcode='P0001'; end if;
  -- Preserve the last index so clients can still identify the final speaker.
@@ -378,3 +400,16 @@ end $$;
 revoke all on function public.liar_validate_settings(text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_expire_room(uuid) from public, anon, authenticated;
 revoke all on function public.liar_clear_expired_membership(uuid) from public, anon, authenticated;
+revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
+revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
+revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
+revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;
+revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_mark_role_checked(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_my_round_role(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_room_snapshot(uuid) from public, anon, authenticated;
+revoke all on function public.liar_start_speaking(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_move_speaker(uuid,text,bigint) from public, anon, authenticated;
+revoke all on function public.liar_finish_speaking(uuid,bigint) from public, anon, authenticated;
