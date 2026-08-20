@@ -129,7 +129,6 @@ begin
   select * into v_room from public.liar_rooms where room_code=upper(btrim(p_room_code)) for update;
   if not found then raise exception using message='ROOM_NOT_FOUND', errcode='P0001'; end if;
   if v_room.status='expired' or now()>=v_room.expires_at then
-    perform public.liar_expire_room(v_room.id);
     raise exception using message='ROOM_EXPIRED', errcode='P0001';
   end if;
   select count(*) into v_count from public.liar_players where room_id=v_room.id and membership_status='active';
@@ -160,7 +159,7 @@ begin
   select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
   if not found then raise exception using message='NOT_ROOM_MEMBER', errcode='P0001'; end if;
   select * into v_room from public.liar_rooms where id=v_player.room_id for update;
-  if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+  if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
   select count(*) into v_others from public.liar_players where room_id=v_room.id and membership_status='active' and id<>v_player.id;
   if v_room.host_player_id=v_player.id and v_others>0 then raise exception using message='HOST_TRANSFER_REQUIRED',errcode='P0001'; end if;
   -- A lone host may leave only before gameplay starts. There is nobody to
@@ -189,7 +188,7 @@ begin
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
- if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  update public.liar_players set nickname=btrim(p_nickname) where id=v_player.id; -- round snapshots intentionally remain immutable.
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id returning version into v_room.version;
  return v_room.version;
@@ -205,7 +204,7 @@ begin
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
- if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.current_round_id is not null then raise exception using message='INVALID_ROOM_STATE',errcode='P0001'; end if;
  -- ready opts the player into the next round snapshot while no round is active.
  update public.liar_players set ready=p_ready where id=v_player.id;
@@ -223,7 +222,7 @@ begin
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
- if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
@@ -245,7 +244,7 @@ begin
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
- if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  if v_room.current_round_id is not null then raise exception using message='INVALID_ROOM_STATE',errcode='P0001'; end if;
@@ -288,7 +287,7 @@ begin
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key;
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
- if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'ROLE_REVEAL' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
  update public.liar_round_players rp set role_checked_at=coalesce(role_checked_at,now())
@@ -343,7 +342,7 @@ begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'ROLE_REVEAL' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
@@ -362,7 +361,7 @@ begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
@@ -383,7 +382,7 @@ begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then perform public.liar_expire_room(v_room.id); raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
