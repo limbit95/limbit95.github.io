@@ -32,7 +32,7 @@
 - 기존 일반 페이지는 Auth 세션뿐 아니라 `profiles.status`가 `approved`인지도 확인한다.
 - 로그인 화면은 물리 `/login`이 아니라 루트 SPA의 `#/login`이다.
 
-요구사항은 기존 `profiles`에 의존하지 않고 Auth 세션만 재사용하라고 하므로 기본안은 **유효한 Auth user 존재**만 접근 조건으로 삼는다. 승인 회원만 허용해야 한다면 이는 별도의 제품 정책 결정이며, 그때만 제한적으로 profile 상태를 조회한다.
+라이어게임의 접근 조건은 **유효한 Supabase Auth 로그인 세션 존재**로 확정한다. `profiles.status='approved'`를 비롯한 기존 `profiles` 데이터는 조회하거나 접근 조건으로 사용하지 않는다. 세션이 없으면 접근을 차단하고, 세션이 있으면 라이어게임에 접근할 수 있다.
 
 ### A.4 Router, App, 메뉴
 
@@ -84,7 +84,7 @@ Supabase
 6. 만료와 순번은 브라우저 시간이 아니라 DB `now()`를 기준으로 한다.
 7. UI 사전 검증과 별개로 DB가 host, participant, 상태, 만료를 다시 검증한다.
 
-원자 RPC가 필요한 작업은 방 생성/참가, 라운드 시작, ballot 교체, 투표 마감과 판정, 추측 제출, 다음 라운드, 새 게임, 방장 위임, 강제 종료다.
+원자 RPC가 필요한 작업은 방 생성/참가, game/round 시작, ballot 교체, 투표 마감과 판정, 재투표 생성, 추측 제출, 다음 라운드, 새 게임, 방장 위임, 강제 종료다.
 
 ## C. 최종 디렉터리 및 파일 구조
 
@@ -170,7 +170,7 @@ liar-game/
 | `id` | `uuid`, PK, NOT NULL, UUID default |
 | `room_code` | `varchar(6)`, NOT NULL, UNIQUE, 대문자·숫자 6자 CHECK |
 | `status` | `text`, NOT NULL DEFAULT `active`, CHECK `active/expired` |
-| `host_player_id` | `uuid`, nullable FK players, ON DELETE RESTRICT |
+| `host_player_id` | `uuid`, nullable FK `liar_players.id`, ON DELETE SET NULL |
 | `current_game_id` | `uuid`, nullable FK games, ON DELETE SET NULL |
 | `current_round_id` | `uuid`, nullable FK rounds, ON DELETE SET NULL |
 | `last_activity_at` | `timestamptz`, NOT NULL DEFAULT now() |
@@ -196,7 +196,7 @@ liar-game/
 | `joined_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 | `left_at` | `timestamptz`, nullable |
 
-UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱스는 `(room_id, membership_status)`, `(auth_user_id, membership_status)`, `(player_key)`다. 한 계정당 동시 한 방 정책을 택하면 active membership 부분 UNIQUE를 추가한다.
+UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱스는 `(room_id, membership_status)`, `(auth_user_id, membership_status)`, `(player_key)`다. 또한 `auth_user_id WHERE membership_status='active'` 부분 UNIQUE 인덱스로 한 Auth 계정에 active membership을 하나만 허용한다. 참가 RPC도 이를 재검증하며, 다른 방에 참가하려면 기존 active room에서 먼저 나가야 한다.
 
 `spectator`, `round_participant` boolean은 저장하지 않는다. 현재 round에 `liar_round_players` 행이 있으면 참가자이고, active membership만 있으면 관전자다. 중복 상태 플래그의 모순을 방지한다.
 
@@ -265,8 +265,8 @@ UNIQUE `(round_id, player_id)`, `(round_id, turn_order)`. 인덱스는 `(round_i
 | `stage_no` | `smallint`, NOT NULL CHECK >= 1 |
 | `kind` | `text`, CHECK original/runoff |
 | `seats_to_fill` | `smallint`, NOT NULL CHECK >= 1 |
-| `candidate_player_ids` | `uuid[]`, NOT NULL |
-| `locked_winner_player_ids` | `uuid[]`, NOT NULL DEFAULT empty |
+| `candidate_round_player_ids` | `uuid[]`, NOT NULL, 원소는 `liar_round_players.id` |
+| `locked_winner_round_player_ids` | `uuid[]`, NOT NULL DEFAULT empty, 원소는 `liar_round_players.id` |
 | `status` | `text`, CHECK open/closed |
 | `opened_at` | `timestamptz`, NOT NULL |
 | `closed_at` | `timestamptz`, nullable |
@@ -279,11 +279,11 @@ UNIQUE `(round_id, stage_no)`. 배열에는 FK를 걸 수 없으므로 RPC가 �
 |---|---|
 | `id` | `uuid`, PK |
 | `vote_stage_id` | `uuid`, NOT NULL FK vote stages, CASCADE |
-| `voter_player_id` | `uuid`, NOT NULL FK round players, RESTRICT |
+| `voter_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
 | `revision` | `integer`, NOT NULL DEFAULT 1 CHECK >= 1 |
 | `submitted_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(vote_stage_id, voter_player_id)`. ballot 행을 제출 완료 기준으로 세어 다중 target rows를 여러 명의 투표로 오인하지 않는다.
+UNIQUE `(vote_stage_id, voter_round_player_id)`. ballot 행을 제출 완료 기준으로 세어 다중 target rows를 여러 명의 투표로 오인하지 않는다.
 
 ### E.9 `liar_votes`
 
@@ -293,11 +293,11 @@ UNIQUE `(vote_stage_id, voter_player_id)`. ballot 행을 제출 완료 기준으
 | `round_id` | `uuid`, NOT NULL FK rounds, CASCADE |
 | `vote_stage` | `smallint`, NOT NULL CHECK >= 1 |
 | `ballot_id` | `uuid`, NOT NULL FK ballots, CASCADE |
-| `voter_player_id` | `uuid`, NOT NULL FK round players, RESTRICT |
-| `target_player_id` | `uuid`, NOT NULL FK round players, RESTRICT |
+| `voter_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
+| `target_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(round_id, vote_stage, voter_player_id, target_player_id)`, `(ballot_id, target_player_id)`, CHECK voter != target. 집계용 `(round_id, vote_stage, target_player_id)`와 상세용 `(round_id, vote_stage, voter_player_id)` 인덱스를 둔다. 정확한 선택 수, stage 후보, open 여부는 RPC가 검증한다.
+UNIQUE `(round_id, vote_stage, voter_round_player_id, target_round_player_id)`, `(ballot_id, target_round_player_id)`, CHECK voter != target. 집계용 `(round_id, vote_stage, target_round_player_id)`와 상세용 `(round_id, vote_stage, voter_round_player_id)` 인덱스를 둔다. 정확한 선택 수, stage 후보, open 여부는 RPC가 검증한다.
 
 ### E.10 `liar_guesses`
 
@@ -305,7 +305,7 @@ UNIQUE `(round_id, vote_stage, voter_player_id, target_player_id)`, `(ballot_id,
 |---|---|
 | `id` | `uuid`, PK |
 | `round_id` | `uuid`, NOT NULL FK rounds, CASCADE |
-| `player_id` | `uuid`, NOT NULL FK round players, RESTRICT |
+| `guesser_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
 | `attempt_no` | `smallint`, NOT NULL CHECK 1~3 |
 | `guess_text` | `text`, NOT NULL, trim non-empty/길이 CHECK |
 | `normalized_guess` | `text`, NOT NULL |
@@ -353,6 +353,10 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 진행 중 join은 room membership만 만들고 current round player는 만들지 않는다. UI는 이를 관전자로 판단한다. 다음 WAITING부터 ready를 선택할 수 있다.
 
+### 진행 중 참가자 퇴장
+
+현재 round participant도 게임방 나가기를 선택할 수 있다. 퇴장 RPC는 `liar_players.membership_status='left'`와 `left_at`을 기록하되 현재 `liar_round_players` snapshot과 역할, 투표, 발언 순서 등 기존 라운드 기록은 삭제하거나 변경하지 않는다. 이탈로 전원 투표 같은 필수 조건을 충족할 수 없으면 host가 GAME 전체 강제 종료를 사용한다. host는 같은 방의 다른 active player에게 방장을 먼저 위임해야 퇴장할 수 있다.
+
 ### 다음 라운드와 새 게임
 
 - 다음 라운드: GAME 유지, current round pointer 제거, ready 초기화, 다음 start 시 round 번호 증가.
@@ -379,6 +383,8 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 설정 가능 여부는 상태명보다 `game.started_at IS NULL AND game.status='setup'`으로 판정한다. 같은 GAME의 다음 라운드 WAITING에서는 설정을 잠근다. 일반 상태 후퇴는 금지하며 SPEAKING의 speaker index 감소만 허용한다.
 
+`start_speaking` RPC는 현재 round의 모든 `liar_round_players.role_checked_at`이 NOT NULL인지 다시 확인한다. 한 명이라도 미확인이면 버튼을 비활성화하고 RPC도 전이를 거부한다. host가 미확인자를 무시하거나 강제로 진행하는 기능은 1차 범위에 포함하지 않는다.
+
 ## H. 투표 / 동점 / 추측 설계
 
 ### H.1 ballot 제출과 수정
@@ -387,7 +393,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 ### H.2 마감과 판정
 
-host의 `close_vote_stage` RPC가 stage를 lock/close하고 그 시점의 표만 집계한다. 모든 player의 투표 여부는 마감 조건이 아니며 미제출자가 있으면 UI 확인창만 보여준다. 경계 동점이면 다음 vote stage를 만들고, 아니면 final suspects를 기록하여 actual liar set과 비교한다.
+host의 `close_vote_stage` RPC가 stage를 lock하고 현재 round participant 전원의 ballot 제출을 재검증한다. 제출 수가 참가자 수보다 적으면 마감을 거부하고 UI의 마감 버튼도 비활성화한다. 전원 제출이 확인된 경우에만 stage를 close하고 표를 집계한다. 경계 동점이면 다음 vote stage를 만들고, 아니면 final suspects를 기록하여 actual liar set과 비교한다. 비정상 이탈 등으로 전원 제출이 불가능하면 미제출자를 제외해 마감하지 않고 host의 GAME 전체 강제 종료를 사용한다.
 
 ### H.3 경계 동점
 
@@ -397,7 +403,7 @@ host의 `close_vote_stage` RPC가 stage를 lock/close하고 그 시점의 표만
 - voter는 남은 자리 수(`liar_count - locked winners`)만큼 선택한다.
 - stage 번호로 원투표와 모든 재투표 이력을 구분한다.
 
-재투표가 다시 동점이면 같은 후보로 stage를 증가시켜 반복한다. 권장 기본안은 최대 3회 후 DB 랜덤 추첨이지만, 이는 제품 정책 확정이 필요하다.
+재투표가 다시 동점이면 Zoom 추가 토론 후 같은 후보로 stage 번호를 증가시켜 다시 재투표한다. 동점이 해소될 때까지 횟수 제한 없이 반복하며 DB 랜덤 추첨이나 host 임의 결정은 하지 않는다. 진행을 중단해야 하면 host의 GAME 전체 강제 종료를 사용한다.
 
 ### H.4 검거 판정
 
@@ -407,7 +413,7 @@ host의 `close_vote_stage` RPC가 stage를 lock/close하고 그 시점의 표만
 
 `submit_guess` RPC가 round row를 `FOR UPDATE`로 잠근다. 제출자가 현재 round liar인지, 상태와 남은 횟수를 확인한 뒤 count+1 attempt를 배정한다. UNIQUE `(round_id, attempt_no)`가 이중 방어한다. 동시에 제출하면 lock 순서대로 처리되며, 첫 제출이 정답이면 두 번째는 종료된 상태라 거부된다.
 
-정규화는 입력과 정답 모두 trim → 모든 공백 제거 → 정확 비교다. 동의어/유사어는 인정하지 않는다. 최종 비교는 DB에서 하고 클라이언트 비교는 안내 용도로만 사용한다.
+정규화는 입력과 정답 모두 Unicode NFC 정규화 → 앞뒤 공백 제거 → 문자열 내부를 포함한 모든 공백 제거 → 정확 문자열 비교 순서다. 개념적으로 JavaScript의 `value.normalize("NFC").trim().replace(/\s+/g, "")`와 같지만 최종 판정은 DB/RPC에서 동일 규칙으로 수행한다. 대소문자는 변환하지 않으며 동의어, 유사어, 의미 기반 또는 AI 판정은 지원하지 않는다. 클라이언트 비교는 안내 용도로만 사용한다.
 
 ### H.6 결과
 
@@ -423,15 +429,26 @@ liar-round:{roundId}
 ```
 
 - room channel: rooms, players, games, rounds를 room ID로 구독한다.
-- round channel: round players, vote stages, ballots/guesses 중 current round 범위만 구독한다.
+- round channel: round players, vote stages, guesses는 current round 범위로 구독한다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
 - votes 개별 row 구독은 이벤트 폭주와 투표 중 정보 노출을 피하기 위해 생략할 수 있다. round/stage version 변경을 통해 결과 snapshot을 재조회한다.
+
+ballot 진행률 구독은 다음 순서를 따른다.
+
+```text
+현재 ROUND
+→ 현재 open liar_vote_stage 조회
+→ current_vote_stage_id 확인
+→ liar_ballots WHERE vote_stage_id = current_vote_stage_id 구독
+```
+
+이 구독은 `4 / 5명 투표 완료` 같은 제출 인원 snapshot을 갱신하는 신호로만 쓴다. stage가 바뀌면 기존 ballot 구독을 제거하고 새 `vote_stage_id`로 구독한다.
 
 ### I.2 이벤트 처리
 
 - room/player 이벤트는 50~150ms debounce 후 room snapshot 재조회.
 - round status/version 이벤트는 current round snapshot 전체 재조회.
 - speaker index는 즉시 부분 갱신 후 background 확인 가능.
-- 투표 중에는 ballot 제출 수만 갱신하고 상세 votes/득표 수를 공개하지 않는다.
+- 투표 중에는 ballot 이벤트를 진행률 snapshot 재조회 신호로만 사용하여 제출 수만 갱신한다. 누가 누구에게 투표했는지, 현재 득표 수, 최다 득표 후보는 공개하지 않는다.
 - 화면 상태가 바뀔 때 root view를 바꾸고, 같은 상태에서는 player list/progress/speaker만 부분 갱신한다.
 - 입력 중인 nickname, guess, ballot draft는 무관한 Realtime event로 잃지 않는다.
 
@@ -453,6 +470,8 @@ liar-round:{roundId}
 ### J.1 초기화
 
 동일 Supabase URL/key와 기본 Auth storage를 쓰는 독립 client를 만든다. `getSession()`에서 user가 없으면 로그인 안내를 표시한다. 로그인 버튼은 root SPA의 `#/login`으로 이동해야 하며 project page base path를 계산한다.
+
+접근 guard는 Supabase Auth session 존재만 확인한다. `profiles` 테이블이나 `profiles.status='approved'`는 어떤 화면, recovery, command에서도 접근 조건으로 조회하지 않는다.
 
 ### J.2 조작 직전 guard
 
@@ -499,6 +518,8 @@ UUID, nickname 길이, room code 형식을 읽을 때 검증한다. role, word, 
 
 round participant가 있으면 해당 화면, membership만 있으면 관전자, round가 없으면 setup/waiting을 표시한다. membership/room이 없거나 expired면 current room을 지우고 lobby로 간다.
 
+복구는 `player_key`를 게임 내 식별자로 우선 사용하면서 `auth_user_id`가 같은 소유자인지도 함께 검증한다. localStorage의 player key가 삭제되면 Auth ID로 active membership을 찾아 player context를 복구할 수 있고, 다른 Auth 계정이면 저장된 player context를 오인하지 않는다.
+
 ### K.3 재접속 카드
 
 유효 membership이 있으면 즉시 강제 진입하지 않고 `[게임으로 돌아가기]`, `[게임방 나가기]`를 표시한다. host의 나가기는 위임 전 거부한다. player key가 사라져도 `auth_user_id`로 membership을 찾을 수 있어야 한다.
@@ -536,7 +557,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 
 ### L.5 강제 종료
 
-host RPC가 room/round를 lock하고 round를 FORCE_ENDED, game을 force_ended로 만든다. 열린 vote stage를 close하고 current round pointer와 모든 ready를 초기화한다. 역할/투표/추측 데이터는 삭제하지 않고 변경 불가 이력으로 보존하되 UI/store에서는 제거한다. ROOM과 player는 유지하고 새 GAME_SETUP으로 복귀한다.
+강제 종료는 현재 ROUND만이 아니라 현재 GAME 전체를 종료한다. host RPC가 room/game/round를 lock한 뒤 current round를 `FORCE_ENDED`, current game을 `force_ended`로 전이하고 열린 vote stage를 close한다. 모든 player의 ready를 false로 초기화하고 room의 current round pointer를 제거한 다음 새 setup GAME을 생성하여 `GAME_SETUP`으로 복귀한다. ROOM, host, player membership은 유지한다. 강제 종료된 역할/투표/추측 데이터는 삭제하지 않고 변경 불가 이력으로 보존하되 활성 UI/store에서는 제거한다.
 
 ## M. RLS 및 권한 설계
 
@@ -551,6 +572,9 @@ host RPC가 room/round를 lock하고 round를 FORCE_ENDED, game을 force_ended�
 - host action은 room host membership을 DB에서 검증한다.
 - vote는 round participant, guess는 role=liar인지 검증한다.
 - 투표 중 votes 조회는 본인 ballot만 허용하거나 직접 SELECT를 막고 집계 RPC만 제공한다.
+- 현재 round의 관전자는 진행 중 시민 제시어, liar 정체, 각 player 역할을 조회할 수 없다. 역할/word 조회 RPC와 RLS는 caller가 해당 `liar_round_players.player_id`의 소유자인 경우 자신의 정보만 반환한다.
+- 관전자 snapshot에는 현재 게임 단계, 참가자 목록, 발언 순서, 현재 발언자, 투표 진행 여부와 round 진행 안내만 포함한다.
+- round 결과 확정 후에는 참가자·관전자 모두 실제 liar, 제시어, 투표 결과와 상세 투표 내역을 조회할 수 있다.
 - service_role key는 브라우저에 사용하지 않는다.
 
 높은 수준의 비밀 보호보다 기존 데이터 보호와 트랜잭션 정합성에 초점을 맞춘다.
@@ -559,19 +583,19 @@ host RPC가 room/round를 lock하고 round를 FORCE_ENDED, game을 force_ended�
 
 이번 설계 단계 이후 실제 연결 시 다음을 최소 수정한다.
 
-1. `js/components/header.js`의 desktop nav에 일반 anchor `./liar-game/`를 추가한다.
-2. 모바일에서는 `js/components/bottomNav.js`에 추가할지, 홈 카드만 제공할지 결정한다. 현재 5칸 구조이므로 무조건 6개로 늘리면 CSS 검토가 필요하다.
+1. 기존 사이트에서 라이어게임으로 이동 가능한 일반 anchor 링크 또는 홈 카드를 최소 하나 제공한다.
+2. 모바일 `js/components/bottomNav.js` 추가 여부는 기존 사이트 연결 단계에서 최종 결정한다. bottom nav 수정은 선택 사항이며 1차 연결의 필수 범위가 아니다.
 3. 기존 `navLink()`는 hash route용이므로 게임 링크에 사용하지 않는다.
 4. `window.location.hash='/liar-game/'`가 아니라 실제 anchor navigation을 사용한다.
 5. 기존 router route 등록은 수정하지 않는다.
 
-최소 범위는 데스크톱 header와 홈 카드다. 모바일 전역 노출이 필요하면 bottom nav와 관련 CSS까지 수정한다.
+최소 범위는 기존 사이트의 링크 또는 카드다. 모바일 전역 노출이 필요하다고 최종 결정할 때만 bottom nav와 관련 CSS를 수정한다.
 
 ## O. 단계별 구현 계획
 
 | 단계 | 목표 | 생성 파일 | 수정 파일 | DB 변경 | 주요 테스트 |
 |---|---|---|---|---|---|
-| 1 | 미결정 정책 확정 | 설계 보완 문서 | requirements(합의 시) | 없음 | 동점/상태 예제 리뷰 |
+| 1 | 최종 정책 검증 | 기술 설계서 | 없음 | 없음 | 상태·권한·투표 규칙 리뷰 |
 | 2 | 기본 schema와 words | schema/seed SQL | Supabase 안내 | 있음 | FK/UNIQUE/CHECK/CASCADE |
 | 3 | RPC와 RLS | functions/RLS SQL | 없음 | 있음 | anon, host, 소유권, stale 상태 |
 | 4 | 독립 shell/Auth guard | HTML/CSS/config/auth/app | 없음 | 없음 | 세션 공유, 비로그인, logout |
@@ -588,43 +612,29 @@ host RPC가 room/round를 lock하고 round를 FORCE_ENDED, game을 force_ended�
 | 15 | 기존 사이트 연결 | 없음 | header, 선택적으로 nav/home/CSS | 없음 | 링크/base path/회귀 |
 | 16 | 통합 QA | QA checklist | 결함 파일 | 필요 시 | 요구사항 50개, 모바일, 회귀 |
 
-## P. 요구사항에서 추가 확인이 필요한 사항
+## P. 정책 결정 현황과 남은 확인 사항
 
-### P.1 충돌·모호성 및 권장안
+### P.1 결정 완료
 
-1. **WAITING 설정 변경:** 문서에는 WAITING 변경 가능과 같은 GAME의 다음 WAITING 변경 금지가 함께 있다. `game.started_at IS NULL`일 때만 허용한다.
-2. **방 생성 전 설정:** 설정은 client draft로 두고 제출 때 ROOM+HOST PLAYER+SETUP GAME을 한 RPC로 생성한다.
-3. **접근 대상:** Auth user 전체인지 approved profile만인지 확정해야 한다. 기본안은 문서대로 Auth만이다.
-4. **player key 복구:** Auth user ID를 함께 저장해 storage 삭제/다른 기기 복구와 소유권 검증에 쓴다.
-5. **동시 참여 방 수:** 한 Auth 계정당 active room 하나를 권장한다.
-6. **진행 중 명시적 이탈:** membership은 left, round snapshot은 보존한다. host는 위임 전 퇴장 불가다.
-7. **역할 미확인자:** 1차는 전원 확인 필수, host 강제 진행은 별도 결정한다.
-8. **마지막 발언:** 마지막 speaker 화면에서 버튼을 `발언 종료`로 바꾸어 DISCUSSION으로 간다.
-9. **재투표 선택 수:** locked winner를 뺀 남은 자리 수만큼 선택한다.
-10. **재동점:** stage 반복, 권장 최대 3회 후 DB 추첨이나 계속 반복 중 정책 결정이 필요하다.
-11. **미제출자 마감:** host는 경고 후 마감 가능하며 미제출 ballot은 없는 상태로 남긴다.
-12. **경계 밖 동점:** N번째 선발 경계에 영향을 줄 때만 runoff한다.
-13. **정답 문자 정책:** 요구사항대로 공백만 제거하고 정확 비교한다. 대소문자와 Unicode NFC 적용 여부는 결정이 필요하다.
-14. **전체 category:** 빈 배열을 전체로 해석하지 말고 실제 허용 category 전부를 저장한다. difficulty만 all을 쓴다.
-15. **직전 word 회피:** 후보가 2개 이상이면 제외하고 한 개면 재사용한다.
-16. **랜덤 처리:** start RPC 안에서 DB random selection을 수행한다. 초기 단어 규모에서는 충분하다.
-17. **FORCE_ENDED 범위:** 같은 GAME 재개보다 GAME 전체를 종료하고 새 setup으로 돌아가는 것을 권장한다.
-18. **관전자 비밀:** 정상 UI에서는 시민과 같이 진행 중 role/word를 숨기고 결과에서만 공개한다.
-19. **7일 자동 삭제:** GitHub Pages만으로 정기 실행할 수 없으므로 1차 완료 조건에서 분리한다.
-20. **모바일 메뉴:** bottom nav 상시 노출인지 홈 카드인지 결정이 필요하다.
+1. **접근 권한:** 유효한 Supabase Auth session만 확인하며 `profiles`에는 의존하지 않는다.
+2. **계정별 active room:** 한 Auth 계정에는 active membership을 하나만 허용한다.
+3. **진행 중 명시적 이탈:** current round participant도 퇴장할 수 있으며 membership만 left로 바꾸고 round snapshot은 보존한다. host는 먼저 위임해야 한다.
+4. **역할 확인:** current round participant 전원의 `role_checked_at` 확인 전에는 SPEAKING으로 전이할 수 없다.
+5. **재동점:** 동점이 해소될 때까지 추가 토론과 새 vote stage 재투표를 제한 없이 반복한다. 추첨이나 host 결정은 사용하지 않는다.
+6. **투표 마감:** current round participant 전원의 ballot 제출이 필수이며 미제출자가 있으면 UI와 RPC 모두 마감을 허용하지 않는다.
+7. **강제 종료:** current ROUND와 GAME 전체를 종료하고 이력은 보존한 채 새 GAME_SETUP으로 복귀한다.
+8. **관전자 비밀:** 결과 확정 전에는 시민 제시어, liar 정체, 개별 역할을 공개하지 않으며 결과 후 상세 결과를 공개한다.
+9. **정답 비교:** NFC 정규화, trim, 모든 공백 제거 후 대소문자 변환 없는 정확 일치를 DB/RPC가 판정한다.
+10. **모바일 메뉴:** bottom nav 포함 여부는 기존 사이트 연결 단계에서 최종 결정하며, 최소 연결 범위는 링크 또는 카드다.
+11. **WAITING 설정 잠금:** 최초 setup GAME은 `started_at IS NULL AND status='setup'`인 동안만 설정할 수 있고, 시작된 같은 GAME의 다음 라운드 WAITING에서는 잠근다.
+12. **player 복구:** 게임 식별은 `player_key`를 유지하고 `auth_user_id`를 복구와 소유권 검증에 함께 사용한다.
+13. **투표 경계:** N번째 선발 경계에 영향을 주는 동점만 runoff하고 locked winner를 제외한 남은 자리 수만 선택한다.
+14. **단어·랜덤:** 전체 category는 허용 category 전부를 저장하고, 직전 word는 후보가 둘 이상일 때 제외하며, start RPC 안에서 DB가 무작위 선택한다.
 
-### P.2 구현 전 필수 질문
+### P.2 구현을 막지 않는 후속 운영 결정
 
-1. Auth 로그인만이면 되는가, `profiles.status='approved'`까지 필요한가?
-2. 한 계정이 동시에 여러 room에 참여할 수 있는가?
-3. current round participant의 명시적 퇴장을 허용하는가?
-4. role 미확인자가 있어도 host가 발언을 시작할 수 있는가?
-5. 재투표가 계속 동점이면 반복, 제한 후 추첨, host 결정 중 무엇을 택하는가?
-6. 미제출자가 있어도 host가 투표를 마감할 수 있는가?
-7. 강제 종료는 round만 끝내는가, GAME 전체를 끝내는가?
-8. 관전자가 진행 중 정상 UI에서 role/word를 볼 수 있는가?
-9. 정답 비교에 대소문자 구분과 Unicode NFC 정규화를 적용하는가?
-10. 라이어게임을 모바일 bottom nav에 항상 노출할 것인가?
+1. **7일 경과 expired ROOM 물리 삭제 실행 수단:** Supabase Cron/pg_cron 또는 운영 작업 중 무엇을 사용할지는 배포·운영 단계에서 정한다. soft expiration과 삭제 대상 기준에는 영향이 없다.
+2. **모바일 bottom nav 노출:** 기존 사이트 연결 단계에서 실제 메뉴 구성과 CSS를 검토해 선택한다. 링크 또는 카드 제공만으로 1차 연결 요건은 충족한다.
 
 ---
 
