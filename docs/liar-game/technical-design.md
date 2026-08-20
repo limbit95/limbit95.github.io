@@ -246,7 +246,7 @@ UNIQUE `(game_id, round_no)`. `(room_id, status)`, `(game_id, created_at DESC)` 
 |---|---|
 | `id` | `uuid`, PK |
 | `round_id` | `uuid`, NOT NULL FK rounds, CASCADE |
-| `player_id` | `uuid`, NOT NULL FK players, RESTRICT |
+| `player_id` | `uuid`, nullable FK players, ON DELETE SET NULL |
 | `nickname_snapshot` | `varchar(20)`, NOT NULL |
 | `role` | `text`, NOT NULL CHECK citizen/liar |
 | `role_checked_at` | `timestamptz`, nullable |
@@ -254,7 +254,7 @@ UNIQUE `(game_id, round_no)`. `(room_id, status)`, `(game_id, created_at DESC)` 
 | `is_final_suspect` | `boolean`, NOT NULL DEFAULT false |
 | `created_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(round_id, player_id)`, `(round_id, turn_order)`. 인덱스는 `(round_id, role)`, `(player_id, round_id)`, final suspect 부분 인덱스다.
+UNIQUE `(round_id, player_id)`, `(round_id, turn_order)`. 인덱스는 `(round_id, role)`, `(player_id, round_id)`, final suspect 부분 인덱스다. round 생성 시 `player_id`는 반드시 존재하는 player로 채우고, 이후 연결된 Auth 계정 삭제로 player가 CASCADE 삭제될 때만 NULL이 될 수 있다. 이 경우에도 `nickname_snapshot`, `role`, `turn_order`를 비롯한 round 기록은 그대로 보존한다.
 
 ### E.7 `liar_vote_stages` 추가
 
@@ -290,14 +290,11 @@ UNIQUE `(vote_stage_id, voter_round_player_id)`. ballot 행을 제출 완료 기
 | 컬럼 | 형식 및 제약 |
 |---|---|
 | `id` | `uuid`, PK |
-| `round_id` | `uuid`, NOT NULL FK rounds, CASCADE |
-| `vote_stage` | `smallint`, NOT NULL CHECK >= 1 |
 | `ballot_id` | `uuid`, NOT NULL FK ballots, CASCADE |
-| `voter_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
 | `target_round_player_id` | `uuid`, NOT NULL FK `liar_round_players.id`, RESTRICT |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(round_id, vote_stage, voter_round_player_id, target_round_player_id)`, `(ballot_id, target_round_player_id)`, CHECK voter != target. 집계용 `(round_id, vote_stage, target_round_player_id)`와 상세용 `(round_id, vote_stage, voter_round_player_id)` 인덱스를 둔다. 정확한 선택 수, stage 후보, open 여부는 RPC가 검증한다.
+UNIQUE `(ballot_id, target_round_player_id)`를 둔다. 이 UNIQUE 인덱스의 선두 `ballot_id`를 ballot별 선택 조회에도 사용하고, target별 역조회용 `(target_round_player_id, ballot_id)` 인덱스를 별도로 둔다. `round_id`, stage, voter는 중복 저장하지 않고 `liar_votes.ballot_id → liar_ballots.vote_stage_id → liar_vote_stages.round_id/stage_no` 및 `liar_ballots.voter_round_player_id`로 조회한다. 따라서 round/stage 집계와 voter 상세 조회도 이 관계를 JOIN하여 수행한다. voter와 target이 다른지, target이 같은 round와 stage의 후보인지, 정확한 선택 수와 stage open 여부인지는 교차 행 CHECK 대신 `submit_ballot` RPC가 검증한다.
 
 ### E.10 `liar_guesses`
 
@@ -326,11 +323,11 @@ UNIQUE `(round_id, attempt_no)`, 인덱스 `(round_id, created_at)`. 팀 공유 
 | `enabled` | `boolean`, NOT NULL DEFAULT true |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(category, difficulty, normalized_word)`, 부분 인덱스 `(category, difficulty) WHERE enabled`를 둔다.
+UNIQUE `(category, normalized_word)`, 부분 인덱스 `(category, difficulty) WHERE enabled`를 둔다. 따라서 같은 category의 동일 정규화 제시어는 difficulty만 달리하여 중복 등록할 수 없다.
 
 ### E.12 삭제 정책
 
-ROOM 삭제는 GAME/ROUND/ROUND PLAYERS/VOTE STAGES/BALLOTS/VOTES/GUESSES와 PLAYERS를 CASCADE 삭제한다. player의 일상적인 나가기는 soft leave이며, 물리 삭제는 만료 room 정리 시에만 한다.
+ROOM 삭제는 GAME/ROUND/ROUND PLAYERS/VOTE STAGES/BALLOTS/VOTES/GUESSES와 PLAYERS를 CASCADE 삭제한다. player의 일상적인 나가기는 soft leave이며, 물리 삭제는 만료 room 정리 시에만 한다. 예외적으로 Auth 회원 삭제 시 `liar_players.auth_user_id → auth.users`의 ON DELETE CASCADE는 유지하되 `liar_round_players.player_id → liar_players`는 ON DELETE SET NULL이므로, 회원의 player 행이 삭제되어도 기존 round player snapshot과 이에 연결된 투표·추측 기록은 보존된다.
 
 ## F. ROOM / GAME / ROUND 관계
 
@@ -417,7 +414,7 @@ host의 `close_vote_stage` RPC가 stage를 lock하고 현재 round participant �
 
 ### H.6 결과
 
-별도 result 테이블 없이 round, game, round players, vote stages, ballots/votes, guesses를 조회한다. 결과 조회 RPC 또는 view는 허용하되 원본과 중복되는 영속 결과 테이블은 만들지 않는다.
+별도 result 테이블 없이 round, game, round players, vote stages, ballots/votes, guesses를 조회한다. `ROUND_RESULT` 이후에만 사용할 수 있는 결과 조회 RPC 또는 view가 `word_snapshot`, 전체 role, 투표 결과와 상세 내역을 조합한다. 여기서 vote의 round/stage/voter는 vote 행의 중복 컬럼이 아니라 `votes → ballots → vote_stages` JOIN으로 얻는다. 원본과 중복되는 영속 결과 테이블은 만들지 않는다.
 
 ## I. Supabase Realtime 설계
 
@@ -428,8 +425,8 @@ liar-room:{roomId}
 liar-round:{roundId}
 ```
 
-- room channel: rooms, players, games, rounds를 room ID로 구독한다.
-- round channel: round players, vote stages, guesses는 current round 범위로 구독한다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
+- room channel: rooms, players, games와 rounds의 공개 가능한 변경 신호를 room ID로 구독한다. 진행 중 round 이벤트 payload에는 `word_snapshot`을 포함하지 않으며 일반 snapshot RPC를 다시 호출하는 신호로만 사용한다.
+- round channel: 진행 상태와 공개 가능한 participant 변경 신호, vote stages, guesses를 current round 범위로 구독한다. 진행 중 `liar_round_players` 원본 payload는 role을 포함하므로 일반 참가자·관전자에게 직접 구독시키지 않는다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
 - votes 개별 row 구독은 이벤트 폭주와 투표 중 정보 노출을 피하기 위해 생략할 수 있다. round/stage version 변경을 통해 결과 snapshot을 재조회한다.
 
 ballot 진행률 구독은 다음 순서를 따른다.
@@ -572,9 +569,11 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 - host action은 room host membership을 DB에서 검증한다.
 - vote는 round participant, guess는 role=liar인지 검증한다.
 - 투표 중 votes 조회는 본인 ballot만 허용하거나 직접 SELECT를 막고 집계 RPC만 제공한다.
-- 현재 round의 관전자는 진행 중 시민 제시어, liar 정체, 각 player 역할을 조회할 수 없다. 역할/word 조회 RPC와 RLS는 caller가 해당 `liar_round_players.player_id`의 소유자인 경우 자신의 정보만 반환한다.
-- 관전자 snapshot에는 현재 게임 단계, 참가자 목록, 발언 순서, 현재 발언자, 투표 진행 여부와 round 진행 안내만 포함한다.
-- round 결과 확정 후에는 참가자·관전자 모두 실제 liar, 제시어, 투표 결과와 상세 투표 내역을 조회할 수 있다.
+- PostgreSQL RLS는 행 접근 제어이며 컬럼 은닉 수단이 아니다. 따라서 진행 중 `liar_rounds.word_snapshot`이나 `liar_round_players.role`이 들어 있는 base table 행을 일반 snapshot 권한으로 직접 SELECT하게 한 뒤 RLS만으로 숨기는 구조를 사용하지 않는다.
+- 일반 room/round snapshot RPC 또는 view의 반환 스키마에서 `word_snapshot`과 `role`을 아예 제외한다. 참가자와 관전자 모두 게임 단계, 참가자 ID·nickname snapshot·발언 순서, 현재 발언자, 투표 진행 여부와 공개 가능한 round 안내만 이 경로로 조회한다.
+- 자신의 역할 확인 전용 RPC는 `auth.uid()`가 연결된 현재 `liar_players`와 `liar_round_players.player_id`의 소유권을 검증한 뒤 caller 자신의 role만 반환한다. role이 `citizen`일 때만 해당 round의 `word_snapshot`도 반환하고, `liar`에게는 word를 반환하지 않는다. 관전자와 다른 participant의 행은 반환하지 않는다.
+- `ROUND_RESULT` 상태 이후에만 허용되는 결과 조회 RPC 또는 view는 상태를 DB에서 재검증하고 참가자·관전자에게 전체 role, 제시어, 투표 결과와 상세 투표 내역을 공개한다. 결과 전용 조회 역시 vote의 round/stage/voter를 `liar_votes → liar_ballots → liar_vote_stages` 관계로 조합한다.
+- base table SELECT 권한과 view/RPC 실행 권한은 위 세 조회 경로를 우회할 수 없게 구성하고, Realtime payload에도 진행 중 role/word가 실리지 않게 한다.
 - service_role key는 브라우저에 사용하지 않는다.
 
 높은 수준의 비밀 보호보다 기존 데이터 보호와 트랜잭션 정합성에 초점을 맞춘다.
