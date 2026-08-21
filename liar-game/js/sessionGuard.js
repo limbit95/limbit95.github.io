@@ -4,7 +4,7 @@ import { unsubscribeRoomRealtime } from "./realtime.js";
 import { setStorageUser } from "./storage.js";
 
 function clearRoomState(session = null) {
-  store.set({session,signedOut:!session,snapshot:null,activeRooms:[],nickname:"",myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});
+  store.set({session,signedOut:!session,snapshot:null,activeRooms:[],nickname:"",myRole:null,myRoleRoundId:null,voteState:null,myBallot:[],realtimeStatus:"closed"});
 }
 
 export async function initializeSession() {

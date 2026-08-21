@@ -35,7 +35,7 @@ async function perform(task,{reload=true,recoverRoom=false}={}){store.set({messa
  if(recoverRoom&&errorCode(error)==="ALREADY_IN_ACTIVE_ROOM"){
   try{await loadActiveRooms();}catch{}
  }
- if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(errorCode(error))&&store.get().snapshot){await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});try{await loadActiveRooms();}catch{}}
+ if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(errorCode(error))&&store.get().snapshot){await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,voteState:null,myBallot:[],realtimeStatus:"closed"});try{await loadActiveRooms();}catch{}}
  store.set({message:messageFor(error)});
 }}
 root.addEventListener("submit",async(event)=>{event.preventDefault();const form=event.target;const data=new FormData(form);
@@ -52,7 +52,7 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="edit-nickname"){const value=prompt("새 닉네임 (1~20자)",store.get().nickname)?.trim();if(value&&value.length<=20)await perform(async()=>{await commands.updateNickname(value);setNickname(value);store.set({nickname:value});});}
  if(action==="resume-room"){const roomId=event.target.closest("[data-room-id]")?.dataset.roomId;await perform(async()=>{await commands.resumeRoom(roomId);setCurrentRoom(roomId);await refresh();},{reload:false});}
  const leaveMessage=s?.me?.is_host?"방장이 나가면 이 게임방이 종료되고 모든 참가자가 방에서 나가게 됩니다.\n정말 방을 종료하시겠습니까?":"방에서 나가시겠습니까?";
- if(action==="leave"&&confirm(leaveMessage))await perform(async()=>{await commands.leaveRoom();await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,activeRooms:[],myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});},{reload:false});
+ if(action==="leave"&&confirm(leaveMessage))await perform(async()=>{await commands.leaveRoom();await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,activeRooms:[],myRole:null,myRoleRoundId:null,voteState:null,myBallot:[],realtimeStatus:"closed"});},{reload:false});
  if(action==="start-round")await perform(()=>commands.startRound(s.room.version));
  if(action==="show-role")await perform(async()=>store.set({myRole:await getMyRoundRole(),myRoleRoundId:s.round?.id||null}),{reload:false});
  if(action==="confirm-role")await perform(()=>commands.markRoleChecked());
