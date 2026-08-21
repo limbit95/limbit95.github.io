@@ -657,3 +657,20 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 `liar_get_vote_snapshot`의 `liars_revealed`는 `status='ROUND_RESULT' AND liars_revealed_at IS NOT NULL`일 때만 true다. 같은 조건에서만 `actual_liars`를 `role='liar'`인 round player의 `round_player_id`, `nickname`으로 projection하며 그 외에는 빈 배열을 반환한다. `role`, `word_snapshot`, 정규화 제시어는 포함하지 않는다. 이미 공개를 거친 미래 `LIAR_GUESS → ROUND_RESULT` 흐름은 곧바로 실제 라이어와 재시작 UI를 표시할 수 있다.
 
 역할 확인 완료 UX는 room snapshot의 `round_players[].role_checked` projection을 사용하며, 원본은 `role_checked_at IS NOT NULL`이다. 클라이언트 로컬 상태나 storage 플래그를 추가하지 않는다. RPC 성공과 room/round version 증가가 기존 `state_changed` Realtime refresh를 일으켜 개인 완료 버튼과 전체 확인 수를 함께 다시 렌더링한다.
+## 2026-08-21 projection 및 발언 권한 확장
+
+### 발언 이동 권한
+
+`liar_move_speaker(uuid,text,bigint)`는 인증, active membership/room, current `SPEAKING` Round, expected version과 direction을 검증한 뒤 `liar_round_players(round_id, turn_order=current_speaker_index)`로 현재 발언자를 판별한다. `PREVIOUS`는 Host만 허용하고, `NEXT`는 Host 또는 해당 현재 발언자의 `player_id`와 caller가 일치할 때 허용한다. 마지막 인덱스 밖 이동은 기존 `SPEAKER_INDEX_OUT_OF_RANGE`를 유지하며 종료 전환은 Host 전용 `liar_finish_speaking`이 담당한다.
+
+### 라이어 카테고리 설정
+
+`liar_games.show_category_to_liar boolean not null default true`는 기존 동작을 보존한다. 설정 RPC는 `(uuid,text[],text,integer,integer,boolean,bigint)` signature를 사용하고 old 6-parameter overload는 배포 파일에서 명시적으로 제거한다. 값은 setup Game에서만 변경되며 restart 시 새 Game에 복사된다.
+
+`liar_get_my_round_role`은 Round의 Game을 join한다. 시민에게는 category/word snapshot을, 라이어에게는 설정이 true일 때 category snapshot만 제공하며 word는 항상 null이다. room snapshot에는 비밀이 아닌 설정값만 추가하고 Round category/word는 추가하지 않는다.
+
+### 결과 정답 projection
+
+`liar_get_vote_snapshot`의 `answer_category`와 `answer_word`는 `status='ROUND_RESULT'`, `winner in ('citizen','liar')`, `finished_at is not null` 조건을 모두 만족할 때만 Round snapshot에서 만든다. 투표, 투표 결과 및 라이어 추측 단계에서는 둘 다 null이다. `word_id`, 정규화 단어와 단어 테이블 행은 projection하지 않는다. 실제 라이어 명단은 이 정답 projection과 독립적으로 기존 `liars_revealed_at` 조건을 유지한다.
+
+세 변경은 기존 room/round version 증가와 `state_changed` Broadcast를 그대로 사용하므로 별도 Realtime 이벤트나 publication 변경이 없다.

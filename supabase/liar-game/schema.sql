@@ -71,6 +71,7 @@ create table public.liar_games (
   difficulty text not null default 'all',
   liar_count smallint not null default 1,
   guess_limit smallint not null default 1,
+  show_category_to_liar boolean not null default true,
   started_at timestamptz,
   finished_at timestamptz,
   created_at timestamptz not null default now(),

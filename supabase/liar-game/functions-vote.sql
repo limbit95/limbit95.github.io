@@ -248,6 +248,8 @@ begin
     'boundary_candidates',v_boundary,'remaining_seats',v_remaining,'final_suspects',v_final,
     'capture_succeeded',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.capture_succeeded else null end,
     'winner',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.winner else null end,
+    'answer_category',case when v_round.status='ROUND_RESULT' and v_round.winner in ('citizen','liar') and v_round.finished_at is not null then v_round.category_snapshot else null end,
+    'answer_word',case when v_round.status='ROUND_RESULT' and v_round.winner in ('citizen','liar') and v_round.finished_at is not null then v_round.word_snapshot else null end,
     'liars_revealed',v_round.status='ROUND_RESULT' and v_round.liars_revealed_at is not null,
     'actual_liars',v_actual_liars);
 end;

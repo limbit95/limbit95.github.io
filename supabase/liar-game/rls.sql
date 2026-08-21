@@ -27,7 +27,7 @@ revoke all on function public.liar_get_my_active_rooms() from public, anon, auth
 revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
-revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,boolean,bigint) from public, anon, authenticated;
 revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_restart_game(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_mark_role_checked(uuid) from public, anon, authenticated;
@@ -55,7 +55,7 @@ grant execute on function public.liar_get_my_active_rooms() to authenticated;
 grant execute on function public.liar_resume_room(uuid,uuid) to authenticated;
 grant execute on function public.liar_update_nickname(uuid,text) to authenticated;
 grant execute on function public.liar_set_ready(uuid,boolean) to authenticated;
-grant execute on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) to authenticated;
+grant execute on function public.liar_update_game_settings(uuid,text[],text,integer,integer,boolean,bigint) to authenticated;
 grant execute on function public.liar_start_round(uuid,bigint) to authenticated;
 grant execute on function public.liar_restart_game(uuid,bigint) to authenticated;
 grant execute on function public.liar_mark_role_checked(uuid) to authenticated;

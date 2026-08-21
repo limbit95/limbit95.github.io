@@ -277,12 +277,15 @@ begin
  return v_room.version;
 end $$;
 
-create or replace function public.liar_update_game_settings(p_player_key uuid,p_selected_categories text[],p_difficulty text,p_liar_count integer,p_guess_limit integer,p_expected_room_version bigint)
+drop function if exists public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint);
+
+create or replace function public.liar_update_game_settings(p_player_key uuid,p_selected_categories text[],p_difficulty text,p_liar_count integer,p_guess_limit integer,p_show_category_to_liar boolean,p_expected_room_version bigint)
 returns bigint language plpgsql security definer set search_path=pg_catalog,public
 as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_game public.liar_games%rowtype; v_categories text[];
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+ if p_show_category_to_liar is null then raise exception using message='INVALID_GAME_SETTINGS',errcode='P0001'; end if;
  v_categories:=public.liar_validate_settings(p_selected_categories,p_difficulty,p_liar_count,p_guess_limit);
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
@@ -292,7 +295,7 @@ begin
  if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
  if not found or v_game.status<>'setup' or v_game.started_at is not null then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
- update public.liar_games set selected_categories=v_categories,difficulty=p_difficulty,liar_count=p_liar_count,guess_limit=p_guess_limit where id=v_game.id;
+ update public.liar_games set selected_categories=v_categories,difficulty=p_difficulty,liar_count=p_liar_count,guess_limit=p_guess_limit,show_category_to_liar=p_show_category_to_liar where id=v_game.id;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id returning version into v_room.version;
  return v_room.version;
 end $$;
@@ -376,8 +379,8 @@ begin
  if not found or v_game.status<>'active' then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  update public.liar_games gm set status='finished',finished_at=coalesce(gm.finished_at,now()) where gm.id=v_game.id;
  select coalesce(max(gm.game_no),0)+1 into v_game_no from public.liar_games gm where gm.room_id=v_room.id;
- insert into public.liar_games(room_id,game_no,status,selected_categories,difficulty,liar_count,guess_limit,started_at,finished_at)
- values(v_room.id,v_game_no,'setup',v_game.selected_categories,v_game.difficulty,v_game.liar_count,v_game.guess_limit,null,null)
+ insert into public.liar_games(room_id,game_no,status,selected_categories,difficulty,liar_count,guess_limit,show_category_to_liar,started_at,finished_at)
+ values(v_room.id,v_game_no,'setup',v_game.selected_categories,v_game.difficulty,v_game.liar_count,v_game.guess_limit,v_game.show_category_to_liar,null,null)
  returning liar_games.id into v_new_game;
  update public.liar_players lp set ready=false,joined_during_round_id=null
  where lp.room_id=v_room.id and lp.membership_status='active';
@@ -426,8 +429,11 @@ begin
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id;
  if not found or v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
- return query select rp.role,r.category_snapshot,case when rp.role='citizen' then r.word_snapshot else null end
+ return query select rp.role,
+   case when rp.role='citizen' or g.show_category_to_liar then r.category_snapshot else null end,
+   case when rp.role='citizen' then r.word_snapshot else null end
  from public.liar_round_players rp join public.liar_rounds r on r.id=rp.round_id
+ join public.liar_games g on g.id=r.game_id
  where rp.round_id=v_room.current_round_id and rp.player_id=v_player.id;
  if not found then raise exception using message='NOT_ROUND_PARTICIPANT',errcode='P0001'; end if;
 end $$;
@@ -445,7 +451,7 @@ begin
   select jsonb_build_object(
   'room',jsonb_build_object('id',r.id,'room_code',r.room_code,'status',r.status,'host_player_id',r.host_player_id,'current_game_id',r.current_game_id,'current_round_id',r.current_round_id,'version',r.version,'expires_at',r.expires_at),
   'me',jsonb_build_object('player_id',v_player.id,'nickname',v_player.nickname,'is_host',r.host_player_id=v_player.id),
-  'game',(select jsonb_build_object('id',g.id,'game_no',g.game_no,'status',g.status,'selected_categories',g.selected_categories,'difficulty',g.difficulty,'liar_count',g.liar_count,'guess_limit',g.guess_limit,'started_at',g.started_at) from public.liar_games g where g.id=r.current_game_id),
+  'game',(select jsonb_build_object('id',g.id,'game_no',g.game_no,'status',g.status,'selected_categories',g.selected_categories,'difficulty',g.difficulty,'liar_count',g.liar_count,'guess_limit',g.guess_limit,'show_category_to_liar',g.show_category_to_liar,'started_at',g.started_at) from public.liar_games g where g.id=r.current_game_id),
   'players',(select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'nickname',p.nickname,'ready',p.ready,'membership_status',p.membership_status) order by p.joined_at),'[]'::jsonb) from public.liar_players p where p.room_id=r.id and p.membership_status='active'),
   'round',(select jsonb_build_object('id',x.id,'round_no',x.round_no,'status',x.status,'current_speaker_index',x.current_speaker_index,'current_vote_stage',x.current_vote_stage,'version',x.version) from public.liar_rounds x where x.id=r.current_round_id),
   'round_players',(select coalesce(jsonb_agg(jsonb_build_object('id',rp.id,'player_id',rp.player_id,'nickname_snapshot',rp.nickname_snapshot,'turn_order',rp.turn_order,'role_checked',rp.role_checked_at is not null) order by rp.turn_order),'[]'::jsonb) from public.liar_round_players rp where rp.round_id=r.current_round_id)
@@ -474,18 +480,20 @@ end $$;
 create or replace function public.liar_move_speaker(p_player_key uuid,p_direction text,p_expected_round_version bigint)
 returns table(current_speaker_index smallint,round_version bigint)
 language plpgsql security definer set search_path=pg_catalog,public
-as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype; v_count integer; v_new integer;
+as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype; v_count integer; v_new integer; v_current_player_id uuid;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active'; if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update; if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
- if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  select * into v_round from public.liar_rounds where id=v_room.current_round_id for update;
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
  if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_round_players rp where rp.round_id=v_round.id;
  if p_direction is null or upper(p_direction) not in ('NEXT','PREVIOUS') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
+ select rp.player_id into v_current_player_id from public.liar_round_players rp where rp.round_id=v_round.id and rp.turn_order=v_round.current_speaker_index;
+ if upper(p_direction)='PREVIOUS' and v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
+ if upper(p_direction)='NEXT' and v_room.host_player_id<>v_player.id and v_current_player_id is distinct from v_player.id then raise exception using message='NOT_CURRENT_SPEAKER',errcode='P0001'; end if;
  v_new:=v_round.current_speaker_index + case when upper(p_direction)='NEXT' then 1 else -1 end;
  if v_new<0 or v_new>=v_count then raise exception using message='SPEAKER_INDEX_OUT_OF_RANGE',errcode='P0001'; end if;
  update public.liar_rounds as r set current_speaker_index=v_new,version=r.version+1 where r.id=v_round.id returning r.current_speaker_index,r.version into current_speaker_index,round_version;
@@ -530,7 +538,7 @@ revoke all on function public.liar_get_my_active_rooms() from public, anon, auth
 revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
-revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,boolean,bigint) from public, anon, authenticated;
 revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_restart_game(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_mark_role_checked(uuid) from public, anon, authenticated;
