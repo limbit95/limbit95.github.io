@@ -440,7 +440,7 @@ end $$;
 
 create or replace function public.liar_get_room_snapshot(p_player_key uuid)
 returns jsonb language plpgsql security definer stable set search_path=pg_catalog,public
-as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_result jsonb;
+as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_result jsonb; v_is_spectator boolean;
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
@@ -448,13 +448,17 @@ begin
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id;
  if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+ v_is_spectator:=v_room.current_round_id is not null and not exists(
+   select 1 from public.liar_round_players rp
+   where rp.round_id=v_room.current_round_id and rp.player_id=v_player.id
+ );
   select jsonb_build_object(
   'room',jsonb_build_object('id',r.id,'room_code',r.room_code,'status',r.status,'host_player_id',r.host_player_id,'current_game_id',r.current_game_id,'current_round_id',r.current_round_id,'version',r.version,'expires_at',r.expires_at),
-  'me',jsonb_build_object('player_id',v_player.id,'nickname',v_player.nickname,'is_host',r.host_player_id=v_player.id),
+  'me',jsonb_build_object('player_id',v_player.id,'nickname',v_player.nickname,'is_host',r.host_player_id=v_player.id,'is_spectator',v_is_spectator),
   'game',(select jsonb_build_object('id',g.id,'game_no',g.game_no,'status',g.status,'selected_categories',g.selected_categories,'difficulty',g.difficulty,'liar_count',g.liar_count,'guess_limit',g.guess_limit,'show_category_to_liar',g.show_category_to_liar,'started_at',g.started_at) from public.liar_games g where g.id=r.current_game_id),
   'players',(select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'nickname',p.nickname,'ready',p.ready,'membership_status',p.membership_status) order by p.joined_at),'[]'::jsonb) from public.liar_players p where p.room_id=r.id and p.membership_status='active'),
-  'round',(select jsonb_build_object('id',x.id,'round_no',x.round_no,'status',x.status,'current_speaker_index',x.current_speaker_index,'current_vote_stage',x.current_vote_stage,'version',x.version) from public.liar_rounds x where x.id=r.current_round_id),
-  'round_players',(select coalesce(jsonb_agg(jsonb_build_object('id',rp.id,'player_id',rp.player_id,'nickname_snapshot',rp.nickname_snapshot,'turn_order',rp.turn_order,'role_checked',rp.role_checked_at is not null) order by rp.turn_order),'[]'::jsonb) from public.liar_round_players rp where rp.round_id=r.current_round_id)
+  'round',(select jsonb_build_object('id',x.id,'round_no',x.round_no,'status',x.status,'current_speaker_index',x.current_speaker_index,'current_vote_stage',x.current_vote_stage,'version',x.version,'spectator_category',case when v_is_spectator then x.category_snapshot else null end,'spectator_word',case when v_is_spectator then x.word_snapshot else null end) from public.liar_rounds x where x.id=r.current_round_id),
+  'round_players',(select coalesce(jsonb_agg(jsonb_build_object('id',rp.id,'player_id',rp.player_id,'nickname_snapshot',rp.nickname_snapshot,'turn_order',rp.turn_order,'role_checked',rp.role_checked_at is not null,'is_liar',case when v_is_spectator then rp.role='liar' else null end) order by rp.turn_order),'[]'::jsonb) from public.liar_round_players rp where rp.round_id=r.current_round_id)
  ) into v_result from public.liar_rooms r where r.id=v_room.id;
  return v_result;
 end $$;

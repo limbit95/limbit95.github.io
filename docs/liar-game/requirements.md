@@ -720,11 +720,12 @@ Room version 증가는 기존 `state_changed` Broadcast와 snapshot 재조회를
 
 관전자는:
 
-- 역할을 받지 않는다.
-- 제시어를 받지 않는다.
-- 발언 순서에 포함되지 않는다.
-- 투표할 수 없다.
-- 현재 게임 상태와 결과는 확인할 수 있다.
+- 라운드 역할을 받지 않으며 발언 순서에 포함되지 않는다.
+- 진행 중인 라운드의 실제 라이어, 카테고리, 실제 제시어를 확인할 수 있다.
+- 발언, 투표, 라이어 추측을 할 수 없다.
+- 현재 게임 상태와 결과를 확인할 수 있다.
+
+관전자의 source of truth는 별도 컬럼이 아니다. `current_round_id`가 존재하고 active room membership은 있지만 현재 `liar_round_players`에 caller의 `player_id` 행이 없을 때 관전자로 판정한다. 라운드 시작 당시 포함된 참가자는 나갔다가 동일한 Auth/player membership으로 재입장해도 기존 round player 행이 남으므로 관전자로 바뀌지 않는다.
 
 다음 라운드 준비 단계부터 일반 참가자가 된다.
 
@@ -2229,3 +2230,11 @@ created_at
 - 시민의 역할 projection은 카테고리와 제시어를 제공한다. 라이어는 설정이 켜진 경우에만 카테고리를 받고, 설정과 관계없이 제시어는 받지 않는다.
 - 라운드가 `ROUND_RESULT`이고 승자가 확정되었으며 `finished_at`이 존재하면 승패와 관계없이 결과 화면에 카테고리와 실제 제시어를 공개한다.
 - 정답 공개와 실제 라이어 공개는 별개이다. 실제 라이어 명단은 기존 `liars_revealed_at` 규칙에 따라서만 공개한다.
+
+## 2026-08-21 관전자 Secret View
+
+- `liar_get_room_snapshot(uuid)`은 active room member의 현재 Round 참가 여부를 DB에서 확인해 `me.is_spectator`를 projection한다. Round가 없거나 caller의 current `liar_round_players` 행이 있으면 false다.
+- 관전자에게만 `round_players[].is_liar`를 boolean으로, `round.spectator_category`와 `round.spectator_word`를 실제 snapshot 값으로 제공한다. `show_category_to_liar` 설정은 관전자 projection에 영향을 주지 않는다.
+- Round 참가자에게는 모든 `is_liar`, `spectator_category`, `spectator_word`가 null이다. 따라서 DOM 표시 여부와 무관하게 기존 역할·제시어 secret boundary가 유지된다.
+- 관전자 UI는 실제 라이어 badge와 카테고리·제시어 카드를 표시한다. `ROUND_RESULT`에서는 기존 결과 UI와 중복되는 관전 정보 카드를 표시하지 않는다.
+- 신규 Realtime 이벤트, schema 컬럼, migration, base table SELECT 권한 또는 RPC signature/GRANT는 추가하지 않는다. 기존 room version의 `state_changed` refresh를 사용한다.

@@ -577,7 +577,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 - vote는 round participant, guess는 role=liar인지 검증한다.
 - 투표 중 votes 조회는 본인 ballot만 허용하거나 직접 SELECT를 막고 집계 RPC만 제공한다.
 - PostgreSQL RLS는 행 접근 제어이며 컬럼 은닉 수단이 아니다. 따라서 진행 중 `liar_rounds.word_snapshot`이나 `liar_round_players.role`이 들어 있는 base table 행을 일반 snapshot 권한으로 직접 SELECT하게 한 뒤 RLS만으로 숨기는 구조를 사용하지 않는다.
-- 일반 room/round snapshot RPC 또는 view의 반환 스키마에서 `word_snapshot`과 `role`을 아예 제외한다. 참가자와 관전자 모두 게임 단계, 참가자 ID·nickname snapshot·발언 순서, 현재 발언자, 투표 진행 여부와 공개 가능한 round 안내만 이 경로로 조회한다.
+- 일반 room/round snapshot RPC는 원본 `role`, `word_snapshot`, `category_snapshot`을 그대로 반환하지 않는다. 다만 DB가 current round player membership 부재를 확인한 관전자에게만 `is_liar`, `spectator_category`, `spectator_word`라는 조건부 projection을 제공하며, Round 참가자에게는 이 세 값을 null로 반환한다.
 - 자신의 역할 확인 전용 RPC는 `auth.uid()`가 연결된 현재 `liar_players`와 `liar_round_players.player_id`의 소유권을 검증한 뒤 caller 자신의 role만 반환한다. role이 `citizen`일 때만 해당 round의 `word_snapshot`도 반환하고, `liar`에게는 word를 반환하지 않는다. 관전자와 다른 participant의 행은 반환하지 않는다.
 - `ROUND_RESULT` 상태 이후에만 허용되는 결과 조회 RPC 또는 view는 상태를 DB에서 재검증하고 참가자·관전자에게 전체 role, 제시어, 투표 결과와 상세 투표 내역을 공개한다. 결과 전용 조회 역시 vote의 round/stage/voter를 `liar_votes → liar_ballots → liar_vote_stages` 관계로 조합한다.
 - base table SELECT 권한과 view/RPC 실행 권한은 위 세 조회 경로를 우회할 수 없게 구성하고, Realtime payload에도 진행 중 role/word가 실리지 않게 한다.
@@ -629,7 +629,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 5. **재동점:** 동점이 해소될 때까지 추가 토론과 새 vote stage 재투표를 제한 없이 반복한다. 추첨이나 host 결정은 사용하지 않는다.
 6. **투표 마감:** current round participant 전원의 ballot 제출이 필수이며 미제출자가 있으면 UI와 RPC 모두 마감을 허용하지 않는다.
 7. **강제 종료:** current ROUND와 GAME 전체를 종료하고 이력은 보존한 채 새 GAME_SETUP으로 복귀한다.
-8. **관전자 비밀:** 결과 확정 전에는 시민 제시어, liar 정체, 개별 역할을 공개하지 않으며 결과 후 상세 결과를 공개한다.
+8. **관전자 Secret View:** current round에 포함되지 않은 active member에게는 진행 중 실제 liar, category, word를 공개한다. Round 참가자에게는 기존 개인 역할 경계만 유지한다.
 9. **정답 비교:** NFC 정규화, trim, 모든 공백 제거 후 대소문자 변환 없는 정확 일치를 DB/RPC가 판정한다.
 10. **모바일 메뉴:** bottom nav 포함 여부는 기존 사이트 연결 단계에서 최종 결정하며, 최소 연결 범위는 링크 또는 카드다.
 11. **WAITING 설정 잠금:** 최초 setup GAME은 `started_at IS NULL AND status='setup'`인 동안만 설정할 수 있고, 시작된 같은 GAME의 다음 라운드 WAITING에서는 잠근다.
@@ -674,3 +674,18 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 `liar_get_vote_snapshot`의 `answer_category`와 `answer_word`는 `status='ROUND_RESULT'`, `winner in ('citizen','liar')`, `finished_at is not null` 조건을 모두 만족할 때만 Round snapshot에서 만든다. 투표, 투표 결과 및 라이어 추측 단계에서는 둘 다 null이다. `word_id`, 정규화 단어와 단어 테이블 행은 projection하지 않는다. 실제 라이어 명단은 이 정답 projection과 독립적으로 기존 `liars_revealed_at` 조건을 유지한다.
 
 세 변경은 기존 room/round version 증가와 `state_changed` Broadcast를 그대로 사용하므로 별도 Realtime 이벤트나 publication 변경이 없다.
+
+## Q. 관전자 Secret View 설계
+
+`liar_get_room_snapshot(uuid)`은 인증 및 active membership을 검증한 뒤 `room.current_round_id IS NOT NULL AND NOT EXISTS (liar_round_players WHERE round_id = room.current_round_id AND player_id = caller.player_id)`를 한 번 계산한다. 이 값이 `me.is_spectator`의 source of truth다. 별도 spectator 컬럼을 저장하지 않는다. 따라서 준비하지 않은 기존 member와 라운드 중간 입장자는 관전자이며, 기존 참가자의 leave/rejoin은 보존된 동일 `player_id`의 round player 행 때문에 참가자로 유지된다.
+
+조건부 projection은 다음과 같다.
+
+- 관전자: `round_players[].is_liar = (role = 'liar')`, `round.spectator_category = category_snapshot`, `round.spectator_word = word_snapshot`
+- Round 참가자 또는 Round 없음: `is_liar`, `spectator_category`, `spectator_word`는 null이며 `me.is_spectator`는 false
+
+원본 role 문자열은 room snapshot에 추가하지 않는다. `show_category_to_liar`는 참가자 개인 역할 RPC의 정책일 뿐 관전자 projection에는 적용하지 않는다. `liar_get_my_round_role()`과 Vote/Guess/Result/Auth 흐름은 변경하지 않으며 관전자는 계속 발언·투표·추측 RPC의 round participant 검증을 통과할 수 없다.
+
+클라이언트는 `me.is_spectator === true`일 때만 `is_liar === true`인 active player에 라이어 badge를 붙이고, `ROUND_RESULT`와 `FORCE_ENDED`를 제외한 current Round에서 escape 처리한 관전 카테고리·제시어 카드를 렌더링한다. 보안 경계는 이 DOM 조건이 아니라 RPC의 null projection이다.
+
+Realtime은 별도 이벤트나 publication을 추가하지 않고 Round 생성 시 기존 room version 증가와 `state_changed` Broadcast에 따른 snapshot refresh를 그대로 쓴다. 기존 RPC signature를 유지하므로 신규 GRANT가 없고, base table SELECT 권한이나 RLS 변경도 없다.
