@@ -159,12 +159,12 @@ begin
 end;
 $$;
 
-create or replace function public.liar_leave_room(p_player_key uuid)␊
-returns bigint language plpgsql security definer␊
-set search_path = pg_catalog, public␊
-as $$␊
+create or replace function public.liar_leave_room(p_player_key uuid)
+returns bigint language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
 declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
-begin␊
+begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
   if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
   select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
