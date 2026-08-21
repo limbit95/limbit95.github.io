@@ -159,33 +159,81 @@ begin
 end;
 $$;
 
-create or replace function public.liar_leave_room(p_player_key uuid)
-returns bigint language plpgsql security definer
-set search_path = pg_catalog, public
-as $$
-declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_others integer;
-begin
+create or replace function public.liar_leave_room(p_player_key uuid)␊
+returns bigint language plpgsql security definer␊
+set search_path = pg_catalog, public␊
+as $$␊
+declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
+begin␊
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
   if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
   select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active' for update;
   if not found then raise exception using message='NOT_ROOM_MEMBER', errcode='P0001'; end if;
   select * into v_room from public.liar_rooms where id=v_player.room_id for update;
   if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
-  select count(*) into v_others from public.liar_players where room_id=v_room.id and membership_status='active' and id<>v_player.id;
-  if v_room.host_player_id=v_player.id and v_others>0 then raise exception using message='HOST_TRANSFER_REQUIRED',errcode='P0001'; end if;
-  -- A lone host may leave only before gameplay starts. There is nobody to
-  -- transfer to; expiring the empty setup room is the consistent terminal state.
   if v_room.host_player_id=v_player.id then
-    if v_room.current_round_id is not null or exists(select 1 from public.liar_games where id=v_room.current_game_id and started_at is not null) then
-      raise exception using message='HOST_TRANSFER_REQUIRED',errcode='P0001';
-    end if;
-    update public.liar_players set membership_status='left',ready=false,left_at=now() where id=v_player.id;
-    update public.liar_rooms set status='expired',expired_at=now(),last_activity_at=now(),version=version+1 where id=v_room.id returning version into v_room.version;
+    update public.liar_vote_stages as vs
+    set status='closed',closed_at=coalesce(vs.closed_at,now())
+    where vs.round_id=v_room.current_round_id and vs.status='open';
+    update public.liar_rounds as rd
+    set status='FORCE_ENDED',force_ended_at=now(),finished_at=coalesce(rd.finished_at,now()),version=rd.version+1
+    where rd.id=v_room.current_round_id and rd.status<>'FORCE_ENDED';
+    update public.liar_games as gm
+    set status='force_ended',finished_at=coalesce(gm.finished_at,now())
+    where gm.id=v_room.current_game_id and gm.status in ('setup','active');
+    update public.liar_players as lp
+    set membership_status='left',ready=false,left_at=coalesce(lp.left_at,now())
+    where lp.room_id=v_room.id and lp.membership_status='active';
+    update public.liar_rooms as rm
+    set status='expired',expired_at=now(),last_activity_at=now(),current_round_id=null,
+        current_game_id=null,version=rm.version+1
+    where rm.id=v_room.id returning rm.version into v_room.version;
   else
-    update public.liar_players set membership_status='left',ready=false,left_at=now() where id=v_player.id;
-    update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id returning version into v_room.version;
+    update public.liar_players as lp set membership_status='left',ready=false,left_at=coalesce(lp.left_at,now()) where lp.id=v_player.id;
+    update public.liar_rooms as rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room.version;
   end if;
   return v_room.version;
+end;
+$$;
+
+create or replace function public.liar_get_my_active_rooms()
+returns table(room_id uuid,room_code text,nickname text,is_host boolean,participant_count bigint,
+              game_status text,round_status text,last_activity_at timestamptz,expires_at timestamptz)
+language sql security definer stable set search_path=pg_catalog,public
+as $$
+  select rm.id,rm.room_code::text,lp.nickname::text,rm.host_player_id=lp.id,
+         (select count(*) from public.liar_players as members
+          where members.room_id=rm.id and members.membership_status='active'),
+         gm.status,rd.status,rm.last_activity_at,rm.expires_at
+  from public.liar_players as lp
+  join public.liar_rooms as rm on rm.id=lp.room_id
+  left join public.liar_games as gm on gm.id=rm.current_game_id
+  left join public.liar_rounds as rd on rd.id=rm.current_round_id
+  where auth.uid() is not null and lp.auth_user_id=auth.uid()
+    and lp.membership_status='active' and rm.status='active' and now()<rm.expires_at
+  order by rm.last_activity_at desc;
+$$;
+
+create or replace function public.liar_resume_room(p_room_id uuid,p_player_key uuid)
+returns table(room_id uuid,player_id uuid,room_version bigint)
+language plpgsql security definer set search_path=pg_catalog,public
+as $$
+declare v_auth uuid:=auth.uid(); v_room public.liar_rooms%rowtype; v_player public.liar_players%rowtype;
+begin
+  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+  if p_room_id is null or p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_auth::text,0));
+  select rm.* into v_room from public.liar_rooms as rm where rm.id=p_room_id for update;
+  if not found then raise exception using message='ROOM_NOT_FOUND',errcode='P0001'; end if;
+  if v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+  select lp.* into v_player from public.liar_players as lp
+  where lp.room_id=v_room.id and lp.auth_user_id=v_auth and lp.membership_status='active' for update;
+  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  update public.liar_players as lp set player_key=p_player_key where lp.id=v_player.id;
+  update public.liar_rooms as rm
+  set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1
+  where rm.id=v_room.id returning rm.version into v_room.version;
+  return query select v_room.id,v_player.id,v_room.version;
 end;
 $$;
 
@@ -425,6 +473,8 @@ revoke all on function public.liar_clear_expired_membership(uuid) from public, a
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_my_active_rooms() from public, anon, authenticated;
+revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
 revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;

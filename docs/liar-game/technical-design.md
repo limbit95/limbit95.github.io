@@ -352,7 +352,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 ### 진행 중 참가자 퇴장
 
-현재 round participant도 게임방 나가기를 선택할 수 있다. 퇴장 RPC는 `liar_players.membership_status='left'`와 `left_at`을 기록하되 현재 `liar_round_players` snapshot과 역할, 투표, 발언 순서 등 기존 라운드 기록은 삭제하거나 변경하지 않는다. 이탈로 전원 투표 같은 필수 조건을 충족할 수 없으면 host가 GAME 전체 강제 종료를 사용한다. host는 같은 방의 다른 active player에게 방장을 먼저 위임해야 퇴장할 수 있다.
+현재 round participant도 게임방 나가기를 선택할 수 있다. 일반 참가자의 퇴장 RPC는 본인의 `liar_players.membership_status='left'`와 `left_at`만 기록하며 기존 라운드 snapshot은 보존한다. host가 직접 나가면 room을 `expired`로 soft-close하고 현재 round/game을 강제 종료한 뒤 모든 active membership을 `left`로 해제한다. 방장 위임은 나가기의 선행 조건이 아니다.
 
 ### 다음 라운드와 새 게임
 
@@ -505,21 +505,21 @@ UUID, nickname 길이, room code 형식을 읽을 때 검증한다. role, word, 
 1. Auth 확인.
 2. player key 확인/생성.
 3. current room 확인.
-4. player key + auth user로 active membership 조회.
-5. room 만료 확인.
-6. current game/round 조회.
-7. round participant 및 상태별 snapshot 조회.
+4. player key + auth user로 snapshot 복구 시도.
+5. 실패하면 Auth user 기준 active room 목록 조회.
+6. 사용자가 돌아가기를 선택하면 현재 player key로 membership possession 이전.
+7. current game/round 및 상태별 snapshot 조회.
 8. store를 원자 hydrate.
 9. Realtime 구독.
 10. state machine으로 view 결정.
 
 round participant가 있으면 해당 화면, membership만 있으면 관전자, round가 없으면 setup/waiting을 표시한다. membership/room이 없거나 expired면 current room을 지우고 lobby로 간다.
 
-복구는 `player_key`를 게임 내 식별자로 우선 사용하면서 `auth_user_id`가 같은 소유자인지도 함께 검증한다. localStorage의 player key가 삭제되면 Auth ID로 active membership을 찾아 player context를 복구할 수 있고, 다른 Auth 계정이면 저장된 player context를 오인하지 않는다.
+복구는 현재 `player_key`로 snapshot을 먼저 조회한다. 실패하면 `liar_get_my_active_rooms()`가 `auth.uid()`만으로 안전한 active room 목록을 반환하고, 사용자가 돌아가기를 선택하면 `liar_resume_room(room_id, player_key)`가 현재 기기의 key로 possession을 이전한다. 기존 기기의 key는 이후 mutation에서 거부된다.
 
 ### K.3 재접속 카드
 
-유효 membership이 있으면 즉시 강제 진입하지 않고 `[게임으로 돌아가기]`, `[게임방 나가기]`를 표시한다. host의 나가기는 위임 전 거부한다. player key가 사라져도 `auth_user_id`로 membership을 찾을 수 있어야 한다.
+유효 membership이 있으면 즉시 강제 진입하지 않고 lobby에 `[방으로 돌아가기]`를 표시한다. 다른 기기에서도 `auth_user_id`로 membership을 찾되 player key 자체는 노출하지 않는다.
 
 ## L. 방 만료 및 예외 처리
 
@@ -617,7 +617,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 
 1. **접근 권한:** 유효한 Supabase Auth session만 확인하며 `profiles`에는 의존하지 않는다.
 2. **계정별 active room:** 한 Auth 계정에는 active membership을 하나만 허용한다.
-3. **진행 중 명시적 이탈:** current round participant도 퇴장할 수 있으며 membership만 left로 바꾸고 round snapshot은 보존한다. host는 먼저 위임해야 한다.
+3. **진행 중 명시적 이탈:** 일반 참가자는 membership만 left로 바꾸고 round snapshot을 보존한다. host의 나가기는 방 전체 soft-close, 진행 game/round 강제 종료, 모든 membership 해제를 한 트랜잭션으로 수행한다.
 4. **역할 확인:** current round participant 전원의 `role_checked_at` 확인 전에는 SPEAKING으로 전이할 수 없다.
 5. **재동점:** 동점이 해소될 때까지 추가 토론과 새 vote stage 재투표를 제한 없이 반복한다. 추첨이나 host 결정은 사용하지 않는다.
 6. **투표 마감:** current round participant 전원의 ballot 제출이 필수이며 미제출자가 있으면 UI와 RPC 모두 마감을 허용하지 않는다.

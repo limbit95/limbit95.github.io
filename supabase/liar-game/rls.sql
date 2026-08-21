@@ -23,6 +23,8 @@ from anon, authenticated;
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_my_active_rooms() from public, anon, authenticated;
+revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
 revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) from public, anon, authenticated;
@@ -37,6 +39,8 @@ revoke all on function public.liar_finish_speaking(uuid,bigint) from public, ano
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
 grant execute on function public.liar_leave_room(uuid) to authenticated;
+grant execute on function public.liar_get_my_active_rooms() to authenticated;
+grant execute on function public.liar_resume_room(uuid,uuid) to authenticated;
 grant execute on function public.liar_update_nickname(uuid,text) to authenticated;
 grant execute on function public.liar_set_ready(uuid,boolean) to authenticated;
 grant execute on function public.liar_update_game_settings(uuid,text[],text,integer,integer,bigint) to authenticated;

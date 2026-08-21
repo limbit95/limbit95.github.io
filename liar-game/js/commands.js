@@ -7,6 +7,7 @@ async function mutate(name,params={}){if(pending)throw new Error("요청을 처�
 export const commands={
  createRoom:(nickname,settings)=>mutate("liar_create_room",{p_nickname:nickname,...settings}),
  joinRoom:(code,nickname)=>mutate("liar_join_room",{p_room_code:code,p_nickname:nickname}),
+ resumeRoom:(roomId)=>mutate("liar_resume_room",{p_room_id:roomId}),
  leaveRoom:()=>mutate("liar_leave_room"), updateNickname:(nickname)=>mutate("liar_update_nickname",{p_nickname:nickname}),
  setReady:(ready)=>mutate("liar_set_ready",{p_ready:ready}), updateSettings:(settings,version)=>mutate("liar_update_game_settings",{...settings,p_expected_room_version:version}),
  startRound:(version)=>mutate("liar_start_round",{p_expected_room_version:version}), markRoleChecked:()=>mutate("liar_mark_role_checked"),
