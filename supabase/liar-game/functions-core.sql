@@ -98,19 +98,19 @@ begin
   for v_try in 1..10 loop
     v_code := (select string_agg(substr('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 1 + floor(random()*36)::int, 1), '') from generate_series(1,6));
     begin
-      insert into public.liar_rooms(room_code) values (v_code) returning id into v_room;
+      insert into public.liar_rooms as r(room_code) values (v_code) returning r.id into v_room;
       exit;
     exception when unique_violation then
       if v_try = 10 then raise exception using message='ROOM_CODE_EXHAUSTED', errcode='P0001'; end if;
     end;
   end loop;
   insert into public.liar_players(room_id, auth_user_id, player_key, nickname)
-  values(v_room, v_auth, p_player_key, btrim(p_nickname)) returning id into v_player;
+  values(v_room, v_auth, p_player_key, btrim(p_nickname)) returning liar_players.id into v_player;
   insert into public.liar_games(room_id, game_no, status, selected_categories, difficulty, liar_count, guess_limit)
-  values(v_room, 1, 'setup', v_categories, p_difficulty, p_liar_count, p_guess_limit) returning id into v_game;
-  update public.liar_rooms set host_player_id=v_player, current_game_id=v_game,
-    last_activity_at=now(), expires_at=now()+interval '24 hours', version=version+1
-  where id=v_room;
+  values(v_room, 1, 'setup', v_categories, p_difficulty, p_liar_count, p_guess_limit) returning liar_games.id into v_game;
+  update public.liar_rooms as r set host_player_id=v_player, current_game_id=v_game,
+    last_activity_at=now(), expires_at=now()+interval '24 hours', version=r.version+1
+  where r.id=v_room;
   return query select v_room, v_code, v_player, v_game, r.version from public.liar_rooms r where r.id=v_room;
 end;
 $$;
@@ -126,24 +126,35 @@ begin
   if p_player_key is null or p_nickname is null or char_length(btrim(p_nickname)) not between 1 and 20 then raise exception using message='INVALID_NICKNAME', errcode='P0001'; end if;
   perform pg_advisory_xact_lock(hashtextextended(v_auth::text, 0));
   perform public.liar_clear_expired_membership(v_auth);
-  select * into v_room from public.liar_rooms where room_code=upper(btrim(p_room_code)) for update;
+  select r.* into v_room
+  from public.liar_rooms r
+  where r.room_code=upper(btrim(p_room_code))
+  for update;
   if not found then raise exception using message='ROOM_NOT_FOUND', errcode='P0001'; end if;
   if v_room.status='expired' or now()>=v_room.expires_at then
     raise exception using message='ROOM_EXPIRED', errcode='P0001';
   end if;
-  select count(*) into v_count from public.liar_players where room_id=v_room.id and membership_status='active';
+  select count(*) into v_count
+  from public.liar_players lp
+  where lp.room_id=v_room.id and lp.membership_status='active';
   if v_count >= 12 then raise exception using message='ROOM_FULL', errcode='P0001'; end if;
-  select id into v_player from public.liar_players where room_id=v_room.id and auth_user_id=v_auth for update;
+  select lp.id into v_player
+  from public.liar_players lp
+  where lp.room_id=v_room.id and lp.auth_user_id=v_auth
+  for update;
   if found then
-    update public.liar_players set membership_status='active', player_key=p_player_key,
+    update public.liar_players as lp set membership_status='active', player_key=p_player_key,
       nickname=btrim(p_nickname), ready=false, left_at=null,
       joined_during_round_id=v_room.current_round_id
-    where id=v_player;
+    where lp.id=v_player;
   else
     insert into public.liar_players(room_id,auth_user_id,player_key,nickname,joined_during_round_id)
-    values(v_room.id,v_auth,p_player_key,btrim(p_nickname),v_room.current_round_id) returning id into v_player;
+    values(v_room.id,v_auth,p_player_key,btrim(p_nickname),v_room.current_round_id)
+    returning liar_players.id into v_player;
   end if;
-  update public.liar_rooms set last_activity_at=now(), expires_at=now()+interval '24 hours', version=version+1 where id=v_room.id;
+  update public.liar_rooms as r
+  set last_activity_at=now(), expires_at=now()+interval '24 hours', version=r.version+1
+  where r.id=v_room.id;
   return query select r.id,v_player,r.current_game_id,r.current_round_id,r.version from public.liar_rooms r where r.id=v_room.id;
 end;
 $$;
@@ -241,16 +252,16 @@ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room pu
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key and membership_status='active';
+ select lp.* into v_player from public.liar_players lp where lp.auth_user_id=v_auth and lp.player_key=p_player_key and lp.membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_room from public.liar_rooms where id=v_player.room_id for update;
+ select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  if v_room.current_round_id is not null then raise exception using message='INVALID_ROOM_STATE',errcode='P0001'; end if;
- select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
+ select g.* into v_game from public.liar_games g where g.id=v_room.current_game_id and g.room_id=v_room.id for update;
  if not found or v_game.status not in ('setup','active') then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
- select count(*) into v_count from public.liar_players where room_id=v_room.id and membership_status='active' and ready;
+ select count(*) into v_count from public.liar_players lp where lp.room_id=v_room.id and lp.membership_status='active' and lp.ready;
  -- TODO(PRODUCTION): 정식 배포 전에 최소 준비 인원을 4명으로 복구할 것.
  -- 2~6명 규칙도 다시 4~6명으로 복구할 것.
  if v_count<2 then raise exception using message='NOT_ENOUGH_READY_PLAYERS',errcode='P0001'; end if;
@@ -265,18 +276,19 @@ begin
    and (v_game.difficulty='all' or w.difficulty=v_game.difficulty)
    and (v_candidates=1 or w.id is distinct from v_last_word) order by random() limit 1;
  insert into public.liar_rounds(game_id,room_id,round_no,status,word_id,category_snapshot,word_snapshot,current_speaker_index)
- values(v_game.id,v_room.id,v_round_no,'ROLE_REVEAL',v_word.id,v_word.category,v_word.word,null) returning id into v_round;
+ values(v_game.id,v_room.id,v_round_no,'ROLE_REVEAL',v_word.id,v_word.category,v_word.word,null)
+ returning liar_rounds.id into v_round;
  with shuffled as (
-   select p.id,p.nickname,row_number() over(order by random())-1 turn_order
+   select p.id,p.nickname,row_number() over(order by random())-1 as turn_order
    from public.liar_players p where p.room_id=v_room.id and p.membership_status='active' and p.ready
  ), assigned as (
-   select *,row_number() over(order by random()) liar_order from shuffled
+   select shuffled.*,row_number() over(order by random()) as liar_order from shuffled
  )
  insert into public.liar_round_players(round_id,player_id,nickname_snapshot,role,turn_order)
- select v_round,id,nickname,case when liar_order<=v_game.liar_count then 'liar' else 'citizen' end,turn_order from assigned;
- update public.liar_players set ready=false where room_id=v_room.id and membership_status='active';
- update public.liar_games set status='active',started_at=coalesce(started_at,now()) where id=v_game.id;
- update public.liar_rooms set current_round_id=v_round,last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id returning version into v_room.version;
+ select v_round,a.id,a.nickname,case when a.liar_order<=v_game.liar_count then 'liar' else 'citizen' end,a.turn_order from assigned a;
+ update public.liar_players as lp set ready=false where lp.room_id=v_room.id and lp.membership_status='active';
+ update public.liar_games as g set status='active',started_at=coalesce(g.started_at,now()) where g.id=v_game.id;
+ update public.liar_rooms as rm set current_round_id=v_round,last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room.version;
  return query select v_round,v_round_no,v_room.version,r.version from public.liar_rounds r where r.id=v_round;
 end $$;
 
@@ -317,7 +329,7 @@ begin
    and lp.player_key=p_player_key
    and lp.membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_room from public.liar_rooms where id=v_player.room_id;
+ select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id;
  if not found or v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  return query select rp.role,r.category_snapshot,case when rp.role='citizen' then r.word_snapshot else null end
  from public.liar_round_players rp join public.liar_rounds r on r.id=rp.round_id
@@ -381,7 +393,7 @@ begin
  if p_direction is null or upper(p_direction) not in ('NEXT','PREVIOUS') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
  v_new:=v_round.current_speaker_index + case when upper(p_direction)='NEXT' then 1 else -1 end;
  if v_new<0 or v_new>=v_count then raise exception using message='SPEAKER_INDEX_OUT_OF_RANGE',errcode='P0001'; end if;
- update public.liar_rounds set current_speaker_index=v_new,version=version+1 where id=v_round.id returning liar_rounds.current_speaker_index,version into current_speaker_index,round_version;
+ update public.liar_rounds as r set current_speaker_index=v_new,version=r.version+1 where r.id=v_round.id returning r.current_speaker_index,r.version into current_speaker_index,round_version;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id;
  return next;
 end $$;
