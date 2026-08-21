@@ -1,13 +1,14 @@
 import { supabase } from "./supabase.js";
 import { requireSession } from "./sessionGuard.js";
-import { getPlayerKey } from "./storage.js";
+import { getPlayerKey, regeneratePlayerKey } from "./storage.js";
 
 let pending=false;
 async function mutate(name,params={}){if(pending)throw new Error("요청을 처리 중입니다.");pending=true;try{await requireSession();const {data,error}=await supabase.rpc(name,{p_player_key:getPlayerKey(),...params});if(error)throw error;return data;}finally{pending=false;}}
+async function resumeRoom(roomId){if(pending)throw new Error("요청을 처리 중입니다.");pending=true;try{await requireSession();let playerKey=getPlayerKey();for(let attempt=0;attempt<2;attempt+=1){const {data,error}=await supabase.rpc("liar_resume_room",{p_player_key:playerKey,p_room_id:roomId});if(!error)return data;if(attempt===0&&error.message?.includes("PLAYER_KEY_CONFLICT")){playerKey=regeneratePlayerKey();continue;}throw error;}}finally{pending=false;}}
 export const commands={
  createRoom:(nickname,settings)=>mutate("liar_create_room",{p_nickname:nickname,...settings}),
  joinRoom:(code,nickname)=>mutate("liar_join_room",{p_room_code:code,p_nickname:nickname}),
- resumeRoom:(roomId)=>mutate("liar_resume_room",{p_room_id:roomId}),
+ resumeRoom,
  leaveRoom:()=>mutate("liar_leave_room"), updateNickname:(nickname)=>mutate("liar_update_nickname",{p_nickname:nickname}),
  setReady:(ready)=>mutate("liar_set_ready",{p_ready:ready}), updateSettings:(settings,version)=>mutate("liar_update_game_settings",{...settings,p_expected_room_version:version}),
  startRound:(version)=>mutate("liar_start_round",{p_expected_room_version:version}), markRoleChecked:()=>mutate("liar_mark_role_checked"),

@@ -229,6 +229,12 @@ begin
   select lp.* into v_player from public.liar_players as lp
   where lp.room_id=v_room.id and lp.auth_user_id=v_auth and lp.membership_status='active' for update;
   if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  if exists (
+    select 1 from public.liar_players as other
+    where other.room_id=v_room.id and other.player_key=p_player_key and other.id<>v_player.id
+  ) then
+    raise exception using message='PLAYER_KEY_CONFLICT',errcode='P0001';
+  end if;
   update public.liar_players as lp set player_key=p_player_key where lp.id=v_player.id;
   update public.liar_rooms as rm
   set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1

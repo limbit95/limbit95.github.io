@@ -1,6 +1,42 @@
 import { supabase } from "./supabase.js";
 import { store } from "./store.js";
 import { unsubscribeRoomRealtime } from "./realtime.js";
+import { setStorageUser } from "./storage.js";
 
-export async function initializeSession(){const {data,error}=await supabase.auth.getSession();if(error)throw error;store.set({session:data.session,signedOut:!data.session});supabase.auth.onAuthStateChange((event,session)=>{const signedOut=event==="SIGNED_OUT"||!session;if(signedOut)void unsubscribeRoomRealtime();store.set({session,signedOut,snapshot:signedOut?null:store.get().snapshot,myRole:signedOut?null:store.get().myRole,myRoleRoundId:signedOut?null:store.get().myRoleRoundId,realtimeStatus:signedOut?"closed":store.get().realtimeStatus});});return data.session;}
-export async function requireSession(){if(store.get().signedOut)throw new Error("AUTH_REQUIRED");const {data,error}=await supabase.auth.getSession();if(error||!data.session){void unsubscribeRoomRealtime();store.set({session:null,signedOut:true,snapshot:null,myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});throw new Error("AUTH_REQUIRED");}store.set({session:data.session});return data.session;}
+function clearRoomState(session = null) {
+  store.set({session,signedOut:!session,snapshot:null,activeRooms:[],nickname:"",myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});
+}
+
+export async function initializeSession() {
+  const {data,error} = await supabase.auth.getSession();
+  if (error) throw error;
+  const initialSession = data.session;
+  setStorageUser(initialSession?.user?.id);
+  store.set({session:initialSession,signedOut:!initialSession});
+  supabase.auth.onAuthStateChange((event, session) => {
+    const previousUserId = store.get().session?.user?.id || null;
+    const nextUserId = session?.user?.id || null;
+    const userChanged = previousUserId !== nextUserId;
+    setStorageUser(nextUserId);
+    if (event === "SIGNED_OUT" || !session || userChanged) {
+      void unsubscribeRoomRealtime();
+      clearRoomState(session);
+      if (session && userChanged) window.dispatchEvent(new CustomEvent("liar:auth-user-changed"));
+    } else store.set({session,signedOut:false});
+  });
+  return initialSession;
+}
+
+export async function requireSession() {
+  if (store.get().signedOut) throw new Error("AUTH_REQUIRED");
+  const {data,error} = await supabase.auth.getSession();
+  if (error || !data.session) {
+    setStorageUser(null);
+    void unsubscribeRoomRealtime();
+    clearRoomState();
+    throw new Error("AUTH_REQUIRED");
+  }
+  setStorageUser(data.session.user.id);
+  store.set({session:data.session,signedOut:false});
+  return data.session;
+}
