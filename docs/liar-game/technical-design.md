@@ -643,3 +643,15 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 ---
 
 본 설계의 최우선 목표는 독립 웹앱 경계를 유지하면서 DB 트랜잭션, 명시적 상태 머신, snapshot 기반 라운드 참가자, stage 기반 투표, session guard와 Realtime 재조회 전략으로 구현 도중 구조를 다시 뜯어고칠 위험을 줄이는 것이다.
+
+---
+
+## N. 결과 라이어 공개 단계와 역할 확인 projection
+
+`liar_rounds.liars_revealed_at timestamptz null`은 라운드 lifecycle 전체에서 실제 라이어 집합의 공개 여부를 나타내는 서버 측 source of truth다. 검거 성공 경로의 `liar_reveal_liars`는 공개 시각을 `coalesce(existing, now())`로 기록하면서 `LIAR_REVEAL → LIAR_GUESS`를 수행한다. 검거 실패 경로는 `ROUND_RESULT`, liar winner, `finished_at`을 기록하되 공개 시각을 `NULL`로 유지한다.
+
+검거 실패 결과에서 host 전용 `liar_reveal_result_liars(player_key, expected_round_version)`는 active Auth membership, active/non-expired room, host, current `ROUND_RESULT`, liar winner, 종료 시각, expected version 및 미공개 상태를 잠금 후 재검증한다. 성공하면 status를 바꾸지 않고 공개 시각과 round version을 갱신하며 room activity/expiry/version도 갱신한다. 실제 라이어 ID나 역할은 mutation 응답에 포함하지 않는다. 공개 완료 전 재호출은 `RESULT_LIARS_ALREADY_REVEALED`, 공개 전 재시작은 `RESULT_LIAR_REVEAL_REQUIRED`로 거부한다.
+
+`liar_get_vote_snapshot`의 `liars_revealed`는 `status='ROUND_RESULT' AND liars_revealed_at IS NOT NULL`일 때만 true다. 같은 조건에서만 `actual_liars`를 `role='liar'`인 round player의 `round_player_id`, `nickname`으로 projection하며 그 외에는 빈 배열을 반환한다. `role`, `word_snapshot`, 정규화 제시어는 포함하지 않는다. 이미 공개를 거친 미래 `LIAR_GUESS → ROUND_RESULT` 흐름은 곧바로 실제 라이어와 재시작 UI를 표시할 수 있다.
+
+역할 확인 완료 UX는 room snapshot의 `round_players[].role_checked` projection을 사용하며, 원본은 `role_checked_at IS NOT NULL`이다. 클라이언트 로컬 상태나 storage 플래그를 추가하지 않는다. RPC 성공과 room/round version 증가가 기존 `state_changed` Realtime refresh를 일으켜 개인 완료 버튼과 전체 확인 수를 함께 다시 렌더링한다.

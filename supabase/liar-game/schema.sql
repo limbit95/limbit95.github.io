@@ -101,6 +101,7 @@ create table public.liar_rounds (
   current_speaker_index smallint,
   winner text,
   capture_succeeded boolean,
+  liars_revealed_at timestamptz,
   current_vote_stage smallint not null default 0,
   started_at timestamptz not null default now(),
   finished_at timestamptz,

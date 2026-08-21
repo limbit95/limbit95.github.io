@@ -72,6 +72,7 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="start-runoff")await perform(()=>commands.startRunoff(s.round.version));
  if(action==="start-runoff-speaking")await perform(()=>commands.startRunoffSpeaking(s.round.version));
  if(action==="reveal-liars")await perform(()=>commands.revealLiars(s.round.version));
+ if(action==="reveal-result-liars")await perform(()=>commands.revealResultLiars(s.round.version));
 });
 
 async function hydrateCurrentUser(){getPlayerKey();const activeRooms=await loadActiveRooms();let nickname=getNickname();if(activeRooms.length){nickname=activeRooms[0].nickname;setNickname(nickname);}store.set({nickname});if(nickname)await refresh();}

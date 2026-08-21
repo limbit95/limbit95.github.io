@@ -198,7 +198,7 @@ declare
   v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
   v_round public.liar_rounds%rowtype; v_stage public.liar_vote_stages%rowtype; v_voter uuid;
   v_submitted integer; v_required integer; v_candidates jsonb; v_tally jsonb; v_locked jsonb;
-  v_boundary jsonb:='[]'::jsonb; v_final jsonb:='[]'::jsonb;
+  v_boundary jsonb:='[]'::jsonb; v_final jsonb:='[]'::jsonb; v_actual_liars jsonb:='[]'::jsonb;
   v_stage_winners uuid[]; v_boundary_ids uuid[]; v_selected uuid[]; v_remaining integer; v_runoff boolean:=false;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
@@ -237,13 +237,19 @@ begin
     end if;
   else v_tally:=null; v_remaining:=v_stage.seats_to_fill;
   end if;
+  if v_round.status='ROUND_RESULT' and v_round.liars_revealed_at is not null then
+    select coalesce(jsonb_agg(jsonb_build_object('round_player_id',rp.id,'nickname',rp.nickname_snapshot) order by rp.turn_order),'[]'::jsonb)
+      into v_actual_liars from public.liar_round_players as rp where rp.round_id=v_round.id and rp.role='liar';
+  end if;
   return jsonb_build_object('stage_id',v_stage.id,'stage_no',v_stage.stage_no,'kind',v_stage.kind,'status',v_stage.status,
     'seats_to_fill',v_stage.seats_to_fill,'submitted_count',v_submitted,'required_count',v_required,'is_round_participant',v_voter is not null,
     'has_submitted',exists(select 1 from public.liar_ballots as lb where lb.vote_stage_id=v_stage.id and lb.voter_round_player_id=v_voter),
     'locked_winners',v_locked,'candidates',v_candidates,'tally',v_tally,'runoff_required',v_runoff,
     'boundary_candidates',v_boundary,'remaining_seats',v_remaining,'final_suspects',v_final,
     'capture_succeeded',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.capture_succeeded else null end,
-    'winner',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.winner else null end);
+    'winner',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.winner else null end,
+    'liars_revealed',v_round.status='ROUND_RESULT' and v_round.liars_revealed_at is not null,
+    'actual_liars',v_actual_liars);
 end;
 $$;
 
@@ -300,6 +306,7 @@ begin
     capture_succeeded=case when v_runoff then null else v_capture_succeeded end,
     winner=case when not v_runoff and not v_capture_succeeded then 'liar' else null end,
     finished_at=case when not v_runoff and not v_capture_succeeded then now() else null end,
+    liars_revealed_at=case when not v_runoff and not v_capture_succeeded then null else rd.liars_revealed_at end,
     version=rd.version+1
   where rd.id=v_round.id returning rd.version into v_round_version;
   update public.liar_rooms as rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room_version;
@@ -397,7 +404,33 @@ begin
   select rd.* into v_round from public.liar_rounds rd where rd.id=v_room.current_round_id for update;
   if not found or v_round.status<>'LIAR_REVEAL' or v_round.capture_succeeded is not true or v_round.winner is not null then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
   if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
-  update public.liar_rounds rd set status='LIAR_GUESS',version=rd.version+1 where rd.id=v_round.id returning rd.version into v_round_version;
+  update public.liar_rounds rd set status='LIAR_GUESS',liars_revealed_at=coalesce(rd.liars_revealed_at,now()),version=rd.version+1 where rd.id=v_round.id returning rd.version into v_round_version;
+  update public.liar_rooms rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room_version;
+  return query select v_round_version,v_room_version;
+end;
+$$;
+
+
+create or replace function public.liar_reveal_result_liars(p_player_key uuid,p_expected_round_version bigint)
+returns table(round_version bigint,room_version bigint)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
+  v_round public.liar_rounds%rowtype; v_round_version bigint; v_room_version bigint;
+begin
+  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  select lp.* into v_player from public.liar_players lp where lp.auth_user_id=v_auth and lp.player_key=p_player_key and lp.membership_status='active' for update;
+  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id for update;
+  if not found or v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
+  select rd.* into v_round from public.liar_rounds rd where rd.id=v_room.current_round_id and rd.room_id=v_room.id for update;
+  if not found or v_round.status<>'ROUND_RESULT' or v_round.winner<>'liar' or v_round.finished_at is null then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
+  if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+  if v_round.liars_revealed_at is not null then raise exception using message='RESULT_LIARS_ALREADY_REVEALED',errcode='P0001'; end if;
+  update public.liar_rounds rd set liars_revealed_at=now(),version=rd.version+1 where rd.id=v_round.id returning rd.version into v_round_version;
   update public.liar_rooms rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room_version;
   return query select v_round_version,v_room_version;
 end;
@@ -411,3 +444,4 @@ revoke all on function public.liar_close_vote(uuid,bigint) from public,anon,auth
 revoke all on function public.liar_start_runoff(uuid,bigint) from public,anon,authenticated;
 revoke all on function public.liar_start_runoff_speaking(uuid,bigint) from public,anon,authenticated;
 revoke all on function public.liar_reveal_liars(uuid,bigint) from public,anon,authenticated;
+revoke all on function public.liar_reveal_result_liars(uuid,bigint) from public,anon,authenticated;

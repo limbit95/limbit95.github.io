@@ -368,6 +368,9 @@ begin
   raise exception using message='INVALID_ROUND_STATE',errcode='P0001';
  end if;
  if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+ if v_round.winner='liar' and v_round.liars_revealed_at is null then
+  raise exception using message='RESULT_LIAR_REVEAL_REQUIRED',errcode='P0001';
+ end if;
  if v_room.current_game_id is distinct from v_round.game_id then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  select gm.* into v_game from public.liar_games gm where gm.id=v_room.current_game_id and gm.room_id=v_room.id for update;
  if not found or v_game.status<>'active' then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
