@@ -34,7 +34,7 @@ function render(state=store.get()){
  if(state.signedOut||!state.session){clearVoteDraft();root.innerHTML=accessView();return;}
  if(!state.nickname){root.innerHTML=nicknameView();return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)html+=captureRevealView(isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)html+=guessView(state.voteState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)html+=resultView(state.voteState);root.innerHTML=html;
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)html+=captureRevealView(isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)html+=guessView(state.voteState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)html+=resultView(state.voteState,isHost);root.innerHTML=html;
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
@@ -60,6 +60,7 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  const leaveMessage=s?.me?.is_host?"방장이 나가면 이 게임방이 종료되고 모든 참가자가 방에서 나가게 됩니다.\n정말 방을 종료하시겠습니까?":"방에서 나가시겠습니까?";
   if(action==="leave"&&confirm(leaveMessage))await perform(async()=>{await commands.leaveRoom();clearVoteDraft();await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,activeRooms:[],myRole:null,myRoleRoundId:null,voteState:null,myBallot:[],realtimeStatus:"closed"});},{reload:false});
  if(action==="start-round")await perform(()=>commands.startRound(s.room.version));
+ if(action==="restart-game")await perform(()=>commands.restartGame(s.round.version));
  if(action==="show-role")await perform(async()=>store.set({myRole:await getMyRoundRole(),myRoleRoundId:s.round?.id||null}),{reload:false});
  if(action==="confirm-role")await perform(()=>commands.markRoleChecked());
  if(action==="start-speaking")await perform(()=>commands.startSpeaking(s.round.version));

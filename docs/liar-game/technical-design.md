@@ -375,11 +375,15 @@ ROOM 1 ── N GAME 1 ── N ROUND
 | RUNOFF_VOTING | 동점 stage open | 후보 대상 제출/수정 | 재투표 마감 | VOTE_RESULT 또는 새 runoff | 불가 |
 | LIAR_REVEAL | actual liar set과 정확히 일치 | 검거 성공 안내만 확인 | 라이어 공개 | LIAR_GUESS | 불가 |
 | LIAR_GUESS | liar 전체 검거 | liar만 추측 | 강제 종료 | ROUND_RESULT | 불가 |
-| ROUND_RESULT | winner 확정 | 결과 확인 | 다음 round/새 game/위임 | WAITING/GAME_SETUP | 불가 |
+| ROUND_RESULT | winner 확정 | 결과 확인·방장 대기 | 같은 Room에서 새 game 생성/위임 | GAME_SETUP/WAITING | 불가 |
 | FORCE_ENDED | host 강제 종료 | 안내/대기 복귀 | 새 game 준비 | GAME_SETUP | 불가 |
 | EXPIRED | DB now >= expires_at | 안내만 | 없음 | 없음 | 불가 |
 
 설정 가능 여부는 상태명보다 `game.started_at IS NULL AND game.status='setup'`으로 판정한다. 같은 GAME의 다음 라운드 WAITING에서는 설정을 잠근다. 일반 상태 후퇴는 금지하며 SPEAKING의 speaker index 감소만 허용한다.
+
+`liar_restart_game(player_key, expected_round_version)`은 `ROUND_RESULT` 전용 lifecycle RPC다. active host membership과 room 만료, winner/finished_at, round version, room의 round/game pointer 및 active Game을 player → room → round → game 순서로 잠가 검증한다. 한 트랜잭션에서 기존 Game을 먼저 `finished` 처리한 뒤 설정 4종을 복사한 다음 번호의 setup Game을 만들고, active player의 ready와 `joined_during_round_id`를 초기화한다. 마지막으로 `current_game_id`를 새 Game으로, `current_round_id`를 null로 바꾸고 room version/활동/만료 시각을 갱신한다. 기존 Game/Round/Vote/Guess 행은 보존한다. 첫 요청 뒤 round pointer가 null이 되므로 이중 클릭의 후속 요청은 실패하며 `(room_id, game_no)` UNIQUE도 이를 방어한다.
+
+Room version 변경은 기존 `state_changed` Broadcast만 사용한다. 각 클라이언트는 snapshot을 다시 읽어 `round=null`, `game.status=setup`을 확인하고 별도 restart 상태나 location reload 없이 setup 화면으로 전환한다.
 
 `start_speaking` RPC는 현재 round의 모든 `liar_round_players.role_checked_at`이 NOT NULL인지 다시 확인한다. 한 명이라도 미확인이면 버튼을 비활성화하고 RPC도 전이를 거부한다. host가 미확인자를 무시하거나 강제로 진행하는 기능은 1차 범위에 포함하지 않는다.
 

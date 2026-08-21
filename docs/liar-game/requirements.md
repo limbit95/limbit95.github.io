@@ -573,14 +573,14 @@ ROOM AB12CD
 
 # 24. 새로운 게임
 
-현재 게임을 종료한 후 `새로운 게임`을 선택하면 설정 단계로 돌아간다.
+`ROUND_RESULT`에서 방장이 `게임 다시 시작`을 선택하면 방을 나가지 않고 설정 단계로 돌아간다. 이 동작은 같은 라운드의 초기화가 아니라 **같은 Room 안의 새로운 Game 생성**이다.
 
 ```text
 게임 종료
    ↓
 결과 확인
    ↓
-[ 새로운 게임 ]
+[ 게임 다시 시작 ]
    ↓
 게임 설정
    ↓
@@ -591,7 +591,9 @@ ROOM AB12CD
 
 새로운 게임에서는 방장이 설정을 다시 변경할 수 있다.
 
-직전 게임 설정값을 기본값으로 유지해도 된다.
+기존 Game은 `finished`와 `finished_at`으로 종료하고 Round/Vote/Guess 이력을 삭제하지 않는다. 새 setup Game은 `game_no = max(game_no) + 1`로 만들며 직전 Game의 카테고리, 난이도, 라이어 수, 추측 횟수를 복사한다. Room code, host와 모든 active membership은 유지하고 `current_game_id`만 새 Game으로 교체하며 `current_round_id`는 null로 만든다. 모든 active player의 ready는 false로 초기화하므로 직전 관전자도 다음 Game에 준비할 수 있다.
+
+Room version 증가는 기존 `state_changed` Broadcast와 snapshot 재조회를 유발한다. 따라서 모든 클라이언트는 새로고침 없이 `ROUND_RESULT → GAME_SETUP/WAITING`으로 이동한다. 방장만 종료된 round version을 제시해 재시작할 수 있고, player → room → round → game 잠금과 비워진 `current_round_id`, Game 번호 UNIQUE 제약으로 중복 재시작을 차단한다.
 
 ---
 
@@ -620,7 +622,7 @@ ROOM AB12CD
 현재 게임을 종료하고 설정 변경을 허용한다.
 
 ```text
-[ 새로운 게임 ]
+[ 게임 다시 시작 ]
 ```
 
 실행 시:
