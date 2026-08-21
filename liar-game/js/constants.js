@@ -1,5 +1,5 @@
 export const STORAGE_KEYS = Object.freeze({ playerKey: "liar_player_key", nickname: "liar_nickname", room: "liar_current_room" });
-export const CATEGORIES = Object.freeze(["음식", "장소", "직업", "동물", "물건", "인물", "기타"]);
+export const CATEGORIES = Object.freeze(["음식", "장소", "직업", "동물", "물건", "인물", "스포츠", "교통수단", "자연", "취미", "게임", "영화드라마", "음악", "기타"]);
 export const ROUND_STATUS = Object.freeze({ ROLE_REVEAL: "ROLE_REVEAL", SPEAKING: "SPEAKING", DISCUSSION: "DISCUSSION", VOTING: "VOTING", RUNOFF_VOTING: "RUNOFF_VOTING", VOTE_RESULT: "VOTE_RESULT", LIAR_REVEAL: "LIAR_REVEAL", LIAR_GUESS: "LIAR_GUESS", ROUND_RESULT: "ROUND_RESULT" });
 // TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 2명에서 4명으로 복구한다.
 // 라이어 상한은 4명=1명, 5~9명=2명, 10~12명=3명 규칙을 유지한다.

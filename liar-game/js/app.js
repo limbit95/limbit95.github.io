@@ -1,4 +1,4 @@
-import { ERROR_MESSAGES, ROUND_STATUS } from "./constants.js";
+import { CATEGORIES, ERROR_MESSAGES, ROUND_STATUS } from "./constants.js";
 import { initializeSession } from "./sessionGuard.js";
 import { getNickname, getPlayerKey, setCurrentRoom, setNickname } from "./storage.js";
 import { store } from "./store.js";
@@ -46,7 +46,7 @@ async function perform(task,{reload=true,recoverRoom=false}={}){store.set({messa
 }}
 root.addEventListener("submit",async(event)=>{event.preventDefault();const form=event.target;const data=new FormData(form);
  if(form.dataset.action==="nickname"){const nickname=data.get("nickname").trim();if(!nickname||nickname.length>20)return;setNickname(nickname);store.set({nickname});await perform(()=>loadActiveRooms(),{reload:false});return;}
- if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:["음식","장소","직업","동물","물건","인물","기타"],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
+ if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:[...CATEGORIES],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit")),p_show_category_to_liar:data.has("showCategoryToLiar")},s.room.version));}
  if(form.dataset.action==="guess"){const guessText=String(data.get("guess")||"").trim();if(!guessText||guessText.length>100){store.set({message:ERROR_MESSAGES.INVALID_GUESS_TEXT});return;}await perform(()=>commands.submitGuess(guessText));}

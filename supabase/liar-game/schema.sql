@@ -36,7 +36,7 @@ create table public.liar_words (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint liar_words_category_normalized_word_key unique (category, normalized_word),
-  constraint liar_words_category_check check (category in ('음식', '장소', '직업', '동물', '물건', '인물', '기타')),
+  constraint liar_words_category_check check (category in ('음식', '장소', '직업', '동물', '물건', '인물', '스포츠', '교통수단', '자연', '취미', '게임', '영화드라마', '음악', '기타')),
   constraint liar_words_word_check check (char_length(btrim(word)) between 1 and 100),
   constraint liar_words_normalized_word_check check (char_length(normalized_word) between 1 and 100),
   constraint liar_words_difficulty_check check (difficulty in ('easy', 'normal', 'hard'))
@@ -83,7 +83,7 @@ create table public.liar_games (
   constraint liar_games_selected_categories_check check (
     cardinality(selected_categories) >= 1
     and array_position(selected_categories, null) is null
-    and selected_categories <@ array['음식', '장소', '직업', '동물', '물건', '인물', '기타']::text[]
+    and selected_categories <@ array['음식', '장소', '직업', '동물', '물건', '인물', '스포츠', '교통수단', '자연', '취미', '게임', '영화드라마', '음악', '기타']::text[]
   ),
   constraint liar_games_difficulty_check check (difficulty in ('all', 'easy', 'normal', 'hard')),
   constraint liar_games_liar_count_check check (liar_count between 1 and 3),
@@ -119,7 +119,7 @@ create table public.liar_rounds (
     'ROLE_REVEAL', 'SPEAKING', 'DISCUSSION', 'VOTING', 'VOTE_RESULT',
     'RUNOFF_VOTING', 'LIAR_REVEAL', 'LIAR_GUESS', 'ROUND_RESULT', 'FORCE_ENDED'
   )),
-  constraint liar_rounds_category_snapshot_check check (category_snapshot in ('음식', '장소', '직업', '동물', '물건', '인물', '기타')),
+  constraint liar_rounds_category_snapshot_check check (category_snapshot in ('음식', '장소', '직업', '동물', '물건', '인물', '스포츠', '교통수단', '자연', '취미', '게임', '영화드라마', '음악', '기타')),
   constraint liar_rounds_word_snapshot_check check (char_length(btrim(word_snapshot)) between 1 and 100),
   constraint liar_rounds_current_speaker_index_check check (current_speaker_index is null or current_speaker_index >= 0),
   constraint liar_rounds_winner_check check (winner is null or winner in ('citizen', 'liar')),

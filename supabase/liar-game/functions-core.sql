@@ -23,7 +23,7 @@ begin
     group by x
   ) s;
   if coalesce(cardinality(v_categories), 0) < 1
-     or not (v_categories <@ array['음식','장소','직업','동물','물건','인물','기타']::text[])
+     or not (v_categories <@ array['음식','장소','직업','동물','물건','인물','스포츠','교통수단','자연','취미','게임','영화드라마','음악','기타']::text[])
      or array_position(v_categories, null) is not null
      or p_difficulty not in ('all','easy','normal','hard')
      or p_liar_count not between 1 and 3

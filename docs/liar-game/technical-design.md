@@ -325,6 +325,8 @@ UNIQUE `(round_id, attempt_no)`, 인덱스 `(round_id, created_at)`. 팀 공유 
 
 UNIQUE `(category, normalized_word)`, 부분 인덱스 `(category, difficulty) WHERE enabled`를 둔다. 따라서 같은 category의 동일 정규화 제시어는 difficulty만 달리하여 중복 등록할 수 없다.
 
+허용 category는 프론트 표시 순서로 `음식`, `장소`, `직업`, `동물`, `물건`, `인물`, `스포츠`, `교통수단`, `자연`, `취미`, `게임`, `영화드라마`, `음악`, `기타`이다. seed는 category마다 30개(`easy` 12, `normal` 12, `hard` 6), 총 420개를 제공하며 `ON CONFLICT (category, normalized_word) DO UPDATE`로 재실행 가능하다. `normalized_word`는 Unicode NFC → trim → 모든 whitespace 제거 규칙을 따른다.
+
 ### E.12 삭제 정책
 
 ROOM 삭제는 GAME/ROUND/ROUND PLAYERS/VOTE STAGES/BALLOTS/VOTES/GUESSES와 PLAYERS를 CASCADE 삭제한다. player의 일상적인 나가기는 soft leave이며, 물리 삭제는 만료 room 정리 시에만 한다. 예외적으로 Auth 회원 삭제 시 `liar_players.auth_user_id → auth.users`의 ON DELETE CASCADE는 유지하되 `liar_round_players.player_id → liar_players`는 ON DELETE SET NULL이므로, 회원의 player 행이 삭제되어도 기존 round player snapshot과 이에 연결된 투표·추측 기록은 보존된다.
