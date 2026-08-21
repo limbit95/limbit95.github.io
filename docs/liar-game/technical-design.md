@@ -413,9 +413,11 @@ host의 `close_vote_stage` RPC가 stage를 lock하고 현재 round participant �
 
 ### H.5 추측과 충돌 방지
 
-`submit_guess` RPC가 round row를 `FOR UPDATE`로 잠근다. 제출자가 현재 round liar인지, 상태와 남은 횟수를 확인한 뒤 count+1 attempt를 배정한다. UNIQUE `(round_id, attempt_no)`가 이중 방어한다. 동시에 제출하면 lock 순서대로 처리되며, 첫 제출이 정답이면 두 번째는 종료된 상태라 거부된다.
+`functions-guess.sql`의 `liar_submit_guess(player_key, guess_text)` RPC가 round row를 `FOR UPDATE`로 잠근다. 제출자가 현재 round liar인지, `LIAR_GUESS`/검거 성공/공개 완료 상태와 active Game의 `guess_limit`을 확인한 뒤 해당 round의 `max(attempt_no)+1`을 팀 전체 공유 attempt로 배정한다. UNIQUE `(round_id, attempt_no)`가 이중 방어한다. 동시에 제출하면 lock 순서대로 처리되며, 첫 제출이 정답이거나 마지막 기회를 소진하면 `ROUND_RESULT`가 되므로 두 번째는 상태 검증에서 거부된다. 모든 유효 제출은 round와 room version을 각각 증가시키며 기존 room `state_changed` Broadcast로 snapshot 재조회를 유발한다.
 
-정규화는 입력과 정답 모두 Unicode NFC 정규화 → 앞뒤 공백 제거 → 문자열 내부를 포함한 모든 공백 제거 → 정확 문자열 비교 순서다. 개념적으로 JavaScript의 `value.normalize("NFC").trim().replace(/\s+/g, "")`와 같지만 최종 판정은 DB/RPC에서 동일 규칙으로 수행한다. 대소문자는 변환하지 않으며 동의어, 유사어, 의미 기반 또는 AI 판정은 지원하지 않는다. 클라이언트 비교는 안내 용도로만 사용한다.
+내부 helper `liar_normalize_guess_text(text)`는 입력과 `liar_rounds.word_snapshot` 모두 Unicode NFC 정규화 → 앞뒤 공백 제거 → 문자열 내부를 포함한 모든 whitespace 제거 → 정확 문자열 비교 순서로 처리한다. 대소문자는 변환하지 않으며 동의어, 유사어, 의미 기반 또는 AI 판정은 지원하지 않는다. helper 권한은 public/anon/authenticated에서 모두 회수하고 최종 판정은 DB/RPC에서만 수행한다. 클라이언트는 정답을 받거나 비교하지 않는다.
+
+`liar_get_guess_snapshot(player_key)`은 `LIAR_GUESS` 전용 projection이다. `guess_limit`, round 전체 `used_attempts`/`remaining_attempts`, caller가 현재 round liar인지에 따른 `can_submit`, 그리고 각 오답의 `attempt_no`/`guess_text`/`guesser`만 반환한다. `word_snapshot`, word ID, role, `normalized_guess`, 정답 및 정규화된 정답은 포함하지 않는다. 새로고침과 room version Realtime 갱신 때 이 RPC를 다시 호출하므로 브라우저 저장소에 guess history를 보관하지 않는다. `ROUND_RESULT`에서는 이 RPC를 호출하지 않는다.
 
 ### H.6 결과
 
