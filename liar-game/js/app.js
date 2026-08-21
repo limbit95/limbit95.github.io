@@ -11,16 +11,22 @@ import { roomView } from "./views/room.js";
 import { setupView } from "./views/setup.js";
 import { roleRevealView } from "./views/roleReveal.js";
 import { discussionView, speakingView } from "./views/speaking.js";
+import { subscribeRoomRealtime, unsubscribeRoomRealtime } from "./realtime.js";
 
 const root=document.querySelector("#app");
 const errorCode=(error)=>Object.keys(ERROR_MESSAGES).find(code=>error?.message?.includes(code));
 const messageFor=(error)=>ERROR_MESSAGES[errorCode(error)]||error?.message||"요청을 처리하지 못했습니다.";
-async function refresh(){try{const snapshot=await getRoomSnapshot();setCurrentRoom(snapshot.room.id);store.set({snapshot,message:""});}catch(error){if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(errorCode(error))){setCurrentRoom("");store.set({snapshot:null,message:messageFor(error)});}else throw error;}}
+let refreshInFlight=null;
+let refreshQueued=false;
+let realtimeDebounce=null;
+async function refreshOnce(){try{const previous=store.get();const snapshot=await getRoomSnapshot();const roundId=snapshot.round?.id||null;setCurrentRoom(snapshot.room.id);store.set({snapshot,message:"",myRole:previous.myRoleRoundId===roundId?previous.myRole:null,myRoleRoundId:previous.myRoleRoundId===roundId?previous.myRoleRoundId:null});await subscribeRoomRealtime(snapshot.room.id,queueRealtimeRefresh,status=>store.set({realtimeStatus:status}));}catch(error){if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(errorCode(error))){await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,realtimeStatus:"closed",message:messageFor(error)});}else throw error;}}
+function refresh(){refreshQueued=true;if(refreshInFlight)return refreshInFlight;refreshInFlight=(async()=>{do{refreshQueued=false;await refreshOnce();}while(refreshQueued);})().finally(()=>{refreshInFlight=null;});return refreshInFlight;}
+function queueRealtimeRefresh(){refreshQueued=true;if(refreshInFlight)return;clearTimeout(realtimeDebounce);realtimeDebounce=setTimeout(()=>{realtimeDebounce=null;refresh().catch(error=>store.set({message:messageFor(error)}));},75);}
 function render(state=store.get()){
  if(state.signedOut||!state.session){root.innerHTML=accessView();return;}
  if(!state.nickname){root.innerHTML=nicknameView();return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
@@ -39,9 +45,9 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="change-nickname"){setNickname("");store.set({nickname:""});}
  if(action==="ready"){const mine=s.players.find(p=>p.id===s.me?.player_id);await perform(()=>commands.setReady(!mine?.ready));}
  if(action==="edit-nickname"){const value=prompt("새 닉네임 (1~20자)",store.get().nickname)?.trim();if(value&&value.length<=20)await perform(async()=>{await commands.updateNickname(value);setNickname(value);store.set({nickname:value});});}
- if(action==="leave"&&confirm("방에서 나가시겠습니까?"))await perform(async()=>{await commands.leaveRoom();setCurrentRoom("");store.set({snapshot:null,myRole:null});},{reload:false});
+ if(action==="leave"&&confirm("방에서 나가시겠습니까?"))await perform(async()=>{await commands.leaveRoom();await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});},{reload:false});
  if(action==="start-round")await perform(()=>commands.startRound(s.room.version));
- if(action==="show-role")await perform(async()=>store.set({myRole:await getMyRoundRole()}),{reload:false});
+ if(action==="show-role")await perform(async()=>store.set({myRole:await getMyRoundRole(),myRoleRoundId:s.round?.id||null}),{reload:false});
  if(action==="confirm-role")await perform(()=>commands.markRoleChecked());
  if(action==="start-speaking")await perform(()=>commands.startSpeaking(s.round.version));
  if(action==="speaker-next")await perform(()=>commands.moveSpeaker("NEXT",s.round.version));
