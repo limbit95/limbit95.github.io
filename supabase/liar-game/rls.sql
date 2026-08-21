@@ -40,6 +40,7 @@ revoke all on function public.liar_submit_ballot(uuid,uuid[]) from public, anon,
 revoke all on function public.liar_get_my_ballot(uuid) from public, anon, authenticated;
 revoke all on function public.liar_get_vote_snapshot(uuid) from public, anon, authenticated;
 revoke all on function public.liar_close_vote(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_start_runoff(uuid,bigint) from public, anon, authenticated;
 
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
@@ -61,3 +62,4 @@ grant execute on function public.liar_submit_ballot(uuid,uuid[]) to authenticate
 grant execute on function public.liar_get_my_ballot(uuid) to authenticated;
 grant execute on function public.liar_get_vote_snapshot(uuid) to authenticated;
 grant execute on function public.liar_close_vote(uuid,bigint) to authenticated;
+grant execute on function public.liar_start_runoff(uuid,bigint) to authenticated;

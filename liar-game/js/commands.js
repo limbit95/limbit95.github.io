@@ -17,4 +17,5 @@ export const commands={
  startVote:(version)=>mutate("liar_start_vote",{p_expected_round_version:version}),
  submitBallot:(targetRoundPlayerIds)=>mutate("liar_submit_ballot",{p_target_round_player_ids:targetRoundPlayerIds}),
  closeVote:(version)=>mutate("liar_close_vote",{p_expected_round_version:version}),
+ startRunoff:(version)=>mutate("liar_start_runoff",{p_expected_round_version:version}),
 };
