@@ -1,0 +1,9 @@
+import { escapeHTML } from "../constants.js";
+
+export function voteView(s,voteState,myBallot,isHost){
+ const seats=Number(voteState?.seats_to_fill||0);const selected=new Set(myBallot||[]);const submitted=voteState?.has_submitted===true;
+ const candidates=voteState?.candidates||[];const participant=voteState?.is_round_participant===true;const complete=Number(voteState?.submitted_count)===Number(voteState?.required_count);
+ return `<section class="card stack vote-panel"><h2>투표</h2><p>라이어로 의심되는 사람을 선택하세요.</p>${participant?`<p class="notice"><strong>${seats}명</strong>을 선택해야 합니다.</p><form class="stack" data-action="ballot"><div class="vote-candidates">${candidates.map(candidate=>`<label class="vote-candidate ${candidate.is_me?"disabled":""}"><input type="checkbox" name="target" value="${escapeHTML(candidate.round_player_id)}" ${selected.has(candidate.round_player_id)?"checked":""} ${candidate.is_me?"disabled":""}><span>${escapeHTML(candidate.nickname)}${candidate.is_me?" (본인) - 선택 불가":""}</span></label>`).join("")}</div><p>현재 선택: <strong data-vote-selected>${selected.size}</strong> / ${seats}</p><button type="submit" data-ballot-submit ${selected.size!==seats?"disabled":""}>${submitted?"투표 수정":"투표하기"}</button></form>`:`<p class="notice">이번 라운드 관전자는 투표할 수 없습니다.</p>`}<div class="stack"><h3>투표 진행</h3><p><strong>${voteState?.submitted_count||0} / ${voteState?.required_count||0}명 완료</strong></p>${isHost?`<button data-action="close-vote" ${complete?"":"disabled"}>투표 마감</button>`:""}</div></section>`;
+}
+
+export function voteResultView(voteState){const tally=voteState?.tally||[];return `<section class="card stack"><h2>투표 결과</h2><ol class="vote-results">${tally.map(item=>`<li><strong>${escapeHTML(item.nickname)}</strong><span>${Number(item.votes)||0}표</span></li>`).join("")}</ol><p class="notice">동률 및 최종 검거 판정은 다음 단계에서 진행됩니다.</p></section>`;}

@@ -2,7 +2,7 @@ import { ERROR_MESSAGES, ROUND_STATUS } from "./constants.js";
 import { initializeSession } from "./sessionGuard.js";
 import { getNickname, getPlayerKey, setCurrentRoom, setNickname } from "./storage.js";
 import { store } from "./store.js";
-import { getMyActiveRooms, getMyRoundRole, getRoomSnapshot } from "./api.js";
+import { getMyActiveRooms, getMyBallot, getMyRoundRole, getRoomSnapshot, getVoteSnapshot } from "./api.js";
 import { commands } from "./commands.js";
 import { accessView } from "./views/access.js";
 import { nicknameView } from "./views/nickname.js";
@@ -11,6 +11,7 @@ import { roomView } from "./views/room.js";
 import { setupView } from "./views/setup.js";
 import { roleRevealView } from "./views/roleReveal.js";
 import { discussionView, speakingView } from "./views/speaking.js";
+import { voteResultView, voteView } from "./views/vote.js";
 import { subscribeRoomRealtime, unsubscribeRoomRealtime } from "./realtime.js";
 
 const root=document.querySelector("#app");
@@ -20,14 +21,14 @@ let refreshInFlight=null;
 let refreshQueued=false;
 let realtimeDebounce=null;
 async function loadActiveRooms(){const activeRooms=await getMyActiveRooms();store.set({activeRooms});return activeRooms;}
-async function refreshOnce(){try{const previous=store.get();const snapshot=await getRoomSnapshot();const roundId=snapshot.round?.id||null;setCurrentRoom(snapshot.room.id);store.set({snapshot,message:"",myRole:previous.myRoleRoundId===roundId?previous.myRole:null,myRoleRoundId:previous.myRoleRoundId===roundId?previous.myRoleRoundId:null});await subscribeRoomRealtime(snapshot.room.id,queueRealtimeRefresh,status=>store.set({realtimeStatus:status}));}catch(error){const code=errorCode(error);if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(code)){await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,realtimeStatus:"closed"});const activeRooms=await loadActiveRooms();store.set({message:code==="NOT_ROOM_MEMBER"&&activeRooms.length?"":messageFor(error)});}else throw error;}}
+async function refreshOnce(){try{const previous=store.get();const snapshot=await getRoomSnapshot();const roundId=snapshot.round?.id||null;let voteState=null;let myBallot=[];if([ROUND_STATUS.VOTING,ROUND_STATUS.VOTE_RESULT].includes(snapshot.round?.status)){voteState=await getVoteSnapshot();const isParticipant=snapshot.round_players.some(player=>player.player_id===snapshot.me?.player_id);if(snapshot.round.status===ROUND_STATUS.VOTING&&isParticipant){const ballot=await getMyBallot();myBallot=Array.isArray(ballot?.target_round_player_ids)?ballot.target_round_player_ids:[];}}setCurrentRoom(snapshot.room.id);store.set({snapshot,voteState,myBallot,message:"",myRole:previous.myRoleRoundId===roundId?previous.myRole:null,myRoleRoundId:previous.myRoleRoundId===roundId?previous.myRoleRoundId:null});await subscribeRoomRealtime(snapshot.room.id,queueRealtimeRefresh,status=>store.set({realtimeStatus:status}));}catch(error){const code=errorCode(error);if(["NOT_ROOM_MEMBER","ROOM_EXPIRED"].includes(code)){await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,myRole:null,myRoleRoundId:null,voteState:null,myBallot:[],realtimeStatus:"closed"});const activeRooms=await loadActiveRooms();store.set({message:code==="NOT_ROOM_MEMBER"&&activeRooms.length?"":messageFor(error)});}else throw error;}}
 function refresh(){refreshQueued=true;if(refreshInFlight)return refreshInFlight;refreshInFlight=(async()=>{do{refreshQueued=false;await refreshOnce();}while(refreshQueued);})().finally(()=>{refreshInFlight=null;});return refreshInFlight;}
 function queueRealtimeRefresh(){refreshQueued=true;if(refreshInFlight)return;clearTimeout(realtimeDebounce);realtimeDebounce=setTimeout(()=>{realtimeDebounce=null;refresh().catch(error=>store.set({message:messageFor(error)}));},75);}
 function render(state=store.get()){
  if(state.signedOut||!state.session){root.innerHTML=accessView();return;}
  if(!state.nickname){root.innerHTML=nicknameView();return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView();root.innerHTML=html;
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if(s.round.status===ROUND_STATUS.VOTING)html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState);root.innerHTML=html;
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
@@ -42,7 +43,9 @@ root.addEventListener("submit",async(event)=>{event.preventDefault();const form=
  if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:["음식","장소","직업","동물","물건","인물","기타"],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit"))},s.room.version));}
+ if(form.dataset.action==="ballot"){const voteState=store.get().voteState;const targets=data.getAll("target");if(targets.length!==Number(voteState?.seats_to_fill)){store.set({message:ERROR_MESSAGES.INVALID_BALLOT_SELECTION_COUNT});return;}await perform(()=>commands.submitBallot(targets));}
 });
+root.addEventListener("change",event=>{if(event.target.name!=="target")return;const form=event.target.closest('form[data-action="ballot"]');if(!form)return;const limit=Number(store.get().voteState?.seats_to_fill||0);const checked=[...form.querySelectorAll('input[name="target"]:checked')];if(checked.length>limit){event.target.checked=false;alert(`최대 ${limit}명까지 선택할 수 있습니다.`);return;}form.querySelector("[data-vote-selected]").textContent=checked.length;form.querySelector("[data-ballot-submit]").disabled=checked.length!==limit;});
 root.addEventListener("click",async(event)=>{const action=event.target.closest("[data-action]")?.dataset.action;if(!action)return;const s=store.get().snapshot;
  if(action==="change-nickname"){setNickname("");store.set({nickname:""});}
  if(action==="ready"){const mine=s.players.find(p=>p.id===s.me?.player_id);await perform(()=>commands.setReady(!mine?.ready));}
@@ -57,6 +60,8 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="speaker-next")await perform(()=>commands.moveSpeaker("NEXT",s.round.version));
  if(action==="speaker-prev")await perform(()=>commands.moveSpeaker("PREVIOUS",s.round.version));
  if(action==="finish-speaking")await perform(()=>commands.finishSpeaking(s.round.version));
+ if(action==="start-vote")await perform(()=>commands.startVote(s.round.version));
+ if(action==="close-vote")await perform(()=>commands.closeVote(s.round.version));
 });
 
 async function hydrateCurrentUser(){getPlayerKey();const activeRooms=await loadActiveRooms();let nickname=getNickname();if(activeRooms.length){nickname=activeRooms[0].nickname;setNickname(nickname);}store.set({nickname});if(nickname)await refresh();}

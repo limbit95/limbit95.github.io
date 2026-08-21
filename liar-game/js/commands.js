@@ -14,4 +14,7 @@ export const commands={
  startRound:(version)=>mutate("liar_start_round",{p_expected_room_version:version}), markRoleChecked:()=>mutate("liar_mark_role_checked"),
  startSpeaking:(version)=>mutate("liar_start_speaking",{p_expected_round_version:version}), moveSpeaker:(direction,version)=>mutate("liar_move_speaker",{p_direction:direction,p_expected_round_version:version}),
  finishSpeaking:(version)=>mutate("liar_finish_speaking",{p_expected_round_version:version}),
+ startVote:(version)=>mutate("liar_start_vote",{p_expected_round_version:version}),
+ submitBallot:(targetRoundPlayerIds)=>mutate("liar_submit_ballot",{p_target_round_player_ids:targetRoundPlayerIds}),
+ closeVote:(version)=>mutate("liar_close_vote",{p_expected_round_version:version}),
 };
