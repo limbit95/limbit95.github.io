@@ -251,7 +251,9 @@ begin
  select * into v_game from public.liar_games where id=v_room.current_game_id and room_id=v_room.id for update;
  if not found or v_game.status not in ('setup','active') then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_players where room_id=v_room.id and membership_status='active' and ready;
- if v_count<4 then raise exception using message='NOT_ENOUGH_READY_PLAYERS',errcode='P0001'; end if;
+ -- TODO(PRODUCTION): 정식 배포 전에 최소 준비 인원을 4명으로 복구할 것.
+ -- 2~6명 규칙도 다시 4~6명으로 복구할 것.
+ if v_count<2 then raise exception using message='NOT_ENOUGH_READY_PLAYERS',errcode='P0001'; end if;
  if v_count>12 then raise exception using message='TOO_MANY_READY_PLAYERS',errcode='P0001'; end if;
  v_max:=case when v_count<=6 then 1 when v_count<=9 then 2 else 3 end;
  if v_game.liar_count>v_max then raise exception using message='INVALID_LIAR_COUNT',errcode='P0001'; end if;
