@@ -284,7 +284,11 @@ as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_r
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key;
+ select lp.* into v_player
+ from public.liar_players lp
+ where lp.auth_user_id=v_auth
+   and lp.player_key=p_player_key
+   and lp.membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id for update;
  if v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
@@ -305,7 +309,11 @@ as $$ declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_r
 begin
  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
- select * into v_player from public.liar_players where auth_user_id=v_auth and player_key=p_player_key;
+ select lp.* into v_player
+ from public.liar_players lp
+ where lp.auth_user_id=v_auth
+   and lp.player_key=p_player_key
+   and lp.membership_status='active';
  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
  select * into v_room from public.liar_rooms where id=v_player.room_id;
  if not found or v_room.status='expired' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
