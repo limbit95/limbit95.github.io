@@ -208,7 +208,7 @@ begin
   select rm.* into v_room from public.liar_rooms as rm where rm.id=v_player.room_id;
   if not found or v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
   select rd.* into v_round from public.liar_rounds as rd where rd.id=v_room.current_round_id;
-  if not found or v_round.status not in ('VOTING','RUNOFF_VOTING','VOTE_RESULT') or v_round.current_vote_stage=0 then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
+  if not found or v_round.status not in ('VOTING','RUNOFF_VOTING','VOTE_RESULT','LIAR_GUESS','ROUND_RESULT') or v_round.current_vote_stage=0 then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
   select vs.* into v_stage from public.liar_vote_stages as vs where vs.round_id=v_round.id and vs.stage_no=v_round.current_vote_stage;
   if not found then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
   select rp.id into v_voter from public.liar_round_players as rp where rp.round_id=v_round.id and rp.player_id=v_player.id;
@@ -241,7 +241,9 @@ begin
     'seats_to_fill',v_stage.seats_to_fill,'submitted_count',v_submitted,'required_count',v_required,'is_round_participant',v_voter is not null,
     'has_submitted',exists(select 1 from public.liar_ballots as lb where lb.vote_stage_id=v_stage.id and lb.voter_round_player_id=v_voter),
     'locked_winners',v_locked,'candidates',v_candidates,'tally',v_tally,'runoff_required',v_runoff,
-    'boundary_candidates',v_boundary,'remaining_seats',v_remaining,'final_suspects',v_final);
+    'boundary_candidates',v_boundary,'remaining_seats',v_remaining,'final_suspects',v_final,
+    'capture_succeeded',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.capture_succeeded else null end,
+    'winner',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.winner else null end);
 end;
 $$;
 
@@ -253,7 +255,7 @@ declare
   v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype; v_round public.liar_rounds%rowtype;
   v_stage public.liar_vote_stages%rowtype; v_game public.liar_games%rowtype; v_required integer; v_submitted integer;
   v_stage_winners uuid[]; v_boundary_ids uuid[]; v_selected uuid[]; v_remaining integer; v_runoff boolean;
-  v_final uuid[]; v_round_version bigint; v_room_version bigint;
+  v_final uuid[]; v_capture_succeeded boolean; v_round_version bigint; v_room_version bigint;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
   if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
@@ -279,8 +281,27 @@ begin
     if cardinality(v_final)<>v_game.liar_count or cardinality(array(select distinct x from unnest(v_final) as u(x)))<>v_game.liar_count then raise exception using message='INVALID_FINAL_SUSPECT_COUNT',errcode='P0001'; end if;
     update public.liar_round_players as rp set is_final_suspect=false where rp.round_id=v_round.id;
     update public.liar_round_players as rp set is_final_suspect=true where rp.round_id=v_round.id and rp.id=any(v_final);
+    select
+      cardinality(v_final)=(select count(*) from public.liar_round_players as rp where rp.round_id=v_round.id and rp.role='liar')
+      and not exists (
+        (select final_id from unnest(v_final) as final_suspects(final_id))
+        except
+        (select rp.id from public.liar_round_players as rp where rp.round_id=v_round.id and rp.role='liar')
+      )
+      and not exists (
+        (select rp.id from public.liar_round_players as rp where rp.round_id=v_round.id and rp.role='liar')
+        except
+        (select final_id from unnest(v_final) as final_suspects(final_id))
+      )
+    into v_capture_succeeded;
   end if;
-  update public.liar_rounds as rd set status='VOTE_RESULT',version=rd.version+1 where rd.id=v_round.id returning rd.version into v_round_version;
+  update public.liar_rounds as rd set
+    status=case when v_runoff then 'VOTE_RESULT' when v_capture_succeeded then 'LIAR_GUESS' else 'ROUND_RESULT' end,
+    capture_succeeded=case when v_runoff then null else v_capture_succeeded end,
+    winner=case when not v_runoff and not v_capture_succeeded then 'liar' else null end,
+    finished_at=case when not v_runoff and not v_capture_succeeded then now() else null end,
+    version=rd.version+1
+  where rd.id=v_round.id returning rd.version into v_round_version;
   update public.liar_rooms as rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room_version;
   return query select v_stage.id,v_round_version,v_room_version;
 end;
