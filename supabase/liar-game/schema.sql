@@ -115,7 +115,7 @@ create table public.liar_rounds (
   constraint liar_rounds_round_no_check check (round_no >= 1),
   constraint liar_rounds_status_check check (status in (
     'ROLE_REVEAL', 'SPEAKING', 'DISCUSSION', 'VOTING', 'VOTE_RESULT',
-    'RUNOFF_VOTING', 'LIAR_GUESS', 'ROUND_RESULT', 'FORCE_ENDED'
+    'RUNOFF_VOTING', 'LIAR_REVEAL', 'LIAR_GUESS', 'ROUND_RESULT', 'FORCE_ENDED'
   )),
   constraint liar_rounds_category_snapshot_check check (category_snapshot in ('음식', '장소', '직업', '동물', '물건', '인물', '기타')),
   constraint liar_rounds_word_snapshot_check check (char_length(btrim(word_snapshot)) between 1 and 100),
@@ -240,7 +240,7 @@ create unique index liar_games_one_open_per_room_idx on public.liar_games (room_
 create index liar_rounds_room_status_idx on public.liar_rounds (room_id, status);
 create index liar_rounds_game_created_at_idx on public.liar_rounds (game_id, created_at desc);
 create unique index liar_rounds_one_in_progress_per_game_idx on public.liar_rounds (game_id) where status in (
-  'ROLE_REVEAL', 'SPEAKING', 'DISCUSSION', 'VOTING', 'VOTE_RESULT', 'RUNOFF_VOTING', 'LIAR_GUESS'
+  'ROLE_REVEAL', 'SPEAKING', 'DISCUSSION', 'VOTING', 'VOTE_RESULT', 'RUNOFF_VOTING', 'LIAR_REVEAL', 'LIAR_GUESS'
 );
 create index liar_round_players_round_role_idx on public.liar_round_players (round_id, role);
 create index liar_round_players_player_round_idx on public.liar_round_players (player_id, round_id);

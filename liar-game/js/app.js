@@ -12,7 +12,7 @@ import { setupView } from "./views/setup.js";
 import { roleRevealView } from "./views/roleReveal.js";
 import { discussionView, speakingView } from "./views/speaking.js";
 import { voteResultView, voteView } from "./views/vote.js";
-import { guessView } from "./views/guess.js";
+import { captureRevealView, guessView } from "./views/guess.js";
 import { resultView } from "./views/result.js";
 import { subscribeRoomRealtime, unsubscribeRoomRealtime } from "./realtime.js";
 
@@ -34,7 +34,7 @@ function render(state=store.get()){
  if(state.signedOut||!state.session){clearVoteDraft();root.innerHTML=accessView();return;}
  if(!state.nickname){root.innerHTML=nicknameView();return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)html+=guessView(state.voteState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)html+=resultView(state.voteState);root.innerHTML=html;
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)html+=captureRevealView(isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)html+=guessView(state.voteState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)html+=resultView(state.voteState);root.innerHTML=html;
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
@@ -69,6 +69,8 @@ root.addEventListener("click",async(event)=>{const action=event.target.closest("
  if(action==="start-vote")await perform(()=>commands.startVote(s.round.version));
  if(action==="close-vote")await perform(()=>commands.closeVote(s.round.version));
  if(action==="start-runoff")await perform(()=>commands.startRunoff(s.round.version));
+ if(action==="start-runoff-speaking")await perform(()=>commands.startRunoffSpeaking(s.round.version));
+ if(action==="reveal-liars")await perform(()=>commands.revealLiars(s.round.version));
 });
 
 async function hydrateCurrentUser(){getPlayerKey();const activeRooms=await loadActiveRooms();let nickname=getNickname();if(activeRooms.length){nickname=activeRooms[0].nickname;setNickname(nickname);}store.set({nickname});if(nickname)await refresh();}

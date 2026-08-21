@@ -368,11 +368,12 @@ ROOM 1 ── N GAME 1 ── N ROUND
 | GAME_SETUP | room 생성/새 game draft | 방 보기, 나가기 | 설정 변경·확정 | WAITING | 없음 |
 | WAITING | setup 확정/결과 후 다음 준비 | ready, 허용 시 nickname, 나가기 | round 시작, 위임, 새 game | ROLE_REVEAL | 미시작 game만 setup 가능 |
 | ROLE_REVEAL | start round 완료 | 역할 확인 | 전원 확인 후 발언 시작, 강제 종료 | SPEAKING | 불가 |
-| SPEAKING | speaker index 0으로 시작 | 순서 확인 | 이전/다음, 마지막 후 종료 | DISCUSSION | 상태 후퇴 불가, index만 이전 |
+| SPEAKING | 최초 발언 또는 동률 추가 발언 | 순서 확인 | 이전/다음, 마지막 후 종료 | DISCUSSION/RUNOFF_VOTING | 상태 후퇴 불가, index만 이전 |
 | DISCUSSION | 설명 종료 | Zoom 토론 | 투표 시작 | VOTING | 불가 |
 | VOTING | 원투표 stage open | 제출/수정, 진행률 | 마감 | VOTE_RESULT/RUNOFF/추측/결과 | 불가 |
-| VOTE_RESULT | stage 마감/집계 | 결과 확인 | runoff 또는 판정 | RUNOFF_VOTING/LIAR_GUESS/ROUND_RESULT | 불가 |
+| VOTE_RESULT | stage 마감/집계 | 결과 확인 | 추가 발언 후 runoff 또는 즉시 runoff | SPEAKING/RUNOFF_VOTING/LIAR_REVEAL/ROUND_RESULT | 불가 |
 | RUNOFF_VOTING | 동점 stage open | 후보 대상 제출/수정 | 재투표 마감 | VOTE_RESULT 또는 새 runoff | 불가 |
+| LIAR_REVEAL | actual liar set과 정확히 일치 | 검거 성공 안내만 확인 | 라이어 공개 | LIAR_GUESS | 불가 |
 | LIAR_GUESS | liar 전체 검거 | liar만 추측 | 강제 종료 | ROUND_RESULT | 불가 |
 | ROUND_RESULT | winner 확정 | 결과 확인 | 다음 round/새 game/위임 | WAITING/GAME_SETUP | 불가 |
 | FORCE_ENDED | host 강제 종료 | 안내/대기 복귀 | 새 game 준비 | GAME_SETUP | 불가 |
@@ -400,11 +401,11 @@ host의 `close_vote_stage` RPC가 stage를 lock하고 현재 round participant �
 - voter는 남은 자리 수(`liar_count - locked winners`)만큼 선택한다.
 - stage 번호로 원투표와 모든 재투표 이력을 구분한다.
 
-재투표가 다시 동점이면 Zoom 추가 토론 후 같은 후보로 stage 번호를 증가시켜 다시 재투표한다. 동점이 해소될 때까지 횟수 제한 없이 반복하며 DB 랜덤 추첨이나 host 임의 결정은 하지 않는다. 진행을 중단해야 하면 host의 GAME 전체 강제 종료를 사용한다.
+재투표가 다시 동점이면 방장은 매번 즉시 재투표 또는 모든 기존 참가자의 추가 발언 한 바퀴를 선택한다. 두 방식 모두 round row를 잠근 뒤 동일한 경계 계산으로 다음 open runoff stage를 먼저 한 개만 생성한다. 추가 발언 방식은 round를 `SPEAKING`으로 바꾸고, 마지막 발언에서 그 open stage를 재사용해 `RUNOFF_VOTING`으로 전환한다. 최초 `current_vote_stage=0` 발언만 기존대로 `DISCUSSION`으로 간다. 동점이 해소될 때까지 횟수 제한 없이 반복한다.
 
 ### H.4 검거 판정
 
-투표 마감 RPC에서 final suspect set과 role=liar set을 집합 비교한다. 단일/다중 모두 크기와 구성원이 완전히 같을 때만 검거 성공이다. 하나라도 다르면 즉시 liar winner다. 성공하면 `LIAR_GUESS`로 이동한다.
+투표 마감 RPC에서 final suspect set과 role=liar set을 집합 비교한다. 단일/다중 모두 크기와 구성원이 완전히 같을 때만 검거 성공이다. 하나라도 다르면 즉시 liar winner다. 성공하면 `winner=null`, `finished_at=null`인 `LIAR_REVEAL`로 이동한다. 이 상태는 room snapshot에 상태와 비밀이 아닌 `current_vote_stage`만 노출하고 vote snapshot 호출을 허용하지 않으므로 final suspects, tally, locked winner, role, word를 공개하지 않는다. host의 version 검증 `liar_reveal_liars`만 `LIAR_GUESS`로 전환하며 반환값은 round/room version뿐이다.
 
 ### H.5 추측과 충돌 방지
 

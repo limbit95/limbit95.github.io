@@ -18,4 +18,6 @@ export const commands={
  submitBallot:(targetRoundPlayerIds)=>mutate("liar_submit_ballot",{p_target_round_player_ids:targetRoundPlayerIds}),
  closeVote:(version)=>mutate("liar_close_vote",{p_expected_round_version:version}),
  startRunoff:(version)=>mutate("liar_start_runoff",{p_expected_round_version:version}),
+ startRunoffSpeaking:(version)=>mutate("liar_start_runoff_speaking",{p_expected_round_version:version}),
+ revealLiars:(version)=>mutate("liar_reveal_liars",{p_expected_round_version:version}),
 };

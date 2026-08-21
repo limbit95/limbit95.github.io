@@ -1,6 +1,6 @@
 export const STORAGE_KEYS = Object.freeze({ playerKey: "liar_player_key", nickname: "liar_nickname", room: "liar_current_room" });
 export const CATEGORIES = Object.freeze(["음식", "장소", "직업", "동물", "물건", "인물", "기타"]);
-export const ROUND_STATUS = Object.freeze({ ROLE_REVEAL: "ROLE_REVEAL", SPEAKING: "SPEAKING", DISCUSSION: "DISCUSSION", VOTING: "VOTING", RUNOFF_VOTING: "RUNOFF_VOTING", VOTE_RESULT: "VOTE_RESULT", LIAR_GUESS: "LIAR_GUESS", ROUND_RESULT: "ROUND_RESULT" });
+export const ROUND_STATUS = Object.freeze({ ROLE_REVEAL: "ROLE_REVEAL", SPEAKING: "SPEAKING", DISCUSSION: "DISCUSSION", VOTING: "VOTING", RUNOFF_VOTING: "RUNOFF_VOTING", VOTE_RESULT: "VOTE_RESULT", LIAR_REVEAL: "LIAR_REVEAL", LIAR_GUESS: "LIAR_GUESS", ROUND_RESULT: "ROUND_RESULT" });
 // TODO(PRODUCTION): 정식 배포 전에 최소 준비 인원을 4명으로 복구할 것.
 // 2~6명 규칙도 다시 4~6명으로 복구할 것.
 export const ERROR_MESSAGES = Object.freeze({
