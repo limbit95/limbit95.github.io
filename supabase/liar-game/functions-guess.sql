@@ -65,14 +65,14 @@ begin
  select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id;
  if not found or v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
  select rd.* into v_round from public.liar_rounds rd where rd.id=v_room.current_round_id;
- if not found or v_round.status<>'LIAR_GUESS' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
+ if not found or not (v_round.status='LIAR_GUESS' or (v_round.status='ROUND_RESULT' and v_round.capture_succeeded=true and v_round.liars_revealed_at is not null)) then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
  if v_room.current_game_id is distinct from v_round.game_id then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  select gm.* into v_game from public.liar_games gm where gm.id=v_round.game_id and gm.room_id=v_room.id and gm.status='active';
  if not found or v_game.guess_limit not between 1 and 3 then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  select count(*)::integer into v_used from public.liar_guesses lg where lg.round_id=v_round.id;
- v_can_submit:=v_used<v_game.guess_limit and exists(select 1 from public.liar_round_players rp where rp.round_id=v_round.id and rp.player_id=v_player.id and rp.role='liar');
- select coalesce(jsonb_agg(jsonb_build_object('attempt_no',q.attempt_no,'guess_text',q.guess_text,'guesser',q.nickname_snapshot) order by q.attempt_no),'[]'::jsonb)
- into v_guesses from (select lg.attempt_no,lg.guess_text,rp.nickname_snapshot from public.liar_guesses lg
+ v_can_submit:=v_round.status='LIAR_GUESS' and v_used<v_game.guess_limit and exists(select 1 from public.liar_round_players rp where rp.round_id=v_round.id and rp.player_id=v_player.id and rp.role='liar');
+ select coalesce(jsonb_agg(jsonb_build_object('attempt_no',q.attempt_no,'guess_text',q.guess_text,'guesser',q.nickname_snapshot,'is_correct',q.is_correct) order by q.attempt_no),'[]'::jsonb)
+ into v_guesses from (select lg.attempt_no,lg.guess_text,lg.is_correct,rp.nickname_snapshot from public.liar_guesses lg
   join public.liar_round_players rp on rp.id=lg.guesser_round_player_id and rp.round_id=v_round.id where lg.round_id=v_round.id) q;
  return jsonb_build_object('guess_limit',v_game.guess_limit,'used_attempts',v_used,'remaining_attempts',greatest(v_game.guess_limit-v_used,0),'can_submit',v_can_submit,'guesses',v_guesses);
 end; $$;

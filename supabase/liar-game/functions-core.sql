@@ -494,12 +494,13 @@ begin
  if not found or v_round.status<>'SPEAKING' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
  if p_expected_round_version is null or v_round.version<>p_expected_round_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_round_players rp where rp.round_id=v_round.id;
- if p_direction is null or upper(p_direction) not in ('NEXT','PREVIOUS') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
+ if p_direction is null or upper(p_direction) not in ('NEXT','PREVIOUS','RESTART') then raise exception using message='INVALID_DIRECTION',errcode='P0001'; end if;
  select rp.player_id into v_current_player_id from public.liar_round_players rp where rp.round_id=v_round.id and rp.turn_order=v_round.current_speaker_index;
  if upper(p_direction)='PREVIOUS' and v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
- if upper(p_direction)='NEXT' and v_room.host_player_id<>v_player.id and v_current_player_id is distinct from v_player.id then raise exception using message='NOT_CURRENT_SPEAKER',errcode='P0001'; end if;
+ if upper(p_direction)='RESTART' and v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
  v_new:=v_round.current_speaker_index + case when upper(p_direction)='NEXT' then 1 else -1 end;
- if v_new<0 or v_new>=v_count then raise exception using message='SPEAKER_INDEX_OUT_OF_RANGE',errcode='P0001'; end if;
+ if upper(p_direction)='RESTART' and v_round.current_speaker_index<>v_count-1 then raise exception using message='SPEAKING_NOT_FINISHED',errcode='P0001'; end if;
+ v_new:=case when upper(p_direction)='RESTART' then 0 else v_round.current_speaker_index + case when upper(p_direction)='NEXT' then 1 else -1 end end;
  update public.liar_rounds as r set current_speaker_index=v_new,version=r.version+1 where r.id=v_round.id returning r.current_speaker_index,r.version into current_speaker_index,round_version;
  update public.liar_rooms set last_activity_at=now(),expires_at=now()+interval '24 hours',version=version+1 where id=v_room.id;
  return next;

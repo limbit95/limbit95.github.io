@@ -691,3 +691,11 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 클라이언트는 `me.is_spectator === true`일 때만 `is_liar === true`인 active player에 라이어 badge를 붙이고, `ROUND_RESULT`와 `FORCE_ENDED`를 제외한 current Round에서 escape 처리한 관전 카테고리·제시어 카드를 렌더링한다. 보안 경계는 이 DOM 조건이 아니라 RPC의 null projection이다.
 
 Realtime은 별도 이벤트나 publication을 추가하지 않고 Round 생성 시 기존 room version 증가와 `state_changed` Broadcast에 따른 snapshot refresh를 그대로 쓴다. 기존 RPC signature를 유지하므로 신규 GRANT가 없고, base table SELECT 권한이나 RLS 변경도 없다.
+## Gameplay UX 확장 설계
+
+- `liar_get_guess_snapshot(uuid)`는 `LIAR_GUESS`와, `capture_succeeded=true`이면서 `liars_revealed_at is not null`인 `ROUND_RESULT`를 허용한다. 결과 상태에서는 `can_submit=false`이며 `guesses`는 `attempt_no`, `guess_text`, `guesser`, `is_correct`만 projection하여 정답 문자열과 정규화 값은 노출하지 않는다.
+- `liar_get_vote_snapshot(uuid)`는 `LIAR_REVEAL`을 포함한 투표 이후 상태를 지원한다. 현재 stage가 `closed`일 때만 `ballot_details`를 만들며 voter와 각 target은 각각 `turn_order`로 정렬한다. `open`일 때는 반드시 `null`이다.
+- 기존 `liar_move_speaker(uuid,text,bigint)`에 `RESTART` direction을 추가한다. host 전용이고 마지막 speaker에서만 가능하며, speaker index를 0으로 바꾸고 round/room version만 증가시킨다. 별도 lap 상태가 없어 반복 제한이 없고 runoff에서도 current vote stage를 보존한다.
+- 클라이언트는 `LIAR_REVEAL`에서도 vote snapshot을, Guess Phase를 거친 `ROUND_RESULT`에서만 guess snapshot을 조회한다. 신규 Realtime 채널은 만들지 않고 기존 room version 변경과 `state_changed` 재조회 흐름을 사용한다.
+- UI는 본인 vote candidate를 렌더링 전에 필터링하고, 공통 `voteBallotDetails` renderer를 `VOTE_RESULT`, `LIAR_REVEAL`, `ROUND_RESULT`에서 재사용한다. 결과 화면 스타일은 `.result-*` 범위에 한정해 다른 phase의 전역 UI 회귀를 방지한다.
+- RPC signature, schema, RLS grant, base-table 권한은 변경하지 않는다. ballot/guess 공개는 기존 SECURITY DEFINER snapshot projection 안에서만 수행한다.

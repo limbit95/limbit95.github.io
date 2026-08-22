@@ -2084,3 +2084,13 @@ created_at
 - Round 참가자에게는 모든 `is_liar`, `spectator_category`, `spectator_word`가 null이다. 따라서 DOM 표시 여부와 무관하게 기존 역할·제시어 secret boundary가 유지된다.
 - 관전자 UI는 실제 라이어 badge와 카테고리·제시어 카드를 표시한다. `ROUND_RESULT`에서는 기존 결과 UI와 중복되는 관전 정보 카드를 표시하지 않는다.
 - 신규 Realtime 이벤트, schema 컬럼, migration, base table SELECT 권한 또는 RPC signature/GRANT는 추가하지 않는다. 기존 room version의 `state_changed` refresh를 사용한다.
+---
+
+# Gameplay UX 및 종료 상세 요구사항
+
+- Guess Phase를 거친 라운드는 `ROUND_RESULT`에서도 모든 추측을 회차 순으로 표시하며, 각 항목은 추측자, 입력 문자열, 정답/오답 여부를 포함한다. 검거 실패로 Guess Phase가 없었던 결과에는 추측 기록을 표시하지 않는다.
+- 현재 vote stage가 `closed`인 경우에만 참가자와 관전자에게 발언 순서 기준의 `voter → targets` 상세를 공개한다. `open` stage의 ballot과 득표 상세는 계속 비밀이며, 재투표에서는 현재 stage만 공개한다. `LIAR_REVEAL`에서도 닫힌 vote snapshot을 조회한다.
+- 마지막 발언자에 도달하면 방장은 **한 바퀴 더!**를 선택할 수 있다. 이 동작은 첫 speaker(index 0)로 돌아가며 횟수 제한이 없고, 원 발언과 runoff 추가 발언 모두에서 vote stage나 후보를 변경하지 않는다.
+- 발언 순서는 ordered list 자체 번호만 표시한다. 관전자에게만 표시되는 라이어 badge는 상태 badge보다 먼저 표시한다.
+- 투표 UI는 본인 후보 행을 완전히 제외하되 서버의 자기 투표 금지 검증과 정확한 선택 인원 규칙을 유지한다.
+- `ROUND_RESULT`는 승자를 큰 제목으로 강조하고, 제시어·최종 의심자·현재 투표 상세·실제 라이어·추측 기록·최종 동작을 모바일 친화적인 중앙 정렬 섹션으로 구분한다.

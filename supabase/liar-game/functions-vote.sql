@@ -198,7 +198,7 @@ declare
   v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
   v_round public.liar_rounds%rowtype; v_stage public.liar_vote_stages%rowtype; v_voter uuid;
   v_submitted integer; v_required integer; v_candidates jsonb; v_tally jsonb; v_locked jsonb;
-  v_boundary jsonb:='[]'::jsonb; v_final jsonb:='[]'::jsonb; v_actual_liars jsonb:='[]'::jsonb;
+  v_boundary jsonb:='[]'::jsonb; v_final jsonb:='[]'::jsonb; v_actual_liars jsonb:='[]'::jsonb; v_ballot_details jsonb;
   v_stage_winners uuid[]; v_boundary_ids uuid[]; v_selected uuid[]; v_remaining integer; v_runoff boolean:=false;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
@@ -208,7 +208,7 @@ begin
   select rm.* into v_room from public.liar_rooms as rm where rm.id=v_player.room_id;
   if not found or v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
   select rd.* into v_round from public.liar_rounds as rd where rd.id=v_room.current_round_id;
-  if not found or v_round.status not in ('VOTING','RUNOFF_VOTING','VOTE_RESULT','LIAR_GUESS','ROUND_RESULT') or v_round.current_vote_stage=0 then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
+  if not found or v_round.status not in ('VOTING','RUNOFF_VOTING','VOTE_RESULT','LIAR_REVEAL','LIAR_GUESS','ROUND_RESULT') or v_round.current_vote_stage=0 then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
   select vs.* into v_stage from public.liar_vote_stages as vs where vs.round_id=v_round.id and vs.stage_no=v_round.current_vote_stage;
   if not found then raise exception using message='VOTE_NOT_STARTED',errcode='P0001'; end if;
   select rp.id into v_voter from public.liar_round_players as rp where rp.round_id=v_round.id and rp.player_id=v_player.id;
@@ -219,6 +219,18 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('round_player_id',rp.id,'nickname',rp.nickname_snapshot) order by rp.turn_order),'[]'::jsonb)
     into v_locked from public.liar_round_players as rp where rp.round_id=v_round.id and rp.id=any(v_stage.locked_winner_round_player_ids);
   if v_stage.status='closed' then
+    select coalesce(jsonb_agg(jsonb_build_object('voter_round_player_id',details.voter_id,'voter',details.voter_name,'targets',details.targets) order by details.voter_order),'[]'::jsonb)
+      into v_ballot_details
+    from (
+      select voter.id as voter_id,voter.nickname_snapshot as voter_name,voter.turn_order as voter_order,
+        coalesce(jsonb_agg(jsonb_build_object('round_player_id',target.id,'nickname',target.nickname_snapshot) order by target.turn_order),'[]'::jsonb) as targets
+      from public.liar_ballots as lb
+      join public.liar_round_players as voter on voter.id=lb.voter_round_player_id and voter.round_id=v_round.id
+      join public.liar_votes as lv on lv.ballot_id=lb.id
+      join public.liar_round_players as target on target.id=lv.target_round_player_id and target.round_id=v_round.id
+      where lb.vote_stage_id=v_stage.id
+      group by voter.id,voter.nickname_snapshot,voter.turn_order
+    ) as details;
     select coalesce(jsonb_agg(jsonb_build_object('round_player_id',t.id,'nickname',t.nickname_snapshot,'votes',t.vote_count) order by t.vote_count desc,t.turn_order),'[]'::jsonb)
       into v_tally from (select rp.id,rp.nickname_snapshot,rp.turn_order,count(lv.id)::integer as vote_count from public.liar_round_players as rp
         left join public.liar_votes as lv on lv.target_round_player_id=rp.id and exists(select 1 from public.liar_ballots as lb where lb.id=lv.ballot_id and lb.vote_stage_id=v_stage.id)
@@ -235,7 +247,7 @@ begin
       select coalesce(jsonb_agg(jsonb_build_object('round_player_id',rp.id,'nickname',rp.nickname_snapshot) order by rp.turn_order),'[]'::jsonb) into v_final
       from public.liar_round_players as rp where rp.round_id=v_round.id and rp.id=any(v_stage.locked_winner_round_player_ids||v_selected);
     end if;
-  else v_tally:=null; v_remaining:=v_stage.seats_to_fill;
+  else v_tally:=null; v_ballot_details:=null; v_remaining:=v_stage.seats_to_fill;
   end if;
   if v_round.status='ROUND_RESULT' and v_round.liars_revealed_at is not null then
     select coalesce(jsonb_agg(jsonb_build_object('round_player_id',rp.id,'nickname',rp.nickname_snapshot) order by rp.turn_order),'[]'::jsonb)
@@ -244,7 +256,7 @@ begin
   return jsonb_build_object('stage_id',v_stage.id,'stage_no',v_stage.stage_no,'kind',v_stage.kind,'status',v_stage.status,
     'seats_to_fill',v_stage.seats_to_fill,'submitted_count',v_submitted,'required_count',v_required,'is_round_participant',v_voter is not null,
     'has_submitted',exists(select 1 from public.liar_ballots as lb where lb.vote_stage_id=v_stage.id and lb.voter_round_player_id=v_voter),
-    'locked_winners',v_locked,'candidates',v_candidates,'tally',v_tally,'runoff_required',v_runoff,
+    'locked_winners',v_locked,'candidates',v_candidates,'tally',v_tally,'ballot_details',v_ballot_details,'runoff_required',v_runoff,
     'boundary_candidates',v_boundary,'remaining_seats',v_remaining,'final_suspects',v_final,
     'capture_succeeded',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.capture_succeeded else null end,
     'winner',case when v_round.status in ('LIAR_GUESS','ROUND_RESULT') then v_round.winner else null end,
