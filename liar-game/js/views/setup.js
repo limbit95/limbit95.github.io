@@ -1,2 +1,44 @@
 import { CATEGORIES } from "../constants.js";
-export function setupView(s,isHost){const g=s.game;const readyCount=s.players.filter(player=>player.ready).length;const maxLiarCount=readyCount<=4?1:readyCount<=9?2:3;return `<section class="card stack"><h2>게임 설정</h2><form data-action="settings" class="stack"><fieldset class="stack" ${isHost?"":"disabled"}><legend>카테고리</legend><div class="categories">${CATEGORIES.map(c=>`<label><input type="checkbox" name="category" value="${c}" ${g.selected_categories.includes(c)?"checked":""}> ${c}</label>`).join("")}</div><label>난이도<select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select></label><label>라이어 수<input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"></label><p class="muted">현재 준비 인원: ${readyCount}명 · 선택 가능한 라이어: 최대 ${maxLiarCount}명</p><label>추측 횟수<input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"></label><label><input name="showCategoryToLiar" type="checkbox" ${g.show_category_to_liar?"checked":""}> 라이어에게 카테고리 공개</label><p class="muted">ON: 라이어는 카테고리만 확인할 수 있습니다. OFF: 라이어는 카테고리와 제시어를 모두 볼 수 없습니다.</p></fieldset>${isHost?`<div class="row"><button>설정 저장</button><button type="button" data-action="start-round">게임 시작</button></div>`:`<p class="muted">방장만 설정하고 게임을 시작할 수 있습니다.</p>`}</form></section>`;}
+
+export function setupView(s,isHost){
+ const g=s.game;
+ const readyCount=s.players.filter(player=>player.ready).length;
+ const maxLiarCount=readyCount<=4?1:readyCount<=9?2:3;
+ return `<section class="card setup-card">
+  <header class="setup-header">
+   <h2>게임 설정</h2>
+   <p class="setup-subtitle">이번 게임의 규칙을 정해주세요.</p>
+  </header>
+  <form data-action="settings" class="setup-form">
+   <fieldset class="setup-fieldset" ${isHost?"":"disabled"}>
+    <legend class="setup-legend">게임 설정 항목</legend>
+    <section class="setup-section">
+     <div class="setup-section-heading">
+      <h3 class="setup-section-title">카테고리</h3>
+      <p class="setup-section-description">이번 게임에 사용할 카테고리를 선택하세요.</p>
+     </div>
+     <div class="setup-options-grid">${CATEGORIES.map(c=>`<label class="category-option"><input type="checkbox" name="category" value="${c}" ${g.selected_categories.includes(c)?"checked":""}> <span>${c}</span></label>`).join("")}</div>
+    </section>
+    <section class="setup-section">
+     <div class="setup-section-heading">
+      <h3 class="setup-section-title">게임 규칙</h3>
+      <div class="setup-player-info"><span>준비 인원 <strong>${readyCount}명</strong></span><span>라이어 최대 <strong>${maxLiarCount}명</strong></span></div>
+     </div>
+     <div class="setup-rule-grid">
+      <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>제시어의 난이도</small></label>
+      <label class="setup-control"><span>라이어 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>최대 ${maxLiarCount}명 선택 가능</small></label>
+      <label class="setup-control"><span>추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>라이어 팀이 공유하는 기회</small></label>
+     </div>
+    </section>
+    <section class="setup-section">
+     <div class="setup-section-heading"><h3 class="setup-section-title">라이어 정보</h3></div>
+     <label class="setup-setting-row">
+      <span class="setup-setting-copy"><strong>라이어에게 카테고리 공개</strong><small>켜면 카테고리만 공개하며, 제시어는 항상 숨겨집니다. 끄면 카테고리와 제시어를 모두 공개하지 않습니다.</small></span>
+      <input name="showCategoryToLiar" type="checkbox" ${g.show_category_to_liar?"checked":""}>
+     </label>
+    </section>
+   </fieldset>
+   ${isHost?`<div class="setup-actions"><button class="secondary">설정 저장</button><button type="button" data-action="start-round">게임 시작</button></div>`:`<p class="muted setup-host-notice">방장만 설정하고 게임을 시작할 수 있습니다.</p>`}
+  </form>
+ </section>`;
+}
