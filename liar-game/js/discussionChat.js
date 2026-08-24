@@ -70,6 +70,8 @@ function renderChat(){
  requestAnimationFrame(()=>{panel.scrollTop=panel.scrollHeight;});
  const status=document.querySelector("[data-discussion-chat-status]");
  if(status)status.textContent=realtimeStatus==="subscribed"?"실시간 채팅 연결됨":realtimeStatus==="error"?"채팅 연결이 불안정합니다":"채팅 연결 중…";
+ const submit=document.querySelector('form[data-action="discussion-chat"] button[type="submit"]');
+ if(submit)submit.disabled=realtimeStatus!=="subscribed";
 }
 
 function appendMessage(message){
@@ -142,33 +144,17 @@ async function syncView(){
 
 async function sendCurrentMessage(form){
  const s=currentSnapshot();
- if(!s||s.round?.status!==ROUND_STATUS.DISCUSSION||s.me?.is_spectator===true)return;
+ if(!s||s.round?.status!==ROUND_STATUS.DISCUSSION||s.me?.is_spectator===true||!channel||realtimeStatus!=="subscribed")return;
  const textarea=form.querySelector('textarea[name="chat"]');
  const text=String(textarea?.value||"").trim();
- if(!text)return;
- if(text.length>160)return;
- const message={
-  id:crypto.randomUUID(),
-  senderId:s.me.player_id,
-  nickname:s.me.nickname,
-  text,
-  sentAt:Date.now(),
- };
- appendMessage(message);
- if(textarea)textarea.value="";
- if(channel&&realtimeStatus==="subscribed"){
-  try{
-   const result=await channel.send({type:"broadcast",event:"discussion_chat",payload:{
-    room_id:s.room.id,
-    round_id:s.round.id,
-    sender_id:s.me.player_id,
-    message_id:message.id,
-    text:message.text,
-    sent_at:message.sentAt,
-   }});
-   if(result!=="ok"){realtimeStatus="error";renderChat();}
-  }catch{realtimeStatus="error";renderChat();}
- }
+ if(!text||text.length>160)return;
+ const message={id:crypto.randomUUID(),senderId:s.me.player_id,nickname:s.me.nickname,text,sentAt:Date.now()};
+ try{
+  const result=await channel.send({type:"broadcast",event:"discussion_chat",payload:{room_id:s.room.id,round_id:s.round.id,sender_id:s.me.player_id,message_id:message.id,text:message.text,sent_at:message.sentAt}});
+  if(result!=="ok"){realtimeStatus="error";renderChat();return;}
+  appendMessage(message);
+  if(textarea)textarea.value="";
+ }catch{realtimeStatus="error";renderChat();}
 }
 
 document.addEventListener("submit",event=>{
