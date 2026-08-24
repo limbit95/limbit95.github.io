@@ -88,13 +88,7 @@ function receiveMessage(payload){
  if(!s?.round_players?.some(player=>player.player_id===payload.sender_id))return;
  const text=String(payload.text||"").trim();
  if(!text||text.length>160)return;
- appendMessage({
-  id:String(payload.message_id||crypto.randomUUID()),
-  senderId:String(payload.sender_id||""),
-  nickname:canonicalSender(payload.sender_id),
-  text,
-  sentAt:Number(payload.sent_at)||Date.now(),
- });
+ appendMessage({id:String(payload.message_id||crypto.randomUUID()),senderId:String(payload.sender_id||""),nickname:canonicalSender(payload.sender_id),text,sentAt:Number(payload.sent_at)||Date.now()});
 }
 
 async function disconnect(){
@@ -109,7 +103,7 @@ async function connect(targetRoom,targetRound){
  await supabase.realtime.setAuth();
  roomId=targetRoom;roundId=targetRound;realtimeStatus="connecting";
  const next=supabase
-  .channel(`liar-room:${targetRoom}`,{config:{private:true}})
+  .channel(`liar-chat:${targetRoom}`,{config:{private:true}})
   .on("broadcast",{event:"discussion_chat"},({payload})=>receiveMessage(payload));
  channel=next;
  next.subscribe(status=>{
@@ -157,19 +151,8 @@ async function sendCurrentMessage(form){
  }catch{realtimeStatus="error";renderChat();}
 }
 
-document.addEventListener("submit",event=>{
- const form=event.target.closest?.('form[data-action="discussion-chat"]');
- if(!form)return;
- event.preventDefault();
- void sendCurrentMessage(form);
-});
-
-document.addEventListener("keydown",event=>{
- const textarea=event.target.closest?.('form[data-action="discussion-chat"] textarea[name="chat"]');
- if(!textarea||event.key!=="Enter"||event.shiftKey||event.isComposing)return;
- event.preventDefault();
- textarea.form?.requestSubmit();
-});
+document.addEventListener("submit",event=>{const form=event.target.closest?.('form[data-action="discussion-chat"]');if(!form)return;event.preventDefault();void sendCurrentMessage(form);});
+document.addEventListener("keydown",event=>{const textarea=event.target.closest?.('form[data-action="discussion-chat"] textarea[name="chat"]');if(!textarea||event.key!=="Enter"||event.shiftKey||event.isComposing)return;event.preventDefault();textarea.form?.requestSubmit();});
 
 const observer=new MutationObserver(()=>{void syncView();});
 observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true});
