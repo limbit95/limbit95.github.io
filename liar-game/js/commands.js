@@ -22,6 +22,6 @@ export const commands={
  startRunoff:(version)=>mutate("liar_start_runoff",{p_expected_round_version:version}),
  startRunoffSpeaking:(version)=>mutate("liar_start_runoff_speaking",{p_expected_round_version:version}),
  revealLiars:(version)=>mutate("liar_reveal_liars",{p_expected_round_version:version}),
- revealResultLiars:(version)=>mutate("liar_reveal_result_liars",{p_expected_round_version:version}),
+ autoRevealResultLiars:(version)=>mutate("liar_auto_reveal_result_liars",{p_expected_round_version:version}),
  submitGuess:(text)=>mutate("liar_submit_guess",{p_guess_text:text}),
 };
