@@ -15,6 +15,7 @@ const snapshot = (state) => {
     speakerIndex: round?.current_speaker_index ?? null,
     guessCount: Array.isArray(state.guessState?.guesses) ? state.guessState.guesses.length : 0,
     hadRole: Boolean(state.myRole && state.myRoleRoundId === round?.id),
+    roleModalOpen: state.roleModalOpen === true,
   };
 };
 
@@ -22,6 +23,12 @@ export function applyPostRenderMotion(root, state) {
   const current = snapshot(state);
   if (!previous) { previous = current; return; }
   const sameRound = previous.roundId === current.roundId;
+
+  if (!previous.roleModalOpen && current.roleModalOpen) {
+    animateOnce(root.querySelector("[data-role-modal-backdrop]"), "motion-role-modal-backdrop");
+    animateOnce(root.querySelector("[data-role-modal-panel]"), "motion-role-modal-panel");
+    requestAnimationFrame(() => root.querySelector("[data-role-modal-close]")?.focus({ preventScroll: true }));
+  }
 
   if (sameRound && previous.status && current.status !== previous.status)
     animateOnce(root.querySelector("[data-game-stage]"), "motion-stage-enter");
