@@ -1,9 +1,19 @@
-import { CATEGORIES } from "../constants.js";
+import { CATEGORIES, MIN_CITIZENS, MIN_READY_PLAYERS } from "../constants.js";
 
 export function setupView(s,isHost){
  const g=s.game;
  const readyCount=s.players.filter(player=>player.ready).length;
+ const liarCount=Number(g.liar_count);
  const recommendedLiarCount=readyCount<=4?1:readyCount<=9?2:3;
+ const hasEnoughPlayers=readyCount>=MIN_READY_PLAYERS;
+ const citizenCount=readyCount-liarCount;
+ const hasEnoughCitizens=citizenCount>=MIN_CITIZENS;
+ const canStart=hasEnoughPlayers&&hasEnoughCitizens;
+ const startStatus=!hasEnoughPlayers
+  ?`게임 시작까지 ${MIN_READY_PLAYERS-readyCount}명이 더 필요합니다.`
+  :!hasEnoughCitizens
+   ?`현재 설정에서는 시민이 ${Math.max(0,citizenCount)}명입니다. 게임 시작에는 최소 ${MIN_CITIZENS}명의 시민이 필요합니다.`
+   :"게임을 시작할 수 있습니다.";
  return `<section class="card setup-card">
   <header class="setup-header">
    <h2>게임 설정</h2>
@@ -38,7 +48,8 @@ export function setupView(s,isHost){
      </label>
     </section>
    </fieldset>
-   ${isHost?`<div class="setup-actions"><button class="secondary">설정 저장</button><button type="button" data-action="start-round">게임 시작</button></div>`:`<p class="muted setup-host-notice">방장만 설정하고 게임을 시작할 수 있습니다.</p>`}
+   <p class="start-readiness ${canStart?"is-ready":""}" role="status" aria-live="polite">${startStatus}</p>
+   ${isHost?`<div class="setup-actions"><button type="submit" class="secondary">설정 저장</button><button type="button" data-action="start-round" ${canStart?"":"disabled"}>게임 시작</button></div>`:`<p class="muted setup-host-notice">방장만 설정하고 게임을 시작할 수 있습니다.</p>`}
   </form>
  </section>`;
 }

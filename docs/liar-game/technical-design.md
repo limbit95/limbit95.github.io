@@ -2,7 +2,7 @@
 
 > 기준 문서: `docs/liar-game/requirements.md` v1.0<br>
 > 대상 환경: GitHub Pages, Vanilla JavaScript ES Modules, Supabase Auth/PostgreSQL/Realtime<br>
-> 범위: 구현 전 기술 설계. 이 문서는 실행 가능한 SQL이나 기능 코드를 포함하지 않는다.
+> 범위: 현재 운영 구현의 아키텍처와 데이터·상태 전이 설계.
 
 ## A. 현재 저장소 분석
 
@@ -12,7 +12,6 @@
 - npm 빌드 없이 HTML, CSS, Vanilla JavaScript ES Modules로 실행된다.
 - Supabase JavaScript Client v2를 CDN 전역 스크립트로 로드한 뒤 `js/app.js`를 실행한다.
 - `.nojekyll`이 있으며 기존 앱은 실제 URL path가 아닌 `#/...` 해시 라우팅을 사용한다.
-- 현재 로컬에는 `work` 브랜치만 있고 remote 및 `main` ref가 없어, 원격의 최신 `main` 여부는 확인할 수 없다. 본 설계는 현재 HEAD를 기준으로 한다.
 
 따라서 라이어게임은 실제 정적 경로인 `liar-game/index.html`을 별도 진입점으로 두고, 기존 hash router에 라우트를 등록하지 않는다. GitHub Project Pages까지 고려하면 링크는 `/liar-game/` 절대경로보다 `./liar-game/` 상대경로가 안전하다.
 
@@ -95,61 +94,50 @@ liar-game/
 │  ├─ reset.css
 │  ├─ tokens.css
 │  └─ style.css
-├─ js/
-│  ├─ config.js
-│  ├─ supabase.js
-│  ├─ constants.js
-│  ├─ app.js
-│  ├─ sessionGuard.js
-│  ├─ storage.js
-│  ├─ store.js
-│  ├─ api.js
-│  ├─ commands.js
-│  ├─ recovery.js
-│  ├─ realtime.js
-│  ├─ stateMachine.js
-│  ├─ utils.js
-│  ├─ views/
-│  │  ├─ access.js
-│  │  ├─ nickname.js
-│  │  ├─ lobby.js
-│  │  ├─ room.js
-│  │  ├─ setup.js
-│  │  ├─ roleReveal.js
-│  │  ├─ speaking.js
-│  │  ├─ vote.js
-│  │  ├─ guess.js
-│  │  └─ result.js
-│  └─ components/
-│     ├─ dialog.js
-│     ├─ toast.js
-│     ├─ playerList.js
-│     └─ roomHeader.js
-└─ assets/
+└─ js/
+   ├─ api.js
+   ├─ app.js
+   ├─ commands.js
+   ├─ config.js
+   ├─ constants.js
+   ├─ motion.js
+   ├─ realtime.js
+   ├─ sessionGuard.js
+   ├─ storage.js
+   ├─ store.js
+   ├─ supabase.js
+   └─ views/
+      ├─ access.js
+      ├─ guess.js
+      ├─ lobby.js
+      ├─ nickname.js
+      ├─ roleRecall.js
+      ├─ roleReveal.js
+      ├─ room.js
+      ├─ roundWaiting.js
+      ├─ setup.js
+      ├─ speaking.js
+      ├─ result.js
+      └─ vote.js
 ```
 
-구현 단계의 DB 산출물은 `supabase/liar-game/` 아래 schema, functions, RLS, Realtime, word seed 단위로 나누는 것을 권장한다. 이 설계서는 실행 가능한 최종 SQL을 작성하지 않는다.
+DB 산출물은 `supabase/liar-game/` 아래 schema, 기능별 functions, RLS, Realtime, seed와 기존 DB 업그레이드용 migrations로 분리되어 있다.
 
 ## D. 각 모듈 책임
 
 | 모듈 | 책임 |
 |---|---|
 | `index.html` | 앱 mount, metadata, CSS, Supabase CDN, app module 로드 |
-| `config.js` | 루트 Supabase 공개 설정 재사용, site root 계산 |
-| `supabase.js` | 라이어게임 전용 Supabase singleton |
-| `constants.js` | 상태, 역할, 승자, 난이도, storage key |
-| `app.js` | boot, 최상위 화면 전환, cleanup |
-| `sessionGuard.js` | 최초/조작 직전 session 검사, Auth 이벤트 처리 |
-| `storage.js` | player key, nickname, current room 검증·저장 |
-| `store.js` | auth/room/game/round/snapshot/UI 메모리 상태 |
-| `api.js` | SELECT 전용 snapshot/recovery 조회 |
+| `config.js`, `supabase.js` | 공개 설정 재사용과 라이어게임 전용 Supabase client 생성 |
+| `constants.js` | 상태, 운영 인원 기준, 오류 문구, storage key |
+| `app.js` | boot, 상태별 view 결정, 이벤트 위임, snapshot 복구 조정 |
+| `sessionGuard.js` | 최초/조작 직전 session 검사와 Auth epoch 격리 |
+| `storage.js`, `store.js` | 복구 식별자 저장과 메모리 상태 관리 |
+| `api.js` | snapshot/role/vote/guess/result 조회 RPC |
 | `commands.js` | mutation RPC wrapper와 중복 제출 차단 |
-| `recovery.js` | localStorage에서 현재 화면 복구 |
-| `realtime.js` | 방/라운드 channel 생명주기와 재조회 debounce |
-| `stateMachine.js` | 상태별 허용 action과 view 결정 |
-| `utils.js` | code/nickname/문자열 정규화, 오류 mapping |
-| `views/*` | 상태별 DOM 렌더링과 사용자 이벤트 전달 |
-| `components/*` | 데이터 접근 없는 재사용 DOM 구성요소 |
+| `realtime.js` | private channel 생명주기와 snapshot 재조회 debounce |
+| `motion.js` | 상태 전환 motion과 reduced-motion 연동 |
+| `views/*` | 상태별 HTML 렌더링; `roleRecall.js`가 역할 재확인 dialog를 담당 |
 
 ## E. 최종 DB 설계
 
@@ -215,7 +203,7 @@ UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱�
 | `started_at`, `finished_at` | `timestamptz`, nullable |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count` 설정 범위는 1~3이며 방장은 이 범위에서 자유롭게 선택한다. 참가 인원별 권장값은 2~4명일 때 1명, 5~9명일 때 2명, 10~12명일 때 3명이지만 강제하지 않으며 권장값을 초과한 설정도 허용한다. `start_round` RPC는 `ready participant count - liar_count >= 2`를 최종 검증하여 최소 시민 2명을 보장한다. 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 구조에서 시민이 1명뿐이면 모든 투표자가 자신 외 전원을 선택하여 필연적인 동률과 반복 재투표 deadlock이 발생하기 때문이다. 현재 개발 테스트에서는 최소 3명을 허용한다. TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 3명에서 4명으로 복구한다. 참가 인원별 라이어 수 강제 규칙은 없다.
+UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count` 설정 범위는 1~3이며 방장은 이 범위에서 자유롭게 선택한다. 참가 인원별 권장값은 2~4명일 때 1명, 5~9명일 때 2명, 10~12명일 때 3명이지만 강제하지 않으며 권장값을 초과한 설정도 허용한다. `start_round` RPC는 `ready participant count - liar_count >= 2`를 최종 검증하여 최소 시민 2명을 보장한다. 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 구조에서 시민이 1명뿐이면 모든 투표자가 자신 외 전원을 선택하여 필연적인 동률과 반복 재투표 deadlock이 발생하기 때문이다. Production minimum ready participants = 4이다. 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### E.5 `liar_rounds`
 
@@ -346,7 +334,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 ### 준비 완료자 고정
 
-`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 현재 개발 테스트 기준 3~12명인지, 그리고 `ready participant count - liar_count >= 2`인지 검증한 뒤 그 사용자만 round players에 복사한다. 따라서 참가 인원별 권장 라이어 수를 초과해도 시작할 수 있지만 최소 시민 2명은 항상 존재한다. 이 조건은 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 투표 구조에서 시민이 1명일 때 모든 후보가 같은 표를 받아 재투표가 무한 반복되는 것을 방지한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 정식 배포 시에는 최소 준비 인원만 4명으로 복구하며 참가 인원별 라이어 수 강제 규칙은 없다.
+`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 운영 기준 4~12명인지, 그리고 `ready participant count - liar_count >= 2`인지 검증한 뒤 그 사용자만 round players에 복사한다. 따라서 참가 인원별 권장 라이어 수를 초과해도 시작할 수 있지만 최소 시민 2명은 항상 존재한다. 이 조건은 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 투표 구조에서 시민이 1명일 때 모든 후보가 같은 표를 받아 재투표가 무한 반복되는 것을 방지한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### 진행 중 신규 참가자
 
@@ -617,7 +605,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 | 3 | RPC와 RLS | functions/RLS SQL | 없음 | 있음 | anon, host, 소유권, stale 상태 |
 | 4 | 독립 shell/Auth guard | HTML/CSS/config/auth/app | 없음 | 없음 | 세션 공유, 비로그인, logout |
 | 5 | 닉네임/로비/방 | storage/store/api/commands/views | app | RPC 보정 | create/join/leave/recovery/12명 |
-| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, 개발 테스트 최소 3명(운영 4명), 시민 최소 2명 |
+| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, Production 최소 4명, 시민 최소 2명 |
 | 7 | round/역할 | role view | api/state | 있음 | snapshot, random, rollback |
 | 8 | 발언/토론 | speaking view | state/commands | 있음 | index 경계, host, 동시 클릭 |
 | 9 | 원투표 | vote view | api/store | 있음 | 다중 선택, 수정, 마감 불변 |
