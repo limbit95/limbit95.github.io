@@ -700,6 +700,14 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 클라이언트는 `me.is_spectator === true`일 때만 `is_liar === true`인 active player에 라이어 badge를 붙이고, `ROUND_RESULT`와 `FORCE_ENDED`를 제외한 current Round에서 escape 처리한 관전 카테고리·제시어 카드를 렌더링한다. 보안 경계는 이 DOM 조건이 아니라 RPC의 null projection이다.
 
 Realtime은 별도 이벤트나 publication을 추가하지 않고 Round 생성 시 기존 room version 증가와 `state_changed` Broadcast에 따른 snapshot refresh를 그대로 쓴다. 기존 RPC signature를 유지하므로 신규 GRANT가 없고, base table SELECT 권한이나 RLS 변경도 없다.
+
+## R. Final recovery and auth generation design
+
+`authEpoch`는 메모리 전용 generation이다. `SIGNED_OUT`, session 소실, 또는 user id 변경 때만 증가하며 같은 user의 token refresh에는 유지된다. 모든 read와 mutation은 RPC 직전 epoch를 캡처하고 await 직후 일치 여부를 검증한다. 따라서 이전 identity의 응답은 snapshot, role/vote/result state 및 계정별 localStorage에 적용되지 않는다.
+
+Realtime 경로는 **DB snapshot → private `state_changed` Broadcast invalidation → RPC snapshot**을 유지한다. `SUBSCRIBED` callback은 race window와 재구독 유실을 메우기 위해 refresh queue를 호출하며, `online` 및 visible `visibilitychange`도 같은 queue로 reconcile한다. payload는 게임 상태로 적용하지 않는다.
+
+`liar_force_end_game`의 잠금 순서는 **caller player → room → optional current round → current game → new setup game**이다. Room version과 active Game을 검증하고, 결과 공개 gating 보호를 위해 `ROUND_RESULT`는 거부한다. 진행 Round의 open vote stage를 닫고 Round/Game 이력을 force-ended 상태로 보존한 뒤 기존 설정을 복사해 새 setup Game을 생성한다. 모든 active player의 ready/join marker를 reset하고 Room은 만료시키지 않은 채 새 Game으로 원자적으로 전환한다.
 ## Gameplay UX 확장 설계
 
 - `liar_get_guess_snapshot(uuid)`는 `LIAR_GUESS`와, `capture_succeeded=true`이면서 `liars_revealed_at is not null`인 `ROUND_RESULT`를 허용한다. 결과 상태에서는 `can_submit=false`이며 `guesses`는 `attempt_no`, `guess_text`, `guesser`, `is_correct`만 projection하여 정답 문자열과 정규화 값은 노출하지 않는다.

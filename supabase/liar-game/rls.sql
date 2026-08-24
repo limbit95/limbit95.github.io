@@ -20,9 +20,16 @@ revoke all on table public.liar_rooms, public.liar_players, public.liar_games,
   public.liar_ballots, public.liar_votes, public.liar_guesses, public.liar_words
 from anon, authenticated;
 
+-- Trigger and transactional helpers are callable only from trusted SQL paths.
+revoke all on function public.liar_validate_settings(text[],text,integer,integer) from public, anon, authenticated;
+revoke all on function public.liar_expire_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_clear_expired_membership(uuid) from public, anon, authenticated;
+revoke all on function public.liar_set_updated_at() from public, anon, authenticated;
+
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_force_end_game(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_get_my_active_rooms() from public, anon, authenticated;
 revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
@@ -53,6 +60,7 @@ revoke all on function public.liar_get_round_result(uuid) from public, anon, aut
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
 grant execute on function public.liar_leave_room(uuid) to authenticated;
+grant execute on function public.liar_force_end_game(uuid,bigint) to authenticated;
 grant execute on function public.liar_get_my_active_rooms() to authenticated;
 grant execute on function public.liar_resume_room(uuid,uuid) to authenticated;
 grant execute on function public.liar_update_nickname(uuid,text) to authenticated;

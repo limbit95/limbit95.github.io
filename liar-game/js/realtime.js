@@ -35,7 +35,7 @@ export async function subscribeRoomRealtime(targetRoomId, onStateChanged, onStat
   onStatusChanged("connecting");
   channel.subscribe((status) => {
     if (channel !== roomChannel) return;
-    if (status === "SUBSCRIBED") onStatusChanged("subscribed");
+    if (status === "SUBSCRIBED") { onStatusChanged("subscribed"); onStateChanged(); }
     else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") onStatusChanged("error");
     else if (status === "CLOSED") onStatusChanged("closed");
   });

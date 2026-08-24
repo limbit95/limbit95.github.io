@@ -164,6 +164,7 @@ returns bigint language plpgsql security definer
 set search_path = pg_catalog, public
 as $$
 declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
+        v_round public.liar_rounds%rowtype;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED', errcode='P0001'; end if;
   if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
@@ -189,10 +190,69 @@ begin
         current_game_id=null,version=rm.version+1
     where rm.id=v_room.id returning rm.version into v_room.version;
   else
+    if v_room.current_round_id is not null then
+      select rd.* into v_round from public.liar_rounds rd
+      where rd.id=v_room.current_round_id and rd.room_id=v_room.id;
+      if not found then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
+      if v_round.status not in ('ROUND_RESULT','FORCE_ENDED') and exists (
+        select 1 from public.liar_round_players rp
+        where rp.round_id=v_round.id and rp.player_id=v_player.id
+      ) then
+        raise exception using message='ROUND_PARTICIPANT_CANNOT_LEAVE',errcode='P0001';
+      end if;
+    end if;
     update public.liar_players as lp set membership_status='left',ready=false,left_at=coalesce(lp.left_at,now()) where lp.id=v_player.id;
     update public.liar_rooms as rm set last_activity_at=now(),expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id returning rm.version into v_room.version;
   end if;
   return v_room.version;
+end;
+$$;
+
+create or replace function public.liar_force_end_game(p_player_key uuid,p_expected_room_version bigint)
+returns table(game_id uuid,game_no integer,room_version bigint)
+language plpgsql security definer
+set search_path=pg_catalog,public
+as $$
+declare v_auth uuid:=auth.uid(); v_player public.liar_players%rowtype; v_room public.liar_rooms%rowtype;
+        v_round public.liar_rounds%rowtype; v_game public.liar_games%rowtype;
+        v_new_game uuid; v_game_no integer;
+begin
+  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  -- Lifecycle lock order: player -> room -> optional round -> game.
+  select lp.* into v_player from public.liar_players lp
+  where lp.auth_user_id=v_auth and lp.player_key=p_player_key and lp.membership_status='active' for update;
+  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+  select rm.* into v_room from public.liar_rooms rm where rm.id=v_player.room_id for update;
+  if not found or v_room.status<>'active' or now()>=v_room.expires_at then raise exception using message='ROOM_EXPIRED',errcode='P0001'; end if;
+  if v_room.host_player_id<>v_player.id then raise exception using message='NOT_HOST',errcode='P0001'; end if;
+  if p_expected_room_version is null or v_room.version<>p_expected_room_version then raise exception using message='STALE_VERSION',errcode='P0001'; end if;
+  if v_room.current_game_id is null then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
+  if v_room.current_round_id is not null then
+    select rd.* into v_round from public.liar_rounds rd
+    where rd.id=v_room.current_round_id and rd.room_id=v_room.id and rd.game_id=v_room.current_game_id for update;
+    if not found or v_round.status='ROUND_RESULT' then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
+  end if;
+  select gm.* into v_game from public.liar_games gm
+  where gm.id=v_room.current_game_id and gm.room_id=v_room.id for update;
+  if not found or v_game.status<>'active' then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
+  if v_room.current_round_id is not null then
+    update public.liar_vote_stages vs set status='closed',closed_at=coalesce(vs.closed_at,now())
+    where vs.round_id=v_round.id and vs.status='open';
+    update public.liar_rounds rd set status='FORCE_ENDED',force_ended_at=now(),
+      finished_at=coalesce(rd.finished_at,now()),version=rd.version+1 where rd.id=v_round.id;
+  end if;
+  update public.liar_games gm set status='force_ended',finished_at=coalesce(gm.finished_at,now()) where gm.id=v_game.id;
+  select coalesce(max(gm.game_no),0)+1 into v_game_no from public.liar_games gm where gm.room_id=v_room.id;
+  insert into public.liar_games(room_id,game_no,status,selected_categories,difficulty,liar_count,guess_limit,show_category_to_liar,started_at,finished_at)
+  values(v_room.id,v_game_no,'setup',v_game.selected_categories,v_game.difficulty,v_game.liar_count,v_game.guess_limit,v_game.show_category_to_liar,null,null)
+  returning liar_games.id into v_new_game;
+  update public.liar_players lp set ready=false,joined_during_round_id=null
+  where lp.room_id=v_room.id and lp.membership_status='active';
+  update public.liar_rooms rm set current_game_id=v_new_game,current_round_id=null,last_activity_at=now(),
+    expires_at=now()+interval '24 hours',version=rm.version+1 where rm.id=v_room.id
+  returning rm.version into v_room.version;
+  return query select v_new_game,v_game_no,v_room.version;
 end;
 $$;
 
@@ -570,6 +630,7 @@ revoke all on function public.liar_clear_expired_membership(uuid) from public, a
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_leave_room(uuid) from public, anon, authenticated;
+revoke all on function public.liar_force_end_game(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_get_my_active_rooms() from public, anon, authenticated;
 revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, authenticated;
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;

@@ -2070,6 +2070,14 @@ created_at
 검거 실패로 라이어가 승리하면 `ROUND_RESULT` 진입 시 `liars_revealed_at`은 `NULL`을 유지한다. 결과 화면은 최종 의심자만 표시하며, 방장이 `라이어 공개`를 실행하기 전에는 실제 라이어와 `다음 라운드`/`새 게임 · 설정 변경`을 표시하지 않는다. 공개 RPC는 상태를 유지한 채 공개 시각과 round/room version을 갱신한다. 이후 snapshot에 최소 식별 정보만 담은 실제 라이어 목록을 공개하고 방장에게 재시작을 허용한다. 일반 참가자는 공개 전에는 방장의 공개를, 공개 후에는 다음 라운드 또는 새 게임 준비를 기다린다. 라이어 승리 상태에서 공개를 건너뛴 재시작은 서버에서도 거부한다.
 
 역할 확인 화면의 개인 완료 상태는 별도 클라이언트 플래그가 아니라 `liar_round_players.role_checked_at`에서 projection한 `role_checked`를 사용한다. 확인 전에는 `확인했습니다` 동작 버튼을, 확인 후에는 역할과 제시어를 그대로 유지하면서 클릭 불가능하고 선명한 `✓ 확인 완료` 표시를 같은 위치에 렌더링한다. 전체 확인 수와 개인 완료 표시는 room/round version 변경에 따른 기존 Realtime snapshot 재조회로 갱신된다.
+
+## 2026-08-24 Recovery / Exception / Security Final QA
+
+- 진행 중 Round snapshot 참가자인 non-host는 직접 나갈 수 없다. 관전자와 `ROUND_RESULT`/`FORCE_ENDED` 참가자는 나갈 수 있으며, Host 나가기는 기존처럼 Room 전체를 종료한다.
+- Host는 `ROUND_RESULT`를 제외한 active Game 및 Round 사이 대기 상태에서 Game을 강제 종료할 수 있다. 이 동작은 진행 Round와 Game만 `force_ended`로 보존하고 동일 Room에 설정을 복사한 새 setup Game을 만든다.
+- Realtime Broadcast는 invalidation일 뿐이다. 구독 성공, 네트워크 online 복귀, 화면 foreground 복귀마다 DB snapshot을 다시 조회한다.
+- Auth 계정 identity가 바뀌면 메모리 auth epoch를 증가시켜 이전 계정의 늦은 read/mutation 응답과 storage write를 폐기한다.
+- `STALE_VERSION`은 mutation을 재시도하지 않고 최신 snapshot만 자동 조회한 뒤 사용자가 동작을 다시 선택하도록 안내한다.
 ## 2026-08-21 발언 권한, 라이어 카테고리 설정, 결과 정답 공개
 
 - `SPEAKING`에서 방장은 `NEXT`와 `PREVIOUS`를 사용할 수 있다. 현재 발언자인 일반 참가자도 본인 차례에 `NEXT`를 사용할 수 있지만 `PREVIOUS`는 방장 전용이다.
