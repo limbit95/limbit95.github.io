@@ -215,7 +215,7 @@ UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱�
 | `started_at`, `finished_at` | `timestamptz`, nullable |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count` 설정 범위는 1~3이며 방장은 이 범위에서 자유롭게 선택한다. 참가 인원별 권장값은 2~4명일 때 1명, 5~9명일 때 2명, 10~12명일 때 3명이지만 강제하지 않는다. `start_round` RPC는 `liar_count < ready participant count`를 최종 검증하여 최소 시민 1명을 보장한다. 현재 개발 테스트에서는 최소 2명을 허용한다. TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 2명에서 4명으로 복구한다. 참가 인원별 라이어 수 강제 규칙은 없다.
+UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count` 설정 범위는 1~3이며 방장은 이 범위에서 자유롭게 선택한다. 참가 인원별 권장값은 2~4명일 때 1명, 5~9명일 때 2명, 10~12명일 때 3명이지만 강제하지 않으며 권장값을 초과한 설정도 허용한다. `start_round` RPC는 `ready participant count - liar_count >= 2`를 최종 검증하여 최소 시민 2명을 보장한다. 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 구조에서 시민이 1명뿐이면 모든 투표자가 자신 외 전원을 선택하여 필연적인 동률과 반복 재투표 deadlock이 발생하기 때문이다. 현재 개발 테스트에서는 최소 3명을 허용한다. TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 3명에서 4명으로 복구한다. 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### E.5 `liar_rounds`
 
@@ -346,7 +346,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 ### 준비 완료자 고정
 
-`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 현재 개발 테스트 기준 2~12명인지, 그리고 `liar_count < ready participant count`인지 검증한 뒤 그 사용자만 round players에 복사한다. 따라서 참가 인원별 권장 라이어 수를 초과해도 시작할 수 있지만 최소 시민 1명은 항상 존재한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 정식 배포 시에는 최소 준비 인원만 4명으로 복구하며 참가 인원별 라이어 수 강제 규칙은 없다.
+`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 현재 개발 테스트 기준 3~12명인지, 그리고 `ready participant count - liar_count >= 2`인지 검증한 뒤 그 사용자만 round players에 복사한다. 따라서 참가 인원별 권장 라이어 수를 초과해도 시작할 수 있지만 최소 시민 2명은 항상 존재한다. 이 조건은 정확히 `liar_count`명을 선택하고 자기 자신에게 투표할 수 없는 투표 구조에서 시민이 1명일 때 모든 후보가 같은 표를 받아 재투표가 무한 반복되는 것을 방지한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 정식 배포 시에는 최소 준비 인원만 4명으로 복구하며 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### 진행 중 신규 참가자
 

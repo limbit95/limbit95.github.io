@@ -26,7 +26,7 @@ export function setupView(s,isHost){
      </div>
      <div class="setup-rule-grid">
       <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>제시어의 난이도</small></label>
-      <label class="setup-control"><span>라이어 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 자유 설정 · 현재 인원 권장 ${recommendedLiarCount}명<br>게임 시작 시 라이어 수는 참가 인원보다 적어야 합니다.</small></label>
+      <label class="setup-control"><span>라이어 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 자유 설정 · 현재 인원 권장 ${recommendedLiarCount}명<br>게임 시작 시 최소 2명의 시민이 필요합니다.</small></label>
       <label class="setup-control"><span>추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>라이어 팀이 공유하는 기회</small></label>
      </div>
     </section>
