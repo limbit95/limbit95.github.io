@@ -13,6 +13,8 @@ declare
   v_player public.liar_players%rowtype;
   v_room public.liar_rooms%rowtype;
   v_round public.liar_rounds%rowtype;
+  v_round_version bigint;
+  v_room_version bigint;
 begin
   if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
   if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
@@ -67,14 +69,14 @@ begin
   update public.liar_rounds r
   set liars_revealed_at=now(),version=r.version+1
   where r.id=v_round.id
-  returning r.version into v_round.version;
+  returning r.version into v_round_version;
 
   update public.liar_rooms r
   set last_activity_at=now(),expires_at=now()+interval '24 hours',version=r.version+1
   where r.id=v_room.id
-  returning r.version into v_room.version;
+  returning r.version into v_room_version;
 
-  return query select v_round.version,v_room.version;
+  return query select v_round_version,v_room_version;
 end;
 $$;
 
