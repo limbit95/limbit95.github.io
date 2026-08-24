@@ -320,9 +320,9 @@ begin
  if not found or v_game.status not in ('setup','active') then raise exception using message='INVALID_GAME_STATE',errcode='P0001'; end if;
  select count(*) into v_count from public.liar_players lp where lp.room_id=v_room.id and lp.membership_status='active' and lp.ready;
  -- TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 3명에서 4명으로 복구한다.
- -- 참가 인원별 라이어 수 강제 규칙은 없음.␊
+ -- 참가 인원별 라이어 수 강제 규칙은 없음.
  if v_count<3 then raise exception using message='NOT_ENOUGH_READY_PLAYERS',errcode='P0001'; end if;
- if v_count>12 then raise exception using message='TOO_MANY_READY_PLAYERS',errcode='P0001'; end if;␊
+ if v_count>12 then raise exception using message='TOO_MANY_READY_PLAYERS',errcode='P0001'; end if;
  if v_count-v_game.liar_count<2 then raise exception using message='INVALID_LIAR_COUNT',errcode='P0001'; end if;
  select coalesce(max(r.round_no),0)+1 into v_round_no from public.liar_rounds r where r.game_id=v_game.id;
  select r.word_id into v_last_word from public.liar_rounds r where r.game_id=v_game.id order by r.round_no desc limit 1;
