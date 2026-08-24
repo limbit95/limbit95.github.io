@@ -53,6 +53,7 @@
 
 @media(max-width:720px){
  .game-mode-grid,.drawing-rule-grid,.drawing-layout-bottom{grid-template-columns:1fr}
+ .game-mode-option input[type="radio"]{appearance:none;-webkit-appearance:none;position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;border:0!important;opacity:0!important;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap}
  .drawing-stage-header{display:grid}
  .drawing-turn-badges{justify-content:stretch}
  .drawing-turn-badges>span{flex:1}
