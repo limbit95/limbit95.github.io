@@ -95,5 +95,5 @@ document.addEventListener("visibilitychange",()=>{const state=store.get();if(doc
 
 async function hydrateCurrentUser(){const authEpoch=getAuthEpoch();getPlayerKey();const activeRooms=await loadActiveRooms();let nickname=getNickname();if(activeRooms.length){nickname=activeRooms[0].nickname;setNickname(nickname);}assertAuthEpoch(authEpoch);store.set({nickname});if(nickname)await refresh();}
 window.addEventListener("liar:auth-user-changed",()=>{clearVoteDraft();store.set({resultState:null});hydrateCurrentUser().catch(error=>{if(errorCode(error)!=="AUTH_CONTEXT_CHANGED")store.set({message:messageFor(error)});});});
-async function boot(){try{const session=await initializeSession();if(!session)return;await hydrateCurrentUser();}catch(error){store.set({message:messageFor(error)});try{await loadActiveRooms();}catch{}}finally{render();}}
+async function boot(){try{const session=await initializeSession();if(!session)return;await hydrateCurrentUser();}catch(error){if(errorCode(error)==="AUTH_CONTEXT_CHANGED")return;store.set({message:messageFor(error)});try{await loadActiveRooms();}catch{}}finally{render();}}
 boot();
