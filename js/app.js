@@ -13,6 +13,7 @@ import { renderAuthConfirm } from "./pages/authConfirm.js";
 import { renderForgotPassword, renderPasswordUpdate } from "./pages/passwordReset.js";
 import { renderPending, renderSuspended } from "./pages/pending.js";
 import { renderHome } from "./pages/home.js";
+import { renderGames } from "./pages/games.js";
 import { renderActivities } from "./pages/activities.js";
 import { renderActivityDetail } from "./pages/activityDetail.js";
 import { renderActivityForm } from "./pages/activityForm.js";
@@ -103,6 +104,7 @@ route("/update-password", "새 비밀번호 설정", null, renderPasswordUpdate,
 route("/pending", "가입 승인 대기", "signed", renderPending, { shell: false });
 route("/suspended", "이용 정지 안내", "signed", renderSuspended, { shell: false });
 route("/", "홈", "approved", renderHome);
+route("/games", "게임", "approved", renderGames);
 route("/activities", "활동", "approved", renderActivities);
 route("/activities/new", "활동 등록", "manager", (currentRoute) => renderActivityForm(currentRoute, "create"));
 route("/activities/:id/edit", "활동 수정", "manager", (currentRoute) => renderActivityForm(currentRoute, "edit"));
