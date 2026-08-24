@@ -1,21 +1,14 @@
 import { escapeHTML } from "../constants.js";
-import { voteBallotDetails } from "./vote.js";
 
-const playerList=(players=[],emptyMessage)=>players.length
- ? `<ul class="result-list">${players.map(player=>`<li>${escapeHTML(player.nickname)}</li>`).join("")}</ul>`
- : `<p class="notice">${emptyMessage}</p>`;
-const resultSection=(title,content)=>`<div class="result-section" data-result-section><h3>${title}</h3>${content}</div>`;
-
-export function resultView(voteState,guessState,isHost){
- const citizenWon=voteState?.winner==="citizen";const revealed=voteState?.liars_revealed===true;
- const title=citizenWon?"🏆 시민 승리!":"🎭 라이어 승리!";
- const summary=citizenWon?"시민이 라이어를 찾아내고 제시어를 지켜냈습니다.":voteState?.capture_succeeded===false?"라이어를 정확히 찾아내지 못했습니다.":"라이어가 제시어를 맞혔습니다.";
- const answer=voteState?.answer_category&&voteState?.answer_word?resultSection("제시어",`<p class="result-category">${escapeHTML(voteState.answer_category)}</p><p class="result-answer">${escapeHTML(voteState.answer_word)}</p>`):"";
- const suspects=resultSection("최종 의심자",playerList(voteState?.final_suspects,"최종 의심자를 확인할 수 없습니다."));
- const ballots=voteBallotDetails(voteState);const ballotSection=ballots?`<div class="result-section" data-result-section>${ballots}</div>`:"";
- const actualLiars=revealed&&voteState?.actual_liars?.length?resultSection("실제 라이어",playerList(voteState.actual_liars,"실제 라이어를 확인할 수 없습니다.")):"";
- const guesses=Array.isArray(guessState?.guesses)?guessState.guesses:[];
- const guessHistory=guesses.length?resultSection("라이어 제시어 추측",`<ol class="result-guess-list">${guesses.map(guess=>`<li><strong>${Number(guess.attempt_no)}회차 · ${escapeHTML(guess.guesser)}</strong><blockquote>“${escapeHTML(guess.guess_text)}”</blockquote><span class="${guess.is_correct===true?"success":"error"}">${guess.is_correct===true?"정답":"오답"}</span></li>`).join("")}</ol>`):"";
- let next;if(!citizenWon&&!revealed)next=isHost?'<button data-action="reveal-result-liars">라이어 공개</button>':'<p class="muted">방장이 라이어를 공개할 때까지 기다려 주세요.</p>';else next=isHost?'<button data-action="restart-game">게임 다시 시작</button>':'<p class="muted">방장이 다음 게임을 준비할 때까지 기다려 주세요.</p>';
- return `<section class="card result-card ${citizenWon?"result-citizen":"result-liar"}"><header class="result-hero"><h2 class="result-title" data-result-title>${title}</h2><p>${summary}</p></header>${answer}${suspects}${ballotSection}${actualLiars}${guessHistory}<div class="result-actions">${next}</div></section>`;
+const list=(players=[],empty="기록이 없습니다.")=>players.length?`<ul class="result-list">${players.map(p=>`<li>${escapeHTML(p.nickname)}</li>`).join("")}</ul>`:`<p class="notice">${empty}</p>`;
+const section=(title,body)=>`<div class="result-section" data-result-section><h3>${title}</h3>${body}</div>`;
+const stageTitle=s=>s.kind==="original"?"1차 투표":`재투표 ${Math.max(1,Number(s.stage_no)-1)}`;
+function voteHistory(stages=[]){return section("🗳️ 투표 과정",`<div class="result-vote-history">${stages.map(s=>`<article class="result-vote-stage"><header class="result-vote-stage-header"><h4>${stageTitle(s)}</h4><span>선택 인원: ${Number(s.seats_to_fill)}명</span></header><h5>득표 결과</h5><ul class="result-vote-tally">${(s.tally||[]).map(x=>`<li><span>${escapeHTML(x.nickname)}</span><strong>${Number(x.votes)}표</strong></li>`).join("")}</ul><h5>투표 상세</h5><div class="result-vote-ballots">${(s.ballot_details||[]).map(b=>`<div><strong>${escapeHTML(b.voter)}</strong><span>→</span><span>${(b.targets||[]).map(t=>escapeHTML(t.nickname)).join(", ")||"선택 없음"}</span></div>`).join("")}</div>${s.runoff_required?`<div class="result-runoff-summary"><strong>재투표 발생</strong><p>확정된 의심자: ${(s.stage_winners||[]).map(x=>escapeHTML(x.nickname)).join(", ")||"없음"}</p><p>동률 후보: ${(s.boundary_candidates||[]).map(x=>escapeHTML(x.nickname)).join(", ")}</p><p>남은 자리: ${Number(s.remaining_seats)}명</p></div>`:""}${(s.locked_winners||[]).length?`<p class="result-locked">이전 단계 확정: ${s.locked_winners.map(x=>escapeHTML(x.nickname)).join(", ")}</p>`:""}</article>`).join("")||'<p class="notice">투표 기록을 확인할 수 없습니다.</p>'}</div>`);}
+export function resultView(r,isHost){
+ const citizen=r?.winner==="citizen",revealed=r?.liars_revealed===true;
+ const reasons={CAPTURE_FAILED:"라이어를 정확히 찾아내지 못했습니다.",GUESS_CORRECT:"라이어가 제시어를 맞혀 역전했습니다.",GUESSES_EXHAUSTED:"시민이 라이어를 찾아냈고, 라이어가 제시어를 맞히지 못했습니다."};
+ const guesses=Array.isArray(r?.guesses)?r.guesses:[];
+ const guessSection=r?.capture_succeeded===true?section("🎯 라이어 제시어 추측",guesses.length?`<ol class="result-guess-list">${guesses.map(g=>`<li><strong>${Number(g.attempt_no)}회차 · ${escapeHTML(g.guesser)}</strong><blockquote>“${escapeHTML(g.guess_text)}”</blockquote><span class="${g.is_correct?"success":"error"}">${g.is_correct?"✅ 정답":"❌ 오답"}</span></li>`).join("")}</ol>`:'<p class="notice">추측 기록을 확인할 수 없습니다.</p>'):"";
+ let action;if(!citizen&&!revealed)action=isHost?'<button data-action="reveal-result-liars">라이어 공개</button>':'<p class="muted">방장이 라이어를 공개할 때까지 기다려 주세요.</p>';else action=isHost?'<button data-action="restart-game">게임 다시 시작</button>':'<p class="muted">방장이 다음 게임을 준비할 때까지 기다려 주세요.</p>';
+ return `<section class="card result-card ${citizen?"result-citizen":"result-liar"}"><header class="result-hero"><h2 class="result-title" data-result-title>${citizen?"🏆 시민 승리!":"🎭 라이어 승리!"}</h2><strong>Round ${Number(r?.round_no||0)}</strong><p>${reasons[r?.result_reason]||"최종 결과가 확정되었습니다."}</p></header>${section("제시어",`<p class="result-category">${escapeHTML(r?.category||"")}</p><p class="result-answer">${escapeHTML(r?.word||"")}</p>`)}${revealed?section("🎭 실제 라이어",list(r?.actual_liars,"실제 라이어를 확인할 수 없습니다.")):""}${section(`🔍 최종 의심자 · ${r?.capture_succeeded?"검거 성공":"검거 실패"}`,list(r?.final_suspects,"최종 의심자를 확인할 수 없습니다."))}${voteHistory(r?.vote_stages)}${guessSection}<div class="result-actions">${action}</div></section>`;
 }

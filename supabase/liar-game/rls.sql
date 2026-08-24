@@ -47,6 +47,7 @@ revoke all on function public.liar_reveal_liars(uuid,bigint) from public, anon, 
 revoke all on function public.liar_reveal_result_liars(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_get_guess_snapshot(uuid) from public, anon, authenticated;
 revoke all on function public.liar_submit_guess(uuid,text) from public, anon, authenticated;
+revoke all on function public.liar_get_round_result(uuid) from public, anon, authenticated;
 
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
@@ -75,3 +76,4 @@ grant execute on function public.liar_reveal_liars(uuid,bigint) to authenticated
 grant execute on function public.liar_reveal_result_liars(uuid,bigint) to authenticated;
 grant execute on function public.liar_get_guess_snapshot(uuid) to authenticated;
 grant execute on function public.liar_submit_guess(uuid,text) to authenticated;
+grant execute on function public.liar_get_round_result(uuid) to authenticated;
