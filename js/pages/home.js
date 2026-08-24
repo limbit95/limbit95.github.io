@@ -37,7 +37,7 @@ export async function renderHome() {
     ]),
     el("div", { className: "hero-actions" }, [
       el("a", { className: "button button--yellow", href: "#/activities", text: "🗓️ 이번 활동 보기" }),
-      el("a", { className: "button button--coral", href: "./liar-game/", text: "🎭 라이어 게임" }),
+      el("a", { className: "button button--coral", href: "#/games", text: "🎮 게임" }),
       auth.isAdmin || auth.managerCategoryIds.size
         ? el("a", { className: "button button--coral", href: "#/activities/new", text: "＋ 활동 등록" })
         : el("a", { className: "button button--secondary", href: "#/mypage", text: "🙂 내 참여 보기" }),
