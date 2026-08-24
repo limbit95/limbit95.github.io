@@ -186,6 +186,7 @@ function playOutcome(card,won){
 }
 
 async function inspectResult(){
+ if(document.querySelector("[data-result-reveal-countdown]"))return;
  const initialCard=document.querySelector("[data-result-card]");
  if(!initialCard||initialCard.dataset.liarsRevealed!=="true")return;
  const key=cardKey(initialCard);
@@ -194,7 +195,7 @@ async function inspectResult(){
  try{
   const role=await getMyRoundRole();
   const currentCard=document.querySelector("[data-result-card]");
-  if(!currentCard||currentCard.dataset.liarsRevealed!=="true"||cardKey(currentCard)!==key)return;
+  if(document.querySelector("[data-result-reveal-countdown]")||!currentCard||currentCard.dataset.liarsRevealed!=="true"||cardKey(currentCard)!==key)return;
   const mySide=role?.role;
   if(mySide!=="citizen"&&mySide!=="liar")return;
   lastEffectKey=key;
