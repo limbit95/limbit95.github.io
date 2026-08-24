@@ -70,7 +70,7 @@ Supabase
 ├─ Auth
 ├─ PostgreSQL liar_* tables
 ├─ Transactional RPC functions
-└─ Realtime postgres_changes
+└─ Realtime private Broadcast invalidation
 ```
 
 핵심 원칙은 다음과 같다.
@@ -83,7 +83,7 @@ Supabase
 6. 만료와 순번은 브라우저 시간이 아니라 DB `now()`를 기준으로 한다.
 7. UI 사전 검증과 별개로 DB가 host, participant, 상태, 만료를 다시 검증한다.
 
-원자 RPC가 필요한 작업은 방 생성/참가, game/round 시작, ballot 교체, 투표 마감과 판정, 재투표 생성, 추측 제출, 다음 라운드, 새 게임, 방장 위임, 강제 종료다.
+원자 RPC가 필요한 작업은 방 생성/참가, game/round 시작, ballot 교체, 투표 마감과 판정, 재투표 생성, 추측 제출, 다음 라운드, 새 게임, 강제 종료다. 현재 v1에는 방장 위임 RPC가 없다.
 
 ## C. 최종 디렉터리 및 파일 구조
 
@@ -365,7 +365,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 | 상태 | 진입 조건 | 일반 사용자 행동 | 방장 행동 | 다음 상태 | 이전 이동 |
 |---|---|---|---|---|---|
 | GAME_SETUP | room 생성/새 game draft | 방 보기, 나가기 | 설정 변경·확정 | WAITING | 없음 |
-| WAITING | setup 확정/결과 후 다음 준비 | ready, 허용 시 nickname, 나가기 | round 시작, 위임, 새 game | ROLE_REVEAL | 미시작 game만 setup 가능 |
+| WAITING | setup 확정/결과 후 다음 준비 | ready, 허용 시 nickname, 나가기 | round 시작, 새 game | ROLE_REVEAL | 미시작 game만 setup 가능 |
 | ROLE_REVEAL | start round 완료 | 역할 확인 | 전원 확인 후 발언 시작, 강제 종료 | SPEAKING | 불가 |
 | SPEAKING | 최초 발언 또는 동률 추가 발언 | 순서 확인 | 이전/다음, 마지막 후 종료 | DISCUSSION/RUNOFF_VOTING | 상태 후퇴 불가, index만 이전 |
 | DISCUSSION | 설명 종료 | Zoom 토론 | 투표 시작 | VOTING | 불가 |
@@ -424,44 +424,31 @@ host의 `close_vote_stage` RPC가 stage를 lock하고 현재 round participant �
 
 ## I. Supabase Realtime 설계
 
-### I.1 채널
+### I.1 private Broadcast 채널
 
 ```text
-liar-room:{roomId}
-liar-round:{roundId}
+DB mutation
+→ liar_rooms.version 증가
+→ private `liar-room:{roomId}` 채널에 `state_changed` Broadcast
+→ client snapshot RPC 재조회
 ```
 
-- room channel: rooms, players, games와 rounds의 공개 가능한 변경 신호를 room ID로 구독한다. `liar_rounds`를 구독할 때는 `id`, `room_id`, `status`, `version`처럼 안전한 컬럼만 명시적으로 select하여 `word_snapshot`이 payload에 포함되지 않게 하거나, 별도의 공개 version 변경 이벤트만 구독한 뒤 일반 snapshot RPC를 다시 호출한다.
-- round channel: 진행 상태와 공개 가능한 participant 변경 신호, vote stages, guesses를 current round 범위로 구독한다. `liar_round_players`를 구독할 때는 `id`, `round_id`, `nickname_snapshot`, `turn_order`, `role_checked_at`처럼 안전한 컬럼만 명시적으로 select하여 `role`이 payload에 포함되지 않게 하거나, 별도의 공개 version 변경 이벤트만 구독한 뒤 snapshot RPC를 재조회한다. 안전 컬럼 projection을 보장할 수 없다면 진행 중인 `liar_rounds`와 `liar_round_players` base table의 Postgres Changes는 일반 참가자·관전자에게 직접 구독시키지 않는다. ballot은 `round_id` 컬럼이 없으므로 round ID로 직접 필터링하지 않는다.
-- votes 개별 row 구독은 이벤트 폭주와 투표 중 정보 노출을 피하기 위해 생략할 수 있다. round/stage version 변경을 통해 결과 snapshot을 재조회한다.
-
-ballot 진행률 구독은 다음 순서를 따른다.
-
-```text
-현재 ROUND
-→ 현재 open liar_vote_stage 조회
-→ current_vote_stage_id 확인
-→ liar_ballots WHERE vote_stage_id = current_vote_stage_id 구독
-```
-
-이 구독은 `4 / 5명 투표 완료` 같은 제출 인원 snapshot을 갱신하는 신호로만 쓴다. stage가 바뀌면 기존 ballot 구독을 제거하고 새 `vote_stage_id`로 구독한다.
+클라이언트는 인증된 사용자만 구독할 수 있는 room별 private channel 하나를 사용한다. DB mutation은 같은 트랜잭션에서 room version을 증가시키고 `state_changed`를 Broadcast한다. 이벤트 payload는 무효화 신호와 version만 전달하며 role, word, ballot, guess 등 base-table 데이터를 전달하지 않는다. 클라이언트는 이벤트 내용을 권위 있는 상태로 적용하지 않고 snapshot RPC를 다시 호출한다.
 
 ### I.2 이벤트 처리
 
-- room/player 이벤트는 50~150ms debounce 후 room snapshot 재조회.
-- round status/version 이벤트는 current round snapshot 전체 재조회.
-- speaker index는 즉시 부분 갱신 후 background 확인 가능.
-- 투표 중에는 ballot 이벤트를 진행률 snapshot 재조회 신호로만 사용하여 제출 수만 갱신한다. 누가 누구에게 투표했는지, 현재 득표 수, 최다 득표 후보는 공개하지 않는다.
+- `state_changed` 수신은 50~150ms debounce 후 room snapshot과 현재 화면에 필요한 role/vote/guess/result projection RPC 재조회로 이어진다.
+- 여러 이벤트는 debounce로 합쳐 짧은 시간 안에 한 번만 재조회한다. snapshot의 DB version과 요청 sequence로 응답 순서 역전을 방지한다.
+- 투표 진행률도 Broadcast를 계기로 vote snapshot을 재조회하며, 이벤트 자체에는 투표 대상이나 득표 정보를 넣지 않는다.
 - 화면 상태가 바뀔 때 root view를 바꾸고, 같은 상태에서는 player list/progress/speaker만 부분 갱신한다.
 - 입력 중인 nickname, guess, ballot draft는 무관한 Realtime event로 잃지 않는다.
 
 ### I.3 중복과 순서 역전 방지
 
-- `activeRoomId`, channel references, generation을 하나만 보관한다.
+- `activeRoomId`, channel reference, generation을 하나만 보관한다.
 - 같은 room 재구독은 no-op다.
-- 방 이동 시 기존 channel 제거 완료 후 새 channel을 만든다.
+- 방 이동 시 기존 private channel 제거 완료 후 새 channel을 만든다.
 - snapshot 요청 sequence와 DB version으로 오래된 응답을 폐기한다.
-- 여러 이벤트를 debounce하여 트랜잭션당 한 번 재조회한다.
 - Realtime reconnect와 tab visibility 복귀 시 전체 snapshot을 다시 조회한다.
 
 ### I.4 정리
@@ -533,7 +520,7 @@ round participant가 있으면 해당 화면, membership만 있으면 관전자,
 
 별도 서버가 없으므로 접근 시 지연 판정을 기본으로 한다. 모든 room mutation RPC는 `status='expired' OR now() >= expires_at`이면 expired 상태를 기록하고 요청을 거부한다. 단, `create_room`/`join_room` RPC가 호출자의 기존 active membership을 검사할 때 그 membership의 room이 `status='expired'`이거나 `now() >= expires_at`이면, 기존 membership을 `membership_status='left'`, `ready=false`, `left_at=now()`로 처리한 후 새 room 생성/참가를 계속한다. 유효한 주요 게임 동작 성공 시 `last_activity_at=now()`, `expires_at=now()+24h`로 갱신한다.
 
-활동에는 create/join/leave, ready/nickname, 설정/start, role check, speaker, vote, guess, lifecycle, host transfer/force end를 포함한다. 단순 SELECT, Realtime reconnect, 열린 탭 heartbeat는 활동으로 보지 않는다.
+활동에는 create/join/leave, ready/nickname, 설정/start, role check, speaker, vote, guess, lifecycle, force end를 포함한다. 단순 SELECT, Realtime reconnect, 열린 탭 heartbeat는 활동으로 보지 않는다.
 
 ### L.2 물리 삭제
 
@@ -547,16 +534,15 @@ round participant가 있으면 해당 화면, membership만 있으면 관전자,
 | start 직전 ready 변경 | RPC lock 시점 snapshot |
 | 12번째 자리 동시 참가 | room lock 후 count 재검증 |
 | host 두 탭의 상태 전이 | expected status/version CAS |
-| host 위임과 action 경쟁 | room row lock 후 host 재검증 |
 | 투표 수정과 마감 | stage row lock, 먼저 commit한 상태 적용 |
 | guess 동시 제출 | round lock + attempt UNIQUE |
 | new game/next round 경쟁 | room lock + current pointer/version |
 | 네트워크 응답 유실 | 재시도 전 snapshot 조회 |
 | Realtime 누락 | reconnect/visibility 시 전체 재조회 |
 
-### L.4 방장 위임
+### L.4 방장 위임 향후 확장 설계
 
-room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 active player인지 검증한 후 `host_player_id` 하나만 갱신한다. room Realtime 이벤트로 즉시 반영한다.
+방장 위임은 현재 Production v1의 구현 범위가 아니며 관련 UI와 RPC가 존재하지 않는다. 향후 도입할 경우에만 room row lock, 현재 host 검증, 같은 room의 active player 대상 검증, `host_player_id` 갱신을 하나의 원자 작업으로 설계한다. 수동 또는 자동 위임은 나가기의 선행 조건으로 두지 않으며, 현재 v1에서 host가 나가면 Room 전체 종료 정책을 적용한다.
 
 ### L.5 강제 종료
 
@@ -611,7 +597,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 | 9 | 원투표 | vote view | api/store | 있음 | 다중 선택, 수정, 마감 불변 |
 | 10 | 재투표/판정 | 없음 | vote/result/state | 있음 | 경계 동점, set 비교 |
 | 11 | 추측/결과 | guess/result views | commands/api | 있음 | 공유 횟수, 동시 제출, 결과 |
-| 12 | lifecycle/위임/강제 종료 | 없음 | room/result/setup | 있음 | next/new/transfer/force end |
+| 12 | lifecycle/강제 종료 | 없음 | room/result/setup | 있음 | next/new/force end |
 | 13 | Realtime/복구 | realtime | app/store/recovery | publication | 다중 탭, reconnect, stale 응답 |
 | 14 | 만료/예외 | expired view | recovery/commands | 있음 | 24h, 7일 대상, 응답 유실 |
 | 15 | 기존 사이트 연결 | 없음 | header, 선택적으로 nav/home/CSS | 없음 | 링크/base path/회귀 |

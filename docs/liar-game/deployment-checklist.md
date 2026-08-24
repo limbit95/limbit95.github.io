@@ -20,13 +20,13 @@
 다음 순서로 실행한다.
 
 1. [ ] `supabase/liar-game/schema.sql` — extension, tables, constraints, indexes, triggers/helpers
-2. [ ] `supabase/liar-game/functions-core.sql` — room/game/round lifecycle와 snapshot RPC
-3. [ ] `supabase/liar-game/functions-vote.sql` — ballot, vote close, runoff RPC
-4. [ ] `supabase/liar-game/functions-guess.sql` — shared liar guess RPC
-5. [ ] `supabase/liar-game/functions-result.sql` — detailed result RPC
-6. [ ] `supabase/liar-game/rls.sql` — base-table 차단과 authenticated RPC 권한
-7. [ ] `supabase/liar-game/realtime.sql` — private Realtime authorization/publication 설정
-8. [ ] `supabase/liar-game/seed.sql` — 14개 category word seed
+2. [ ] `supabase/liar-game/seed.sql` — 14개 category word seed
+3. [ ] `supabase/liar-game/functions-core.sql` — room/game/round lifecycle와 snapshot RPC
+4. [ ] `supabase/liar-game/functions-vote.sql` — ballot, vote close, runoff RPC
+5. [ ] `supabase/liar-game/functions-guess.sql` — shared liar guess RPC
+6. [ ] `supabase/liar-game/functions-result.sql` — detailed result RPC
+7. [ ] `supabase/liar-game/rls.sql` — base-table 차단과 authenticated RPC 권한
+8. [ ] `supabase/liar-game/realtime.sql` — private Realtime authorization 설정
 9. [ ] 설치 후 schema/RPC 권한과 Production start matrix를 검증
 
 `migrations/*.sql`은 과거 schema로 설치된 기존 DB를 단계적으로 올릴 때만 사용한다. 현재 `schema.sql`로 만든 빈 DB에는 적용하지 않는다.
