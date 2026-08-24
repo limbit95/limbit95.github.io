@@ -38,6 +38,7 @@ export async function requireSession() {
   if (store.get().signedOut) throw new Error("AUTH_REQUIRED");
   const {data,error} = await supabase.auth.getSession();
   if (error || !data.session) {
+    authEpoch += 1;
     setStorageUser(null);
     void unsubscribeRoomRealtime();
     clearRoomState();
