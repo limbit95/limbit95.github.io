@@ -1,0 +1,67 @@
+/* Drawing Spy mode */
+.game-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.game-mode-option{position:relative;display:block;cursor:pointer}
+.game-mode-option input{position:absolute;opacity:0;pointer-events:none}
+.game-mode-option>span{display:grid;gap:6px;height:100%;padding:16px;border:1px solid var(--border);border-radius:14px;background:var(--bg);transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease}
+.game-mode-option strong{font-size:1rem}
+.game-mode-option small{color:var(--muted);line-height:1.5}
+.game-mode-option input:checked+span{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 14%,transparent);transform:translateY(-1px)}
+.game-mode-option input:focus-visible+span{outline:3px solid color-mix(in srgb,var(--primary) 25%,transparent);outline-offset:2px}
+.drawing-mode-settings{display:none;background:linear-gradient(145deg,color-mix(in srgb,var(--primary) 8%,var(--bg)),var(--bg));border:1px solid color-mix(in srgb,var(--primary) 20%,var(--border));border-radius:16px;padding:16px}
+.setup-fieldset:has(input[name="gameMode"][value="drawing_spy"]:checked) .drawing-mode-settings{display:block}
+.drawing-rule-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.drawing-mode-hint{margin:12px 0 0;color:var(--muted);font-size:.9rem;line-height:1.55}
+.role-mode-guide{margin:12px 0 0;padding:11px 12px;border-radius:10px;background:color-mix(in srgb,var(--primary) 8%,var(--bg));line-height:1.55}
+
+.drawing-stage{display:grid;gap:18px}
+.drawing-stage-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.drawing-stage-header h2{margin:4px 0 7px}
+.drawing-stage-header p{margin:0;color:var(--muted);line-height:1.55}
+.drawing-turn-badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.drawing-turn-badges>span{display:grid;gap:2px;min-width:104px;padding:9px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg);font-size:.78rem;color:var(--muted);text-align:center}
+.drawing-turn-badges strong{font-size:1.08rem;color:var(--text)}
+.drawing-turn-badges>span.is-ending{border-color:#dc3545;background:rgba(220,53,69,.06)}
+.drawing-turn-badges>span.is-ending strong{color:#b42333}
+.drawing-current{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 12%,var(--bg)),var(--bg));border:1px solid color-mix(in srgb,var(--primary) 24%,var(--border))}
+.drawing-current span{color:var(--muted);font-size:.86rem}
+.drawing-current strong{font-size:1.05rem}
+.drawing-board-shell{position:relative;overflow:hidden;border:2px solid var(--border);border-radius:18px;background:#fff;box-shadow:0 10px 32px rgba(20,24,32,.08)}
+.drawing-board-shell.is-active{border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 10%,transparent),0 12px 34px rgba(20,24,32,.1)}
+.drawing-board{display:block;width:100%;height:auto;aspect-ratio:3/2;background:#fff;cursor:default}
+.drawing-board-shell.is-active .drawing-board{cursor:crosshair}
+.drawing-board-hint{position:absolute;left:12px;bottom:12px;padding:7px 10px;border-radius:999px;background:rgba(20,20,24,.72);color:#fff;font-size:.72rem;pointer-events:none;backdrop-filter:blur(5px)}
+.drawing-local-status{min-height:1.2em;margin:-8px 0 0;text-align:center}
+.drawing-layout-bottom{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(220px,.7fr);gap:16px;align-items:start}
+.drawing-layout-bottom h3{margin:0 0 10px}
+.drawing-order-list{margin:0}
+.drawing-order-item.is-current{border-color:color-mix(in srgb,var(--primary) 45%,var(--border));background:color-mix(in srgb,var(--primary) 8%,var(--bg))}
+.drawing-rule-card{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg)}
+.drawing-rule-card dl{display:grid;gap:8px;margin:0}
+.drawing-rule-card dl>div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)}
+.drawing-rule-card dl>div:last-child{border-bottom:0}
+.drawing-rule-card dt{color:var(--muted)}
+.drawing-rule-card dd{margin:0;font-weight:800}
+.drawing-rule-card p{margin:10px 0 0;color:var(--muted);font-size:.82rem;line-height:1.5}
+.drawing-actions{display:flex;justify-content:flex-end}
+.drawing-actions button{min-width:190px}
+
+.drawing-preview-card{display:grid;gap:10px;padding:12px;border:1px solid var(--border);border-radius:14px;background:var(--bg)}
+.drawing-preview-heading{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.drawing-preview-heading span{font-weight:850}
+.drawing-preview-heading small{color:var(--muted)}
+.drawing-board-shell.is-preview{max-width:720px;width:100%;margin:0 auto;border-width:1px;box-shadow:none}
+
+@media(max-width:720px){
+ .game-mode-grid,.drawing-rule-grid,.drawing-layout-bottom{grid-template-columns:1fr}
+ .drawing-stage-header{display:grid}
+ .drawing-turn-badges{justify-content:stretch}
+ .drawing-turn-badges>span{flex:1}
+ .drawing-board-shell{border-radius:14px}
+ .drawing-board-hint{left:8px;right:8px;bottom:8px;text-align:center;border-radius:9px}
+ .drawing-actions button{width:100%}
+ .drawing-preview-heading{display:grid;gap:3px}
+}
+
+@media(prefers-reduced-motion:reduce){
+ .game-mode-option>span{transition:none}
+}
