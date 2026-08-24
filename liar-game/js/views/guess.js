@@ -1,12 +1,14 @@
 import { escapeHTML, GAME_MODE } from "../constants.js";
+import { store } from "../store.js";
 import { voteBallotDetails } from "./vote.js";
 
 const suspectList=(suspects=[])=>suspects.length
  ? `<ul class="guess-liar-list">${suspects.map(suspect=>`<li>🎭 ${escapeHTML(suspect.nickname)}</li>`).join("")}</ul>`
  : '<p class="notice guess-notice">최종 의심자를 확인할 수 없습니다.</p>';
+const modeOf=mode=>mode||store.get().snapshot?.game?.game_mode||GAME_MODE.CLASSIC;
 
-export function guessView(voteState,guessState,gameMode=GAME_MODE.CLASSIC){
- const hiddenRoleName=gameMode===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
+export function guessView(voteState,guessState,gameMode){
+ const hiddenRoleName=modeOf(gameMode)===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
  const limit=Number(guessState?.guess_limit||0);const used=Number(guessState?.used_attempts||0);const remaining=Number(guessState?.remaining_attempts||0);
  const guesses=Array.isArray(guessState?.guesses)?guessState.guesses:[];
  const history=guesses.length?`<section class="guess-section guess-history-section"><h3>기존 추측</h3><ol class="guess-history">${guesses.map(guess=>`<li data-guess-history-item><strong>${guess.attempt_no}회차 · ${escapeHTML(guess.guesser)}</strong><blockquote>“${escapeHTML(guess.guess_text)}”</blockquote><span class="${guess.is_correct===true?"success":"error"}">→ ${guess.is_correct===true?"정답":"오답"}</span></li>`).join("")}</ol></section>`:'<p class="muted guess-empty-history">아직 제출된 추측이 없습니다.</p>';
@@ -22,7 +24,7 @@ export function guessView(voteState,guessState,gameMode=GAME_MODE.CLASSIC){
  </section>`;
 }
 
-export function captureRevealView(voteState,isHost,gameMode=GAME_MODE.CLASSIC){
- const hiddenRoleName=gameMode===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
+export function captureRevealView(voteState,isHost,gameMode){
+ const hiddenRoleName=modeOf(gameMode)===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
  return `<section class="card stack"><h2>${hiddenRoleName} 검거 성공!</h2><p>${hiddenRoleName}를 정확히 찾아냈습니다.</p>${voteBallotDetails(voteState)}${isHost?`<button data-action="reveal-liars">${hiddenRoleName} 공개</button>`:`<p class="notice">방장이 ${hiddenRoleName}를 공개할 때까지 기다려 주세요.</p>`}</section>`;
 }
