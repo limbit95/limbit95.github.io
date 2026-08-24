@@ -1,9 +1,11 @@
 import { getMyRoundRole } from "./api.js";
 
 let lastEffectKey="";
+let pendingEffectKey="";
 let observer=null;
 
 const reducedMotion=()=>window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches===true;
+const cardKey=card=>`${card?.dataset.resultRound||"0"}:${card?.dataset.resultWinner||""}`;
 
 function cleanupFx(){
  document.querySelectorAll(".result-outcome-fx").forEach(node=>node.remove());
@@ -65,21 +67,23 @@ function playOutcome(card,won){
 }
 
 async function inspectResult(){
- const card=document.querySelector("[data-result-card]");
- if(!card)return;
- const round=card.dataset.resultRound||"0";
- const winner=card.dataset.resultWinner;
- const key=`${round}:${winner}`;
- if(key===lastEffectKey)return;
- lastEffectKey=key;
+ const initialCard=document.querySelector("[data-result-card]");
+ if(!initialCard)return;
+ const key=cardKey(initialCard);
+ if(key===lastEffectKey||key===pendingEffectKey)return;
+ pendingEffectKey=key;
  try{
   const role=await getMyRoundRole();
-  if(!card.isConnected||`${card.dataset.resultRound||"0"}:${card.dataset.resultWinner}`!==key)return;
+  const currentCard=document.querySelector("[data-result-card]");
+  if(!currentCard||cardKey(currentCard)!==key)return;
   const mySide=role?.role;
   if(mySide!=="citizen"&&mySide!=="liar")return;
-  playOutcome(card,mySide===winner);
+  lastEffectKey=key;
+  playOutcome(currentCard,mySide===currentCard.dataset.resultWinner);
  }catch{
   // Spectators and stale sessions do not receive a personal win/loss effect.
+ }finally{
+  pendingEffectKey="";
  }
 }
 
