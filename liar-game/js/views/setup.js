@@ -3,7 +3,7 @@ import { CATEGORIES } from "../constants.js";
 export function setupView(s,isHost){
  const g=s.game;
  const readyCount=s.players.filter(player=>player.ready).length;
- const maxLiarCount=readyCount<=4?1:readyCount<=9?2:3;
+ const recommendedLiarCount=readyCount<=4?1:readyCount<=9?2:3;
  return `<section class="card setup-card">
   <header class="setup-header">
    <h2>게임 설정</h2>
@@ -22,11 +22,11 @@ export function setupView(s,isHost){
     <section class="setup-section">
      <div class="setup-section-heading">
       <h3 class="setup-section-title">게임 규칙</h3>
-      <div class="setup-player-info"><span>준비 인원 <strong>${readyCount}명</strong></span><span>라이어 최대 <strong>${maxLiarCount}명</strong></span></div>
+      <div class="setup-player-info"><span>준비 인원 <strong>${readyCount}명</strong></span><span>권장 라이어 <strong>${recommendedLiarCount}명</strong></span></div>
      </div>
      <div class="setup-rule-grid">
       <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>제시어의 난이도</small></label>
-      <label class="setup-control"><span>라이어 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>최대 ${maxLiarCount}명 선택 가능</small></label>
+      <label class="setup-control"><span>라이어 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 자유 설정 · 현재 인원 권장 ${recommendedLiarCount}명<br>게임 시작 시 라이어 수는 참가 인원보다 적어야 합니다.</small></label>
       <label class="setup-control"><span>추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>라이어 팀이 공유하는 기회</small></label>
      </div>
     </section>

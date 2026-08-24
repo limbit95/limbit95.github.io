@@ -215,7 +215,7 @@ UNIQUE `(room_id, player_key)`, 권장 UNIQUE `(room_id, auth_user_id)`. 인덱�
 | `started_at`, `finished_at` | `timestamptz`, nullable |
 | `created_at`, `updated_at` | `timestamptz`, NOT NULL DEFAULT now() |
 
-UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count`의 기본 범위는 1~3을 유지하고, 준비 인원별 liar 상한(2~4명 최대 1명, 5~9명 최대 2명, 10~12명 최대 3명)은 정적 CHECK가 아니라 start round RPC가 최종 검증한다. 현재 개발 테스트에서는 최소 2명을 허용한다. TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 2명에서 4명으로 복구하고, 4명 최대 1명, 5~9명 최대 2명, 10~12명 최대 3명인 liar 상한은 유지한다.
+UNIQUE `(room_id, game_no)`, 인덱스 `(room_id, status)`, 방마다 setup/active game 하나만 허용하는 부분 UNIQUE를 둔다. `liar_count` 설정 범위는 1~3이며 방장은 이 범위에서 자유롭게 선택한다. 참가 인원별 권장값은 2~4명일 때 1명, 5~9명일 때 2명, 10~12명일 때 3명이지만 강제하지 않는다. `start_round` RPC는 `liar_count < ready participant count`를 최종 검증하여 최소 시민 1명을 보장한다. 현재 개발 테스트에서는 최소 2명을 허용한다. TODO(PRODUCTION): 정식 배포 시 최소 준비 인원만 2명에서 4명으로 복구한다. 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### E.5 `liar_rounds`
 
@@ -346,7 +346,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 
 ### 준비 완료자 고정
 
-`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 현재 개발 테스트 기준 2~12명과 준비 인원별 liar 수(2~4명 최대 1명, 5~9명 최대 2명, 10~12명 최대 3명)를 검증한 뒤 그 사용자만 round players에 복사한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 정식 배포 시에는 최소 준비 인원만 4명으로 복구하고 liar 상한 규칙은 그대로 유지한다.
+`start_round` RPC가 room/game을 lock하고 active+ready player를 조회한다. 현재 개발 테스트 기준 2~12명인지, 그리고 `liar_count < ready participant count`인지 검증한 뒤 그 사용자만 round players에 복사한다. 따라서 참가 인원별 권장 라이어 수를 초과해도 시작할 수 있지만 최소 시민 1명은 항상 존재한다. 역할, turn order, word를 함께 만들고 모든 room player의 ready를 false로 초기화한다. 이후 membership/ready 변경은 현재 round snapshot에 영향을 주지 않는다. 정식 배포 시에는 최소 준비 인원만 4명으로 복구하며 참가 인원별 라이어 수 강제 규칙은 없다.
 
 ### 진행 중 신규 참가자
 
@@ -608,7 +608,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 | 3 | RPC와 RLS | functions/RLS SQL | 없음 | 있음 | anon, host, 소유권, stale 상태 |
 | 4 | 독립 shell/Auth guard | HTML/CSS/config/auth/app | 없음 | 없음 | 세션 공유, 비로그인, logout |
 | 5 | 닉네임/로비/방 | storage/store/api/commands/views | app | RPC 보정 | create/join/leave/recovery/12명 |
-| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, 개발 테스트 최소 2명, 준비 인원별 liar 상한 |
+| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, 개발 테스트 최소 2명, liar 수는 참가 인원 미만 |
 | 7 | round/역할 | role view | api/state | 있음 | snapshot, random, rollback |
 | 8 | 발언/토론 | speaking view | state/commands | 있음 | index 경계, host, 동시 클릭 |
 | 9 | 원투표 | vote view | api/store | 있음 | 다중 선택, 수정, 마감 불변 |
