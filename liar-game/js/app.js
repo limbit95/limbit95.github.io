@@ -15,6 +15,7 @@ import { voteResultView, voteView } from "./views/vote.js";
 import { captureRevealView, guessView } from "./views/guess.js";
 import { resultView } from "./views/result.js";
 import { subscribeRoomRealtime, unsubscribeRoomRealtime } from "./realtime.js";
+import { applyPostRenderMotion } from "./motion.js";
 
 const root=document.querySelector("#app");
 const errorCode=(error)=>Object.keys(ERROR_MESSAGES).find(code=>error?.message?.includes(code));
@@ -31,10 +32,10 @@ async function refreshOnce(){try{const previous=store.get();const snapshot=await
 function refresh(){refreshQueued=true;if(refreshInFlight)return refreshInFlight;refreshInFlight=(async()=>{do{refreshQueued=false;await refreshOnce();}while(refreshQueued);})().finally(()=>{refreshInFlight=null;});return refreshInFlight;}
 function queueRealtimeRefresh(){refreshQueued=true;if(refreshInFlight)return;clearTimeout(realtimeDebounce);realtimeDebounce=setTimeout(()=>{realtimeDebounce=null;refresh().catch(error=>store.set({message:messageFor(error)}));},75);}
 function render(state=store.get()){
- if(state.signedOut||!state.session){clearVoteDraft();root.innerHTML=accessView();return;}
- if(!state.nickname){root.innerHTML=nicknameView();return;}
- if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let html=roomView(s,state.message,state.realtimeStatus);if(!s.round)html+=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)html+=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)html+=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)html+=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))html+=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)html+=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)html+=captureRevealView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)html+=guessView(state.voteState,state.guessState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)html+=resultView(state.voteState,state.guessState,isHost);root.innerHTML=html;
+ if(state.signedOut||!state.session){clearVoteDraft();root.innerHTML=accessView();applyPostRenderMotion(root,state);return;}
+ if(!state.nickname){root.innerHTML=nicknameView();applyPostRenderMotion(root,state);return;}
+ if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);applyPostRenderMotion(root,state);return;}
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let stage;if(!s.round)stage=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)stage=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)stage=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)stage=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))stage=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)stage=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)stage=captureRevealView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)stage=guessView(state.voteState,state.guessState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)stage=resultView(state.voteState,state.guessState,isHost);else stage="";root.innerHTML=`${roomView(s,state.message,state.realtimeStatus)}<div class="game-stage" data-game-stage>${stage}</div>`;applyPostRenderMotion(root,state);
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){

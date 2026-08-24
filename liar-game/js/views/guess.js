@@ -8,7 +8,7 @@ const suspectList=(suspects=[])=>suspects.length
 export function guessView(voteState,guessState){
  const limit=Number(guessState?.guess_limit||0);const used=Number(guessState?.used_attempts||0);const remaining=Number(guessState?.remaining_attempts||0);
  const guesses=Array.isArray(guessState?.guesses)?guessState.guesses:[];
- const history=guesses.length?`<section class="guess-section guess-history-section"><h3>기존 추측</h3><ol class="guess-history">${guesses.map(guess=>`<li><strong>${guess.attempt_no}회차 · ${escapeHTML(guess.guesser)}</strong><blockquote>“${escapeHTML(guess.guess_text)}”</blockquote><span class="${guess.is_correct===true?"success":"error"}">→ ${guess.is_correct===true?"정답":"오답"}</span></li>`).join("")}</ol></section>`:'<p class="muted guess-empty-history">아직 제출된 추측이 없습니다.</p>';
+ const history=guesses.length?`<section class="guess-section guess-history-section"><h3>기존 추측</h3><ol class="guess-history">${guesses.map(guess=>`<li data-guess-history-item><strong>${guess.attempt_no}회차 · ${escapeHTML(guess.guesser)}</strong><blockquote>“${escapeHTML(guess.guess_text)}”</blockquote><span class="${guess.is_correct===true?"success":"error"}">→ ${guess.is_correct===true?"정답":"오답"}</span></li>`).join("")}</ol></section>`:'<p class="muted guess-empty-history">아직 제출된 추측이 없습니다.</p>';
  const submit=guessState?.can_submit===true
    ? `<form data-action="guess" class="guess-form"><label for="guess-word">제시어를 입력하세요</label><input id="guess-word" class="guess-input" name="guess" maxlength="100" required autocomplete="off"><button class="guess-submit" type="submit">정답 제출</button></form>`
   : '<div class="notice guess-notice">라이어가 제시어를 추측 중입니다.</div>';

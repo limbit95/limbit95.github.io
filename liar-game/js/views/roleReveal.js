@@ -17,11 +17,10 @@ export function roleRevealView(s, role, isHost) {
   const roleContent = isSpectator
     ? `<p class="notice">현재 라운드를 관전 중입니다.</p>
        <p class="muted">위 관전 정보에서 실제 라이어와 제시어를 확인할 수 있습니다.</p>`
-    : role
-      ? `${category}${role.role === "liar" ? `<p class="role-word">당신은 라이어입니다.</p>` : `<p class="role-word">${escapeHTML(role.word)}</p>`}${confirmation}`
-      : confirmed
-        ? `<p>역할 확인을 완료했습니다.</p><button data-action="show-role">내 역할 다시 보기</button>${confirmation}`
-        : '<p>역할 보기 버튼은 본인의 역할 전용 RPC를 호출합니다.</p><button data-action="show-role">내 역할 보기</button>';
+    : `<div class="role-flip-scene"><div class="role-flip-card${role ? " is-revealed" : ""}" data-role-flip-card>
+        <div class="role-flip-face role-flip-front"><span class="role-flip-icon" aria-hidden="true">🎭</span><h3>나의 역할 확인</h3><p class="muted">버튼을 누르면 본인의 역할 전용 RPC를 호출합니다.</p><button data-action="show-role">${confirmed ? "내 역할 다시 보기" : "내 역할 보기"}</button></div>
+        ${role ? `<div class="role-flip-face role-flip-back"><h3>${role.role === "liar" ? "🎭 당신은 라이어입니다" : "시민"}</h3>${category}${role.role === "liar" ? "" : `<p class="muted role-word-label">제시어</p><p class="role-word">${escapeHTML(role.word)}</p>`}${confirmation}</div>` : ""}
+       </div></div>`;
 
   return `<section class="card stack"><h2>역할 확인</h2>${roleContent}<p class="muted">확인 완료 ${s.round_players.filter((player) => player.role_checked).length}/${s.round_players.length}</p>${isHost ? '<button data-action="start-speaking">발언 시작 (방장)</button>' : ""}</section>`;
 }
