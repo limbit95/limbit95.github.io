@@ -1,4 +1,4 @@
--- Liar Game Realtime: private room-scoped invalidation and ephemeral discussion chat.
+-- Liar Game Realtime: private room-scoped invalidation plus ephemeral discussion chat.
 -- Chat payloads are broadcast only; they are never stored in liar_* tables.
 
 create or replace function public.liar_can_receive_realtime_topic(p_topic text)
@@ -21,9 +21,60 @@ as $$
     );
 $$;
 
+create or replace function public.liar_can_receive_discussion_chat_topic(p_topic text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.liar_players as lp
+      join public.liar_rooms as lr on lr.id = lp.room_id
+      where lp.auth_user_id = auth.uid()
+        and lp.membership_status = 'active'
+        and lr.status = 'active'
+        and pg_catalog.now() < lr.expires_at
+        and p_topic = 'liar-chat:' || lp.room_id::text
+    );
+$$;
+
+create or replace function public.liar_can_send_discussion_chat_topic(p_topic text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.liar_players as lp
+      join public.liar_rooms as lr on lr.id = lp.room_id
+      join public.liar_rounds as rd on rd.id = lr.current_round_id and rd.room_id = lr.id
+      join public.liar_round_players as rp on rp.round_id = rd.id and rp.player_id = lp.id
+      where lp.auth_user_id = auth.uid()
+        and lp.membership_status = 'active'
+        and lr.status = 'active'
+        and pg_catalog.now() < lr.expires_at
+        and rd.status = 'DISCUSSION'
+        and p_topic = 'liar-chat:' || lp.room_id::text
+    );
+$$;
+
 revoke all on function public.liar_can_receive_realtime_topic(text)
 from public, anon, authenticated;
+revoke all on function public.liar_can_receive_discussion_chat_topic(text)
+from public, anon, authenticated;
+revoke all on function public.liar_can_send_discussion_chat_topic(text)
+from public, anon, authenticated;
 grant execute on function public.liar_can_receive_realtime_topic(text)
+to authenticated;
+grant execute on function public.liar_can_receive_discussion_chat_topic(text)
+to authenticated;
+grant execute on function public.liar_can_send_discussion_chat_topic(text)
 to authenticated;
 
 drop policy if exists "liar active room members can receive broadcasts"
@@ -34,11 +85,14 @@ for select
 to authenticated
 using (
   extension = 'broadcast'
-  and public.liar_can_receive_realtime_topic(realtime.topic())
+  and (
+    public.liar_can_receive_realtime_topic(realtime.topic())
+    or public.liar_can_receive_discussion_chat_topic(realtime.topic())
+  )
 );
 
--- Client-originated discussion_chat events use the same private room topic.
--- Realtime messages are ephemeral and are not persisted as game/chat history.
+-- Only actual participants in the current DISCUSSION round may send chat events.
+-- The game-state liar-room topic remains server-originated only.
 drop policy if exists "liar active room members can send broadcasts"
 on realtime.messages;
 create policy "liar active room members can send broadcasts"
@@ -47,7 +101,7 @@ for insert
 to authenticated
 with check (
   extension = 'broadcast'
-  and public.liar_can_receive_realtime_topic(realtime.topic())
+  and public.liar_can_send_discussion_chat_topic(realtime.topic())
 );
 
 create or replace function public.liar_broadcast_room_state_changed()
