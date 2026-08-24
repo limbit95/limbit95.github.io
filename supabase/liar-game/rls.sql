@@ -1,4 +1,4 @@
--- Liar Game phase 2 access boundary. All normal reads and writes go through
+-- Liar Game access boundary. All normal reads and writes go through
 -- carefully projected SECURITY DEFINER RPCs; base tables expose no client rows.
 
 alter table public.liar_rooms enable row level security;
@@ -11,13 +11,15 @@ alter table public.liar_ballots enable row level security;
 alter table public.liar_votes enable row level security;
 alter table public.liar_guesses enable row level security;
 alter table public.liar_words enable row level security;
+alter table public.liar_drawing_strokes enable row level security;
 
 -- No SELECT policies are defined: this deliberately protects round words,
--- roles, votes, guesses, and the word pool. No INSERT/UPDATE/DELETE policies are
--- defined either. Authenticated clients use the RPCs below; anon has no access.
+-- roles, votes, guesses, drawing history, and the word pool. Authenticated
+-- clients use the RPCs below; anon has no access.
 revoke all on table public.liar_rooms, public.liar_players, public.liar_games,
   public.liar_rounds, public.liar_round_players, public.liar_vote_stages,
-  public.liar_ballots, public.liar_votes, public.liar_guesses, public.liar_words
+  public.liar_ballots, public.liar_votes, public.liar_guesses, public.liar_words,
+  public.liar_drawing_strokes
 from anon, authenticated;
 
 -- Trigger and transactional helpers are callable only from trusted SQL paths.
@@ -25,6 +27,9 @@ revoke all on function public.liar_validate_settings(text[],text,integer,integer
 revoke all on function public.liar_expire_room(uuid) from public, anon, authenticated;
 revoke all on function public.liar_clear_expired_membership(uuid) from public, anon, authenticated;
 revoke all on function public.liar_set_updated_at() from public, anon, authenticated;
+revoke all on function public.liar_snapshot_round_mode_settings() from public, anon, authenticated;
+revoke all on function public.liar_copy_game_mode_settings() from public, anon, authenticated;
+revoke all on function public.liar_get_room_snapshot_legacy(uuid) from public, anon, authenticated;
 
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
@@ -35,6 +40,7 @@ revoke all on function public.liar_resume_room(uuid,uuid) from public, anon, aut
 revoke all on function public.liar_update_nickname(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_set_ready(uuid,boolean) from public, anon, authenticated;
 revoke all on function public.liar_update_game_settings(uuid,text[],text,integer,integer,boolean,bigint) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings_v2(uuid,text[],text,integer,integer,boolean,text,integer,integer,bigint) from public, anon, authenticated;
 revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_prepare_next_round(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_restart_game(uuid,bigint) from public, anon, authenticated;
@@ -44,6 +50,8 @@ revoke all on function public.liar_get_room_snapshot(uuid) from public, anon, au
 revoke all on function public.liar_start_speaking(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_move_speaker(uuid,text,bigint) from public, anon, authenticated;
 revoke all on function public.liar_finish_speaking(uuid,bigint) from public, anon, authenticated;
+revoke all on function public.liar_submit_drawing_stroke(uuid,jsonb,bigint) from public, anon, authenticated;
+revoke all on function public.liar_advance_drawing_turn(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_start_vote(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_submit_ballot(uuid,uuid[]) from public, anon, authenticated;
 revoke all on function public.liar_get_my_ballot(uuid) from public, anon, authenticated;
@@ -67,6 +75,7 @@ grant execute on function public.liar_resume_room(uuid,uuid) to authenticated;
 grant execute on function public.liar_update_nickname(uuid,text) to authenticated;
 grant execute on function public.liar_set_ready(uuid,boolean) to authenticated;
 grant execute on function public.liar_update_game_settings(uuid,text[],text,integer,integer,boolean,bigint) to authenticated;
+grant execute on function public.liar_update_game_settings_v2(uuid,text[],text,integer,integer,boolean,text,integer,integer,bigint) to authenticated;
 grant execute on function public.liar_start_round(uuid,bigint) to authenticated;
 grant execute on function public.liar_prepare_next_round(uuid,bigint) to authenticated;
 grant execute on function public.liar_restart_game(uuid,bigint) to authenticated;
@@ -76,6 +85,8 @@ grant execute on function public.liar_get_room_snapshot(uuid) to authenticated;
 grant execute on function public.liar_start_speaking(uuid,bigint) to authenticated;
 grant execute on function public.liar_move_speaker(uuid,text,bigint) to authenticated;
 grant execute on function public.liar_finish_speaking(uuid,bigint) to authenticated;
+grant execute on function public.liar_submit_drawing_stroke(uuid,jsonb,bigint) to authenticated;
+grant execute on function public.liar_advance_drawing_turn(uuid,bigint) to authenticated;
 grant execute on function public.liar_start_vote(uuid,bigint) to authenticated;
 grant execute on function public.liar_submit_ballot(uuid,uuid[]) to authenticated;
 grant execute on function public.liar_get_my_ballot(uuid) to authenticated;
