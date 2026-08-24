@@ -1,11 +1,11 @@
-import { escapeHTML, MAX_ROOM_PLAYERS } from "../constants.js";
+import { escapeHTML, GAME_MODE, MAX_ROOM_PLAYERS } from "../constants.js";
 const realtimeLabel={connecting:"실시간 연결 중",subscribed:"실시간 연결됨",error:"실시간 연결 오류",closed:"실시간 연결 종료"};
 
 export function roomView(s,message="",realtimeStatus="closed"){
  const host=s.players.find(p=>p.id===s.room.host_player_id);const me=s.players.find(p=>p.id===s.me?.player_id);
- const isSpectator=s.me?.is_spectator===true;
+ const isSpectator=s.me?.is_spectator===true;const drawingMode=(s.game?.game_mode||GAME_MODE.CLASSIC)===GAME_MODE.DRAWING_SPY;const hiddenRoleName=drawingMode?"스파이":"라이어";
  const statusFor=p=>{if(!s.round)return {text:p.ready?"준비완료":"미준비",className:p.ready?"ready":""};if(s.round.status==="ROUND_RESULT")return {text:"게임종료",className:"ended"};const playing=s.round_players.some(rp=>rp.player_id===p.id);return {text:playing?"게임중":"관전중",className:playing?"playing":"spectating"};};
- const players=s.players.map(p=>{const isMe=p.id===s.me?.player_id;const status=statusFor(p);const roundPlayer=s.round_players.find(rp=>rp.player_id===p.id);const liarBadge=isSpectator&&roundPlayer?.is_liar===true?'<span class="badge">🎭 라이어</span> ':"";return `<li class="player${isMe?" me":""}"><span class="player-name">${escapeHTML(p.nickname)}${isMe?' <span class="badge me-badge">나</span>':""}${p.id===s.room.host_player_id?" 👑":""}</span><span>${liarBadge}<span class="badge ${status.className}">${status.text}</span></span></li>`;}).join("");
+ const players=s.players.map(p=>{const isMe=p.id===s.me?.player_id;const status=statusFor(p);const roundPlayer=s.round_players.find(rp=>rp.player_id===p.id);const liarBadge=isSpectator&&roundPlayer?.is_liar===true?`<span class="badge">🎭 ${hiddenRoleName}</span> `:"";return `<li class="player${isMe?" me":""}"><span class="player-name">${escapeHTML(p.nickname)}${isMe?' <span class="badge me-badge">나</span>':""}${p.id===s.room.host_player_id?" 👑":""}</span><span>${liarBadge}<span class="badge ${status.className}">${status.text}</span></span></li>`;}).join("");
  const readyButton=!s.round?`<button data-action="ready">${me?.ready?"준비취소":"준비완료"}</button>`:"";
  const isHost=s.me?.is_host===true;const isRoundParticipant=Boolean(s.round&&s.round_players.some(rp=>rp.player_id===s.me?.player_id));
  const leaveBlocked=!isHost&&isRoundParticipant&&!['ROUND_RESULT','FORCE_ENDED'].includes(s.round?.status);
