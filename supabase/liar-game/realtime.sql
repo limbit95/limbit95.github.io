@@ -1,5 +1,5 @@
--- Liar Game phase 1 Realtime: private, room-scoped invalidation signals only.
--- Apply after schema.sql/functions-core.sql. Base game rows remain RPC-only.
+-- Liar Game Realtime: private room-scoped invalidation and ephemeral discussion chat.
+-- Chat payloads are broadcast only; they are never stored in liar_* tables.
 
 create or replace function public.liar_can_receive_realtime_topic(p_topic text)
 returns boolean
@@ -33,6 +33,19 @@ on realtime.messages
 for select
 to authenticated
 using (
+  extension = 'broadcast'
+  and public.liar_can_receive_realtime_topic(realtime.topic())
+);
+
+-- Client-originated discussion_chat events use the same private room topic.
+-- Realtime messages are ephemeral and are not persisted as game/chat history.
+drop policy if exists "liar active room members can send broadcasts"
+on realtime.messages;
+create policy "liar active room members can send broadcasts"
+on realtime.messages
+for insert
+to authenticated
+with check (
   extension = 'broadcast'
   and public.liar_can_receive_realtime_topic(realtime.topic())
 );
