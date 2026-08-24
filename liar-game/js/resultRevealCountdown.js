@@ -240,8 +240,8 @@ function inspect(){
 document.addEventListener("click",event=>{
  const button=event.target.closest?.("[data-result-reveal-close]");
  if(!button)return;
- applyPendingResult();
  removeOverlay();
+ applyPendingResult();
 });
 
 observer=new MutationObserver(inspect);
