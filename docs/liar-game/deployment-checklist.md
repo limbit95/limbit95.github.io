@@ -4,40 +4,41 @@
 
 ## A. 기존 운영 DB 업데이트
 
-현재 운영 DB에 최신 결과 공개 흐름, 제시어 풀, 재투표 발언 규칙을 반영하려면 아래 순서로 실행한다.
+현재 운영 DB에 최신 결과 공개, 제시어 풀, 재투표 발언, Drawing Spy 모드를 반영하려면 아래 순서로 실행한다.
 
 1. [ ] 운영 DB 백업 또는 복구 지점 확보
-2. [ ] `supabase/liar-game/functions-result.sql` — 검거 실패 5초 지연 자동 공개 RPC + 최신 Result projection
-3. [ ] `supabase/liar-game/rls.sql` — 즉시 결과 공개 RPC 차단 + 자동 공개 RPC 권한 반영
-4. [ ] `supabase/liar-game/migrations/20260824_refresh_word_pool.sql` — `게임/영화드라마` 비활성화, 현재 설정 정리, 남은 12카테고리 각 20개 추가
-5. [ ] `supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql` — 재투표 전 추가 발언 시 동률 후보만 발언하도록 snapshot/NEXT/PREVIOUS/종료 판정 갱신
-6. [ ] 자유 토론 채팅용 Realtime 송신 정책을 아직 적용하지 않았다면 `supabase/liar-game/realtime.sql` 실행
-7. [ ] `게임`, `영화드라마`가 새 게임 설정 화면에서 보이지 않는지 확인
-8. [ ] 각 남은 카테고리에 활성 제시어가 50개씩 존재하는지 확인
-9. [ ] 검거 실패 시 5초 이전 자동 공개 RPC가 `RESULT_REVEAL_COUNTDOWN_ACTIVE`로 거부되는지 확인
-10. [ ] 동률 후 `발언 후 재투표`를 선택했을 때 동률 후보만 발언 순서에 나타나는지 확인
+2. [ ] 아직 미적용이면 `supabase/liar-game/functions-result.sql` — 검거 실패 5초 지연 자동 공개 RPC + 최신 Result projection
+3. [ ] 아직 미적용이면 `supabase/liar-game/migrations/20260824_refresh_word_pool.sql` — `게임/영화드라마` 비활성화 + 남은 12카테고리 확장
+4. [ ] 아직 미적용이면 `supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql` — 재투표 전 추가 발언 시 동률 후보만 발언
+5. [ ] `supabase/liar-game/migrations/20260825_drawing_spy_mode.sql` — game mode/drawing settings, DRAWING status, stroke storage/RPC, drawing snapshot 적용
+6. [ ] `supabase/liar-game/rls.sql` — Drawing Spy RPC 권한과 drawing table 접근 차단까지 최신 권한 재적용
+7. [ ] 자유 토론 채팅용 Realtime 송신 정책을 아직 적용하지 않았다면 `supabase/liar-game/realtime.sql` 실행
+8. [ ] 기본 라이어게임이 기존 흐름 그대로 동작하는지 확인
+9. [ ] 그림 스파이 설정 저장 및 역할 확인 후 DRAWING 진입 확인
+10. [ ] 현재 차례 사용자만 그림 입력 가능하고, 획/시간 제한 후 다음 차례로 이동하는지 확인
+11. [ ] 마지막 그림 차례 종료 후 DISCUSSION → VOTE 흐름 확인
+12. [ ] 새로고침 후 기존 그림 획이 복구되는지 확인
 
-이번 변경에는 table/column 추가가 없으므로 `schema.sql` 재실행은 필요 없다.
+Drawing Spy 변경은 새 table/column을 migration에서 추가하므로 기존 DB에서 `schema.sql`을 다시 실행하지 않는다.
 
 ## B. 빈 Supabase fresh install
 
-현재 `schema.sql`에는 `show_category_to_liar`, `liars_revealed_at`, `LIAR_REVEAL`/`FORCE_ENDED` 상태 등 기존 migration 결과가 포함되어 있다. 다만 기본 `seed.sql`은 과거 14카테고리 원본 seed를 보존하므로, 최신 12카테고리 Production 풀을 만들기 위해 word-pool migration을 한 번 적용한다.
+현재 기본 `schema.sql`은 Drawing Spy 이전의 base schema를 유지하고 있다. Fresh install에서는 base SQL 이후 최신 migration들을 순서대로 적용한다.
 
-다음 순서로 실행한다.
+1. [ ] `supabase/liar-game/schema.sql`
+2. [ ] `supabase/liar-game/seed.sql`
+3. [ ] `supabase/liar-game/functions-core.sql`
+4. [ ] `supabase/liar-game/functions-vote.sql`
+5. [ ] `supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql`
+6. [ ] `supabase/liar-game/functions-guess.sql`
+7. [ ] `supabase/liar-game/functions-result.sql`
+8. [ ] `supabase/liar-game/migrations/20260824_refresh_word_pool.sql`
+9. [ ] `supabase/liar-game/migrations/20260825_drawing_spy_mode.sql`
+10. [ ] `supabase/liar-game/rls.sql`
+11. [ ] `supabase/liar-game/realtime.sql`
+12. [ ] 설치 후 Production start matrix, 12카테고리, tied-candidate runoff speaking, Drawing Spy를 검증
 
-1. [ ] `supabase/liar-game/schema.sql` — extension, tables, constraints, indexes, triggers/helpers
-2. [ ] `supabase/liar-game/seed.sql` — base word seed
-3. [ ] `supabase/liar-game/functions-core.sql` — room/game/round lifecycle와 snapshot RPC
-4. [ ] `supabase/liar-game/functions-vote.sql` — ballot, vote close, runoff RPC
-5. [ ] `supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql` — runoff speaking을 동률 후보 subset 기준으로 최종 override
-6. [ ] `supabase/liar-game/functions-guess.sql` — shared liar guess RPC
-7. [ ] `supabase/liar-game/functions-result.sql` — detailed result + timed failed-capture reveal RPC
-8. [ ] `supabase/liar-game/migrations/20260824_refresh_word_pool.sql` — 최종 12카테고리 validation과 확장 word pool 적용
-9. [ ] `supabase/liar-game/rls.sql` — base-table 차단과 authenticated RPC 권한
-10. [ ] `supabase/liar-game/realtime.sql` — private state invalidation + ephemeral discussion chat authorization
-11. [ ] 설치 후 schema/RPC 권한, 12카테고리 word pool, Production start matrix, tied-candidate runoff speaking을 검증
-
-기존 `20260821_*` migration들은 현재 `schema.sql`에 반영된 과거 변경이므로 fresh install에서 중복 적용하지 않는다. `20260824_refresh_word_pool.sql`과 `20260825_runoff_tied_speakers.sql`은 현재 base seed/core를 최신 Production 동작으로 정리하기 위해 위 순서에서 적용한다.
+`20260825_drawing_spy_mode.sql`은 현재 배포된 `liar_get_room_snapshot`을 내부 legacy base로 보존해 Drawing Spy projection을 덧붙인다. 따라서 `functions-core.sql`이나 `20260825_runoff_tied_speakers.sql`을 Drawing Spy migration 뒤에 다시 실행하지 않는다.
 
 ## C. Web deployment and environment
 
@@ -45,28 +46,43 @@
 - [ ] GitHub Pages 배포 성공 및 asset 404 없음 확인
 - [ ] `/liar-game/` 직접 접근 성공
 - [ ] 기존 사이트와 로그인 세션 공유 확인
-- [ ] 비로그인 직접 접근이 차단되고 로그인 경로로 안내되는지 확인
-- [ ] 홈의 `🎭 라이어 게임` 링크가 `./liar-game/`으로 정상 진입하는지 확인
-- [ ] Supabase Realtime private channel subscribe/reconnect 성공
-- [ ] 자유 토론 채팅 A→B / B→A 송수신 성공 및 DB game table에 채팅 기록이 남지 않는지 확인
+- [ ] 비로그인 직접 접근 차단
+- [ ] Supabase private room Realtime subscribe/reconnect 성공
+- [ ] 자유 토론 채팅 A→B / B→A 송수신 성공, DB에 채팅 기록이 남지 않는지 확인
+- [ ] Drawing Spy 한 획 저장 시 다른 브라우저가 room state refresh 후 같은 그림을 표시하는지 확인
 - [ ] authenticated business RPC 성공
 - [ ] anon business RPC 및 anon/authenticated base-table 접근 거부
-- [ ] 360px 모바일 viewport에서 setup, game, countdown, result 전체 확인
-- [ ] desktop viewport에서 전체 흐름 확인
-- [ ] 최신 Chrome에서 smoke test 완료
-- [ ] Safari/iPhone에서 가능한 범위의 smoke test 완료 또는 미확인 사유 기록
+- [ ] `liar_drawing_strokes` 직접 SELECT/INSERT/UPDATE/DELETE 차단 확인
+- [ ] 360px 모바일에서 손가락 drawing, timer, stroke count 확인
+- [ ] desktop mouse/pointer drawing 확인
+- [ ] 최신 Chrome smoke test
+- [ ] Safari/iPhone 가능한 범위 확인
 
-## D. Release gate and rollback
+## D. Drawing Spy release gate
 
-- [ ] 검거 성공 → 방장 `라이어 공개` 버튼 → LIAR_GUESS 흐름 확인
-- [ ] 검거 실패 → 5초 전체화면 countdown → 실제 라이어 이름 공개 → `결과 화면 보기` 흐름 확인
-- [ ] 같은 검거 실패 결과에서 새로고침해도 countdown overlay가 다시 표시되지 않는지 확인
-- [ ] overlay 종료 후 실제 라이어 카드가 `공개 대기`가 아니라 실제 닉네임을 표시하는지 확인
-- [ ] 승리/패배 시각 효과와 Web Audio 효과가 결과 화면 진입 시 정상 재생되는지 확인
-- [ ] 원 투표 동률 → `발언 후 재투표` 선택 → 동률 후보만 1번부터 다시 번호가 매겨져 발언하는지 확인
-- [ ] 동률 후보가 아닌 참가자는 `다음 발언자` 권한을 갖지 않는지 확인
-- [ ] 마지막 동률 후보 발언 후 방장이 `발언 종료`하면 바로 `RUNOFF_VOTING`으로 이동하는지 확인
-- [ ] `final-qa-checklist.md`의 Production, gameplay, recovery, security 항목 결과 기록
-- [ ] 배포 commit과 적용한 SQL 파일 checksum/시각 기록
-- [ ] 오류 로그와 Realtime 연결 상태 모니터링 담당자 지정
-- [ ] 문제 발생 시 이전 정적 commit으로 되돌리고 DB는 백업 또는 검증된 이전 function/migration 상태로 복원할 절차 확인
+- [ ] 설정에서 `기본 라이어게임 / 그림 스파이` 전환 가능
+- [ ] 그림 시간 5~60초 저장 검증
+- [ ] 최대 획 1~10 저장 검증
+- [ ] 그림 스파이 시민은 제시어 확인
+- [ ] 그림 스파이 라이어 role은 UI에서 `스파이`로 표시
+- [ ] 역할 확인 완료 후 방장 `그림 시작`
+- [ ] 현재 차례 외 사용자는 canvas readonly
+- [ ] pointer down → move → up 전체가 1획으로 저장
+- [ ] 획 제한 도달 시 자동 NEXT
+- [ ] 시간 종료 시 현재 사용자 또는 방장 클라이언트가 자동 NEXT
+- [ ] 방장 수동 NEXT 가능
+- [ ] 마지막 사용자 종료 시 DISCUSSION으로 전환
+- [ ] DISCUSSION에서 완성 그림 유지
+- [ ] VOTING에서도 완성 그림 확인 가능
+- [ ] reload/reconnect 후 stroke history 복구
+- [ ] 다음 라운드에서도 같은 Game Drawing 설정 snapshot 유지
+- [ ] 새 게임 생성 시 이전 Drawing mode/time/stroke 설정을 복사한 뒤 setup에서 변경 가능
+
+## E. 기존 기능 회귀
+
+- [ ] 기본 라이어게임 ROLE_REVEAL → SPEAKING → DISCUSSION → VOTE 정상
+- [ ] 동률 후보 추가 발언 정상
+- [ ] 검거 성공 → 수동 라이어 공개 → 추측 정상
+- [ ] 검거 실패 → 일회성 countdown → 실제 라이어 공개 정상
+- [ ] 승리/패배 시각·음향 효과 정상
+- [ ] spectator, leave guard, force end, auth epoch, stale-version recovery 정상
