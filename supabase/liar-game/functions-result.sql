@@ -1,3 +1,83 @@
+-- Final result flow and read-only report.
+-- Capture failure reveals the actual liar automatically only after a server-enforced 5 second delay.
+create or replace function public.liar_auto_reveal_result_liars(
+  p_player_key uuid,
+  p_expected_round_version bigint
+)
+returns table(round_version bigint,room_version bigint)
+language plpgsql security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_auth uuid := auth.uid();
+  v_player public.liar_players%rowtype;
+  v_room public.liar_rooms%rowtype;
+  v_round public.liar_rounds%rowtype;
+begin
+  if v_auth is null then raise exception using message='AUTH_REQUIRED',errcode='P0001'; end if;
+  if p_player_key is null then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+
+  select p.* into v_player
+  from public.liar_players p
+  where p.auth_user_id=v_auth
+    and p.player_key=p_player_key
+    and p.membership_status='active'
+  for update;
+  if not found then raise exception using message='NOT_ROOM_MEMBER',errcode='P0001'; end if;
+
+  select r.* into v_room
+  from public.liar_rooms r
+  where r.id=v_player.room_id
+  for update;
+  if not found or v_room.status<>'active' or now()>=v_room.expires_at then
+    raise exception using message='ROOM_EXPIRED',errcode='P0001';
+  end if;
+  if v_room.current_round_id is null then
+    raise exception using message='INVALID_ROUND_STATE',errcode='P0001';
+  end if;
+
+  select r.* into v_round
+  from public.liar_rounds r
+  where r.id=v_room.current_round_id
+    and r.room_id=v_room.id
+  for update;
+  if not found
+     or v_round.status<>'ROUND_RESULT'
+     or v_round.winner<>'liar'
+     or v_round.capture_succeeded is not false
+     or v_round.finished_at is null then
+    raise exception using message='INVALID_ROUND_STATE',errcode='P0001';
+  end if;
+
+  -- Idempotent after another client has already completed the timed reveal.
+  if v_round.liars_revealed_at is not null then
+    return query select v_round.version,v_room.version;
+    return;
+  end if;
+
+  -- This protects the reveal timing even if a client tampers with the countdown UI.
+  if now() < v_round.finished_at + interval '5 seconds' then
+    raise exception using message='RESULT_REVEAL_COUNTDOWN_ACTIVE',errcode='P0001';
+  end if;
+
+  if p_expected_round_version is null or v_round.version<>p_expected_round_version then
+    raise exception using message='STALE_VERSION',errcode='P0001';
+  end if;
+
+  update public.liar_rounds r
+  set liars_revealed_at=now(),version=r.version+1
+  where r.id=v_round.id
+  returning r.version into v_round.version;
+
+  update public.liar_rooms r
+  set last_activity_at=now(),expires_at=now()+interval '24 hours',version=r.version+1
+  where r.id=v_room.id
+  returning r.version into v_room.version;
+
+  return query select v_round.version,v_room.version;
+end;
+$$;
+
 -- Read-only final report assembled from the immutable round snapshot and history.
 create or replace function public.liar_get_round_result(p_player_key uuid)
 returns jsonb language plpgsql security definer stable
@@ -59,9 +139,12 @@ begin
   else v_guesses := '[]'; end if;
   return jsonb_build_object('round_id',v_round.id,'round_no',v_round.round_no,'game_no',v_game.game_no,'winner',v_round.winner,'capture_succeeded',v_round.capture_succeeded,
     'result_reason',case when not v_round.capture_succeeded then 'CAPTURE_FAILED' when v_round.winner='liar' then 'GUESS_CORRECT' else 'GUESSES_EXHAUSTED' end,
-    'category',v_round.category_snapshot,'word',v_round.word_snapshot,'liar_count',v_game.liar_count,'guess_limit',v_game.guess_limit,'started_at',v_round.started_at,'finished_at',v_round.finished_at,
+    'category',v_round.category_snapshot,'word',v_round.word_snapshot,'liar_count',v_game.liar_count,'guess_limit',v_game.guess_limit,'started_at',v_round.started_at,'finished_at',v_round.finished_at,'server_now',now(),
     'liars_revealed',v_round.liars_revealed_at is not null,'actual_liars',v_liars,'final_suspects',v_final,'vote_stages',v_stages,'guesses',v_guesses);
 end;
 $$;
 
+-- The former host-only immediate result reveal is intentionally not client-callable.
+revoke all on function public.liar_reveal_result_liars(uuid,bigint) from public,anon,authenticated;
+revoke all on function public.liar_auto_reveal_result_liars(uuid,bigint) from public,anon,authenticated;
 revoke all on function public.liar_get_round_result(uuid) from public,anon,authenticated;
