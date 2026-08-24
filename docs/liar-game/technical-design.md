@@ -361,6 +361,15 @@ ROOM 1 ── N GAME 1 ── N ROUND
 - 다음 라운드: GAME 유지, current round pointer 제거, ready 초기화, 다음 start 시 round 번호 증가.
 - 새 게임: 기존 GAME finished, 새 setup GAME 생성, game 번호 증가, 설정 변경 허용, ROOM과 code/host/player 유지.
 
+상태는 별도 waiting 컬럼 없이 다음 pointer 조합으로 판별한다.
+
+- New Game setup: `room.current_round_id IS NULL AND game.status='setup'`
+- Between-round waiting: `room.current_round_id IS NULL AND game.status='active'`
+- Active Round: `room.current_round_id IS NOT NULL AND round.status <> 'ROUND_RESULT'`
+- Result: `room.current_round_id IS NOT NULL AND round.status='ROUND_RESULT'`
+
+`liar_prepare_next_round(player_key, expected_round_version)`은 player → room → round → game 순서로 잠근 뒤 active Auth membership, host, room 만료, 완결된 결과와 version, current pointer 및 active Game을 검증한다. liar 승리 결과는 `liars_revealed_at`이 있어야 한다. 성공 시 Game 및 종료 Round/투표/추측 이력을 수정하지 않고 active player의 ready와 `joined_during_round_id`를 초기화하며 current round pointer만 제거하고 room 활동/만료/version을 갱신한다. 다음 Round 생성은 하지 않으며 재준비 후 기존 `start_round`가 같은 Game에서 `max(round_no)+1`과 새 역할·단어·발언 순서를 생성한다. 첫 성공 후 pointer가 null이므로 중복 요청은 실패한다.
+
 ## G. 게임 상태 머신
 
 `EXPIRED`는 room 상태, `GAME_SETUP`은 game setup 상태, `WAITING`은 진행 round가 없는 준비 상태로 분리한다. `ROLE_REVEAL`부터 `FORCE_ENDED`까지는 round 상태다.
@@ -377,7 +386,7 @@ ROOM 1 ── N GAME 1 ── N ROUND
 | RUNOFF_VOTING | 동점 stage open | 후보 대상 제출/수정 | 재투표 마감 | VOTE_RESULT 또는 새 runoff | 불가 |
 | LIAR_REVEAL | actual liar set과 정확히 일치 | 검거 성공 안내만 확인 | 라이어 공개 | LIAR_GUESS | 불가 |
 | LIAR_GUESS | liar 전체 검거 | liar만 추측 | 강제 종료 | ROUND_RESULT | 불가 |
-| ROUND_RESULT | winner 확정 | 결과 확인·방장 대기 | 같은 Room에서 새 game 생성/위임 | GAME_SETUP/WAITING | 불가 |
+| ROUND_RESULT | winner 확정 | 결과 확인·방장 대기 | 다음 round 준비 또는 같은 Room에서 새 game 생성 | GAME_SETUP/WAITING | 불가 |
 | FORCE_ENDED | host 강제 종료 | 안내/대기 복귀 | 새 game 준비 | GAME_SETUP | 불가 |
 | EXPIRED | DB now >= expires_at | 안내만 | 없음 | 없음 | 불가 |
 
@@ -608,7 +617,7 @@ room row를 lock하고 현재 caller가 host인지, 대상이 같은 room의 act
 | 3 | RPC와 RLS | functions/RLS SQL | 없음 | 있음 | anon, host, 소유권, stale 상태 |
 | 4 | 독립 shell/Auth guard | HTML/CSS/config/auth/app | 없음 | 없음 | 세션 공유, 비로그인, logout |
 | 5 | 닉네임/로비/방 | storage/store/api/commands/views | app | RPC 보정 | create/join/leave/recovery/12명 |
-| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, 개발 테스트 최소 2명, liar 수는 참가 인원 미만 |
+| 6 | 설정/준비 | setup/room views | state/commands | 있음 | 잠금, 개발 테스트 최소 3명(운영 4명), 시민 최소 2명 |
 | 7 | round/역할 | role view | api/state | 있음 | snapshot, random, rollback |
 | 8 | 발언/토론 | speaking view | state/commands | 있음 | index 경계, host, 동시 클릭 |
 | 9 | 원투표 | vote view | api/store | 있음 | 다중 선택, 수정, 마감 불변 |

@@ -9,6 +9,7 @@ import { nicknameView } from "./views/nickname.js";
 import { lobbyView } from "./views/lobby.js";
 import { roomView } from "./views/room.js";
 import { setupView } from "./views/setup.js";
+import { roundWaitingView } from "./views/roundWaiting.js";
 import { roleRevealView } from "./views/roleReveal.js";
 import { discussionView, speakingView } from "./views/speaking.js";
 import { voteResultView, voteView } from "./views/vote.js";
@@ -36,7 +37,7 @@ function render(state=store.get()){
  if(state.signedOut||!state.session){clearVoteDraft();root.innerHTML=accessView();applyPostRenderMotion(root,state);return;}
  if(!state.nickname){root.innerHTML=nicknameView();applyPostRenderMotion(root,state);return;}
  if(!state.snapshot){root.innerHTML=lobbyView(state.nickname,state.message,state.activeRooms);applyPostRenderMotion(root,state);return;}
- const s=state.snapshot;const isHost=s.me?.is_host===true;let stage;if(!s.round)stage=setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)stage=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)stage=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)stage=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))stage=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)stage=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)stage=captureRevealView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)stage=guessView(state.voteState,state.guessState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)stage=resultView(state.resultState,isHost);else stage="";const recallAllowed=canRecallRole(s);const cachedRole=state.myRoleRoundId===s.round?.id?state.myRole:null;const recallButton=recallAllowed?roleRecallButtonView(state.roleModalLoading):"";const recallModal=recallAllowed&&state.roleModalOpen&&cachedRole?roleRecallModalView(cachedRole):"";root.innerHTML=`${roomView(s,state.message,state.realtimeStatus)}<div class="game-stage" data-game-stage>${stage}${recallButton}</div>${recallModal}`;applyPostRenderMotion(root,state);
+ const s=state.snapshot;const isHost=s.me?.is_host===true;let stage;if(!s.round)stage=s.game?.status==="active"?roundWaitingView(s,isHost):setupView(s,isHost);else if(s.round.status===ROUND_STATUS.ROLE_REVEAL)stage=roleRevealView(s,state.myRole,isHost);else if(s.round.status===ROUND_STATUS.SPEAKING)stage=speakingView(s,isHost);else if(s.round.status===ROUND_STATUS.DISCUSSION)stage=discussionView(s,isHost);else if([ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING].includes(s.round.status))stage=voteView(s,state.voteState,state.myBallot,isHost);else if(s.round.status===ROUND_STATUS.VOTE_RESULT)stage=voteResultView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_REVEAL)stage=captureRevealView(state.voteState,isHost);else if(s.round.status===ROUND_STATUS.LIAR_GUESS)stage=guessView(state.voteState,state.guessState);else if(s.round.status===ROUND_STATUS.ROUND_RESULT)stage=resultView(state.resultState,isHost);else stage="";const recallAllowed=canRecallRole(s);const cachedRole=state.myRoleRoundId===s.round?.id?state.myRole:null;const recallButton=recallAllowed?roleRecallButtonView(state.roleModalLoading):"";const recallModal=recallAllowed&&state.roleModalOpen&&cachedRole?roleRecallModalView(cachedRole):"";root.innerHTML=`${roomView(s,state.message,state.realtimeStatus)}<div class="game-stage" data-game-stage>${stage}${recallButton}</div>${recallModal}`;applyPostRenderMotion(root,state);
 }
 store.subscribe(render);
 async function perform(task,{reload=true,recoverRoom=false}={}){store.set({message:""});try{await task();if(reload)await refresh();}catch(error){
@@ -69,6 +70,7 @@ root.addEventListener("click",async(event)=>{
  const leaveMessage=s?.me?.is_host?"방장이 나가면 이 게임방이 종료되고 모든 참가자가 방에서 나가게 됩니다.\n정말 방을 종료하시겠습니까?":"방에서 나가시겠습니까?";
   if(action==="leave"&&confirm(leaveMessage))await perform(async()=>{await commands.leaveRoom();clearVoteDraft();await unsubscribeRoomRealtime();setCurrentRoom("");store.set({snapshot:null,activeRooms:[],myRole:null,myRoleRoundId:null,roleModalOpen:false,roleModalLoading:false,voteState:null,guessState:null,resultState:null,myBallot:[],realtimeStatus:"closed"});},{reload:false});
  if(action==="start-round")await perform(()=>commands.startRound(s.room.version));
+ if(action==="prepare-next-round")await perform(()=>commands.prepareNextRound(s.round.version));
  if(action==="restart-game")await perform(()=>commands.restartGame(s.round.version));
  if(action==="show-role")await perform(async()=>store.set({myRole:await getMyRoundRole(),myRoleRoundId:s.round?.id||null}),{reload:false});
  if(action==="confirm-role")await perform(()=>commands.markRoleChecked());
