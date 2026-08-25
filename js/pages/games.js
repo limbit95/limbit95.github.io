@@ -13,7 +13,7 @@ const GAMES = [
     title: "스플렌더",
     description: "보석을 모아 개발 카드를 구매하고 영구 보너스를 쌓는 전략 게임이에요.",
     href: "./splendor-game/",
-    buttonText: "스플렌더 UI 데모",
+    buttonText: "스플렌더 플레이",
   },
 ];
 
