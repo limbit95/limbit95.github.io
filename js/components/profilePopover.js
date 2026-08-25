@@ -103,9 +103,11 @@ async function openPublicProfile(userId) {
         }),
         el("div", {}, [
           el("strong", { className: "profile-modal__name", text: profile.display_name ?? "회원" }),
-          profile.age_group
-            ? el("span", { className: "small subtle", text: profile.age_group, style: { display: "block" } })
-            : el("span", { className: "small subtle", text: "나이 정보 비공개", style: { display: "block" } }),
+          el("span", {
+            className: "small subtle",
+            text: getPublicAgeText(profile),
+            style: { display: "block" },
+          }),
         ]),
       ]),
       el("div", { className: "profile-modal__section" }, [
@@ -127,6 +129,23 @@ async function openPublicProfile(userId) {
   } catch (error) {
     showToast(getErrorMessage(error, "프로필을 불러오지 못했습니다."), "error");
   }
+}
+
+function getPublicAgeText(profile) {
+  if (profile?.age_visibility === "birth_year") {
+    return profile.birth_year ? `${profile.birth_year}년생` : "나이 정보 비공개";
+  }
+  if (profile?.age_visibility === "age_group") {
+    return profile.age_group || "나이 정보 비공개";
+  }
+  if (profile?.age_visibility === "private") {
+    return "나이 정보 비공개";
+  }
+
+  // 공개 프로필 RPC가 age_visibility 대신 허용된 값만 내려주는 경우도 지원합니다.
+  if (profile?.birth_year) return `${profile.birth_year}년생`;
+  if (profile?.age_group) return profile.age_group;
+  return "나이 정보 비공개";
 }
 
 if (!window.__profileMenuCloseBound) {
