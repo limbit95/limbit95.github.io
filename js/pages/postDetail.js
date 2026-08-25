@@ -130,7 +130,7 @@ async function handleDeletePost(post, base, isPrayer = false) {
   const confirmed = await confirmDialog({
     title: isPrayer ? "기도 제목을 삭제할까요?" : "게시글을 삭제할까요?",
     message: isPrayer
-      ? "삭제한 기도 제목과 연결된 반응·메시지는 다시 확인할 수 없습니다."
+      ? "삭제한 기도 제목과 연결된 반응·응원 메시지는 다시 확인할 수 없습니다."
       : "삭제한 게시글과 연결된 댓글은 다시 확인할 수 없습니다.",
     confirmText: "삭제",
     danger: true,
@@ -322,7 +322,20 @@ async function handleDeleteComment(node, commentId, isPrayer = false) {
   if (!confirmed) return;
   try {
     await deleteComment(commentId);
+    const section = node.closest(".prayer-comment-section");
+    const list = node.parentElement;
     node.remove();
+    if (isPrayer && section && list) {
+      const count = list.querySelectorAll(".prayer-comment").length;
+      const title = section.querySelector("#comments-title");
+      if (title) title.textContent = `응원 메시지 ${count}개`;
+      if (!count) {
+        list.append(el("p", {
+          className: "subtle prayer-comment-empty",
+          text: "아직 응원 메시지가 없습니다. 따뜻한 응원을 먼저 남겨 보세요.",
+        }));
+      }
+    }
     showToast(isPrayer ? "응원 메시지를 삭제했습니다." : "댓글을 삭제했습니다.", "success");
   } catch (error) {
     showToast(getErrorMessage(error, isPrayer ? "응원 메시지 삭제에 실패했습니다." : "댓글 삭제에 실패했습니다."), "error");
