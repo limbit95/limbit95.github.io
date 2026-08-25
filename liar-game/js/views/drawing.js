@@ -35,33 +35,36 @@ export function drawingView(s,isHost){
  const orderList=ordered.map((player,position)=>orderItem(player,position,index,s.me?.player_id)).join("");
  const guide=isCurrentDrawer
   ?unlimitedStrokes
-   ?`내 차례입니다. 획 수 제한 없이 <strong>${Number(drawing.time_limit||15)}초</strong> 동안 자유롭게 그릴 수 있습니다.`
+   ?`내 차례입니다. 3초 준비 후 <strong>${Number(drawing.time_limit||15)}초</strong> 동안 자유롭게 그릴 수 있습니다.`
    :runoff
-    ?`동률 후보 추가 그림 차례입니다. <strong>${Number(drawing.time_limit||10)}초 · ${strokeLimit}획</strong> 안에서 마지막 힌트를 남겨보세요.`
-    :`내 차례입니다. 한 번 눌러 그리기 시작해 손이나 마우스를 떼면 <strong>1획</strong>으로 저장됩니다.`
-  :`${escapeHTML(current?.nickname_snapshot||"현재 참가자")}님이 그림을 그리고 있습니다.`;
+    ?`동률 후보 추가 그림입니다. 3초 준비 후 <strong>${Number(drawing.time_limit||10)}초 · ${strokeLimit}획</strong> 안에서 마지막 힌트를 남겨보세요.`
+    :`내 차례입니다. 3초 준비 후 시작하며 손이나 마우스를 떼면 <strong>1획</strong>으로 저장됩니다.`
+  :`${escapeHTML(current?.nickname_snapshot||"현재 참가자")}님의 차례입니다. 3초 준비 후 그림이 시작됩니다.`;
+ const strokeText=unlimitedStrokes?`${used}획 · ∞`:`${remaining} / ${strokeLimit}`;
  const strokeBadge=unlimitedStrokes
-  ?`<span>사용 획 <strong data-drawing-strokes>${used}획 · ∞</strong></span>`
-  :`<span>남은 획 <strong data-drawing-strokes>${remaining} / ${strokeLimit}</strong></span>`;
+  ?`<span>사용 획 <strong data-drawing-strokes>${strokeText}</strong></span>`
+  :`<span>남은 획 <strong data-drawing-strokes>${strokeText}</strong></span>`;
  const ruleText=runoff
-  ?"재투표 동률 후보만 추가로 그립니다. 모든 후보가 끝나면 바로 재투표로 이동합니다."
+  ?"재투표 동률 후보만 3초 준비 후 추가로 그립니다. 모든 후보가 끝나면 바로 재투표로 이동합니다."
   :unlimitedStrokes
-   ?"획 수 제한 없이 그림을 그릴 수 있습니다. 시간이 끝나거나 그림 완료 버튼을 누르면 다음 사람에게 넘어갑니다."
+   ?"획 수 제한 없이 그릴 수 있습니다. 시간이 끝나거나 그림 완료 버튼을 누르면 다음 사람에게 넘어갑니다."
    :"시간이 끝나거나 최대 획을 모두 사용하면 자동으로 다음 사람에게 넘어갑니다.";
  const penHint=unlimitedStrokes
   ?"획 수 무제한"
   :runoff
    ?`${strokeLimit}획 추가 그림`
    :"한 번의 터치/드래그가 1획입니다";
- return `<section class="card drawing-stage${runoff?" is-runoff":""}" data-drawing-stage>
+ return `<section class="card drawing-stage${runoff?" is-runoff":""}" data-drawing-stage data-current-drawer="${escapeHTML(current?.player_id||"")}">
   <header class="drawing-stage-header">
    <div><span class="speaking-eyebrow">${runoff?"TIE-BREAK DRAWING":"DRAWING SPY"}</span><h2>${runoff?"🎨 동률 후보 추가 그림":"🎨 공동 그림판"}</h2><p>${guide}</p></div>
    <div class="drawing-turn-badges"><span>남은 시간 <strong data-drawing-timer>--</strong></span>${strokeBadge}</div>
   </header>
+  <div class="drawing-mobile-hud" aria-live="polite"><span>${runoff?"추가 그림":"현재 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong><span class="drawing-mobile-hud-stats"><b data-drawing-timer>--</b><i aria-hidden="true">·</i><b data-drawing-strokes>${escapeHTML(strokeText)}</b></span></div>
   ${runoff?`<p class="notice drawing-runoff-notice">동률 후보 ${ordered.length}명만 추가 그림을 진행합니다. 추가 그림이 끝나면 자유 토론 없이 바로 재투표합니다.</p>`:""}
   <div class="drawing-current"><span>${runoff?"현재 추가 그림":"현재 그림 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong></div>
-  <div class="drawing-board-shell ${canDraw?"is-active":"is-readonly"}">
+  <div class="drawing-board-shell ${canDraw?"is-active":"is-readonly"}" data-drawing-board-anchor>
    <canvas class="drawing-board" data-drawing-canvas data-can-draw="${canDraw?"true":"false"}" aria-label="그림 스파이 공동 그림판"></canvas>
+   <div class="drawing-countdown-overlay" data-drawing-countdown hidden><strong data-drawing-countdown-value>3</strong><span data-drawing-countdown-label>준비!</span></div>
    ${canDraw?`<div class="drawing-board-hint">검정 펜 · ${escapeHTML(penHint)}</div>`:'<div class="drawing-board-hint">현재 차례의 그림을 기다리고 있습니다</div>'}
   </div>
   <p class="drawing-local-status muted" data-drawing-local-status aria-live="polite"></p>
