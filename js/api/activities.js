@@ -153,7 +153,7 @@ export async function listEventParticipants(eventId) {
     .in("status", ["joined", "waitlisted"])
     .order("joined_at", { ascending: true, nullsFirst: false })
     .order("waitlisted_at", { ascending: true, nullsFirst: false })) ?? [];
-  const profiles = await getPublicProfiles();
+  const profiles = await getPublicProfiles(participants.map((participant) => participant.user_id));
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
   return participants.map((participant) => ({
     ...participant,
