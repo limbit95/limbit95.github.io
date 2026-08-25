@@ -135,6 +135,10 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │       ├── games.js
 │       ├── mypage.js
 │       └── admin.js
+├── scripts/
+│   └── check-site.mjs
+├── .github/workflows/
+│   └── site-static-checks.yml
 ├── docs/
 │   └── site-foundation-audit.md
 └── supabase/
@@ -252,6 +256,17 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 
 과거의 `theme.css` override 계층은 제거하고 현재 시각 결과를 각 담당 파일에 통합했습니다.
 
+### 자동 검수
+
+`Site static checks` GitHub Actions가 `main`, `feature/**`, `main` 대상 PR에서 실행됩니다.
+
+- 본 사이트 JavaScript 문법 검사
+- 상대 import 경로 확인
+- `index.html`의 로컬 파일 참조 확인
+- CSS 기본 구조 검사
+
+게임 구현 소스는 본 사이트 정리용 검사 대상에서도 제외합니다.
+
 ### 접근성
 
 - 본문 바로가기
@@ -274,14 +289,14 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 6. 모바일 쪽지 액션 회귀 수정
 7. CSS override 계층 제거 및 역할별 파일 정리
 8. 승인 회원용 Persistent App Shell 적용
+9. GitHub Actions 기반 본 사이트 static check 도입
 
 다음 구조 개선 우선순위:
 
 1. `api.js` 도메인 단위 분리
 2. `activities.js`, `admin.js` 등 대형 페이지 모듈 분리
 3. 공개 프로필 조회 범위 최적화
-4. 자동 smoke test/JS syntax check 도입
-5. 의미 기반 디자인 토큰 명칭 정리
+4. 의미 기반 디자인 토큰 명칭 정리
 
 ## 10. 개발/병합 원칙
 
