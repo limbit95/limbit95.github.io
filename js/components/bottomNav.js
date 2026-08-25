@@ -18,7 +18,7 @@ export function createBottomNav({ auth, currentPath }) {
     item("#/", "🏠", "홈", currentPath),
     item("#/activities", "🗓️", "활동", currentPath),
     item("#/notice", "📣", "공지", currentPath),
-    item("#/community", "💬", "게시판", currentPath),
+    item("#/prayer", "🙏", "기도 제목", currentPath),
     auth.isAdmin
       ? item("#/admin", "🛠️", "관리", currentPath)
       : item("#/mypage", "🙂", "내 정보", currentPath),
