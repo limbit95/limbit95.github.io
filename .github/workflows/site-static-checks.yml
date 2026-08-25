@@ -31,5 +31,8 @@ jobs:
             node --check "$file"
           done < <(find js liar-game/js -type f -name '*.js' -print0)
 
+      - name: Link-check Liar Game ES modules
+        run: node --experimental-vm-modules scripts/check-liar-modules.mjs
+
       - name: Check site file integrity
         run: node scripts/check-site.mjs
