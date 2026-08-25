@@ -22,6 +22,39 @@
     display: block;
     line-height: 1.35;
   }
+
+  .daily-verse__footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: .25rem;
+  }
+
+  .daily-verse__source {
+    text-align: left;
+  }
+
+  .post-detail > .notice-box.page-stack > button {
+    min-height: 36px;
+    padding: .42rem .7rem;
+    font-size: .82rem;
+  }
+
+  .prayer-comment-form {
+    grid-template-columns: minmax(0, 1fr) 78px;
+    gap: .5rem;
+  }
+
+  .prayer-comment-form__submit {
+    padding-inline: .55rem;
+  }
+
+  .prayer-comment__head {
+    padding: .68rem .75rem;
+  }
+
+  .prayer-comment__content {
+    padding: .9rem .85rem 1rem;
+  }
 }
 
 @media (min-width: 640px) {
@@ -30,15 +63,13 @@
   .form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid--2 .field--full { grid-column: 1 / -1; }
   .form-actions { flex-direction: row; justify-content: flex-end; }
-  .modal__actions { flex-direction: row; justify-content: flex-end; }
   .activity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quick-grid { grid-template-columns: repeat(4, 1fr); }
-  .activity-card__footer { grid-template-columns: 1fr auto; align-items: end; }
   .stat-grid { grid-template-columns: repeat(4, 1fr); }
   .admin-grid { grid-template-columns: repeat(4, 1fr); }
-  .notification-panel { position: absolute; top: calc(100% + .55rem); left: auto; right: 0; width: 390px; }
   .calendar-day { min-height: 105px; }
 }
+
 @media (min-width: 900px) {
   .desktop-nav { display: flex; align-items: center; gap: .2rem; }
   .desktop-nav a { min-height: 42px; display: inline-flex; align-items: center; padding: .5rem .75rem; border-radius: 12px; font-weight: 800; color: var(--muted); }
@@ -50,10 +81,30 @@
   .sidebar-layout { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
   .sticky-action { bottom: 1rem; }
   .content-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero { grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr); align-items: stretch; gap: clamp(1.4rem, 3vw, 2.25rem); }
 }
+
 @media (min-width: 1100px) {
   .activity-grid--home { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .quick-card,
+  .activity-card,
+  .post-row,
+  .admin-menu-card {
+    transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+
+  .quick-card:hover,
+  .activity-card:hover,
+  .post-row:hover,
+  .admin-menu-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 24px rgba(82, 128, 145, .075);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
