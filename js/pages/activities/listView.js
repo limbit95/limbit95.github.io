@@ -2,7 +2,7 @@ import { cancelEventParticipation, joinEvent, listEvents } from "../../api.js";
 import { createActivityCard } from "../../components/activityCard.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
-import { emptyState, getErrorMessage, seoulDateString, setBusy } from "../../ui.js";
+import { el, emptyState, getErrorMessage, seoulDateString, setBusy } from "../../ui.js";
 
 export async function renderActivityList(categoryId, search, auth) {
   const today = seoulDateString();
@@ -11,12 +11,10 @@ export async function renderActivityList(categoryId, search, auth) {
     return emptyState(
       search ? "검색 결과가 없어요" : "예정된 활동이 없어요",
       search ? "다른 검색어나 카테고리를 선택해 보세요." : "새 활동이 등록되면 이곳에 표시됩니다.",
-      search ? document.createRange().createContextualFragment('<a class="button button--secondary" href="#/activities?view=list">검색 초기화</a>') : null,
+      search ? el("a", { className: "button button--secondary", href: "#/activities?view=list", text: "검색 초기화" }) : null,
     );
   }
-  const grid = document.createElement("section");
-  grid.className = "activity-grid";
-  grid.setAttribute("aria-label", "활동 목록");
+  const grid = el("section", { className: "activity-grid", "aria-label": "활동 목록" });
   const refresh = async () => {
     const updated = await renderActivityList(categoryId, search, auth);
     grid.replaceWith(updated);
