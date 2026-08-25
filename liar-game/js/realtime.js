@@ -2,6 +2,9 @@ import { supabase } from "./supabase.js";
 
 let roomId = null;
 let roomChannel = null;
+let drawingRoomId = null;
+let drawingChannel = null;
+let drawingChannelStatus = "closed";
 
 export function getSubscribedRoomId() {
   return roomId;
@@ -41,6 +44,49 @@ export async function subscribeRoomRealtime(targetRoomId, onStateChanged, onStat
   });
 }
 
+export async function unsubscribeDrawingRealtime() {
+  const channel = drawingChannel;
+  drawingChannel = null;
+  drawingRoomId = null;
+  drawingChannelStatus = "closed";
+  if (channel) await supabase.removeChannel(channel);
+}
+
+export async function subscribeDrawingRealtime(targetRoomId, onStroke, onStatusChanged = () => {}) {
+  if (!targetRoomId) {
+    await unsubscribeDrawingRealtime();
+    onStatusChanged("closed");
+    return;
+  }
+  if (drawingChannel && drawingRoomId === targetRoomId) return;
+
+  await unsubscribeDrawingRealtime();
+  await supabase.realtime.setAuth();
+
+  const topic = `liar-drawing:${targetRoomId}`;
+  const channel = supabase
+    .channel(topic, { config: { private: true, broadcast: { self: false, ack: false } } })
+    .on("broadcast", { event: "stroke" }, ({ payload }) => onStroke?.(payload));
+
+  drawingRoomId = targetRoomId;
+  drawingChannel = channel;
+  drawingChannelStatus = "connecting";
+  onStatusChanged("connecting");
+  channel.subscribe((status) => {
+    if (channel !== drawingChannel) return;
+    if (status === "SUBSCRIBED") drawingChannelStatus = "subscribed";
+    else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") drawingChannelStatus = "error";
+    else if (status === "CLOSED") drawingChannelStatus = "closed";
+    onStatusChanged(drawingChannelStatus);
+  });
+}
+
+export function broadcastDrawingStroke(payload) {
+  if (!drawingChannel || drawingChannelStatus !== "subscribed") return Promise.resolve("not_subscribed");
+  return drawingChannel.send({ type: "broadcast", event: "stroke", payload }).catch(() => "error");
+}
+
 window.addEventListener("pagehide", () => {
   void unsubscribeRoomRealtime();
+  void unsubscribeDrawingRealtime();
 });
