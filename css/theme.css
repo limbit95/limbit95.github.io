@@ -1,0 +1,170 @@
+/* Cheongpa visual theme: open sky, cool water and a small touch of sunlight. */
+.card,
+.quick-card,
+.activity-card,
+.post-row,
+.admin-menu-card,
+.stat-card,
+.table-wrap,
+.poll-option {
+  border-color: rgba(25, 122, 138, .14);
+}
+
+.button--secondary {
+  color: var(--forest-800);
+  background: #e7f5f6;
+  border-color: #b9dce0;
+}
+
+.button--secondary:hover {
+  background: #d8eef0;
+}
+
+.button--coral {
+  background: var(--coral-500);
+  color: #103b4a;
+}
+
+.button--coral:hover {
+  background: #55a9cb;
+}
+
+.button--ghost:hover {
+  background: #edf8f8;
+}
+
+.icon-button {
+  border-color: #d2e4e7;
+  background: rgba(255, 255, 255, .92);
+}
+
+input,
+textarea,
+select {
+  border-color: #b7cfd4;
+  background: rgba(255, 255, 255, .96);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--forest-600);
+}
+
+.chip {
+  background: #eff9f9;
+  border-color: #d1e7e8;
+}
+
+.avatar {
+  border-color: var(--surface);
+  box-shadow: 0 0 0 1px #cce1e4;
+}
+
+.state-box {
+  border-color: #b8d7db;
+  background: rgba(255, 255, 255, .62);
+}
+
+.skeleton {
+  background: #dfecef;
+}
+
+.modal {
+  border: 1px solid rgba(25, 122, 138, .1);
+}
+
+.tab {
+  border-color: #d1e3e6;
+}
+
+th {
+  background: #eef8f8;
+}
+
+.notification-panel {
+  border-color: #d1e3e6;
+}
+
+.hero {
+  background: linear-gradient(135deg, #104f61 0%, #197a8a 52%, #4fa8b5 100%);
+}
+
+.hero::after {
+  width: 220px;
+  height: 220px;
+  right: -70px;
+  top: -90px;
+  background: rgba(242, 207, 114, .18);
+}
+
+.quick-card,
+.activity-card,
+.post-row,
+.admin-menu-card {
+  box-shadow: 0 6px 20px rgba(16, 74, 88, .07);
+}
+
+.activity-card:hover,
+.post-row:hover,
+.quick-card:hover,
+.admin-menu-card:hover {
+  border-color: #8fc0c7;
+}
+
+.detail-hero {
+  border-color: rgba(25, 122, 138, .13);
+  box-shadow: 0 7px 22px rgba(16, 74, 88, .08);
+}
+
+.sticky-action {
+  background: rgba(255, 255, 255, .94);
+  border-color: #d0e3e5;
+}
+
+.participant-person,
+.comment {
+  background: #eff9f9;
+}
+
+.calendar-day {
+  border-color: #d6e6e8;
+}
+
+.calendar-day--outside {
+  background: #edf4f5;
+}
+
+.calendar-event {
+  background: #ddf2f1;
+}
+
+.poll-bar {
+  background: #ddf2f1;
+}
+
+.status-page__icon {
+  background: linear-gradient(145deg, #fff7d9, #e8f6fa);
+}
+
+.profile-hero,
+.profile-modal {
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quick-card,
+  .activity-card,
+  .post-row,
+  .admin-menu-card {
+    transition: border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+  }
+
+  .quick-card:hover,
+  .activity-card:hover,
+  .post-row:hover,
+  .admin-menu-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 9px 24px rgba(16, 74, 88, .09);
+  }
+}
