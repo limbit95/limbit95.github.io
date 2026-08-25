@@ -6,6 +6,7 @@ let drawingRoomId = null;
 let drawingChannel = null;
 let drawingChannelStatus = "closed";
 let drawingSubscribePromise = null;
+let drawingGeneration = 0;
 
 export function getSubscribedRoomId() {
   return roomId;
@@ -46,9 +47,7 @@ export async function subscribeRoomRealtime(targetRoomId, onStateChanged, onStat
 }
 
 export async function unsubscribeDrawingRealtime() {
-  if (drawingSubscribePromise) {
-    try{await drawingSubscribePromise;}catch{}
-  }
+  drawingGeneration+=1;
   const channel = drawingChannel;
   drawingChannel = null;
   drawingRoomId = null;
@@ -63,11 +62,18 @@ export async function subscribeDrawingRealtime(targetRoomId, onStroke, onStatusC
     return;
   }
   if (drawingChannel && drawingRoomId === targetRoomId) return;
-  if (drawingSubscribePromise) return drawingSubscribePromise;
+  if (drawingSubscribePromise) {
+    try{await drawingSubscribePromise;}catch{}
+    if (drawingChannel && drawingRoomId === targetRoomId) return;
+  }
 
+  const generation=++drawingGeneration;
   drawingSubscribePromise=(async()=>{
-    if (drawingChannel && drawingRoomId !== targetRoomId) await unsubscribeDrawingRealtime();
+    const oldChannel=drawingChannel;
+    drawingChannel=null;drawingRoomId=null;drawingChannelStatus="closed";
+    if(oldChannel)await supabase.removeChannel(oldChannel);
     await supabase.realtime.setAuth();
+    if(generation!==drawingGeneration)return;
 
     const topic = `liar-drawing:${targetRoomId}`;
     const channel = supabase
