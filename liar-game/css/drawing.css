@@ -11,6 +11,10 @@
 .setup-fieldset:has(input[name="gameMode"][value="drawing_spy"]:checked) .drawing-mode-settings{display:block}
 .drawing-rule-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .drawing-mode-hint{margin:12px 0 0;color:var(--muted);font-size:.9rem;line-height:1.55}
+.drawing-unlimited-row{margin-top:12px}
+.drawing-stroke-limit-control{transition:opacity .18s ease}
+.drawing-stroke-limit-control.is-unlimited{opacity:.55}
+.drawing-stroke-limit-control.is-unlimited input{cursor:not-allowed;background:color-mix(in srgb,var(--bg) 85%,#ddd)}
 .role-mode-guide{margin:12px 0 0;padding:11px 12px;border-radius:10px;background:color-mix(in srgb,var(--primary) 8%,var(--bg));line-height:1.55}
 
 .drawing-stage{display:grid;gap:18px}
@@ -64,5 +68,5 @@
 }
 
 @media(prefers-reduced-motion:reduce){
- .game-mode-option>span{transition:none}
+ .game-mode-option>span,.drawing-stroke-limit-control{transition:none}
 }
