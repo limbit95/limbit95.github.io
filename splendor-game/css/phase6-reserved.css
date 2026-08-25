@@ -1,0 +1,86 @@
+.phase5-reserved-card.is-purchase-clickable {
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, outline-color 140ms ease;
+}
+
+.phase5-reserved-card.is-purchase-clickable:hover,
+.phase5-reserved-card.is-purchase-clickable:focus-visible {
+  transform: translateY(-2px);
+  outline: 2px solid var(--focus, rgba(255, 255, 255, 0.7));
+  outline-offset: 2px;
+}
+
+.phase5-reserved-card.is-purchase-selected {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.phase62-reserved-purchase-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.phase62-card-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.phase62-card-summary h3 {
+  margin: 7px 0 5px;
+  font-size: 1.02rem;
+}
+
+.phase62-card-summary p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  color: var(--text-muted, #8f99aa);
+  font-size: 0.86rem;
+}
+
+.phase62-close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.phase62-close:hover,
+.phase62-close:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.phase62-payment-box {
+  margin-top: 0;
+}
+
+.phase62-rule-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted, #8f99aa);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .phase62-card-summary {
+    gap: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase5-reserved-card.is-purchase-clickable {
+    transition: none;
+  }
+}
