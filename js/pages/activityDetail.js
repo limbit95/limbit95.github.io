@@ -9,6 +9,7 @@ import {
 } from "../api.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
 import { confirmDialog } from "../components/modal.js";
+import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";
 import { EVENT_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../constants.js";
 import {
@@ -203,8 +204,11 @@ async function participantSection(participants, counts) {
   await Promise.all(joined.map(async (item) => {
     const profile = item.profile;
     const avatar = await getSignedAvatarUrl(profile?.avatar_path);
+    const profileAvatar = profile
+      ? createProfileAvatarTrigger(profile, { avatarUrl: avatar })
+      : el("img", { className: "avatar", src: avatar, alt: "", width: "44", height: "44" });
     list.append(el("div", { className: "participant-person" }, [
-      el("img", { className: "avatar", src: avatar, alt: "", width: "44", height: "44" }),
+      profileAvatar,
       el("strong", { text: profile?.display_name ?? "회원" }),
       profile?.age_group ? el("span", { className: "small subtle", text: profile.age_group }) : null,
     ]));
