@@ -25,6 +25,15 @@ function stripQueryHash(specifier) {
   return specifier.split(/[?#]/, 1)[0];
 }
 
+function sourceAt(relativePath) {
+  const filePath = path.join(root, relativePath);
+  if (!fs.existsSync(filePath)) {
+    fail(`required file not found: ${relativePath}`);
+    return "";
+  }
+  return fs.readFileSync(filePath, "utf8");
+}
+
 function checkRelativeImports(filePath) {
   const source = fs.readFileSync(filePath, "utf8");
   const importPattern = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?["']([^"']+)["']|import\(\s*["']([^"']+)["']\s*\)/g;
@@ -67,6 +76,75 @@ function checkCssBraces() {
   }
 }
 
+function checkArchitectureContracts() {
+  const requiredFiles = [
+    "js/api/profiles.js",
+    "js/api/activities.js",
+    "js/api/boards.js",
+    "js/api/admin.js",
+    "js/api/polls.js",
+    "js/api/notifications.js",
+    "js/pages/activities/listView.js",
+    "js/pages/activities/calendarView.js",
+    "js/pages/activities/pollView.js",
+    "js/pages/admin/dashboard.js",
+    "js/pages/admin/approvals.js",
+    "js/pages/admin/members.js",
+    "js/pages/admin/managers.js",
+    "js/pages/admin/categories.js",
+  ];
+  requiredFiles.forEach(sourceAt);
+
+  const apiFacade = sourceAt("js/api.js");
+  const expectedApiModules = ["profiles", "activities", "boards", "admin", "polls", "notifications"];
+  expectedApiModules.forEach((moduleName) => {
+    if (!apiFacade.includes(`./api/${moduleName}.js`)) {
+      fail(`js/api.js: missing ${moduleName} domain re-export`);
+    }
+  });
+  if (apiFacade.split(/\r?\n/).filter(Boolean).length > 20) {
+    fail("js/api.js: facade grew beyond 20 non-empty lines; keep domain logic in js/api/*");
+  }
+
+  const activitiesFacade = sourceAt("js/pages/activities.js");
+  if (!activitiesFacade.includes("./activities/listView.js")
+    || !activitiesFacade.includes("./activities/calendarView.js")
+    || !activitiesFacade.includes("./activities/pollView.js")) {
+    fail("js/pages/activities.js: split activity view modules are not all wired");
+  }
+
+  const adminFacade = sourceAt("js/pages/admin.js");
+  ["dashboard", "approvals", "members", "managers", "categories"].forEach((section) => {
+    if (!adminFacade.includes(`./admin/${section}.js`)) {
+      fail(`js/pages/admin.js: missing ${section} section module`);
+    }
+  });
+
+  const activityCard = sourceAt("js/components/activityCard.js");
+  if (!activityCard.includes("activity-card__title-link")) {
+    fail("js/components/activityCard.js: semantic card link is missing");
+  }
+  if (activityCard.includes("window.location.hash = detailHref")) {
+    fail("js/components/activityCard.js: whole-card navigation regressed to JS hash mutation");
+  }
+
+  const app = sourceAt("js/app.js");
+  const criticalRoutes = [
+    "/login",
+    "/",
+    "/activities",
+    "/notice",
+    "/prayer",
+    "/mypage",
+    "/admin",
+  ];
+  criticalRoutes.forEach((routePath) => {
+    if (!app.includes(`route("${routePath}"`)) {
+      fail(`js/app.js: critical route not registered: ${routePath}`);
+    }
+  });
+}
+
 const siteJsFiles = walk(path.join(root, "js"))
   .filter((file) => file.endsWith(".js"))
   .filter((file) => relativeFile(file) !== "js/pages/games.js");
@@ -74,6 +152,7 @@ const siteJsFiles = walk(path.join(root, "js"))
 siteJsFiles.forEach(checkRelativeImports);
 checkIndexAssets();
 checkCssBraces();
+checkArchitectureContracts();
 
 if (errors.length) {
   console.error("Site static checks failed:\n");
