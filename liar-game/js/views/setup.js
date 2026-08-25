@@ -10,6 +10,7 @@ export function setupView(s,isHost){
  const hasEnoughCitizens=citizenCount>=MIN_CITIZENS;
  const canStart=hasEnoughPlayers&&hasEnoughCitizens;
  const mode=g.game_mode||GAME_MODE.CLASSIC;
+ const unlimitedStrokes=g.drawing_stroke_unlimited===true;
  const startStatus=!hasEnoughPlayers
   ?`게임 시작까지 ${MIN_READY_PLAYERS-readyCount}명이 더 필요합니다.`
   :!hasEnoughCitizens
@@ -31,12 +32,16 @@ export function setupView(s,isHost){
      </div>
     </section>
     <section class="setup-section drawing-mode-settings">
-     <div class="setup-section-heading"><h3 class="setup-section-title">🎨 그림 스파이 규칙</h3><p class="setup-section-description">한 사람의 차례에 적용할 시간과 최대 획 수입니다.</p></div>
+     <div class="setup-section-heading"><h3 class="setup-section-title">🎨 그림 스파이 규칙</h3><p class="setup-section-description">한 사람의 차례에 적용할 시간과 획 수 규칙입니다.</p></div>
      <div class="setup-rule-grid drawing-rule-grid">
       <label class="setup-control"><span>그림 시간</span><input name="drawingTimeLimit" type="number" min="5" max="60" value="${Number(g.drawing_time_limit||15)}"><small>1인당 5~60초</small></label>
-      <label class="setup-control"><span>최대 획 수</span><input name="drawingStrokeLimit" type="number" min="1" max="10" value="${Number(g.drawing_stroke_limit||3)}"><small>1인당 1~10획</small></label>
+      <label class="setup-control drawing-stroke-limit-control ${unlimitedStrokes?"is-unlimited":""}"><span>최대 획 수</span><input name="drawingStrokeLimit" type="number" min="1" max="10" value="${Number(g.drawing_stroke_limit||3)}" ${unlimitedStrokes?"readonly":""}><small>${unlimitedStrokes?"무제한 모드에서는 사용하지 않습니다.":"1인당 1~10획"}</small></label>
      </div>
-     <p class="drawing-mode-hint">추천 시작값은 <strong>15초 · 3획</strong>입니다. 시간이나 획을 줄일수록 스파이가 그림을 파악하기 어려워집니다.</p>
+     <label class="setup-setting-row drawing-unlimited-row">
+      <span class="setup-setting-copy"><strong>획 수 무제한</strong><small>켜면 획 수 제한 없이 설정된 시간 동안 자유롭게 그릴 수 있습니다. 시간 종료 또는 그림 완료 버튼으로 다음 차례로 넘어갑니다.</small></span>
+      <input name="drawingStrokeUnlimited" type="checkbox" ${unlimitedStrokes?"checked":""}>
+     </label>
+     <p class="drawing-mode-hint">기본 추천은 <strong>15초 · 3획</strong>입니다. 자유롭게 그리는 방식은 <strong>획 수 무제한</strong>을 켜고 시간으로 난이도를 조절하세요.</p>
     </section>
     <section class="setup-section">
      <div class="setup-section-heading">
