@@ -126,11 +126,14 @@
 .dev-card__fallback {
   position: absolute;
   inset: 0;
-  display: grid;
-  place-content: center;
-  gap: 7px;
-  padding: 20px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 13px;
+  overflow: hidden;
+  text-align: left;
   color: rgba(255, 255, 255, .94);
   transition: opacity .15s ease;
 }
@@ -139,6 +142,7 @@
 .dev-card__fallback::after {
   content: "";
   position: absolute;
+  z-index: 1;
   border: 1px solid rgba(255, 255, 255, .18);
   transform: rotate(45deg);
 }
@@ -178,31 +182,39 @@
   background: linear-gradient(145deg, #53575d, #2c3036 58%, #17191d);
 }
 
-.dev-card__city-mark {
-  position: relative;
-  z-index: 1;
-  font-size: 2.2rem;
-  line-height: 1;
-  text-shadow: 0 8px 18px rgba(0, 0, 0, .22);
+.dev-card__fallback-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .dev-card__fallback-title,
 .dev-card__fallback-subtitle {
   position: relative;
-  z-index: 1;
+  z-index: 3;
+  max-width: 100%;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+.dev-card__fallback--white .dev-card__fallback-title,
+.dev-card__fallback--white .dev-card__fallback-subtitle {
+  text-shadow: 0 2px 8px rgba(255, 255, 255, .45);
 }
 
 .dev-card__fallback-title {
-  font-size: .86rem;
+  font-size: .84rem;
   font-weight: 900;
   letter-spacing: -.02em;
 }
 
 .dev-card__fallback-subtitle {
-  font-size: .58rem;
+  font-size: .54rem;
   font-weight: 800;
-  letter-spacing: .15em;
-  opacity: .72;
+  letter-spacing: .12em;
+  opacity: .76;
 }
 
 .dev-card__top {
