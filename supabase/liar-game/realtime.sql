@@ -1,5 +1,5 @@
--- Liar Game Realtime: private room-scoped invalidation plus ephemeral discussion chat.
--- Chat payloads are broadcast only; they are never stored in liar_* tables.
+-- Liar Game Realtime: private room-scoped invalidation, ephemeral discussion chat,
+-- and ephemeral Drawing Spy live-stroke streaming.
 
 create or replace function public.liar_can_receive_realtime_topic(p_topic text)
 returns boolean
@@ -64,17 +64,88 @@ as $$
     );
 $$;
 
+create or replace function public.liar_can_receive_drawing_topic(p_topic text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.liar_players as lp
+      join public.liar_rooms as lr on lr.id = lp.room_id
+      where lp.auth_user_id = auth.uid()
+        and lp.membership_status = 'active'
+        and lr.status = 'active'
+        and pg_catalog.now() < lr.expires_at
+        and p_topic = 'liar-drawing:' || lp.room_id::text
+    );
+$$;
+
+create or replace function public.liar_can_send_drawing_topic(p_topic text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+  select auth.uid() is not null
+    and exists (
+      select 1
+      from public.liar_players as lp
+      join public.liar_rooms as lr on lr.id = lp.room_id
+      join public.liar_rounds as rd on rd.id = lr.current_round_id and rd.room_id = lr.id
+      join lateral (
+        select rp.player_id
+        from public.liar_round_players as rp
+        where rp.round_id = rd.id
+          and (
+            coalesce(rd.current_vote_stage, 0) = 0
+            or exists (
+              select 1
+              from public.liar_vote_stages as vs
+              where vs.round_id = rd.id
+                and vs.stage_no = rd.current_vote_stage
+                and vs.kind = 'runoff'
+                and vs.status = 'open'
+                and rp.id = any(vs.candidate_round_player_ids)
+            )
+          )
+        order by rp.turn_order
+        offset coalesce(rd.current_speaker_index, 0)
+        limit 1
+      ) as current_drawer on current_drawer.player_id = lp.id
+      where lp.auth_user_id = auth.uid()
+        and lp.membership_status = 'active'
+        and lr.status = 'active'
+        and pg_catalog.now() < lr.expires_at
+        and rd.status = 'DRAWING'
+        and rd.game_mode_snapshot = 'drawing_spy'
+        and p_topic = 'liar-drawing:' || lp.room_id::text
+    );
+$$;
+
 revoke all on function public.liar_can_receive_realtime_topic(text)
 from public, anon, authenticated;
 revoke all on function public.liar_can_receive_discussion_chat_topic(text)
 from public, anon, authenticated;
 revoke all on function public.liar_can_send_discussion_chat_topic(text)
 from public, anon, authenticated;
+revoke all on function public.liar_can_receive_drawing_topic(text)
+from public, anon, authenticated;
+revoke all on function public.liar_can_send_drawing_topic(text)
+from public, anon, authenticated;
 grant execute on function public.liar_can_receive_realtime_topic(text)
 to authenticated;
 grant execute on function public.liar_can_receive_discussion_chat_topic(text)
 to authenticated;
 grant execute on function public.liar_can_send_discussion_chat_topic(text)
+to authenticated;
+grant execute on function public.liar_can_receive_drawing_topic(text)
+to authenticated;
+grant execute on function public.liar_can_send_drawing_topic(text)
 to authenticated;
 
 drop policy if exists "liar active room members can receive broadcasts"
@@ -88,11 +159,13 @@ using (
   and (
     public.liar_can_receive_realtime_topic(realtime.topic())
     or public.liar_can_receive_discussion_chat_topic(realtime.topic())
+    or public.liar_can_receive_drawing_topic(realtime.topic())
   )
 );
 
--- Only actual participants in the current DISCUSSION round may send chat events.
--- The game-state liar-room topic remains server-originated only.
+-- Only current round participants may send ephemeral client broadcasts:
+-- DISCUSSION participants can send chat, while only the authoritative current
+-- Drawing Spy drawer can send live stroke fragments.
 drop policy if exists "liar active room members can send broadcasts"
 on realtime.messages;
 create policy "liar active room members can send broadcasts"
@@ -101,7 +174,10 @@ for insert
 to authenticated
 with check (
   extension = 'broadcast'
-  and public.liar_can_send_discussion_chat_topic(realtime.topic())
+  and (
+    public.liar_can_send_discussion_chat_topic(realtime.topic())
+    or public.liar_can_send_drawing_topic(realtime.topic())
+  )
 );
 
 create or replace function public.liar_broadcast_room_state_changed()
