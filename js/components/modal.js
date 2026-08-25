@@ -81,7 +81,12 @@ export function confirmDialog({
   });
 }
 
-export function contentDialog({ title, content, closeText = "닫기" }) {
+export function contentDialog({
+  title,
+  content,
+  closeText = "닫기",
+  showCloseAction = true,
+}) {
   if (activeModal) closeModal(false);
   return new Promise((resolve) => {
     const previousFocus = document.activeElement;
@@ -104,8 +109,10 @@ export function contentDialog({ title, content, closeText = "닫기" }) {
         el("button", { className: "icon-button", type: "button", text: "×", "aria-label": "대화상자 닫기", onClick: () => closeModal(true) }),
       ]),
       content,
-      el("div", { className: "modal__actions" }, closeButton),
     );
+    if (showCloseAction) {
+      dialog.append(el("div", { className: "modal__actions" }, closeButton));
+    }
     backdrop.append(dialog);
     backdrop.addEventListener("click", (event) => {
       if (event.target === backdrop) closeModal(true);
@@ -113,6 +120,7 @@ export function contentDialog({ title, content, closeText = "닫기" }) {
     document.getElementById("modal-root")?.append(backdrop);
     document.body.classList.add("modal-open");
     activeModal = { resolve, backdrop, previousFocus };
-    closeButton.focus();
+    if (showCloseAction) closeButton.focus();
+    else dialog.querySelector("button, a, input, select, textarea")?.focus?.();
   });
 }
