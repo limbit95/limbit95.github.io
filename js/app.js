@@ -58,6 +58,14 @@ function updateNavigationState(root, currentPath) {
   });
 }
 
+function resetShellTransientUi(header) {
+  const notificationPanel = header?.querySelector("#notification-panel");
+  if (notificationPanel) notificationPanel.hidden = true;
+  header
+    ?.querySelector("[aria-controls='notification-panel']")
+    ?.setAttribute("aria-expanded", "false");
+}
+
 function ensureShell(route) {
   const auth = getAuthState();
   const identity = shellIdentity(auth);
@@ -75,6 +83,7 @@ function ensureShell(route) {
     shellState = { identity, header, main, bottomNav };
   }
 
+  resetShellTransientUi(shellState.header);
   updateNavigationState(shellState.header, route.path);
   updateNavigationState(shellState.bottomNav, route.path);
   return shellState.main;
