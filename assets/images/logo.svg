@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
   <title id="title">청파 같이 로고</title>
-  <rect width="64" height="64" rx="20" fill="#3AA6D2"/>
-  <circle cx="22" cy="23" r="8" fill="#F2CF72"/>
-  <circle cx="42" cy="23" r="8" fill="#9ADCF1"/>
-  <path d="M15 42c4-8 10-12 17-12s13 4 17 12c-5 5-11 8-17 8s-12-3-17-8Z" fill="#F8FDFF"/>
+  <rect width="64" height="64" rx="20" fill="#A7D3E2"/>
+  <circle cx="22" cy="23" r="8" fill="#E8D8AA"/>
+  <circle cx="42" cy="23" r="8" fill="#C9E4ED"/>
+  <path d="M15 42c4-8 10-12 17-12s13 4 17 12c-5 5-11 8-17 8s-12-3-17-8Z" fill="#F8FBFC"/>
 </svg>
