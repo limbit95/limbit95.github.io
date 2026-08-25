@@ -29,7 +29,7 @@ export function createHeader({ auth, currentPath, onLogout }) {
     navLink("#/", "홈", currentPath),
     navLink("#/activities", "활동", currentPath),
     navLink("#/notice", "공지사항", currentPath),
-    navLink("#/community", "자유게시판", currentPath),
+    navLink("#/prayer", "기도 제목", currentPath),
     navLink("#/mypage", "마이페이지", currentPath),
     auth.isAdmin ? navLink("#/admin", "관리자", currentPath) : null,
   ]);
