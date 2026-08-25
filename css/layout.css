@@ -6,6 +6,8 @@ body {
   color: var(--ink);
   font-family: var(--font);
   line-height: 1.6;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 body.modal-open { overflow: hidden; }
 .skip-link {
