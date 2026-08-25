@@ -104,11 +104,19 @@ async function openDirectMessageComposer(userId, displayName) {
     textarea,
     el("div", { className: "message-compose-form__footer" }, [
       counter,
-      el("button", {
-        className: "button",
-        type: "submit",
-        text: "쪽지 보내기",
-      }),
+      el("div", { className: "button-row" }, [
+        el("button", {
+          className: "button button--ghost",
+          type: "button",
+          text: "취소",
+          onClick: () => closeModal(false),
+        }),
+        el("button", {
+          className: "button",
+          type: "submit",
+          text: "쪽지 보내기",
+        }),
+      ]),
     ]),
   ]);
 
@@ -134,7 +142,7 @@ async function openDirectMessageComposer(userId, displayName) {
   const modalPromise = contentDialog({
     title: "쪽지 보내기",
     content: form,
-    closeText: "취소",
+    showCloseAction: false,
   });
   window.requestAnimationFrame(() => textarea.focus());
   await modalPromise;
