@@ -1,0 +1,9 @@
+.header-admin-link {
+  text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .icon-button.header-admin-link {
+    display: none;
+  }
+}

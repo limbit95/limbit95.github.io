@@ -36,6 +36,11 @@
   box-shadow: var(--shadow-md);
 }
 
+.profile-trigger__menu:not([hidden]) {
+  display: grid;
+  gap: .4rem;
+}
+
 .profile-trigger__detail-button,
 .profile-trigger__message-button {
   width: 100%;

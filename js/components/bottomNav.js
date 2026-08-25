@@ -12,16 +12,14 @@ function item(href, icon, label, currentPath) {
   ]);
 }
 
-export function createBottomNav({ auth, currentPath }) {
+export function createBottomNav({ currentPath }) {
   const nav = el("nav", { className: "bottom-nav", "aria-label": "모바일 주요 메뉴" });
   nav.append(
     item("#/", "🏠", "홈", currentPath),
     item("#/activities", "🗓️", "활동", currentPath),
     item("#/notice", "📣", "공지", currentPath),
     item("#/prayer", "🙏", "기도 제목", currentPath),
-    auth.isAdmin
-      ? item("#/admin", "🛠️", "관리", currentPath)
-      : item("#/mypage", "🙂", "내 정보", currentPath),
+    item("#/mypage", "🙂", "내 정보", currentPath),
   );
   return nav;
 }

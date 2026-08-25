@@ -57,13 +57,12 @@ export function createActivityCard(event, {
   const capacityLabel = event.capacity ? `${counts.joined}/${event.capacity}명` : `${counts.joined}명`;
   const detailHref = `#/activities/${event.id}`;
   const card = el("article", {
-    className: "activity-card activity-card--clickable",
+    className: "activity-card",
     style: {
       "--category-color": event.category?.color ?? "#2f6b4f",
-      cursor: "pointer",
     },
   });
-  const titleLink = el("a", { href: detailHref }, [
+  const titleLink = el("a", { className: "activity-card__title-link", href: detailHref }, [
     el("h3", { className: "activity-card__title", text: event.title }),
   ]);
   const header = el("div", { className: "activity-card__header" }, [
@@ -124,13 +123,6 @@ export function createActivityCard(event, {
       }));
     }
   }
-
-  card.addEventListener("click", (clickEvent) => {
-    const target = clickEvent.target instanceof Element ? clickEvent.target : null;
-    if (!target) return;
-    if (target.closest("a, button, input, select, textarea, label")) return;
-    window.location.hash = detailHref;
-  });
 
   card.append(header, meta, footer);
   return card;

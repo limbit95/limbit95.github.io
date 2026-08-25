@@ -25,6 +25,7 @@ import { renderAdmin } from "./pages/admin.js";
 
 const app = document.getElementById("app");
 let renderSequence = 0;
+let shellState = null;
 
 document.getElementById("skip-link")?.addEventListener("click", () => {
   document.getElementById("main-content")?.focus();
@@ -37,6 +38,68 @@ function authDestination(auth = getAuthState()) {
   return "/pending";
 }
 
+function shellIdentity(auth) {
+  return [
+    auth.user?.id ?? "guest",
+    auth.profile?.status ?? "none",
+    auth.isAdmin ? "admin" : "member",
+  ].join(":");
+}
+
+function updateNavigationState(root, currentPath) {
+  root?.querySelectorAll("a[href^='#/']").forEach((link) => {
+    const href = link.getAttribute("href") ?? "";
+    const path = href.slice(1).split("?")[0] || "/";
+    const active = path === "/"
+      ? currentPath === "/"
+      : currentPath.startsWith(path);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+}
+
+function resetShellTransientUi(header) {
+  const notificationPanel = header?.querySelector("#notification-panel");
+  if (notificationPanel) notificationPanel.hidden = true;
+  header
+    ?.querySelector("[aria-controls='notification-panel']")
+    ?.setAttribute("aria-expanded", "false");
+}
+
+function ensureShell(route) {
+  const auth = getAuthState();
+  const identity = shellIdentity(auth);
+  const canReuse = shellState
+    && shellState.identity === identity
+    && shellState.main.isConnected
+    && shellState.header.isConnected
+    && shellState.bottomNav.isConnected;
+
+  if (!canReuse) {
+    const header = createHeader({ auth, currentPath: route.path, onLogout: handleLogout });
+    const main = el("main", { id: "main-content", className: "main-content", tabindex: "-1" });
+    const bottomNav = createBottomNav({ auth, currentPath: route.path });
+    app.replaceChildren(header, main, bottomNav);
+    shellState = { identity, header, main, bottomNav };
+  }
+
+  resetShellTransientUi(shellState.header);
+  updateNavigationState(shellState.header, route.path);
+  updateNavigationState(shellState.bottomNav, route.path);
+  return shellState.main;
+}
+
+function renderShellContent(route, content) {
+  const main = ensureShell(route);
+  main.replaceChildren(content);
+  return main;
+}
+
+function renderStandalone(content) {
+  shellState = null;
+  app.replaceChildren(content);
+}
+
 async function handleLogout() {
   const confirmed = await confirmDialog({
     title: "로그아웃할까요?",
@@ -46,7 +109,7 @@ async function handleLogout() {
   if (!confirmed) return;
   try {
     await signOut();
-    app.replaceChildren(el("main", { id: "main-content", className: "auth-layout" }, loadingState("로그아웃 중…")));
+    renderStandalone(el("main", { id: "main-content", className: "auth-layout" }, loadingState("로그아웃 중…")));
     showToast("로그아웃했습니다.", "success");
     navigate("/login");
   } catch (error) {
@@ -54,25 +117,17 @@ async function handleLogout() {
   }
 }
 
-function createShell(route, content) {
-  const auth = getAuthState();
-  const fragment = document.createDocumentFragment();
-  fragment.append(
-    createHeader({ auth, currentPath: route.path, onLogout: handleLogout }),
-    el("main", { id: "main-content", className: "main-content", tabindex: "-1" }, content),
-    createBottomNav({ auth, currentPath: route.path }),
-  );
-  return fragment;
-}
-
 async function renderPage(route, renderer, { shell = true } = {}) {
   const sequence = ++renderSequence;
   document.title = `${route.meta.title ?? "페이지"} | ${SITE_NAME}`;
-  if (shell) app.replaceChildren(createShell(route, el("div", { className: "page-container" }, loadingState())));
+  if (shell) {
+    renderShellContent(route, el("div", { className: "page-container" }, loadingState()));
+  }
   try {
     const content = await renderer(route);
     if (sequence !== renderSequence) return;
-    app.replaceChildren(shell ? createShell(route, content) : content);
+    if (shell) renderShellContent(route, content);
+    else renderStandalone(content);
     requestAnimationFrame(() => document.getElementById("main-content")?.focus({ preventScroll: true }));
     window.scrollTo({ top: 0, behavior: "auto" });
   } catch (error) {
@@ -85,7 +140,8 @@ async function renderPage(route, renderer, { shell = true } = {}) {
         el("button", { className: "button", type: "button", text: "다시 시도", onClick: resolveRoute }),
       ]),
     ]);
-    app.replaceChildren(shell ? createShell(route, state) : el("main", { id: "main-content", className: "auth-layout" }, state));
+    if (shell) renderShellContent(route, state);
+    else renderStandalone(el("main", { id: "main-content", className: "auth-layout" }, state));
   }
 }
 
@@ -169,11 +225,11 @@ setBeforeRoute(async (routeInfo) => {
     return false;
   }
   if (requirement === "admin" && !auth.isAdmin) {
-    app.replaceChildren(createShell(routeInfo, el("div", { className: "page-container" }, accessDeniedState("관리자만 이용할 수 있는 화면입니다."))));
+    renderShellContent(routeInfo, el("div", { className: "page-container" }, accessDeniedState("관리자만 이용할 수 있는 화면입니다.")));
     return false;
   }
   if (requirement === "manager" && !auth.isAdmin && auth.managerCategoryIds.size === 0) {
-    app.replaceChildren(createShell(routeInfo, el("div", { className: "page-container" }, accessDeniedState("활동 관리자 또는 카테고리 담당자만 이용할 수 있습니다."))));
+    renderShellContent(routeInfo, el("div", { className: "page-container" }, accessDeniedState("활동 관리자 또는 카테고리 담당자만 이용할 수 있습니다.")));
     return false;
   }
   return true;
@@ -198,7 +254,7 @@ window.addEventListener("app:auth-changed", (event) => {
   if (event.detail?.event === "SIGNED_IN" && event.detail.sameUser) return;
   if (current === "/login" || current === "/signup" || auth.profile?.status !== "approved") {
     const destination = authDestination(auth);
-    app.replaceChildren(el("main", { id: "main-content", className: "auth-layout" }, loadingState("접근 상태 확인 중…")));
+    renderStandalone(el("main", { id: "main-content", className: "auth-layout" }, loadingState("접근 상태 확인 중…")));
     if (current === destination) resolveRoute();
     else navigate(destination, { replace: true });
   } else {
@@ -209,7 +265,7 @@ window.addEventListener("app:error", (event) => showToast(getErrorMessage(event.
 
 async function boot() {
   if (!isSupabaseConfigured()) {
-    app.replaceChildren(el("main", { id: "main-content", className: "config-error" }, [
+    renderStandalone(el("main", { id: "main-content", className: "config-error" }, [
       el("section", { className: "card page-stack" }, [
         el("img", { src: "./assets/images/logo.svg", alt: "", width: "64", height: "64" }),
         el("h1", { className: "page-title", text: "Supabase 연결 설정이 필요해요" }),
@@ -221,7 +277,7 @@ async function boot() {
     return;
   }
   if (!isSupabaseClientReady()) {
-    app.replaceChildren(el("main", { id: "main-content", className: "config-error" }, [
+    renderStandalone(el("main", { id: "main-content", className: "config-error" }, [
       el("section", { className: "card page-stack", role: "alert" }, [
         el("h1", { className: "page-title", text: "Supabase 라이브러리를 불러오지 못했어요" }),
         el("p", { text: "네트워크 연결을 확인한 뒤 다시 시도해 주세요." }),
@@ -235,7 +291,7 @@ async function boot() {
     if (!window.location.hash) navigate(authDestination(), { replace: true });
     startRouter();
   } catch (error) {
-    app.replaceChildren(el("main", { id: "main-content", className: "config-error" }, [
+    renderStandalone(el("main", { id: "main-content", className: "config-error" }, [
       el("section", { className: "card page-stack", role: "alert" }, [
         el("h1", { className: "page-title", text: "Supabase에 연결하지 못했어요" }),
         el("p", { text: getErrorMessage(error) }),
