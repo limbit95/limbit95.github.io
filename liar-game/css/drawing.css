@@ -17,7 +17,10 @@
 .drawing-stroke-limit-control.is-unlimited input{cursor:not-allowed;background:color-mix(in srgb,var(--bg) 85%,#ddd)}
 .role-mode-guide{margin:12px 0 0;padding:11px 12px;border-radius:10px;background:color-mix(in srgb,var(--primary) 8%,var(--bg));line-height:1.55}
 
-.drawing-stage{display:grid;gap:18px}
+/* Only the active drawing stage breaks out of the normal 680px game column.
+   Room/setup/result screens keep their existing readable width. */
+.game-stage:has(.drawing-stage){width:min(calc(100vw - 16px),960px);margin-left:50%;transform:translateX(-50%)}
+.drawing-stage{display:grid;gap:18px;width:100%;box-sizing:border-box}
 .drawing-stage-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
 .drawing-stage-header h2{margin:4px 0 7px}
 .drawing-stage-header p{margin:0;color:var(--muted);line-height:1.55}
@@ -58,6 +61,8 @@
 @media(max-width:720px){
  .game-mode-grid,.drawing-rule-grid,.drawing-layout-bottom{grid-template-columns:1fr}
  .game-mode-option input[type="radio"]{appearance:none;-webkit-appearance:none;position:absolute!important;width:1px!important;height:1px!important;margin:0!important;padding:0!important;border:0!important;opacity:0!important;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+ .game-stage:has(.drawing-stage){width:calc(100vw - 12px)}
+ .drawing-stage{padding-left:10px;padding-right:10px}
  .drawing-stage-header{display:grid}
  .drawing-turn-badges{justify-content:stretch}
  .drawing-turn-badges>span{flex:1}
