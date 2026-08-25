@@ -1,4 +1,4 @@
-import { getPublicProfiles, getSignedAvatarUrl } from "../api.js";
+import { getProfileInterests, getPublicProfiles, getSignedAvatarUrl } from "../api.js";
 import { el, getErrorMessage } from "../ui.js";
 import { contentDialog } from "./modal.js";
 import { showToast } from "./toast.js";
@@ -74,15 +74,32 @@ async function openPublicProfile(userId) {
       showToast("공개된 프로필 정보를 찾을 수 없습니다.", "error");
       return;
     }
-    const avatar = await getSignedAvatarUrl(profile.avatar_path);
+
+    const [avatar, interestResult] = await Promise.all([
+      getSignedAvatarUrl(profile.avatar_path),
+      getProfileInterests(userId)
+        .then((rows) => ({ rows, available: true }))
+        .catch(() => ({ rows: [], available: false })),
+    ]);
+    const interests = interestResult.rows ?? [];
+
+    const interestContent = interestResult.available
+      ? interests.length
+        ? el("div", { className: "chip-list profile-modal__interests" }, interests.map((item) => el("span", {
+            className: "chip",
+            text: `${item.category?.icon ?? "🌿"} ${item.category?.name ?? "활동"}`,
+          })))
+        : el("p", { className: "subtle", text: "설정한 관심 활동이 없습니다." })
+      : el("p", { className: "subtle", text: "관심 활동 공개 정보를 불러올 수 없습니다." });
+
     const info = el("div", { className: "profile-modal page-stack" }, [
       el("div", { className: "profile-modal__hero" }, [
         el("img", {
-          className: "avatar avatar--large",
+          className: "avatar avatar--large profile-modal__avatar",
           src: avatar,
           alt: `${profile.display_name ?? "회원"} 프로필`,
-          width: "96",
-          height: "96",
+          width: "124",
+          height: "124",
         }),
         el("div", {}, [
           el("strong", { className: "profile-modal__name", text: profile.display_name ?? "회원" }),
@@ -96,6 +113,10 @@ async function openPublicProfile(userId) {
         profile.bio
           ? el("p", { className: "prose", text: profile.bio })
           : el("p", { className: "subtle", text: "등록된 소개가 없습니다." }),
+      ]),
+      el("div", { className: "profile-modal__section" }, [
+        el("strong", { text: "관심 활동" }),
+        interestContent,
       ]),
     ]);
     await contentDialog({
