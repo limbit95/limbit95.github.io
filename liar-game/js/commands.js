@@ -10,7 +10,7 @@ export const commands={
  joinRoom:(code,nickname)=>mutate("liar_join_room",{p_room_code:code,p_nickname:nickname}),
  resumeRoom,
  leaveRoom:()=>mutate("liar_leave_room"), updateNickname:(nickname)=>mutate("liar_update_nickname",{p_nickname:nickname}),
- setReady:(ready)=>mutate("liar_set_ready",{p_ready:ready}), updateSettings:(settings,version)=>mutate("liar_update_game_settings_v2",{...settings,p_expected_room_version:version}),
+ setReady:(ready)=>mutate("liar_set_ready",{p_ready:ready}), updateSettings:(settings,version)=>mutate("liar_update_game_settings_v3",{...settings,p_expected_room_version:version}),
  startRound:(version)=>mutate("liar_start_round",{p_expected_room_version:version}), prepareNextRound:(version)=>mutate("liar_prepare_next_round",{p_expected_round_version:version}), restartGame:(version)=>mutate("liar_restart_game",{p_expected_round_version:version}), markRoleChecked:()=>mutate("liar_mark_role_checked"),
  startSpeaking:(version)=>mutate("liar_start_speaking",{p_expected_round_version:version}),
  moveSpeaker:(direction,version)=>mutate("liar_move_speaker",{p_direction:direction,p_expected_round_version:version}),
