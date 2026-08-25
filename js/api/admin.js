@@ -8,7 +8,7 @@ export async function listCategoryManagers() {
     .select("category_id,user_id,created_at,created_by")
     .order("created_at", { ascending: false })) ?? [];
   const [profiles, categories] = await Promise.all([
-    getPublicProfiles(),
+    getPublicProfiles(managers.map((manager) => manager.user_id)),
     listCategories(),
   ]);
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
