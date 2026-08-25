@@ -1,3 +1,37 @@
+.modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(68, 92, 101, .32);
+}
+
+.modal {
+  width: min(100%, 520px);
+  max-height: min(85vh, 720px);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid rgba(116, 157, 173, .12);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: .7rem;
+}
+
+.modal__title {
+  color: var(--forest-900);
+  font-size: 1.25rem;
+}
+
 .modal__message {
   margin: 0;
   color: var(--ink);
@@ -5,6 +39,13 @@
   text-align: left;
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+.modal__actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: .6rem;
+  margin-top: 1.25rem;
 }
 
 .modal--activity-confirm {
@@ -33,4 +74,11 @@
   justify-content: flex-end;
   align-items: center;
   margin-top: 1.15rem;
+}
+
+@media (min-width: 640px) {
+  .modal__actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
 }
