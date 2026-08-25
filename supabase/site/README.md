@@ -28,7 +28,8 @@ supabase/site/
     ├── 20260825041209_expand_notifications_and_direct_messages.sql
     ├── 20260825041340_lock_down_notification_rpc_permissions.sql
     ├── 20260825041418_schedule_activity_reminder_notifications.sql
-    └── 20260825041451_index_notification_message_target.sql
+    ├── 20260825041451_index_notification_message_target.sql
+    └── 20260825090540_add_date_poll_fk_covering_indexes.sql
 ```
 
 ## baseline 출처
@@ -37,6 +38,7 @@ supabase/site/
 
 - SQL 객체의 의미와 정의는 바꾸지 않았습니다.
 - 각 파일을 순서대로 독립 실행할 수 있도록 `begin` / `commit` 경계만 파일 단위로 구성했습니다.
+- 원본과 분리본의 실행 SQL 2,139개 행을 비교하여 순서와 내용이 일치함을 확인했습니다.
 - 새 프로젝트를 재구성할 경우 파일명 순서대로 실행합니다.
 
 ## seed
@@ -47,7 +49,7 @@ baseline 실행 후 seed를 실행합니다.
 
 ## 운영 migration
 
-`migrations/`의 4개 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다.
+`migrations/` 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다.
 
 이 migration들은 이미 운영 프로젝트에 적용되어 있습니다. 운영 DB에 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
 
@@ -58,6 +60,9 @@ baseline 실행 후 seed를 실행합니다.
 3. `20260825041340_lock_down_notification_rpc_permissions`
 4. `20260825041418_schedule_activity_reminder_notifications`
 5. `20260825041451_index_notification_message_target`
+6. `20260825090540_add_date_poll_fk_covering_indexes`
+
+마지막 migration은 Supabase Performance Advisor가 지적한 본 사이트 날짜투표 FK 2개의 covering index를 추가합니다. 적용 후 해당 `unindexed_foreign_keys` 경고가 사라졌음을 확인했습니다.
 
 ## 같은 Supabase 프로젝트의 별도 객체
 
