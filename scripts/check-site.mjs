@@ -128,6 +128,11 @@ function checkArchitectureContracts() {
     fail("js/components/activityCard.js: whole-card navigation regressed to JS hash mutation");
   }
 
+  const navigationCss = sourceAt("css/navigation.css");
+  if (!/@media\s*\(min-width:\s*900px\)[\s\S]*?\.icon-button\.header-admin-link\s*\{[\s\S]*?display:\s*none\s*;?[\s\S]*?\}/.test(navigationCss)) {
+    fail("css/navigation.css: mobile admin shortcut must stay hidden on desktop with sufficient specificity");
+  }
+
   const app = sourceAt("js/app.js");
   const criticalRoutes = [
     "/login",
@@ -143,6 +148,11 @@ function checkArchitectureContracts() {
       fail(`js/app.js: critical route not registered: ${routePath}`);
     }
   });
+  if (!app.includes("resetShellTransientUi(shellState.header)")
+    || !app.includes("#notification-panel")
+    || !app.includes("aria-controls='notification-panel'")) {
+    fail("js/app.js: persistent shell must reset notification panel state on route render");
+  }
 }
 
 const siteJsFiles = walk(path.join(root, "js"))
