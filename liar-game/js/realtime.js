@@ -5,6 +5,7 @@ let roomChannel = null;
 let drawingRoomId = null;
 let drawingChannel = null;
 let drawingChannelStatus = "closed";
+let drawingSubscribePromise = null;
 
 export function getSubscribedRoomId() {
   return roomId;
@@ -45,6 +46,9 @@ export async function subscribeRoomRealtime(targetRoomId, onStateChanged, onStat
 }
 
 export async function unsubscribeDrawingRealtime() {
+  if (drawingSubscribePromise) {
+    try{await drawingSubscribePromise;}catch{}
+  }
   const channel = drawingChannel;
   drawingChannel = null;
   drawingRoomId = null;
@@ -59,26 +63,30 @@ export async function subscribeDrawingRealtime(targetRoomId, onStroke, onStatusC
     return;
   }
   if (drawingChannel && drawingRoomId === targetRoomId) return;
+  if (drawingSubscribePromise) return drawingSubscribePromise;
 
-  await unsubscribeDrawingRealtime();
-  await supabase.realtime.setAuth();
+  drawingSubscribePromise=(async()=>{
+    if (drawingChannel && drawingRoomId !== targetRoomId) await unsubscribeDrawingRealtime();
+    await supabase.realtime.setAuth();
 
-  const topic = `liar-drawing:${targetRoomId}`;
-  const channel = supabase
-    .channel(topic, { config: { private: true, broadcast: { self: false, ack: false } } })
-    .on("broadcast", { event: "stroke" }, ({ payload }) => onStroke?.(payload));
+    const topic = `liar-drawing:${targetRoomId}`;
+    const channel = supabase
+      .channel(topic, { config: { private: true, broadcast: { self: false, ack: false } } })
+      .on("broadcast", { event: "stroke" }, ({ payload }) => onStroke?.(payload));
 
-  drawingRoomId = targetRoomId;
-  drawingChannel = channel;
-  drawingChannelStatus = "connecting";
-  onStatusChanged("connecting");
-  channel.subscribe((status) => {
-    if (channel !== drawingChannel) return;
-    if (status === "SUBSCRIBED") drawingChannelStatus = "subscribed";
-    else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") drawingChannelStatus = "error";
-    else if (status === "CLOSED") drawingChannelStatus = "closed";
-    onStatusChanged(drawingChannelStatus);
-  });
+    drawingRoomId = targetRoomId;
+    drawingChannel = channel;
+    drawingChannelStatus = "connecting";
+    onStatusChanged("connecting");
+    channel.subscribe((status) => {
+      if (channel !== drawingChannel) return;
+      if (status === "SUBSCRIBED") drawingChannelStatus = "subscribed";
+      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") drawingChannelStatus = "error";
+      else if (status === "CLOSED") drawingChannelStatus = "closed";
+      onStatusChanged(drawingChannelStatus);
+    });
+  })();
+  try{await drawingSubscribePromise;}finally{drawingSubscribePromise=null;}
 }
 
 export function broadcastDrawingStroke(payload) {
