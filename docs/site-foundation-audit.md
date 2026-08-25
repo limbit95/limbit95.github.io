@@ -17,7 +17,7 @@
 - 쪽지/알림
 - 관리자
 - 공통 UI/모달/CSS
-- 본 사이트용 Supabase 운영 원칙
+- 본 사이트용 Supabase baseline/migration 이력
 
 제외:
 
@@ -40,17 +40,14 @@
 - 사용자 입력을 DOM `textContent` 기반으로 표시하여 XSS 위험을 낮춤
 - 모바일 하단 내비게이션과 데스크톱 내비게이션을 분리
 
-### 구조적으로 정리할 부분
+### 다음 단계에서 구조적으로 정리할 부분
 
-1. README와 과거 감사 문서가 현재 코드/DB 구조보다 뒤처짐
-2. 운영 Supabase 전체 schema를 GitHub만으로 재현할 수 없는 상태
-3. `api.js`, `activities.js`, `admin.js`에 역할이 계속 누적되고 있음
-4. 기본 CSS 위에 `theme.css`, `profile.css`, `messaging.css`가 추가되며 override 추적 비용이 커짐
-5. 일부 모달 스타일이 JavaScript 인라인 스타일로 들어가 있어 재사용성이 떨어짐
-6. SPA 라우팅 때 Header/BottomNav까지 재생성되어 향후 Realtime UI가 커질수록 상태 관리가 복잡해질 수 있음
-7. 공개 프로필 부착 시 전체 공개 회원을 내려받아 브라우저에서 매칭하는 패턴이 있어 회원 규모가 커지면 비효율 가능
+1. `api.js`, `activities.js`, `admin.js`에 역할이 계속 누적되고 있음
+2. 기본 CSS 위에 `theme.css`, `profile.css`, `messaging.css`가 추가되며 override 추적 비용이 커짐
+3. SPA 라우팅 때 Header/BottomNav까지 재생성되어 향후 Realtime UI가 커질수록 상태 관리가 복잡해질 수 있음
+4. 공개 프로필 부착 시 전체 공개 회원을 내려받아 브라우저에서 매칭하는 패턴이 있어 회원 규모가 커지면 비효율 가능
 
-## 3. 이번 1차 작업에서 즉시 정리한 항목
+## 3. 이번 1차 작업에서 정리한 항목
 
 ### 공통 모달
 
@@ -63,23 +60,35 @@
 
 기존 `messaging.css`에는 639px 이하에서 쪽지 작성 하단 액션을 다시 세로로 배치하는 규칙이 남아 있었습니다.
 
-사용자가 요청한 `취소 / 쪽지 보내기` 한 줄 배치가 모바일에서도 유지되도록 수정했습니다.
+`취소 / 쪽지 보내기` 한 줄 배치가 모바일에서도 유지되도록 수정했습니다.
 
-### Supabase 운영 문서
+### 문서 최신화
 
-`supabase/README.md`를 새로 두고 다음 원칙을 명시했습니다.
+- README를 현재 라우트와 기능 기준으로 갱신
+- 과거 `/community` 중심 설명을 현재 `/prayer` 구조에 맞게 정리
+- 현재 쪽지/알림/프로필/CSS 구조를 반영
+- Supabase 운영 규칙과 게임 영역 제외 원칙을 문서화
 
-- 현재 운영 DB와 GitHub 이력이 완전히 일치하지 않는 전환 상태임을 명시
-- 운영 DB를 추측으로 덮어쓰지 않음
-- 향후 본 사이트 DDL은 migration 이력으로 관리
-- Advisor 확인 후 변경
-- 게임 DB 객체는 사이트 기반 정리 범위에서 제외
+### DB baseline 및 migration 확보
+
+전달받은 현재 원본 `schema.sql`과 `seed.sql`을 실제 운영 Supabase와 대조했습니다.
+
+- 원본 `schema.sql`의 실행 SQL 2,139개 행을 섹션별 baseline 파일로 분리한 뒤 실행문 순서를 비교했으며 누락 없이 일치함을 확인
+- `seed.sql`의 10개 활동 카테고리는 운영 DB의 이름/아이콘/색상/설명/활성 여부와 모두 일치
+- Supabase migration history에 기록된 본 사이트 후속 migration 4개를 버전/이름 그대로 GitHub에 보존
+
+현재 본 사이트 DB 이력은 다음으로 설명할 수 있습니다.
+
+1. `supabase/site/baseline/00_setup.sql` ~ `12_avatar_storage.sql`
+2. `supabase/site/seed.sql`
+3. `20260825041209_expand_notifications_and_direct_messages`
+4. `20260825041340_lock_down_notification_rpc_permissions`
+5. `20260825041418_schedule_activity_reminder_notifications`
+6. `20260825041451_index_notification_message_target`
 
 ## 4. 운영 Supabase 점검 결과
 
-실제 운영 프로젝트의 본 사이트 테이블은 RLS가 활성화되어 있습니다.
-
-본 사이트 핵심 테이블:
+현재 본 사이트 핵심 테이블은 다음과 같습니다.
 
 - `profiles`
 - `join_requests`
@@ -97,34 +106,31 @@
 - `notifications`
 - `direct_messages`
 
-### 보안 후속 검토
+본 사이트 테이블의 RLS가 활성화되어 있음을 확인했습니다.
 
-운영 DB는 이번 브랜치 작업에서 변경하지 않았습니다.
+### 같은 프로젝트의 별도/레거시 객체
 
-Advisor 기준으로 본 사이트와 관련해 이후 별도 검토할 항목:
+초기 Advisor 점검에서는 `public.is_admin()`, `public.rls_auto_enable()`, `public.set_updated_at()` 등이 청파 같이 보안 이슈 후보처럼 보였습니다.
 
-- `set_updated_at`의 `search_path`
-- `public.is_admin()`의 anonymous execute 필요 여부
-- `public.rls_auto_enable()`의 anonymous execute 필요 여부
-- Leaked Password Protection 활성화
+함수 정의를 추가 확인한 결과 청파 같이 본 사이트는 `profiles` 기반의 `private.is_admin()`, `private.set_updated_at()`을 사용하고 있으며, 일부 `public` 함수는 `admin_users`, `site_settings`, `mission_posts` 등 다른 영역을 참조합니다.
 
-`authenticated`가 호출해야 하는 `join_event`, `send_direct_message` 같은 SECURITY DEFINER RPC는 경고를 이유로 일괄 revoke하지 않고 함수별 검증이 필요합니다.
+따라서 이 함수들을 이번 청파 같이 기반 정리에서 임의로 수정하거나 삭제하지 않습니다. 같은 Supabase 프로젝트에 존재하더라도 본 사이트 source of truth와 별도로 취급합니다.
 
-### 성능 후속 검토
+### 계속 추적할 보안/성능 항목
 
-현재 데이터 규모에서는 즉시 병목은 아니지만 다음 항목을 추적합니다.
-
-- 날짜 투표 일부 FK covering index
+- Supabase Auth의 Leaked Password Protection 설정
+- 날짜 투표 일부 FK covering index 필요성
+- `join_event`, `send_direct_message` 등 본 사이트 SECURITY DEFINER RPC의 내부 권한 검증 유지
 - 전체 공개 프로필 조회 후 브라우저 매칭 패턴
 - 관리자 화면의 전체 회원/일정 일괄 조회
-- 알림 목록의 장기 누적 시 pagination/보관 정책
+- 알림 목록 장기 누적 시 pagination/보관 정책
 
 ## 5. 다음 단계 후보
 
-1차 브랜치 검토가 끝난 뒤 다음 순서가 안전합니다.
+DB 이력 확보까지 끝난 뒤 다음 순서가 안전합니다.
 
-1. 본 사이트용 DB baseline/migration 정식 확보
-2. Security Advisor의 본 사이트 항목만 개별 수정
+1. 본 사이트 Security/Performance Advisor 항목만 다시 범위를 좁혀 검토
+2. 필요한 DB 보안/인덱스 변경이 있다면 신규 migration으로 작성
 3. CSS 역할 분류와 override 정리
 4. `api.js`를 domain 단위로 분리
 5. App Shell을 지속시키고 Main만 교체하는 SPA 구조 검토
