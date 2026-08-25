@@ -29,7 +29,8 @@ supabase/site/
     ├── 20260825041340_lock_down_notification_rpc_permissions.sql
     ├── 20260825041418_schedule_activity_reminder_notifications.sql
     ├── 20260825041451_index_notification_message_target.sql
-    └── 20260825090540_add_date_poll_fk_covering_indexes.sql
+    ├── 20260825090540_add_date_poll_fk_covering_indexes.sql
+    └── 20260825103805_add_public_member_profiles_by_ids.sql
 ```
 
 ## baseline 출처
@@ -61,8 +62,27 @@ baseline 실행 후 seed를 실행합니다.
 4. `20260825041418_schedule_activity_reminder_notifications`
 5. `20260825041451_index_notification_message_target`
 6. `20260825090540_add_date_poll_fk_covering_indexes`
+7. `20260825103805_add_public_member_profiles_by_ids`
 
-마지막 migration은 Supabase Performance Advisor가 지적한 본 사이트 날짜투표 FK 2개의 covering index를 추가합니다. 적용 후 해당 `unindexed_foreign_keys` 경고가 사라졌음을 확인했습니다.
+### 날짜투표 FK 인덱스
+
+`20260825090540_add_date_poll_fk_covering_indexes`는 Supabase Performance Advisor가 지적한 본 사이트 날짜투표 FK 2개의 covering index를 추가합니다. 적용 후 해당 `unindexed_foreign_keys` 경고가 사라졌음을 확인했습니다.
+
+### 필요한 회원 프로필만 조회
+
+`20260825103805_add_public_member_profiles_by_ids`는 승인 회원용 공개 프로필 RPC에 **UUID 배열 조회 경로**를 추가합니다.
+
+기존 `get_public_member_profiles(p_user_id)`는 호환성을 위해 유지하며, 게시글/댓글/활동 참여자/카테고리 담당자처럼 필요한 사용자 ID 집합을 이미 알고 있는 화면에서는 `get_public_member_profiles_by_ids(uuid[])`를 사용합니다.
+
+새 RPC의 보안 조건은 기존 공개 프로필 RPC와 동일하게 유지합니다.
+
+- `private.is_approved_member()` 검사
+- `SECURITY DEFINER`
+- 고정 `search_path = ''`
+- `anon` EXECUTE 없음
+- `authenticated`, `service_role`만 EXECUTE 허용
+
+운영 적용 후 실제 함수 권한도 위 상태로 확인했습니다. Security Advisor의 `authenticated_security_definer_function_executable` 항목은 승인 회원이 의도적으로 호출하는 RPC이므로, 경고만 보고 EXECUTE를 제거하지 않습니다.
 
 ## 같은 Supabase 프로젝트의 별도 객체
 
@@ -82,4 +102,5 @@ baseline 실행 후 seed를 실행합니다.
 - 새 DDL 변경은 실제 적용 migration과 GitHub 기록을 함께 남깁니다.
 - 운영 반영 전 RLS, 함수 실행 권한, trigger 영향 범위를 확인합니다.
 - 이미 적용된 migration을 운영 DB에 재실행하지 않습니다.
+- Advisor의 SECURITY DEFINER 경고는 실제 호출 주체와 함수 내부 권한 검사를 확인한 뒤 판단합니다.
 - `liar_*`, `splendor_*` 객체와 게임 전용 SQL은 별도 관리하며 이 디렉터리에서 수정하지 않습니다.
