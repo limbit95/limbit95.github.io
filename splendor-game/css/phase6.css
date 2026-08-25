@@ -1,0 +1,185 @@
+.phase6-purchase-panel {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--line, rgba(255,255,255,.12));
+  border-radius: 16px;
+  background: rgba(255,255,255,.035);
+}
+
+.phase6-purchase-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.phase6-purchase-heading > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.phase6-badge {
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  opacity: .68;
+}
+
+.phase6-gold-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.phase6-payment-grid {
+  display: grid;
+  gap: 7px;
+}
+
+.phase6-payment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+.phase6-payment-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.phase6-payment-color > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.phase6-payment-color span:last-child {
+  font-size: 11px;
+  opacity: .66;
+}
+
+.phase6-owned {
+  font-size: 12px;
+  opacity: .72;
+  white-space: nowrap;
+}
+
+.phase6-stepper {
+  display: inline-grid;
+  grid-template-columns: 30px 30px 30px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+}
+
+.phase6-stepper button,
+.phase6-stepper strong {
+  display: grid;
+  place-items: center;
+  min-height: 30px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.phase6-stepper button {
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.phase6-stepper button:not(:disabled):hover {
+  background: rgba(255,255,255,.08);
+}
+
+.phase6-stepper button:disabled {
+  cursor: not-allowed;
+  opacity: .28;
+}
+
+.phase6-free-purchase {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.05);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.phase6-payment-help {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.55;
+  opacity: .72;
+}
+
+.phase6-payment-status {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.phase6-payment-status.is-ready {
+  background: rgba(65, 185, 128, .13);
+}
+
+.phase6-payment-status.is-blocked {
+  background: rgba(220, 94, 94, .12);
+}
+
+.phase6-feedback {
+  margin-bottom: 12px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.phase6-feedback.is-info {
+  background: rgba(255,255,255,.06);
+}
+
+.phase6-feedback.is-success {
+  background: rgba(65, 185, 128, .13);
+}
+
+.phase6-feedback.is-error {
+  background: rgba(220, 94, 94, .13);
+}
+
+@media (max-width: 640px) {
+  .phase6-purchase-heading {
+    display: grid;
+  }
+
+  .phase6-gold-summary {
+    width: fit-content;
+  }
+
+  .phase6-payment-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .phase6-owned {
+    grid-column: 1;
+    padding-left: 26px;
+  }
+
+  .phase6-stepper {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+}
