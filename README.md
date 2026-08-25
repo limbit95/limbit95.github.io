@@ -68,6 +68,7 @@ GitHub Pages
   └─ HTML + CSS + Vanilla JS ES Modules
            │
            ├─ Hash Router
+           ├─ Persistent App Shell
            ├─ Auth state / Route Guard
            ├─ UI Components
            └─ Domain Pages
@@ -99,7 +100,6 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   ├── components.css
 │   ├── pages.css
 │   ├── profile.css
-│   ├── theme.css
 │   ├── modal.css
 │   ├── messaging.css
 │   └── responsive.css
@@ -139,7 +139,12 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   └── site-foundation-audit.md
 └── supabase/
     ├── README.md
-    └── notification_messaging_patch.sql
+    ├── notification_messaging_patch.sql
+    └── site/
+        ├── README.md
+        ├── baseline/
+        ├── seed.sql
+        └── migrations/
 ```
 
 게임 디렉터리와 게임 전용 Supabase 파일은 별도 관리 대상이므로 위 본 사이트 구조 설명에서 상세히 다루지 않습니다.
@@ -197,15 +202,15 @@ export const SUPABASE_PUBLISHABLE_KEY = "<publishable-key>";
 
 현재 운영 Supabase에는 본 사이트와 게임 영역의 DB 객체가 함께 존재합니다.
 
-과거 README에 있던 `schema.sql → seed.sql` 재구성 안내는 현재 운영 구조와 일치하지 않으므로 더 이상 기준으로 사용하지 않습니다.
+청파 같이 본 사이트의 초기 스키마와 seed는 `supabase/site/baseline/` 및 `supabase/site/seed.sql`에 보존하고, 이후 운영 변경은 `supabase/site/migrations/`에 실제 Supabase migration 버전과 이름을 맞춰 기록합니다.
 
-DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)를 따릅니다.
+DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`supabase/site/README.md`](./supabase/site/README.md)를 따릅니다.
 
 핵심 원칙:
 
 1. 운영 catalog를 먼저 확인합니다.
 2. 운영 DB와 저장소가 다르면 추측으로 덮어쓰지 않습니다.
-3. 본 사이트 DDL 변경은 앞으로 migration 이력으로 관리합니다.
+3. 본 사이트 DDL 변경은 migration 이력으로 관리합니다.
 4. 변경 전후 Security/Performance Advisor와 실제 SQL 검증을 수행합니다.
 5. 게임 DB 객체는 본 사이트 정리 작업에서 수정하지 않습니다.
 
@@ -221,12 +226,31 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)를 따�
 
 ## 8. UI 구조
 
+### App Shell
+
+승인 회원용 화면에서는 Header와 BottomNav를 라우트마다 다시 만들지 않습니다. 인증/권한 identity가 유지되는 동안 공통 Shell을 재사용하고 `#main-content`의 내용만 교체합니다.
+
+이 구조는 Header의 Realtime 알림 상태와 이벤트 리스너를 불필요하게 다시 만들지 않도록 합니다.
+
 ### 반응형
 
 - 모바일: 하단 고정 주요 메뉴
 - 데스크톱: 상단 내비게이션
 - `360px`급 작은 화면도 기본 대응
 - `prefers-reduced-motion` 대응
+
+### CSS 역할
+
+- `variables.css`: 토큰
+- `layout.css`: 전체 Shell/레이아웃
+- `components.css`: 공통 컴포넌트
+- `pages.css`: 페이지 전용 스타일
+- `profile.css`: 프로필 UI
+- `modal.css`: 모달
+- `messaging.css`: 쪽지/알림
+- `responsive.css`: 공통 반응형 보정
+
+과거의 `theme.css` override 계층은 제거하고 현재 시각 결과를 각 담당 파일에 통합했습니다.
 
 ### 접근성
 
@@ -240,14 +264,24 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)를 따�
 
 2026-08-25 기준 전체 구조 재검토 내용은 [`docs/site-foundation-audit.md`](./docs/site-foundation-audit.md)에 기록합니다.
 
-현재 우선순위는 다음과 같습니다.
+완료된 기반 작업:
 
-1. DB schema/migration 이력 정식 동기화
-2. 본 사이트 Security Advisor 항목 개별 정리
-3. CSS override/디자인 토큰 정리
-4. 비대해진 API/페이지 모듈 도메인 분리
-5. App Shell 지속 구조 검토
-6. 자동 smoke test 도입
+1. 본 사이트 DB baseline/seed 복원
+2. 운영 migration 이력 복원
+3. 날짜투표 FK covering index 보완 및 Advisor 재검증
+4. README/DB 운영 문서 최신화
+5. 공통 모달 접근성/스타일 정리
+6. 모바일 쪽지 액션 회귀 수정
+7. CSS override 계층 제거 및 역할별 파일 정리
+8. 승인 회원용 Persistent App Shell 적용
+
+다음 구조 개선 우선순위:
+
+1. `api.js` 도메인 단위 분리
+2. `activities.js`, `admin.js` 등 대형 페이지 모듈 분리
+3. 공개 프로필 조회 범위 최적화
+4. 자동 smoke test/JS syntax check 도입
+5. 의미 기반 디자인 토큰 명칭 정리
 
 ## 10. 개발/병합 원칙
 
