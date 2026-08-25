@@ -51,7 +51,7 @@ export async function renderHome() {
     quickCard("🙌", "내 참여", `${joinedUpcoming.length}개 예정`, "#/mypage"),
     quickCard("🌿", "활동 찾기", `${events.length}개 모집`, "#/activities"),
     quickCard("📣", "새 공지", `${notices.count}개 게시`, "#/notice"),
-    quickCard("💬", "이야기 나눔", "자유게시판", "#/community"),
+    quickCard("🙏", "기도 제목", "서로를 위해 함께 기도해요", "#/prayer"),
   ]);
 
   const upcomingSection = el("section", { className: "page-stack", "aria-labelledby": "upcoming-title" }, [
