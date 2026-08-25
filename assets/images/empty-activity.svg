@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-labelledby="title">
   <title id="title">예정된 활동이 없음</title>
-  <rect x="48" y="42" width="224" height="145" rx="24" fill="#FFFFFF" stroke="#D4EAF3" stroke-width="6"/>
-  <path d="M49 84h222" stroke="#3AA6D2" stroke-width="8"/>
-  <path d="M99 30v30M221 30v30" stroke="#3AA6D2" stroke-width="12" stroke-linecap="round"/>
-  <circle cx="115" cy="124" r="14" fill="#F2CF72"/>
-  <circle cx="160" cy="124" r="14" fill="#79C9E8"/>
-  <circle cx="205" cy="124" r="14" fill="#8FD4E7"/>
+  <rect x="48" y="42" width="224" height="145" rx="24" fill="#FFFFFF" stroke="#E0EDF1" stroke-width="6"/>
+  <path d="M49 84h222" stroke="#A7D3E2" stroke-width="8"/>
+  <path d="M99 30v30M221 30v30" stroke="#A7D3E2" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="115" cy="124" r="14" fill="#E8D8AA"/>
+  <circle cx="160" cy="124" r="14" fill="#C4E0EA"/>
+  <circle cx="205" cy="124" r="14" fill="#CFE5E2"/>
 </svg>
