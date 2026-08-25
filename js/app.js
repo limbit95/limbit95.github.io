@@ -93,6 +93,12 @@ function route(pattern, title, auth, renderer, options = {}) {
   registerRoute(pattern, (currentRoute) => renderPage(currentRoute, renderer, options), { title, auth });
 }
 
+function redirectLegacyCommunity(routeInfo) {
+  const suffix = routeInfo.path.slice("/community".length);
+  const query = routeInfo.query.toString();
+  navigate(`/prayer${suffix}${query ? `?${query}` : ""}`, { replace: true });
+}
+
 route("/login", "로그인", "guest", renderLogin, { shell: false });
 route("/signup", "회원가입", "guest", renderSignup, { shell: false });
 route("/auth/confirm", "이메일 인증", null, renderAuthConfirm, { shell: false });
@@ -113,10 +119,14 @@ route("/notice", "공지사항", "approved", (currentRoute) => renderBoard(curre
 route("/notice/new", "공지사항 작성", "admin", (currentRoute) => renderPostForm(currentRoute, "notice", "create"));
 route("/notice/:id/edit", "공지사항 수정", "admin", (currentRoute) => renderPostForm(currentRoute, "notice", "edit"));
 route("/notice/:id", "공지사항 상세", "approved", (currentRoute) => renderPostDetail(currentRoute, "notice"));
-route("/community", "자유게시판", "approved", (currentRoute) => renderBoard(currentRoute, "free"));
-route("/community/new", "게시글 작성", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "create"));
-route("/community/:id/edit", "게시글 수정", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "edit"));
-route("/community/:id", "자유게시판 상세", "approved", (currentRoute) => renderPostDetail(currentRoute, "free"));
+route("/prayer", "기도 제목", "approved", (currentRoute) => renderBoard(currentRoute, "free"));
+route("/prayer/new", "기도 제목 나누기", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "create"));
+route("/prayer/:id/edit", "기도 제목 수정", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "edit"));
+route("/prayer/:id", "기도 제목 상세", "approved", (currentRoute) => renderPostDetail(currentRoute, "free"));
+registerRoute("/community", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
+registerRoute("/community/new", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
+registerRoute("/community/:id/edit", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
+registerRoute("/community/:id", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
 route("/mypage", "마이페이지", "approved", renderMyPage);
 route("/mypage/edit", "프로필 수정", "approved", renderProfileEdit);
 route("/admin", "관리자 대시보드", "admin", renderAdmin);
