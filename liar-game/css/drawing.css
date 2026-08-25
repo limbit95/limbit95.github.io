@@ -21,6 +21,8 @@
    Room/setup/result screens keep their existing readable width. */
 .game-stage:has(.drawing-stage){width:min(calc(100vw - 16px),960px);margin-left:50%;transform:translateX(-50%)}
 .drawing-stage{display:grid;gap:18px;width:100%;box-sizing:border-box}
+.drawing-stage.is-runoff{border-color:color-mix(in srgb,var(--primary) 38%,var(--border))}
+.drawing-runoff-notice{margin:0}
 .drawing-stage-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
 .drawing-stage-header h2{margin:4px 0 7px}
 .drawing-stage-header p{margin:0;color:var(--muted);line-height:1.55}
@@ -57,6 +59,31 @@
 .drawing-preview-heading span{font-weight:850}
 .drawing-preview-heading small{color:var(--muted)}
 .drawing-board-shell.is-preview{max-width:720px;width:100%;margin:0 auto;border-width:1px;box-shadow:none}
+.guess-drawing-preview{width:100%;text-align:left}
+
+/* Per-round Drawing Spy tuning */
+.next-round-drawing-settings{display:grid;gap:14px;padding:16px;border:1px solid color-mix(in srgb,var(--primary) 24%,var(--border));border-radius:14px;background:linear-gradient(145deg,color-mix(in srgb,var(--primary) 7%,var(--bg)),var(--bg))}
+.next-round-drawing-settings h3,.next-round-drawing-settings p{margin:0}
+.next-round-drawing-settings dl{display:grid;gap:8px;margin:0}
+.next-round-drawing-settings dl>div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.next-round-drawing-settings dl>div:last-child{border-bottom:0}
+.next-round-drawing-settings dd{margin:0;font-weight:800}
+.next-round-drawing-form{display:grid;gap:12px}
+.next-round-drawing-form>button{justify-self:end;min-width:160px}
+
+/* Result drawing + stroke replay */
+.drawing-result-experience{display:grid;gap:14px;padding:20px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)}
+.drawing-result-experience h3{margin:0}
+.drawing-result-board{width:100%}
+.drawing-replay-controls{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.drawing-replay-controls button{min-width:190px}
+.drawing-replay-panel{display:grid;gap:10px;padding:14px;border:1px solid color-mix(in srgb,var(--primary) 24%,var(--border));border-radius:14px;background:var(--surface)}
+.drawing-replay-panel[hidden]{display:none!important}
+.drawing-replay-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.drawing-replay-meta span{padding:5px 9px;border-radius:999px;background:#eee9fa;color:var(--muted);font-size:.8rem;font-weight:700}
+.drawing-replay-meta strong{overflow-wrap:anywhere}
+.drawing-replay-progress{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:.85rem}
+.drawing-replay-progress button{min-height:38px;padding:8px 12px}
 
 @media(max-width:720px){
  .game-mode-grid,.drawing-rule-grid,.drawing-layout-bottom{grid-template-columns:1fr}
@@ -70,6 +97,11 @@
  .drawing-board-hint{left:8px;right:8px;bottom:8px;text-align:center;border-radius:9px}
  .drawing-actions button{width:100%}
  .drawing-preview-heading{display:grid;gap:3px}
+ .next-round-drawing-form>button{width:100%;justify-self:stretch}
+ .drawing-result-experience{padding:14px}
+ .drawing-replay-controls{display:grid}
+ .drawing-replay-controls button{width:100%}
+ .drawing-replay-meta{display:grid;gap:5px;text-align:left}
 }
 
 @media(prefers-reduced-motion:reduce){
