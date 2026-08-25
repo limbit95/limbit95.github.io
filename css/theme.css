@@ -1,4 +1,4 @@
-/* Cheongpa visual theme: open sky, cool water and a small touch of sunlight. */
+/* Cheongpa visual theme: bright sea, open sky and a small touch of sunlight. */
 .card,
 .quick-card,
 .activity-card,
@@ -7,42 +7,59 @@
 .stat-card,
 .table-wrap,
 .poll-option {
-  border-color: rgba(25, 122, 138, .14);
+  border-color: rgba(47, 159, 208, .16);
+}
+
+.button {
+  background: #287fa4;
+}
+
+.button:hover {
+  background: #226f90;
 }
 
 .button--secondary {
   color: var(--forest-800);
-  background: #e7f5f6;
-  border-color: #b9dce0;
+  background: #e8f6fb;
+  border-color: #b9dfee;
 }
 
 .button--secondary:hover {
-  background: #d8eef0;
+  background: #d9eff8;
 }
 
 .button--coral {
   background: var(--coral-500);
-  color: #103b4a;
+  color: #123f51;
 }
 
 .button--coral:hover {
-  background: #55a9cb;
+  background: #63bcdf;
+}
+
+.button--yellow {
+  background: var(--yellow-400);
+  color: #493b13;
+}
+
+.button--ghost {
+  color: var(--forest-800);
 }
 
 .button--ghost:hover {
-  background: #edf8f8;
+  background: #edf8fc;
 }
 
 .icon-button {
-  border-color: #d2e4e7;
-  background: rgba(255, 255, 255, .92);
+  border-color: #d2e8f0;
+  background: rgba(255, 255, 255, .94);
 }
 
 input,
 textarea,
 select {
-  border-color: #b7cfd4;
-  background: rgba(255, 255, 255, .96);
+  border-color: #b8d6e2;
+  background: rgba(255, 255, 255, .97);
 }
 
 input:focus,
@@ -52,99 +69,101 @@ select:focus {
 }
 
 .chip {
-  background: #eff9f9;
-  border-color: #d1e7e8;
+  background: #eff9fd;
+  border-color: #d2eaf3;
 }
 
 .avatar {
   border-color: var(--surface);
-  box-shadow: 0 0 0 1px #cce1e4;
+  box-shadow: 0 0 0 1px #cce5ee;
 }
 
 .state-box {
-  border-color: #b8d7db;
-  background: rgba(255, 255, 255, .62);
+  border-color: #b9dce8;
+  background: rgba(255, 255, 255, .68);
 }
 
 .skeleton {
-  background: #dfecef;
+  background: #e0eef3;
 }
 
 .modal {
-  border: 1px solid rgba(25, 122, 138, .1);
+  border: 1px solid rgba(47, 159, 208, .11);
 }
 
 .tab {
-  border-color: #d1e3e6;
+  border-color: #d2e7ef;
 }
 
 th {
-  background: #eef8f8;
+  background: #eef8fc;
 }
 
 .notification-panel {
-  border-color: #d1e3e6;
+  border-color: #d2e7ef;
 }
 
 .hero {
-  background: linear-gradient(135deg, #104f61 0%, #197a8a 52%, #4fa8b5 100%);
+  background: linear-gradient(135deg, #2b7fa5 0%, #3b9fc9 52%, #5ab7dc 100%);
+  box-shadow: 0 14px 34px rgba(43, 127, 165, .18);
 }
 
 .hero::after {
-  width: 220px;
-  height: 220px;
-  right: -70px;
-  top: -90px;
-  background: rgba(242, 207, 114, .18);
+  width: 230px;
+  height: 230px;
+  right: -72px;
+  top: -92px;
+  background: rgba(255, 255, 255, .16);
+}
+
+.hero .eyebrow {
+  color: #fff0b5;
 }
 
 .quick-card,
 .activity-card,
 .post-row,
 .admin-menu-card {
-  box-shadow: 0 6px 20px rgba(16, 74, 88, .07);
+  box-shadow: 0 6px 20px rgba(54, 139, 177, .07);
 }
 
 .activity-card:hover,
 .post-row:hover,
 .quick-card:hover,
 .admin-menu-card:hover {
-  border-color: #8fc0c7;
+  border-color: #91cbe1;
 }
 
 .detail-hero {
-  border-color: rgba(25, 122, 138, .13);
-  box-shadow: 0 7px 22px rgba(16, 74, 88, .08);
+  border-color: rgba(47, 159, 208, .14);
+  box-shadow: 0 7px 22px rgba(54, 139, 177, .08);
 }
 
 .sticky-action {
-  background: rgba(255, 255, 255, .94);
-  border-color: #d0e3e5;
+  background: rgba(255, 255, 255, .95);
+  border-color: #d1e7ef;
 }
 
 .participant-person,
 .comment {
-  background: #eff9f9;
+  background: #eff9fd;
 }
 
 .calendar-day {
-  border-color: #d6e6e8;
+  border-color: #d7e9f0;
 }
 
 .calendar-day--outside {
-  background: #edf4f5;
+  background: #eef5f8;
 }
 
-.calendar-event {
-  background: #ddf2f1;
-}
-
+.calendar-event,
 .poll-bar {
-  background: #ddf2f1;
+  background: #dff4fb;
 }
 
 .status-page__icon {
-  background: linear-gradient(145deg, #fff7d9, #e8f6fa);
+  background: linear-gradient(145deg, #fff7d9, #e5f6fc);
 }
 
 .profile-hero,
@@ -165,6 +184,6 @@ th {
   .post-row:hover,
   .admin-menu-card:hover {
     transform: translateY(-1px);
-    box-shadow: 0 9px 24px rgba(16, 74, 88, .09);
+    box-shadow: 0 9px 24px rgba(54, 139, 177, .10);
   }
 }
