@@ -130,6 +130,14 @@ export async function initializeAuth() {
           emit();
           return;
         }
+        if (event === "INITIAL_SESSION") {
+          // initializeAuth() already loaded the current session via getSession().
+          // Supabase emits INITIAL_SESSION again when the listener starts, so
+          // treating it as a route change would cause a redundant page rebuild.
+          state.session = session;
+          state.user = session?.user ?? null;
+          return;
+        }
         if (event === "SIGNED_OUT") {
           clearAuthContext();
           window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
@@ -137,17 +145,17 @@ export async function initializeAuth() {
         }
         // Supabase can emit SIGNED_IN again when an already authenticated tab
         // becomes active. Remember whether this is the existing account before
-        // the async refresh so consumers can avoid rebuilding the current page.
+        // the async refresh so the current page can remain intact.
         const sameUser = Boolean(state.user?.id && state.user.id === session?.user?.id);
         window.setTimeout(async () => {
           try {
             await refreshAuthContext(session, {
               force: event === "USER_UPDATED",
             });
+            if (event === "SIGNED_IN" && sameUser) return;
             window.dispatchEvent(new CustomEvent("app:auth-changed", {
               detail: { event, sameUser },
             }));
-            window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           } catch (authError) {
             window.dispatchEvent(new CustomEvent("app:error", { detail: authError }));
           }
