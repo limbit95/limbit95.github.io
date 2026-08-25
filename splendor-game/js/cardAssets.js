@@ -66,10 +66,37 @@ async function loadSignedCardUrls() {
   });
 }
 
+function fallbackScene(meta) {
+  const accent = {
+    white: "#eee8d8",
+    blue: "#6f9fc8",
+    green: "#70a486",
+    red: "#c1766e",
+    black: "#7c8188",
+  }[meta.bonus] ?? "#88a6b1";
+
+  return `
+    <svg class="dev-card__fallback-scene" viewBox="0 0 180 118" role="img" aria-label="${meta.title} 임시 카드 일러스트">
+      <defs>
+        <linearGradient id="sky-${meta.bonus}-${meta.tier}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="${accent}" stop-opacity=".88" />
+          <stop offset="1" stop-color="#18272d" stop-opacity=".94" />
+        </linearGradient>
+      </defs>
+      <rect width="180" height="118" fill="url(#sky-${meta.bonus}-${meta.tier})" />
+      <circle cx="142" cy="28" r="17" fill="#fff6cf" fill-opacity=".66" />
+      <path d="M0 89 34 62 59 80 86 46 116 76 147 57 180 82V118H0Z" fill="#17272e" fill-opacity=".54" />
+      <path d="M18 95V73h17V59h19v36Zm42 0V68h22V51h19v44Zm49 0V72h17V61h20v34Z" fill="#f7e7bb" fill-opacity=".74" />
+      <path d="m91 23 10 12-10 12-10-12Z" fill="#fff" fill-opacity=".88" />
+      <path d="m91 28 6 7-6 7-6-7Z" fill="${accent}" />
+    </svg>
+  `;
+}
+
 function fallbackMarkup(meta) {
   return `
-    <div class="dev-card__fallback dev-card__fallback--${meta.bonus}" aria-hidden="true">
-      <span class="dev-card__city-mark">◆</span>
+    <div class="dev-card__fallback dev-card__fallback--${meta.bonus}">
+      ${fallbackScene(meta)}
       <span class="dev-card__fallback-title">${meta.title}</span>
       <span class="dev-card__fallback-subtitle">PRIVATE CARD ART</span>
     </div>
