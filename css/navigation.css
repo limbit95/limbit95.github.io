@@ -1,0 +1,10 @@
+.header-admin-link {
+  display: inline-grid;
+  text-decoration: none;
+}
+
+@media (min-width: 900px) {
+  .header-admin-link {
+    display: none;
+  }
+}
