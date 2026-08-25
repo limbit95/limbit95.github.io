@@ -6,18 +6,29 @@ import { el, emptyState, formatDate, pageContainer } from "../ui.js";
 export async function renderBoard(route, boardType) {
   const auth = getAuthState();
   const isNotice = boardType === "notice";
+  const isPrayer = boardType === "free";
+  const base = isNotice ? "notice" : "prayer";
   const page = Math.max(1, Number(route.query.get("page") || 1));
   const search = route.query.get("search") || "";
   const { rows, count } = await listPosts({ boardType, search, page, pageSize: PAGE_SIZE });
   const root = pageContainer();
   const header = el("div", { className: "page-header" }, [
     el("div", {}, [
-      el("p", { className: "eyebrow", text: isNotice ? "NOTICE" : "COMMUNITY" }),
-      el("h1", { className: "page-title", text: isNotice ? "공지사항" : "자유게시판" }),
-      el("p", { className: "page-description", text: isNotice ? "공동체의 중요한 소식을 확인하세요." : "소소한 이야기와 유용한 정보를 나눠요." }),
+      el("p", { className: "eyebrow", text: isNotice ? "NOTICE" : "PRAYER" }),
+      el("h1", { className: "page-title", text: isNotice ? "공지사항" : "기도 제목" }),
+      el("p", {
+        className: "page-description",
+        text: isNotice
+          ? "공동체의 중요한 소식을 확인하세요."
+          : "서로의 기도 제목을 나누고, 함께 기도하며 응원해 주세요.",
+      }),
     ]),
     (isNotice ? auth.isAdmin : true)
-      ? el("a", { className: "button button--coral", href: `#/${isNotice ? "notice" : "community"}/new`, text: isNotice ? "＋ 공지 작성" : "＋ 글쓰기" })
+      ? el("a", {
+          className: "button button--coral",
+          href: `#/${base}/new`,
+          text: isNotice ? "＋ 공지 작성" : "＋ 기도 제목 나누기",
+        })
       : null,
   ]);
   const searchForm = el("form", { className: "card search-bar", role: "search" }, [
@@ -25,8 +36,8 @@ export async function renderBoard(route, boardType) {
       type: "search",
       name: "search",
       value: search,
-      placeholder: "제목으로 검색",
-      "aria-label": `${isNotice ? "공지사항" : "자유게시판"} 제목 검색`,
+      placeholder: isPrayer ? "기도 제목 검색" : "제목으로 검색",
+      "aria-label": `${isNotice ? "공지사항" : "기도 제목"} 제목 검색`,
     }),
     el("button", { className: "button", type: "submit", text: "검색" }),
   ]);
@@ -34,31 +45,36 @@ export async function renderBoard(route, boardType) {
     event.preventDefault();
     const params = new URLSearchParams();
     if (searchForm.search.value.trim()) params.set("search", searchForm.search.value.trim());
-    window.location.hash = `#/${isNotice ? "notice" : "community"}?${params.toString()}`;
+    window.location.hash = `#/${base}?${params.toString()}`;
   });
   root.append(header, searchForm);
 
   if (!rows.length) {
     root.append(emptyState(
-      search ? "검색 결과가 없어요" : isNotice ? "등록된 공지가 없어요" : "아직 게시글이 없어요",
-      search ? "다른 검색어를 입력해 보세요." : isNotice ? "새 공지가 등록되면 이곳에 표시됩니다." : "첫 번째 이야기를 남겨 보세요.",
+      search ? "검색 결과가 없어요" : isNotice ? "등록된 공지가 없어요" : "아직 나눠진 기도 제목이 없어요",
       search
-        ? el("a", { className: "button button--secondary", href: `#/${isNotice ? "notice" : "community"}`, text: "검색 초기화" })
+        ? "다른 검색어를 입력해 보세요."
+        : isNotice
+          ? "새 공지가 등록되면 이곳에 표시됩니다."
+          : "첫 번째 기도 제목을 나누고 함께 기도를 시작해 보세요.",
+      search
+        ? el("a", { className: "button button--secondary", href: `#/${base}`, text: "검색 초기화" })
         : !isNotice
-          ? el("a", { className: "button", href: "#/community/new", text: "첫 글 작성" })
+          ? el("a", { className: "button", href: "#/prayer/new", text: "기도 제목 나누기" })
           : null,
     ));
     return root;
   }
-  const list = el("section", { className: "post-list", "aria-label": `${isNotice ? "공지사항" : "자유게시판"} 목록` });
+  const list = el("section", { className: "post-list", "aria-label": `${isNotice ? "공지사항" : "기도 제목"} 목록` });
   rows.forEach((post) => {
     const badges = el("div", { className: "chip-list" }, [
       post.is_pinned ? el("span", { className: "status-badge", text: "📌 상단 고정" }) : null,
       post.is_important ? el("span", { className: "status-badge status-badge--danger", text: "❗ 중요" }) : null,
+      isPrayer ? el("span", { className: "status-badge", text: "🙏 기도 제목" }) : null,
     ]);
     list.append(el("a", {
       className: "post-row",
-      href: `#/${isNotice ? "notice" : "community"}/${post.id}`,
+      href: `#/${base}/${post.id}`,
     }, [
       badges.children.length ? badges : null,
       el("h2", { className: "section-title", text: post.title }),
@@ -71,7 +87,7 @@ export async function renderBoard(route, boardType) {
   });
   root.append(list);
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
-  if (totalPages > 1) root.append(pagination(page, totalPages, search, isNotice ? "notice" : "community"));
+  if (totalPages > 1) root.append(pagination(page, totalPages, search, base));
   return root;
 }
 
