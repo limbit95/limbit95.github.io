@@ -28,11 +28,14 @@ const ERROR_MESSAGES = {
   INVALID_RETURN_SELECTION: "반환할 토큰 선택을 다시 확인해 주세요.",
   RETURN_COUNT_MISMATCH: "화면에 표시된 초과 개수만큼 정확히 반환해 주세요.",
   RETURN_MORE_THAN_OWNED: "가지고 있는 수보다 많은 토큰을 반환할 수 없습니다.",
-  INVALID_CARD_ID: "예약할 카드를 다시 선택해 주세요.",
+  INVALID_CARD_ID: "카드를 다시 선택해 주세요.",
   CARD_NOT_AVAILABLE: "선택한 카드는 더 이상 공개 카드 자리에 없습니다. 최신 상태를 확인해 주세요.",
   RESERVE_LIMIT_REACHED: "예약 카드는 최대 3장까지 보유할 수 있습니다.",
   INVALID_TIER: "예약할 카드 덱 단계를 다시 선택해 주세요.",
   DECK_EMPTY: "선택한 단계의 카드 덱이 비어 있습니다.",
+  INVALID_PAYMENT: "결제할 보석 선택값이 올바르지 않습니다.",
+  PAYMENT_MISMATCH: "카드의 실제 비용과 선택한 결제 보석이 맞지 않습니다.",
+  INSUFFICIENT_TOKENS: "선택한 결제를 완료할 만큼 보유한 보석이 충분하지 않습니다.",
 };
 
 let pendingMutation = false;
@@ -119,6 +122,15 @@ export const gameCommands = {
     return mutate("splendor_reserve_hidden", {
       p_room_id: roomId,
       p_tier: tier,
+      p_expected_version: version,
+      p_client_action_id: clientActionId,
+    });
+  },
+  purchaseFaceup(roomId, cardInstanceId, payment, version, clientActionId) {
+    return mutate("splendor_purchase_faceup", {
+      p_room_id: roomId,
+      p_card_instance_id: cardInstanceId,
+      p_payment: payment,
       p_expected_version: version,
       p_client_action_id: clientActionId,
     });
