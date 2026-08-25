@@ -1,0 +1,120 @@
+.phase5-reserved-panel {
+  border-color: rgba(105, 120, 155, .2);
+  background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.phase5-reserved-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.phase5-reserved-card {
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: white;
+  box-shadow: var(--shadow-soft);
+}
+
+.phase5-reserved-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.phase5-tier {
+  display: inline-flex;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #526978;
+  background: #edf3f6;
+  font-size: .68rem;
+  font-weight: 900;
+}
+
+.phase5-reserved-card h4 {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: .88rem;
+}
+
+.phase5-reserved-card p {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-size: .73rem;
+}
+
+.phase5-reserved-card .costs {
+  margin-top: 8px;
+}
+
+.phase5-private-label {
+  display: block;
+  margin-top: 8px;
+  color: #71828c;
+  font-size: .67rem;
+  font-weight: 800;
+}
+
+.phase5-empty-reserved {
+  padding: 13px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 12px;
+  color: var(--ink-soft);
+  background: var(--surface-soft);
+}
+
+.phase5-empty-reserved strong {
+  color: var(--ink);
+  font-size: .82rem;
+}
+
+.phase5-empty-reserved p,
+.phase5-privacy-note {
+  margin-top: 5px;
+  font-size: .72rem;
+  line-height: 1.5;
+}
+
+.phase5-privacy-note {
+  color: #75868f;
+}
+
+.phase5-feedback {
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.phase5-feedback.is-info {
+  color: #496c78;
+  background: #eef7f9;
+}
+
+.phase5-feedback.is-success {
+  color: #426d58;
+  border-color: rgba(79, 137, 105, .28);
+  background: #eef8f2;
+}
+
+.phase5-feedback.is-error {
+  color: #8a4d49;
+  border-color: rgba(168, 91, 83, .28);
+  background: #fff1ef;
+}
+
+.selection-box [data-phase5-reserve]:not(:disabled) {
+  box-shadow: 0 8px 18px rgba(68, 127, 145, .13);
+}
+
+@media (max-width: 700px) {
+  .phase5-reserved-card {
+    padding: 10px;
+  }
+}
