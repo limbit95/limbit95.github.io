@@ -48,6 +48,11 @@ export function drawingView(s,isHost){
   :unlimitedStrokes
    ?"획 수 제한 없이 그림을 그릴 수 있습니다. 시간이 끝나거나 그림 완료 버튼을 누르면 다음 사람에게 넘어갑니다."
    :"시간이 끝나거나 최대 획을 모두 사용하면 자동으로 다음 사람에게 넘어갑니다.";
+ const penHint=unlimitedStrokes
+  ?"획 수 무제한"
+  :runoff
+   ?`${strokeLimit}획 추가 그림`
+   :"한 번의 터치/드래그가 1획입니다";
  return `<section class="card drawing-stage${runoff?" is-runoff":""}" data-drawing-stage>
   <header class="drawing-stage-header">
    <div><span class="speaking-eyebrow">${runoff?"TIE-BREAK DRAWING":"DRAWING SPY"}</span><h2>${runoff?"🎨 동률 후보 추가 그림":"🎨 공동 그림판"}</h2><p>${guide}</p></div>
@@ -57,7 +62,7 @@ export function drawingView(s,isHost){
   <div class="drawing-current"><span>${runoff?"현재 추가 그림":"현재 그림 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong></div>
   <div class="drawing-board-shell ${canDraw?"is-active":"is-readonly"}">
    <canvas class="drawing-board" data-drawing-canvas data-can-draw="${canDraw?"true":"false"}" aria-label="그림 스파이 공동 그림판"></canvas>
-   ${canDraw?`<div class="drawing-board-hint">검정 펜 · ${unlimitedStrokes?"획 수 무제한":runoff?`${strokeLimit}획 추가 그림":"한 번의 터치/드래그가 1획입니다"}</div>`:'<div class="drawing-board-hint">현재 차례의 그림을 기다리고 있습니다</div>'}
+   ${canDraw?`<div class="drawing-board-hint">검정 펜 · ${escapeHTML(penHint)}</div>`:'<div class="drawing-board-hint">현재 차례의 그림을 기다리고 있습니다</div>'}
   </div>
   <p class="drawing-local-status muted" data-drawing-local-status aria-live="polite"></p>
   <div class="drawing-layout-bottom">
