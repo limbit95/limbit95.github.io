@@ -19,6 +19,7 @@
 - 공통 UI/모달/CSS
 - 공통 App Shell/라우팅 구조
 - 본 사이트용 Supabase baseline/migration 이력
+- 본 사이트용 정적 자동 검수
 
 제외:
 
@@ -42,13 +43,13 @@
 - 사용자 입력을 DOM `textContent` 기반으로 표시하여 XSS 위험을 낮춤
 - 모바일 하단 내비게이션과 데스크톱 내비게이션을 분리
 - CSS 역할을 공통/페이지/프로필/모달/메시징/반응형으로 분리
+- GitHub Actions에서 본 사이트 JS/파일 참조/CSS 기본 구조를 자동 검수
 
 ### 다음 단계에서 구조적으로 정리할 부분
 
 1. `api.js`, `activities.js`, `admin.js`에 역할이 계속 누적되고 있음
 2. 공개 프로필 부착 시 전체 공개 회원을 내려받아 브라우저에서 매칭하는 패턴이 있어 회원 규모가 커지면 비효율 가능
-3. 자동 smoke test/JS syntax check가 없음
-4. 현재 팔레트는 안정적이지만 `forest`, `coral` 등 과거 색상명을 유지하고 있어 의미 기반 디자인 토큰 명칭 정리가 필요함
+3. 현재 팔레트는 안정적이지만 `forest`, `coral` 등 과거 색상명을 유지하고 있어 의미 기반 디자인 토큰 명칭 정리가 필요함
 
 ## 3. 이번 작업에서 정리한 항목
 
@@ -95,11 +96,25 @@
 
 게임 허브 라우트 정의와 게임 구현 파일은 변경하지 않았습니다.
 
+### 정적 자동 검수
+
+`Site static checks` GitHub Actions를 추가했습니다.
+
+- `node --check`로 본 사이트 JavaScript 문법 확인
+- 상대 import 대상 파일 존재 여부 확인
+- `index.html`의 로컬 CSS/JS/이미지 참조 확인
+- CSS 중괄호 기본 구조 확인
+- 제거된 `theme.css` 참조 재발 방지
+
+게임 구현 소스는 검사 대상에서도 제외했습니다.
+
+추가 직후 실제 Actions 실행 결과가 성공임을 확인했습니다.
+
 ### 문서 최신화
 
 - README를 현재 라우트와 기능 기준으로 갱신
 - 과거 `/community` 중심 설명을 현재 `/prayer` 구조에 맞게 정리
-- 현재 쪽지/알림/프로필/CSS/App Shell 구조를 반영
+- 현재 쪽지/알림/프로필/CSS/App Shell/자동 검수 구조를 반영
 - Supabase 운영 규칙과 게임 영역 제외 원칙을 문서화
 
 ### DB baseline 및 migration 확보
@@ -176,9 +191,8 @@ Advisor의 `unused_index`는 현재 데이터가 적거나 신규 인덱스가 �
 1. `api.js`를 profile/activity/board/admin/notification 등 domain 단위로 분리
 2. `activities.js`, `admin.js` 등 대형 페이지의 기능별 submodule 분리
 3. 공개 프로필 조회를 필요한 사용자 ID 집합 기준으로 최적화
-4. 자동 smoke test/JS syntax check 도입
-5. 의미 기반 디자인 토큰 명칭 정리
-6. 쪽지 inbox/reply, 알림 preference 등 기능 확장
+4. 의미 기반 디자인 토큰 명칭 정리
+5. 쪽지 inbox/reply, 알림 preference 등 기능 확장
 
 ## 6. 반영 규칙
 
