@@ -80,7 +80,7 @@
 input,
 textarea,
 select {
-  border-color: #cfE2e9;
+  border-color: #cfe2e9;
   background: rgba(255, 255, 255, .97);
 }
 
@@ -296,6 +296,208 @@ th {
   color: var(--ink);
 }
 
+/* Prayer reaction: compact social-style action instead of a large notice box. */
+.post-detail > .notice-box.page-stack {
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: .15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.post-detail > .notice-box.page-stack > strong,
+.post-detail > .notice-box.page-stack > .small.subtle {
+  display: none;
+}
+
+.post-detail > .notice-box.page-stack > button {
+  min-height: 38px;
+  padding: .45rem .78rem;
+  border-radius: 999px;
+  border-width: 1px;
+  box-shadow: none;
+  font-size: .86rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.post-detail > .notice-box.page-stack > button.button--secondary {
+  color: #627d87;
+  background: #f6fafb;
+  border-color: #dcebed;
+}
+
+.post-detail > .notice-box.page-stack > button.button--secondary:hover {
+  color: #506f7a;
+  background: #edf6f8;
+  border-color: #cfe3e8;
+}
+
+.post-detail > .notice-box.page-stack > button.button--yellow {
+  color: #6d6244;
+  background: #f8f0d9;
+  border-color: #eadfbf;
+}
+
+.post-detail > .notice-box.page-stack > button.button--yellow:hover {
+  background: #f4e9ca;
+  border-color: #e4d6ad;
+}
+
+.prayer-comment-section {
+  gap: 1.15rem;
+}
+
+.prayer-comment-section > .divider {
+  margin: .1rem 0 .15rem;
+}
+
+.prayer-comment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: .7rem;
+  align-items: stretch;
+}
+
+.prayer-comment-form textarea {
+  min-height: 92px;
+  resize: vertical;
+  padding: .9rem 1rem;
+  border-radius: 16px;
+  line-height: 1.65;
+}
+
+.prayer-comment-form__submit {
+  min-height: 92px;
+  align-self: stretch;
+  border-radius: 16px;
+  font-size: .94rem;
+}
+
+.prayer-comment-list {
+  gap: .85rem;
+}
+
+.prayer-comment {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid #dfecef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 5px 16px rgba(82, 128, 145, .05);
+}
+
+.prayer-comment__head {
+  min-height: 58px;
+  margin: 0;
+  padding: .72rem .9rem;
+  align-items: center;
+  border-bottom: 1px solid #edf3f5;
+  background: #f6fafb;
+}
+
+.prayer-comment__author {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+}
+
+.prayer-comment__author-mark {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #547782;
+  background: #e3f0f4;
+  font-size: .88rem;
+  font-weight: 900;
+}
+
+.prayer-comment__author-meta {
+  min-width: 0;
+  display: grid;
+  gap: .08rem;
+}
+
+.prayer-comment__author-name {
+  color: #405f69;
+  font-size: .94rem;
+  line-height: 1.3;
+}
+
+.prayer-comment__time {
+  display: block;
+  color: #8aa0a8;
+  line-height: 1.25;
+}
+
+.prayer-comment__content {
+  min-height: 62px;
+  margin: 0;
+  padding: 1rem;
+  color: #415962;
+  background: #ffffff;
+  line-height: 1.75;
+}
+
+.prayer-comment .comment__actions {
+  flex: 0 0 auto;
+  align-items: center;
+  gap: .2rem;
+}
+
+.prayer-comment__action {
+  min-height: 32px;
+  padding: .3rem .52rem;
+  border-color: transparent;
+  border-radius: 9px;
+  color: #718991;
+  background: transparent;
+  box-shadow: none;
+  font-size: .78rem;
+}
+
+.prayer-comment__action:hover {
+  color: #4d6d78;
+  background: #eaf3f6;
+  box-shadow: none;
+  transform: none;
+}
+
+.prayer-comment__action--delete {
+  color: #a37076;
+}
+
+.prayer-comment__action--delete:hover {
+  color: #945d64;
+  background: #fbf0f1;
+}
+
+.prayer-comment-edit {
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.prayer-comment-edit .button-row {
+  justify-content: flex-end;
+}
+
+.prayer-comment-empty {
+  padding: 1.15rem;
+  border: 1px dashed #d9e8ed;
+  border-radius: 14px;
+  text-align: center;
+  background: #f8fbfc;
+}
+
 @media (min-width: 900px) {
   .hero {
     grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr);
@@ -313,6 +515,29 @@ th {
 
   .daily-verse__source {
     text-align: left;
+  }
+
+  .post-detail > .notice-box.page-stack > button {
+    min-height: 36px;
+    padding: .42rem .7rem;
+    font-size: .82rem;
+  }
+
+  .prayer-comment-form {
+    grid-template-columns: minmax(0, 1fr) 78px;
+    gap: .5rem;
+  }
+
+  .prayer-comment-form__submit {
+    padding-inline: .55rem;
+  }
+
+  .prayer-comment__head {
+    padding: .68rem .75rem;
+  }
+
+  .prayer-comment__content {
+    padding: .9rem .85rem 1rem;
   }
 }
 

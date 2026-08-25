@@ -36,9 +36,14 @@
   box-shadow: var(--shadow-md);
 }
 
-.profile-trigger__detail-button {
+.profile-trigger__detail-button,
+.profile-trigger__message-button {
   width: 100%;
   white-space: nowrap;
+}
+
+.profile-trigger__message-button {
+  margin-top: 6px;
 }
 
 .profile-modal__hero {

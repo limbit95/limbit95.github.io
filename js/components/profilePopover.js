@@ -1,6 +1,8 @@
+import { getAuthState } from "../auth.js";
 import { getProfileInterests, getPublicProfiles, getSignedAvatarUrl } from "../api.js";
-import { el, getErrorMessage } from "../ui.js";
-import { contentDialog } from "./modal.js";
+import { sendDirectMessage } from "../notifications.js";
+import { el, getErrorMessage, setBusy } from "../ui.js";
+import { closeModal, contentDialog } from "./modal.js";
 import { showToast } from "./toast.js";
 
 export function createProfileAvatarTrigger(profile, {
@@ -23,10 +25,7 @@ export function createProfileAvatarTrigger(profile, {
       height: String(size),
     }),
   ]);
-  const menu = el("span", {
-    className: "profile-trigger__menu",
-    hidden: true,
-  }, [
+  const menuItems = [
     el("button", {
       className: "button button--secondary profile-trigger__detail-button",
       type: "button",
@@ -37,7 +36,24 @@ export function createProfileAvatarTrigger(profile, {
         await openPublicProfile(profile?.id);
       },
     }),
-  ]);
+  ];
+  const auth = getAuthState();
+  if (profile?.id && profile.id !== auth.user?.id) {
+    menuItems.push(el("button", {
+      className: "button button--ghost profile-trigger__message-button",
+      type: "button",
+      text: "✉️ 쪽지 보내기",
+      onClick: async () => {
+        menu.hidden = true;
+        button.setAttribute("aria-expanded", "false");
+        await openDirectMessageComposer(profile.id, profile.display_name ?? "회원");
+      },
+    }));
+  }
+  const menu = el("span", {
+    className: "profile-trigger__menu",
+    hidden: true,
+  }, menuItems);
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
@@ -60,6 +76,76 @@ export function closeProfileMenus() {
     menu.hidden = true;
     menu.parentElement?.querySelector(".profile-trigger__avatar-button")?.setAttribute("aria-expanded", "false");
   });
+}
+
+async function openDirectMessageComposer(userId, displayName) {
+  if (!userId) {
+    showToast("쪽지를 받을 회원을 확인할 수 없습니다.", "error");
+    return;
+  }
+
+  const counter = el("span", { className: "small subtle", text: "0 / 2000" });
+  const textarea = el("textarea", {
+    name: "message",
+    maxlength: "2000",
+    required: true,
+    placeholder: `${displayName}님에게 보낼 쪽지를 입력해 주세요.`,
+    "aria-label": `${displayName}님에게 보낼 쪽지 내용`,
+  });
+  textarea.addEventListener("input", () => {
+    counter.textContent = `${textarea.value.length} / 2000`;
+  });
+
+  const form = el("form", { className: "message-compose-form" }, [
+    el("div", { className: "message-compose-form__recipient" }, [
+      el("span", { className: "small subtle", text: "받는 사람" }),
+      el("strong", { text: displayName }),
+    ]),
+    textarea,
+    el("div", { className: "message-compose-form__footer" }, [
+      counter,
+      el("div", { className: "button-row" }, [
+        el("button", {
+          className: "button button--ghost",
+          type: "button",
+          text: "취소",
+          onClick: () => closeModal(false),
+        }),
+        el("button", {
+          className: "button",
+          type: "submit",
+          text: "쪽지 보내기",
+        }),
+      ]),
+    ]),
+  ]);
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const content = textarea.value.trim();
+    if (!content) {
+      showToast("쪽지 내용을 입력해 주세요.", "error");
+      textarea.focus();
+      return;
+    }
+    setBusy(form, true, "전송 중…");
+    try {
+      await sendDirectMessage(userId, content);
+      showToast(`${displayName}님에게 쪽지를 보냈습니다.`, "success");
+      closeModal(true);
+    } catch (error) {
+      showToast(getErrorMessage(error, "쪽지를 보내지 못했습니다."), "error");
+      setBusy(form, false);
+    }
+  });
+
+  const modalPromise = contentDialog({
+    title: "쪽지 보내기",
+    content: form,
+    showCloseAction: false,
+  });
+  window.requestAnimationFrame(() => textarea.focus());
+  await modalPromise;
 }
 
 async function openPublicProfile(userId) {

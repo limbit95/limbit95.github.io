@@ -55,12 +55,15 @@ export function createActivityCard(event, {
   const registrationOpen = event.status === "scheduled"
     && (!event.registration_deadline || new Date(event.registration_deadline) >= new Date());
   const capacityLabel = event.capacity ? `${counts.joined}/${event.capacity}명` : `${counts.joined}명`;
-  const meterValue = event.capacity ? Math.min(100, Math.round((counts.joined / event.capacity) * 100)) : 0;
+  const detailHref = `#/activities/${event.id}`;
   const card = el("article", {
-    className: "activity-card",
-    style: { "--category-color": event.category?.color ?? "#2f6b4f" },
+    className: "activity-card activity-card--clickable",
+    style: {
+      "--category-color": event.category?.color ?? "#2f6b4f",
+      cursor: "pointer",
+    },
   });
-  const titleLink = el("a", { href: `#/activities/${event.id}` }, [
+  const titleLink = el("a", { href: detailHref }, [
     el("h3", { className: "activity-card__title", text: event.title }),
   ]);
   const header = el("div", { className: "activity-card__header" }, [
@@ -73,7 +76,7 @@ export function createActivityCard(event, {
     ]),
     statusBadge(event),
   ]);
-  const meta = el("div", { className: "meta-list" }, [
+  const meta = el("div", { className: "meta-list activity-card__meta" }, [
     el("div", { className: "meta-item" }, [
       el("span", { className: "meta-icon", text: "🗓️", "aria-hidden": "true" }),
       el("span", { text: `${formatDate(event.event_date)} ${formatTime(event.start_time)}` }),
@@ -87,24 +90,12 @@ export function createActivityCard(event, {
       el("span", { text: `참여 ${capacityLabel}${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}` }),
     ]),
   ]);
-  const meter = event.capacity
-    ? el("div", { className: "participant-meter" }, [
-        el("div", {
-          className: "meter",
-          role: "progressbar",
-          "aria-label": "참여 인원",
-          "aria-valuemin": "0",
-          "aria-valuemax": event.capacity,
-          "aria-valuenow": counts.joined,
-        }, el("span", { style: { "--meter-value": `${meterValue}%` } })),
-      ])
-    : null;
-  const footer = el("div", { className: "activity-card__footer" }, [meter]);
+  const footer = el("div", { className: "activity-card__footer" });
 
   if (!compact) {
     if (mine && mine.status !== "cancelled" && registrationOpen) {
       footer.append(el("button", {
-        className: "button button--secondary",
+        className: "button button--secondary button--block",
         type: "button",
         text: `${mine.status === "waitlisted" ? "⏳" : "✓"} ${PARTICIPATION_STATUS_LABEL[mine.status]} · 취소`,
         onClick: (clickEvent) => onCancel?.(event, mine, clickEvent.currentTarget),
@@ -112,27 +103,35 @@ export function createActivityCard(event, {
     } else if (!mine || mine.status === "cancelled") {
       if (registrationOpen) {
         footer.append(el("button", {
-          className: "button button--coral",
+          className: "button button--coral button--block",
           type: "button",
           text: event.capacity && counts.joined >= event.capacity ? "⏳ 대기 신청" : "🙌 참여하기",
           onClick: (clickEvent) => onJoin?.(event, clickEvent.currentTarget),
         }));
       } else {
         footer.append(el("a", {
-          className: "button button--ghost",
-          href: `#/activities/${event.id}`,
+          className: "button button--ghost button--block",
+          href: detailHref,
           text: event.status === "scheduled" ? "신청 마감 · 상세 보기" : "상세 보기",
         }));
       }
     } else {
       footer.append(el("button", {
-        className: "button button--secondary",
+        className: "button button--secondary button--block",
         type: "button",
         text: `${mine.status === "waitlisted" ? "⏳" : "✓"} ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
         disabled: true,
       }));
     }
   }
+
+  card.addEventListener("click", (clickEvent) => {
+    const target = clickEvent.target instanceof Element ? clickEvent.target : null;
+    if (!target) return;
+    if (target.closest("a, button, input, select, textarea, label")) return;
+    window.location.hash = detailHref;
+  });
+
   card.append(header, meta, footer);
   return card;
 }
