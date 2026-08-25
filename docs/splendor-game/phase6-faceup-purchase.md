@@ -64,6 +64,8 @@ splendor_purchase_faceup(
 
 사용자는 결제 패널의 `-`를 눌러 보유 중인 일반 보석 대신 Gold를 사용하도록 선택할 수 있다. Gold는 특정 색에 귀속해 저장할 필요가 없으므로 서버에는 색상별 일반 토큰 결제량과 Gold 총 결제량만 전송한다.
 
+현재 실제 진입 파일은 `splendor-game/js/phase6PurchaseV2.js`를 로드한다. 구매 UI는 기존 예약 모듈의 placeholder 구매 버튼을 숨기고 독립된 결제 패널과 구매 버튼을 사용해 예약/구매 MutationObserver가 서로 버튼 상태를 덮어쓰지 않도록 분리했다.
+
 ## 자동 검증 완료
 
 실제 진행 게임을 이용하되 PL/pgSQL exception subtransaction으로 변경사항을 모두 rollback했다.
