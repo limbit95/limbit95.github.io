@@ -64,11 +64,24 @@ root.addEventListener("submit",async(event)=>{event.preventDefault();const form=
  if(form.dataset.action==="nickname"){const nickname=data.get("nickname").trim();if(!nickname||nickname.length>20)return;setNickname(nickname);store.set({nickname});await perform(()=>loadActiveRooms(),{reload:false});return;}
  if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:[...CATEGORIES],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
- if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit")),p_show_category_to_liar:data.has("showCategoryToLiar"),p_game_mode:String(data.get("gameMode")||"classic"),p_drawing_time_limit:Number(data.get("drawingTimeLimit")||15),p_drawing_stroke_limit:Number(data.get("drawingStrokeLimit")||3)},s.room.version));}
+ if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit")),p_show_category_to_liar:data.has("showCategoryToLiar"),p_game_mode:String(data.get("gameMode")||"classic"),p_drawing_time_limit:Number(data.get("drawingTimeLimit")||15),p_drawing_stroke_limit:Number(data.get("drawingStrokeLimit")||3),p_drawing_stroke_unlimited:data.has("drawingStrokeUnlimited")},s.room.version));}
  if(form.dataset.action==="guess"){const guessText=String(data.get("guess")||"").trim();if(!guessText||guessText.length>100){store.set({message:ERROR_MESSAGES.INVALID_GUESS_TEXT});return;}await perform(()=>commands.submitGuess(guessText));}
  if(form.dataset.action==="ballot"){const voteState=store.get().voteState;const targets=data.getAll("target");if(targets.length!==Number(voteState?.seats_to_fill)){store.set({message:ERROR_MESSAGES.INVALID_BALLOT_SELECTION_COUNT});return;}await perform(async()=>{await commands.submitBallot(targets);clearVoteDraft();});}
 });
-root.addEventListener("change",event=>{if(event.target.name!=="target")return;const form=event.target.closest('form[data-action="ballot"]');if(!form)return;const state=store.get();const limit=Number(state.voteState?.seats_to_fill||0);let checked=[...form.querySelectorAll('input[name="target"]:checked')];if(checked.length>limit){event.target.checked=false;checked=[...form.querySelectorAll('input[name="target"]:checked')];alert(`최대 ${limit}명까지 선택할 수 있습니다.`);}voteDraftStageId=state.voteState?.stage_id||null;voteDraftRoundId=state.snapshot?.round?.id||null;voteDraftTargets=checked.map(input=>input.value);form.querySelector("[data-vote-selected]").textContent=checked.length;form.querySelector("[data-ballot-submit]").disabled=checked.length!==limit;});
+root.addEventListener("change",event=>{
+ if(event.target.name==="drawingStrokeUnlimited"){
+  const form=event.target.closest('form[data-action="settings"]');
+  const limitInput=form?.querySelector('input[name="drawingStrokeLimit"]');
+  const control=limitInput?.closest(".drawing-stroke-limit-control");
+  if(limitInput)limitInput.readOnly=event.target.checked;
+  control?.classList.toggle("is-unlimited",event.target.checked);
+  const help=control?.querySelector("small");
+  if(help)help.textContent=event.target.checked?"무제한 모드에서는 사용하지 않습니다.":"1인당 1~10획";
+  return;
+ }
+ if(event.target.name!=="target")return;
+ const form=event.target.closest('form[data-action="ballot"]');if(!form)return;const state=store.get();const limit=Number(state.voteState?.seats_to_fill||0);let checked=[...form.querySelectorAll('input[name="target"]:checked')];if(checked.length>limit){event.target.checked=false;checked=[...form.querySelectorAll('input[name="target"]:checked')];alert(`최대 ${limit}명까지 선택할 수 있습니다.`);}voteDraftStageId=state.voteState?.stage_id||null;voteDraftRoundId=state.snapshot?.round?.id||null;voteDraftTargets=checked.map(input=>input.value);form.querySelector("[data-vote-selected]").textContent=checked.length;form.querySelector("[data-ballot-submit]").disabled=checked.length!==limit;
+});
 function closeRoleModal(){if(!store.get().roleModalOpen)return;store.set({roleModalOpen:false,roleModalLoading:false});requestAnimationFrame(()=>root.querySelector('[data-action="open-role-modal"]')?.focus({preventScroll:true}));}
 window.addEventListener("keydown",(event)=>{if(event.key==="Escape"&&store.get().roleModalOpen)closeRoleModal();});
 root.addEventListener("click",async(event)=>{
