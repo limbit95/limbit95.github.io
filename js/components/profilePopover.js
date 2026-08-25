@@ -98,8 +98,8 @@ async function openPublicProfile(userId) {
           className: "avatar avatar--large profile-modal__avatar",
           src: avatar,
           alt: `${profile.display_name ?? "회원"} 프로필`,
-          width: "124",
-          height: "124",
+          width: "156",
+          height: "156",
         }),
         el("div", {}, [
           el("strong", { className: "profile-modal__name", text: profile.display_name ?? "회원" }),
