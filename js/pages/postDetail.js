@@ -146,34 +146,53 @@ async function handleDeletePost(post, base, isPrayer = false) {
 }
 
 function createCommentSection(post, comments, auth, isPrayer = false) {
-  const section = el("section", { className: "card page-stack", "aria-labelledby": "comments-title" });
+  const section = el("section", {
+    className: isPrayer ? "card page-stack prayer-comment-section" : "card page-stack",
+    "aria-labelledby": "comments-title",
+  });
   const title = el("h2", {
     id: "comments-title",
     className: "section-title",
-    text: isPrayer ? `응원과 기도 나눔 ${comments.length}개` : `댓글 ${comments.length}개`,
+    text: isPrayer ? `응원 메시지 ${comments.length}개` : `댓글 ${comments.length}개`,
   });
-  const form = el("form", { className: "form-grid" }, [
-    el("div", { className: "field" }, [
-      el("label", { for: "comment-content", text: isPrayer ? "응원 메시지" : "댓글 작성" }),
-      el("textarea", {
-        id: "comment-content",
-        name: "content",
-        maxlength: "3000",
-        required: true,
-        placeholder: isPrayer
-          ? "함께 기도하며 전하고 싶은 응원이나 마음을 남겨 주세요."
-          : "서로를 배려하는 댓글을 남겨 주세요.",
-        style: { minHeight: "100px" },
-      }),
-    ]),
-    el("button", {
-      className: "button",
-      type: "submit",
-      text: isPrayer ? "메시지 남기기" : "댓글 등록",
-      style: { justifySelf: "end" },
-    }),
-  ]);
-  const list = el("div", { className: "comment-list" });
+
+  const form = isPrayer
+    ? el("form", { className: "prayer-comment-form" }, [
+        el("textarea", {
+          id: "comment-content",
+          name: "content",
+          maxlength: "3000",
+          required: true,
+          "aria-label": "응원 메시지",
+          placeholder: "따뜻한 응원 메시지를 남겨 주세요.",
+        }),
+        el("button", {
+          className: "button prayer-comment-form__submit",
+          type: "submit",
+          text: "등록",
+        }),
+      ])
+    : el("form", { className: "form-grid" }, [
+        el("div", { className: "field" }, [
+          el("label", { for: "comment-content", text: "댓글 작성" }),
+          el("textarea", {
+            id: "comment-content",
+            name: "content",
+            maxlength: "3000",
+            required: true,
+            placeholder: "서로를 배려하는 댓글을 남겨 주세요.",
+            style: { minHeight: "100px" },
+          }),
+        ]),
+        el("button", {
+          className: "button",
+          type: "submit",
+          text: "댓글 등록",
+          style: { justifySelf: "end" },
+        }),
+      ]);
+
+  const list = el("div", { className: isPrayer ? "comment-list prayer-comment-list" : "comment-list" });
   renderCommentList(list, comments, auth, isPrayer);
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -191,16 +210,16 @@ function createCommentSection(post, comments, auth, isPrayer = false) {
         content,
         status: "published",
       });
-      showToast(isPrayer ? "응원과 기도의 마음을 남겼습니다." : "댓글을 등록했습니다.", "success");
+      showToast(isPrayer ? "응원 메시지를 남겼습니다." : "댓글을 등록했습니다.", "success");
       const refreshedAll = await listComments("post", post.id);
       const refreshed = isPrayer
         ? refreshedAll.filter((item) => item.content !== PRAYER_REACTION_TEXT)
         : refreshedAll;
       renderCommentList(list, refreshed, auth, isPrayer);
-      title.textContent = isPrayer ? `응원과 기도 나눔 ${refreshed.length}개` : `댓글 ${refreshed.length}개`;
+      title.textContent = isPrayer ? `응원 메시지 ${refreshed.length}개` : `댓글 ${refreshed.length}개`;
       form.reset();
     } catch (error) {
-      showToast(getErrorMessage(error, isPrayer ? "메시지 등록에 실패했습니다." : "댓글 등록에 실패했습니다."), "error");
+      showToast(getErrorMessage(error, isPrayer ? "응원 메시지 등록에 실패했습니다." : "댓글 등록에 실패했습니다."), "error");
     } finally {
       setBusy(form, false);
     }
@@ -213,9 +232,9 @@ function renderCommentList(list, comments, auth, isPrayer) {
   list.replaceChildren();
   if (!comments.length) {
     list.append(el("p", {
-      className: "subtle",
+      className: isPrayer ? "subtle prayer-comment-empty" : "subtle",
       text: isPrayer
-        ? "아직 응원 메시지가 없습니다. 함께 기도하는 마음을 먼저 남겨 보세요."
+        ? "아직 응원 메시지가 없습니다. 따뜻한 응원을 먼저 남겨 보세요."
         : "아직 댓글이 없습니다. 첫 댓글을 남겨 보세요.",
     }));
     return;
@@ -225,22 +244,34 @@ function renderCommentList(list, comments, auth, isPrayer) {
 
 function commentNode(comment, auth, isPrayer = false) {
   const canEdit = auth.isAdmin || comment.author_id === auth.user.id;
-  const content = el("p", { className: "prose", text: comment.content });
-  const node = el("article", { className: "comment" }, [
-    el("div", { className: "comment__head" }, [
-      el("div", {}, [
-        el("strong", { text: comment.author?.display_name ?? "회원" }),
-        el("span", { className: "small subtle", text: ` · ${relativeTime(comment.created_at)}` }),
-      ]),
+  const authorName = comment.author?.display_name ?? "회원";
+  const content = el("p", {
+    className: isPrayer ? "prose prayer-comment__content" : "prose",
+    text: comment.content,
+  });
+  const node = el("article", { className: isPrayer ? "comment prayer-comment" : "comment" }, [
+    el("div", { className: isPrayer ? "comment__head prayer-comment__head" : "comment__head" }, [
+      isPrayer
+        ? el("div", { className: "prayer-comment__author" }, [
+            el("span", { className: "prayer-comment__author-mark", text: authorName.slice(0, 1), "aria-hidden": "true" }),
+            el("div", { className: "prayer-comment__author-meta" }, [
+              el("strong", { className: "prayer-comment__author-name", text: authorName }),
+              el("span", { className: "small subtle prayer-comment__time", text: relativeTime(comment.created_at) }),
+            ]),
+          ])
+        : el("div", {}, [
+            el("strong", { text: authorName }),
+            el("span", { className: "small subtle", text: ` · ${relativeTime(comment.created_at)}` }),
+          ]),
       canEdit ? el("div", { className: "comment__actions" }, [
         el("button", {
-          className: "button button--ghost",
+          className: isPrayer ? "button button--ghost prayer-comment__action" : "button button--ghost",
           type: "button",
           text: "수정",
           onClick: () => startCommentEdit(node, content, comment, isPrayer),
         }),
         el("button", {
-          className: "button button--ghost",
+          className: isPrayer ? "button button--ghost prayer-comment__action prayer-comment__action--delete" : "button button--ghost",
           type: "button",
           text: "삭제",
           onClick: () => handleDeleteComment(node, comment.id, isPrayer),
@@ -254,11 +285,11 @@ function commentNode(comment, auth, isPrayer = false) {
 
 function startCommentEdit(node, contentNode, comment, isPrayer = false) {
   if (node.querySelector("form")) return;
-  const form = el("form", { className: "form-grid" }, [
+  const form = el("form", { className: isPrayer ? "form-grid prayer-comment-edit" : "form-grid" }, [
     el("textarea", { name: "content", maxlength: "3000", required: true, text: comment.content, style: { minHeight: "100px" } }),
     el("div", { className: "button-row" }, [
       el("button", { className: "button button--ghost", type: "button", text: "취소", onClick: () => form.replaceWith(contentNode) }),
-      el("button", { className: "button", type: "submit", text: "수정 저장" }),
+      el("button", { className: "button", type: "submit", text: isPrayer ? "수정 완료" : "수정 저장" }),
     ]),
   ]);
   form.addEventListener("submit", async (event) => {
@@ -271,9 +302,9 @@ function startCommentEdit(node, contentNode, comment, isPrayer = false) {
       comment.content = value;
       contentNode.textContent = value;
       form.replaceWith(contentNode);
-      showToast(isPrayer ? "메시지를 수정했습니다." : "댓글을 수정했습니다.", "success");
+      showToast(isPrayer ? "응원 메시지를 수정했습니다." : "댓글을 수정했습니다.", "success");
     } catch (error) {
-      showToast(getErrorMessage(error, isPrayer ? "메시지 수정에 실패했습니다." : "댓글 수정에 실패했습니다."), "error");
+      showToast(getErrorMessage(error, isPrayer ? "응원 메시지 수정에 실패했습니다." : "댓글 수정에 실패했습니다."), "error");
       setBusy(form, false);
     }
   });
@@ -283,8 +314,8 @@ function startCommentEdit(node, contentNode, comment, isPrayer = false) {
 
 async function handleDeleteComment(node, commentId, isPrayer = false) {
   const confirmed = await confirmDialog({
-    title: isPrayer ? "메시지를 삭제할까요?" : "댓글을 삭제할까요?",
-    message: isPrayer ? "삭제한 메시지는 복구할 수 없습니다." : "삭제한 댓글은 복구할 수 없습니다.",
+    title: isPrayer ? "응원 메시지를 삭제할까요?" : "댓글을 삭제할까요?",
+    message: isPrayer ? "삭제한 응원 메시지는 복구할 수 없습니다." : "삭제한 댓글은 복구할 수 없습니다.",
     confirmText: "삭제",
     danger: true,
   });
@@ -292,8 +323,8 @@ async function handleDeleteComment(node, commentId, isPrayer = false) {
   try {
     await deleteComment(commentId);
     node.remove();
-    showToast(isPrayer ? "메시지를 삭제했습니다." : "댓글을 삭제했습니다.", "success");
+    showToast(isPrayer ? "응원 메시지를 삭제했습니다." : "댓글을 삭제했습니다.", "success");
   } catch (error) {
-    showToast(getErrorMessage(error, isPrayer ? "메시지 삭제에 실패했습니다." : "댓글 삭제에 실패했습니다."), "error");
+    showToast(getErrorMessage(error, isPrayer ? "응원 메시지 삭제에 실패했습니다." : "댓글 삭제에 실패했습니다."), "error");
   }
 }
