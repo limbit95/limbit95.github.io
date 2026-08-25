@@ -19,6 +19,14 @@ export async function getSignedAvatarUrl(path, expiresIn = 3600) {
 }
 
 export async function getPublicProfiles(userId = null) {
+  if (Array.isArray(userId)) {
+    const userIds = [...new Set(userId.filter(Boolean))];
+    if (!userIds.length) return [];
+    const data = unwrap(await supabase.rpc("get_public_member_profiles_by_ids", {
+      p_user_ids: userIds,
+    }));
+    return data ?? [];
+  }
   const data = unwrap(await supabase.rpc("get_public_member_profiles", {
     p_user_id: userId,
   }));
@@ -27,7 +35,8 @@ export async function getPublicProfiles(userId = null) {
 
 export async function attachPublicProfiles(rows, idKey = "author_id", resultKey = "author") {
   if (!rows?.length) return rows ?? [];
-  const profiles = await getPublicProfiles();
+  const userIds = [...new Set(rows.map((row) => row[idKey]).filter(Boolean))];
+  const profiles = await getPublicProfiles(userIds);
   const byId = new Map(profiles.map((profile) => [profile.id, profile]));
   return rows.map((row) => ({ ...row, [resultKey]: byId.get(row[idKey]) ?? null }));
 }
