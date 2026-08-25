@@ -44,23 +44,25 @@
 .profile-modal__hero {
   display: grid;
   justify-items: center;
-  gap: 14px;
-  padding-block: 6px 10px;
+  gap: 16px;
+  padding-block: 8px 14px;
   text-align: center;
 }
 
 .profile-modal__avatar {
-  width: 156px;
-  height: 156px;
-  border: 5px solid var(--surface);
-  box-shadow: 0 0 0 3px var(--forest-100), var(--shadow-md);
+  width: 232px;
+  height: 232px;
+  max-width: min(70vw, 232px);
+  max-height: min(70vw, 232px);
+  border: 6px solid var(--surface);
+  box-shadow: 0 0 0 4px var(--forest-100), var(--shadow-md);
 }
 
 .profile-modal__name {
   display: block;
   margin-bottom: 4px;
   color: var(--forest-900);
-  font-size: 1.28rem;
+  font-size: 1.32rem;
 }
 
 .profile-modal__section {
@@ -85,7 +87,9 @@
   }
 
   .profile-modal__avatar {
-    width: 144px;
-    height: 144px;
+    width: 200px;
+    height: 200px;
+    max-width: min(72vw, 200px);
+    max-height: min(72vw, 200px);
   }
 }
