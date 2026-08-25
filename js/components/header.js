@@ -220,13 +220,21 @@ export function createHeader({ auth, currentPath, onLogout }) {
   }, header);
   window.setTimeout(refreshNotificationBadge, 0);
 
+  const adminLink = auth.isAdmin
+    ? el("a", {
+        className: "icon-button header-admin-link",
+        href: "#/admin",
+        text: "🛠️",
+        "aria-label": "관리자 화면",
+      })
+    : null;
   const logoutButton = el("button", {
     className: "button button--ghost",
     type: "button",
     text: "로그아웃",
     onClick: onLogout,
   });
-  actions.append(notificationWrap, logoutButton);
+  actions.append(adminLink, notificationWrap, logoutButton);
   inner.append(brand, nav, actions);
   header.append(inner);
   return header;
