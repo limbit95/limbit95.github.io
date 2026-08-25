@@ -1,6 +1,6 @@
-# 스플렌더 웹게임 기술 설계서 v0.1
+# 스플렌더 웹게임 기술 설계서 v0.2
 
-> 기준 문서: `docs/splendor-game/requirements.md` v0.1  
+> 기준 문서: `docs/splendor-game/requirements.md` v0.2  
 > 상태: 구현 전 구조 설계 초안  
 > 대상 환경: GitHub Pages + Vanilla JavaScript ES Modules + Supabase  
 > 주의: 본 문서는 향후 생성할 소스와 DB의 구조만 정의하며 실제 HTML/CSS/JS/SQL 파일은 아직 생성하지 않는다.
@@ -59,8 +59,9 @@ Supabase
 ├─ PostgreSQL
 │  ├─ Room / Player
 │  ├─ Game State
+│  ├─ Ruleset
 │  ├─ Card/Noble Catalog
-│  ├─ Card/Noble Instances
+│  ├─ Card/Noble Game Instance
 │  └─ Action Log
 ├─ Transactional RPC
 └─ Realtime invalidation
@@ -77,6 +78,9 @@ Supabase
 7. 각 mutation은 현재 턴, 상태, version을 다시 검증한다.
 8. 비공개 예약 카드 정보는 서버 응답 단계에서 권한별로 분리한다.
 9. 새로고침 후에도 서버 snapshot으로 복구 가능해야 한다.
+10. 카드 정의와 게임 중 카드 위치/소유 상태는 분리한다.
+11. 게임 상태 전체를 단일 JSON 문서로 저장하지 않는다.
+12. 보석처럼 하나의 논리 묶음인 값만 JSONB를 사용한다.
 
 ---
 
@@ -159,6 +163,8 @@ supabase/splendor-game/
 | `motion.js` | 카드/턴/결과 전환 애니메이션과 reduced-motion 처리 |
 | `views/*` | 상태별 DOM 렌더링과 화면 단위 이벤트 연결 |
 
+카드의 실제 숫자 데이터는 `constants.js`나 `rules.js`에 하드코딩하지 않는다.
+
 ---
 
 # E. View 구조
@@ -191,8 +197,6 @@ supabase/splendor-game/
 ## E.5 `board.js`
 
 게임 진행 화면 전체 레이아웃을 담당한다.
-
-내부 영역:
 
 ```text
 [귀족]
@@ -276,8 +280,6 @@ ui
 connection
 ```
 
-세부 의미:
-
 | 상태 | 설명 |
 |---|---|
 | `session` | Supabase Auth 세션 |
@@ -308,6 +310,7 @@ connection
 
 공개 가능:
 
+- 현재 ruleset 식별 정보
 - 공개 개발 카드
 - 공개 귀족
 - 보석 공급량
@@ -329,11 +332,135 @@ connection
 
 ---
 
-# H. DB 개념 모델
+# H. 데이터 모델 설계 원칙
 
-정확한 컬럼과 SQL은 구현 단계에서 확정한다.
+## H.1 정규화 + JSONB 혼합
 
-## H.1 `splendor_rooms`
+전체 게임을 하나의 `state JSONB` 컬럼에 저장하지 않는다.
+
+관계와 상태 전이는 일반 컬럼/테이블로 유지하고, 보석 색 묶음만 JSONB로 저장한다.
+
+JSONB 사용 대상:
+
+```text
+card cost       = white/blue/green/red/black
+noble requirement = white/blue/green/red/black
+bank tokens     = white/blue/green/red/black/gold
+player tokens   = white/blue/green/red/black/gold
+player bonuses  = white/blue/green/red/black
+```
+
+예시:
+
+```json
+{
+  "white": 1,
+  "blue": 0,
+  "green": 2,
+  "red": 1,
+  "black": 0,
+  "gold": 1
+}
+```
+
+장점:
+
+- JavaScript 객체와 구조가 자연스럽게 대응된다.
+- 색상 단위 계산 함수를 재사용하기 쉽다.
+- 테이블마다 색별 컬럼이 반복되는 것을 줄인다.
+- 카드/플레이어/은행의 보석 데이터를 동일한 검증 방식으로 처리할 수 있다.
+
+JSONB 내부 key는 서버에서 허용 목록과 0 이상의 정수 여부를 검증한다.
+
+---
+
+# I. DB 개념 모델
+
+정확한 SQL 타입, 제약조건, 인덱스는 구현 단계에서 확정한다.
+
+## I.1 `splendor_rulesets`
+
+카드와 귀족 데이터 세트의 버전을 정의한다.
+
+개념 필드:
+
+- id
+- ruleset key
+- version
+- name
+- status
+- created at
+
+상태 후보:
+
+```text
+draft
+active
+retired
+```
+
+원칙:
+
+- 새 게임은 `active` 룰셋 중 지정된 기본 룰셋을 사용한다.
+- 게임 시작 시 `splendor_games.ruleset_id`에 고정한다.
+- 실제 게임에서 사용된 룰셋의 수치 데이터는 직접 수정하지 않는다.
+- 변경이 필요하면 새 ruleset을 만든다.
+
+개발 초기에는 테스트 전용 룰셋을 둔다.
+
+## I.2 `splendor_card_catalog`
+
+개발 카드의 정적 정의.
+
+개념 필드:
+
+- id
+- ruleset id
+- card key
+- tier
+- bonus color
+- prestige
+- cost JSONB
+- enabled
+
+예시 비용:
+
+```json
+{
+  "white": 0,
+  "blue": 2,
+  "green": 1,
+  "red": 0,
+  "black": 3
+}
+```
+
+제약 개념:
+
+- tier는 1~3
+- bonus color는 일반 보석 5색 중 하나
+- prestige는 0 이상의 정수
+- cost에는 일반 보석 5색만 존재
+- `(ruleset_id, card_key)` unique
+
+## I.3 `splendor_noble_catalog`
+
+귀족 조건 정적 정의.
+
+개념 필드:
+
+- id
+- ruleset id
+- noble key
+- prestige
+- requirements JSONB
+- enabled
+
+requirements에는 일반 보석 5색만 존재한다.
+
+`(ruleset_id, noble_key)` unique를 둔다.
+
+## I.4 `splendor_rooms`
 
 역할:
 
@@ -344,7 +471,7 @@ connection
 - 만료
 - version
 
-주요 상태:
+상태:
 
 ```text
 waiting
@@ -353,7 +480,7 @@ finished
 closed
 ```
 
-## H.2 `splendor_room_players`
+## I.5 `splendor_room_players`
 
 역할:
 
@@ -364,22 +491,26 @@ closed
 - room membership
 - 접속/이탈 상태
 
-## H.3 `splendor_games`
+## I.6 `splendor_games`
 
 게임 전체의 권위 상태.
 
-예정 개념 필드:
+개념 필드:
 
+- id
 - room id
+- ruleset id
 - status
-- current player/seat
+- current seat
 - turn number
 - turn phase
-- version
-- bank white/blue/green/red/black/gold
+- bank_tokens JSONB
 - final round triggered
+- final round trigger seat
 - winner resolved
-- started/finished time
+- version
+- started at
+- finished at
 
 게임 상태:
 
@@ -399,55 +530,49 @@ discard_required
 noble_choice_required
 ```
 
-## H.4 `splendor_game_players`
+`bank_tokens` 예시:
+
+```json
+{
+  "white": 4,
+  "blue": 4,
+  "green": 4,
+  "red": 4,
+  "black": 4,
+  "gold": 5
+}
+```
+
+## I.7 `splendor_game_players`
 
 게임 시작 순간의 좌석과 플레이 상태를 고정한다.
 
-예정 개념 필드:
+개념 필드:
 
+- id
 - game id
-- player id
+- room player id
 - seat no
 - score
-- token white/blue/green/red/black/gold
-- bonus white/blue/green/red/black
+- tokens JSONB
+- bonuses JSONB
 - purchased card count
 - reserved card count
-- connection hint
+- status / connection hint
 
 게임 도중 방 멤버 정보가 변해도 게임 좌석 순서는 이 테이블을 기준으로 유지한다.
 
-## H.5 `splendor_card_catalog`
+`score`, `bonuses`, `purchased_card_count`, `reserved_card_count`는 snapshot과 규칙 판정을 빠르게 하기 위한 누적 상태다.
 
-개발 카드의 정적 정의.
+이 값들의 근거 데이터는 `splendor_game_cards`, `splendor_game_nobles`이며 관련 값은 반드시 같은 RPC 트랜잭션 안에서 변경한다.
 
-개념 필드:
-
-- card key
-- tier
-- bonus color
-- prestige
-- cost white/blue/green/red/black
-- enabled
-
-공식 카드 수치 사용 여부가 최종 확정된 후 seed 데이터를 작성한다.
-
-## H.6 `splendor_noble_catalog`
-
-귀족 조건 정적 정의.
-
-개념 필드:
-
-- noble key
-- prestige
-- required bonus white/blue/green/red/black
-- enabled
-
-## H.7 `splendor_game_cards`
+## I.8 `splendor_game_cards`
 
 한 게임에서 카드 한 장의 위치와 소유 상태를 관리한다.
 
-개념 상태:
+카드 정의 자체는 저장하지 않고 `catalog_card_id`로 카탈로그를 참조한다.
+
+상태:
 
 ```text
 deck
@@ -456,8 +581,9 @@ reserved
 purchased
 ```
 
-주요 정보:
+개념 필드:
 
+- id
 - game id
 - catalog card id
 - tier
@@ -466,12 +592,14 @@ purchased
 - state
 - reserved player id
 - purchased player id
-- reserved from hidden deck 여부
+- reserved from hidden deck
 - state changed at
 
-이 구조를 사용하면 공개 카드 구매/예약 후 다음 카드 보충과 비공개 예약을 같은 모델로 처리할 수 있다.
+이 구조를 사용하면 공개 카드 구매/예약 후 다음 카드 보충과 비공개 예약을 동일한 모델로 처리할 수 있다.
 
-## H.8 `splendor_game_nobles`
+카탈로그는 "무슨 카드인가"를 정의하고 게임 카드는 "이번 게임에서 어디에 있는가"를 정의한다.
+
+## I.9 `splendor_game_nobles`
 
 한 게임에 선택된 귀족 인스턴스.
 
@@ -482,24 +610,27 @@ available
 claimed
 ```
 
-주요 정보:
+개념 필드:
 
+- id
 - game id
 - noble catalog id
+- state
 - claimed player id
 - claimed at
 
-## H.9 `splendor_action_log`
+## I.10 `splendor_action_log`
 
 게임의 최근 행동과 mutation idempotency를 보조한다.
 
 개념 필드:
 
+- id
 - game id
 - turn no
 - player id
 - action type
-- public payload
+- public payload JSONB
 - client action id
 - created at
 
@@ -509,7 +640,66 @@ claimed
 
 ---
 
-# I. 게임 시작 트랜잭션
+# J. 테이블 관계 요약
+
+```text
+splendor_rulesets
+   ├─< splendor_card_catalog
+   └─< splendor_noble_catalog
+
+splendor_rooms
+   ├─< splendor_room_players
+   └─< splendor_games >─ splendor_rulesets
+          ├─< splendor_game_players
+          ├─< splendor_game_cards >─ splendor_card_catalog
+          ├─< splendor_game_nobles >─ splendor_noble_catalog
+          └─< splendor_action_log
+```
+
+핵심 데이터 계층:
+
+```text
+RULESET
+   ↓
+CATALOG
+   ↓
+GAME INSTANCE
+   ↓
+PLAYER / BOARD STATE
+```
+
+---
+
+# K. 카드 데이터 버전 정책
+
+카드/귀족 데이터는 DB seed로 투입하되 한 번에 최종 데이터를 확정하지 않는다.
+
+개발 순서:
+
+```text
+TEST RULESET
+  ↓
+규칙 엔진 검증
+  ↓
+멀티플레이/재접속 검증
+  ↓
+FINAL RULESET 결정
+```
+
+초기 테스트 세트 권장 규모:
+
+- Tier 1: 약 10~15장
+- Tier 2: 약 10~15장
+- Tier 3: 약 10~15장
+- Noble: 약 5~8개
+
+위 수량은 기능 테스트를 위한 권장 범위이며 최종 공개 게임 구성과 무관하다.
+
+최종 데이터 세트가 확정되어도 JavaScript 구조나 게임 상태 테이블은 변경하지 않는다.
+
+---
+
+# L. 게임 시작 트랜잭션
 
 방장이 게임 시작을 요청하면 한 RPC 안에서 다음을 처리한다.
 
@@ -518,27 +708,26 @@ claimed
 2. room waiting 상태 확인
 3. active player 2~4명 확인
 4. 모든 플레이어 ready 확인
-5. game 생성
-6. 좌석 순서 랜덤 결정
-7. 인원별 보석 공급량 세팅
-8. card catalog에서 게임 카드 인스턴스 생성
-9. tier별 shuffle order 생성
-10. 각 tier 4장 face_up 배치
-11. 인원수 + 1개의 귀족 선택
-12. game_players 초기화
-13. room → playing
-14. game → active
-15. version 증가
-16. snapshot 반환
+5. 사용할 active ruleset 확정
+6. game 생성 + ruleset_id 고정
+7. 좌석 순서 랜덤 결정
+8. 인원별 bank_tokens 세팅
+9. 해당 ruleset card catalog에서 게임 카드 인스턴스 생성
+10. tier별 shuffle order 생성
+11. 각 tier 4장 face_up 배치
+12. 해당 ruleset noble catalog에서 인원수 + 1개 선택
+13. game_players 초기화
+14. room → playing
+15. game → active
+16. version 증가
+17. snapshot 반환
 ```
 
 카드/귀족 선택 및 셔플은 클라이언트가 아닌 서버 트랜잭션 안에서 처리한다.
 
 ---
 
-# J. 턴 상태 머신
-
-기본 턴 흐름:
+# M. 턴 상태 머신
 
 ```text
 ACTION
@@ -580,11 +769,11 @@ NOBLE_CHOICE_REQUIRED
 
 ---
 
-# K. 예정 Command RPC
+# N. 예정 Command RPC
 
 명칭은 구현 시 조정 가능하다.
 
-## K.1 Room
+## N.1 Room
 
 - `splendor_create_room`
 - `splendor_join_room`
@@ -592,7 +781,7 @@ NOBLE_CHOICE_REQUIRED
 - `splendor_leave_room`
 - `splendor_start_game`
 
-## K.2 Turn Action
+## N.2 Turn Action
 
 - `splendor_take_distinct_tokens`
 - `splendor_take_double_token`
@@ -600,12 +789,12 @@ NOBLE_CHOICE_REQUIRED
 - `splendor_reserve_hidden_card`
 - `splendor_purchase_card`
 
-## K.3 Turn Follow-up
+## N.3 Turn Follow-up
 
 - `splendor_return_excess_tokens`
 - `splendor_choose_noble`
 
-## K.4 Lifecycle
+## N.4 Lifecycle
 
 - `splendor_rematch`
 - `splendor_close_room`
@@ -619,9 +808,7 @@ NOBLE_CHOICE_REQUIRED
 
 ---
 
-# L. RPC 공통 검증 순서
-
-모든 게임 행동은 최소한 다음 순서로 검증한다.
+# O. RPC 공통 검증 순서
 
 ```text
 Auth session
@@ -651,9 +838,9 @@ UI가 버튼을 비활성화했더라도 서버 검증을 생략하지 않는다
 
 ---
 
-# M. 토큰 행동 서버 규칙
+# P. 토큰 행동 서버 규칙
 
-## M.1 서로 다른 보석
+## P.1 서로 다른 보석
 
 서버는 다음을 검증한다.
 
@@ -663,23 +850,23 @@ UI가 버튼을 비활성화했더라도 서버 검증을 생략하지 않는다
 - 공급처 존재 여부
 - 가능한 색이 3개 이상인데 임의로 1~2개만 선택하는 정책 여부
 
-기본 구현은 공식 규칙에 맞춰 공급처에 획득 가능한 색이 부족한 경우에만 3개 미만 획득을 허용하는 방향으로 한다.
+기본 구현은 공급처에 획득 가능한 색이 부족한 경우에만 3개 미만 획득을 허용한다.
 
-## M.2 같은 색 2개
+## P.2 같은 색 2개
 
 - 금색 제외
 - 행동 시작 전 공급처 4개 이상
 - 정확히 2개 획득
 
-## M.3 10개 제한
+## P.3 10개 제한
 
 행동 결과 토큰 총합이 10을 초과하면 바로 다음 플레이어로 턴을 넘기지 않고 `discard_required` 상태로 전환한다.
 
 ---
 
-# N. 카드 구매 계산
+# Q. 카드 구매 계산
 
-서버 구매 판정은 색별로 다음 개념을 사용한다.
+서버 구매 판정은 카탈로그의 `cost JSONB`와 플레이어의 `bonuses JSONB`를 색별로 비교한다.
 
 ```text
 required(color) = max(card_cost(color) - player_bonus(color), 0)
@@ -692,55 +879,62 @@ required(color) = max(card_cost(color) - player_bonus(color), 0)
 구매 시 원자 처리:
 
 ```text
-1. 카드 구매 가능 여부 확인
-2. 일반 토큰 차감
-3. 부족분 gold 차감
-4. 사용 토큰 bank 반환
-5. card → purchased
-6. player bonus 증가
-7. prestige 증가
-8. purchased card count 증가
-9. 공개 카드였다면 동일 tier 다음 카드 보충
-10. 귀족/종료 후처리
+1. 카드 인스턴스 구매 가능 여부 확인
+2. catalog에서 cost/bonus/prestige 조회
+3. 플레이어 tokens 차감
+4. 부족분 gold 차감
+5. 사용 토큰 bank_tokens 반환
+6. game_card → purchased
+7. player bonuses 증가
+8. player score 증가
+9. purchased_card_count 증가
+10. reserved 카드였다면 reserved_card_count 감소
+11. 공개 카드였다면 동일 tier 다음 카드 보충
+12. 귀족/종료 후처리
+13. game version 증가
 ```
+
+`game_cards`와 `game_players`의 누적 상태는 반드시 같은 트랜잭션에서 갱신한다.
 
 ---
 
-# O. 카드 예약 처리
+# R. 카드 예약 처리
 
-## O.1 공개 카드 예약
+## R.1 공개 카드 예약
 
 ```text
 face_up card
    ↓
 reserved + owner 설정
    ↓
-예약 장수 +1
+reserved_card_count +1
    ↓
-남은 gold가 있으면 1개 지급
+남은 gold가 있으면 player tokens +1 / bank -1
    ↓
 동일 tier 다음 카드 face_up
 ```
 
-## O.2 비공개 덱 예약
+## R.2 비공개 덱 예약
 
 ```text
 tier 선택
    ↓
-해당 tier의 다음 deck 카드 선택
+해당 tier의 다음 deck 카드 instance 선택
    ↓
 reserved + owner 설정
    ↓
-다른 플레이어 snapshot에서는 card detail redaction
+예약자 snapshot에만 catalog detail 포함
+   ↓
+다른 플레이어 snapshot에서는 상세 redaction
 ```
 
 예약 카드가 이미 3장이면 두 예약 RPC 모두 거부한다.
 
 ---
 
-# P. 귀족 판정
+# S. 귀족 판정
 
-턴 후처리마다 서버가 남아 있는 귀족 중 조건 충족 여부를 계산한다.
+턴 후처리마다 서버가 남아 있는 귀족 instance와 해당 catalog requirements를 조회해 조건을 계산한다.
 
 - 0개: 다음 단계 진행
 - 1개: 자동 획득
@@ -748,7 +942,8 @@ reserved + owner 설정
 
 귀족 획득 후:
 
-- noble → claimed
+- noble instance → claimed
+- claimed player 기록
 - player score 증가
 - 다시 점수/종료 조건 확인
 
@@ -756,11 +951,9 @@ reserved + owner 설정
 
 ---
 
-# Q. 종료 및 순위 판정
+# T. 종료 및 순위 판정
 
 게임 시작 시 첫 플레이어가 seat 0이 되도록 좌석 순서를 정한다.
-
-따라서 한 라운드는 항상 다음 구조다.
 
 ```text
 seat 0 → seat 1 → ... → seat N-1
@@ -769,24 +962,23 @@ seat 0 → seat 1 → ... → seat N-1
 15점 이상 도달 시:
 
 - 현재 게임을 `final_round` 상태로 표시
+- trigger seat 기록
 - 현재 seat가 마지막 seat가 아니면 남은 플레이어 턴 진행
 - seat N-1의 턴이 끝나면 게임 종료
 
 최종 정렬:
 
 ```text
-1. prestige DESC
-2. purchased development count ASC
+1. score DESC
+2. purchased_card_count ASC
 3. 동일하면 공동 우승
 ```
 
 ---
 
-# R. Realtime 전략
+# U. Realtime 전략
 
 방마다 하나의 private realtime channel을 사용한다.
-
-예정 개념:
 
 ```text
 splendor-room:{room_id}
@@ -808,15 +1000,13 @@ store replace
 rerender
 ```
 
-이 방식은 이벤트 유실이나 순서 변경이 발생해도 최종 DB 상태로 복구하기 쉽다.
-
 현재 행동을 수행한 클라이언트는 RPC 성공 응답 snapshot을 즉시 반영하고, 이후 realtime 이벤트가 와도 version 비교 후 불필요한 중복 렌더링을 줄인다.
 
 ---
 
-# S. Version / Idempotency
+# V. Version / Idempotency
 
-`splendor_games.version`을 상태 변경마다 증가시킨다.
+`splendor_games.version`을 게임 상태 변경마다 증가시킨다.
 
 클라이언트 command는 자신이 본 `expected_version`을 전달한다.
 
@@ -838,7 +1028,7 @@ STATE_CHANGED
 
 ---
 
-# T. 접근 제어 및 비공개 정보
+# W. 접근 제어 및 비공개 정보
 
 DB RLS와 RPC 모두 참가자 권한을 확인한다.
 
@@ -848,16 +1038,14 @@ DB RLS와 RPC 모두 참가자 권한을 확인한다.
 - 현재 turn owner만 게임 행동 가능
 - 방장만 게임 시작 가능
 - 상대 예약 카드 상세 조회 불가
-- catalog를 직접 알아도 현재 비공개 예약 카드와 연결되는 instance 정보는 알 수 없어야 함
-- 클라이언트에서 game table을 직접 update하지 않음
+- catalog 자체는 정적 데이터지만 현재 비공개 예약 instance와 catalog의 연결 관계는 상대에게 노출하지 않음
+- 클라이언트에서 game/game_player/game_card를 직접 update하지 않음
 
 게임 snapshot RPC가 비공개 정보의 최종 필터 역할을 한다.
 
 ---
 
-# U. 재접속 전략
-
-페이지 진입 순서:
+# X. 재접속 전략
 
 ```text
 Auth 확인
@@ -877,9 +1065,7 @@ localStorage room 정보가 오래됐거나 서버 membership과 다르면 서�
 
 ---
 
-# V. 오류 모델
-
-RPC 오류 코드는 화면 문구와 분리해 관리한다.
+# Y. 오류 모델
 
 예정 오류 코드:
 
@@ -893,6 +1079,7 @@ NOT_HOST
 NOT_YOUR_TURN
 INVALID_TURN_PHASE
 STATE_CHANGED
+INVALID_RULESET
 INVALID_TOKEN_SELECTION
 TOKEN_SUPPLY_SHORTAGE
 DOUBLE_TOKEN_NOT_ALLOWED
@@ -909,13 +1096,9 @@ GAME_FINISHED
 
 ---
 
-# W. 모바일/PC UI 방향
+# Z. 모바일/PC UI 방향
 
-## W.1 Desktop
-
-한 화면에서 중앙 게임판과 플레이어 정보를 최대한 함께 확인한다.
-
-추천 레이아웃:
+## Z.1 Desktop
 
 ```text
 상단: 상대 플레이어 / 현재 턴
@@ -924,9 +1107,7 @@ GAME_FINISHED
 우측 또는 하단: 예약 카드 / 행동 로그
 ```
 
-## W.2 Mobile
-
-모든 정보를 한 번에 축소하지 않는다.
+## Z.2 Mobile
 
 추천 우선순위:
 
@@ -941,15 +1122,20 @@ GAME_FINISHED
 
 ---
 
-# X. 테스트 구조 계획
+# AA. 테스트 구조 계획
 
-별도 테스트 프레임워크를 도입하지 않는 현재 프로젝트 특성을 고려해 다음 방식으로 검증한다.
+## AA.1 데이터 모델 테스트
 
-## X.1 규칙 시나리오
+- ruleset별 카드/귀족 분리
+- 비활성 ruleset 신규 게임 사용 차단
+- 게임 시작 후 ruleset 변경 불가
+- cost JSONB 5색 key 검증
+- player tokens JSONB 6색 key 검증
+- bonus JSONB 5색 key 검증
+- catalog와 game instance 연결 무결성
+- 다른 ruleset catalog를 잘못 참조하지 않는지 검증
 
-문서 기반 수동 테스트 케이스를 먼저 작성한다.
-
-필수 항목:
+## AA.2 규칙 시나리오
 
 - 2/3/4인 초기 토큰 수
 - 공개 카드 4장 유지
@@ -969,7 +1155,21 @@ GAME_FINISHED
 - 동시에 같은 카드 클릭
 - 새로고침 복구
 
-## X.2 배포 전 문서
+## AA.3 트랜잭션 일관성 테스트
+
+카드 구매 중 오류가 발생했을 때 다음 상태가 일부만 반영되지 않아야 한다.
+
+```text
+player tokens
+bank tokens
+card state
+player bonus
+player score
+new face-up card
+game version
+```
+
+## AA.4 배포 전 문서
 
 구현 후 `docs/splendor-game/`에 다음 문서를 추가할 수 있다.
 
@@ -978,96 +1178,25 @@ deployment-checklist.md
 final-qa-checklist.md
 ```
 
-현재 단계에서는 생성하지 않는다.
-
 ---
 
-# Y. 구현 순서 제안
+# AB. v0.2 확정 결정사항
 
-## Phase 0 — 현재 단계
+이번 설계 단계에서 다음을 구현 기준으로 확정한다.
 
-- 요구사항 정의
-- 기술 구조 정의
-- 사용자 검토
-
-## Phase 1 — DB 설계
-
-- catalog 모델
-- room/player/game 모델
-- RLS
-- snapshot RPC 설계
-- mutation RPC 설계
-
-## Phase 2 — 게임 Core
-
-- 방 생성/참가
-- 게임 초기화
-- 턴 상태 머신
-- 토큰 행동
-- 예약/구매
-- 귀족
-- 종료 판정
-
-## Phase 3 — Frontend
-
-- 접근/로비/방
-- 보드 UI
-- 카드 UI
-- 행동 선택
-- 반납/귀족 dialog
-
-## Phase 4 — Realtime / Recovery
-
-- realtime invalidation
-- version conflict
-- reconnect
-- refresh recovery
-
-## Phase 5 — QA
-
-- 2인/3인/4인 시나리오
-- 동시성
-- 모바일
-- 세션 만료
-- 게임 종료
-
----
-
-# Z. 현재 설계에서 사용자 검토가 필요한 결정
-
-실제 구현 전에 아래 항목을 확정한다.
-
-| 항목 | 현재 제안 |
+| 항목 | 결정 |
 |---|---|
-| 앱 경로 | `splendor-game/` |
-| 문서 경로 | `docs/splendor-game/` |
-| DB 경로 | `supabase/splendor-game/` |
-| 지원 인원 | 2~4명 |
-| 인증 | 기존 Supabase Auth 세션 |
-| 상태 권위 | Supabase DB |
-| 실시간 | Realtime → snapshot 재조회 |
-| 턴 동시성 | game version + client action id |
-| 카드 예약 | 공개/비공개 모두 지원 |
-| 첫 플레이어 | 랜덤 |
-| 게임 종료 | 15점 이상 → 현재 라운드 완료 |
-| 동점 | 카드 구매 수가 적은 사람 우선, 이후 공동 승리 |
-| 확장판 | v1 제외 |
-| 공식 이미지 | 사용하지 않는 방향 |
-| 카드 데이터 | 최종 검토 후 결정 |
-| 게임 중 포기 | 추후 정책 확정 |
+| 카드/귀족 저장 위치 | Supabase DB catalog |
+| 데이터 버전 관리 | `splendor_rulesets` |
+| 카드 정의와 게임 상태 | catalog / game instance 분리 |
+| 카드 비용 | JSONB 5색 묶음 |
+| 귀족 요구 조건 | JSONB 5색 묶음 |
+| 중앙 보석 | `bank_tokens` JSONB |
+| 플레이어 토큰 | `tokens` JSONB |
+| 플레이어 영구 보너스 | `bonuses` JSONB |
+| 점수/턴/카드 위치 등 | 정규화 컬럼/테이블 |
+| 전체 게임 단일 JSON 저장 | 사용하지 않음 |
+| 초기 카드 데이터 | 테스트 ruleset 우선 |
+| 최종 공개 카드 데이터 | 기능 완성 후 별도 확정 |
 
----
-
-# 변경 승인 원칙
-
-본 설계 문서 및 향후 소스는 작업 브랜치에서 먼저 작성한다.
-
-변경 완료 후 다음 정보를 사용자에게 보고한다.
-
-- 생성/수정 파일
-- 핵심 변경 내용
-- 기술적 결정
-- 미확정 사항
-- main 반영 시 영향 범위
-
-사용자가 **"반영하자"**라고 명시적으로 승인하기 전에는 `main` 브랜치에 머지하지 않는다.
+이 구조를 기준으로 이후 SQL schema와 RPC를 설계한다.
