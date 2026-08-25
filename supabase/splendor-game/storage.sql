@@ -40,4 +40,7 @@ using (
 --   cards/t1-1.webp ... cards/t1-4.webp
 --   cards/t2-1.webp ... cards/t2-4.webp
 --   cards/t3-1.webp ... cards/t3-4.webp
+--
+-- The browser requests 15-minute signed URLs. If a private image is absent,
+-- the UI renders an original inline SVG fallback illustration instead.
 -- Later, splendor_card_catalog.image_path will become the authoritative mapping.
