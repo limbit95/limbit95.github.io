@@ -65,12 +65,13 @@ root.addEventListener("submit",async(event)=>{event.preventDefault();const form=
  if(form.dataset.action==="create")await perform(async()=>{const result=await commands.createRoom(store.get().nickname,{p_selected_categories:[...CATEGORIES],p_difficulty:"all",p_liar_count:1,p_guess_limit:1});setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="join")await perform(async()=>{const result=await commands.joinRoom(String(data.get("code")).toUpperCase(),store.get().nickname);setCurrentRoom(result?.[0]?.room_id||"");},{recoverRoom:true});
  if(form.dataset.action==="settings"){const s=store.get().snapshot;await perform(()=>commands.updateSettings({p_selected_categories:data.getAll("category"),p_difficulty:data.get("difficulty"),p_liar_count:Number(data.get("liarCount")),p_guess_limit:Number(data.get("guessLimit")),p_show_category_to_liar:data.has("showCategoryToLiar"),p_game_mode:String(data.get("gameMode")||"classic"),p_drawing_time_limit:Number(data.get("drawingTimeLimit")||15),p_drawing_stroke_limit:Number(data.get("drawingStrokeLimit")||3),p_drawing_stroke_unlimited:data.has("drawingStrokeUnlimited")},s.room.version));}
+ if(form.dataset.action==="round-drawing-settings"){const s=store.get().snapshot;await perform(()=>commands.updateNextRoundDrawingSettings({p_drawing_time_limit:Number(data.get("drawingTimeLimit")||15),p_drawing_stroke_limit:Number(data.get("drawingStrokeLimit")||3),p_drawing_stroke_unlimited:data.has("drawingStrokeUnlimited")},s.room.version));}
  if(form.dataset.action==="guess"){const guessText=String(data.get("guess")||"").trim();if(!guessText||guessText.length>100){store.set({message:ERROR_MESSAGES.INVALID_GUESS_TEXT});return;}await perform(()=>commands.submitGuess(guessText));}
  if(form.dataset.action==="ballot"){const voteState=store.get().voteState;const targets=data.getAll("target");if(targets.length!==Number(voteState?.seats_to_fill)){store.set({message:ERROR_MESSAGES.INVALID_BALLOT_SELECTION_COUNT});return;}await perform(async()=>{await commands.submitBallot(targets);clearVoteDraft();});}
 });
 root.addEventListener("change",event=>{
  if(event.target.name==="drawingStrokeUnlimited"){
-  const form=event.target.closest('form[data-action="settings"]');
+  const form=event.target.closest("form");
   const limitInput=form?.querySelector('input[name="drawingStrokeLimit"]');
   const control=limitInput?.closest(".drawing-stroke-limit-control");
   if(limitInput)limitInput.readOnly=event.target.checked;
