@@ -556,12 +556,14 @@ function bindEvents() {
     state.room = await lobbyCommands.setReady(room.id, !self.is_ready, room.version);
   }));
 
-  app.querySelector("[data-update-nickname]")?.addEventListener("click", () => withBusy(async () => {
-    const input = app.querySelector("#room-nickname-input");
-    const room = roomInfo();
-    state.room = await lobbyCommands.updateNickname(room.id, input?.value?.trim() ?? "", room.version);
-    state.nickname = state.room?.self?.nickname ?? state.nickname;
-  }));
+  app.querySelector("[data-update-nickname]")?.addEventListener("click", () => {
+    const nickname = app.querySelector("#room-nickname-input")?.value?.trim() ?? "";
+    void withBusy(async () => {
+      const room = roomInfo();
+      state.room = await lobbyCommands.updateNickname(room.id, nickname, room.version);
+      state.nickname = state.room?.self?.nickname ?? state.nickname;
+    });
+  });
 
   app.querySelector("[data-copy-code]")?.addEventListener("click", async () => {
     const code = roomInfo()?.code;
