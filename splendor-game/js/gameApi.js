@@ -30,6 +30,7 @@ const ERROR_MESSAGES = {
   RETURN_MORE_THAN_OWNED: "가지고 있는 수보다 많은 토큰을 반환할 수 없습니다.",
   INVALID_CARD_ID: "카드를 다시 선택해 주세요.",
   CARD_NOT_AVAILABLE: "선택한 카드는 더 이상 공개 카드 자리에 없습니다. 최신 상태를 확인해 주세요.",
+  RESERVED_CARD_NOT_AVAILABLE: "선택한 예약 카드는 내 예약 목록에 없습니다. 최신 상태를 확인해 주세요.",
   RESERVE_LIMIT_REACHED: "예약 카드는 최대 3장까지 보유할 수 있습니다.",
   INVALID_TIER: "예약할 카드 덱 단계를 다시 선택해 주세요.",
   DECK_EMPTY: "선택한 단계의 카드 덱이 비어 있습니다.",
@@ -128,6 +129,15 @@ export const gameCommands = {
   },
   purchaseFaceup(roomId, cardInstanceId, payment, version, clientActionId) {
     return mutate("splendor_purchase_faceup", {
+      p_room_id: roomId,
+      p_card_instance_id: cardInstanceId,
+      p_payment: payment,
+      p_expected_version: version,
+      p_client_action_id: clientActionId,
+    });
+  },
+  purchaseReserved(roomId, cardInstanceId, payment, version, clientActionId) {
+    return mutate("splendor_purchase_reserved", {
       p_room_id: roomId,
       p_card_instance_id: cardInstanceId,
       p_payment: payment,
