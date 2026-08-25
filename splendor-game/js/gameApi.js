@@ -31,6 +31,8 @@ const ERROR_MESSAGES = {
   INVALID_CARD_ID: "예약할 카드를 다시 선택해 주세요.",
   CARD_NOT_AVAILABLE: "선택한 카드는 더 이상 공개 카드 자리에 없습니다. 최신 상태를 확인해 주세요.",
   RESERVE_LIMIT_REACHED: "예약 카드는 최대 3장까지 보유할 수 있습니다.",
+  INVALID_TIER: "예약할 카드 덱 단계를 다시 선택해 주세요.",
+  DECK_EMPTY: "선택한 단계의 카드 덱이 비어 있습니다.",
 };
 
 let pendingMutation = false;
@@ -109,6 +111,14 @@ export const gameCommands = {
     return mutate("splendor_reserve_faceup", {
       p_room_id: roomId,
       p_card_instance_id: cardInstanceId,
+      p_expected_version: version,
+      p_client_action_id: clientActionId,
+    });
+  },
+  reserveHidden(roomId, tier, version, clientActionId) {
+    return mutate("splendor_reserve_hidden", {
+      p_room_id: roomId,
+      p_tier: tier,
       p_expected_version: version,
       p_client_action_id: clientActionId,
     });
