@@ -4,7 +4,7 @@
 
 프론트엔드는 HTML/CSS/Vanilla JavaScript ES Modules로 구성되고 GitHub Pages에서 별도 빌드 없이 실행됩니다. 인증·데이터·권한·Storage·Realtime은 Supabase가 담당합니다.
 
-> 이 README는 **청파 같이 본 사이트**를 설명합니다. Liar Game과 Splendor 등 게임 구현은 별도 영역으로 관리하며, 본 사이트 기반 정리 작업에서는 게임 전용 소스·문서·DB 객체를 수정하지 않습니다.
+> 이 README는 **청파 같이 본 사이트**를 설명합니다. Liar Game과 Splendor 등 게임 구현은 별도 영역으로 관리하며, 본 사이트 기반/구조 정리 작업에서는 게임 전용 소스·문서·DB 객체를 수정하지 않습니다.
 
 ## 1. 현재 주요 기능
 
@@ -31,15 +31,11 @@
 - 새 활동 알림
 - 참여 활동 시작 약 24시간 전 알림
 
-### 공지사항
+### 공지사항 / 기도 제목
 
-- 관리자 작성/수정/삭제
-- 중요/고정 공지
-- 검색 및 페이지 이동
-
-### 기도 제목
-
-- 승인 회원 작성/수정/삭제
+- 공지사항 관리자 작성/수정/삭제
+- 중요/고정 공지 및 검색/페이지 이동
+- 기도 제목 승인 회원 작성/수정/삭제
 - 함께 기도하기 반응
 - 응원 메시지 댓글
 - 댓글 작성자 프로필 조회 및 쪽지 보내기
@@ -50,14 +46,13 @@
 - 수신자 알림 생성
 - Supabase Realtime을 통한 새 알림 배지 갱신
 - 최근 알림 / 지난 알림 구분
-- 새 활동 알림은 일정 기간 후 지난 알림으로 이동
+- 새 활동 알림의 유효 기간 관리
 - 쪽지 읽기
 
 ### 관리자
 
 - 가입 신청 승인/보류/거절
-- 회원 상태 관리
-- 관리자 권한 관리
+- 회원 상태 및 관리자 권한 관리
 - 활동 카테고리 담당자 관리
 - 활동 카테고리 관리
 
@@ -70,6 +65,7 @@ GitHub Pages
            ├─ Hash Router
            ├─ Persistent App Shell
            ├─ Auth state / Route Guard
+           ├─ Domain API modules
            ├─ UI Components
            └─ Domain Pages
                     │
@@ -97,8 +93,10 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   ├── reset.css
 │   ├── variables.css
 │   ├── layout.css
+│   ├── navigation.css
 │   ├── components.css
 │   ├── pages.css
+│   ├── activity-card.css
 │   ├── profile.css
 │   ├── modal.css
 │   ├── messaging.css
@@ -107,7 +105,15 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   ├── app.js
 │   ├── router.js
 │   ├── auth.js
-│   ├── api.js
+│   ├── api.js                     # 기존 import 호환용 facade
+│   ├── api/
+│   │   ├── shared.js
+│   │   ├── profiles.js
+│   │   ├── activities.js
+│   │   ├── boards.js
+│   │   ├── admin.js
+│   │   ├── polls.js
+│   │   └── notifications.js
 │   ├── notifications.js
 │   ├── ui.js
 │   ├── validators.js
@@ -122,19 +128,19 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   │   ├── toast.js
 │   │   └── loading.js
 │   └── pages/
-│       ├── login.js
-│       ├── signup.js
-│       ├── pending.js
-│       ├── home.js
-│       ├── activities.js
-│       ├── activityDetail.js
-│       ├── activityForm.js
-│       ├── board.js
-│       ├── postDetail.js
-│       ├── postForm.js
-│       ├── games.js
-│       ├── mypage.js
-│       └── admin.js
+│       ├── activities.js           # 라우트/필터 조립
+│       ├── activities/
+│       │   ├── listView.js
+│       │   ├── calendarView.js
+│       │   └── pollView.js
+│       ├── admin.js                # 관리자 섹션 조립
+│       ├── admin/
+│       │   ├── dashboard.js
+│       │   ├── approvals.js
+│       │   ├── members.js
+│       │   ├── managers.js
+│       │   └── categories.js
+│       └── ...
 ├── scripts/
 │   └── check-site.mjs
 ├── .github/workflows/
@@ -210,6 +216,11 @@ export const SUPABASE_PUBLISHABLE_KEY = "<publishable-key>";
 
 DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`supabase/site/README.md`](./supabase/site/README.md)를 따릅니다.
 
+현재 본 사이트의 후속 최적화에는 다음이 포함됩니다.
+
+- 날짜투표 FK covering index 보완
+- 게시글/댓글/활동 참여자/담당자 프로필을 **필요한 사용자 ID 집합만** 조회하는 RPC 추가
+
 핵심 원칙:
 
 1. 운영 catalog를 먼저 확인합니다.
@@ -226,35 +237,44 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 - 활동 관리 권한은 관리자 또는 현재 활성 카테고리 담당자를 검사합니다.
 - 알림은 자신의 row만 조회/수정합니다.
 - 쪽지는 발신자 또는 수신자만 조회합니다.
+- 공개 프로필 RPC는 승인 회원 여부를 서버에서 검사합니다.
 - 프로필 이미지는 private Storage bucket의 signed URL로 표시합니다.
 
-## 8. UI 구조
+## 8. UI / 구조
 
-### App Shell
+### Persistent App Shell
 
 승인 회원용 화면에서는 Header와 BottomNav를 라우트마다 다시 만들지 않습니다. 인증/권한 identity가 유지되는 동안 공통 Shell을 재사용하고 `#main-content`의 내용만 교체합니다.
 
 이 구조는 Header의 Realtime 알림 상태와 이벤트 리스너를 불필요하게 다시 만들지 않도록 합니다.
 
-### 반응형
+### 반응형 내비게이션
 
 - 모바일: 하단 고정 주요 메뉴
+- 관리자도 하단 메뉴에서 `내 정보` 접근 유지
+- 관리자 전용 화면은 모바일 헤더의 관리 바로가기와 데스크톱 상단 관리자 메뉴로 접근
 - 데스크톱: 상단 내비게이션
-- `360px`급 작은 화면도 기본 대응
+- `360px`급 작은 화면 기본 대응
 - `prefers-reduced-motion` 대응
 
 ### CSS 역할
 
 - `variables.css`: 토큰
 - `layout.css`: 전체 Shell/레이아웃
+- `navigation.css`: 공통 내비게이션 보정
 - `components.css`: 공통 컴포넌트
 - `pages.css`: 페이지 전용 스타일
+- `activity-card.css`: 활동 카드 탐색/접근성 레이어
 - `profile.css`: 프로필 UI
 - `modal.css`: 모달
 - `messaging.css`: 쪽지/알림
 - `responsive.css`: 공통 반응형 보정
 
 과거의 `theme.css` override 계층은 제거하고 현재 시각 결과를 각 담당 파일에 통합했습니다.
+
+### 활동 카드 접근성
+
+활동 카드의 빈 영역 클릭 UX는 유지하지만 JS가 `window.location.hash`를 직접 변경하지 않습니다. 제목의 실제 `<a>` 링크가 stretched-link로 카드 영역을 담당하고 참여/취소 버튼은 독립된 상호작용 요소로 유지합니다.
 
 ### 자동 검수
 
@@ -264,10 +284,13 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 - 상대 import 경로 확인
 - `index.html`의 로컬 파일 참조 확인
 - CSS 기본 구조 검사
+- API/활동/관리자 모듈 분리 구조 유지 확인
+- 핵심 라우트 존재 확인
+- 활동 카드 링크 접근성 구조의 회귀 확인
 
 게임 구현 소스는 본 사이트 정리용 검사 대상에서도 제외합니다.
 
-### 접근성
+### 공통 접근성
 
 - 본문 바로가기
 - `aria-current`, `aria-live`, dialog role 사용
@@ -275,28 +298,34 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 - 공통 모달 Tab focus trap
 - 모달 종료 후 이전 포커스 복귀
 
-## 9. 현재 기반 정리 상태
+## 9. 현재 기반/구조 정리 상태
 
 2026-08-25 기준 전체 구조 재검토 내용은 [`docs/site-foundation-audit.md`](./docs/site-foundation-audit.md)에 기록합니다.
 
-완료된 기반 작업:
+완료된 작업:
 
 1. 본 사이트 DB baseline/seed 복원
 2. 운영 migration 이력 복원
 3. 날짜투표 FK covering index 보완 및 Advisor 재검증
-4. README/DB 운영 문서 최신화
-5. 공통 모달 접근성/스타일 정리
-6. 모바일 쪽지 액션 회귀 수정
-7. CSS override 계층 제거 및 역할별 파일 정리
-8. 승인 회원용 Persistent App Shell 적용
-9. GitHub Actions 기반 본 사이트 static check 도입
+4. 공통 모달 접근성/스타일 정리
+5. 모바일 쪽지 액션 회귀 수정
+6. CSS override 계층 제거 및 역할별 파일 정리
+7. 승인 회원용 Persistent App Shell 적용
+8. GitHub Actions 기반 static check 도입 및 구조 회귀 검사 강화
+9. `api.js`를 도메인별 모듈로 분리하고 기존 facade 호환 유지
+10. `activities.js`를 목록/달력/날짜투표 하위 모듈로 분리
+11. `admin.js`를 대시보드/승인/회원/담당자/카테고리 하위 모듈로 분리
+12. 공개 프로필 조회 범위를 필요한 사용자 ID 집합으로 최적화
+13. 활동 카드 탐색을 실제 링크 기반 구조로 변경
+14. 모바일 관리자 내비게이션에서 마이페이지 접근성 보완
 
-다음 구조 개선 우선순위:
+남은 기반 개선은 영향도가 낮은 항목 중심입니다.
 
-1. `api.js` 도메인 단위 분리
-2. `activities.js`, `admin.js` 등 대형 페이지 모듈 분리
-3. 공개 프로필 조회 범위 최적화
-4. 의미 기반 디자인 토큰 명칭 정리
+- 기존 `--forest-*`, `--coral-*` 등 색상 토큰을 의미 기반 이름으로 점진 전환
+- 실제 브라우저 상호작용까지 확인하는 smoke/e2e 테스트 도입 검토
+- 알림 장기 누적 시 pagination/보관 정책
+
+이후에는 쪽지함/답장, 알림 설정, 기도 제목 상태/카운트, 관심사 기반 홈 등 기능 확장 단계로 넘어갈 수 있습니다.
 
 ## 10. 개발/병합 원칙
 
