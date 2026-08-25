@@ -245,24 +245,53 @@ function renderCommentList(list, comments, auth, isPrayer) {
 function commentNode(comment, auth, isPrayer = false) {
   const canEdit = auth.isAdmin || comment.author_id === auth.user.id;
   const authorName = comment.author?.display_name ?? "회원";
+  const authorAvatar = comment.author
+    ? createProfileAvatarTrigger(comment.author, {
+        avatarUrl: "./assets/images/default-avatar.svg",
+        size: 34,
+        alt: "",
+      })
+    : el("span", {
+        className: "prayer-comment__author-mark",
+        text: authorName.slice(0, 1),
+        "aria-hidden": "true",
+      });
+
+  if (comment.author) {
+    getSignedAvatarUrl(comment.author.avatar_path)
+      .then((avatarUrl) => {
+        const image = authorAvatar.querySelector("img");
+        if (image) image.src = avatarUrl;
+      })
+      .catch(() => {});
+  }
+
   const content = el("p", {
     className: isPrayer ? "prose prayer-comment__content" : "prose",
     text: comment.content,
   });
-  const node = el("article", { className: isPrayer ? "comment prayer-comment" : "comment" }, [
+  const authorBlock = isPrayer
+    ? el("div", { className: "prayer-comment__author" }, [
+        authorAvatar,
+        el("div", { className: "prayer-comment__author-meta" }, [
+          el("strong", { className: "prayer-comment__author-name", text: authorName }),
+          el("span", { className: "small subtle prayer-comment__time", text: relativeTime(comment.created_at) }),
+        ]),
+      ])
+    : el("div", { className: "prayer-comment__author" }, [
+        authorAvatar,
+        el("div", { className: "prayer-comment__author-meta" }, [
+          el("strong", { text: authorName }),
+          el("span", { className: "small subtle", text: relativeTime(comment.created_at) }),
+        ]),
+      ]);
+
+  const node = el("article", {
+    className: isPrayer ? "comment prayer-comment" : "comment",
+    style: { overflow: "visible" },
+  }, [
     el("div", { className: isPrayer ? "comment__head prayer-comment__head" : "comment__head" }, [
-      isPrayer
-        ? el("div", { className: "prayer-comment__author" }, [
-            el("span", { className: "prayer-comment__author-mark", text: authorName.slice(0, 1), "aria-hidden": "true" }),
-            el("div", { className: "prayer-comment__author-meta" }, [
-              el("strong", { className: "prayer-comment__author-name", text: authorName }),
-              el("span", { className: "small subtle prayer-comment__time", text: relativeTime(comment.created_at) }),
-            ]),
-          ])
-        : el("div", {}, [
-            el("strong", { text: authorName }),
-            el("span", { className: "small subtle", text: ` · ${relativeTime(comment.created_at)}` }),
-          ]),
+      authorBlock,
       canEdit ? el("div", { className: "comment__actions" }, [
         el("button", {
           className: isPrayer ? "button button--ghost prayer-comment__action" : "button button--ghost",
