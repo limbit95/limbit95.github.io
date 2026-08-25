@@ -296,6 +296,59 @@ th {
   color: var(--ink);
 }
 
+/* Prayer reaction: compact social-style action instead of a large notice box. */
+.post-detail > .notice-box.page-stack {
+  width: fit-content;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: .15rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.post-detail > .notice-box.page-stack > strong,
+.post-detail > .notice-box.page-stack > .small.subtle {
+  display: none;
+}
+
+.post-detail > .notice-box.page-stack > button {
+  min-height: 38px;
+  padding: .45rem .78rem;
+  border-radius: 999px;
+  border-width: 1px;
+  box-shadow: none;
+  font-size: .86rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.post-detail > .notice-box.page-stack > button.button--secondary {
+  color: #627d87;
+  background: #f6fafb;
+  border-color: #dcebed;
+}
+
+.post-detail > .notice-box.page-stack > button.button--secondary:hover {
+  color: #506f7a;
+  background: #edf6f8;
+  border-color: #cfe3e8;
+}
+
+.post-detail > .notice-box.page-stack > button.button--yellow {
+  color: #6d6244;
+  background: #f8f0d9;
+  border-color: #eadfbf;
+}
+
+.post-detail > .notice-box.page-stack > button.button--yellow:hover {
+  background: #f4e9ca;
+  border-color: #e4d6ad;
+}
+
 .prayer-comment-section {
   gap: 1.15rem;
 }
@@ -462,6 +515,12 @@ th {
 
   .daily-verse__source {
     text-align: left;
+  }
+
+  .post-detail > .notice-box.page-stack > button {
+    min-height: 36px;
+    padding: .42rem .7rem;
+    font-size: .82rem;
   }
 
   .prayer-comment-form {
