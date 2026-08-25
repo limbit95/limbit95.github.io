@@ -1,0 +1,17 @@
+.activity-card__title-link::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.activity-card__footer {
+  position: relative;
+  z-index: 2;
+}
+
+.activity-card:has(.activity-card__title-link:focus-visible) {
+  border-color: #a9cedc;
+  box-shadow: var(--shadow-sm), var(--focus);
+}
