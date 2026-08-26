@@ -6,8 +6,15 @@ const localSupabaseUrl = process.env.E2E_LOCAL_SUPABASE_URL;
 const localSupabaseAnonKey = process.env.E2E_LOCAL_SUPABASE_ANON_KEY;
 const memberEmail = process.env.E2E_MEMBER_EMAIL;
 const memberPassword = process.env.E2E_MEMBER_PASSWORD;
+const adminEmail = process.env.E2E_ADMIN_EMAIL;
+const adminPassword = process.env.E2E_ADMIN_PASSWORD;
 const authenticatedEnvironmentReady = Boolean(
-  localSupabaseUrl && localSupabaseAnonKey && memberEmail && memberPassword,
+  localSupabaseUrl
+  && localSupabaseAnonKey
+  && memberEmail
+  && memberPassword
+  && adminEmail
+  && adminPassword,
 );
 
 const configPath = path.resolve("js", "config.js");
@@ -37,6 +44,17 @@ async function useLocalSupabase(page) {
   });
 }
 
+async function login(page, email, password) {
+  await useLocalSupabase(page);
+  await page.goto("/#/login");
+  await expect(page.locator("#login-email")).toBeVisible();
+  await page.locator("#login-email").fill(email);
+  await page.locator("#login-password").fill(password);
+  await page.getByRole("button", { name: "이메일로 로그인" }).click();
+  await expect(page).toHaveURL(/#\/$/);
+  await assertHealthyPage(page, "홈");
+}
+
 async function assertHealthyPage(page, expectedTitle) {
   await expect(page).toHaveTitle(`${expectedTitle} | 청파 같이`);
   await expect(page.locator("#main-content")).toBeVisible();
@@ -45,23 +63,25 @@ async function assertHealthyPage(page, expectedTitle) {
   await expect(page.getByText("앱을 불러오지 못했어요", { exact: true })).toHaveCount(0);
 }
 
+function collectPageErrors(page) {
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error));
+  return pageErrors;
+}
+
+function expectNoPageErrors(pageErrors) {
+  expect(
+    pageErrors,
+    pageErrors.map((error) => error.stack ?? error.message).join("\n\n"),
+  ).toEqual([]);
+}
+
 test.describe("approved member flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
 
   test("logs in and opens core community routes", async ({ page }) => {
-    const pageErrors = [];
-    page.on("pageerror", (error) => pageErrors.push(error));
-
-    await useLocalSupabase(page);
-    await page.goto("/#/login");
-
-    await expect(page.locator("#login-email")).toBeVisible();
-    await page.locator("#login-email").fill(memberEmail);
-    await page.locator("#login-password").fill(memberPassword);
-    await page.getByRole("button", { name: "이메일로 로그인" }).click();
-
-    await expect(page).toHaveURL(/#\/$/);
-    await assertHealthyPage(page, "홈");
+    const pageErrors = collectPageErrors(page);
+    await login(page, memberEmail, memberPassword);
 
     const routes = [
       ["activities", "활동"],
@@ -75,6 +95,58 @@ test.describe("approved member flow", () => {
       await assertHealthyPage(page, title);
     }
 
-    expect(pageErrors, pageErrors.map((error) => error.stack ?? error.message).join("\n\n")).toEqual([]);
+    expectNoPageErrors(pageErrors);
+  });
+
+  test("enters the Liar Game lobby shell and returns to the game list", async ({ page }) => {
+    const pageErrors = collectPageErrors(page);
+    await login(page, memberEmail, memberPassword);
+
+    await page.goto("/#/games");
+    await assertHealthyPage(page, "게임");
+    await page.getByRole("link", { name: "라이어 게임 시작" }).click();
+
+    await expect(page).toHaveURL(/\/liar-game\/$/);
+    await expect(page.getByRole("heading", { name: "라이어 게임", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "게임 목록으로" })).toBeVisible();
+
+    await page.getByRole("button", { name: "게임 로비 열기" }).click();
+    await expect(page.getByRole("navigation", { name: "라이어 게임 이동" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "처음으로" })).toBeVisible();
+
+    await page.getByRole("button", { name: "처음으로" }).click();
+    await expect(page.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
+
+    await page.getByRole("link", { name: "게임 목록으로" }).click();
+    await expect(page).toHaveURL(/\/#\/games$/);
+    await assertHealthyPage(page, "게임");
+
+    expectNoPageErrors(pageErrors);
+  });
+});
+
+test.describe("admin flow", () => {
+  test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
+
+  test("opens every admin route without runtime contract errors", async ({ page }) => {
+    const pageErrors = collectPageErrors(page);
+    await login(page, adminEmail, adminPassword);
+
+    const routes = [
+      ["admin", "관리자 대시보드"],
+      ["admin/approvals", "가입 신청 관리"],
+      ["admin/members", "회원 관리"],
+      ["admin/managers", "활동 담당자 관리"],
+      ["admin/categories", "활동 카테고리 관리"],
+    ];
+
+    for (const [route, title] of routes) {
+      await page.goto(`/#/${route}`);
+      await assertHealthyPage(page, title);
+      await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+    }
+
+    expectNoPageErrors(pageErrors);
   });
 });
