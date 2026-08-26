@@ -14,9 +14,45 @@
 .vote-details-deferred{margin:0;padding:10px 12px;border-radius:10px;background:var(--bg);color:var(--muted);font-size:.86rem;text-align:center}
 .phase3-rule-note{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.5}
 
+/* Drawing turn order: high-visibility horizontal route placed directly above canvas. */
+.drawing-turn-track{display:grid;gap:10px;padding:13px 14px;border:1px solid color-mix(in srgb,var(--primary) 25%,var(--border));border-radius:15px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 7%,var(--bg)),var(--bg))}
+.drawing-turn-track-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.drawing-turn-track-heading>div{display:flex;align-items:baseline;gap:9px}
+.drawing-turn-track-heading span{font-size:.82rem;color:var(--muted);font-weight:750}
+.drawing-turn-track-heading strong{font-size:.9rem}
+.drawing-turn-track-heading small{color:var(--muted);font-size:.75rem}
+.drawing-turn-track-scroll{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin;padding:2px 1px 5px}
+.drawing-turn-track-list{display:flex;align-items:stretch;gap:8px;min-width:max-content;margin:0;padding:0;list-style:none}
+.drawing-turn-track-item{position:relative;display:flex;align-items:center;gap:8px;min-width:118px;padding:9px 11px;border:1px solid var(--border);border-radius:12px;background:var(--surface);transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease,opacity .16s ease}
+.drawing-turn-track-item:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:50%;z-index:2;transform:translate(50%,-50%);width:18px;height:18px;display:grid;place-items:center;border-radius:999px;background:var(--bg);color:var(--muted);font-size:.72rem;font-weight:900}
+.drawing-turn-track-marker{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border-radius:999px;background:color-mix(in srgb,var(--primary) 8%,var(--bg));border:1px solid color-mix(in srgb,var(--primary) 18%,var(--border));font-size:.78rem;font-weight:900}
+.drawing-turn-track-copy{display:grid;gap:1px;min-width:0}
+.drawing-turn-track-copy strong{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.86rem}
+.drawing-turn-track-copy small{color:var(--muted);font-size:.68rem;font-weight:700}
+.drawing-turn-track-item.is-done{opacity:.52;background:var(--bg)}
+.drawing-turn-track-item.is-done .drawing-turn-track-marker{background:rgba(38,158,94,.1);border-color:rgba(38,158,94,.25);color:#157a42}
+.drawing-turn-track-item.is-current{min-width:150px;padding:11px 13px;border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 12%,var(--surface));box-shadow:0 6px 18px color-mix(in srgb,var(--primary) 16%,transparent);transform:translateY(-2px)}
+.drawing-turn-track-item.is-current .drawing-turn-track-marker{width:36px;height:36px;flex-basis:36px;background:var(--primary);border-color:var(--primary);font-size:1rem}
+.drawing-turn-track-item.is-current .drawing-turn-track-copy strong{font-size:1rem;max-width:110px}
+.drawing-turn-track-item.is-current .drawing-turn-track-copy small{color:var(--primary);font-weight:900;letter-spacing:.04em}
+
+/* Discussion chat is intentionally read-only when its configured timer expires. */
+.discussion-chat-form.is-time-locked{opacity:.68}
+.discussion-chat-form.is-time-locked textarea{cursor:not-allowed;background:color-mix(in srgb,var(--bg) 88%,#ddd)}
+.discussion-chat-form.is-time-locked button{cursor:not-allowed}
+
 @media(max-width:720px){
  .speaking-heading-side,.discussion-heading-side{width:100%;justify-content:space-between}
  .phase3-timer-badge{flex:1}
+ .drawing-turn-track{padding:11px 10px;margin-left:-2px;margin-right:-2px}
+ .drawing-turn-track-heading{align-items:flex-start}
+ .drawing-turn-track-heading small{display:none}
+ .drawing-turn-track-item{min-width:104px;padding:8px 9px}
+ .drawing-turn-track-item.is-current{min-width:136px}
+ .drawing-turn-track-copy strong{max-width:76px}
 }
 
-@media(prefers-reduced-motion:reduce){.phase3-timer-badge{transition:none}}
+@media(prefers-reduced-motion:reduce){
+ .phase3-timer-badge,.drawing-turn-track-item{transition:none}
+ .drawing-turn-track-item.is-current{transform:none}
+}
