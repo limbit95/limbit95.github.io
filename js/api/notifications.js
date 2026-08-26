@@ -2,6 +2,7 @@ import { supabase, unwrap } from "./shared.js";
 
 const NOTIFICATION_COLUMNS = [
   "id",
+  "user_id",
   "notification_type",
   "title",
   "body",
@@ -10,10 +11,12 @@ const NOTIFICATION_COLUMNS = [
   "is_read",
   "read_at",
   "created_at",
+  "updated_at",
   "kind",
   "message_id",
   "target_path",
   "expires_at",
+  "dedupe_key",
 ].join(",");
 
 // Backward-compatible API kept intentionally so cached pre-pagination headers
@@ -21,7 +24,7 @@ const NOTIFICATION_COLUMNS = [
 export async function listNotifications(limit = 20) {
   return unwrap(await supabase
     .from("notifications")
-    .select("*")
+    .select(NOTIFICATION_COLUMNS)
     .order("created_at", { ascending: false })
     .limit(limit)) ?? [];
 }
@@ -72,7 +75,7 @@ export async function markNotificationRead(notificationId) {
       read_at: new Date().toISOString(),
     })
     .eq("id", Number(notificationId))
-    .select()
+    .select(NOTIFICATION_COLUMNS)
     .single());
 }
 
@@ -84,5 +87,5 @@ export async function markAllNotificationsRead() {
       read_at: new Date().toISOString(),
     })
     .eq("is_read", false)
-    .select()) ?? [];
+    .select(NOTIFICATION_COLUMNS)) ?? [];
 }
