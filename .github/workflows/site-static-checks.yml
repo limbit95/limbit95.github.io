@@ -31,6 +31,14 @@ jobs:
             node --check "$file"
           done < <(find js liar-game/js -type f -name '*.js' -print0)
 
+      - name: Guard removed reminder client API
+        shell: bash
+        run: |
+          if grep -R --line-number --fixed-strings "syncUpcomingActivityReminders" js; then
+            echo "Removed client reminder API is still referenced."
+            exit 1
+          fi
+
       - name: Link-check Liar Game ES modules
         run: node --experimental-vm-modules scripts/check-liar-modules.mjs
 
