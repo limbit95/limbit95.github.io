@@ -69,6 +69,19 @@ function collectPageErrors(page) {
   return pageErrors;
 }
 
+function collectPageModuleRequests(page) {
+  const requests = new Set();
+  page.on("request", (request) => {
+    try {
+      const pathname = new URL(request.url()).pathname;
+      if (pathname.includes("/js/pages/")) requests.add(pathname);
+    } catch {
+      // Ignore non-standard URLs emitted by the browser.
+    }
+  });
+  return requests;
+}
+
 function expectNoPageErrors(pageErrors) {
   expect(
     pageErrors,
@@ -78,6 +91,33 @@ function expectNoPageErrors(pageErrors) {
 
 test.describe("approved member flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
+
+  test("does not eagerly load unrelated route modules at startup", async ({ page }) => {
+    const pageErrors = collectPageErrors(page);
+    const pageModuleRequests = collectPageModuleRequests(page);
+    await login(page, memberEmail, memberPassword);
+
+    expect(pageModuleRequests.has("/js/pages/login.js")).toBe(true);
+    expect(pageModuleRequests.has("/js/pages/home.js")).toBe(true);
+
+    const unrelatedStartupModules = [
+      "/js/pages/activityForm.js",
+      "/js/pages/postDetail.js",
+      "/js/pages/postForm.js",
+      "/js/pages/mypage.js",
+      "/js/pages/admin.js",
+      "/js/pages/admin/dashboard.js",
+      "/js/pages/admin/approvals.js",
+      "/js/pages/admin/members.js",
+      "/js/pages/admin/managers.js",
+      "/js/pages/admin/categories.js",
+    ];
+    for (const modulePath of unrelatedStartupModules) {
+      expect(pageModuleRequests.has(modulePath), `${modulePath} should be lazy-loaded`).toBe(false);
+    }
+
+    expectNoPageErrors(pageErrors);
+  });
 
   test("logs in and opens core community routes", async ({ page }) => {
     const pageErrors = collectPageErrors(page);
