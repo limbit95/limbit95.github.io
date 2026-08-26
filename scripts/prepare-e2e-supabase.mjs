@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readdir, rm, stat } from "node:fs/promises";
+import { copyFile, mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
@@ -45,8 +45,21 @@ for (const filename of operatingMigrations) {
   );
 }
 
+// Test-only bootstrap permission. The browser never receives service_role.
+// This exists only inside the disposable local Supabase stack so the setup
+// script can promote its freshly-created Auth user to an approved member.
+await writeFile(
+  path.join(migrationsRoot, "20990101000000_e2e_bootstrap_privileges.sql"),
+  [
+    "grant select, update on table public.profiles to service_role;",
+    "grant select, update on table public.join_requests to service_role;",
+    "",
+  ].join("\n"),
+  "utf8",
+);
+
 await copyFile(path.join(sourceRoot, "seed.sql"), path.join(workRoot, "seed.sql"));
 
 console.log(
-  `Prepared isolated community Supabase schema: ${baselineFiles.length} baseline + ${operatingMigrations.length} operating migrations.`,
+  `Prepared isolated community Supabase schema: ${baselineFiles.length} baseline + ${operatingMigrations.length} operating migrations + E2E bootstrap.`,
 );
