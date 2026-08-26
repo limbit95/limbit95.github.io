@@ -2,6 +2,7 @@ import { escapeHTML, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../const
 
 const difficultyLabel={all:"전체",easy:"쉬움",normal:"보통",hard:"어려움"};
 const timeLabel=value=>Number(value||0)>0?`${Number(value)}초`:"무제한";
+const gameStatsSlot='<section class="game-stats-slot is-compact" data-game-stats data-game-stats-context="waiting" aria-live="polite"><p class="muted game-stats-loading">현재 Game 기록을 불러오는 중…</p></section>';
 export function roundWaitingView(s,isHost){
  const g=s.game;const readyCount=s.players.filter(player=>player.ready).length;
  const liarCount=Number(g.liar_count);const citizenCount=readyCount-liarCount;
@@ -19,6 +20,7 @@ export function roundWaitingView(s,isHost){
   :"";
  return `<section class="card round-waiting-card">
   <header class="setup-header"><h2>다음 라운드 준비</h2><p class="setup-subtitle">Game ${Number(g.game_no)}의 핵심 설정은 유지됩니다.${drawingMode?" 그림 난이도만 이번 라운드에 맞게 조절할 수 있습니다.":""}</p></header>
+  ${gameStatsSlot}
   <section class="round-waiting-settings" aria-label="현재 게임 설정"><h3>🔒 현재 게임 설정</h3><dl>
    <div><dt>게임 모드</dt><dd>${drawingMode?"🎨 그림 스파이":"💬 기본 라이어게임"}</dd></div>
    <div><dt>카테고리</dt><dd>${g.selected_categories.map(escapeHTML).join(" / ")}</dd></div><div><dt>난이도</dt><dd>${difficultyLabel[g.difficulty]||escapeHTML(g.difficulty)}</dd></div>
