@@ -107,18 +107,24 @@ test.describe("approved member flow", () => {
     await page.getByRole("link", { name: "라이어 게임 시작" }).click();
 
     await expect(page).toHaveURL(/\/liar-game\/$/);
-    await expect(page.getByRole("heading", { name: "라이어 게임", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "게임 목록으로" })).toBeVisible();
+    const welcome = page.locator("#liar-welcome");
+    const gameNavigation = page.getByRole("navigation", { name: "라이어 게임 이동" });
+    await expect(welcome.getByRole("heading", { name: "라이어 게임", exact: true })).toBeVisible();
+    await expect(welcome.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
+    await expect(welcome.getByRole("link", { name: "게임 목록으로" })).toBeVisible();
+    await expect(gameNavigation).toBeHidden();
 
-    await page.getByRole("button", { name: "게임 로비 열기" }).click();
-    await expect(page.getByRole("navigation", { name: "라이어 게임 이동" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "처음으로" })).toBeVisible();
+    await welcome.getByRole("button", { name: "게임 로비 열기" }).click();
+    await expect(welcome).toBeHidden();
+    await expect(gameNavigation).toBeVisible();
+    await expect(gameNavigation.getByRole("button", { name: "처음으로" })).toBeVisible();
+    await expect(gameNavigation.getByRole("link", { name: "게임 목록으로" })).toBeVisible();
 
-    await page.getByRole("button", { name: "처음으로" }).click();
-    await expect(page.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
+    await gameNavigation.getByRole("button", { name: "처음으로" }).click();
+    await expect(gameNavigation).toBeHidden();
+    await expect(welcome.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
 
-    await page.getByRole("link", { name: "게임 목록으로" }).click();
+    await welcome.getByRole("link", { name: "게임 목록으로" }).click();
     await expect(page).toHaveURL(/\/#\/games$/);
     await assertHealthyPage(page, "게임");
 
