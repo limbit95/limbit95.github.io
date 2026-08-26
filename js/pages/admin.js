@@ -1,9 +1,4 @@
 import { el, pageContainer } from "../ui.js";
-import { renderApprovals } from "./admin/approvals.js";
-import { renderCategories } from "./admin/categories.js";
-import { renderAdminDashboard } from "./admin/dashboard.js";
-import { renderManagers } from "./admin/managers.js";
-import { renderMembers } from "./admin/members.js";
 
 export async function renderAdmin(route) {
   const section = route.path.split("/")[2] || "dashboard";
@@ -17,11 +12,23 @@ export async function renderAdmin(route) {
       section !== "dashboard" ? el("a", { className: "button button--ghost", href: "#/admin", text: "← 대시보드" }) : null,
     ]),
   );
-  if (section === "dashboard") root.append(await renderAdminDashboard());
-  else if (section === "approvals") root.append(await renderApprovals(route));
-  else if (section === "members") root.append(await renderMembers());
-  else if (section === "managers") root.append(await renderManagers());
-  else if (section === "categories") root.append(await renderCategories());
+
+  if (section === "dashboard") {
+    const { renderAdminDashboard } = await import("./admin/dashboard.js");
+    root.append(await renderAdminDashboard());
+  } else if (section === "approvals") {
+    const { renderApprovals } = await import("./admin/approvals.js");
+    root.append(await renderApprovals(route));
+  } else if (section === "members") {
+    const { renderMembers } = await import("./admin/members.js");
+    root.append(await renderMembers());
+  } else if (section === "managers") {
+    const { renderManagers } = await import("./admin/managers.js");
+    root.append(await renderManagers());
+  } else if (section === "categories") {
+    const { renderCategories } = await import("./admin/categories.js");
+    root.append(await renderCategories());
+  }
   return root;
 }
 
