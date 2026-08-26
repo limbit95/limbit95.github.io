@@ -1,6 +1,8 @@
 import { supabase } from "./supabaseClient.js";
 import { PROFILE_STATUS } from "./constants.js";
 
+const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+
 const state = {
   session: null,
   user: null,
@@ -66,7 +68,7 @@ async function loadAuthContext(session, { force, epoch }) {
   {
     const { data: profileData, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select(PROFILE_COLUMNS)
       .eq("id", user.id)
       .single();
     if (error && error.code !== "PGRST116") throw error;
@@ -131,9 +133,6 @@ export async function initializeAuth() {
           return;
         }
         if (event === "INITIAL_SESSION") {
-          // initializeAuth() already loaded the current session via getSession().
-          // Supabase emits INITIAL_SESSION again when the listener starts, so
-          // treating it as a route change would cause a redundant page rebuild.
           state.session = session;
           state.user = session?.user ?? null;
           return;
@@ -143,9 +142,6 @@ export async function initializeAuth() {
           window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           return;
         }
-        // Supabase can emit SIGNED_IN again when an already authenticated tab
-        // becomes active. Remember whether this is the existing account before
-        // the async refresh so the current page can remain intact.
         const sameUser = Boolean(state.user?.id && state.user.id === session?.user?.id);
         window.setTimeout(async () => {
           try {
