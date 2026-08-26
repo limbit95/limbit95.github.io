@@ -1,5 +1,7 @@
 import { CATEGORIES, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../constants.js";
 
+const selected=(value,current)=>Number(value)===Number(current)?"selected":"";
+
 export function setupView(s,isHost){
  const g=s.game;
  const readyCount=s.players.filter(player=>player.ready).length;
@@ -11,6 +13,9 @@ export function setupView(s,isHost){
  const canStart=hasEnoughPlayers&&hasEnoughCitizens;
  const mode=g.game_mode||GAME_MODE.CLASSIC;
  const unlimitedStrokes=g.drawing_stroke_unlimited===true;
+ const speakingTime=Number(g.speaking_time_limit??30);
+ const discussionTime=Number(g.discussion_time_limit??90);
+ const liarsKnowEachOther=g.liars_know_each_other===true;
  const startStatus=!hasEnoughPlayers
   ?`게임 시작까지 ${MIN_READY_PLAYERS-readyCount}명이 더 필요합니다.`
   :!hasEnoughCitizens
@@ -59,13 +64,20 @@ export function setupView(s,isHost){
       <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>제시어의 난이도</small></label>
       <label class="setup-control"><span>라이어 / 스파이 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 자유 설정 · 현재 인원 권장 ${recommendedLiarCount}명<br>게임 시작 시 최소 2명의 시민이 필요합니다.</small></label>
       <label class="setup-control"><span>추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>라이어/스파이 팀이 공유하는 기회</small></label>
+      <label class="setup-control"><span>기본 라이어 발언 시간</span><select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select><small>기본 라이어게임의 1인당 발언 시간</small></label>
+      <label class="setup-control"><span>자유토론 시간</span><select name="discussionTimeLimit"><option value="0" ${selected(0,discussionTime)}>무제한</option><option value="60" ${selected(60,discussionTime)}>60초</option><option value="90" ${selected(90,discussionTime)}>90초</option><option value="120" ${selected(120,discussionTime)}>120초</option><option value="180" ${selected(180,discussionTime)}>180초</option></select><small>두 모드 공통 · 종료 후 방장이 투표 시작</small></label>
      </div>
+     <p class="phase3-rule-note">발언 시간은 기본 라이어게임에서만 사용됩니다. 그림 스파이는 그림 시간 설정을 따릅니다.</p>
     </section>
     <section class="setup-section">
      <div class="setup-section-heading"><h3 class="setup-section-title">역할 정보</h3></div>
      <label class="setup-setting-row">
       <span class="setup-setting-copy"><strong>라이어/스파이에게 카테고리 공개</strong><small>켜면 카테고리만 공개하며, 제시어는 항상 숨겨집니다. 끄면 카테고리와 제시어를 모두 공개하지 않습니다.</small></span>
       <input name="showCategoryToLiar" type="checkbox" ${g.show_category_to_liar?"checked":""}>
+     </label>
+     <label class="setup-setting-row">
+      <span class="setup-setting-copy"><strong>다중 라이어/스파이는 서로 정체 알기</strong><small>2명 이상일 때 서로 같은 팀의 닉네임을 역할 화면에서 확인합니다. 끄면 기존처럼 서로의 정체도 모릅니다.</small></span>
+      <input name="liarsKnowEachOther" type="checkbox" ${liarsKnowEachOther?"checked":""}>
      </label>
     </section>
    </fieldset>
