@@ -32,7 +32,50 @@
     <noscript>
       <div class="noscript-message">이 서비스를 이용하려면 JavaScript를 활성화해 주세요.</div>
     </noscript>
+    <script>
+      (() => {
+        function showBootError(message) {
+          const loading = document.querySelector(".app-initial-loading");
+          if (!loading) return;
+          const title = document.createElement("strong");
+          title.textContent = "앱을 불러오지 못했어요";
+          const detail = document.createElement("p");
+          detail.textContent = String(message || "모바일 브라우저에서 스크립트를 불러오지 못했습니다.");
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "button";
+          retry.textContent = "다시 불러오기";
+          retry.addEventListener("click", () => window.location.reload());
+          loading.replaceChildren(title, detail, retry);
+        }
+        window.addEventListener("error", (event) => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError(event.message || "JavaScript 모듈 로드 오류가 발생했습니다.");
+          }
+        });
+        window.addEventListener("unhandledrejection", (event) => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError(event.reason?.message || event.reason || "앱 초기화 중 오류가 발생했습니다.");
+          }
+        });
+        window.setTimeout(() => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError("앱 초기화가 지연되고 있습니다. 화면을 새로고침해 주세요.");
+          }
+        }, 10000);
+      })();
+    </script>
+    <script type="importmap">
+      {
+        "imports": {
+          "./js/components/header.js": "./js/components/header.js?v=20260826-mobile-boot-3",
+          "./js/api.js": "./js/api.js?v=20260826-mobile-boot-3",
+          "./js/api/notifications.js": "./js/api/notifications.js?v=20260826-mobile-boot-3",
+          "./js/notifications.js": "./js/notifications.js?v=20260826-mobile-boot-3"
+        }
+      }
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/app.js?v=20260826-mobile-boot-3"></script>
   </body>
 </html>
