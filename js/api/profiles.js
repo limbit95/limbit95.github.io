@@ -57,20 +57,13 @@ export async function updateProfile(userId, payload) {
     .single());
 }
 
-export async function replaceProfileInterests(userId, categoryIds) {
-  const { error: deleteError } = await supabase
-    .from("profile_interests")
-    .delete()
-    .eq("user_id", userId);
-  if (deleteError) throw deleteError;
-  if (!categoryIds.length) return [];
-  return unwrap(await supabase
-    .from("profile_interests")
-    .insert(categoryIds.map((categoryId) => ({
-      user_id: userId,
-      category_id: Number(categoryId),
-    })))
-    .select()) ?? [];
+export async function replaceProfileInterests(_userId, categoryIds) {
+  const normalizedIds = [...new Set(
+    (categoryIds ?? []).map(Number).filter(Number.isFinite),
+  )];
+  return unwrap(await supabase.rpc("replace_my_profile_interests", {
+    p_category_ids: normalizedIds,
+  })) ?? [];
 }
 
 export async function uploadAvatar(userId, file, previousPath = null) {
