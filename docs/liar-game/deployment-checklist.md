@@ -1,26 +1,29 @@
 # Liar Game Production Deployment Checklist
 
-이 문서는 Liar Game / Drawing Spy의 현재 운영 기준 배포 순서와 회귀 테스트를 정리한다.
+이 문서는 Liar Game / Drawing Spy의 **Phase 4 + Final Production Cleanup 기준** 배포 순서와 회귀 테스트를 정리한다.
 
 ## A. 기존 운영 DB 업데이트
 
-현재 운영 DB에는 2026-08-26 공통 Gameplay Phase 3까지 적용되어 있다. 다른 환경을 같은 버전으로 올릴 때는 미적용 항목만 순서대로 실행한다.
+현재 운영 DB에는 2026-08-26 Gameplay Phase 4와 최종 보안 정리까지 적용한다. 다른 환경을 같은 버전으로 올릴 때는 **미적용 항목만 아래 순서대로** 실행한다.
 
 1. [ ] 운영 DB 백업 또는 복구 지점 확보
 2. [ ] `supabase/liar-game/functions-result.sql` — 검거 실패 5초 지연 공개 + Result projection
-3. [ ] `supabase/liar-game/migrations/20260824_refresh_word_pool.sql` — 12카테고리 + word pool 확장
+3. [ ] `supabase/liar-game/migrations/20260824_refresh_word_pool.sql` — 현재 12카테고리 word pool
 4. [ ] `supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql` — 기본 라이어게임 동률 후보 추가 발언
 5. [ ] `supabase/liar-game/migrations/20260825_drawing_spy_mode.sql` — Drawing Spy 기본 모드/공동 그림판
 6. [ ] `supabase/liar-game/migrations/20260825_drawing_unlimited_strokes.sql` — 획 수 무제한
 7. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase1.sql` — 재투표 추가 그림, stage-aware strokes, 다음 라운드 그림 설정
-8. [ ] `supabase/liar-game/functions-runtime-overrides.sql` — 기존 base/migration 중복 함수의 runtime 기준 재확정
-9. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql` — 3초 준비 카운트, 획 저장/Canvas 입력 분리
-10. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase3.sql` — 공통 타이머, alias, 제시어 중복 방지, 역할 균형, 투표 상세 지연 공개
+8. [ ] `supabase/liar-game/functions-runtime-overrides.sql` — 이전 base 함수의 runtime 기준 재확정
+9. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql` — 3초 준비 카운트, fluid drawing persistence
+10. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase3.sql` — 공통 타이머, alias, 중복 방지, 역할 균형, 투표 상세 지연 공개
 11. [ ] `supabase/liar-game/migrations/20260826_phase3_guess_normalize_fix.sql` — 공백/영문 대소문자 정규화 보강
-12. [ ] `supabase/liar-game/rls.sql` — RPC 권한/테이블 접근 경계 재적용
-13. [ ] `supabase/liar-game/realtime.sql` — private room/chat + Drawing live stroke Broadcast 정책
+12. [ ] `supabase/liar-game/migrations/20260826_phase3_polish.sql` — 자유토론 종료 후 Realtime 채팅 송신 차단
+13. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase4_stats.sql` — Game 스코어/누적 재미 통계 RPC
+14. [ ] `supabase/liar-game/rls.sql` — 최신 RPC 권한/테이블 접근 경계
+15. [ ] `supabase/liar-game/realtime.sql` — private room/chat/drawing Broadcast 정책
+16. [ ] `supabase/liar-game/migrations/20260826_final_production_cleanup.sql` — 구형 settings v1/v2/v3 RPC client 권한 차단, v4만 허용
 
-`schema.sql`, `functions-core.sql`, `functions-vote.sql`은 기존 운영 DB 업데이트용으로 재실행하지 않는다. 현재 Phase 2/3 migration이 최신 함수 정의를 덮어쓰므로 `functions-runtime-overrides.sql`을 다시 실행해야 할 일이 생기면 **반드시 그 뒤에 Phase 2 → Phase 3 → normalize fix 순서로 다시 적용**한다.
+`schema.sql`, `functions-core.sql`, `functions-vote.sql`은 기존 운영 DB에 다시 실행하지 않는다. `functions-runtime-overrides.sql` 역시 운영 중 임의 재실행하지 않는다. 부득이하게 재적용할 경우 **그 뒤의 Phase 2 → Phase 3 → normalize fix → phase3 polish → Phase 4 → 최신 RLS/Realtime → final cleanup 순서를 다시 보장**해야 한다.
 
 ## B. 빈 Supabase fresh install
 
@@ -39,8 +42,13 @@
 13. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql`
 14. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase3.sql`
 15. [ ] `supabase/liar-game/migrations/20260826_phase3_guess_normalize_fix.sql`
-16. [ ] `supabase/liar-game/rls.sql`
-17. [ ] `supabase/liar-game/realtime.sql`
+16. [ ] `supabase/liar-game/migrations/20260826_phase3_polish.sql`
+17. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase4_stats.sql`
+18. [ ] `supabase/liar-game/rls.sql`
+19. [ ] `supabase/liar-game/realtime.sql`
+20. [ ] `supabase/liar-game/migrations/20260826_final_production_cleanup.sql`
+
+> `20260825_temp_two_player_test.sql`과 `20260825_z_restore_production_player_minimum.sql`은 과거 테스트 이력용이다. 새 설치 절차에는 포함하지 않는다.
 
 ## C. 공통 release gate
 
@@ -53,7 +61,7 @@
 - [ ] authenticated business RPC 성공
 - [ ] anon business RPC 및 base-table 직접 접근 거부
 - [ ] 최소 4명 ready / 최소 시민 2명 정책 유지
-- [ ] 12카테고리만 설정 가능
+- [ ] UI/runtime 설정은 현재 12카테고리만 허용
 - [ ] 기본 라이어게임 ROLE_REVEAL → SPEAKING → DISCUSSION → VOTE 정상
 - [ ] 그림 스파이 ROLE_REVEAL → DRAWING → DISCUSSION → VOTE 정상
 - [ ] 검거 성공 → 공개 → 제시어 추측 정상
@@ -66,14 +74,15 @@
 - [ ] 그림 시간 5~60초
 - [ ] 제한 획 1~10 / 획 수 무제한 ON/OFF
 - [ ] 역할 확인 후 방장 `그림 시작`
+- [ ] 그림 차례 트랙에서 현재/다음/전체 순서 식별 가능
 - [ ] 현재 차례만 canvas 입력 가능
 - [ ] pointer down → move → up = 1획
 - [ ] 제한 모드 최대 획 도달 시 자동 NEXT
 - [ ] 무제한 모드는 시간 종료/완료 버튼으로 NEXT
 - [ ] 마지막 사람 종료 → DISCUSSION
 - [ ] DISCUSSION / VOTING에서 완성 그림 유지
-- [ ] reload/reconnect 후 stroke history 복구
-- [ ] 모바일 drawing 전용 wide layout 정상
+- [ ] reload/reconnect 후 완료된 stroke history 복구
+- [ ] 모바일 drawing 전용 wide layout + sticky HUD 정상
 
 ## E. Drawing Spy Phase 1 release gate
 
@@ -115,87 +124,100 @@
 - [ ] 지원 기기에서는 DRAW 시 진동
 - [ ] 본인 차례 진입 시 그림판 위치로 자동 이동
 
-### F-2. 모바일 진행 HUD
-
-- [ ] 720px 이하에서 sticky HUD 표시
-- [ ] 현재 그림 사용자 / 남은 시간 / 획 수가 스크롤 중에도 확인 가능
-- [ ] 데스크톱에서는 기존 상단 badge UI 유지
-
-### F-3. Fluid drawing persistence
+### F-2. Fluid drawing / Realtime
 
 - [ ] 한 획 RPC 저장 중에도 다음 획을 로컬 Canvas에 바로 그릴 수 있음
 - [ ] 획 저장은 클라이언트에서 순차 queue 처리
 - [ ] 제한 획 수는 DB 응답 대기 중에도 로컬에서 초과 입력 방지
-- [ ] 일반 획 저장은 round/room version을 올리지 않아 Canvas 전체 re-render가 발생하지 않음
-- [ ] 최대 획 도달 / 수동 완료 / 시간 종료 때만 authoritative state version 갱신
-- [ ] reload/reconnect 시 DB에 저장된 모든 완료 획 복구
-
-### F-4. Live stroke Broadcast
-
-- [ ] 다른 기기에서 손가락/마우스가 움직이는 동안 선이 실시간으로 보임
-- [ ] Broadcast payload는 DB에 저장하지 않음
-- [ ] 완료된 획은 기존 `liar_drawing_strokes`에 영구 저장
-- [ ] `liar-drawing:<room_id>` private topic 사용
-- [ ] active room member만 receive 가능
-- [ ] **현재 DRAWING 차례 사용자만 send 가능**
-- [ ] 3초 준비 전 / 제한시간 종료 후 send 정책 거부
-- [ ] runoff에서는 현재 동률 후보 차례만 send 가능
+- [ ] 일반 획 저장은 round/room version을 올리지 않음
+- [ ] 최대 획 도달 / 수동 완료 / 시간 종료 때 authoritative state 전환
+- [ ] 다른 기기에서 선이 그려지는 동안 live Broadcast로 표시
+- [ ] 완료된 획만 `liar_drawing_strokes`에 영구 저장
+- [ ] current drawer + DRAWING + active time window만 live send 허용
 
 ## G. Gameplay Phase 3 release gate
 
-### G-1. 게임 템포
+### G-1. 게임 템포 / 채팅
 
-- [ ] 설정 화면에서 기본 라이어 발언 시간 `무제한 / 15 / 30 / 45 / 60초` 저장 가능
-- [ ] 기본값 발언 30초
-- [ ] 설정 화면에서 자유토론 `무제한 / 60 / 90 / 120 / 180초` 저장 가능
-- [ ] 기본값 자유토론 90초
-- [ ] SPEAKING 진입 및 NEXT/PREVIOUS/RESTART 시 서버 기준 발언 시작 시간이 새로 찍힘
-- [ ] 발언 시간이 끝나면 현재 발언자 또는 방장이 다음 사람으로 자동 진행
-- [ ] 마지막 발언 시간이 끝나면 방장 클라이언트가 DISCUSSION으로 진행
-- [ ] DISCUSSION에서 서버 기준 countdown 표시
-- [ ] 토론 시간이 끝나도 자동 투표하지 않고 방장 투표 버튼 유지
-- [ ] 다음 라운드에 설정값 snapshot 유지
+- [ ] 기본 라이어 발언 시간 `무제한 / 15 / 30 / 45 / 60초`
+- [ ] 자유토론 `무제한 / 60 / 90 / 120 / 180초`
+- [ ] 발언 NEXT/PREVIOUS/RESTART 시 서버 기준 시간이 새로 시작
+- [ ] 제한 발언 시간이 끝나면 다음 사람으로 진행
+- [ ] 자유토론 종료 후 자동 투표하지 않음
+- [ ] 자유토론 종료 즉시 textarea/전송 버튼 잠김
+- [ ] 자유토론 종료 후 Realtime RLS도 chat Broadcast INSERT 거부
+- [ ] 무제한 자유토론은 투표 시작 전까지 채팅 가능
 
 ### G-2. 투표 심리전
 
 - [ ] VOTE_RESULT에서는 득표수 / 동률 후보만 공개
 - [ ] voter → target 개인별 상세는 live vote snapshot에서 null
 - [ ] 재투표 전 개발자 도구에서도 개인별 ballot detail 확인 불가
-- [ ] 최종 ROUND_RESULT의 `투표 과정`에서 모든 단계 개인별 상세 공개
+- [ ] 최종 ROUND_RESULT에서 모든 단계 개인별 상세 공개
 
 ### G-3. 제시어 / 추측
 
-- [ ] 같은 Game에서는 아직 사용하지 않은 eligible word를 우선 선택
-- [ ] eligible word를 모두 소진한 뒤에만 기존 word 재사용 가능
-- [ ] 영문 대소문자 무시 (`PC방` = `pc방`)
-- [ ] 모든 공백 무시 (`PC 방` = `PC방`)
-- [ ] alias 정답 허용: `PC방` → `피시방/피씨방`
-- [ ] alias 정답 허용: `스마트폰` → `핸드폰/휴대폰`
-- [ ] alias 정답 허용: `노트북` → `랩탑`
+- [ ] 같은 Game에서는 미사용 eligible word 우선
+- [ ] eligible word를 모두 소진한 뒤에만 재사용
+- [ ] 영문 대소문자 및 공백 무시 (`PC 방` = `pc방`)
+- [ ] alias 정답 허용 (`PC방` → `피시방/피씨방` 등)
+- [ ] 현재 활성 word pool은 12카테고리 × 50 = 600개
 
 ### G-4. 연속 라운드 역할 / 다중 라이어
 
 - [ ] 같은 Game에서 이전 라이어 횟수가 적은 참가자가 완만하게 우선되는 균형 랜덤
-- [ ] 완전 순환제가 아니며 random jitter로 역할 예측 가능성 완화
-- [ ] `서로 정체 알기` OFF 시 기존처럼 teammate 정보 없음
-- [ ] ON + 라이어/스파이 2명 이상이면 역할 확인 화면에 다른 팀원 nickname 표시
-- [ ] 역할 다시 확인 모달에서도 같은 teammate 정보 표시
-- [ ] 시민에게 hidden-role teammate 정보 노출 없음
+- [ ] 완전 순환제가 아니며 random jitter 유지
+- [ ] `서로 정체 알기` OFF 시 teammate 정보 없음
+- [ ] ON + 라이어/스파이 2명 이상이면 역할 확인/재확인에 teammate nickname 표시
+- [ ] 시민에게 teammate 정보 노출 없음
 
-## H. DB introspection gate
+## H. Gameplay Phase 4 release gate
 
-- [ ] `liar_drawing_strokes.drawing_stage_no` 존재
-- [ ] start / runoff / next drawing turn이 `now() + interval '3 seconds'`
+- [ ] 결과 화면에 현재 Game `시민 : 라이어/스파이` 누적 스코어 표시
+- [ ] 다음 라운드 준비에서도 동일 Game 누적 스코어 유지
+- [ ] 완료된 라운드만 스코어/라운드 기록에 포함
+- [ ] 가장 많이 의심받은 참가자 = closed vote stage의 누적 표 기준
+- [ ] 생존왕 = 검거 실패 + 라이어/스파이 승리만 집계
+- [ ] 5초 신원 공개 전 현재 라운드 생존 기록으로 정체가 새지 않음
+- [ ] 역전왕 = 검거 성공 후 correct guess로 승리한 경우만 집계
+- [ ] `새 게임 · 설정 변경` 후 새로운 `game_id`에서 통계 0부터 시작
+- [ ] 모바일에서 재미 통계 카드가 1열로 읽기 좋게 표시
+
+## I. DB / Security introspection gate
+
+- [ ] 모든 `liar_*` base table RLS enabled
+- [ ] authenticated / anon의 base table SELECT/INSERT/UPDATE/DELETE 직접 권한 없음
+- [ ] business RPC는 authenticated만 실행 가능, anon 거부
+- [ ] room/vote legacy base snapshot helper 직접 EXECUTE 거부
+- [ ] `liar_update_game_settings` v1/v2/v3 authenticated EXECUTE 거부
+- [ ] `liar_update_game_settings_v4`만 authenticated EXECUTE 허용
+- [ ] `liar_drawing_strokes.drawing_stage_no` 존재 및 stage-aware unique key 유지
 - [ ] Drawing live send helper가 current drawer + DRAWING + active time window 검증
-- [ ] `liar_games`에 speaking/discussion/liars_know settings 존재
-- [ ] `liar_rounds`에 해당 snapshot + speaking/discussion started_at 존재
-- [ ] `liar_words.aliases` 존재
-- [ ] `liar_update_game_settings_v4` authenticated EXECUTE / anon 거부
-- [ ] Phase 3 snapshot/vote base wrapper는 authenticated 직접 EXECUTE 거부
-- [ ] `liar_get_vote_snapshot`이 ballot_details를 null 처리
-- [ ] `liar_get_round_result`의 최종 vote history는 기존 상세 유지
+- [ ] `liar_get_vote_snapshot`이 중간 ballot detail을 숨김
+- [ ] `liar_get_round_result` 최종 vote history는 상세 유지
 - [ ] `liar_normalize_guess_text(' PC 방 ') = 'pc방'`
+- [ ] Realtime SELECT/INSERT policy는 private room/chat/drawing helper를 통해서만 허용
 
-## I. 다음 개발 단계
+### 역사 데이터 호환성 주의
 
-Phase 4는 반복 플레이의 재미를 강화한다. 우선 후보는 Game 전체 시민 vs 라이어/스파이 스코어, 라운드/개인 재미 통계, 커스텀 제시어 팩이다.
+DB의 `liar_words.category`, `liar_games.selected_categories`, `liar_rounds.category_snapshot` CHECK constraint에는 과거 `게임`, `영화드라마`가 역사 데이터 호환을 위해 남아 있을 수 있다. 해당 word들은 **enabled=false**이며 현재 UI와 `liar_validate_settings`는 12카테고리만 허용한다. 과거 기록을 파괴하지 않기 위해 production cleanup에서 이 historical constraint를 억지로 축소하지 않는다.
+
+## J. Final Playtest
+
+Static/DB QA가 모두 통과한 뒤 실제 4명 이상, 가능하면 2개 이상의 물리 기기에서 최종 회귀 테스트한다.
+
+- [ ] 기본 라이어게임 1라운드 전체 진행
+- [ ] 그림 스파이 1라운드 전체 진행
+- [ ] 기본 라이어게임 동률 → 추가 발언 → 재투표
+- [ ] 그림 스파이 동률 → 10초/1획 추가 그림 → 재투표
+- [ ] 자유토론 시간 종료 → 채팅 잠금 → 방장 투표 시작
+- [ ] 다중 라이어 teammate ON/OFF
+- [ ] 결과 5초 공개 연출 및 제시어 추측
+- [ ] Phase 4 스코어/재미 통계 누적
+- [ ] 다음 라운드 준비 후 통계 유지
+- [ ] 새 Game 시작 후 통계 초기화
+- [ ] 그림 실시간 선 공유 + refresh/reconnect 후 완료 획 복원
+- [ ] 모바일 그림 순서 트랙/current-next 강조 확인
+- [ ] 네트워크 재연결/백그라운드 복귀 시 최신 snapshot 회복
+
+최종 판정은 **Static/DB QA PASS + Final Playtest PASS**가 모두 충족될 때 Production PASS로 기록한다.
