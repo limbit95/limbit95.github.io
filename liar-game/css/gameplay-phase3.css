@@ -1,0 +1,22 @@
+/* Phase 3: common gameplay pacing and hidden-role team UX */
+.phase3-timer-badge{display:inline-grid;gap:2px;min-width:104px;padding:8px 11px;border:1px solid var(--border);border-radius:12px;background:var(--bg);font-size:.76rem;color:var(--muted);text-align:center}
+.phase3-timer-badge strong{font-size:1.02rem;color:var(--ink)}
+.phase3-timer-badge.is-ending{border-color:#dc3545;background:rgba(220,53,69,.06)}
+.phase3-timer-badge.is-ending strong,.phase3-timer-badge.is-expired strong{color:#b42333}
+.phase3-timer-badge.is-expired{border-color:#dc3545;background:rgba(220,53,69,.1)}
+.speaking-heading,.discussion-heading{gap:12px;flex-wrap:wrap}
+.speaking-heading-side,.discussion-heading-side{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.discussion-time-notice{margin:0;text-align:center}
+.role-teammates{display:grid;gap:8px;margin-top:12px;padding:12px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:12px;background:color-mix(in srgb,var(--primary) 7%,var(--bg))}
+.role-teammates>span{font-size:.8rem;color:var(--muted);font-weight:700}
+.role-teammate-list{display:flex;gap:7px;flex-wrap:wrap}
+.role-teammate-chip{display:inline-flex;padding:6px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--border);font-weight:800;font-size:.86rem}
+.vote-details-deferred{margin:0;padding:10px 12px;border-radius:10px;background:var(--bg);color:var(--muted);font-size:.86rem;text-align:center}
+.phase3-rule-note{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.5}
+
+@media(max-width:720px){
+ .speaking-heading-side,.discussion-heading-side{width:100%;justify-content:space-between}
+ .phase3-timer-badge{flex:1}
+}
+
+@media(prefers-reduced-motion:reduce){.phase3-timer-badge{transition:none}}
