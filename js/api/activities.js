@@ -1,10 +1,76 @@
 import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
+const CATEGORY_COLUMNS = "id,name,icon,color,description,is_active,created_at,updated_at";
+const EVENT_COLUMNS = [
+  "id",
+  "series_id",
+  "category_id",
+  "title",
+  "description",
+  "event_date",
+  "start_time",
+  "end_time",
+  "location_name",
+  "location_url",
+  "capacity",
+  "fee_text",
+  "difficulty",
+  "preparation",
+  "beginner_friendly",
+  "participant_notice",
+  "registration_deadline",
+  "status",
+  "created_by",
+  "created_at",
+  "updated_at",
+].join(",");
+const EVENT_SERIES_COLUMNS = [
+  "id",
+  "category_id",
+  "title",
+  "description",
+  "start_date",
+  "end_date",
+  "start_time",
+  "end_time",
+  "timezone",
+  "recurrence_rule",
+  "location_name",
+  "location_url",
+  "capacity",
+  "fee_text",
+  "difficulty",
+  "preparation",
+  "beginner_friendly",
+  "participant_notice",
+  "status",
+  "created_by",
+  "created_at",
+  "updated_at",
+].join(",");
+const EVENT_PARTICIPANT_COLUMNS = "event_id,user_id,status,joined_at,waitlisted_at,cancelled_at,created_at,updated_at";
+const EVENT_WITH_CATEGORY_COLUMNS = `
+  ${EVENT_COLUMNS},
+  category:activity_categories(${CATEGORY_COLUMNS})
+`;
+const EVENT_DETAIL_COLUMNS = `
+  ${EVENT_COLUMNS},
+  category:activity_categories(${CATEGORY_COLUMNS}),
+  series:event_series(${EVENT_SERIES_COLUMNS})
+`;
+const PARTICIPATION_WITH_EVENT_COLUMNS = `
+  ${EVENT_PARTICIPANT_COLUMNS},
+  event:events(
+    ${EVENT_COLUMNS},
+    category:activity_categories(${CATEGORY_COLUMNS})
+  )
+`;
+
 export async function listCategories({ activeOnly = false } = {}) {
   let query = supabase
     .from("activity_categories")
-    .select("*")
+    .select(CATEGORY_COLUMNS)
     .order("name", { ascending: true });
   if (activeOnly) query = query.eq("is_active", true);
   return unwrap(await query) ?? [];
@@ -14,7 +80,7 @@ export async function createCategory(payload) {
   return unwrap(await supabase
     .from("activity_categories")
     .insert(compact(payload))
-    .select()
+    .select(CATEGORY_COLUMNS)
     .single());
 }
 
@@ -23,7 +89,7 @@ export async function updateCategory(categoryId, payload) {
     .from("activity_categories")
     .update(compact(payload))
     .eq("id", categoryId)
-    .select()
+    .select(CATEGORY_COLUMNS)
     .single());
 }
 
@@ -56,10 +122,7 @@ export async function listEvents({
 } = {}) {
   let query = supabase
     .from("events")
-    .select(`
-      *,
-      category:activity_categories(*)
-    `)
+    .select(EVENT_WITH_CATEGORY_COLUMNS)
     .order("event_date", { ascending: true })
     .order("start_time", { ascending: true })
     .limit(limit);
@@ -80,11 +143,7 @@ export async function listEvents({
 export async function getEvent(eventId) {
   const event = unwrap(await supabase
     .from("events")
-    .select(`
-      *,
-      category:activity_categories(*),
-      series:event_series(*)
-    `)
+    .select(EVENT_DETAIL_COLUMNS)
     .eq("id", Number(eventId))
     .single());
   const [withSummary] = await attachEventParticipationSummaries([event]);
@@ -95,7 +154,7 @@ export async function createEvent(payload) {
   return unwrap(await supabase
     .from("events")
     .insert(compact(payload))
-    .select()
+    .select(EVENT_COLUMNS)
     .single());
 }
 
@@ -111,7 +170,7 @@ export async function updateEvent(eventId, payload) {
     .from("events")
     .update(compact(payload))
     .eq("id", Number(eventId))
-    .select()
+    .select(EVENT_COLUMNS)
     .single());
 }
 
@@ -130,7 +189,7 @@ export async function cancelEventParticipation(eventId) {
 export async function listEventParticipants(eventId) {
   const participants = unwrap(await supabase
     .from("event_participants")
-    .select("*")
+    .select(EVENT_PARTICIPANT_COLUMNS)
     .eq("event_id", Number(eventId))
     .in("status", ["joined", "waitlisted"])
     .order("joined_at", { ascending: true, nullsFirst: false })
@@ -172,13 +231,7 @@ export async function getMyParticipationOverview({
 export async function listMyParticipations(userId) {
   const participations = unwrap(await supabase
     .from("event_participants")
-    .select(`
-      *,
-      event:events(
-        *,
-        category:activity_categories(*)
-      )
-    `)
+    .select(PARTICIPATION_WITH_EVENT_COLUMNS)
     .eq("user_id", userId)
     .in("status", ["joined", "waitlisted"])
     .order("created_at", { ascending: false })) ?? [];
