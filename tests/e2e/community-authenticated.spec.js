@@ -8,6 +8,7 @@ const memberEmail = process.env.E2E_MEMBER_EMAIL;
 const memberPassword = process.env.E2E_MEMBER_PASSWORD;
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+const activityId = process.env.E2E_ACTIVITY_ID;
 const authenticatedEnvironmentReady = Boolean(
   localSupabaseUrl
   && localSupabaseAnonKey
@@ -135,6 +136,30 @@ test.describe("approved member flow", () => {
       await page.goto(`/#/${route}`);
       await assertHealthyPage(page, title);
     }
+
+    expectNoPageErrors(pageErrors);
+  });
+
+  test("joins and cancels an activity through the real participation RPC", async ({ page }) => {
+    test.skip(!activityId, "Write-path E2E requires the isolated activity fixture.");
+    const pageErrors = collectPageErrors(page);
+    await login(page, memberEmail, memberPassword);
+
+    await page.goto(`/#/activities/${activityId}`);
+    await assertHealthyPage(page, "활동 상세");
+    await expect(page.getByRole("heading", { name: "E2E 참여 테스트 활동", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "🙌 참여 신청하기" }).click();
+    const joinDialog = page.getByRole("alertdialog");
+    await expect(joinDialog).toBeVisible();
+    await joinDialog.getByRole("button", { name: "참여 신청", exact: true }).click();
+    await expect(page.getByRole("button", { name: "참여 취소", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "참여 취소", exact: true }).click();
+    const cancelDialog = page.getByRole("alertdialog");
+    await expect(cancelDialog).toBeVisible();
+    await cancelDialog.getByRole("button", { name: "참여 취소", exact: true }).click();
+    await expect(page.getByRole("button", { name: "🙌 참여 신청하기" })).toBeVisible();
 
     expectNoPageErrors(pageErrors);
   });
