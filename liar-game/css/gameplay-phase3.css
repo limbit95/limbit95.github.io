@@ -14,7 +14,14 @@
 .vote-details-deferred{margin:0;padding:10px 12px;border-radius:10px;background:var(--bg);color:var(--muted);font-size:.86rem;text-align:center}
 .phase3-rule-note{margin:10px 0 0;color:var(--muted);font-size:.84rem;line-height:1.5}
 
-/* Drawing turn order: high-visibility horizontal route placed directly above canvas. */
+/* Drawing turn order: show NOW/NEXT first, then a compact horizontal route. */
+.drawing-now-next{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;gap:10px}
+.drawing-now-next-card{display:grid;gap:4px;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:var(--surface)}
+.drawing-now-next-card span{font-size:.76rem;color:var(--muted);font-weight:750}
+.drawing-now-next-card strong{font-size:1.05rem;overflow-wrap:anywhere}
+.drawing-now-next-card.is-now{border:2px solid var(--primary);background:color-mix(in srgb,var(--primary) 12%,var(--surface));box-shadow:0 6px 18px color-mix(in srgb,var(--primary) 14%,transparent)}
+.drawing-now-next-card.is-now span{color:var(--primary);font-weight:900}
+.drawing-now-next-arrow{display:grid;place-items:center;color:var(--muted);font-size:1.2rem;font-weight:900}
 .drawing-turn-track{display:grid;gap:10px;padding:13px 14px;border:1px solid color-mix(in srgb,var(--primary) 25%,var(--border));border-radius:15px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 7%,var(--bg)),var(--bg))}
 .drawing-turn-track-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
 .drawing-turn-track-heading>div{display:flex;align-items:baseline;gap:9px}
@@ -44,6 +51,9 @@
 @media(max-width:720px){
  .speaking-heading-side,.discussion-heading-side{width:100%;justify-content:space-between}
  .phase3-timer-badge{flex:1}
+ .drawing-now-next{grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr);gap:6px}
+ .drawing-now-next-card{padding:10px}
+ .drawing-now-next-card strong{font-size:.94rem}
  .drawing-turn-track{padding:11px 10px;margin-left:-2px;margin-right:-2px}
  .drawing-turn-track-heading{align-items:flex-start}
  .drawing-turn-track-heading small{display:none}
