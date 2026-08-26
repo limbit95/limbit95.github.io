@@ -4,7 +4,7 @@
 
 ## A. 기존 운영 DB 업데이트
 
-현재 운영 DB에는 2026-08-26 Drawing Spy Phase 2까지 적용되어 있다. 다른 환경을 같은 버전으로 올릴 때는 미적용 항목만 순서대로 실행한다.
+현재 운영 DB에는 2026-08-26 공통 Gameplay Phase 3까지 적용되어 있다. 다른 환경을 같은 버전으로 올릴 때는 미적용 항목만 순서대로 실행한다.
 
 1. [ ] 운영 DB 백업 또는 복구 지점 확보
 2. [ ] `supabase/liar-game/functions-result.sql` — 검거 실패 5초 지연 공개 + Result projection
@@ -15,10 +15,12 @@
 7. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase1.sql` — 재투표 추가 그림, stage-aware strokes, 다음 라운드 그림 설정
 8. [ ] `supabase/liar-game/functions-runtime-overrides.sql` — 기존 base/migration 중복 함수의 runtime 기준 재확정
 9. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql` — 3초 준비 카운트, 획 저장/Canvas 입력 분리
-10. [ ] `supabase/liar-game/rls.sql` — 최신 RPC 권한/테이블 접근 경계 재적용
-11. [ ] `supabase/liar-game/realtime.sql` — private room/chat + Drawing live stroke Broadcast 정책
+10. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase3.sql` — 공통 타이머, alias, 제시어 중복 방지, 역할 균형, 투표 상세 지연 공개
+11. [ ] `supabase/liar-game/migrations/20260826_phase3_guess_normalize_fix.sql` — 공백/영문 대소문자 정규화 보강
+12. [ ] `supabase/liar-game/rls.sql` — RPC 권한/테이블 접근 경계 재적용
+13. [ ] `supabase/liar-game/realtime.sql` — private room/chat + Drawing live stroke Broadcast 정책
 
-`schema.sql`, `functions-core.sql`, `functions-vote.sql`은 기존 운영 DB 업데이트용으로 재실행하지 않는다. 현재 Phase 2 migration이 Drawing 함수의 최종 정의이므로 `functions-runtime-overrides.sql`을 다시 실행해야 할 일이 생기면 **반드시 그 뒤에 `20260826_drawing_spy_phase2.sql`을 다시 적용**한다.
+`schema.sql`, `functions-core.sql`, `functions-vote.sql`은 기존 운영 DB 업데이트용으로 재실행하지 않는다. 현재 Phase 2/3 migration이 최신 함수 정의를 덮어쓰므로 `functions-runtime-overrides.sql`을 다시 실행해야 할 일이 생기면 **반드시 그 뒤에 Phase 2 → Phase 3 → normalize fix 순서로 다시 적용**한다.
 
 ## B. 빈 Supabase fresh install
 
@@ -35,8 +37,10 @@
 11. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase1.sql`
 12. [ ] `supabase/liar-game/functions-runtime-overrides.sql`
 13. [ ] `supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql`
-14. [ ] `supabase/liar-game/rls.sql`
-15. [ ] `supabase/liar-game/realtime.sql`
+14. [ ] `supabase/liar-game/migrations/20260826_gameplay_phase3.sql`
+15. [ ] `supabase/liar-game/migrations/20260826_phase3_guess_normalize_fix.sql`
+16. [ ] `supabase/liar-game/rls.sql`
+17. [ ] `supabase/liar-game/realtime.sql`
 
 ## C. 공통 release gate
 
@@ -51,6 +55,7 @@
 - [ ] 최소 4명 ready / 최소 시민 2명 정책 유지
 - [ ] 12카테고리만 설정 가능
 - [ ] 기본 라이어게임 ROLE_REVEAL → SPEAKING → DISCUSSION → VOTE 정상
+- [ ] 그림 스파이 ROLE_REVEAL → DRAWING → DISCUSSION → VOTE 정상
 - [ ] 검거 성공 → 공개 → 제시어 추측 정상
 - [ ] 검거 실패 → 일회성 5초 countdown → 실제 라이어/스파이 공개 정상
 - [ ] spectator / leave guard / force end / stale-version recovery 정상
@@ -136,17 +141,61 @@
 - [ ] 3초 준비 전 / 제한시간 종료 후 send 정책 거부
 - [ ] runoff에서는 현재 동률 후보 차례만 send 가능
 
-## G. DB introspection gate
+## G. Gameplay Phase 3 release gate
+
+### G-1. 게임 템포
+
+- [ ] 설정 화면에서 기본 라이어 발언 시간 `무제한 / 15 / 30 / 45 / 60초` 저장 가능
+- [ ] 기본값 발언 30초
+- [ ] 설정 화면에서 자유토론 `무제한 / 60 / 90 / 120 / 180초` 저장 가능
+- [ ] 기본값 자유토론 90초
+- [ ] SPEAKING 진입 및 NEXT/PREVIOUS/RESTART 시 서버 기준 발언 시작 시간이 새로 찍힘
+- [ ] 발언 시간이 끝나면 현재 발언자 또는 방장이 다음 사람으로 자동 진행
+- [ ] 마지막 발언 시간이 끝나면 방장 클라이언트가 DISCUSSION으로 진행
+- [ ] DISCUSSION에서 서버 기준 countdown 표시
+- [ ] 토론 시간이 끝나도 자동 투표하지 않고 방장 투표 버튼 유지
+- [ ] 다음 라운드에 설정값 snapshot 유지
+
+### G-2. 투표 심리전
+
+- [ ] VOTE_RESULT에서는 득표수 / 동률 후보만 공개
+- [ ] voter → target 개인별 상세는 live vote snapshot에서 null
+- [ ] 재투표 전 개발자 도구에서도 개인별 ballot detail 확인 불가
+- [ ] 최종 ROUND_RESULT의 `투표 과정`에서 모든 단계 개인별 상세 공개
+
+### G-3. 제시어 / 추측
+
+- [ ] 같은 Game에서는 아직 사용하지 않은 eligible word를 우선 선택
+- [ ] eligible word를 모두 소진한 뒤에만 기존 word 재사용 가능
+- [ ] 영문 대소문자 무시 (`PC방` = `pc방`)
+- [ ] 모든 공백 무시 (`PC 방` = `PC방`)
+- [ ] alias 정답 허용: `PC방` → `피시방/피씨방`
+- [ ] alias 정답 허용: `스마트폰` → `핸드폰/휴대폰`
+- [ ] alias 정답 허용: `노트북` → `랩탑`
+
+### G-4. 연속 라운드 역할 / 다중 라이어
+
+- [ ] 같은 Game에서 이전 라이어 횟수가 적은 참가자가 완만하게 우선되는 균형 랜덤
+- [ ] 완전 순환제가 아니며 random jitter로 역할 예측 가능성 완화
+- [ ] `서로 정체 알기` OFF 시 기존처럼 teammate 정보 없음
+- [ ] ON + 라이어/스파이 2명 이상이면 역할 확인 화면에 다른 팀원 nickname 표시
+- [ ] 역할 다시 확인 모달에서도 같은 teammate 정보 표시
+- [ ] 시민에게 hidden-role teammate 정보 노출 없음
+
+## H. DB introspection gate
 
 - [ ] `liar_drawing_strokes.drawing_stage_no` 존재
-- [ ] unique key가 `(round_id,drawing_stage_no,round_player_id,stroke_no)` 포함
 - [ ] start / runoff / next drawing turn이 `now() + interval '3 seconds'`
-- [ ] `liar_submit_drawing_stroke` non-finishing path에 round version update 없음
-- [ ] non-finishing path room update는 activity/expiry만 갱신하고 version 유지
 - [ ] Drawing live send helper가 current drawer + DRAWING + active time window 검증
-- [ ] authenticated Drawing RPC/Realtime helper EXECUTE 허용
-- [ ] anon Drawing RPC/Realtime helper EXECUTE 거부
+- [ ] `liar_games`에 speaking/discussion/liars_know settings 존재
+- [ ] `liar_rounds`에 해당 snapshot + speaking/discussion started_at 존재
+- [ ] `liar_words.aliases` 존재
+- [ ] `liar_update_game_settings_v4` authenticated EXECUTE / anon 거부
+- [ ] Phase 3 snapshot/vote base wrapper는 authenticated 직접 EXECUTE 거부
+- [ ] `liar_get_vote_snapshot`이 ballot_details를 null 처리
+- [ ] `liar_get_round_result`의 최종 vote history는 기존 상세 유지
+- [ ] `liar_normalize_guess_text(' PC 방 ') = 'pc방'`
 
-## H. 다음 개발 단계
+## I. 다음 개발 단계
 
-Phase 3는 기본 라이어게임과 공통 게임성을 다듬는다. 우선 후보는 투표 상세 공개 시점, 발언/자유토론 타이머, 제시어 alias, Game 내 제시어 중복 방지, 역할 균형 랜덤이다.
+Phase 4는 반복 플레이의 재미를 강화한다. 우선 후보는 Game 전체 시민 vs 라이어/스파이 스코어, 라운드/개인 재미 통계, 커스텀 제시어 팩이다.
