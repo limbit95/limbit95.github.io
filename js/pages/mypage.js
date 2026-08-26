@@ -1,9 +1,9 @@
 import { getAuthState, refreshAuthContext } from "../auth.js";
 import {
+  getMyParticipationOverview,
   getProfileInterests,
   getSignedAvatarUrl,
   listCategories,
-  listMyParticipations,
   replaceProfileInterests,
   updateProfile,
   uploadAvatar,
@@ -22,24 +22,28 @@ import {
   formatDate,
   getErrorMessage,
   pageContainer,
-  seoulDateString,
   setBusy,
 } from "../ui.js";
 import { clearFieldErrors, setFieldError, validateBirthYear, valueInRange } from "../validators.js";
 
+const HISTORY_PAGE_SIZE = 10;
+const UPCOMING_DISPLAY_LIMIT = 20;
+
 export async function renderMyPage() {
   const auth = getAuthState();
-  const [avatar, interests, participations, categories] = await Promise.all([
+  const [avatar, interests, participationOverview, categories] = await Promise.all([
     getSignedAvatarUrl(auth.profile.avatar_path),
     getProfileInterests(auth.user.id),
-    listMyParticipations(auth.user.id),
+    getMyParticipationOverview({
+      upcomingLimit: UPCOMING_DISPLAY_LIMIT,
+      historyLimit: HISTORY_PAGE_SIZE,
+      historyOffset: 0,
+    }),
     listCategories(),
   ]);
   const categoryMap = new Map(categories.map((category) => [Number(category.id), category]));
-  const today = seoulDateString();
-  const upcoming = participations.filter((item) => item.event?.event_date >= today && ["scheduled", "closed"].includes(item.event?.status));
-  const upcomingIds = new Set(upcoming.map((item) => item.event?.id));
-  const completed = participations.filter((item) => !upcomingIds.has(item.event?.id));
+  const upcoming = participationOverview.upcoming ?? [];
+  const summary = participationOverview.summary;
   const root = pageContainer(
     el("section", { className: "card profile-hero" }, [
       el("img", { className: "avatar avatar--large", src: avatar, alt: `${auth.profile.display_name} 프로필`, width: "104", height: "104" }),
@@ -59,9 +63,9 @@ export async function renderMyPage() {
       el("a", { className: "button button--secondary", href: "#/mypage/edit", text: "✏️ 프로필 수정" }),
     ]),
     el("section", { className: "stat-grid", "aria-label": "내 활동 요약" }, [
-      stat("예정 활동", upcoming.filter((item) => item.status === "joined").length),
-      stat("대기 활동", upcoming.filter((item) => item.status === "waitlisted").length),
-      stat("지난 활동", completed.length),
+      stat("예정 활동", summary.upcomingJoinedCount),
+      stat("대기 활동", summary.upcomingWaitlistedCount),
+      stat("지난 활동", summary.historyCount),
       stat("관심 분야", interests.length),
     ]),
     el("section", { className: "card page-stack" }, [
@@ -90,20 +94,87 @@ export async function renderMyPage() {
       grid.append(createActivityCard(item.event, { userId: auth.user.id, compact: true }));
     });
     participationSection.append(grid);
+    if (summary.upcomingJoinedCount + summary.upcomingWaitlistedCount > upcoming.length) {
+      participationSection.append(el("p", {
+        className: "small subtle",
+        text: `가까운 일정 ${UPCOMING_DISPLAY_LIMIT}개를 우선 표시하고 있습니다.`,
+      }));
+    }
   }
+
+  const historyList = el("div", { className: "page-stack" });
+  const historyPager = el("div", { className: "form-actions" });
   const history = el("section", { className: "card page-stack" }, [
-    el("h2", { className: "section-title", text: "지난 활동" }),
+    el("div", { className: "page-header" }, [
+      el("h2", { className: "section-title", text: "지난 활동" }),
+      el("span", { className: "small subtle", text: `총 ${summary.historyCount}개` }),
+    ]),
+    historyList,
+    historyPager,
   ]);
-  if (!completed.length) {
-    history.append(el("p", { className: "subtle", text: "지난 활동 기록이 없습니다." }));
-  } else {
-    completed.slice(0, 10).forEach((item) => {
-      history.append(el("a", { className: "post-row", href: `#/activities/${item.event.id}` }, [
-        el("strong", { text: item.event.title }),
-        el("span", { className: "small subtle", text: `${formatDate(item.event.event_date)} · ${PARTICIPATION_STATUS_LABEL[item.status]}` }),
-      ]));
-    });
+
+  async function loadHistoryPage(offset, trigger) {
+    setBusy(trigger, true, "불러오는 중…");
+    try {
+      const nextOverview = await getMyParticipationOverview({
+        upcomingLimit: UPCOMING_DISPLAY_LIMIT,
+        historyLimit: HISTORY_PAGE_SIZE,
+        historyOffset: offset,
+      });
+      renderHistoryPage(nextOverview);
+      history.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      showToast(getErrorMessage(error, "지난 활동을 불러오지 못했습니다."), "error");
+    } finally {
+      setBusy(trigger, false);
+    }
   }
+
+  function renderHistoryPage(overview) {
+    const items = overview.history ?? [];
+    const total = overview.summary.historyCount;
+    const pageSize = overview.historyLimit || HISTORY_PAGE_SIZE;
+    const offset = overview.historyOffset || 0;
+
+    historyList.replaceChildren();
+    if (!items.length) {
+      historyList.append(el("p", { className: "subtle", text: "지난 활동 기록이 없습니다." }));
+    } else {
+      items.forEach((item) => {
+        historyList.append(el("a", { className: "post-row", href: `#/activities/${item.event.id}` }, [
+          el("strong", { text: item.event.title }),
+          el("span", { className: "small subtle", text: `${formatDate(item.event.event_date)} · ${PARTICIPATION_STATUS_LABEL[item.status]}` }),
+        ]));
+      });
+    }
+
+    historyPager.replaceChildren();
+    if (total <= pageSize) return;
+
+    const currentPage = Math.floor(offset / pageSize) + 1;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const previous = el("button", {
+      className: "button button--ghost",
+      type: "button",
+      text: "이전",
+      disabled: offset === 0,
+      onClick: (event) => loadHistoryPage(Math.max(0, offset - pageSize), event.currentTarget),
+    });
+    const next = el("button", {
+      className: "button button--ghost",
+      type: "button",
+      text: "다음",
+      disabled: offset + pageSize >= total,
+      onClick: (event) => loadHistoryPage(offset + pageSize, event.currentTarget),
+    });
+    historyPager.append(
+      previous,
+      el("span", { className: "small subtle", text: `${currentPage} / ${totalPages}` }),
+      next,
+    );
+  }
+
+  renderHistoryPage(participationOverview);
   root.append(participationSection, history);
   return root;
 }
