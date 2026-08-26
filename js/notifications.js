@@ -1,6 +1,8 @@
 import { getPublicProfiles } from "./api.js";
 import { supabase } from "./supabaseClient.js";
 
+const DIRECT_MESSAGE_COLUMNS = "id,sender_id,recipient_id,content,created_at,read_at";
+
 const listeners = new Set();
 let realtimeChannel = null;
 let realtimeUserId = null;
@@ -23,7 +25,7 @@ export async function sendDirectMessage(recipientUserId, content) {
 export async function getDirectMessage(messageId) {
   const message = unwrap(await supabase
     .from("direct_messages")
-    .select("*")
+    .select(DIRECT_MESSAGE_COLUMNS)
     .eq("id", Number(messageId))
     .single());
   const senderProfiles = await getPublicProfiles(message.sender_id);
