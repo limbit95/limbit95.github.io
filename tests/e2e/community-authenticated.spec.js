@@ -69,12 +69,12 @@ function collectPageErrors(page) {
   return pageErrors;
 }
 
-function collectPageModuleRequests(page) {
+function collectJavaScriptRequests(page) {
   const requests = new Set();
   page.on("request", (request) => {
     try {
       const pathname = new URL(request.url()).pathname;
-      if (pathname.includes("/js/pages/")) requests.add(pathname);
+      if (pathname.includes("/js/")) requests.add(pathname);
     } catch {
       // Ignore non-standard URLs emitted by the browser.
     }
@@ -92,13 +92,14 @@ function expectNoPageErrors(pageErrors) {
 test.describe("approved member flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
 
-  test("does not eagerly load unrelated route modules at startup", async ({ page }) => {
+  test("does not eagerly load unrelated route or API modules at startup", async ({ page }) => {
     const pageErrors = collectPageErrors(page);
-    const pageModuleRequests = collectPageModuleRequests(page);
+    const jsRequests = collectJavaScriptRequests(page);
     await login(page, memberEmail, memberPassword);
 
-    expect(pageModuleRequests.has("/js/pages/login.js")).toBe(true);
-    expect(pageModuleRequests.has("/js/pages/home.js")).toBe(true);
+    expect(jsRequests.has("/js/pages/login.js")).toBe(true);
+    expect(jsRequests.has("/js/pages/home.js")).toBe(true);
+    expect(jsRequests.has("/js/api.js"), "the broad API facade should not be in the initial graph").toBe(false);
 
     const unrelatedStartupModules = [
       "/js/pages/activityForm.js",
@@ -113,7 +114,7 @@ test.describe("approved member flow", () => {
       "/js/pages/admin/categories.js",
     ];
     for (const modulePath of unrelatedStartupModules) {
-      expect(pageModuleRequests.has(modulePath), `${modulePath} should be lazy-loaded`).toBe(false);
+      expect(jsRequests.has(modulePath), `${modulePath} should be lazy-loaded`).toBe(false);
     }
 
     expectNoPageErrors(pageErrors);
