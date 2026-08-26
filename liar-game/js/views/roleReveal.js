@@ -1,5 +1,11 @@
 import { escapeHTML, GAME_MODE } from "../constants.js";
 
+const teammateView=(role,hiddenRoleName)=>{
+ const teammates=Array.isArray(role?.teammates)?role.teammates:[];
+ if(role?.role!=="liar"||!teammates.length)return "";
+ return `<div class="role-teammates"><span>같은 ${hiddenRoleName} 팀</span><div class="role-teammate-list">${teammates.map(name=>`<strong class="role-teammate-chip">${escapeHTML(name)}</strong>`).join("")}</div></div>`;
+};
+
 export function roleRevealView(s, role, isHost) {
   const isSpectator = s.me?.is_spectator === true;
   const drawingMode=(s.game?.game_mode||GAME_MODE.CLASSIC)===GAME_MODE.DRAWING_SPY;
@@ -21,12 +27,13 @@ export function roleRevealView(s, role, isHost) {
     :role?.role==="citizen"&&drawingMode
       ?'<p class="role-mode-guide">스파이가 제시어를 쉽게 알아채지 못하도록 핵심을 너무 빨리 완성하지 않는 것이 중요합니다.</p>'
       :"";
+  const team=teammateView(role,hiddenRoleName);
   const roleContent = isSpectator
     ? `<p class="notice">현재 라운드를 관전 중입니다.</p>
        <p class="muted">위 관전 정보에서 실제 ${hiddenRoleName}와 제시어를 확인할 수 있습니다.</p>`
     : `<div class="role-flip-scene"><div class="role-flip-card${role ? " is-revealed" : ""}" data-role-flip-card>
         <div class="role-flip-face role-flip-front"><span class="role-flip-icon" aria-hidden="true">🎭</span><h3>나의 역할 확인</h3><p class="muted">버튼을 눌러 본인의 역할을 확인하세요.</p><button data-action="show-role">${confirmed ? "내 역할 다시 보기" : "내 역할 보기"}</button></div>
-        ${role ? `<div class="role-flip-face role-flip-back"><h3>${role.role === "liar" ? `🎭 당신은 ${hiddenRoleName}입니다` : "시민"}</h3>${category}${role.role === "liar" ? "" : `<p class="muted role-word-label">제시어</p><p class="role-word">${escapeHTML(role.word)}</p>`}${roleGuide}${confirmation}</div>` : ""}
+        ${role ? `<div class="role-flip-face role-flip-back"><h3>${role.role === "liar" ? `🎭 당신은 ${hiddenRoleName}입니다` : "시민"}</h3>${category}${role.role === "liar" ? "" : `<p class="muted role-word-label">제시어</p><p class="role-word">${escapeHTML(role.word)}</p>`}${team}${roleGuide}${confirmation}</div>` : ""}
        </div></div>`;
 
   const hostAction=drawingMode?"그림 시작 (방장)":"발언 시작 (방장)";
