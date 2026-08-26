@@ -1,9 +1,9 @@
 import {
+  listAllMembers,
   listCategories,
   listCategoryManagers,
   listEvents,
   listJoinRequests,
-  listMembers,
 } from "../../api.js";
 import { el, seoulDateString } from "../../ui.js";
 
@@ -11,7 +11,7 @@ export async function renderAdminDashboard() {
   const today = seoulDateString();
   const [requests, memberRows, events, categoryRows, managerRows] = await Promise.all([
     listJoinRequests("all"),
-    listMembers(),
+    listAllMembers(),
     listEvents({ fromDate: today, statuses: [], limit: 500 }),
     listCategories(),
     listCategoryManagers(),
