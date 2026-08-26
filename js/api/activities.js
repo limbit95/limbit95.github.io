@@ -100,28 +100,10 @@ export async function createEvent(payload) {
 }
 
 export async function createRecurringEvent(seriesPayload, occurrencePayloads) {
-  const series = unwrap(await supabase
-    .from("event_series")
-    .insert(compact(seriesPayload))
-    .select()
-    .single());
-  try {
-    const rows = occurrencePayloads.map((payload) => ({
-      ...compact(payload),
-      series_id: series.id,
-    }));
-    const events = unwrap(await supabase
-      .from("events")
-      .insert(rows)
-      .select());
-    return { series, events: events ?? [] };
-  } catch (error) {
-    await supabase
-      .from("event_series")
-      .update({ status: "cancelled" })
-      .eq("id", series.id);
-    throw error;
-  }
+  return unwrap(await supabase.rpc("create_recurring_event", {
+    p_series: compact(seriesPayload),
+    p_occurrences: (occurrencePayloads ?? []).map(compact),
+  }));
 }
 
 export async function updateEvent(eventId, payload) {
