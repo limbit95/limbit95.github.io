@@ -35,6 +35,7 @@ const linker = async (specifier, referencingModule) => {
 };
 
 const entries = [
+  "liar-game/js/entry.js",
   "liar-game/js/app.js",
   "liar-game/js/discussionChat.js",
   "liar-game/js/drawingBoard.js",
