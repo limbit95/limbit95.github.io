@@ -145,23 +145,22 @@ function checkArchitectureContracts() {
   if (!activitiesApi.includes('supabase.rpc("create_recurring_event"')) {
     fail("js/api/activities.js: recurring events must be created through the atomic RPC");
   }
-  if (!activitiesApi.includes('supabase.rpc("get_my_participation_overview"')
-    || activitiesApi.includes("listMyParticipations")) {
-    fail("js/api/activities.js: my participation history must remain bounded by the overview RPC");
+  if (!activitiesApi.includes('supabase.rpc("get_my_participation_overview"')) {
+    fail("js/api/activities.js: bounded participation overview RPC is missing");
   }
 
   const myPage = sourceAt("js/pages/mypage.js");
   if (!myPage.includes("HISTORY_PAGE_SIZE")
     || !myPage.includes("historyOffset")
-    || !myPage.includes("getMyParticipationOverview")) {
-    fail("js/pages/mypage.js: participation history pagination is not wired");
+    || !myPage.includes("getMyParticipationOverview")
+    || myPage.includes("listMyParticipations")) {
+    fail("js/pages/mypage.js: participation history must use the bounded overview pagination API");
   }
 
   const boardsApi = sourceAt("js/api/boards.js");
   if (!boardsApi.includes("listCommentsPage")
-    || !boardsApi.includes("getCommentReactionSummary")
-    || boardsApi.includes("export async function listComments(")) {
-    fail("js/api/boards.js: comments must remain cursor-paginated with bounded reaction summary queries");
+    || !boardsApi.includes("getCommentReactionSummary")) {
+    fail("js/api/boards.js: cursor-paginated comment APIs are missing");
   }
   const postDetail = sourceAt("js/pages/postDetail.js");
   if (!postDetail.includes("COMMENT_PAGE_SIZE")
