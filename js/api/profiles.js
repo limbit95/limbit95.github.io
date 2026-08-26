@@ -1,6 +1,10 @@
 import { AVATAR_BUCKET } from "../constants.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
+const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const CATEGORY_COLUMNS = "id,name,icon,color,description,is_active,created_at,updated_at";
+const PROFILE_INTEREST_COLUMNS = `user_id,category_id,category:activity_categories(${CATEGORY_COLUMNS})`;
+
 const avatarUrlCache = new Map();
 
 export async function getSignedAvatarUrl(path, expiresIn = 3600) {
@@ -44,7 +48,7 @@ export async function attachPublicProfiles(rows, idKey = "author_id", resultKey 
 export async function getProfileInterests(userId) {
   return unwrap(await supabase
     .from("profile_interests")
-    .select("user_id,category_id,category:activity_categories(*)")
+    .select(PROFILE_INTEREST_COLUMNS)
     .eq("user_id", userId)) ?? [];
 }
 
@@ -53,7 +57,7 @@ export async function updateProfile(userId, payload) {
     .from("profiles")
     .update(compact(payload))
     .eq("id", userId)
-    .select()
+    .select(PROFILE_COLUMNS)
     .single());
 }
 
