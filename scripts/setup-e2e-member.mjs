@@ -4,9 +4,13 @@ const url = process.env.E2E_LOCAL_SUPABASE_URL;
 const serviceRoleKey = process.env.E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.E2E_MEMBER_EMAIL ?? "member.e2e@example.com";
 const password = process.env.E2E_MEMBER_PASSWORD ?? "Cheongpa-E2E-2026!";
+const role = process.env.E2E_MEMBER_ROLE ?? "member";
 
 if (!url || !serviceRoleKey) {
   throw new Error("Local Supabase URL and service-role key are required for E2E member setup.");
+}
+if (!["member", "admin"].includes(role)) {
+  throw new Error(`Unsupported E2E member role: ${role}`);
 }
 
 const adminHeaders = {
@@ -37,8 +41,8 @@ const user = await request("/auth/v1/admin/users", {
     password,
     email_confirm: true,
     user_metadata: {
-      display_name: "E2E 회원",
-      real_name: "E2E 테스트",
+      display_name: role === "admin" ? "E2E 관리자" : "E2E 회원",
+      real_name: role === "admin" ? "E2E 관리자 테스트" : "E2E 테스트",
       birth_year: "1990",
       age_visibility: "private",
       church_group: "E2E",
@@ -57,7 +61,7 @@ const approvedAt = new Date().toISOString();
 await request(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}`, {
   method: "PATCH",
   headers: { Prefer: "return=minimal" },
-  body: JSON.stringify({ status: "approved", approved_at: approvedAt }),
+  body: JSON.stringify({ status: "approved", approved_at: approvedAt, role }),
 });
 await request(`/rest/v1/join_requests?user_id=eq.${encodeURIComponent(user.id)}`, {
   method: "PATCH",
@@ -65,4 +69,4 @@ await request(`/rest/v1/join_requests?user_id=eq.${encodeURIComponent(user.id)}`
   body: JSON.stringify({ status: "approved" }),
 });
 
-console.log(`Prepared ephemeral approved E2E member ${email} (${user.id}).`);
+console.log(`Prepared ephemeral approved E2E ${role} ${email} (${user.id}).`);
