@@ -1,0 +1,61 @@
+name: Community E2E smoke
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/**"
+    paths:
+      - "index.html"
+      - "js/**"
+      - "css/**"
+      - "assets/**"
+      - "tests/e2e/**"
+      - "playwright.config.js"
+      - "package.json"
+      - ".github/workflows/community-e2e-smoke.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "js/**"
+      - "css/**"
+      - "assets/**"
+      - "tests/e2e/**"
+      - "playwright.config.js"
+      - "package.json"
+      - ".github/workflows/community-e2e-smoke.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install test dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run community smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: community-playwright-failure
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
