@@ -63,39 +63,38 @@ async function loadAuthContext(session, { force, epoch }) {
     return getAuthState();
   }
 
-  let profile = null;
-  let managerCategoryIds = new Set();
-  {
-    const { data: profileData, error } = await supabase
+  const [profileResult, managersResult] = await Promise.all([
+    supabase
       .from("profiles")
       .select(PROFILE_COLUMNS)
       .eq("id", user.id)
-      .single();
-    if (error && error.code !== "PGRST116") throw error;
-    const loadedProfile = profileData ?? null;
+      .single(),
+    supabase
+      .from("category_managers")
+      .select("category_id")
+      .eq("user_id", user.id),
+  ]);
 
-    if (loadedProfile?.status === PROFILE_STATUS.APPROVED) {
-      const { data: managers, error: managerError } = await supabase
-        .from("category_managers")
-        .select("category_id")
-        .eq("user_id", user.id);
-      if (managerError) throw managerError;
-      const assignedIds = [...new Set(
-        (managers ?? []).map((item) => Number(item.category_id)).filter(Number.isFinite),
-      )];
-      if (assignedIds.length) {
-        const { data: activeCategories, error: categoryError } = await supabase
-          .from("activity_categories")
-          .select("id")
-          .in("id", assignedIds)
-          .eq("is_active", true);
-        if (categoryError) throw categoryError;
-        managerCategoryIds = new Set(
-          (activeCategories ?? []).map((category) => Number(category.id)),
-        );
-      }
+  if (profileResult.error && profileResult.error.code !== "PGRST116") throw profileResult.error;
+  if (managersResult.error) throw managersResult.error;
+
+  const profile = profileResult.data ?? null;
+  let managerCategoryIds = new Set();
+  if (profile?.status === PROFILE_STATUS.APPROVED) {
+    const assignedIds = [...new Set(
+      (managersResult.data ?? []).map((item) => Number(item.category_id)).filter(Number.isFinite),
+    )];
+    if (assignedIds.length) {
+      const { data: activeCategories, error: categoryError } = await supabase
+        .from("activity_categories")
+        .select("id")
+        .in("id", assignedIds)
+        .eq("is_active", true);
+      if (categoryError) throw categoryError;
+      managerCategoryIds = new Set(
+        (activeCategories ?? []).map((category) => Number(category.id)),
+      );
     }
-    profile = loadedProfile;
   }
 
   if (epoch !== lifecycleEpoch) return getAuthState();
