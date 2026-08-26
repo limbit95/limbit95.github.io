@@ -35,7 +35,7 @@ async function buildLocalConfigSource() {
 
 async function useLocalSupabase(page) {
   localConfigSource ??= await buildLocalConfigSource();
-  await page.route(/\/js\/config\.js(?:\?.*)?$/, async (route) => {
+  await page.route(/https?:\/\/[^/]+\/js\/config\.js(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/javascript; charset=utf-8",
