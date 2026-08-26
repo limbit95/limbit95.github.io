@@ -1,4 +1,4 @@
-import { getPublicProfiles } from "./api.js";
+import { getPublicProfiles } from "./api/profiles.js";
 import { supabase } from "./supabaseClient.js";
 
 const DIRECT_MESSAGE_COLUMNS = "id,sender_id,recipient_id,content,created_at,read_at";
