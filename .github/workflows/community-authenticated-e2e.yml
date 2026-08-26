@@ -10,6 +10,7 @@ on:
       - "js/**"
       - "css/**"
       - "assets/**"
+      - "liar-game/**"
       - "supabase/site/**"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
@@ -25,6 +26,7 @@ on:
       - "js/**"
       - "css/**"
       - "assets/**"
+      - "liar-game/**"
       - "supabase/site/**"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
@@ -41,6 +43,8 @@ jobs:
       SUPABASE_TELEMETRY_DISABLED: "1"
       E2E_MEMBER_EMAIL: member.e2e@example.com
       E2E_MEMBER_PASSWORD: Cheongpa-E2E-2026!
+      E2E_ADMIN_EMAIL: admin.e2e@example.com
+      E2E_ADMIN_PASSWORD: Cheongpa-Admin-E2E-2026!
 
     steps:
       - name: Checkout
@@ -94,6 +98,13 @@ jobs:
           echo "E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
       - name: Create ephemeral approved member
+        run: node scripts/setup-e2e-member.mjs
+
+      - name: Create ephemeral approved admin
+        env:
+          E2E_MEMBER_EMAIL: ${{ env.E2E_ADMIN_EMAIL }}
+          E2E_MEMBER_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
+          E2E_MEMBER_ROLE: admin
         run: node scripts/setup-e2e-member.mjs
 
       - name: Install Playwright browsers
