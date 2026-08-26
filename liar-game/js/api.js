@@ -8,4 +8,5 @@ export async function getMyRoundRole(){const data=await read("liar_get_my_round_
 export async function getVoteSnapshot(){return read("liar_get_vote_snapshot",{p_player_key:getPlayerKey()});}
 export async function getGuessSnapshot(){return read("liar_get_guess_snapshot",{p_player_key:getPlayerKey()});}
 export async function getRoundResult(){return read("liar_get_round_result",{p_player_key:getPlayerKey()});}
+export async function getGameStats(){return read("liar_get_game_stats",{p_player_key:getPlayerKey()});}
 export async function getMyBallot(){return read("liar_get_my_ballot",{p_player_key:getPlayerKey()});}
