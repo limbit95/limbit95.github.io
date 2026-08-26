@@ -143,24 +143,25 @@ export async function listEventParticipants(eventId) {
   }));
 }
 
-export async function listMyParticipations(userId) {
-  const participations = unwrap(await supabase
-    .from("event_participants")
-    .select(`
-      *,
-      event:events(
-        *,
-        category:activity_categories(*)
-      )
-    `)
-    .eq("user_id", userId)
-    .in("status", ["joined", "waitlisted"])
-    .order("created_at", { ascending: false })) ?? [];
-  const events = participations.map((item) => item.event).filter(Boolean);
-  const eventsWithSummaries = await attachEventParticipationSummaries(events);
-  const eventMap = new Map(eventsWithSummaries.map((event) => [Number(event.id), event]));
-  return participations.map((item) => ({
-    ...item,
-    event: item.event ? eventMap.get(Number(item.event.id)) ?? item.event : null,
-  }));
+export async function getMyParticipationOverview({
+  upcomingLimit = 20,
+  historyLimit = 10,
+  historyOffset = 0,
+} = {}) {
+  const data = unwrap(await supabase.rpc("get_my_participation_overview", {
+    p_upcoming_limit: Number(upcomingLimit),
+    p_history_limit: Number(historyLimit),
+    p_history_offset: Number(historyOffset),
+  })) ?? {};
+  return {
+    summary: {
+      upcomingJoinedCount: Number(data.summary?.upcoming_joined_count ?? 0),
+      upcomingWaitlistedCount: Number(data.summary?.upcoming_waitlisted_count ?? 0),
+      historyCount: Number(data.summary?.history_count ?? 0),
+    },
+    upcoming: data.upcoming ?? [],
+    history: data.history ?? [],
+    historyLimit: Number(data.history_limit ?? historyLimit),
+    historyOffset: Number(data.history_offset ?? historyOffset),
+  };
 }
