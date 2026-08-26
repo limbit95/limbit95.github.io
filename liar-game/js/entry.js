@@ -12,7 +12,8 @@ welcomeRoot.className = "app-shell";
 welcomeRoot.innerHTML = welcomeView();
 
 const gameNavigation = document.createElement("nav");
-gameNavigation.className = "liar-shell-nav";
+gameNavigation.className = "app-shell row between";
+gameNavigation.style.paddingBottom = "0";
 gameNavigation.setAttribute("aria-label", "라이어 게임 이동");
 gameNavigation.innerHTML = `
   <button class="secondary" type="button" data-liar-welcome>처음으로</button>
