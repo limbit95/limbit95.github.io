@@ -1,3 +1,4 @@
+import { appendFile } from "node:fs/promises";
 import process from "node:process";
 
 const url = process.env.E2E_LOCAL_SUPABASE_URL;
@@ -5,12 +6,16 @@ const serviceRoleKey = process.env.E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY;
 const email = process.env.E2E_MEMBER_EMAIL ?? "member.e2e@example.com";
 const password = process.env.E2E_MEMBER_PASSWORD ?? "Cheongpa-E2E-2026!";
 const role = process.env.E2E_MEMBER_ROLE ?? "member";
+const outputEnvKey = process.env.E2E_OUTPUT_ENV_KEY ?? "";
 
 if (!url || !serviceRoleKey) {
   throw new Error("Local Supabase URL and service-role key are required for E2E member setup.");
 }
 if (!["member", "admin"].includes(role)) {
   throw new Error(`Unsupported E2E member role: ${role}`);
+}
+if (outputEnvKey && !/^[A-Z][A-Z0-9_]*$/.test(outputEnvKey)) {
+  throw new Error(`Invalid E2E output env key: ${outputEnvKey}`);
 }
 
 const adminHeaders = {
@@ -68,5 +73,9 @@ await request(`/rest/v1/join_requests?user_id=eq.${encodeURIComponent(user.id)}`
   headers: { Prefer: "return=minimal" },
   body: JSON.stringify({ status: "approved" }),
 });
+
+if (outputEnvKey && process.env.GITHUB_ENV) {
+  await appendFile(process.env.GITHUB_ENV, `${outputEnvKey}=${user.id}\n`, "utf8");
+}
 
 console.log(`Prepared ephemeral approved E2E ${role} ${email} (${user.id}).`);
