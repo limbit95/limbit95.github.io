@@ -69,16 +69,31 @@ function listJavaScriptFiles(directory) {
   return files;
 }
 
+function assertNoApiFacadeImport(filePath, specifier, label) {
+  const source = fs.readFileSync(filePath, "utf8");
+  const escaped = specifier.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(?:from\\s+|import\\s*\\()(["'])${escaped}\\1`);
+  if (pattern.test(source)) {
+    throw new Error(`${label} must import focused API modules instead of the eager ${specifier} facade.`);
+  }
+}
+
 function assertLazyRouteBoundaries() {
-  const appSource = fs.readFileSync(path.join(jsRoot, "app.js"), "utf8");
+  const appPath = path.join(jsRoot, "app.js");
+  const appSource = fs.readFileSync(appPath, "utf8");
   if (/^\s*import\s+[^;\n]+from\s+["']\.\/pages\//m.test(appSource)) {
     throw new Error("js/app.js must lazy-load route page modules instead of eagerly importing ./pages/*.");
   }
 
-  const adminSource = fs.readFileSync(path.join(jsRoot, "pages/admin.js"), "utf8");
+  const adminPath = path.join(jsRoot, "pages/admin.js");
+  const adminSource = fs.readFileSync(adminPath, "utf8");
   if (/^\s*import\s+[^;\n]+from\s+["']\.\/admin\//m.test(adminSource)) {
     throw new Error("js/pages/admin.js must lazy-load individual admin sections.");
   }
+
+  assertNoApiFacadeImport(path.join(jsRoot, "components/header.js"), "../api.js", "js/components/header.js");
+  assertNoApiFacadeImport(path.join(jsRoot, "notifications.js"), "./api.js", "js/notifications.js");
+  assertNoApiFacadeImport(path.join(jsRoot, "pages/home.js"), "../api.js", "js/pages/home.js");
 }
 
 async function assertNamedExportValidationWorks() {
@@ -114,4 +129,4 @@ for (const filePath of listJavaScriptFiles(jsRoot)) {
   if (module.status === "unlinked") await module.link(linker);
 }
 
-console.log(`Community module links passed (${moduleCache.size} modules, games page stubbed, lazy route boundaries enforced).`);
+console.log(`Community module links passed (${moduleCache.size} modules, games page stubbed, lazy route and focused API boundaries enforced).`);
