@@ -39,6 +39,9 @@ jobs:
             exit 1
           fi
 
+      - name: Link-check community ES modules
+        run: node --experimental-vm-modules scripts/check-community-modules.mjs
+
       - name: Link-check Liar Game ES modules
         run: node --experimental-vm-modules scripts/check-liar-modules.mjs
 
