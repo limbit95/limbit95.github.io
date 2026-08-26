@@ -5,27 +5,18 @@ import { showToast } from "../../components/toast.js";
 import { JOIN_REQUEST_STATUS_LABEL, PROFILE_STATUS_LABEL } from "../../constants.js";
 import { el, formatDate, getErrorMessage } from "../../ui.js";
 
+const PAGE_SIZE = 20;
+
 export async function renderMembers() {
   const auth = getAuthState();
-  const rows = await listMembers();
   const wrapper = el("div", { className: "page-stack" });
   const search = el("input", { type: "search", placeholder: "이름 또는 이메일 검색", "aria-label": "회원 검색" });
+  const countChip = el("span", { className: "chip", text: "전체 0명" });
   const tableBody = el("tbody");
-  const renderRows = () => {
-    const keyword = search.value.trim().toLowerCase();
-    const filtered = rows.filter((member) => [
-      member.display_name,
-      member.join_request?.real_name,
-      member.join_request?.email,
-    ].some((value) => value?.toLowerCase().includes(keyword)));
-    tableBody.replaceChildren();
-    if (!filtered.length) {
-      tableBody.append(el("tr", {}, el("td", { colspan: "5", text: "검색 결과가 없습니다." })));
-      return;
-    }
-    filtered.forEach((member) => tableBody.append(memberRow(member, auth)));
-  };
-  search.addEventListener("input", renderRows);
+  const previousButton = el("button", { className: "button button--ghost", type: "button", text: "이전" });
+  const nextButton = el("button", { className: "button button--ghost", type: "button", text: "다음" });
+  const pageLabel = el("span", { className: "small subtle", text: "1 / 1" });
+  const pagination = el("div", { className: "form-actions" }, [previousButton, pageLabel, nextButton]);
   const table = el("div", { className: "table-wrap" }, el("table", {}, [
     el("thead", {}, el("tr", {}, [
       el("th", { text: "회원" }),
@@ -36,15 +27,93 @@ export async function renderMembers() {
     ])),
     tableBody,
   ]));
-  renderRows();
-  wrapper.append(el("div", { className: "card search-bar" }, [
-    search,
-    el("span", { className: "chip", text: `전체 ${rows.length}명` }),
-  ]), table);
+
+  const state = {
+    search: "",
+    page: 1,
+    totalPages: 1,
+  };
+  let requestSequence = 0;
+  let searchTimer = null;
+
+  const loadMembers = async () => {
+    const sequence = ++requestSequence;
+    tableBody.replaceChildren(el("tr", {}, el("td", {
+      colspan: "5",
+      text: "회원 목록을 불러오는 중입니다…",
+    })));
+    previousButton.disabled = true;
+    nextButton.disabled = true;
+
+    try {
+      const result = await listMembers({
+        search: state.search,
+        page: state.page,
+        pageSize: PAGE_SIZE,
+      });
+      if (sequence !== requestSequence) return;
+
+      state.totalPages = result.totalPages;
+      if (result.total > 0 && state.page > result.totalPages) {
+        state.page = result.totalPages;
+        await loadMembers();
+        return;
+      }
+
+      tableBody.replaceChildren();
+      if (!result.items.length) {
+        tableBody.append(el("tr", {}, el("td", {
+          colspan: "5",
+          text: state.search ? "검색 결과가 없습니다." : "등록된 회원이 없습니다.",
+        })));
+      } else {
+        result.items.forEach((member) => tableBody.append(memberRow(member, auth, loadMembers)));
+      }
+
+      countChip.textContent = state.search ? `검색 ${result.total}명` : `전체 ${result.total}명`;
+      pageLabel.textContent = `${state.page} / ${result.totalPages}`;
+      previousButton.disabled = state.page <= 1;
+      nextButton.disabled = state.page >= result.totalPages;
+    } catch (error) {
+      if (sequence !== requestSequence) return;
+      tableBody.replaceChildren(el("tr", {}, el("td", {
+        colspan: "5",
+        text: getErrorMessage(error, "회원 목록을 불러오지 못했습니다."),
+      })));
+      countChip.textContent = "조회 실패";
+      pageLabel.textContent = "-";
+    }
+  };
+
+  search.addEventListener("input", () => {
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(() => {
+      state.search = search.value.trim();
+      state.page = 1;
+      loadMembers();
+    }, 250);
+  });
+  previousButton.addEventListener("click", () => {
+    if (state.page <= 1) return;
+    state.page -= 1;
+    loadMembers();
+  });
+  nextButton.addEventListener("click", () => {
+    if (state.page >= state.totalPages) return;
+    state.page += 1;
+    loadMembers();
+  });
+
+  wrapper.append(
+    el("div", { className: "card search-bar" }, [search, countChip]),
+    table,
+    pagination,
+  );
+  await loadMembers();
   return wrapper;
 }
 
-function memberRow(member, auth) {
+function memberRow(member, auth, refresh) {
   const roleSelect = el("select", { "aria-label": `${member.display_name} 권한` }, [
     el("option", { value: "member", text: "일반 회원", selected: member.role === "member" }),
     el("option", { value: "admin", text: "관리자", selected: member.role === "admin" }),
@@ -71,15 +140,15 @@ function memberRow(member, auth) {
       roleSelect.value = member.role;
       showToast(getErrorMessage(error), "error");
     } finally {
-      roleSelect.disabled = false;
+      roleSelect.disabled = member.status !== "approved";
     }
   });
   const action = member.status === "approved"
-    ? actionButton("이용 정지", "button button--ghost", () => changeMemberStatus(member, "suspended"))
+    ? actionButton("이용 정지", "button button--ghost", () => changeMemberStatus(member, "suspended", refresh))
     : member.status === "suspended"
-      ? actionButton("정지 해제", "button button--secondary", () => changeMemberStatus(member, "approved"))
+      ? actionButton("정지 해제", "button button--secondary", () => changeMemberStatus(member, "approved", refresh))
       : el("span", { className: "small subtle", text: "가입 신청에서 처리" });
-  if (member.id === auth.user.id) action.disabled = true;
+  if (member.id === auth.user.id && "disabled" in action) action.disabled = true;
   return el("tr", {}, [
     el("td", {}, [
       el("strong", { text: member.display_name }),
@@ -92,7 +161,7 @@ function memberRow(member, auth) {
   ]);
 }
 
-async function changeMemberStatus(member, status) {
+async function changeMemberStatus(member, status, refresh) {
   const suspend = status === "suspended";
   const confirmed = await confirmDialog({
     title: suspend ? "회원 이용을 정지할까요?" : "이용 정지를 해제할까요?",
@@ -105,8 +174,9 @@ async function changeMemberStatus(member, status) {
   if (!confirmed) return;
   try {
     await setMemberStatus(member.id, status);
+    member.status = status;
     showToast(suspend ? "회원 이용을 정지했습니다." : "이용 정지를 해제했습니다.", "success");
-    window.location.reload();
+    await refresh();
   } catch (error) {
     showToast(getErrorMessage(error, "회원 상태 변경에 실패했습니다."), "error");
   }
