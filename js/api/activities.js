@@ -165,3 +165,28 @@ export async function getMyParticipationOverview({
     historyOffset: Number(data.history_offset ?? historyOffset),
   };
 }
+
+// Backward compatibility for cached pre-P2 mypage modules.
+// Current code should use getMyParticipationOverview(); this export remains
+// temporarily so older browser module graphs can still link and recover.
+export async function listMyParticipations(userId) {
+  const participations = unwrap(await supabase
+    .from("event_participants")
+    .select(`
+      *,
+      event:events(
+        *,
+        category:activity_categories(*)
+      )
+    `)
+    .eq("user_id", userId)
+    .in("status", ["joined", "waitlisted"])
+    .order("created_at", { ascending: false })) ?? [];
+  const events = participations.map((item) => item.event).filter(Boolean);
+  const eventsWithSummaries = await attachEventParticipationSummaries(events);
+  const eventMap = new Map(eventsWithSummaries.map((event) => [Number(event.id), event]));
+  return participations.map((item) => ({
+    ...item,
+    event: item.event ? eventMap.get(Number(item.event.id)) ?? item.event : null,
+  }));
+}
