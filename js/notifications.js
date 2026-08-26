@@ -4,8 +4,6 @@ import { supabase } from "./supabaseClient.js";
 const listeners = new Set();
 let realtimeChannel = null;
 let realtimeUserId = null;
-let reminderTimer = null;
-let reminderSyncPromise = null;
 
 function unwrap(result) {
   if (result.error) throw result.error;
@@ -41,18 +39,6 @@ export async function markDirectMessageRead(messageId) {
   }));
 }
 
-export async function syncUpcomingActivityReminders() {
-  if (reminderSyncPromise) return reminderSyncPromise;
-  reminderSyncPromise = (async () => {
-    try {
-      return Number(unwrap(await supabase.rpc("sync_my_activity_reminders")) ?? 0);
-    } finally {
-      reminderSyncPromise = null;
-    }
-  })();
-  return reminderSyncPromise;
-}
-
 function notifyListeners(notification = null) {
   listeners.forEach((entry) => {
     if (entry.owner && !entry.owner.isConnected) {
@@ -67,15 +53,6 @@ function notifyListeners(notification = null) {
   });
 }
 
-async function syncRemindersAndNotify() {
-  try {
-    const createdCount = await syncUpcomingActivityReminders();
-    if (createdCount > 0) notifyListeners({ kind: "activity_reminder_sync" });
-  } catch {
-    // DB 패치 적용 전이나 일시적인 네트워크 오류여도 기존 알림 UI는 계속 동작한다.
-  }
-}
-
 function ensureRealtime(userId) {
   if (!supabase || !userId) return;
   if (realtimeUserId === userId && realtimeChannel) return;
@@ -83,10 +60,6 @@ function ensureRealtime(userId) {
   if (realtimeChannel) {
     supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
-  }
-  if (reminderTimer) {
-    window.clearInterval(reminderTimer);
-    reminderTimer = null;
   }
 
   realtimeUserId = userId;
@@ -103,9 +76,6 @@ function ensureRealtime(userId) {
       (payload) => notifyListeners(payload.new ?? null),
     )
     .subscribe();
-
-  syncRemindersAndNotify();
-  reminderTimer = window.setInterval(syncRemindersAndNotify, 60 * 1000);
 }
 
 export function subscribeNotificationUpdates(userId, listener, owner = null) {
