@@ -94,6 +94,7 @@ function checkArchitectureContracts() {
     "js/pages/admin/categories.js",
     "supabase/site/migrations/20260826072528_community_p1_stability.sql",
     "supabase/site/migrations/20260826072758_community_p1_rpc_security_invoker.sql",
+    "supabase/site/migrations/20260826073714_community_p2_admin_member_pagination.sql",
   ];
   requiredFiles.forEach(sourceAt);
 
@@ -143,6 +144,17 @@ function checkArchitectureContracts() {
     fail("js/api/activities.js: recurring events must be created through the atomic RPC");
   }
 
+  const adminApi = sourceAt("js/api/admin.js");
+  if (!adminApi.includes('supabase.rpc("admin_list_members_page"')) {
+    fail("js/api/admin.js: admin member directory must use the paginated RPC");
+  }
+  const adminMembersPage = sourceAt("js/pages/admin/members.js");
+  if (!adminMembersPage.includes("PAGE_SIZE")
+    || !adminMembersPage.includes("pageSize: PAGE_SIZE")
+    || adminMembersPage.includes("rows.filter(")) {
+    fail("js/pages/admin/members.js: member management must remain server-paginated and server-searched");
+  }
+
   const notificationRuntime = sourceAt("js/notifications.js");
   if (notificationRuntime.includes("sync_my_activity_reminders")
     || notificationRuntime.includes("setInterval(syncRemindersAndNotify")) {
@@ -159,6 +171,13 @@ function checkArchitectureContracts() {
   if (!p1InvokerMigration.includes("security invoker")
     || !p1InvokerMigration.includes("sync_my_activity_reminders")) {
     fail("community P1 migration: atomic RPCs must remain invoker-based and client reminder RPC revoked");
+  }
+
+  const p2AdminMigration = sourceAt("supabase/site/migrations/20260826073714_community_p2_admin_member_pagination.sql");
+  if (!p2AdminMigration.includes("admin_list_members_page")
+    || !p2AdminMigration.includes("security invoker")
+    || !p2AdminMigration.includes("private.is_admin()")) {
+    fail("community P2 migration: admin member pagination must remain invoker-based and admin-guarded");
   }
 
   const navigationCss = sourceAt("css/navigation.css");
