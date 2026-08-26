@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import vm from "node:vm";
 
 const root = process.cwd();
+const jsRoot = path.join(root, "js");
 const moduleCache = new Map();
 const gamePagePath = path.resolve(root, "js/pages/games.js");
 let gameStub = null;
@@ -58,6 +59,28 @@ const linker = async (specifier, referencingModule) => {
   return getModule(target);
 };
 
+function listJavaScriptFiles(directory) {
+  const files = [];
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...listJavaScriptFiles(fullPath));
+    else if (entry.isFile() && entry.name.endsWith(".js")) files.push(fullPath);
+  }
+  return files;
+}
+
+function assertLazyRouteBoundaries() {
+  const appSource = fs.readFileSync(path.join(jsRoot, "app.js"), "utf8");
+  if (/^\s*import\s+[^;\n]+from\s+["']\.\/pages\//m.test(appSource)) {
+    throw new Error("js/app.js must lazy-load route page modules instead of eagerly importing ./pages/*.");
+  }
+
+  const adminSource = fs.readFileSync(path.join(jsRoot, "pages/admin.js"), "utf8");
+  if (/^\s*import\s+[^;\n]+from\s+["']\.\/admin\//m.test(adminSource)) {
+    throw new Error("js/pages/admin.js must lazy-load individual admin sections.");
+  }
+}
+
 async function assertNamedExportValidationWorks() {
   const provider = new vm.SyntheticModule(["present"], () => {}, {
     identifier: "synthetic:named-export-provider",
@@ -80,8 +103,15 @@ async function assertNamedExportValidationWorks() {
 }
 
 await assertNamedExportValidationWorks();
+assertLazyRouteBoundaries();
 
-const entry = getModule(path.join(root, "js/app.js"));
+const entry = getModule(path.join(jsRoot, "app.js"));
 await entry.link(linker);
 
-console.log(`Community module links passed (${moduleCache.size} modules, games page stubbed).`);
+for (const filePath of listJavaScriptFiles(jsRoot)) {
+  if (path.resolve(filePath) === gamePagePath) continue;
+  const module = getModule(filePath);
+  if (module.status === "unlinked") await module.link(linker);
+}
+
+console.log(`Community module links passed (${moduleCache.size} modules, games page stubbed, lazy route boundaries enforced).`);
