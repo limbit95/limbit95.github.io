@@ -54,6 +54,7 @@ function statsHTML(stats,context){
 
 function renderTargets(stats,key){
  document.querySelectorAll("[data-game-stats]").forEach(target=>{
+  if(target.dataset.statsKey===key)return;
   target.innerHTML=statsHTML(stats,target.dataset.gameStatsContext||"result");
   target.dataset.statsKey=key;
  });
@@ -78,7 +79,7 @@ async function sync(){
   renderTargets(stats,key);
  }catch{
   if(token!==requestToken)return;
-  targets.forEach(target=>{target.innerHTML='<p class="muted game-stats-loading">게임 기록을 불러오지 못했습니다.</p>';});
+  targets.forEach(target=>{if(target.dataset.statsKey!==`error:${key}`){target.innerHTML='<p class="muted game-stats-loading">게임 기록을 불러오지 못했습니다.</p>';target.dataset.statsKey=`error:${key}`;}});
  }finally{if(requestKey===key)requestKey="";}
 }
 
