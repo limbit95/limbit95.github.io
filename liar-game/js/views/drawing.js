@@ -1,12 +1,12 @@
 import { escapeHTML } from "../constants.js";
 
-const orderItem=(player,position,index,meId)=>{
+const orderTrackItem=(player,position,index,meId)=>{
  const state=position<index?"done":position===index?"current":"upcoming";
- const stateLabel=state==="done"?"✓ 완료":state==="current"?"🎨 DRAW":"대기";
- return `<li class="speaker-order-item drawing-order-item is-${state}">
-  <span class="speaker-order-number">${position+1}</span>
-  <span class="speaker-order-copy"><strong>${escapeHTML(player.nickname_snapshot)}</strong>${player.player_id===meId?'<small>나</small>':""}</span>
-  <span class="speaker-order-state">${stateLabel}</span>
+ const marker=state==="done"?"✓":state==="current"?"🎨":String(position+1);
+ const label=state==="done"?"완료":state==="current"?"NOW":"대기";
+ return `<li class="drawing-turn-track-item is-${state}" ${state==="current"?'aria-current="step"':""}>
+  <span class="drawing-turn-track-marker" aria-hidden="true">${marker}</span>
+  <span class="drawing-turn-track-copy"><strong>${escapeHTML(player.nickname_snapshot)}</strong><small>${player.player_id===meId?`나 · ${label}`:label}</small></span>
  </li>`;
 };
 
@@ -32,7 +32,7 @@ export function drawingView(s,isHost){
  const isCurrentDrawer=current?.player_id===s.me?.player_id;
  const canDraw=isCurrentDrawer&&(unlimitedStrokes||remaining>0);
  const canAdvance=isCurrentDrawer||isHost;
- const orderList=ordered.map((player,position)=>orderItem(player,position,index,s.me?.player_id)).join("");
+ const orderTrack=ordered.map((player,position)=>orderTrackItem(player,position,index,s.me?.player_id)).join("");
  const guide=isCurrentDrawer
   ?unlimitedStrokes
    ?`내 차례입니다. 3초 준비 후 <strong>${Number(drawing.time_limit||15)}초</strong> 동안 자유롭게 그릴 수 있습니다.`
@@ -62,16 +62,17 @@ export function drawingView(s,isHost){
   <div class="drawing-mobile-hud" aria-live="polite"><span>${runoff?"추가 그림":"현재 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong><span class="drawing-mobile-hud-stats"><b data-drawing-timer>--</b><i aria-hidden="true">·</i><b data-drawing-strokes>${escapeHTML(strokeText)}</b></span></div>
   ${runoff?`<p class="notice drawing-runoff-notice">동률 후보 ${ordered.length}명만 추가 그림을 진행합니다. 추가 그림이 끝나면 자유 토론 없이 바로 재투표합니다.</p>`:""}
   <div class="drawing-current"><span>${runoff?"현재 추가 그림":"현재 그림 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong></div>
+  <section class="drawing-turn-track" aria-label="${runoff?"동률 후보 추가 그림 순서":"그림 순서"}">
+   <header class="drawing-turn-track-heading"><div><span>${runoff?"추가 그림 순서":"그림 순서"}</span><strong>현재 ${Math.min(index+1,ordered.length)} / ${ordered.length}</strong></div><small>왼쪽부터 차례대로 진행됩니다</small></header>
+   <div class="drawing-turn-track-scroll"><ol class="drawing-turn-track-list">${orderTrack}</ol></div>
+  </section>
   <div class="drawing-board-shell ${canDraw?"is-active":"is-readonly"}" data-drawing-board-anchor>
    <canvas class="drawing-board" data-drawing-canvas data-can-draw="${canDraw?"true":"false"}" aria-label="그림 스파이 공동 그림판"></canvas>
    <div class="drawing-countdown-overlay" data-drawing-countdown hidden><strong data-drawing-countdown-value>3</strong><span data-drawing-countdown-label>준비!</span></div>
    ${canDraw?`<div class="drawing-board-hint">검정 펜 · ${escapeHTML(penHint)}</div>`:'<div class="drawing-board-hint">현재 차례의 그림을 기다리고 있습니다</div>'}
   </div>
   <p class="drawing-local-status muted" data-drawing-local-status aria-live="polite"></p>
-  <div class="drawing-layout-bottom">
-   <div><h3>${runoff?"동률 후보 순서":"그림 순서"}</h3><ol class="speaker-order-list drawing-order-list">${orderList}</ol></div>
-   <aside class="drawing-rule-card"><h3>${runoff?"추가 그림 규칙":"이번 라운드 규칙"}</h3><dl><div><dt>한 사람당 시간</dt><dd>${Number(drawing.time_limit||15)}초</dd></div><div><dt>최대 획</dt><dd>${unlimitedStrokes?"∞ 무제한":`${strokeLimit}획`}</dd></div></dl><p>${ruleText}</p></aside>
-  </div>
+  <aside class="drawing-rule-card"><h3>${runoff?"추가 그림 규칙":"이번 라운드 규칙"}</h3><dl><div><dt>한 사람당 시간</dt><dd>${Number(drawing.time_limit||15)}초</dd></div><div><dt>최대 획</dt><dd>${unlimitedStrokes?"∞ 무제한":`${strokeLimit}획`}</dd></div></dl><p>${ruleText}</p></aside>
   ${canAdvance?`<div class="drawing-actions"><button type="button" class="secondary" data-action="finish-drawing-turn">${isCurrentDrawer?"그림 완료 · 다음 사람":"방장 · 다음 사람으로 넘기기"}</button></div>`:""}
  </section>`;
 }
