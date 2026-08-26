@@ -1,6 +1,7 @@
 import { attachPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
+const POST_COLUMNS = "id,board_type,title,content,author_id,is_pinned,is_important,view_count,status,created_at,updated_at";
 const COMMENT_COLUMNS = "id,target_type,target_id,author_id,content,status,created_at,updated_at";
 
 export async function listPosts({
@@ -12,7 +13,7 @@ export async function listPosts({
   const offset = (page - 1) * pageSize;
   let query = supabase
     .from("posts")
-    .select("*", { count: "exact" })
+    .select(POST_COLUMNS, { count: "exact" })
     .eq("board_type", boardType)
     .eq("status", "published")
     .order("is_pinned", { ascending: false })
@@ -35,7 +36,7 @@ export async function listPosts({
 export async function getPost(postId) {
   const post = unwrap(await supabase
     .from("posts")
-    .select("*")
+    .select(POST_COLUMNS)
     .eq("id", Number(postId))
     .single());
   const [withAuthor] = await attachPublicProfiles([post]);
@@ -52,7 +53,7 @@ export async function createPost(payload) {
   return unwrap(await supabase
     .from("posts")
     .insert(compact(payload))
-    .select()
+    .select(POST_COLUMNS)
     .single());
 }
 
@@ -61,7 +62,7 @@ export async function updatePost(postId, payload) {
     .from("posts")
     .update(compact(payload))
     .eq("id", Number(postId))
-    .select()
+    .select(POST_COLUMNS)
     .single());
 }
 
