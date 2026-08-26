@@ -1,11 +1,11 @@
 import { getAuthState } from "../auth.js";
 import {
   cancelEventParticipation,
+  getMyParticipationOverview,
   joinEvent,
   listEvents,
-  listMyParticipations,
-  listPosts,
-} from "../api.js";
+} from "../api/activities.js";
+import { listPosts } from "../api/boards.js";
 import { createActivityCard } from "../components/activityCard.js";
 import { confirmDialog } from "../components/modal.js";
 import { showToast } from "../components/toast.js";
@@ -86,14 +86,19 @@ const DAILY_VERSES = Object.freeze([
 export async function renderHome() {
   const auth = getAuthState();
   const today = seoulDateString();
-  const [events, notices, participations, dailyVerse] = await Promise.all([
+  const dailyVersePromise = fetchDailyVerse(today).catch(() => null);
+  const [events, notices, participationOverview] = await Promise.all([
     listEvents({ fromDate: today, limit: 8 }),
     listPosts({ boardType: "notice", pageSize: 4 }),
-    listMyParticipations(auth.user.id),
-    fetchDailyVerse(today).catch(() => null),
+    getMyParticipationOverview({
+      upcomingLimit: 20,
+      historyLimit: 1,
+      historyOffset: 0,
+    }),
   ]);
 
   const root = pageContainer();
+  const dailyVerseCard = createDailyVerseLoadingCard();
   const heroActions = el("div", { className: "hero-actions" }, [
     el("a", { className: "button button--yellow", href: "#/activities", text: "🗓️ 이번 활동 보기" }),
     el("a", { className: "button button--coral", href: "#/games", text: "🎮 게임" }),
@@ -108,12 +113,10 @@ export async function renderHome() {
       el("p", { className: "hero__description", text: "가볍게 만나고, 즐겁게 움직이며, 따뜻하게 연결되는 청년 공동체입니다." }),
       heroActions,
     ]),
-    createDailyVerseCard(dailyVerse),
+    dailyVerseCard,
   ]);
 
-  const joinedUpcoming = participations
-    .filter((item) => item.event && item.event.event_date >= today && item.event.status === "scheduled")
-    .sort((a, b) => a.event.event_date.localeCompare(b.event.event_date));
+  const joinedUpcoming = participationOverview.upcoming ?? [];
   const quick = el("section", { className: "quick-grid", "aria-label": "빠른 메뉴" }, [
     quickCard("🙌", "내 참여", `${joinedUpcoming.length}개 예정`, "#/mypage"),
     quickCard("🌿", "활동 찾기", `${events.length}개 모집`, "#/activities"),
@@ -182,7 +185,19 @@ export async function renderHome() {
   }
   lowerGrid.append(noticeCard, myCard);
   root.append(hero, quick, upcomingSection, lowerGrid);
+
+  dailyVersePromise.then((verse) => {
+    if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
+  });
+
   return root;
+}
+
+function createDailyVerseLoadingCard() {
+  return el("aside", { className: "daily-verse", "aria-label": "오늘의 말씀", "aria-busy": "true" }, [
+    el("p", { className: "daily-verse__label", text: "오늘의 말씀" }),
+    el("p", { className: "daily-verse__fallback", text: "말씀을 불러오는 중…" }),
+  ]);
 }
 
 function createDailyVerseCard(verse) {
