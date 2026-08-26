@@ -10,11 +10,29 @@ let roundId=null;
 let localKey="";
 let realtimeStatus="closed";
 let syncing=false;
+let discussionClockKey="";
+let discussionClockOffset=0;
 
 const currentState=()=>store.get();
 const currentSnapshot=()=>currentState().snapshot;
 const isDiscussion=()=>currentSnapshot()?.round?.status===ROUND_STATUS.DISCUSSION;
 const keyFor=(state,room,round)=>`${PREFIX}:${state.session?.user?.id||"anon"}:${room}:${round}`;
+
+function discussionExpired(){
+ const round=currentSnapshot()?.round;
+ if(!round||round.status!==ROUND_STATUS.DISCUSSION)return false;
+ const limit=Number(round.discussion_time_limit_snapshot)||0;
+ if(limit<=0)return false;
+ const started=Date.parse(round.discussion_started_at||"");
+ if(!Number.isFinite(started))return false;
+ const clockKey=`${round.id}:${round.discussion_started_at||""}:${round.server_now||""}`;
+ if(clockKey!==discussionClockKey){
+  discussionClockKey=clockKey;
+  const serverNow=Date.parse(round.server_now||"");
+  discussionClockOffset=Number.isFinite(serverNow)?serverNow-Date.now():0;
+ }
+ return Date.now()+discussionClockOffset>=started+limit*1000;
+}
 
 function readMessages(){
  if(!localKey)return [];
@@ -62,16 +80,35 @@ function messageHTML(message){
  </article>`;
 }
 
+function syncChatAvailability(){
+ const form=document.querySelector('form[data-action="discussion-chat"]');
+ const status=document.querySelector("[data-discussion-chat-status]");
+ if(!form){
+  if(status&&discussionExpired())status.textContent="토론 시간이 종료되었습니다.";
+  return;
+ }
+ const expired=discussionExpired();
+ const textarea=form.querySelector('textarea[name="chat"]');
+ const submit=form.querySelector('button[type="submit"]');
+ form.classList.toggle("is-time-locked",expired);
+ form.setAttribute("aria-disabled",expired?"true":"false");
+ if(textarea){
+  textarea.disabled=expired;
+  textarea.placeholder=expired?"토론 시간이 종료되어 채팅이 잠겼습니다":"메시지를 입력하세요 · Enter 전송 / Shift+Enter 줄바꿈";
+ }
+ if(submit)submit.disabled=expired||realtimeStatus!=="subscribed";
+ if(status)status.textContent=expired
+  ?"토론 시간이 종료되어 채팅이 잠겼습니다"
+  :realtimeStatus==="subscribed"?"실시간 채팅 연결됨":realtimeStatus==="error"?"채팅 연결이 불안정합니다":"채팅 연결 중…";
+}
+
 function renderChat(){
  const panel=document.querySelector("[data-discussion-chat]");
  if(!panel)return;
  const messages=readMessages();
  panel.innerHTML=messages.length?messages.map(messageHTML).join(""):'<p class="discussion-chat-empty">아직 대화가 없습니다. 첫 메시지를 남겨보세요.</p>';
  requestAnimationFrame(()=>{panel.scrollTop=panel.scrollHeight;});
- const status=document.querySelector("[data-discussion-chat-status]");
- if(status)status.textContent=realtimeStatus==="subscribed"?"실시간 채팅 연결됨":realtimeStatus==="error"?"채팅 연결이 불안정합니다":"채팅 연결 중…";
- const submit=document.querySelector('form[data-action="discussion-chat"] button[type="submit"]');
- if(submit)submit.disabled=realtimeStatus!=="subscribed";
+ syncChatAvailability();
 }
 
 function appendMessage(message){
@@ -84,7 +121,7 @@ function appendMessage(message){
 
 function receiveMessage(payload){
  const s=currentSnapshot();
- if(!isDiscussion()||!payload||payload.room_id!==roomId||payload.round_id!==roundId)return;
+ if(!isDiscussion()||discussionExpired()||!payload||payload.room_id!==roomId||payload.round_id!==roundId)return;
  if(!s?.round_players?.some(player=>player.player_id===payload.sender_id))return;
  const text=String(payload.text||"").trim();
  if(!text||text.length>160)return;
@@ -93,7 +130,7 @@ function receiveMessage(payload){
 
 async function disconnect(){
  const old=channel;
- channel=null;roomId=null;roundId=null;realtimeStatus="closed";
+ channel=null;roomId=null;roundId=null;realtimeStatus="closed";discussionClockKey="";discussionClockOffset=0;
  if(old)try{await supabase.removeChannel(old);}catch{}
 }
 
@@ -138,7 +175,7 @@ async function syncView(){
 
 async function sendCurrentMessage(form){
  const s=currentSnapshot();
- if(!s||s.round?.status!==ROUND_STATUS.DISCUSSION||s.me?.is_spectator===true||!channel||realtimeStatus!=="subscribed")return;
+ if(!s||s.round?.status!==ROUND_STATUS.DISCUSSION||discussionExpired()||s.me?.is_spectator===true||!channel||realtimeStatus!=="subscribed")return;
  const textarea=form.querySelector('textarea[name="chat"]');
  const text=String(textarea?.value||"").trim();
  if(!text||text.length>160)return;
@@ -156,5 +193,6 @@ document.addEventListener("keydown",event=>{const textarea=event.target.closest?
 
 const observer=new MutationObserver(()=>{void syncView();});
 observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true});
+const availabilityTimer=window.setInterval(()=>{if(isDiscussion())syncChatAvailability();},180);
 void syncView();
-window.addEventListener("pagehide",()=>{observer.disconnect();void disconnect();},{once:true});
+window.addEventListener("pagehide",()=>{observer.disconnect();window.clearInterval(availabilityTimer);void disconnect();},{once:true});
