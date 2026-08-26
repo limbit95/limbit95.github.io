@@ -3,7 +3,6 @@ import {
   getDirectMessage,
   markDirectMessageRead,
   subscribeNotificationUpdates,
-  syncUpcomingActivityReminders,
 } from "../notifications.js";
 import { el, formatDateTime, getErrorMessage } from "../ui.js";
 import { contentDialog } from "./modal.js";
@@ -85,7 +84,6 @@ export function createHeader({ auth, currentPath, onLogout }) {
   }
 
   async function loadNotifications() {
-    await syncUpcomingActivityReminders().catch(() => 0);
     return listNotifications(50);
   }
 
