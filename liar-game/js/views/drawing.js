@@ -23,6 +23,7 @@ export function drawingView(s,isHost){
  const index=Number(s.round.current_speaker_index||0);
  const ordered=drawingOrder(s);
  const current=ordered[index];
+ const next=ordered[index+1];
  const drawing=s.drawing||{};
  const runoff=drawing.is_runoff===true;
  const strokeLimit=Number(drawing.stroke_limit||s.round.drawing_stroke_limit_snapshot||3);
@@ -61,9 +62,13 @@ export function drawingView(s,isHost){
   </header>
   <div class="drawing-mobile-hud" aria-live="polite"><span>${runoff?"추가 그림":"현재 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong><span class="drawing-mobile-hud-stats"><b data-drawing-timer>--</b><i aria-hidden="true">·</i><b data-drawing-strokes>${escapeHTML(strokeText)}</b></span></div>
   ${runoff?`<p class="notice drawing-runoff-notice">동률 후보 ${ordered.length}명만 추가 그림을 진행합니다. 추가 그림이 끝나면 자유 토론 없이 바로 재투표합니다.</p>`:""}
-  <div class="drawing-current"><span>${runoff?"현재 추가 그림":"현재 그림 차례"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong></div>
+  <div class="drawing-now-next" aria-live="polite">
+   <div class="drawing-now-next-card is-now"><span>${runoff?"🎨 지금 추가 그림":"🎨 지금 그리는 사람"}</span><strong>${escapeHTML(current?.nickname_snapshot||"-")}</strong></div>
+   <span class="drawing-now-next-arrow" aria-hidden="true">→</span>
+   <div class="drawing-now-next-card is-next"><span>다음 차례</span><strong>${next?escapeHTML(next.nickname_snapshot):"마지막 차례"}</strong></div>
+  </div>
   <section class="drawing-turn-track" aria-label="${runoff?"동률 후보 추가 그림 순서":"그림 순서"}">
-   <header class="drawing-turn-track-heading"><div><span>${runoff?"추가 그림 순서":"그림 순서"}</span><strong>현재 ${Math.min(index+1,ordered.length)} / ${ordered.length}</strong></div><small>왼쪽부터 차례대로 진행됩니다</small></header>
+   <header class="drawing-turn-track-heading"><div><span>${runoff?"추가 그림 순서":"전체 그림 순서"}</span><strong>현재 ${Math.min(index+1,ordered.length)} / ${ordered.length}</strong></div><small>왼쪽부터 차례대로 진행됩니다</small></header>
    <div class="drawing-turn-track-scroll"><ol class="drawing-turn-track-list">${orderTrack}</ol></div>
   </section>
   <div class="drawing-board-shell ${canDraw?"is-active":"is-readonly"}" data-drawing-board-anchor>
