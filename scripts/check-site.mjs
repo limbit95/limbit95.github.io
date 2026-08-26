@@ -95,6 +95,7 @@ function checkArchitectureContracts() {
     "supabase/site/migrations/20260826072528_community_p1_stability.sql",
     "supabase/site/migrations/20260826072758_community_p1_rpc_security_invoker.sql",
     "supabase/site/migrations/20260826073714_community_p2_admin_member_pagination.sql",
+    "supabase/site/migrations/20260826084607_community_p2_participation_overview.sql",
   ];
   requiredFiles.forEach(sourceAt);
 
@@ -143,6 +144,17 @@ function checkArchitectureContracts() {
   if (!activitiesApi.includes('supabase.rpc("create_recurring_event"')) {
     fail("js/api/activities.js: recurring events must be created through the atomic RPC");
   }
+  if (!activitiesApi.includes('supabase.rpc("get_my_participation_overview"')
+    || activitiesApi.includes("listMyParticipations")) {
+    fail("js/api/activities.js: my participation history must remain bounded by the overview RPC");
+  }
+
+  const myPage = sourceAt("js/pages/mypage.js");
+  if (!myPage.includes("HISTORY_PAGE_SIZE")
+    || !myPage.includes("historyOffset")
+    || !myPage.includes("getMyParticipationOverview")) {
+    fail("js/pages/mypage.js: participation history pagination is not wired");
+  }
 
   const adminApi = sourceAt("js/api/admin.js");
   if (!adminApi.includes('supabase.rpc("admin_list_members_page"')) {
@@ -178,6 +190,14 @@ function checkArchitectureContracts() {
     || !p2AdminMigration.includes("security invoker")
     || !p2AdminMigration.includes("private.is_admin()")) {
     fail("community P2 migration: admin member pagination must remain invoker-based and admin-guarded");
+  }
+
+  const p2ParticipationMigration = sourceAt("supabase/site/migrations/20260826084607_community_p2_participation_overview.sql");
+  if (!p2ParticipationMigration.includes("get_my_participation_overview")
+    || !p2ParticipationMigration.includes("security invoker")
+    || !p2ParticipationMigration.includes("private.is_approved_member()")
+    || !p2ParticipationMigration.includes("p_history_offset")) {
+    fail("community P2 migration: participation overview must remain approved-member scoped and paginated");
   }
 
   const navigationCss = sourceAt("css/navigation.css");
