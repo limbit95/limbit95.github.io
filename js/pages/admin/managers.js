@@ -1,11 +1,11 @@
-import { listCategories, listCategoryManagers, listMembers, setCategoryManager } from "../../api.js";
+import { listAllMembers, listCategories, listCategoryManagers, setCategoryManager } from "../../api.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { el, formatDate, getErrorMessage, setBusy } from "../../ui.js";
 
 export async function renderManagers() {
   const [membersRows, categoriesRows, managerRows] = await Promise.all([
-    listMembers(),
+    listAllMembers(),
     listCategories({ activeOnly: true }),
     listCategoryManagers(),
   ]);
