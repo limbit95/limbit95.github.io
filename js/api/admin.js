@@ -104,6 +104,21 @@ export async function listMembers({ search = "", page = 1, pageSize = 20 } = {})
   };
 }
 
+export async function listAllMembers({ search = "" } = {}) {
+  const items = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const result = await listMembers({ search, page, pageSize: 100 });
+    items.push(...result.items);
+    totalPages = result.totalPages;
+    page += 1;
+  } while (page <= totalPages);
+
+  return items;
+}
+
 export async function setMemberRole(userId, role) {
   return unwrap(await supabase.rpc("admin_set_member_role", {
     p_user_id: userId,
