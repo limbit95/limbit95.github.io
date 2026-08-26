@@ -3,10 +3,11 @@ import {
   createComment,
   deleteComment,
   deletePost,
+  getCommentReactionSummary,
   getPost,
   getSignedAvatarUrl,
   incrementPostView,
-  listComments,
+  listCommentsPage,
   updateComment,
 } from "../api.js";
 import { confirmDialog } from "../components/modal.js";
@@ -15,6 +16,7 @@ import { showToast } from "../components/toast.js";
 import { el, formatDateTime, getErrorMessage, pageContainer, relativeTime, setBusy } from "../ui.js";
 
 const PRAYER_REACTION_TEXT = "__PRAYER_TOGETHER__";
+const COMMENT_PAGE_SIZE = 10;
 
 export async function renderPostDetail(route, boardType) {
   const auth = getAuthState();
@@ -22,9 +24,16 @@ export async function renderPostDetail(route, boardType) {
   const viewedCount = await incrementPostView(route.params.id).catch(() => null);
   const post = await getPost(route.params.id);
   if (post.board_type !== boardType) throw new Error("게시글을 찾을 수 없습니다.");
-  const comments = isPrayer ? await listComments("post", post.id) : [];
-  const reactionComments = isPrayer ? comments.filter((comment) => comment.content === PRAYER_REACTION_TEXT) : [];
-  const visibleComments = isPrayer ? comments.filter((comment) => comment.content !== PRAYER_REACTION_TEXT) : [];
+  const [commentPage, reactionSummary] = isPrayer
+    ? await Promise.all([
+        listCommentsPage("post", post.id, {
+          limit: COMMENT_PAGE_SIZE,
+          excludeContent: PRAYER_REACTION_TEXT,
+          withCount: true,
+        }),
+        getCommentReactionSummary("post", post.id, auth.user.id, PRAYER_REACTION_TEXT),
+      ])
+    : [{ rows: [], count: 0, hasMore: false, nextBeforeId: null }, { count: 0, myReaction: null }];
   const base = boardType === "notice" ? "notice" : "prayer";
   const mine = post.author_id === auth.user.id;
   const root = pageContainer();
@@ -49,7 +58,7 @@ export async function renderPostDetail(route, boardType) {
       ]),
     ]),
     el("div", { className: "prose", text: post.content }),
-    isPrayer ? createPrayerReaction(post, reactionComments, auth) : null,
+    isPrayer ? createPrayerReaction(post, reactionSummary, auth) : null,
     (auth.isAdmin || (mine && isPrayer))
       ? el("div", { className: "button-row" }, [
           el("a", { className: "button button--secondary", href: `#/${base}/${post.id}/edit`, text: "수정" }),
@@ -66,12 +75,13 @@ export async function renderPostDetail(route, boardType) {
     el("a", { className: "button button--ghost", href: `#/${base}`, text: "← 목록으로", style: { justifySelf: "start" } }),
     article,
   );
-  if (isPrayer) root.append(createCommentSection(post, visibleComments, auth, true));
+  if (isPrayer) root.append(createCommentSection(post, commentPage, auth, true));
   return root;
 }
 
-function createPrayerReaction(post, reactionComments, auth) {
-  let myReaction = reactionComments.find((comment) => comment.author_id === auth.user.id) ?? null;
+function createPrayerReaction(post, initialSummary, auth) {
+  let myReaction = initialSummary?.myReaction ?? null;
+  let reactionCount = Number(initialSummary?.count ?? 0);
   const button = el("button", { type: "button" });
   const description = el("span", { className: "small subtle" });
   const wrapper = el("div", { className: "notice-box page-stack" }, [
@@ -81,15 +91,14 @@ function createPrayerReaction(post, reactionComments, auth) {
   ]);
 
   const refresh = () => {
-    const count = new Set(reactionComments.map((comment) => comment.author_id)).size;
     button.className = `button ${myReaction ? "button--yellow" : "button--secondary"}`;
     button.textContent = myReaction
-      ? `🙏 함께 기도하는 중 · ${count}명`
-      : `🙏 함께 기도해요 · ${count}명`;
+      ? `🙏 함께 기도하는 중 · ${reactionCount}명`
+      : `🙏 함께 기도해요 · ${reactionCount}명`;
     description.textContent = myReaction
       ? "함께 기도하고 있다는 마음을 전했어요. 다시 누르면 반응을 취소할 수 있어요."
-      : count
-        ? `${count}명이 이 기도 제목을 함께 품고 기도하고 있어요.`
+      : reactionCount
+        ? `${reactionCount}명이 이 기도 제목을 함께 품고 기도하고 있어요.`
         : "첫 번째로 함께 기도하는 마음을 전해 보세요.";
   };
 
@@ -98,8 +107,7 @@ function createPrayerReaction(post, reactionComments, auth) {
     try {
       if (myReaction) {
         await deleteComment(myReaction.id);
-        const index = reactionComments.findIndex((comment) => comment.id === myReaction.id);
-        if (index >= 0) reactionComments.splice(index, 1);
+        reactionCount = Math.max(0, reactionCount - 1);
         myReaction = null;
         showToast("함께 기도해요 반응을 취소했습니다.", "success");
       } else {
@@ -110,11 +118,16 @@ function createPrayerReaction(post, reactionComments, auth) {
           content: PRAYER_REACTION_TEXT,
           status: "published",
         });
-        reactionComments.push(created);
+        reactionCount += 1;
         myReaction = created;
         showToast("함께 기도하는 마음을 전했습니다.", "success");
       }
     } catch (error) {
+      const latest = await getCommentReactionSummary("post", post.id, auth.user.id, PRAYER_REACTION_TEXT).catch(() => null);
+      if (latest) {
+        reactionCount = Number(latest.count ?? reactionCount);
+        myReaction = latest.myReaction ?? null;
+      }
       showToast(getErrorMessage(error, "기도 반응을 처리하지 못했습니다."), "error");
     } finally {
       setBusy(button, false);
@@ -145,7 +158,11 @@ async function handleDeletePost(post, base, isPrayer = false) {
   }
 }
 
-function createCommentSection(post, comments, auth, isPrayer = false) {
+function createCommentSection(post, initialPage, auth, isPrayer = false) {
+  let comments = [...(initialPage?.rows ?? [])];
+  let totalCount = Number(initialPage?.count ?? comments.length);
+  let hasMore = Boolean(initialPage?.hasMore);
+  let beforeId = initialPage?.nextBeforeId ?? null;
   const section = el("section", {
     className: isPrayer ? "card page-stack prayer-comment-section" : "card page-stack",
     "aria-labelledby": "comments-title",
@@ -153,7 +170,6 @@ function createCommentSection(post, comments, auth, isPrayer = false) {
   const title = el("h2", {
     id: "comments-title",
     className: "section-title",
-    text: isPrayer ? `응원 메시지 ${comments.length}개` : `댓글 ${comments.length}개`,
   });
 
   const form = isPrayer
@@ -192,8 +208,58 @@ function createCommentSection(post, comments, auth, isPrayer = false) {
         }),
       ]);
 
+  const loadMoreButton = el("button", {
+    className: "button button--ghost",
+    type: "button",
+    text: isPrayer ? "이전 응원 메시지 더 보기" : "이전 댓글 더 보기",
+  });
+  const loadMoreRow = el("div", { className: "button-row" }, [loadMoreButton]);
   const list = el("div", { className: isPrayer ? "comment-list prayer-comment-list" : "comment-list" });
-  renderCommentList(list, comments, auth, isPrayer);
+
+  const updateTitle = () => {
+    title.textContent = isPrayer ? `응원 메시지 ${totalCount}개` : `댓글 ${totalCount}개`;
+  };
+  const updateLoadMore = () => {
+    loadMoreRow.hidden = !hasMore;
+  };
+  const renderCurrent = () => {
+    renderCommentList(list, comments, auth, isPrayer, refreshLatest);
+    updateTitle();
+    updateLoadMore();
+  };
+  async function refreshLatest() {
+    const refreshed = await listCommentsPage("post", post.id, {
+      limit: COMMENT_PAGE_SIZE,
+      excludeContent: isPrayer ? PRAYER_REACTION_TEXT : null,
+      withCount: true,
+    });
+    comments = [...refreshed.rows];
+    totalCount = Number(refreshed.count ?? comments.length);
+    hasMore = Boolean(refreshed.hasMore);
+    beforeId = refreshed.nextBeforeId ?? null;
+    renderCurrent();
+  }
+
+  loadMoreButton.addEventListener("click", async () => {
+    if (!hasMore || beforeId === null) return;
+    setBusy(loadMoreButton, true, "불러오는 중…");
+    try {
+      const olderPage = await listCommentsPage("post", post.id, {
+        limit: COMMENT_PAGE_SIZE,
+        beforeId,
+        excludeContent: isPrayer ? PRAYER_REACTION_TEXT : null,
+      });
+      comments = [...olderPage.rows, ...comments];
+      hasMore = Boolean(olderPage.hasMore);
+      beforeId = olderPage.nextBeforeId ?? null;
+      renderCurrent();
+    } catch (error) {
+      showToast(getErrorMessage(error, isPrayer ? "이전 응원 메시지를 불러오지 못했습니다." : "이전 댓글을 불러오지 못했습니다."), "error");
+    } finally {
+      setBusy(loadMoreButton, false);
+    }
+  });
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const content = form.content.value.trim();
@@ -210,25 +276,22 @@ function createCommentSection(post, comments, auth, isPrayer = false) {
         content,
         status: "published",
       });
-      showToast(isPrayer ? "응원 메시지를 남겼습니다." : "댓글을 등록했습니다.", "success");
-      const refreshedAll = await listComments("post", post.id);
-      const refreshed = isPrayer
-        ? refreshedAll.filter((item) => item.content !== PRAYER_REACTION_TEXT)
-        : refreshedAll;
-      renderCommentList(list, refreshed, auth, isPrayer);
-      title.textContent = isPrayer ? `응원 메시지 ${refreshed.length}개` : `댓글 ${refreshed.length}개`;
+      await refreshLatest();
       form.reset();
+      showToast(isPrayer ? "응원 메시지를 남겼습니다." : "댓글을 등록했습니다.", "success");
     } catch (error) {
       showToast(getErrorMessage(error, isPrayer ? "응원 메시지 등록에 실패했습니다." : "댓글 등록에 실패했습니다."), "error");
     } finally {
       setBusy(form, false);
     }
   });
-  section.append(title, form, el("hr", { className: "divider" }), list);
+
+  renderCurrent();
+  section.append(title, form, el("hr", { className: "divider" }), loadMoreRow, list);
   return section;
 }
 
-function renderCommentList(list, comments, auth, isPrayer) {
+function renderCommentList(list, comments, auth, isPrayer, onDeleted = null) {
   list.replaceChildren();
   if (!comments.length) {
     list.append(el("p", {
@@ -239,10 +302,10 @@ function renderCommentList(list, comments, auth, isPrayer) {
     }));
     return;
   }
-  comments.forEach((comment) => list.append(commentNode(comment, auth, isPrayer)));
+  comments.forEach((comment) => list.append(commentNode(comment, auth, isPrayer, onDeleted)));
 }
 
-function commentNode(comment, auth, isPrayer = false) {
+function commentNode(comment, auth, isPrayer = false, onDeleted = null) {
   const canEdit = auth.isAdmin || comment.author_id === auth.user.id;
   const authorName = comment.author?.display_name ?? "회원";
   const authorAvatar = comment.author
@@ -303,7 +366,7 @@ function commentNode(comment, auth, isPrayer = false) {
           className: isPrayer ? "button button--ghost prayer-comment__action prayer-comment__action--delete" : "button button--ghost",
           type: "button",
           text: "삭제",
-          onClick: () => handleDeleteComment(node, comment.id, isPrayer),
+          onClick: () => handleDeleteComment(node, comment.id, isPrayer, onDeleted),
         }),
       ]) : null,
     ]),
@@ -341,7 +404,7 @@ function startCommentEdit(node, contentNode, comment, isPrayer = false) {
   form.content.focus();
 }
 
-async function handleDeleteComment(node, commentId, isPrayer = false) {
+async function handleDeleteComment(node, commentId, isPrayer = false, onDeleted = null) {
   const confirmed = await confirmDialog({
     title: isPrayer ? "응원 메시지를 삭제할까요?" : "댓글을 삭제할까요?",
     message: isPrayer ? "삭제한 응원 메시지는 복구할 수 없습니다." : "삭제한 댓글은 복구할 수 없습니다.",
@@ -351,20 +414,8 @@ async function handleDeleteComment(node, commentId, isPrayer = false) {
   if (!confirmed) return;
   try {
     await deleteComment(commentId);
-    const section = node.closest(".prayer-comment-section");
-    const list = node.parentElement;
     node.remove();
-    if (isPrayer && section && list) {
-      const count = list.querySelectorAll(".prayer-comment").length;
-      const title = section.querySelector("#comments-title");
-      if (title) title.textContent = `응원 메시지 ${count}개`;
-      if (!count) {
-        list.append(el("p", {
-          className: "subtle prayer-comment-empty",
-          text: "아직 응원 메시지가 없습니다. 따뜻한 응원을 먼저 남겨 보세요.",
-        }));
-      }
-    }
+    if (onDeleted) await onDeleted(commentId);
     showToast(isPrayer ? "응원 메시지를 삭제했습니다." : "댓글을 삭제했습니다.", "success");
   } catch (error) {
     showToast(getErrorMessage(error, isPrayer ? "응원 메시지 삭제에 실패했습니다." : "댓글 삭제에 실패했습니다."), "error");
