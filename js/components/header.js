@@ -1,4 +1,9 @@
-import { listNotifications, markAllNotificationsRead, markNotificationRead } from "../api.js";
+import {
+  countUnreadNotifications,
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "../api/notifications.js";
 import {
   getDirectMessage,
   markDirectMessageRead,
@@ -70,17 +75,22 @@ export function createHeader({ auth, currentPath, onLogout }) {
     hidden: true,
   });
 
-  function updateUnreadBadge(notifications) {
-    const unread = notifications.filter((item) => !item.is_read && !notificationIsPast(item)).length;
+  function setUnreadBadge(unread) {
+    const safeUnread = Math.max(Number(unread) || 0, 0);
     notificationWrap.querySelector(".notification-badge")?.remove();
-    if (unread) {
+    if (safeUnread) {
       notificationWrap.append(el("span", {
         className: "notification-badge",
-        text: unread > 99 ? "99+" : unread,
-        "aria-label": `읽지 않은 알림 ${unread}개`,
+        text: safeUnread > 99 ? "99+" : safeUnread,
+        "aria-label": `읽지 않은 알림 ${safeUnread}개`,
       }));
     }
-    return unread;
+    return safeUnread;
+  }
+
+  function updateUnreadBadge(notifications) {
+    const unread = notifications.filter((item) => !item.is_read && !notificationIsPast(item)).length;
+    return setUnreadBadge(unread);
   }
 
   async function loadNotifications() {
@@ -89,8 +99,7 @@ export function createHeader({ auth, currentPath, onLogout }) {
 
   async function refreshNotificationBadge() {
     try {
-      const notifications = await loadNotifications();
-      updateUnreadBadge(notifications);
+      setUnreadBadge(await countUnreadNotifications());
     } catch {
       // 종 아이콘 자체는 유지하고 패널을 열 때 다시 조회한다.
     }
