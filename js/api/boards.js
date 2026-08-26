@@ -133,6 +133,18 @@ export async function getCommentReactionSummary(targetType, targetId, authorId, 
   };
 }
 
+// Backward compatibility for cached pre-P2 prayer detail modules.
+export async function listComments(targetType, targetId) {
+  const rows = unwrap(await supabase
+    .from("comments")
+    .select(COMMENT_COLUMNS)
+    .eq("target_type", targetType)
+    .eq("target_id", Number(targetId))
+    .eq("status", "published")
+    .order("created_at", { ascending: true })) ?? [];
+  return attachPublicProfiles(rows);
+}
+
 export async function createComment(payload) {
   return unwrap(await supabase
     .from("comments")
