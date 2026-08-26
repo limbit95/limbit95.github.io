@@ -21,20 +21,27 @@ gameNavigation.innerHTML = `
 `;
 
 gameRoot.before(welcomeRoot, gameNavigation);
-gameRoot.hidden = true;
-gameNavigation.hidden = true;
+
+function setVisible(element, visible) {
+  element.hidden = !visible;
+  element.style.display = visible ? "" : "none";
+}
+
+setVisible(welcomeRoot, true);
+setVisible(gameRoot, false);
+setVisible(gameNavigation, false);
 
 function showGame() {
-  welcomeRoot.hidden = true;
-  gameRoot.hidden = false;
-  gameNavigation.hidden = false;
+  setVisible(welcomeRoot, false);
+  setVisible(gameRoot, true);
+  setVisible(gameNavigation, true);
   gameRoot.focus({ preventScroll: true });
 }
 
 function showWelcome() {
-  gameRoot.hidden = true;
-  gameNavigation.hidden = true;
-  welcomeRoot.hidden = false;
+  setVisible(gameRoot, false);
+  setVisible(gameNavigation, false);
+  setVisible(welcomeRoot, true);
   welcomeRoot.querySelector("[data-action='open-lobby']")?.focus({ preventScroll: true });
   window.scrollTo({ top: 0, behavior: "auto" });
 }
