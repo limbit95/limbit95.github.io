@@ -7,21 +7,30 @@ import { createHeader } from "./components/header.js";
 import { createBottomNav } from "./components/bottomNav.js";
 import { confirmDialog } from "./components/modal.js";
 import { showToast } from "./components/toast.js";
-import { renderLogin } from "./pages/login.js";
-import { renderSignup } from "./pages/signup.js";
-import { renderAuthConfirm } from "./pages/authConfirm.js";
-import { renderForgotPassword, renderPasswordUpdate } from "./pages/passwordReset.js";
-import { renderPending, renderSuspended } from "./pages/pending.js";
-import { renderHome } from "./pages/home.js";
-import { renderGames } from "./pages/games.js";
-import { renderActivities } from "./pages/activities.js";
-import { renderActivityDetail } from "./pages/activityDetail.js";
-import { renderActivityForm } from "./pages/activityForm.js";
-import { renderBoard } from "./pages/board.js";
-import { renderPostDetail } from "./pages/postDetail.js";
-import { renderPostForm } from "./pages/postForm.js";
-import { renderMyPage, renderProfileEdit } from "./pages/mypage.js";
-import { renderAdmin } from "./pages/admin.js";
+
+const lazyRenderer = (loader, exportName) => async (...args) => {
+  const module = await loader();
+  const renderer = module[exportName];
+  if (typeof renderer !== "function") {
+    throw new Error(`Lazy renderer export not found: ${exportName}`);
+  }
+  return renderer(...args);
+};
+
+const renderLogin = lazyRenderer(() => import("./pages/login.js"), "renderLogin");
+const renderSignup = lazyRenderer(() => import("./pages/signup.js"), "renderSignup");
+const renderAuthConfirm = lazyRenderer(() => import("./pages/authConfirm.js"), "renderAuthConfirm");
+const renderForgotPassword = lazyRenderer(() => import("./pages/passwordReset.js"), "renderForgotPassword");
+const renderPasswordUpdate = lazyRenderer(() => import("./pages/passwordReset.js"), "renderPasswordUpdate");
+const renderPending = lazyRenderer(() => import("./pages/pending.js"), "renderPending");
+const renderSuspended = lazyRenderer(() => import("./pages/pending.js"), "renderSuspended");
+const renderHome = lazyRenderer(() => import("./pages/home.js"), "renderHome");
+const renderGames = lazyRenderer(() => import("./pages/games.js"), "renderGames");
+const renderActivities = lazyRenderer(() => import("./pages/activities.js"), "renderActivities");
+const renderActivityDetail = lazyRenderer(() => import("./pages/activityDetail.js"), "renderActivityDetail");
+const renderMyPage = lazyRenderer(() => import("./pages/mypage.js"), "renderMyPage");
+const renderProfileEdit = lazyRenderer(() => import("./pages/mypage.js"), "renderProfileEdit");
+const renderAdmin = lazyRenderer(() => import("./pages/admin.js"), "renderAdmin");
 
 const app = document.getElementById("app");
 let renderSequence = 0;
@@ -168,17 +177,47 @@ route("/suspended", "이용 정지 안내", "signed", renderSuspended, { shell: 
 route("/", "홈", "approved", renderHome);
 route("/games", "게임", "approved", renderGames);
 route("/activities", "활동", "approved", renderActivities);
-route("/activities/new", "활동 등록", "manager", (currentRoute) => renderActivityForm(currentRoute, "create"));
-route("/activities/:id/edit", "활동 수정", "manager", (currentRoute) => renderActivityForm(currentRoute, "edit"));
+route("/activities/new", "활동 등록", "manager", async (currentRoute) => {
+  const { renderActivityForm } = await import("./pages/activityForm.js");
+  return renderActivityForm(currentRoute, "create");
+});
+route("/activities/:id/edit", "활동 수정", "manager", async (currentRoute) => {
+  const { renderActivityForm } = await import("./pages/activityForm.js");
+  return renderActivityForm(currentRoute, "edit");
+});
 route("/activities/:id", "활동 상세", "approved", renderActivityDetail);
-route("/notice", "공지사항", "approved", (currentRoute) => renderBoard(currentRoute, "notice"));
-route("/notice/new", "공지사항 작성", "admin", (currentRoute) => renderPostForm(currentRoute, "notice", "create"));
-route("/notice/:id/edit", "공지사항 수정", "admin", (currentRoute) => renderPostForm(currentRoute, "notice", "edit"));
-route("/notice/:id", "공지사항 상세", "approved", (currentRoute) => renderPostDetail(currentRoute, "notice"));
-route("/prayer", "기도 제목", "approved", (currentRoute) => renderBoard(currentRoute, "free"));
-route("/prayer/new", "기도 제목 나누기", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "create"));
-route("/prayer/:id/edit", "기도 제목 수정", "approved", (currentRoute) => renderPostForm(currentRoute, "free", "edit"));
-route("/prayer/:id", "기도 제목 상세", "approved", (currentRoute) => renderPostDetail(currentRoute, "free"));
+route("/notice", "공지사항", "approved", async (currentRoute) => {
+  const { renderBoard } = await import("./pages/board.js");
+  return renderBoard(currentRoute, "notice");
+});
+route("/notice/new", "공지사항 작성", "admin", async (currentRoute) => {
+  const { renderPostForm } = await import("./pages/postForm.js");
+  return renderPostForm(currentRoute, "notice", "create");
+});
+route("/notice/:id/edit", "공지사항 수정", "admin", async (currentRoute) => {
+  const { renderPostForm } = await import("./pages/postForm.js");
+  return renderPostForm(currentRoute, "notice", "edit");
+});
+route("/notice/:id", "공지사항 상세", "approved", async (currentRoute) => {
+  const { renderPostDetail } = await import("./pages/postDetail.js");
+  return renderPostDetail(currentRoute, "notice");
+});
+route("/prayer", "기도 제목", "approved", async (currentRoute) => {
+  const { renderBoard } = await import("./pages/board.js");
+  return renderBoard(currentRoute, "free");
+});
+route("/prayer/new", "기도 제목 나누기", "approved", async (currentRoute) => {
+  const { renderPostForm } = await import("./pages/postForm.js");
+  return renderPostForm(currentRoute, "free", "create");
+});
+route("/prayer/:id/edit", "기도 제목 수정", "approved", async (currentRoute) => {
+  const { renderPostForm } = await import("./pages/postForm.js");
+  return renderPostForm(currentRoute, "free", "edit");
+});
+route("/prayer/:id", "기도 제목 상세", "approved", async (currentRoute) => {
+  const { renderPostDetail } = await import("./pages/postDetail.js");
+  return renderPostDetail(currentRoute, "free");
+});
 registerRoute("/community", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
 registerRoute("/community/new", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
 registerRoute("/community/:id/edit", redirectLegacyCommunity, { title: "기도 제목", auth: "approved" });
@@ -248,9 +287,6 @@ window.addEventListener("app:auth-changed", (event) => {
   const auth = getAuthState();
   const current = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
   if (["/auth/confirm", "/password/update", "/reset-password", "/update-password"].includes(current)) return;
-  // Returning to a background tab may make Supabase repeat SIGNED_IN for the
-  // same account. The access context was refreshed, but rerendering here would
-  // replace an in-progress form and discard all of its DOM-held values.
   if (event.detail?.event === "SIGNED_IN" && event.detail.sameUser) return;
   if (current === "/login" || current === "/signup" || auth.profile?.status !== "approved") {
     const destination = authDestination(auth);
