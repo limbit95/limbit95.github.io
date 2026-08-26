@@ -92,6 +92,8 @@ function checkArchitectureContracts() {
     "js/pages/admin/members.js",
     "js/pages/admin/managers.js",
     "js/pages/admin/categories.js",
+    "supabase/site/migrations/20260826072528_community_p1_stability.sql",
+    "supabase/site/migrations/20260826072758_community_p1_rpc_security_invoker.sql",
   ];
   requiredFiles.forEach(sourceAt);
 
@@ -126,6 +128,37 @@ function checkArchitectureContracts() {
   }
   if (activityCard.includes("window.location.hash = detailHref")) {
     fail("js/components/activityCard.js: whole-card navigation regressed to JS hash mutation");
+  }
+
+  const profileApi = sourceAt("js/api/profiles.js");
+  if (!profileApi.includes('supabase.rpc("replace_my_profile_interests"')) {
+    fail("js/api/profiles.js: profile interests must be replaced through the atomic RPC");
+  }
+  if (profileApi.includes('.from("profile_interests")\n    .delete()')) {
+    fail("js/api/profiles.js: profile interest replacement regressed to client-side delete/insert");
+  }
+
+  const activitiesApi = sourceAt("js/api/activities.js");
+  if (!activitiesApi.includes('supabase.rpc("create_recurring_event"')) {
+    fail("js/api/activities.js: recurring events must be created through the atomic RPC");
+  }
+
+  const notificationRuntime = sourceAt("js/notifications.js");
+  if (notificationRuntime.includes("sync_my_activity_reminders")
+    || notificationRuntime.includes("setInterval(syncRemindersAndNotify")) {
+    fail("js/notifications.js: client activity-reminder polling must remain removed");
+  }
+
+  const p1StabilityMigration = sourceAt("supabase/site/migrations/20260826072528_community_p1_stability.sql");
+  if (!p1StabilityMigration.includes("private.is_approved_member()")
+    || !p1StabilityMigration.includes("direct_messages_select_own")) {
+    fail("community P1 migration: direct-message access must require approved membership");
+  }
+
+  const p1InvokerMigration = sourceAt("supabase/site/migrations/20260826072758_community_p1_rpc_security_invoker.sql");
+  if (!p1InvokerMigration.includes("security invoker")
+    || !p1InvokerMigration.includes("sync_my_activity_reminders")) {
+    fail("community P1 migration: atomic RPCs must remain invoker-based and client reminder RPC revoked");
   }
 
   const navigationCss = sourceAt("css/navigation.css");
