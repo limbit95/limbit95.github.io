@@ -60,6 +60,13 @@ as $$
         and lr.status = 'active'
         and pg_catalog.now() < lr.expires_at
         and rd.status = 'DISCUSSION'
+        and (
+          coalesce(rd.discussion_time_limit_snapshot,0) = 0
+          or (
+            rd.discussion_started_at is not null
+            and pg_catalog.now() < rd.discussion_started_at + pg_catalog.make_interval(secs => rd.discussion_time_limit_snapshot)
+          )
+        )
         and p_topic = 'liar-chat:' || lp.room_id::text
     );
 $$;
@@ -169,8 +176,8 @@ using (
 );
 
 -- Only current round participants may send ephemeral client broadcasts:
--- DISCUSSION participants can send chat, while only the authoritative current
--- Drawing Spy drawer can send live stroke fragments during the active draw time.
+-- DISCUSSION participants can send chat only while the discussion timer is active,
+-- while only the authoritative current Drawing Spy drawer can send live stroke fragments during the active draw time.
 drop policy if exists "liar active room members can send broadcasts"
 on realtime.messages;
 create policy "liar active room members can send broadcasts"
