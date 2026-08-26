@@ -96,6 +96,7 @@ function checkArchitectureContracts() {
     "supabase/site/migrations/20260826072758_community_p1_rpc_security_invoker.sql",
     "supabase/site/migrations/20260826073714_community_p2_admin_member_pagination.sql",
     "supabase/site/migrations/20260826084607_community_p2_participation_overview.sql",
+    "supabase/site/migrations/20260826085757_community_p2_comment_cursor_pagination.sql",
   ];
   requiredFiles.forEach(sourceAt);
 
@@ -156,6 +157,20 @@ function checkArchitectureContracts() {
     fail("js/pages/mypage.js: participation history pagination is not wired");
   }
 
+  const boardsApi = sourceAt("js/api/boards.js");
+  if (!boardsApi.includes("listCommentsPage")
+    || !boardsApi.includes("getCommentReactionSummary")
+    || boardsApi.includes("export async function listComments(")) {
+    fail("js/api/boards.js: comments must remain cursor-paginated with bounded reaction summary queries");
+  }
+  const postDetail = sourceAt("js/pages/postDetail.js");
+  if (!postDetail.includes("COMMENT_PAGE_SIZE")
+    || !postDetail.includes("nextBeforeId")
+    || !postDetail.includes("listCommentsPage")
+    || postDetail.includes("await listComments(")) {
+    fail("js/pages/postDetail.js: prayer comments must remain cursor-paginated");
+  }
+
   const adminApi = sourceAt("js/api/admin.js");
   if (!adminApi.includes('supabase.rpc("admin_list_members_page"')) {
     fail("js/api/admin.js: admin member directory must use the paginated RPC");
@@ -198,6 +213,13 @@ function checkArchitectureContracts() {
     || !p2ParticipationMigration.includes("private.is_approved_member()")
     || !p2ParticipationMigration.includes("p_history_offset")) {
     fail("community P2 migration: participation overview must remain approved-member scoped and paginated");
+  }
+
+  const p2CommentMigration = sourceAt("supabase/site/migrations/20260826085757_community_p2_comment_cursor_pagination.sql");
+  if (!p2CommentMigration.includes("comments_prayer_reaction_unique_idx")
+    || !p2CommentMigration.includes("comments_target_published_id_desc_idx")
+    || !p2CommentMigration.includes("__PRAYER_TOGETHER__")) {
+    fail("community P2 migration: comment pagination indexes and reaction uniqueness must remain in place");
   }
 
   const navigationCss = sourceAt("css/navigation.css");
