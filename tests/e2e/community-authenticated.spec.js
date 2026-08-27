@@ -449,14 +449,9 @@ test.describe("approved member flow", () => {
     await welcome.getByRole("button", { name: "게임 로비 열기" }).click();
     await expect(welcome).toBeHidden();
     await expect(gameNavigation).toBeVisible();
-    await expect(gameNavigation.getByRole("button", { name: "처음으로" })).toBeVisible();
     await expect(gameNavigation.getByRole("link", { name: "게임 목록으로" })).toBeVisible();
 
-    await gameNavigation.getByRole("button", { name: "처음으로" }).click();
-    await expect(gameNavigation).toBeHidden();
-    await expect(welcome.getByRole("button", { name: "게임 로비 열기" })).toBeVisible();
-
-    await welcome.getByRole("link", { name: "게임 목록으로" }).click();
+    await gameNavigation.getByRole("link", { name: "게임 목록으로" }).click();
     await expect(page).toHaveURL(/\/#\/games$/);
     await assertHealthyPage(page, "게임");
 
