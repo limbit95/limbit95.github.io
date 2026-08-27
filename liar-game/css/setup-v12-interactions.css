@@ -1,7 +1,7 @@
 /* Liar Game v1.2 setup interaction polish */
-.room-start-control{display:grid;width:100%;margin-top:2px}
-.room-start-button{width:100%;min-height:52px;font-size:1rem;font-weight:850}
-.room-start-button:disabled{opacity:1;border:1px solid var(--border);background:#eee9fa;color:var(--muted);box-shadow:none}
+.setup-start-control{display:grid;width:100%;margin:0 0 14px}
+.setup-start-button{width:100%;min-height:52px;font-size:1rem;font-weight:850}
+.setup-start-button:disabled{opacity:1;border:1px solid var(--border);background:#eee9fa;color:var(--muted);box-shadow:none}
 
 .setup-card-v11 .setup-header{gap:0}
 .setup-card-v11 .setup-form{margin-top:-2px}
@@ -20,7 +20,7 @@
 .setup-info:hover .setup-tooltip,.setup-info:focus .setup-tooltip,.setup-info:focus-visible .setup-tooltip{opacity:1;transform:translate(-50%,0)}
 
 @media(max-width:430px){
- .room-start-button{min-height:50px;font-size:.94rem}
+ .setup-start-button{min-height:50px;font-size:.94rem}
  .setup-difficulty-row{gap:8px}
  .setup-difficulty-row select{flex-basis:44%;min-width:105px}
  .setup-difficulty-row small{font-size:.7rem}
