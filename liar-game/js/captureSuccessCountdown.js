@@ -6,6 +6,7 @@ const MARKER_PREFIX="liar_capture_success_reveal";
 let activeRoundId="";
 let overlay=null;
 let timer=null;
+let revealCloseTimer=null;
 let deadline=0;
 let revealRequested=false;
 let revealed=false;
@@ -15,6 +16,7 @@ let observer=null;
 const markerKey=roundId=>`${MARKER_PREFIX}:${store.get().session?.user?.id||"anon"}:${roundId}`;
 const roleName=()=>overlay?.dataset.hiddenRoleName||"라이어";
 const clearTimer=()=>{if(timer){clearInterval(timer);timer=null;}};
+const clearRevealCloseTimer=()=>{if(revealCloseTimer){clearTimeout(revealCloseTimer);revealCloseTimer=null;}};
 
 function writeMarker(roundId,value){try{localStorage.setItem(markerKey(roundId),value);}catch{}}
 function readMarker(roundId){try{return localStorage.getItem(markerKey(roundId))||"";}catch{return "";}}
@@ -25,7 +27,7 @@ function currentNames(){
 }
 
 function removeOverlay(){
- clearTimer();
+ clearTimer();clearRevealCloseTimer();
  overlay?.remove();
  overlay=null;
  activeRoundId="";
@@ -66,7 +68,7 @@ function setCount(value){
 function showRevealed(){
  if(!overlay||revealed)return;
  revealed=true;
- clearTimer();
+ clearTimer();clearRevealCloseTimer();
  writeMarker(activeRoundId,"revealed");
  const inner=overlay.querySelector(".capture-success-countdown-inner");
  if(!inner)return;
@@ -78,10 +80,15 @@ function showRevealed(){
  const names=document.createElement("div");names.className="capture-success-names";
  const list=capturedNames.length?capturedNames:[`${hiddenRoleName} 공개 완료`];
  list.forEach(name=>{const chip=document.createElement("strong");chip.className="capture-success-name";chip.textContent=name;names.append(chip);});
- const copy=document.createElement("p");copy.textContent=`시민이 ${hiddenRoleName}를 정확히 찾아냈습니다. 이제 제시어 추측 단계로 넘어갑니다.`;
- const button=document.createElement("button");button.type="button";button.className="capture-success-close";button.dataset.captureSuccessClose="";button.textContent="닫기";
- inner.append(kicker,title,names,copy,button);
+ const copy=document.createElement("p");copy.className="capture-success-copy";
+ const first=document.createElement("span");first.className="capture-success-copy-line";first.textContent=`시민이 ${hiddenRoleName}를 정확히 찾아냈습니다.`;
+ const second=document.createElement("span");second.className="capture-success-copy-line";second.textContent="이제 제시어 추측 단계로 넘어갑니다.";
+ copy.append(first,second);
+ const button=document.createElement("button");button.type="button";button.className="capture-success-close";button.dataset.captureSuccessClose="";button.textContent="바로 추측 화면 보기";
+ const auto=document.createElement("small");auto.className="capture-success-auto-note";auto.textContent="잠시 후 모든 참가자가 자동으로 이동합니다.";
+ inner.append(kicker,title,names,copy,button,auto);
  requestAnimationFrame(()=>button.focus({preventScroll:true}));
+ revealCloseTimer=setTimeout(removeOverlay,4000);
 }
 
 async function syncNextStage(){
@@ -163,4 +170,4 @@ document.addEventListener("click",event=>{
 observer=new MutationObserver(inspect);
 observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true});
 inspect();
-window.addEventListener("pagehide",()=>{observer?.disconnect();clearTimer();},{once:true});
+window.addEventListener("pagehide",()=>{observer?.disconnect();clearTimer();clearRevealCloseTimer();},{once:true});
