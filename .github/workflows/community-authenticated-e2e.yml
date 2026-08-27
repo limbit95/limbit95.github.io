@@ -132,6 +132,7 @@ jobs:
           npx playwright test
           tests/e2e/community-authenticated.spec.js
           tests/e2e/community-notification-pagination.spec.js
+          tests/e2e/community-observability.spec.js
           --workers=1
 
       - name: Upload authenticated E2E failure artifacts
