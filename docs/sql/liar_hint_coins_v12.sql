@@ -67,12 +67,13 @@ begin
     return new;
   end if;
 
-  select coalesce(w.balance,0) into v_balance
+  select w.balance into v_balance
   from public.liar_hint_wallets w
   where w.game_id = v_game_id and w.player_id = new.player_id;
 
-  new.hint_coins_at_start := coalesce(v_balance,0);
-  new.hint_category_forced_hidden := new.role = 'liar' and coalesce(v_balance,0) >= 3;
+  v_balance := coalesce(v_balance,0);
+  new.hint_coins_at_start := v_balance;
+  new.hint_category_forced_hidden := new.role = 'liar' and v_balance >= 3;
   return new;
 end;
 $function$;
@@ -240,7 +241,7 @@ begin
   if v_room.current_round_id is null then raise exception using message='INVALID_ROUND_STATE',errcode='P0001'; end if;
 
   select rd.* into v_round from public.liar_rounds rd where rd.id=v_room.current_round_id for update;
-  if not found or v_round.status not in ('ROLE_REVEAL','SPEAKING','DRAWING','DISCUSSION') then
+  if not found or v_round.status not in ('ROLE_REVEAL','SPEAKING','DRAWING','DISCUSSION','VOTING','RUNOFF_VOTING','VOTE_RESULT','LIAR_REVEAL','LIAR_GUESS') then
     raise exception using message='HINT_SHOP_CLOSED',errcode='P0001';
   end if;
 
@@ -255,7 +256,7 @@ begin
 
   if p_hint_type='word_length' then
     v_cost:=1;
-    v_value:=char_length(regexp_replace(btrim(v_round.word_snapshot),'\\s','','g'))::text||'글자';
+    v_value:=char_length(regexp_replace(btrim(v_round.word_snapshot),'[[:space:]]','','g'))::text||'글자';
   elsif p_hint_type='category' then
     v_cost:=2;
     if v_game.show_category_to_liar and not v_round_player.hint_category_forced_hidden then
@@ -340,12 +341,15 @@ begin
   select coalesce(w.balance,0) into v_balance
   from public.liar_hint_wallets w
   where w.game_id=v_round.game_id and w.player_id=v_player.id;
+  v_balance:=coalesce(v_balance,0);
 
-  if found and v_round_player.role='liar' and v_round.winner='citizen' then v_reward:=1; end if;
+  if v_round_player.id is not null and v_round_player.role='liar' and v_round.winner='citizen' then
+    v_reward:=1;
+  end if;
 
   return v_base||jsonb_build_object(
     'hint_coin_reward',v_reward,
-    'hint_coin_balance',coalesce(v_balance,0)
+    'hint_coin_balance',v_balance
   );
 end;
 $function$;
