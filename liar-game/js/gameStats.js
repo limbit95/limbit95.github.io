@@ -47,6 +47,8 @@ function statsHTML(stats,context){
    ${funStat("👀","가장 많이 의심받음",stats?.most_suspected,"표","아직 투표 기록 없음")}
    ${funStat("🥷",`${hidden} 생존왕`,stats?.survival_leader,"승","아직 생존 승리 없음")}
    ${funStat("🎯","제시어 역전왕",stats?.comeback_leader,"회","아직 역전 성공 없음")}
+   ${funStat("🕵️",`${hidden} 헌터`,stats?.liar_hunter,"표","아직 적중 투표 없음")}
+   ${funStat("🎭",`${hidden} 단골`,stats?.liar_regular,"회","아직 역할 기록 없음")}
   </div>
   <div class="game-history-section"><div class="game-history-heading"><strong>라운드 기록</strong><small>같은 Game 안에서 누적됩니다.</small></div>${historyView(rounds,hidden)}</div>
  </section>`;
