@@ -1,5 +1,7 @@
+import { getRoomSnapshot } from "./api.js";
 import { commands } from "./commands.js";
 import { ERROR_MESSAGES, MIN_CITIZENS, MIN_READY_PLAYERS, ROUND_STATUS } from "./constants.js";
+import { clearSetupDraft, getSetupDraft, patchSetupDraft } from "./setupDraft.js";
 import { store } from "./store.js";
 
 let speakingKey="";
@@ -8,18 +10,10 @@ let discussionKey="";
 let discussionOffset=0;
 let autoAdvanceKey="";
 let autoAdvancePending=false;
-let setupSaveTimer=null;
-let setupSaveInFlight=false;
-let setupQueuedPayload=null;
-let setupSaveVersion=null;
-let setupSaveGameId="";
-let setupSavedSignature="";
-let setupLastSaveError=null;
 let setupStartInFlight=false;
 
 const codeFor=error=>Object.keys(ERROR_MESSAGES).find(code=>String(error?.message||"").includes(code));
 const messageFor=error=>ERROR_MESSAGES[codeFor(error)]||String(error?.message||"요청을 처리하지 못했습니다.");
-const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function orderedSpeakers(snapshot){
  const all=[...(snapshot?.round_players||[])].sort((a,b)=>Number(a.turn_order)-Number(b.turn_order));
@@ -101,42 +95,48 @@ function tick(){
  }else discussionKey="";
 }
 
-function collectSetupSettings(form,snapshot){
- const data=new FormData(form);
- const wordSourceMode=String(data.get("wordSourceMode")||snapshot.game?.word_source_mode||"builtin");
- const customPackValue=data.get("customWordPackId");
- return {
-  p_selected_categories:data.getAll("category"),
-  p_difficulty:String(data.get("difficulty")||"all"),
-  p_liar_count:Number(data.get("liarCount")),
-  p_guess_limit:Number(data.get("guessLimit")),
-  p_show_category_to_liar:data.has("showCategoryToLiar"),
-  p_game_mode:String(data.get("gameMode")||"classic"),
-  p_drawing_time_limit:Number(data.get("drawingTimeLimit")||15),
-  p_drawing_stroke_limit:Number(data.get("drawingStrokeLimit")||3),
-  p_drawing_stroke_unlimited:data.has("drawingStrokeUnlimited"),
-  p_speaking_time_limit:Number(data.get("speakingTimeLimit")||0),
-  p_discussion_time_limit:Number(data.get("discussionTimeLimit")||0),
-  p_liars_know_each_other:data.has("liarsKnowEachOther"),
-  p_word_source_mode:wordSourceMode,
-  p_custom_word_pack_id:wordSourceMode==="builtin"?null:(customPackValue?String(customPackValue):null),
- };
-}
-
+function setupForm(){return document.querySelector('form[data-action="settings"]');}
 function startButton(){return document.querySelector('[data-action="start-round"][data-can-start]');}
 
-function draftStartState(form){
+function captureSetupDraft(form=setupForm()){
+ const snapshot=store.get().snapshot;
+ if(!snapshot?.me?.is_host||snapshot.round||snapshot.game?.status!=="setup"||!form)return getSetupDraft(snapshot);
+ const data=new FormData(form);
+ const current=getSetupDraft(snapshot)||{};
+ const wordSourceMode=String(data.get("wordSourceMode")||current.wordSourceMode||snapshot.game?.word_source_mode||"builtin");
+ const customPackValue=data.get("customWordPackId");
+ const patch={
+  selectedCategories:data.getAll("category"),
+  difficulty:String(data.get("difficulty")||"all"),
+  liarCount:Number(data.get("liarCount")||1),
+  guessLimit:Number(data.get("guessLimit")||1),
+  showCategoryToLiar:data.has("showCategoryToLiar"),
+  gameMode:String(data.get("gameMode")||"classic"),
+  drawingTimeLimit:Number(data.get("drawingTimeLimit")||15),
+  drawingStrokeLimit:Number(data.get("drawingStrokeLimit")||3),
+  drawingStrokeUnlimited:data.has("drawingStrokeUnlimited"),
+  speakingTimeLimit:Number(data.get("speakingTimeLimit")||0),
+  discussionTimeLimit:Number(data.get("discussionTimeLimit")||0),
+  liarsKnowEachOther:data.has("liarsKnowEachOther"),
+  wordSourceMode,
+ };
+ if(wordSourceMode!=="builtin"&&customPackValue)patch.customWordPackId=String(customPackValue);
+ return patchSetupDraft(snapshot,patch);
+}
+
+function draftStartState(form=setupForm()){
  const snapshot=store.get().snapshot;
  if(!snapshot||!form)return null;
+ const draft=captureSetupDraft(form)||getSetupDraft(snapshot)||{};
  const readyCount=(snapshot.players||[]).filter(player=>player.ready).length;
- const liarCount=Math.max(1,Number(form.elements?.liarCount?.value||snapshot.game?.liar_count||1));
+ const liarCount=Math.max(1,Number(draft.liarCount||snapshot.game?.liar_count||1));
  const requiredReady=Math.max(MIN_READY_PLAYERS,liarCount+MIN_CITIZENS);
  const missing=Math.max(0,requiredReady-readyCount);
  return {canStart:missing===0,label:missing===0?"게임 시작":`게임 시작까지 ${missing}명이 더 필요합니다`};
 }
 
-function updateDraftStartButton(form){
- if(setupSaveInFlight||setupStartInFlight)return;
+function updateStartButton(form=setupForm()){
+ if(setupStartInFlight)return;
  const button=startButton();
  const state=draftStartState(form);
  if(!button||!state)return;
@@ -145,160 +145,82 @@ function updateDraftStartButton(form){
  button.disabled=!state.canStart;
 }
 
-function setSetupSaving(saving){
- const button=startButton();
- if(!button)return;
- if(saving){
-  if(!button.dataset.autosaveLabel)button.dataset.autosaveLabel=button.textContent||"게임 시작";
-  button.textContent="설정 저장 중…";
-  button.disabled=true;
- }else{
-  if(button.dataset.autosaveLabel){button.textContent=button.dataset.autosaveLabel;delete button.dataset.autosaveLabel;}
-  button.disabled=button.dataset.canStart!=="true";
- }
+function startSettings(form,snapshot){
+ const draft=captureSetupDraft(form)||getSetupDraft(snapshot)||{};
+ return {
+  p_selected_categories:Array.isArray(draft.selectedCategories)?draft.selectedCategories:[],
+  p_difficulty:String(draft.difficulty||"all"),
+  p_liar_count:Number(draft.liarCount||1),
+  p_guess_limit:Number(draft.guessLimit||1),
+  p_show_category_to_liar:draft.showCategoryToLiar===true,
+  p_game_mode:String(draft.gameMode||"classic"),
+  p_drawing_time_limit:Number(draft.drawingTimeLimit||15),
+  p_drawing_stroke_limit:Number(draft.drawingStrokeLimit||3),
+  p_drawing_stroke_unlimited:draft.drawingStrokeUnlimited===true,
+  p_speaking_time_limit:Number(draft.speakingTimeLimit||0),
+  p_discussion_time_limit:Number(draft.discussionTimeLimit||0),
+  p_liars_know_each_other:draft.liarsKnowEachOther===true,
+  p_word_source_mode:String(draft.wordSourceMode||"builtin"),
+  p_custom_word_pack_id:draft.wordSourceMode==="builtin"?null:(draft.customWordPackId||null),
+ };
 }
-
-function setupPayload(form){
- const snapshot=store.get().snapshot;
- if(!snapshot?.me?.is_host||snapshot.round||snapshot.game?.status!=="setup")return null;
- if(!form?.checkValidity?.())return null;
- const settings=collectSetupSettings(form,snapshot);
- if(!settings.p_selected_categories.length&&settings.p_word_source_mode!=="custom")return null;
- if(settings.p_word_source_mode!=="builtin"&&!settings.p_custom_word_pack_id)return null;
- const gameId=String(snapshot.game.id||"");
- if(setupSaveGameId!==gameId){
-  setupSaveGameId=gameId;
-  setupSaveVersion=Number(snapshot.room.version||0);
-  setupSavedSignature="";
-  setupQueuedPayload=null;
-  setupLastSaveError=null;
- }
- const signature=JSON.stringify(settings);
- return {gameId,settings,signature};
-}
-
-function queueSetupSave(form,{delay=180}={}){
- const payload=setupPayload(form);
- updateDraftStartButton(form);
- if(!payload||payload.signature===setupSavedSignature)return;
- setupLastSaveError=null;
- setupQueuedPayload=payload;
- window.clearTimeout(setupSaveTimer);
- setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},delay);
-}
-
-async function flushSetupSave(){
- if(setupSaveInFlight||!setupQueuedPayload)return;
- const payload=setupQueuedPayload;
- setupQueuedPayload=null;
- const snapshot=store.get().snapshot;
- if(!snapshot?.me?.is_host||String(snapshot.game?.id||"")!==payload.gameId||snapshot.round)return;
- setupSaveInFlight=true;
- setSetupSaving(true);
- const version=Number.isFinite(setupSaveVersion)?setupSaveVersion:Number(snapshot.room.version||0);
- try{
-  const nextVersion=await commands.updateSettingsV5(payload.settings,version);
-  const parsed=Number(nextVersion);
-  if(Number.isFinite(parsed))setupSaveVersion=parsed;
-  setupSavedSignature=payload.signature;
-  setupLastSaveError=null;
- }catch(error){
-  const code=codeFor(error);
-  const busy=String(error?.message||"").includes("요청을 처리 중");
-  if(code==="STALE_VERSION"||busy){
-   setupSaveVersion=null;
-   setupQueuedPayload=payload;
-   window.clearTimeout(setupSaveTimer);
-   setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;const latest=store.get().snapshot;if(latest?.room?.version!=null)setupSaveVersion=Number(latest.room.version);void flushSetupSave();},320);
-  }else{
-   setupLastSaveError=error;
-   store.set({message:messageFor(error)});
-  }
- }finally{
-  setupSaveInFlight=false;
-  setSetupSaving(false);
-  if(setupQueuedPayload&&!setupSaveTimer){setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},0);}
- }
-}
-
-async function drainSetupSaves(){
- window.clearTimeout(setupSaveTimer);setupSaveTimer=null;
- if(setupQueuedPayload&&!setupSaveInFlight)await flushSetupSave();
- let spins=0;
- while((setupSaveInFlight||setupQueuedPayload||setupSaveTimer)&&spins<80){
-  if(setupSaveTimer&&!setupSaveInFlight){window.clearTimeout(setupSaveTimer);setupSaveTimer=null;await flushSetupSave();}
-  else if(setupQueuedPayload&&!setupSaveInFlight)await flushSetupSave();
-  else await sleep(30);
-  spins+=1;
- }
- return !setupSaveInFlight&&!setupQueuedPayload&&!setupSaveTimer&&!setupLastSaveError;
-}
-
-function setupFormFrom(target){return target?.closest?.('form[data-action="settings"][data-settings-autosave]')||null;}
 
 document.addEventListener("change",event=>{
- const form=setupFormFrom(event.target);
+ const form=event.target.closest?.('form[data-action="settings"]');
  if(!form)return;
- queueSetupSave(form,{delay:120});
- if(event.target.closest?.("[data-custom-word-pack-slot]")&&event.target.name==="wordSourceMode"){
-  queueMicrotask(()=>{
-   const liveForm=document.querySelector('form[data-action="settings"][data-settings-autosave]');
-   if(liveForm)queueSetupSave(liveForm,{delay:0});
-  });
- }
+ queueMicrotask(()=>{captureSetupDraft(form);updateStartButton(form);});
 },true);
 
 document.addEventListener("input",event=>{
- const form=setupFormFrom(event.target);
- if(form&&event.target.matches?.('input[type="number"]'))queueSetupSave(form,{delay:360});
+ const form=event.target.closest?.('form[data-action="settings"]');
+ if(!form)return;
+ captureSetupDraft(form);updateStartButton(form);
 },true);
 
-document.addEventListener("liar:settings-autosave",event=>{
- const form=event.target?.closest?.('form[data-action="settings"][data-settings-autosave]')||document.querySelector('form[data-action="settings"][data-settings-autosave]');
- if(form)queueSetupSave(form,{delay:0});
-},true);
-
-// Keep the historical submit path blocked. Settings are saved automatically.
+// There is intentionally no settings-save request while editing. Pressing Enter
+// inside setup also does not invoke the historical settings submit handler.
 document.addEventListener("submit",event=>{
  const form=event.target;
  if(!(form instanceof HTMLFormElement)||form.dataset.action!=="settings")return;
  event.preventDefault();event.stopPropagation();
- queueSetupSave(form,{delay:0});
 },true);
 
-// The start button is outside the settings form. Intercept it before app.js so
-// a just-changed setting is persisted and its latest room version is used.
+// Apply the current local draft and create the round in one server transaction.
 document.addEventListener("click",async event=>{
  const button=event.target.closest?.('[data-action="start-round"][data-can-start]');
  if(!button||button.disabled||setupStartInFlight)return;
  const snapshot=store.get().snapshot;
  if(!snapshot?.me?.is_host||snapshot.round||snapshot.game?.status!=="setup")return;
  event.preventDefault();event.stopImmediatePropagation();
- const form=document.querySelector('form[data-action="settings"][data-settings-autosave]');
- if(form){
-  if(!form.checkValidity()){form.reportValidity();return;}
-  queueSetupSave(form,{delay:0});
+ const form=setupForm();
+ if(!form)return;
+ if(!form.checkValidity()){form.reportValidity();return;}
+ const settings=startSettings(form,snapshot);
+ if(!settings.p_selected_categories.length&&settings.p_word_source_mode!=="custom"){
+  store.set({message:ERROR_MESSAGES.INVALID_GAME_SETTINGS});return;
+ }
+ if(settings.p_word_source_mode!=="builtin"&&!settings.p_custom_word_pack_id){
+  store.set({message:ERROR_MESSAGES.CUSTOM_WORD_PACK_REQUIRED});return;
  }
  setupStartInFlight=true;
  button.disabled=true;
  button.textContent="게임 시작 중…";
+ store.set({message:""});
  try{
-  const saved=await drainSetupSaves();
-  if(!saved)return;
-  const latest=store.get().snapshot;
-  const version=Number.isFinite(setupSaveVersion)?setupSaveVersion:Number(latest?.room?.version||0);
-  await commands.startRound(version);
+  await commands.startRoundWithSettings(settings,snapshot.room.version);
+  clearSetupDraft();
+  const nextSnapshot=await getRoomSnapshot();
+  store.set({snapshot:nextSnapshot,message:"",myRole:null,myRoleRoundId:null,roleModalOpen:false,roleModalLoading:false,voteState:null,guessState:null,resultState:null,myBallot:[]});
  }catch(error){
   const code=codeFor(error);
-  if(code!=="STALE_VERSION")store.set({message:messageFor(error)});
-  else store.set({message:"상태가 변경되었습니다. 잠시 후 다시 게임 시작을 눌러 주세요."});
+  if(code==="STALE_VERSION")store.set({message:"상태가 변경되었습니다. 최신 참가자 상태를 확인한 뒤 다시 게임 시작을 눌러 주세요."});
+  else store.set({message:messageFor(error)});
  }finally{
   setupStartInFlight=false;
-  const liveForm=document.querySelector('form[data-action="settings"][data-settings-autosave]');
-  updateDraftStartButton(liveForm);
+  updateStartButton();
  }
 },true);
 
 const timer=window.setInterval(tick,140);
 tick();
-window.addEventListener("pagehide",()=>{window.clearInterval(timer);window.clearTimeout(setupSaveTimer);},{once:true});
+window.addEventListener("pagehide",()=>window.clearInterval(timer),{once:true});
