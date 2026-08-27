@@ -1,0 +1,76 @@
+/* Liar Game v1.1 setup micro-polish: compact category toggle grid */
+.setup-category-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+
+.setup-category-grid .category-option{
+  position:relative;
+  display:grid;
+  place-items:center;
+  min-width:0;
+  min-height:42px;
+  padding:8px 6px;
+  border:1px solid var(--border);
+  border-radius:11px;
+  background:var(--surface);
+  color:var(--ink);
+  font-size:.84rem;
+  font-weight:700;
+  line-height:1.2;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .16s ease,background-color .16s ease,box-shadow .16s ease,transform .12s ease;
+}
+
+.setup-category-grid .category-option input{
+  position:absolute;
+  width:1px;
+  height:1px;
+  margin:0;
+  padding:0;
+  opacity:0;
+  pointer-events:none;
+}
+
+.setup-category-grid .category-option span{
+  display:block;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+.setup-category-grid .category-option:has(input:checked){
+  border-color:var(--primary);
+  background:#f0ebff;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 16%,transparent);
+  transform:none;
+}
+
+.setup-category-grid .category-option:has(input:focus-visible){
+  outline:3px solid color-mix(in srgb,var(--primary) 22%,transparent);
+  outline-offset:2px;
+}
+
+@media(hover:hover) and (pointer:fine){
+  .setup-category-grid .category-option:hover{
+    border-color:color-mix(in srgb,var(--primary) 42%,var(--border));
+    background:color-mix(in srgb,var(--primary) 4%,var(--surface));
+  }
+  .setup-category-grid .category-option:has(input:checked):hover{
+    background:#eee8ff;
+  }
+}
+
+@media(max-width:520px){
+  .setup-category-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .setup-category-grid .category-option{min-height:40px;padding:7px 4px;font-size:.82rem}
+}
+
+@media(max-width:340px){
+  .setup-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .setup-category-grid .category-option{transition:none}
+}
