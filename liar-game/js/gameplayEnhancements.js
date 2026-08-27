@@ -8,6 +8,12 @@ let discussionKey="";
 let discussionOffset=0;
 let autoAdvanceKey="";
 let autoAdvancePending=false;
+let setupSaveTimer=null;
+let setupSaveInFlight=false;
+let setupQueuedPayload=null;
+let setupSaveVersion=null;
+let setupSaveGameId="";
+let setupSavedSignature="";
 
 const codeFor=error=>Object.keys(ERROR_MESSAGES).find(code=>String(error?.message||"").includes(code));
 const messageFor=error=>ERROR_MESSAGES[codeFor(error)]||String(error?.message||"요청을 처리하지 못했습니다.");
@@ -92,19 +98,11 @@ function tick(){
  }else discussionKey="";
 }
 
-// Capture the setup form before app.js's historical v3 submit handler. v1.1
-// sends the complete settings contract through v5, including the private
-// custom-word source selection. The server revokes older settings RPCs.
-document.addEventListener("submit",async event=>{
- const form=event.target;
- if(!(form instanceof HTMLFormElement)||form.dataset.action!=="settings")return;
- event.preventDefault();event.stopPropagation();
- const snapshot=store.get().snapshot;
- if(!snapshot?.me?.is_host)return;
+function collectSetupSettings(form,snapshot){
  const data=new FormData(form);
  const wordSourceMode=String(data.get("wordSourceMode")||snapshot.game?.word_source_mode||"builtin");
  const customPackValue=data.get("customWordPackId");
- const settings={
+ return {
   p_selected_categories:data.getAll("category"),
   p_difficulty:String(data.get("difficulty")||"all"),
   p_liar_count:Number(data.get("liarCount")),
@@ -120,13 +118,103 @@ document.addEventListener("submit",async event=>{
   p_word_source_mode:wordSourceMode,
   p_custom_word_pack_id:wordSourceMode==="builtin"?null:(customPackValue?String(customPackValue):null),
  };
- store.set({message:""});
+}
+
+function setSetupSaving(saving){
+ const button=document.querySelector('[data-action="start-round"][data-can-start]');
+ if(!button)return;
+ if(saving){
+  if(!button.dataset.autosaveLabel)button.dataset.autosaveLabel=button.textContent||"게임 시작";
+  button.textContent="설정 저장 중…";
+  button.disabled=true;
+ }else{
+  if(button.dataset.autosaveLabel){button.textContent=button.dataset.autosaveLabel;delete button.dataset.autosaveLabel;}
+  button.disabled=button.dataset.canStart!=="true";
+ }
+}
+
+function setupPayload(form){
+ const snapshot=store.get().snapshot;
+ if(!snapshot?.me?.is_host||snapshot.round||snapshot.game?.status!=="setup")return null;
+ if(!form?.checkValidity?.())return null;
+ const settings=collectSetupSettings(form,snapshot);
+ if(!settings.p_selected_categories.length&&settings.p_word_source_mode!=="custom")return null;
+ if(settings.p_word_source_mode!=="builtin"&&!settings.p_custom_word_pack_id)return null;
+ const gameId=String(snapshot.game.id||"");
+ if(setupSaveGameId!==gameId){
+  setupSaveGameId=gameId;
+  setupSaveVersion=Number(snapshot.room.version||0);
+  setupSavedSignature="";
+  setupQueuedPayload=null;
+ }
+ const signature=JSON.stringify(settings);
+ return {gameId,settings,signature};
+}
+
+function queueSetupSave(form,{delay=180}={}){
+ const payload=setupPayload(form);
+ if(!payload||payload.signature===setupSavedSignature)return;
+ setupQueuedPayload=payload;
+ window.clearTimeout(setupSaveTimer);
+ setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},delay);
+}
+
+async function flushSetupSave(){
+ if(setupSaveInFlight||!setupQueuedPayload)return;
+ const payload=setupQueuedPayload;
+ setupQueuedPayload=null;
+ const snapshot=store.get().snapshot;
+ if(!snapshot?.me?.is_host||String(snapshot.game?.id||"")!==payload.gameId||snapshot.round)return;
+ setupSaveInFlight=true;
+ setSetupSaving(true);
+ const version=Number.isFinite(setupSaveVersion)?setupSaveVersion:Number(snapshot.room.version||0);
  try{
-  await commands.updateSettingsV5(settings,snapshot.room.version);
-  store.set({message:"설정을 저장했습니다."});
- }catch(error){store.set({message:messageFor(error)});}
+  const nextVersion=await commands.updateSettingsV5(payload.settings,version);
+  const parsed=Number(nextVersion);
+  if(Number.isFinite(parsed))setupSaveVersion=parsed;
+  setupSavedSignature=payload.signature;
+ }catch(error){
+  const code=codeFor(error);
+  const busy=String(error?.message||"").includes("요청을 처리 중");
+  if(code==="STALE_VERSION"||busy){
+   setupSaveVersion=null;
+   setupQueuedPayload=payload;
+   window.clearTimeout(setupSaveTimer);
+   setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;const latest=store.get().snapshot;if(latest?.room?.version!=null)setupSaveVersion=Number(latest.room.version);void flushSetupSave();},320);
+  }else store.set({message:messageFor(error)});
+ }finally{
+  setupSaveInFlight=false;
+  setSetupSaving(false);
+  if(setupQueuedPayload&&!setupSaveTimer){setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},0);}
+ }
+}
+
+function setupFormFrom(target){return target?.closest?.('form[data-action="settings"][data-settings-autosave]')||null;}
+
+document.addEventListener("change",event=>{
+ const form=setupFormFrom(event.target);
+ if(form)queueSetupSave(form,{delay:120});
+},true);
+
+document.addEventListener("input",event=>{
+ const form=setupFormFrom(event.target);
+ if(form&&event.target.matches?.('input[type="number"]'))queueSetupSave(form,{delay:360});
+},true);
+
+document.addEventListener("liar:settings-autosave",event=>{
+ const form=event.target?.closest?.('form[data-action="settings"][data-settings-autosave]')||document.querySelector('form[data-action="settings"][data-settings-autosave]');
+ if(form)queueSetupSave(form,{delay:0});
+},true);
+
+// Keep the historical submit path blocked. Settings are now saved automatically
+// as controls change; pressing Enter inside the form simply flushes the queue.
+document.addEventListener("submit",event=>{
+ const form=event.target;
+ if(!(form instanceof HTMLFormElement)||form.dataset.action!=="settings")return;
+ event.preventDefault();event.stopPropagation();
+ queueSetupSave(form,{delay:0});
 },true);
 
 const timer=window.setInterval(tick,140);
 tick();
-window.addEventListener("pagehide",()=>window.clearInterval(timer),{once:true});
+window.addEventListener("pagehide",()=>{window.clearInterval(timer);window.clearTimeout(setupSaveTimer);},{once:true});
