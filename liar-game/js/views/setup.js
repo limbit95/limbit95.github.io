@@ -11,7 +11,6 @@ export function setupView(s,isHost){
  const d=getSetupDraft(s)||{};
  const readyCount=s.players.filter(player=>player.ready).length;
  const liarCount=Math.max(1,Number(d.liarCount??g.liar_count??1));
- const recommendedLiarCount=readyCount<=4?1:readyCount<=9?2:3;
  const requiredReady=Math.max(MIN_READY_PLAYERS,liarCount+MIN_CITIZENS);
  const missingReady=Math.max(0,requiredReady-readyCount);
  const canStart=missingReady===0;
@@ -26,8 +25,10 @@ export function setupView(s,isHost){
  const customPackId=d.customWordPackId?String(d.customWordPackId):"";
  const categories=Array.isArray(d.selectedCategories)?d.selectedCategories:g.selected_categories;
  const startControl=isHost?`<div class="setup-start-control"><button type="button" class="setup-start-button" data-action="start-round" data-can-start="${canStart?"true":"false"}" ${canStart?"":"disabled"}>${canStart?"게임 시작":`게임 시작까지 ${missingReady}명이 더 필요합니다`}</button></div>`:"";
+ const saveNote=isHost?`<p class="setup-save-note">💡 게임 설정 선택값은 서버에 바로 저장되지 않으며, <strong>게임 시작</strong>을 누를 때 현재 선택한 내용이 한 번에 적용됩니다.</p>`:"";
  return `${startControl}<section class="card setup-card setup-card-v11">
   <header class="setup-header"><h2>게임 설정</h2></header>
+  ${saveNote}
   <form data-action="settings" class="setup-form setup-flow-form" data-word-source-mode="${escapeHTML(wordSourceMode)}">
    <fieldset class="setup-fieldset" ${isHost?"":"disabled"}>
     <legend class="setup-legend">게임 설정 항목</legend>
@@ -53,7 +54,7 @@ export function setupView(s,isHost){
      </div>
      <div class="setup-word-details" data-builtin-word-settings>
       <div class="setup-word-details-heading"><strong>기본 제시어 범위</strong><small>기본 제시어를 사용하는 경우에만 적용됩니다.</small></div>
-      <label class="setup-control setup-difficulty-control"><span>난이도</span><div class="setup-difficulty-row"><select name="difficulty"><option value="all" ${String(d.difficulty||g.difficulty)==="all"?"selected":""}>전체</option><option value="easy" ${String(d.difficulty||g.difficulty)==="easy"?"selected":""}>쉬움</option><option value="normal" ${String(d.difficulty||g.difficulty)==="normal"?"selected":""}>보통</option><option value="hard" ${String(d.difficulty||g.difficulty)==="hard"?"selected":""}>어려움</option></select><small>원하는 난이도를 선택하세요.</small></div></label>
+      <label class="setup-control setup-difficulty-control"><div class="setup-difficulty-row"><span class="setup-difficulty-label">난이도</span><select name="difficulty"><option value="all" ${String(d.difficulty||g.difficulty)==="all"?"selected":""}>전체</option><option value="easy" ${String(d.difficulty||g.difficulty)==="easy"?"selected":""}>쉬움</option><option value="normal" ${String(d.difficulty||g.difficulty)==="normal"?"selected":""}>보통</option><option value="hard" ${String(d.difficulty||g.difficulty)==="hard"?"selected":""}>어려움</option></select><small>원하는 난이도를 선택하세요.</small></div></label>
       <div class="setup-options-grid setup-category-grid">${CATEGORIES.map(c=>`<label class="category-option"><input type="checkbox" name="category" value="${c}" ${categories.includes(c)?"checked":""}><span>${c}</span></label>`).join("")}</div>
      </div>
     </section>
@@ -62,12 +63,11 @@ export function setupView(s,isHost){
      <div class="setup-step-heading">
       <span class="setup-step-number">3</span>
       <div class="setup-step-copy"><h3 class="setup-section-title">역할</h3><p class="setup-section-description">라이어·스파이 수와 역할 공개 방식을 정하세요.</p></div>
-      <div class="setup-player-info setup-role-summary"><span>준비 완료 <strong>${readyCount}명</strong></span><span>추천 라이어·스파이 <strong>${recommendedLiarCount}명</strong></span></div>
      </div>
      <div class="setup-role-options-grid">
-      <label class="setup-control setup-role-count-control"><span>라이어 / 스파이 수</span>${stepper("liarCount",liarCount,1,3)}<small>1~3명 · 시민은 최소 ${MIN_CITIZENS}명이 필요합니다.</small></label>
-      <label class="setup-setting-row setup-role-toggle"><span class="setup-setting-copy"><strong>카테고리 공개</strong><small>라이어/스파이에게 카테고리만 보여주고 제시어는 숨깁니다.</small></span><input name="showCategoryToLiar" type="checkbox" ${d.showCategoryToLiar===true?"checked":""}></label>
-      <label class="setup-setting-row setup-role-toggle"><span class="setup-setting-copy"><strong>같은 팀 정체 공개</strong><small>라이어/스파이가 2명 이상이면 서로의 닉네임을 확인합니다.</small></span><input name="liarsKnowEachOther" type="checkbox" ${liarsKnowEachOther?"checked":""}></label>
+      <label class="setup-control setup-role-count-control">${controlTitle("라이어 / 스파이 수",`라이어·스파이는 1~3명으로 설정할 수 있고, 항상 시민이 최소 ${MIN_CITIZENS}명 남아야 합니다. 참가 인원이 많을수록 라이어·스파이 수를 늘리면 추리 난이도가 높아집니다.`)}${stepper("liarCount",liarCount,1,3)}</label>
+      <label class="setup-setting-row setup-role-toggle setup-role-choice"><span class="setup-setting-copy"><strong>카테고리 공개</strong><small>라이어/스파이에게 카테고리만 보여주고 제시어는 숨깁니다.</small></span><input class="setup-choice-input" name="showCategoryToLiar" type="checkbox" ${d.showCategoryToLiar===true?"checked":""}></label>
+      <label class="setup-setting-row setup-role-toggle setup-role-choice"><span class="setup-setting-copy"><strong>같은 팀 정체 공개</strong><small>라이어/스파이가 2명 이상이면 서로의 닉네임을 확인합니다.</small></span><input class="setup-choice-input" name="liarsKnowEachOther" type="checkbox" ${liarsKnowEachOther?"checked":""}></label>
      </div>
     </section>
 
