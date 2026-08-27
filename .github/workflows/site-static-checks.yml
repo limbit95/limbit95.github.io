@@ -21,6 +21,22 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install deterministic build dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Rebuild content-hashed community assets
+        run: npm run build:assets
+
+      - name: Guard committed hashed assets are current
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain -- index.html assets/build)" ]]; then
+            echo "Committed hashed deployment assets are stale."
+            git status --short -- index.html assets/build
+            git diff -- index.html assets/build || true
+            exit 1
+          fi
+
       - name: Check JavaScript syntax
         shell: bash
         run: |
