@@ -28,6 +28,9 @@ export async function renderAdmin(route) {
   } else if (section === "categories") {
     const { renderCategories } = await import("./admin/categories.js");
     root.append(await renderCategories());
+  } else if (section === "errors") {
+    const { renderErrors } = await import("./admin/errors.js");
+    root.append(await renderErrors());
   }
   return root;
 }
@@ -39,5 +42,6 @@ function adminTitle(section) {
     members: "회원 관리",
     managers: "활동 담당자 관리",
     categories: "활동 카테고리 관리",
+    errors: "오류 로그",
   }[section] ?? "관리자";
 }
