@@ -78,16 +78,15 @@ export function setupView(s,isHost){
       <div class="setup-step-copy" data-mode-only="drawing_spy"><h3 class="setup-section-title">🎨 그림 스파이 진행 규칙</h3><p class="setup-section-description">그림 차례와 토론, 투표 흐름에 맞춰 설정하세요.</p></div>
      </div>
 
-     <div class="setup-rule-grid setup-flow-grid">
-      <label class="setup-control" data-mode-only="classic">${controlTitle("발언 시간","한 사람의 설명 차례에 적용됩니다.")}<select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select></label>
-      <label class="setup-control" data-mode-only="drawing_spy">${controlTitle("그림 시간","한 사람당 5~60초로 설정합니다.")}${stepper("drawingTimeLimit",Number(d.drawingTimeLimit||15),5,60,5)}</label>
-      <label class="setup-control drawing-stroke-limit-control ${unlimitedStrokes?"is-unlimited":""}" data-mode-only="drawing_spy">${controlTitle("최대 획 수",unlimitedStrokes?"현재 획 수 무제한 모드입니다.":"한 사람당 1~10획으로 설정합니다.")}${stepper("drawingStrokeLimit",Number(d.drawingStrokeLimit||3),1,10,1,{readonly:unlimitedStrokes})}</label>
-      <label class="setup-control">${controlTitle("자유토론 시간","토론 종료 후 방장이 투표를 시작합니다.")}<select name="discussionTimeLimit"><option value="0" ${selected(0,discussionTime)}>무제한</option><option value="60" ${selected(60,discussionTime)}>60초</option><option value="90" ${selected(90,discussionTime)}>90초</option><option value="120" ${selected(120,discussionTime)}>120초</option><option value="180" ${selected(180,discussionTime)}>180초</option></select></label>
-      <label class="setup-control">${controlTitle("제시어 추측 횟수","붙잡힌 라이어/스파이 팀이 함께 공유하는 추측 기회입니다.")}${stepper("guessLimit",Number(d.guessLimit||1),1,3)}</label>
+     <div class="setup-rule-layout">
+      <label class="setup-control setup-rule-card" data-mode-only="classic">${controlTitle("발언 시간","한 사람의 설명 차례에 적용됩니다.")}<select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select></label>
+      <label class="setup-control setup-rule-card" data-mode-only="drawing_spy">${controlTitle("그림 시간","한 사람당 5~60초로 설정합니다.")}${stepper("drawingTimeLimit",Number(d.drawingTimeLimit||15),5,60,5)}</label>
+      <label class="setup-control setup-rule-card drawing-stroke-limit-control ${unlimitedStrokes?"is-unlimited":""}" data-mode-only="drawing_spy">${controlTitle("최대 획 수",unlimitedStrokes?"현재 획 수 무제한 모드입니다.":"한 사람당 1~10획으로 설정합니다.")}${stepper("drawingStrokeLimit",Number(d.drawingStrokeLimit||3),1,10,1,{readonly:unlimitedStrokes})}</label>
+      <label class="setup-rule-card setup-unlimited-choice" data-mode-only="drawing_spy"><input class="setup-choice-input" name="drawingStrokeUnlimited" type="checkbox" ${unlimitedStrokes?"checked":""}><span class="setup-unlimited-symbol" aria-hidden="true">∞</span><strong>획 수 무제한</strong><small>시간 안에 자유롭게 그립니다.</small></label>
+      <label class="setup-control setup-rule-card">${controlTitle("자유토론 시간","토론 종료 후 방장이 투표를 시작합니다.")}<select class="setup-rule-select is-content-width" name="discussionTimeLimit"><option value="0" ${selected(0,discussionTime)}>무제한</option><option value="60" ${selected(60,discussionTime)}>60초</option><option value="90" ${selected(90,discussionTime)}>90초</option><option value="120" ${selected(120,discussionTime)}>120초</option><option value="180" ${selected(180,discussionTime)}>180초</option></select></label>
+      <label class="setup-control setup-rule-card">${controlTitle("제시어 추측 횟수","붙잡힌 라이어/스파이 팀이 함께 공유하는 추측 기회입니다.")}${stepper("guessLimit",Number(d.guessLimit||1),1,3)}</label>
+      <article class="setup-rule-card setup-rule-recommendation" data-mode-only="drawing_spy"><span aria-hidden="true">✨</span><strong>기본 추천</strong><small><b>15초 · 3획</b>으로 시작해 보세요.</small></article>
      </div>
-
-     <label class="setup-setting-row drawing-unlimited-row" data-mode-only="drawing_spy"><span class="setup-setting-copy"><strong>획 수 무제한</strong><small>시간 안에 자유롭게 그리고 완료하면 다음 차례로 넘어갑니다.</small></span><input name="drawingStrokeUnlimited" type="checkbox" ${unlimitedStrokes?"checked":""}></label>
-     <p class="drawing-mode-hint" data-mode-only="drawing_spy">기본 추천은 <strong>15초 · 3획</strong>입니다.</p>
     </section>
    </fieldset>
    ${isHost?"":`<p class="muted setup-host-notice">방장만 설정할 수 있습니다.</p>`}
