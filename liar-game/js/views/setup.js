@@ -25,7 +25,7 @@ export function setupView(s,isHost){
  const customPackId=d.customWordPackId?String(d.customWordPackId):"";
  const categories=Array.isArray(d.selectedCategories)?d.selectedCategories:g.selected_categories;
  const startControl=isHost?`<div class="setup-start-control"><button type="button" class="setup-start-button" data-action="start-round" data-can-start="${canStart?"true":"false"}" ${canStart?"":"disabled"}>${canStart?"게임 시작":`게임 시작까지 ${missingReady}명이 더 필요합니다`}</button></div>`:"";
- const saveNote=isHost?`<p class="setup-save-note">💡 게임 설정 선택값은 서버에 바로 저장되지 않으며, <strong>게임 시작</strong>을 누를 때 현재 선택한 내용이 한 번에 적용됩니다.</p>`:"";
+ const saveNote=isHost?`<p class="setup-save-note"><span>💡 게임 설정 선택값은 서버에 바로 저장되지 않으며,</span><span><strong>게임 시작</strong>을 누를 때 현재 선택한 내용이 한 번에 적용됩니다.</span></p>`:"";
  return `${startControl}<section class="card setup-card setup-card-v11">
   <header class="setup-header"><h2>게임 설정</h2></header>
   ${saveNote}
