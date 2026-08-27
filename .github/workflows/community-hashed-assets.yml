@@ -1,0 +1,49 @@
+name: Community hashed assets
+
+on:
+  push:
+    branches:
+      - "feature/**"
+    paths:
+      - "js/**"
+      - "index.template.html"
+      - "package.json"
+      - "scripts/build-community-assets.mjs"
+      - ".github/workflows/community-hashed-assets.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build-assets:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install build dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build content-hashed community assets
+        run: npm run build:assets
+
+      - name: Commit generated deployment assets
+        shell: bash
+        run: |
+          git add package-lock.json index.html assets/build
+          if git diff --cached --quiet; then
+            echo "Hashed assets are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Build content-hashed community assets"
+          git push origin HEAD:${GITHUB_REF_NAME}
