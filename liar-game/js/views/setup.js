@@ -1,4 +1,4 @@
-import { CATEGORIES, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../constants.js";
+import { CATEGORIES, escapeHTML, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../constants.js";
 
 const selected=(value,current)=>Number(value)===Number(current)?"selected":"";
 
@@ -16,6 +16,9 @@ export function setupView(s,isHost){
  const speakingTime=Number(g.speaking_time_limit??30);
  const discussionTime=Number(g.discussion_time_limit??90);
  const liarsKnowEachOther=g.liars_know_each_other===true;
+ const wordSourceMode=["builtin","custom","mixed"].includes(g.word_source_mode)?g.word_source_mode:"builtin";
+ const customPackName=String(g.custom_word_pack_name||"");
+ const customWordCount=Math.max(0,Number(g.custom_word_count||0));
  const startStatus=!hasEnoughPlayers
   ?`게임 시작까지 ${MIN_READY_PLAYERS-readyCount}명이 더 필요합니다.`
   :!hasEnoughCitizens
@@ -51,9 +54,13 @@ export function setupView(s,isHost){
     <section class="setup-section">
      <div class="setup-section-heading">
       <h3 class="setup-section-title">카테고리</h3>
-      <p class="setup-section-description">이번 게임에 사용할 카테고리를 선택하세요.</p>
+      <p class="setup-section-description">기본 제시어 또는 섞기 모드에서 사용할 카테고리를 선택하세요.</p>
      </div>
      <div class="setup-options-grid">${CATEGORIES.map(c=>`<label class="category-option"><input type="checkbox" name="category" value="${c}" ${g.selected_categories.includes(c)?"checked":""}> <span>${c}</span></label>`).join("")}</div>
+    </section>
+    <section class="setup-section custom-word-pack-slot" data-custom-word-pack-slot data-host="${isHost?"true":"false"}" data-word-source-mode="${escapeHTML(wordSourceMode)}" data-custom-pack-name="${escapeHTML(customPackName)}" data-custom-word-count="${customWordCount}">
+     <div class="setup-section-heading"><h3 class="setup-section-title">🧩 제시어 소스</h3><p class="setup-section-description">기본 제시어와 내가 만든 커스텀 팩 중 이번 Game에 사용할 소스를 정합니다.</p></div>
+     <p class="muted custom-pack-loading">${isHost?"내 커스텀 제시어 팩을 불러오는 중…":wordSourceMode==="builtin"?"이번 Game은 기본 제시어를 사용합니다.":`이번 Game은 ${escapeHTML(customPackName||"커스텀 팩")} · ${customWordCount}개 제시어를 ${wordSourceMode==="mixed"?"기본 제시어와 섞어서 ":""}사용합니다.`}</p>
     </section>
     <section class="setup-section">
      <div class="setup-section-heading">
@@ -61,7 +68,7 @@ export function setupView(s,isHost){
       <div class="setup-player-info"><span>준비 인원 <strong>${readyCount}명</strong></span><span>권장 라이어 <strong>${recommendedLiarCount}명</strong></span></div>
      </div>
      <div class="setup-rule-grid">
-      <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>제시어의 난이도</small></label>
+      <label class="setup-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>기본 제시어에만 적용</small></label>
       <label class="setup-control"><span>라이어 / 스파이 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 자유 설정 · 현재 인원 권장 ${recommendedLiarCount}명<br>게임 시작 시 최소 2명의 시민이 필요합니다.</small></label>
       <label class="setup-control"><span>추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>라이어/스파이 팀이 공유하는 기회</small></label>
       <label class="setup-control"><span>기본 라이어 발언 시간</span><select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select><small>기본 라이어게임의 1인당 발언 시간</small></label>
@@ -72,7 +79,7 @@ export function setupView(s,isHost){
     <section class="setup-section">
      <div class="setup-section-heading"><h3 class="setup-section-title">역할 정보</h3></div>
      <label class="setup-setting-row">
-      <span class="setup-setting-copy"><strong>라이어/스파이에게 카테고리 공개</strong><small>켜면 카테고리만 공개하며, 제시어는 항상 숨겨집니다. 끄면 카테고리와 제시어를 모두 공개하지 않습니다.</small></span>
+      <span class="setup-setting-copy"><strong>라이어/스파이에게 카테고리 공개</strong><small>켜면 카테고리만 공개하며, 제시어는 항상 숨겨집니다. 커스텀 제시어는 카테고리가 ‘커스텀’으로 표시됩니다.</small></span>
       <input name="showCategoryToLiar" type="checkbox" ${g.show_category_to_liar?"checked":""}>
      </label>
      <label class="setup-setting-row">
