@@ -1,10 +1,14 @@
-import { ERROR_MESSAGES, ROUND_STATUS, escapeHTML } from "./constants.js";
+import { ERROR_MESSAGES } from "./constants.js";
 import { commands } from "./commands.js";
 import { getMyRoundRole } from "./api.js";
 import { store } from "./store.js";
 
 const errorCode=(error)=>Object.keys(ERROR_MESSAGES).find(code=>error?.message?.includes(code));
-const messageFor=(error)=>ERROR_MESSAGES[errorCode(error)]||error?.message||"힌트를 구매하지 못했습니다.";
+const messageFor=(error)=>{
+  const code=errorCode(error);
+  if(code==="NOT_LIAR")return "라이어/스파이만 힌트 상점을 이용할 수 있습니다.";
+  return ERROR_MESSAGES[code]||error?.message||"힌트를 구매하지 못했습니다.";
+};
 let purchasing=false;
 
 async function refreshRole(){
@@ -52,18 +56,5 @@ function renderReward(state){
   hero.insertAdjacentHTML('afterend',`<section class="hint-coin-reward" data-hint-coin-reward><span>🪙 라이어 패배 보상</span><strong>+${reward}P</strong><small>현재 힌트 코인 ${balance}P · 같은 게임의 다음 라운드에서 사용할 수 있습니다.</small></section>`);
 }
 
-function refreshCachedRoleForShop(state){
-  const status=state?.snapshot?.round?.status;
-  if(!state?.myRole||state.myRole.role!=="liar")return;
-  if(![ROUND_STATUS.ROLE_REVEAL,ROUND_STATUS.SPEAKING,ROUND_STATUS.DRAWING,ROUND_STATUS.DISCUSSION,ROUND_STATUS.VOTING,ROUND_STATUS.RUNOFF_VOTING,ROUND_STATUS.VOTE_RESULT,ROUND_STATUS.LIAR_REVEAL,ROUND_STATUS.LIAR_GUESS].includes(status))return;
-  document.querySelectorAll('.hint-shop-value strong').forEach(node=>{node.textContent=String(node.textContent||"");});
-}
-
-store.subscribe((state)=>{
-  queueMicrotask(()=>{
-    renderReward(state);
-    refreshCachedRoleForShop(state);
-  });
-});
-
+store.subscribe((state)=>queueMicrotask(()=>renderReward(state)));
 queueMicrotask(()=>renderReward(store.get()));
