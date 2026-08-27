@@ -12,14 +12,15 @@ alter table public.liar_votes enable row level security;
 alter table public.liar_guesses enable row level security;
 alter table public.liar_words enable row level security;
 alter table public.liar_drawing_strokes enable row level security;
+alter table public.liar_custom_word_packs enable row level security;
 
 -- No SELECT policies are defined: this deliberately protects round words,
--- roles, votes, guesses, drawing history, and the word pool. Authenticated
--- clients use the RPCs below; anon has no access.
+-- roles, votes, guesses, drawing history, the builtin word pool, and private
+-- custom packs. Authenticated clients use the RPCs below; anon has no access.
 revoke all on table public.liar_rooms, public.liar_players, public.liar_games,
   public.liar_rounds, public.liar_round_players, public.liar_vote_stages,
   public.liar_ballots, public.liar_votes, public.liar_guesses, public.liar_words,
-  public.liar_drawing_strokes
+  public.liar_drawing_strokes, public.liar_custom_word_packs
 from anon, authenticated;
 
 -- Trigger and transactional helpers are callable only from trusted SQL paths.
@@ -30,6 +31,8 @@ revoke all on function public.liar_set_updated_at() from public, anon, authentic
 revoke all on function public.liar_snapshot_round_mode_settings() from public, anon, authenticated;
 revoke all on function public.liar_copy_game_mode_settings() from public, anon, authenticated;
 revoke all on function public.liar_get_room_snapshot_legacy(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_room_snapshot_phase3_base(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_vote_snapshot_phase3_base(uuid) from public, anon, authenticated;
 
 revoke all on function public.liar_create_room(uuid,text,text[],text,integer,integer) from public, anon, authenticated;
 revoke all on function public.liar_join_room(text,uuid,text) from public, anon, authenticated;
@@ -43,6 +46,7 @@ revoke all on function public.liar_update_game_settings(uuid,text[],text,integer
 revoke all on function public.liar_update_game_settings_v2(uuid,text[],text,integer,integer,boolean,text,integer,integer,bigint) from public, anon, authenticated;
 revoke all on function public.liar_update_game_settings_v3(uuid,text[],text,integer,integer,boolean,text,integer,integer,boolean,bigint) from public, anon, authenticated;
 revoke all on function public.liar_update_game_settings_v4(uuid,text[],text,integer,integer,boolean,text,integer,integer,boolean,integer,integer,boolean,bigint) from public, anon, authenticated;
+revoke all on function public.liar_update_game_settings_v5(uuid,text[],text,integer,integer,boolean,text,integer,integer,boolean,integer,integer,boolean,text,uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_update_next_round_drawing_settings(uuid,integer,integer,boolean,bigint) from public, anon, authenticated;
 revoke all on function public.liar_start_round(uuid,bigint) from public, anon, authenticated;
 revoke all on function public.liar_prepare_next_round(uuid,bigint) from public, anon, authenticated;
@@ -69,6 +73,10 @@ revoke all on function public.liar_get_guess_snapshot(uuid) from public, anon, a
 revoke all on function public.liar_submit_guess(uuid,text) from public, anon, authenticated;
 revoke all on function public.liar_get_round_result(uuid) from public, anon, authenticated;
 revoke all on function public.liar_get_game_stats(uuid) from public, anon, authenticated;
+revoke all on function public.liar_list_my_word_packs(uuid) from public, anon, authenticated;
+revoke all on function public.liar_get_my_word_pack(uuid,uuid) from public, anon, authenticated;
+revoke all on function public.liar_save_my_word_pack(uuid,uuid,text,text[]) from public, anon, authenticated;
+revoke all on function public.liar_delete_my_word_pack(uuid,uuid) from public, anon, authenticated;
 
 grant execute on function public.liar_create_room(uuid,text,text[],text,integer,integer) to authenticated;
 grant execute on function public.liar_join_room(text,uuid,text) to authenticated;
@@ -78,7 +86,7 @@ grant execute on function public.liar_get_my_active_rooms() to authenticated;
 grant execute on function public.liar_resume_room(uuid,uuid) to authenticated;
 grant execute on function public.liar_update_nickname(uuid,text) to authenticated;
 grant execute on function public.liar_set_ready(uuid,boolean) to authenticated;
-grant execute on function public.liar_update_game_settings_v4(uuid,text[],text,integer,integer,boolean,text,integer,integer,boolean,integer,integer,boolean,bigint) to authenticated;
+grant execute on function public.liar_update_game_settings_v5(uuid,text[],text,integer,integer,boolean,text,integer,integer,boolean,integer,integer,boolean,text,uuid,bigint) to authenticated;
 grant execute on function public.liar_update_next_round_drawing_settings(uuid,integer,integer,boolean,bigint) to authenticated;
 grant execute on function public.liar_start_round(uuid,bigint) to authenticated;
 grant execute on function public.liar_prepare_next_round(uuid,bigint) to authenticated;
@@ -104,3 +112,7 @@ grant execute on function public.liar_get_guess_snapshot(uuid) to authenticated;
 grant execute on function public.liar_submit_guess(uuid,text) to authenticated;
 grant execute on function public.liar_get_round_result(uuid) to authenticated;
 grant execute on function public.liar_get_game_stats(uuid) to authenticated;
+grant execute on function public.liar_list_my_word_packs(uuid) to authenticated;
+grant execute on function public.liar_get_my_word_pack(uuid,uuid) to authenticated;
+grant execute on function public.liar_save_my_word_pack(uuid,uuid,text,text[]) to authenticated;
+grant execute on function public.liar_delete_my_word_pack(uuid,uuid) to authenticated;
