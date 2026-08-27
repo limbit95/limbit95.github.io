@@ -1,0 +1,30 @@
+/* Liar Game v1.2 hint coin shop */
+.hint-shop{display:grid;gap:12px;margin-top:14px;padding:14px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--primary) 3%,var(--surface));text-align:left}
+.hint-shop-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hint-shop-header h4{margin:2px 0 0;font-size:1rem}
+.hint-shop-eyebrow{color:var(--primary);font-size:.67rem;font-weight:900;letter-spacing:.12em}
+.hint-shop-balance{flex:0 0 auto;padding:7px 10px;border-radius:999px;background:#f0ebff;color:var(--primary);font-size:.86rem;white-space:nowrap}
+.hint-shop-rule{margin:0;padding:9px 10px;border-radius:10px;background:#fff7e8;color:#795300;font-size:.76rem;line-height:1.45}
+.hint-shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.hint-shop-item{display:grid;grid-template-rows:auto auto 38px;gap:9px;min-width:0;padding:11px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.hint-shop-item-copy{display:grid;gap:3px}
+.hint-shop-item-copy strong{font-size:.86rem}
+.hint-shop-item-copy small{color:var(--muted);font-size:.69rem;line-height:1.38}
+.hint-shop-value{display:grid;gap:2px;align-content:center;min-height:36px;padding:7px 8px;border-radius:9px;background:#f5f2ff}
+.hint-shop-value span{color:var(--muted);font-size:.64rem;font-weight:700}
+.hint-shop-value strong{color:var(--primary);font-size:.9rem;overflow-wrap:anywhere}
+.hint-shop-buy{width:100%;min-width:0;min-height:38px;padding:7px 8px;font-size:.76rem}
+.hint-shop-item.is-purchased{border-color:color-mix(in srgb,var(--primary) 35%,var(--border));background:color-mix(in srgb,var(--primary) 2%,var(--surface))}
+.hint-shop-item.is-known{opacity:.72}
+.hint-shop-footnote{color:var(--muted);font-size:.7rem;line-height:1.45}
+.hint-shop.is-compact{margin-top:12px;padding:12px}
+.hint-shop.is-compact .hint-shop-grid{grid-template-columns:1fr}
+.hint-shop.is-compact .hint-shop-item{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center}
+.hint-shop.is-compact .hint-shop-value{grid-column:1}
+.hint-shop.is-compact .hint-shop-buy{grid-column:2;grid-row:1 / span 2;width:88px}
+.hint-coin-reward{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px 12px;margin:14px 0;padding:13px 15px;border:1px solid color-mix(in srgb,var(--primary) 28%,var(--border));border-radius:14px;background:#f7f4ff}
+.hint-coin-reward span{font-size:.78rem;font-weight:800}
+.hint-coin-reward strong{grid-column:2;grid-row:1 / span 2;color:var(--primary);font-size:1.35rem}
+.hint-coin-reward small{color:var(--muted);font-size:.72rem;line-height:1.4}
+@media(max-width:560px){.hint-shop-grid{grid-template-columns:1fr}.hint-shop-item{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center}.hint-shop-value{grid-column:1}.hint-shop-buy{grid-column:2;grid-row:1 / span 2;width:88px}.hint-shop-header{align-items:flex-start}.hint-shop-balance{font-size:.8rem}}
+@media(max-width:360px){.hint-shop-item,.hint-shop.is-compact .hint-shop-item{grid-template-columns:1fr;grid-template-rows:auto auto auto}.hint-shop-value,.hint-shop.is-compact .hint-shop-value{grid-column:1}.hint-shop-buy,.hint-shop.is-compact .hint-shop-buy{grid-column:1;grid-row:auto;width:100%}}
