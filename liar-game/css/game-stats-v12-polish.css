@@ -1,0 +1,23 @@
+/* Liar Game v1.2 game stats hierarchy */
+.game-stats-stack{display:grid;gap:14px;width:100%;min-width:0}
+.game-round-count{display:grid;grid-template-columns:auto auto auto;align-items:baseline;justify-content:center;gap:8px;width:max-content;max-width:100%;margin:0 auto;padding:9px 16px;border:1px solid color-mix(in srgb,var(--primary) 24%,var(--border));border-radius:999px;background:linear-gradient(135deg,#f4f0ff,#fff);box-shadow:0 6px 18px rgba(70,42,120,.08);text-align:center}
+.game-round-count span{color:var(--primary);font-size:.68rem;font-weight:950;letter-spacing:.12em}
+.game-round-count strong{color:var(--ink);font-size:1.7rem;line-height:1;font-weight:950}
+.game-round-count small{color:var(--muted);font-size:.86rem;font-weight:850}
+.game-stats-card{gap:14px}
+.game-history-card{display:grid;gap:11px;padding:16px 18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);box-shadow:0 8px 24px rgba(20,24,32,.04)}
+.game-history-card .game-history-heading{display:grid;justify-items:start;gap:3px}
+.game-history-card .game-history-heading strong{font-size:1rem}
+.game-history-card .game-history-heading small{color:var(--muted);font-size:.73rem;line-height:1.45;word-break:keep-all}
+.game-history-card .game-round-history{margin:0}
+.game-stats-card.is-compact .game-round-count{padding:7px 13px}
+.game-stats-card.is-compact .game-round-count strong{font-size:1.45rem}
+
+@media(max-width:720px){
+ .game-round-count{grid-template-columns:auto auto;grid-template-areas:"label value" "caption caption";gap:3px 7px;padding:9px 14px}
+ .game-round-count span{grid-area:label;align-self:center}
+ .game-round-count strong{grid-area:value;font-size:1.55rem}
+ .game-round-count small{grid-area:caption;font-size:.78rem}
+ .game-history-card{padding:14px}
+ .game-history-card .game-history-heading{justify-items:center;text-align:center}
+}
