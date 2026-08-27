@@ -1,0 +1,43 @@
+name: Rebuild isolate legacy compatibility
+
+on:
+  push:
+    branches:
+      - feature/rebuild-finalization
+    paths:
+      - scripts/isolate-legacy-compat.mjs
+      - .github/workflows/rebuild-isolate-legacy-compat.yml
+
+permissions:
+  contents: write
+
+jobs:
+  isolate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout rebuild branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/rebuild-finalization
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Isolate legacy compatibility APIs
+        run: node scripts/isolate-legacy-compat.mjs
+
+      - name: Commit compatibility isolation
+        shell: bash
+        run: |
+          git add js/api/activities.js js/api/boards.js js/api/notifications.js
+          if git diff --cached --quiet; then
+            echo "Legacy compatibility APIs are already isolated."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Isolate legacy APIs from modern domain modules"
+          git push origin HEAD:feature/rebuild-finalization
