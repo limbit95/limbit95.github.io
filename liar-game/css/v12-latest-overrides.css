@@ -1,0 +1,12 @@
+/* Latest v1.2 layout overrides loaded after earlier polish layers. */
+.hint-shop-item{align-content:center!important}
+.hint-shop.is-compact .hint-shop-item{align-content:center!important}
+
+/* New unified rule layout supersedes the earlier drawing-only 4+1 layout. */
+.setup-flow-form:has(input[name="gameMode"][value="drawing_spy"]:checked) .setup-progress-section{display:block!important}
+.setup-flow-form:has(input[name="gameMode"][value="drawing_spy"]:checked) .setup-progress-section>.setup-step-heading{display:grid!important}
+.setup-rule-layout{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+.setup-rule-layout>.setup-rule-card{min-width:0}
+
+@media(max-width:760px){.setup-rule-layout{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:520px){.setup-rule-layout{grid-template-columns:1fr!important}}
