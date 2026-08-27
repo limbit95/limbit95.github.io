@@ -2,6 +2,7 @@ import { escapeHTML, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../const
 
 const difficultyLabel={all:"전체",easy:"쉬움",normal:"보통",hard:"어려움"};
 const timeLabel=value=>Number(value||0)>0?`${Number(value)}초`:"무제한";
+const wordSourceLabel=(g)=>g.word_source_mode==="custom"?`🧩 ${escapeHTML(g.custom_word_pack_name||"커스텀 팩")}만 (${Number(g.custom_word_count||0)}개)`:g.word_source_mode==="mixed"?`🔀 기본 + ${escapeHTML(g.custom_word_pack_name||"커스텀 팩")} (${Number(g.custom_word_count||0)}개)`:"📚 기본 제시어";
 const gameStatsSlot='<section class="game-stats-slot is-compact" data-game-stats data-game-stats-context="waiting" aria-live="polite"><p class="muted game-stats-loading">현재 Game 기록을 불러오는 중…</p></section>';
 export function roundWaitingView(s,isHost){
  const g=s.game;const readyCount=s.players.filter(player=>player.ready).length;
@@ -23,7 +24,8 @@ export function roundWaitingView(s,isHost){
   ${gameStatsSlot}
   <section class="round-waiting-settings" aria-label="현재 게임 설정"><h3>🔒 현재 게임 설정</h3><dl>
    <div><dt>게임 모드</dt><dd>${drawingMode?"🎨 그림 스파이":"💬 기본 라이어게임"}</dd></div>
-   <div><dt>카테고리</dt><dd>${g.selected_categories.map(escapeHTML).join(" / ")}</dd></div><div><dt>난이도</dt><dd>${difficultyLabel[g.difficulty]||escapeHTML(g.difficulty)}</dd></div>
+   <div><dt>제시어 소스</dt><dd>${wordSourceLabel(g)}</dd></div>
+   <div><dt>기본 카테고리</dt><dd>${g.selected_categories.map(escapeHTML).join(" / ")}</dd></div><div><dt>기본 난이도</dt><dd>${difficultyLabel[g.difficulty]||escapeHTML(g.difficulty)}</dd></div>
    <div><dt>${drawingMode?"스파이":"라이어"}</dt><dd>${liarCount}명</dd></div><div><dt>추측 기회</dt><dd>${Number(g.guess_limit)}회</dd></div><div><dt>카테고리 공개</dt><dd>${g.show_category_to_liar?"공개":"비공개"}</dd></div>
    ${drawingMode?"":`<div><dt>발언 시간</dt><dd>${timeLabel(g.speaking_time_limit)}</dd></div>`}<div><dt>자유토론</dt><dd>${timeLabel(g.discussion_time_limit)}</dd></div>
    <div><dt>다중 ${drawingMode?"스파이":"라이어"} 정체</dt><dd>${g.liars_know_each_other?"서로 공개":"서로 비공개"}</dd></div>

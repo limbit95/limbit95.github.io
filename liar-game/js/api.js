@@ -10,3 +10,5 @@ export async function getGuessSnapshot(){return read("liar_get_guess_snapshot",{
 export async function getRoundResult(){return read("liar_get_round_result",{p_player_key:getPlayerKey()});}
 export async function getGameStats(){return read("liar_get_game_stats",{p_player_key:getPlayerKey()});}
 export async function getMyBallot(){return read("liar_get_my_ballot",{p_player_key:getPlayerKey()});}
+export async function getMyWordPacks(){const data=await read("liar_list_my_word_packs",{p_player_key:getPlayerKey()});return Array.isArray(data)?data:[];}
+export async function getMyWordPack(packId){const data=await read("liar_get_my_word_pack",{p_player_key:getPlayerKey(),p_pack_id:packId});return Array.isArray(data)?data[0]:data;}
