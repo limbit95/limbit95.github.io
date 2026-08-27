@@ -96,7 +96,7 @@ function collectJavaScriptRequests(page) {
   page.on("request", (request) => {
     try {
       const pathname = new URL(request.url()).pathname;
-      if (pathname.includes("/js/")) requests.add(pathname);
+      if (pathname.includes("/js/") || pathname.includes("/assets/build/")) requests.add(pathname);
     } catch {
       // Ignore non-standard URLs emitted by the browser.
     }
@@ -202,30 +202,29 @@ async function createPendingMember(token) {
 test.describe("approved member flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
 
-  test("does not eagerly load unrelated route or API modules at startup", async ({ page }) => {
+  test("loads hashed startup bundles and keeps route chunks lazy", async ({ page }) => {
     const pageErrors = collectPageErrors(page);
     const jsRequests = collectJavaScriptRequests(page);
     await login(page, memberEmail, memberPassword);
 
-    expect(jsRequests.has("/js/pages/login.js")).toBe(true);
-    expect(jsRequests.has("/js/pages/home.js")).toBe(true);
-    expect(jsRequests.has("/js/api.js"), "the broad API facade should not be in the initial graph").toBe(false);
+    const startupBuildRequests = [...jsRequests].filter((pathname) => pathname.startsWith("/assets/build/"));
+    expect(
+      startupBuildRequests.some((pathname) => /^\/assets\/build\/app-[A-Za-z0-9]+\.js$/.test(pathname)),
+      "startup should load the content-hashed app entry",
+    ).toBe(true);
+    expect(
+      [...jsRequests].some((pathname) => pathname.startsWith("/js/pages/") || pathname.startsWith("/js/api/")),
+      "bundled production pages should not request raw route/API modules",
+    ).toBe(false);
 
-    const unrelatedStartupModules = [
-      "/js/pages/activityForm.js",
-      "/js/pages/postDetail.js",
-      "/js/pages/postForm.js",
-      "/js/pages/mypage.js",
-      "/js/pages/admin.js",
-      "/js/pages/admin/dashboard.js",
-      "/js/pages/admin/approvals.js",
-      "/js/pages/admin/members.js",
-      "/js/pages/admin/managers.js",
-      "/js/pages/admin/categories.js",
-    ];
-    for (const modulePath of unrelatedStartupModules) {
-      expect(jsRequests.has(modulePath), `${modulePath} should be lazy-loaded`).toBe(false);
-    }
+    const startupChunkCount = startupBuildRequests.length;
+    await page.goto("/#/mypage");
+    await assertHealthyPage(page, "마이페이지");
+    const afterMyPageBuildRequests = [...jsRequests].filter((pathname) => pathname.startsWith("/assets/build/"));
+    expect(
+      afterMyPageBuildRequests.length,
+      "navigating to a lazy route should fetch at least one additional hashed chunk",
+    ).toBeGreaterThan(startupChunkCount);
 
     expectNoPageErrors(pageErrors);
   });
