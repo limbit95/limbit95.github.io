@@ -67,11 +67,13 @@
 - 읽음 처리 후 count/list 동기화
 - Realtime 신규 알림과 pagination 상태 결합
 - 빈 상태/마지막 페이지/동시 새 알림 회귀 테스트
+- 운영에 적용된 `20260826092211_community_p2_notification_cursor_retention` migration을 저장소에도 동일 이력으로 복원
 
 완료 조건:
 - 모바일 WebKit 포함 E2E 통과
 - 첫 화면에서 알림 전체 row 선조회 없음
 - legacy `listNotifications(limit)`를 현대 화면이 사용하지 않음
+- 로컬 E2E migration history가 운영의 커뮤니티 migration을 빠뜨리지 않음
 
 ### Phase 3. API 의존성/facade 정리
 
