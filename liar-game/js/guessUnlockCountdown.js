@@ -7,10 +7,14 @@ let deadline=0;
 let refreshing=false;
 let observer=null;
 
-function clear(){
+function stopTimer(){
  if(timer){clearInterval(timer);timer=null;}
- activeKey="";
  deadline=0;
+}
+
+function clear(){
+ stopTimer();
+ activeKey="";
 }
 
 async function refreshGuessState(){
@@ -29,8 +33,9 @@ function start(card){
  const serverNow=Date.parse(card.dataset.serverNow||"");
  if(!Number.isFinite(unlockAt)||!Number.isFinite(serverNow))return;
  const key=`${card.dataset.guessUnlockAt}:${card.dataset.serverNow}`;
- if(activeKey===key&&timer)return;
- clear();activeKey=key;
+ if(activeKey===key)return;
+ stopTimer();
+ activeKey=key;
  deadline=performance.now()+Math.max(0,unlockAt-serverNow);
  const tick=()=>{
   const current=document.querySelector("[data-guess-unlock]");
@@ -39,12 +44,13 @@ function start(card){
   const count=current.querySelector("[data-guess-unlock-count]");
   if(count)count.textContent=String(Math.max(0,Math.ceil(remaining/1000)));
   if(remaining<=0){
-   clear();
+   if(count)count.textContent="0";
+   stopTimer();
    void refreshGuessState();
   }
  };
  tick();
- timer=setInterval(tick,100);
+ if(deadline>0)timer=setInterval(tick,100);
 }
 
 function inspect(){
