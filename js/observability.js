@@ -30,6 +30,10 @@ export function installGlobalErrorObservers() {
   window.addEventListener("unhandledrejection", (event) => {
     void reportClientError(event.reason, { kind: "unhandled" });
   });
+
+  window.addEventListener("app:api-error", (event) => {
+    void reportClientError(event.detail, { kind: "api" });
+  });
 }
 
 export async function reportClientError(error, { kind = "runtime", route, context = {} } = {}) {
