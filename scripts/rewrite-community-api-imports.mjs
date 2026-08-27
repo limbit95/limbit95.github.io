@@ -54,7 +54,7 @@ for (const filename of domainFiles) {
   }
 }
 
-const importPattern = /import\s*\{([\s\S]*?)\}\s*from\s*["']([^"']*api\.js(?:\?[^"']*)?)["'];?/g;
+const importPattern = /import\s*\{([^}]*)\}\s*from\s*["']([^"']*api\.js(?:\?[^"']*)?)["'];?/g;
 let changedFiles = 0;
 let rewrittenImports = 0;
 
