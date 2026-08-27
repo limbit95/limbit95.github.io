@@ -1,0 +1,1 @@
+function o(r){if(r.error)throw typeof window<"u"&&window.dispatchEvent(new CustomEvent("app:api-error",{detail:r.error})),r.error;return r.data}function i(r){return Object.fromEntries(Object.entries(r).filter(([,e])=>e!==void 0))}export{o as a,i as b};
