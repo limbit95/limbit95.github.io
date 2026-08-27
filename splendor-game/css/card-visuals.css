@@ -1,0 +1,319 @@
+.app-shell.is-auth-pending {
+  visibility: hidden;
+}
+
+.splendor-access-state {
+  width: min(560px, 100%);
+  margin: 12vh auto 0;
+  padding: 38px;
+  text-align: center;
+}
+
+.splendor-access-state__icon {
+  margin-bottom: 12px;
+  font-size: 2.4rem;
+}
+
+.splendor-access-state h1 {
+  margin-top: 6px;
+  color: #355d6b;
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+}
+
+.splendor-access-state p:not(.eyebrow) {
+  margin: 12px 0 22px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+
+.tier-stack,
+.tier-row,
+.board-main,
+.board-section {
+  overflow: visible;
+}
+
+.tier-row {
+  position: relative;
+  z-index: 1;
+  padding: 14px 6px 22px;
+  margin: -14px -6px -22px;
+}
+
+.tier-row:hover,
+.tier-row:focus-within {
+  z-index: 6;
+}
+
+.card-row {
+  position: relative;
+  grid-auto-columns: minmax(168px, 1fr);
+  gap: 14px;
+  padding: 24px 12px 34px;
+  margin: -24px -12px -34px;
+  scroll-padding-inline: 12px;
+}
+
+.dev-card {
+  position: relative;
+  z-index: 1;
+  display: block;
+  min-height: 246px;
+  padding: 0 0 12px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, .8);
+  border-radius: 16px;
+  background: #edf3f5;
+  box-shadow: 0 7px 18px rgba(50, 78, 87, .13);
+  transform-origin: center center;
+  will-change: transform;
+  isolation: isolate;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.dev-card:hover,
+.dev-card:focus-visible {
+  z-index: 30;
+  transform: translateY(-9px) scale(1.045);
+  border-color: rgba(255, 255, 255, .98);
+  box-shadow: 0 20px 42px rgba(34, 60, 70, .25);
+}
+
+.dev-card:focus-visible {
+  outline: 3px solid rgba(95, 159, 178, .4);
+  outline-offset: 3px;
+}
+
+.dev-card.is-selected {
+  z-index: 20;
+  border-color: var(--brand);
+  box-shadow: 0 16px 34px rgba(68, 127, 145, .26);
+}
+
+.dev-card__visual {
+  position: relative;
+  width: 100%;
+  height: 174px;
+  overflow: hidden;
+  border-radius: 13px 13px 4px 4px;
+  background: linear-gradient(155deg, #eef3f4, #b8cbd1);
+}
+
+.dev-card__visual::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 58%;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(22, 35, 42, .68), rgba(22, 35, 42, 0));
+  pointer-events: none;
+}
+
+.dev-card__image {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.dev-card__visual.has-private-image .dev-card__fallback {
+  opacity: 0;
+}
+
+.dev-card__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 13px;
+  overflow: hidden;
+  text-align: left;
+  color: rgba(255, 255, 255, .94);
+  transition: opacity .15s ease;
+}
+
+.dev-card__fallback::before,
+.dev-card__fallback::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  border: 1px solid rgba(255, 255, 255, .18);
+  transform: rotate(45deg);
+}
+
+.dev-card__fallback::before {
+  width: 82px;
+  height: 82px;
+  left: -18px;
+  top: -18px;
+}
+
+.dev-card__fallback::after {
+  width: 112px;
+  height: 112px;
+  right: -35px;
+  bottom: -35px;
+}
+
+.dev-card__fallback--white {
+  color: #42535a;
+  background: linear-gradient(145deg, #fbfaf4, #d7d5cb 60%, #a9b0b1);
+}
+
+.dev-card__fallback--blue {
+  background: linear-gradient(145deg, #416d9e, #1f466f 58%, #16314e);
+}
+
+.dev-card__fallback--green {
+  background: linear-gradient(145deg, #467b68, #285848 58%, #183a30);
+}
+
+.dev-card__fallback--red {
+  background: linear-gradient(145deg, #a4544d, #743631 58%, #4d2421);
+}
+
+.dev-card__fallback--black {
+  background: linear-gradient(145deg, #53575d, #2c3036 58%, #17191d);
+}
+
+.dev-card__fallback-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dev-card__fallback-title,
+.dev-card__fallback-subtitle {
+  position: relative;
+  z-index: 3;
+  max-width: 100%;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+.dev-card__fallback--white .dev-card__fallback-title,
+.dev-card__fallback--white .dev-card__fallback-subtitle {
+  text-shadow: 0 2px 8px rgba(255, 255, 255, .45);
+}
+
+.dev-card__fallback-title {
+  font-size: .84rem;
+  font-weight: 900;
+  letter-spacing: -.02em;
+}
+
+.dev-card__fallback-subtitle {
+  font-size: .54rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  opacity: .76;
+}
+
+.dev-card__top {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  right: 9px;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.dev-card .prestige {
+  min-width: 36px;
+  height: 36px;
+  border: 2px solid rgba(255, 255, 255, .8);
+  background: rgba(38, 52, 58, .82);
+  box-shadow: 0 5px 12px rgba(25, 39, 44, .2);
+  backdrop-filter: blur(4px);
+}
+
+.dev-card .bonus-gem {
+  width: 42px;
+  height: 42px;
+  border-width: 3px;
+  box-shadow: 0 7px 16px rgba(25, 39, 44, .24);
+}
+
+.dev-card__tier-badge {
+  position: absolute;
+  left: 10px;
+  top: 144px;
+  z-index: 5;
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid rgba(255, 255, 255, .25);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, .92);
+  background: rgba(30, 45, 52, .65);
+  backdrop-filter: blur(5px);
+  font-size: .62rem;
+  letter-spacing: .08em;
+}
+
+.dev-card > .costs {
+  min-height: 48px;
+  align-content: flex-start;
+  margin: 10px 9px 0;
+}
+
+.dev-card .cost-chip {
+  padding: 4px 7px;
+  border: 1px solid rgba(86, 113, 123, .1);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 2px 7px rgba(52, 78, 87, .07);
+}
+
+.dev-card--white { background: linear-gradient(180deg, #f2f0e9, #eef3f4); }
+.dev-card--blue { background: linear-gradient(180deg, #dbe7f1, #eef3f4); }
+.dev-card--green { background: linear-gradient(180deg, #dceae4, #eef3f4); }
+.dev-card--red { background: linear-gradient(180deg, #efdfdc, #eef3f4); }
+.dev-card--black { background: linear-gradient(180deg, #dedfe1, #eef3f4); }
+
+@media (max-width: 700px) {
+  .card-row {
+    grid-auto-columns: 154px;
+    padding: 22px 10px 32px;
+    margin: -22px -10px -32px;
+  }
+
+  .dev-card {
+    min-height: 232px;
+  }
+
+  .dev-card__visual {
+    height: 162px;
+  }
+
+  .dev-card__tier-badge {
+    top: 133px;
+  }
+
+  .dev-card:hover,
+  .dev-card:focus-visible {
+    transform: translateY(-7px) scale(1.035);
+  }
+
+  .splendor-access-state {
+    margin-top: 8vh;
+    padding: 26px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dev-card {
+    transition: none;
+  }
+
+  .dev-card:hover,
+  .dev-card:focus-visible {
+    transform: none;
+  }
+}

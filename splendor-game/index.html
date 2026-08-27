@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="승인된 회원끼리 플레이하는 스플렌더 웹게임">
+    <title>스플렌더 | 멀티플레이</title>
+    <link rel="stylesheet" href="./css/reset.css">
+    <link rel="stylesheet" href="./css/tokens.css">
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/lobby.css">
+    <link rel="stylesheet" href="./css/card-visuals.css">
+    <link rel="stylesheet" href="./css/phase4.css">
+    <link rel="stylesheet" href="./css/phase5.css">
+    <link rel="stylesheet" href="./css/phase5-hidden.css">
+    <link rel="stylesheet" href="./css/phase6.css">
+    <link rel="stylesheet" href="./css/phase6-reserved.css">
+  </head>
+  <body>
+    <main id="app" class="app-shell is-auth-pending" aria-live="polite">
+      <section class="surface loading-card">
+        <p>로그인과 게임 접근 권한을 확인하고 있습니다…</p>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.4"></script>
+    <script type="module" src="./js/appPhase4.js"></script>
+    <script type="module" src="./js/phase5Reservation.js"></script>
+    <script type="module" src="./js/phase5HiddenReservation.js"></script>
+    <script type="module" src="./js/phase6PurchaseV2.js"></script>
+    <script type="module" src="./js/phase6ReservedPurchase.js"></script>
+    <script type="module" src="./js/cardAssetsV2.js"></script>
+  </body>
+</html>
