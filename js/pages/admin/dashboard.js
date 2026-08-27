@@ -7,16 +7,18 @@ import {
   listCategoryManagers,
   listJoinRequests,
 } from "../../api/admin.js";
+import { countRecentClientErrors } from "../../api/observability.js";
 import { el, seoulDateString } from "../../ui.js";
 
 export async function renderAdminDashboard() {
   const today = seoulDateString();
-  const [requests, memberRows, events, categoryRows, managerRows] = await Promise.all([
+  const [requests, memberRows, events, categoryRows, managerRows, recentErrors] = await Promise.all([
     listJoinRequests("all"),
     listAllMembers(),
     listEvents({ fromDate: today, statuses: [], limit: 500 }),
     listCategories(),
     listCategoryManagers(),
+    countRecentClientErrors(24).catch(() => null),
   ]);
   const pending = requests.filter((item) => ["pending", "held"].includes(item.status)).length;
   const approved = memberRows.filter((item) => item.status === "approved").length;
@@ -37,6 +39,7 @@ export async function renderAdminDashboard() {
       adminMenu("👥", "회원 관리", `승인 ${approved}명`, "#/admin/members"),
       adminMenu("🧭", "활동 담당자 관리", `${managerRows.length}명 지정`, "#/admin/managers"),
       adminMenu("🌈", "활동 카테고리 관리", `${categoryRows.filter((item) => item.is_active).length}개 활성`, "#/admin/categories"),
+      adminMenu("🛠️", "오류 로그", recentErrors == null ? "조회 준비 중" : `최근 24시간 ${recentErrors}건`, "#/admin/errors"),
     ]),
     el("section", { className: "card page-stack" }, [
       el("h2", { className: "section-title", text: "운영 현황" }),
