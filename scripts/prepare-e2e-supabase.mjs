@@ -45,14 +45,14 @@ for (const filename of operatingMigrations) {
   );
 }
 
-// Test-only bootstrap permission. The browser never receives service_role.
-// This exists only inside the disposable local Supabase stack so the setup
-// script can promote its freshly-created Auth user to an approved member.
+// Test-only bootstrap permissions. These grants exist only inside the disposable
+// local Supabase stack. The browser never receives service_role; Node setup
+// scripts use it only to create deterministic fixtures and verify DB state.
 await writeFile(
   path.join(migrationsRoot, "20990101000000_e2e_bootstrap_privileges.sql"),
   [
-    "grant select, update on table public.profiles to service_role;",
-    "grant select, update on table public.join_requests to service_role;",
+    "grant all privileges on all tables in schema public to service_role;",
+    "grant usage, select on all sequences in schema public to service_role;",
     "",
   ].join("\n"),
   "utf8",
