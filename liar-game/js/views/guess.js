@@ -30,5 +30,6 @@ export function guessView(voteState,guessState,gameMode){
 
 export function captureRevealView(voteState,isHost,gameMode){
  const hiddenRoleName=modeOf(gameMode)===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
- return `<section class="card stack"><h2>${hiddenRoleName} 검거 성공!</h2><p>${hiddenRoleName}를 정확히 찾아냈습니다.</p>${voteBallotDetails(voteState)}${isHost?`<button data-action="reveal-liars">${hiddenRoleName} 공개</button>`:`<p class="notice">방장이 ${hiddenRoleName}를 공개할 때까지 기다려 주세요.</p>`}</section>`;
+ const round=store.get().snapshot?.round;
+ return `<section class="card stack capture-success-card" data-capture-success-card data-round-id="${escapeHTML(round?.id||"")}" data-round-version="${Number(round?.version||0)}" data-hidden-role-name="${hiddenRoleName}" data-is-host="${isHost?"true":"false"}"><h2>${hiddenRoleName} 검거 성공!</h2><p>${hiddenRoleName}를 정확히 찾아냈습니다. 잠시 후 자동으로 공개됩니다.</p>${voteBallotDetails(voteState)}</section>`;
 }
