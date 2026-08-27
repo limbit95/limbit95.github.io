@@ -51,7 +51,7 @@
   outline-offset:2px;
 }
 
-/* Step 3: role count + two role toggles use one aligned row. */
+/* Step 3: role count + two role toggles share the row evenly. */
 .setup-role-summary{
   display:flex;
   flex-wrap:wrap;
@@ -64,8 +64,8 @@
 
 .setup-role-options-grid{
   display:grid;
-  grid-template-columns:repeat(3,minmax(0,180px));
-  justify-content:start;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  width:100%;
   align-items:stretch;
   gap:10px;
 }
@@ -98,7 +98,7 @@
 
 .setup-role-count-control>input{
   box-sizing:border-box;
-  width:76px;
+  width:100%;
   min-width:0;
   height:42px;
   min-height:42px;
@@ -142,21 +142,23 @@
   transform:translateY(-50%);
 }
 
-/* Step 4: classic mode has exactly three compact controls, so keep them on one row. */
+/* Step 4: classic mode fills the available width with three equal controls. */
 .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid{
-  grid-template-columns:repeat(3,minmax(0,150px));
-  justify-content:start;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  width:100%;
   align-items:start;
   gap:10px;
 }
 
 .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control{
+  box-sizing:border-box;
   min-width:0;
-  width:150px;
+  width:100%;
 }
 
 .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control>select,
 .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control>input{
+  box-sizing:border-box;
   width:100%;
 }
 
@@ -172,7 +174,6 @@
 
 @media(max-width:600px){
   .setup-role-options-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr));
     gap:8px;
   }
 
@@ -212,11 +213,7 @@
   .setup-category-grid .category-option{min-height:40px;padding:7px 4px;font-size:.82rem}
 
   .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid{
-    grid-template-columns:repeat(3,minmax(0,1fr));
     gap:7px;
-  }
-  .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control{
-    width:auto;
   }
   .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control>span{
     font-size:.8rem;
@@ -238,7 +235,7 @@
   }
 
   .setup-role-count-control{
-    grid-template-columns:minmax(0,1fr) 76px;
+    grid-template-columns:minmax(0,1fr) minmax(92px,42%);
     grid-template-rows:auto auto;
     align-items:center;
   }
@@ -256,9 +253,6 @@
 @media(max-width:380px){
   .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid{
     grid-template-columns:1fr;
-  }
-  .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid>.setup-control{
-    width:100%;
   }
 }
 
