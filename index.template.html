@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#9fcfdf">
+    <meta name="description" content="청년 공동체의 문화생활과 야외 활동을 함께하는 청파 같이">
+    <title>청파 같이</title>
+    <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://zxwdculpycqvbcfdoxvu.supabase.co" crossorigin>
+    <link rel="stylesheet" href="./css/reset.css">
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/layout.css">
+    <link rel="stylesheet" href="./css/navigation.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/pages.css">
+    <link rel="stylesheet" href="./css/activity-card.css">
+    <link rel="stylesheet" href="./css/profile.css">
+    <link rel="stylesheet" href="./css/modal.css">
+    <link rel="stylesheet" href="./css/messaging.css">
+    <link rel="stylesheet" href="./css/responsive.css">
+  </head>
+  <body>
+    <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="app" class="app-shell">
+      <div class="app-initial-loading" role="status" aria-live="polite">
+        <img src="./assets/images/logo.svg" alt="" width="64" height="64">
+        <p>청파 같이 불러오는 중…</p>
+      </div>
+    </div>
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+    <div id="modal-root"></div>
+    <noscript>
+      <div class="noscript-message">이 서비스를 이용하려면 JavaScript를 활성화해 주세요.</div>
+    </noscript>
+    <script>
+      (() => {
+        function showBootError(message) {
+          const loading = document.querySelector(".app-initial-loading");
+          if (!loading) return;
+          const title = document.createElement("strong");
+          title.textContent = "앱을 불러오지 못했어요";
+          const detail = document.createElement("p");
+          detail.textContent = String(message || "모바일 브라우저에서 스크립트를 불러오지 못했습니다.");
+          const retry = document.createElement("button");
+          retry.type = "button";
+          retry.className = "button";
+          retry.textContent = "다시 불러오기";
+          retry.addEventListener("click", () => window.location.reload());
+          loading.replaceChildren(title, detail, retry);
+        }
+        window.addEventListener("error", (event) => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError(event.message || "JavaScript 모듈 로드 오류가 발생했습니다.");
+          }
+        });
+        window.addEventListener("unhandledrejection", (event) => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError(event.reason?.message || event.reason || "앱 초기화 중 오류가 발생했습니다.");
+          }
+        });
+        window.setTimeout(() => {
+          if (document.querySelector(".app-initial-loading")) {
+            showBootError("앱 초기화가 지연되고 있습니다. 화면을 새로고침해 주세요.");
+          }
+        }, 10000);
+      })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- COMMUNITY_BUNDLE_ENTRY -->
+  </body>
+</html>
