@@ -37,6 +37,9 @@ begin
     left join public.liar_rounds pr on pr.id=prev.round_id
       and pr.game_id=v_game_id
       and pr.round_no between v_round_no-3 and v_round_no-1
+      and pr.status='ROUND_RESULT'
+      and pr.winner in ('citizen','liar')
+      and pr.finished_at is not null
     where cur.round_id=v_round_id
     group by cur.id,cur.player_id
   ), weighted as (
