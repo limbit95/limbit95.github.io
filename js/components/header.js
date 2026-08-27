@@ -1,6 +1,6 @@
 import {
   countUnreadNotifications,
-  listNotifications,
+  listNotificationsPage,
   markAllNotificationsRead,
   markNotificationRead,
 } from "../api/notifications.js";
@@ -9,9 +9,11 @@ import {
   markDirectMessageRead,
   subscribeNotificationUpdates,
 } from "../notifications.js";
-import { el, formatDateTime, getErrorMessage } from "../ui.js";
+import { el, formatDateTime, getErrorMessage, setBusy } from "../ui.js";
 import { contentDialog } from "./modal.js";
 import { showToast } from "./toast.js";
+
+const NOTIFICATION_PAGE_SIZE = 20;
 
 function navLink(href, label, currentPath) {
   const active = href === "#/"
@@ -74,6 +76,12 @@ export function createHeader({ auth, currentPath, onLogout }) {
     className: "notification-panel",
     hidden: true,
   });
+  const notificationState = {
+    items: [],
+    nextCursor: null,
+    unread: 0,
+    loadingMore: false,
+  };
 
   function setUnreadBadge(unread) {
     const safeUnread = Math.max(Number(unread) || 0, 0);
@@ -85,16 +93,8 @@ export function createHeader({ auth, currentPath, onLogout }) {
         "aria-label": `읽지 않은 알림 ${safeUnread}개`,
       }));
     }
+    notificationState.unread = safeUnread;
     return safeUnread;
-  }
-
-  function updateUnreadBadge(notifications) {
-    const unread = notifications.filter((item) => !item.is_read && !notificationIsPast(item)).length;
-    return setUnreadBadge(unread);
-  }
-
-  async function loadNotifications() {
-    return listNotifications(50);
   }
 
   async function refreshNotificationBadge() {
@@ -129,7 +129,12 @@ export function createHeader({ auth, currentPath, onLogout }) {
 
   async function handleNotificationClick(notification) {
     try {
-      if (!notification.is_read) await markNotificationRead(notification.id);
+      if (!notification.is_read) {
+        await markNotificationRead(notification.id);
+        notification.is_read = true;
+        notification.read_at = new Date().toISOString();
+        setUnreadBadge(Math.max(0, notificationState.unread - 1));
+      }
     } catch {
       // 대상 화면/쪽지는 계속 열고 다음 조회 때 읽음 처리를 재시도한다.
     }
@@ -170,6 +175,81 @@ export function createHeader({ auth, currentPath, onLogout }) {
     panel.append(group);
   }
 
+  function mergeNotificationItems(existing, incoming) {
+    const byId = new Map(existing.map((item) => [Number(item.id), item]));
+    incoming.forEach((item) => byId.set(Number(item.id), item));
+    return [...byId.values()].sort((left, right) => Number(right.id) - Number(left.id));
+  }
+
+  function renderNotificationPanel() {
+    panel.replaceChildren();
+    const panelHead = el("div", { className: "page-header notification-panel__head" }, [
+      el("strong", { text: "알림" }),
+      notificationState.unread ? el("button", {
+        className: "button button--ghost notification-panel__read-all",
+        type: "button",
+        text: "모두 읽음",
+        onClick: async (event) => {
+          setBusy(event.currentTarget, true, "처리 중…");
+          try {
+            await markAllNotificationsRead();
+            setUnreadBadge(0);
+            notificationState.items.forEach((item) => {
+              item.is_read = true;
+              item.read_at ??= new Date().toISOString();
+            });
+            renderNotificationPanel();
+          } catch (error) {
+            showToast(getErrorMessage(error), "error");
+            setBusy(event.currentTarget, false);
+          }
+        },
+      }) : null,
+    ]);
+    panel.append(panelHead);
+
+    if (!notificationState.items.length) {
+      panel.append(el("p", { className: "subtle notification-panel__empty", text: "새로운 알림이 없습니다." }));
+      return;
+    }
+
+    const currentNotifications = notificationState.items.filter((item) => !notificationIsPast(item));
+    const pastNotifications = notificationState.items.filter(notificationIsPast);
+    appendNotificationGroup("최근 알림", currentNotifications);
+    appendNotificationGroup("지난 알림", pastNotifications, { past: true });
+
+    if (notificationState.nextCursor !== null) {
+      const loadMoreButton = el("button", {
+        className: "button button--ghost notification-panel__load-more",
+        type: "button",
+        text: "이전 알림 더 보기",
+        disabled: notificationState.loadingMore,
+        onClick: async () => {
+          if (notificationState.loadingMore || notificationState.nextCursor === null) return;
+          notificationState.loadingMore = true;
+          loadMoreButton.disabled = true;
+          loadMoreButton.textContent = "불러오는 중…";
+          try {
+            const page = await listNotificationsPage({
+              cursor: notificationState.nextCursor,
+              pageSize: NOTIFICATION_PAGE_SIZE,
+            });
+            notificationState.items = mergeNotificationItems(notificationState.items, page.items);
+            notificationState.nextCursor = page.nextCursor;
+            notificationState.loadingMore = false;
+            renderNotificationPanel();
+          } catch (error) {
+            notificationState.loadingMore = false;
+            loadMoreButton.disabled = false;
+            loadMoreButton.textContent = "이전 알림 더 보기";
+            showToast(getErrorMessage(error, "이전 알림을 불러오지 못했습니다."), "error");
+          }
+        },
+      });
+      panel.append(el("div", { className: "button-row notification-panel__pager" }, loadMoreButton));
+    }
+  }
+
   async function refreshNotifications({ loading = true } = {}) {
     if (loading) {
       panel.replaceChildren(el("div", { className: "state-box", role: "status" }, [
@@ -178,37 +258,15 @@ export function createHeader({ auth, currentPath, onLogout }) {
       ]));
     }
     try {
-      const notifications = await loadNotifications();
-      const unread = updateUnreadBadge(notifications);
-      const currentNotifications = notifications.filter((item) => !notificationIsPast(item));
-      const pastNotifications = notifications.filter(notificationIsPast);
-
-      panel.replaceChildren();
-      const panelHead = el("div", { className: "page-header notification-panel__head" }, [
-        el("strong", { text: "알림" }),
-        unread ? el("button", {
-          className: "button button--ghost notification-panel__read-all",
-          type: "button",
-          text: "모두 읽음",
-          onClick: async () => {
-            try {
-              await markAllNotificationsRead();
-              await refreshNotifications({ loading: false });
-            } catch (error) {
-              showToast(getErrorMessage(error), "error");
-            }
-          },
-        }) : null,
+      const [page, unread] = await Promise.all([
+        listNotificationsPage({ pageSize: NOTIFICATION_PAGE_SIZE }),
+        countUnreadNotifications(),
       ]);
-      panel.append(panelHead);
-
-      if (!notifications.length) {
-        panel.append(el("p", { className: "subtle notification-panel__empty", text: "새로운 알림이 없습니다." }));
-        return;
-      }
-
-      appendNotificationGroup("최근 알림", currentNotifications);
-      appendNotificationGroup("지난 알림", pastNotifications, { past: true });
+      notificationState.items = page.items;
+      notificationState.nextCursor = page.nextCursor;
+      notificationState.loadingMore = false;
+      setUnreadBadge(unread);
+      renderNotificationPanel();
     } catch (error) {
       panel.replaceChildren(el("div", { className: "notice-box notice-box--danger", role: "alert", text: getErrorMessage(error) }));
     }
