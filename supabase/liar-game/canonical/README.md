@@ -12,6 +12,10 @@ Builder:
 
 - `scripts/build-liar-canonical.mjs`
 
+Post-install verification:
+
+- `verify-v1.0.0.sql`
+
 The manifest pins both the **execution order** and the **Git blob SHA** of every SQL source that composes the release. This keeps the historical migration files intact while giving the release one unambiguous installation source.
 
 ## Validate the pinned baseline
@@ -51,11 +55,21 @@ You can also print the installer to stdout:
 node scripts/build-liar-canonical.mjs --stdout
 ```
 
-or choose a custom output path:
+or choose a custom output path inside the repository:
 
 ```bash
-node scripts/build-liar-canonical.mjs --output /path/inside/repository/install.sql
+node scripts/build-liar-canonical.mjs --output supabase/liar-game/canonical/local-install.sql
 ```
+
+## Verify a fresh install
+
+After the generated installer finishes on a **new** Supabase project, run:
+
+```text
+supabase/liar-game/canonical/verify-v1.0.0.sql
+```
+
+The query is read-only and returns one JSON report. The top-level `pass` value should be `true`. It verifies the expected Liar Game tables/RLS boundary, active word pool, current columns/functions, v4-only settings privilege, production 4-player/2-citizen minimums, Realtime policies, and basic relational integrity.
 
 ## Important safety rules
 
