@@ -15,6 +15,7 @@ export const commands={
  updateSettingsV5:(settings,version)=>mutate("liar_update_game_settings_v5",{...settings,p_expected_room_version:version}),
  saveWordPack:(packId,name,words)=>mutate("liar_save_my_word_pack",{p_pack_id:packId||null,p_name:name,p_words:words}),
  deleteWordPack:(packId)=>mutate("liar_delete_my_word_pack",{p_pack_id:packId}),
+ purchaseHint:(hintType)=>mutate("liar_purchase_hint",{p_hint_type:hintType}),
  updateNextRoundDrawingSettings:(settings,version)=>mutate("liar_update_next_round_drawing_settings",{...settings,p_expected_room_version:version}),
  startRound:(version)=>mutate("liar_start_round",{p_expected_room_version:version}), prepareNextRound:(version)=>mutate("liar_prepare_next_round",{p_expected_round_version:version}), restartGame:(version)=>mutate("liar_restart_game",{p_expected_round_version:version}), markRoleChecked:()=>mutate("liar_mark_role_checked"),
  startSpeaking:(version)=>mutate("liar_start_speaking",{p_expected_round_version:version}),
