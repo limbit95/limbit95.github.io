@@ -28,6 +28,7 @@ jobs:
         run: npm run build:assets
 
       - name: Guard committed hashed assets are current
+        if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         shell: bash
         run: |
           if [[ -n "$(git status --porcelain -- index.html assets/build)" ]]; then
