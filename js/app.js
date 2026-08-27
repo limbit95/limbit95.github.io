@@ -7,6 +7,11 @@ import { createHeader } from "./components/header.js";
 import { createBottomNav } from "./components/bottomNav.js";
 import { confirmDialog } from "./components/modal.js";
 import { showToast } from "./components/toast.js";
+import {
+  installGlobalErrorObservers,
+  reportClientError,
+  setObservabilityIdentity,
+} from "./observability.js";
 
 const lazyRenderer = (loader, exportName) => async (...args) => {
   const module = await loader();
@@ -35,6 +40,8 @@ const renderAdmin = lazyRenderer(() => import("./pages/admin.js"), "renderAdmin"
 const app = document.getElementById("app");
 let renderSequence = 0;
 let shellState = null;
+
+installGlobalErrorObservers();
 
 document.getElementById("skip-link")?.addEventListener("click", () => {
   document.getElementById("main-content")?.focus();
@@ -141,6 +148,11 @@ async function renderPage(route, renderer, { shell = true } = {}) {
     window.scrollTo({ top: 0, behavior: "auto" });
   } catch (error) {
     if (sequence !== renderSequence) return;
+    void reportClientError(error, {
+      kind: "page",
+      route: route.path,
+      context: { title: route.meta?.title ?? "페이지" },
+    });
     const state = el("div", { className: "page-container" }, [
       el("div", { className: "state-box", role: "alert" }, [
         el("div", { className: "status-page__icon", text: "⚠️", "aria-hidden": "true" }),
@@ -229,6 +241,7 @@ route("/admin/approvals", "가입 신청 관리", "admin", renderAdmin);
 route("/admin/members", "회원 관리", "admin", renderAdmin);
 route("/admin/managers", "활동 담당자 관리", "admin", renderAdmin);
 route("/admin/categories", "활동 카테고리 관리", "admin", renderAdmin);
+route("/admin/errors", "오류 로그", "admin", renderAdmin);
 
 setBeforeRoute(async (routeInfo) => {
   const auth = getAuthState();
@@ -285,6 +298,7 @@ setNotFound((routeInfo) => renderPage(routeInfo, async () => el("div", { classNa
 
 window.addEventListener("app:auth-changed", (event) => {
   const auth = getAuthState();
+  setObservabilityIdentity(auth);
   const current = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
   if (["/auth/confirm", "/password/update", "/reset-password", "/update-password"].includes(current)) return;
   if (event.detail?.event === "SIGNED_IN" && event.detail.sameUser) return;
@@ -297,7 +311,10 @@ window.addEventListener("app:auth-changed", (event) => {
     resolveRoute();
   }
 });
-window.addEventListener("app:error", (event) => showToast(getErrorMessage(event.detail), "error"));
+window.addEventListener("app:error", (event) => {
+  showToast(getErrorMessage(event.detail), "error");
+  void reportClientError(event.detail, { kind: "api" });
+});
 
 async function boot() {
   if (!isSupabaseConfigured()) {
@@ -324,9 +341,12 @@ async function boot() {
   }
   try {
     await initializeAuth();
+    setObservabilityIdentity(getAuthState());
     if (!window.location.hash) navigate(authDestination(), { replace: true });
     startRouter();
   } catch (error) {
+    setObservabilityIdentity(getAuthState());
+    void reportClientError(error, { kind: "runtime", route: "/boot", context: { stage: "initializeAuth" } });
     renderStandalone(el("main", { id: "main-content", className: "config-error" }, [
       el("section", { className: "card page-stack", role: "alert" }, [
         el("h1", { className: "page-title", text: "Supabase에 연결하지 못했어요" }),
