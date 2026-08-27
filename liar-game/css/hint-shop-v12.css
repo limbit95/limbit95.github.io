@@ -1,5 +1,8 @@
 /* Liar Game v1.2 hint coin shop */
-.hint-shop{display:grid;gap:12px;margin-top:14px;padding:14px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--primary) 3%,var(--surface));text-align:left}
+.hint-shop{box-sizing:border-box;display:grid;gap:12px;width:100%;margin-top:14px;padding:14px;border:1px solid color-mix(in srgb,var(--primary) 22%,var(--border));border-radius:15px;background:color-mix(in srgb,var(--primary) 3%,var(--surface));text-align:left}
+.role-flip-back:has(.hint-shop){justify-content:flex-start}
+.role-flip-back>.hint-shop{flex:0 0 auto;align-self:stretch}
+.role-modal .hint-shop{width:100%}
 .hint-shop-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .hint-shop-header h4{margin:2px 0 0;font-size:1rem}
 .hint-shop-eyebrow{color:var(--primary);font-size:.67rem;font-weight:900;letter-spacing:.12em}
