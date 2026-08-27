@@ -26,6 +26,8 @@ begin
 end;
 $$;
 
+revoke execute on function private.cleanup_notification_retention() from public, anon, authenticated;
+
 select cron.schedule(
   'cheongpa-notification-retention',
   '15 18 * * *',
