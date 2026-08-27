@@ -92,8 +92,9 @@ function tick(){
  }else discussionKey="";
 }
 
-// Capture the setup form before app.js's legacy v3 submit handler. The room
-// version broadcast produced by v4 refreshes every client after a successful save.
+// Capture the setup form before app.js's historical v3 submit handler. v1.1
+// sends the complete settings contract through v5, including the private
+// custom-word source selection. The server revokes older settings RPCs.
 document.addEventListener("submit",async event=>{
  const form=event.target;
  if(!(form instanceof HTMLFormElement)||form.dataset.action!=="settings")return;
@@ -101,6 +102,8 @@ document.addEventListener("submit",async event=>{
  const snapshot=store.get().snapshot;
  if(!snapshot?.me?.is_host)return;
  const data=new FormData(form);
+ const wordSourceMode=String(data.get("wordSourceMode")||snapshot.game?.word_source_mode||"builtin");
+ const customPackValue=data.get("customWordPackId");
  const settings={
   p_selected_categories:data.getAll("category"),
   p_difficulty:String(data.get("difficulty")||"all"),
@@ -114,10 +117,12 @@ document.addEventListener("submit",async event=>{
   p_speaking_time_limit:Number(data.get("speakingTimeLimit")||0),
   p_discussion_time_limit:Number(data.get("discussionTimeLimit")||0),
   p_liars_know_each_other:data.has("liarsKnowEachOther"),
+  p_word_source_mode:wordSourceMode,
+  p_custom_word_pack_id:wordSourceMode==="builtin"?null:(customPackValue?String(customPackValue):null),
  };
  store.set({message:""});
  try{
-  await commands.updateSettingsV4(settings,snapshot.room.version);
+  await commands.updateSettingsV5(settings,snapshot.room.version);
   store.set({message:"설정을 저장했습니다."});
  }catch(error){store.set({message:messageFor(error)});}
 },true);
