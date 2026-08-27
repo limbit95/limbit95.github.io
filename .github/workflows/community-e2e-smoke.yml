@@ -7,24 +7,30 @@ on:
       - "feature/**"
     paths:
       - "index.html"
+      - "index.template.html"
       - "js/**"
       - "css/**"
       - "assets/**"
+      - "scripts/build-community-assets.mjs"
       - "tests/e2e/**"
       - "playwright.config.js"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/community-e2e-smoke.yml"
   pull_request:
     branches:
       - main
     paths:
       - "index.html"
+      - "index.template.html"
       - "js/**"
       - "css/**"
       - "assets/**"
+      - "scripts/build-community-assets.mjs"
       - "tests/e2e/**"
       - "playwright.config.js"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/community-e2e-smoke.yml"
 
 jobs:
@@ -40,8 +46,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install test dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install test and build dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build content-hashed community assets
+        run: npm run build:assets
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium webkit
