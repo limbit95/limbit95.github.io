@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -6,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const DEFAULT_MANIFEST = "supabase/liar-game/canonical/v1.0.0.manifest.json";
+const GIT_SHA_RE = /^[0-9a-f]{40}$/u;
 
 function parseArgs(argv) {
   const options = { manifest: DEFAULT_MANIFEST, check: false, stdout: false, output: null };
@@ -41,6 +43,37 @@ async function readManifest(relativePath) {
   return parsed;
 }
 
+async function readPinnedBlob(entry) {
+  if (!GIT_SHA_RE.test(entry.blobSha)) throw new Error(`Invalid Git blob SHA for ${entry.path}: ${entry.blobSha}`);
+
+  // Release manifests are immutable even after main moves on. Prefer the exact
+  // historical Git blob, so a v1.0 installer remains reproducible after v1.1+
+  // edits the same source paths.
+  try {
+    const buffer = execFileSync("git", ["cat-file", "blob", entry.blobSha], {
+      cwd: REPO_ROOT,
+      encoding: null,
+      maxBuffer: 16 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    if (gitBlobSha(buffer) !== entry.blobSha) throw new Error(`Git returned an unexpected blob for ${entry.path}`);
+    return buffer;
+  } catch (gitError) {
+    // Zip/source exports may not contain .git. They can still build a release
+    // if the working-tree file is exactly the pinned blob.
+    try {
+      const current = await fs.readFile(resolveInsideRepo(entry.path));
+      if (gitBlobSha(current) === entry.blobSha) return current;
+    } catch {}
+
+    throw new Error(
+      `Pinned canonical blob is unavailable: ${entry.path} (${entry.blobSha}).\n` +
+      "Use a full Git clone/fetch (GitHub Actions uses fetch-depth: 0) or check out the matching release branch.",
+      { cause: gitError },
+    );
+  }
+}
+
 async function build(manifest, manifestPath) {
   const seen = new Set();
   const chunks = [];
@@ -50,18 +83,13 @@ async function build(manifest, manifestPath) {
     if (seen.has(entry.path)) throw new Error(`Duplicate canonical source: ${entry.path}`);
     seen.add(entry.path);
 
-    const absolute = resolveInsideRepo(entry.path);
-    const buffer = await fs.readFile(absolute);
-    const actualSha = gitBlobSha(buffer);
-    if (actualSha !== entry.blobSha) {
-      throw new Error(`Canonical source changed: ${entry.path}\nexpected ${entry.blobSha}\nactual   ${actualSha}`);
-    }
-
+    const buffer = await readPinnedBlob(entry);
     const text = buffer.toString("utf8").replace(/\s+$/u, "");
     chunks.push([
       "",
       "-- ============================================================================",
       `-- BEGIN CANONICAL SOURCE ${index + 1}/${manifest.files.length}: ${entry.path}`,
+      `-- PINNED GIT BLOB: ${entry.blobSha}`,
       "-- ============================================================================",
       text,
       "-- ============================================================================",
@@ -77,7 +105,7 @@ async function build(manifest, manifestPath) {
 
   const header = [
     `-- Liar Game / Drawing Spy canonical fresh installer v${manifest.version}`,
-    "-- GENERATED FILE. Do not hand-edit; edit the pinned source files/manifest instead.",
+    "-- GENERATED FROM IMMUTABLE GIT BLOBS. Do not hand-edit.",
     `-- Manifest: ${manifestPath}`,
     "-- This installer is intended for a fresh Supabase project/database only.",
     "-- Never run it over an existing production Liar Game database.",
@@ -93,7 +121,7 @@ async function main() {
   const installer = await build(manifest, options.manifest);
 
   if (options.check) {
-    console.log(`Liar Game canonical manifest v${manifest.version}: ${manifest.files.length} pinned SQL sources OK`);
+    console.log(`Liar Game canonical manifest v${manifest.version}: ${manifest.files.length} pinned Git blobs OK`);
     return;
   }
 
