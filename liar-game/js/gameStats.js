@@ -12,12 +12,15 @@ const namesOf=stat=>{
  const players=Array.isArray(stat?.players)?stat.players:[];
  return players.length?players.map(player=>escapeHTML(player.nickname||"참가자")).join(" · "):"-";
 };
+const shieldIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 19 5v5.8c0 4.6-2.8 8.5-7 10.7-4.2-2.2-7-6.1-7-10.7V5l7-2.5Z" fill="currentColor"/><path d="m9.2 12 1.8 1.8 3.8-4" fill="none" stroke="white" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function funStat(icon,title,stat,unit,empty){
+function funStat(icon,title,stat,unit,empty,{iconClass=""}={}){
  const has=Number(stat?.count||0)>0&&Array.isArray(stat?.players)&&stat.players.length;
+ const result=has?`${namesOf(stat)} <span class="game-fun-stat-count">(${Number(stat.count)}${escapeHTML(unit)})</span>`:escapeHTML(empty);
  return `<article class="game-fun-stat ${has?"":"is-empty"}">
-  <span class="game-fun-stat-icon" aria-hidden="true">${icon}</span>
-  <div><small>${escapeHTML(title)}</small><strong>${has?namesOf(stat):escapeHTML(empty)}</strong>${has?`<em>${Number(stat.count)}${escapeHTML(unit)}</em>`:""}</div>
+  <span class="game-fun-stat-icon ${iconClass}" aria-hidden="true">${icon}</span>
+  <small class="game-fun-stat-title">${escapeHTML(title)}</small>
+  <strong class="game-fun-stat-result">${result}</strong>
  </article>`;
 }
 
@@ -45,12 +48,12 @@ function statsHTML(stats,context){
   </div>
   <div class="game-fun-stats">
    ${funStat("👀","가장 많이 의심받음",stats?.most_suspected,"표","아직 투표 기록 없음")}
-   ${funStat("🥷",`${hidden} 생존왕`,stats?.survival_leader,"승","아직 생존 승리 없음")}
+   ${funStat(shieldIcon,`${hidden} 생존왕`,stats?.survival_leader,"승","아직 생존 승리 없음",{iconClass:"is-shield"})}
    ${funStat("🎯","제시어 역전왕",stats?.comeback_leader,"회","아직 역전 성공 없음")}
    ${funStat("🕵️",`${hidden} 헌터`,stats?.liar_hunter,"표","아직 적중 투표 없음")}
    ${funStat("🎭",`${hidden} 단골`,stats?.liar_regular,"회","아직 역할 기록 없음")}
   </div>
-  <div class="game-history-section"><div class="game-history-heading"><strong>라운드 기록</strong><small>같은 Game 안에서 누적됩니다.</small></div>${historyView(rounds,hidden)}</div>
+  <div class="game-history-section"><div class="game-history-heading"><strong>라운드 기록</strong><small>같은 Game 안에서 누적되는 기록입니다.</small></div>${historyView(rounds,hidden)}</div>
  </section>`;
 }
 
