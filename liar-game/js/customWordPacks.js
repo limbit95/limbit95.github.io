@@ -17,6 +17,7 @@ const currentGameId=()=>store.get().snapshot?.game?.id||"";
 function selectedPack(){return packs.find(pack=>pack.selected_in_current_game===true)||null;}
 function sourceLabel(mode){return mode==="custom"?"내 팩만":mode==="mixed"?"기본 + 내 팩":"기본 제시어";}
 function selectedOption(pack,selectedId){return `<option value="${escapeHTML(pack.id)}" ${String(pack.id)===String(selectedId||"")?"selected":""}>${escapeHTML(pack.name)} · ${Number(pack.word_count)}개</option>`;}
+function requestSettingsAutosave(slot=currentSlot()){slot?.dispatchEvent(new CustomEvent("liar:settings-autosave",{bubbles:true}));}
 
 function renderHostSlot(slot){
  const mode=["builtin","custom","mixed"].includes(slot.dataset.wordSourceMode)?slot.dataset.wordSourceMode:"builtin";
@@ -32,10 +33,10 @@ function renderHostSlot(slot){
    <label class="custom-word-source-option ${mode==="mixed"?"is-selected":""}"><input type="radio" name="wordSourceMode" value="mixed" ${mode==="mixed"?"checked":""} ${hasPacks?"":"disabled"}><span><strong>🔀 기본 + 내 팩</strong><small>${hasPacks?"두 풀이 남아 있으면 대략 반반으로 출제합니다.":"먼저 커스텀 팩을 만들어 주세요."}</small></span></label>
   </div>
   <div class="custom-pack-picker ${mode==="builtin"?"is-inactive":""}" data-custom-pack-picker>
-   <label class="setup-control"><span>사용할 커스텀 팩</span><select name="customWordPackId" ${mode==="builtin"?"disabled":""}>${hasPacks?packs.map(pack=>selectedOption(pack,selectedId)).join(""):'<option value="">저장된 팩 없음</option>'}</select><small>${selected?`현재 Game에 저장된 팩: ${escapeHTML(selected.name)} · ${Number(selected.word_count)}개`:hasPacks?"팩을 선택한 뒤 아래 ‘설정 저장’을 눌러 Game에 적용하세요.":"새 팩은 5~200개의 제시어로 만들 수 있습니다."}</small></label>
+   <label class="setup-control"><span>사용할 커스텀 팩</span><select name="customWordPackId" ${mode==="builtin"?"disabled":""}>${hasPacks?packs.map(pack=>selectedOption(pack,selectedId)).join(""):'<option value="">저장된 팩 없음</option>'}</select><small>${selected?`현재 Game에 적용 중: ${escapeHTML(selected.name)} · ${Number(selected.word_count)}개`:hasPacks?"팩을 선택하면 현재 Game에 자동으로 적용됩니다.":"새 팩은 5~200개의 제시어로 만들 수 있습니다."}</small></label>
    <div class="custom-pack-actions"><button type="button" class="secondary" data-custom-pack-new>+ 새 팩</button><button type="button" class="secondary" data-custom-pack-edit ${selectedId?"":"disabled"}>편집</button><button type="button" class="danger-secondary" data-custom-pack-delete ${selectedId?"":"disabled"}>삭제</button></div>
   </div>
-  <p class="custom-pack-note">💡 팩을 편집해도 이미 저장된 Game의 제시어는 즉시 바뀌지 않습니다. 편집 후 <strong>설정 저장</strong>을 눌러 새 내용을 다시 스냅샷하세요.</p>`;
+  <p class="custom-pack-note">💡 현재 Game에서 사용하는 팩을 편집하면 저장 후 새 내용이 자동으로 다시 적용됩니다.</p>`;
  updateSourceUI(slot);
 }
 
@@ -164,10 +165,16 @@ async function saveEditor(form){
   const savedId=row?.pack_id||editorPackId;
   await loadPacks({force:true});
   const slot=currentSlot();
-  if(slot){renderHostSlot(slot);slot.dataset.hydrated="true";const select=slot.querySelector('select[name="customWordPackId"]');if(select&&savedId){select.value=String(savedId);slot.dataset.selectedPackId=String(savedId);}updateSourceUI(slot);}
+  if(slot){
+   renderHostSlot(slot);slot.dataset.hydrated="true";
+   const select=slot.querySelector('select[name="customWordPackId"]');
+   if(select&&savedId){select.value=String(savedId);slot.dataset.selectedPackId=String(savedId);}
+   updateSourceUI(slot);
+   if(slot.dataset.wordSourceMode!=="builtin")requestSettingsAutosave(slot);
+  }
   if(typeof ensureDialog().close==="function")ensureDialog().close();else ensureDialog().removeAttribute("open");
   editorPackId=null;
-  store.set({message:"커스텀 제시어 팩을 저장했습니다. 이번 Game에 반영하려면 ‘설정 저장’을 눌러 주세요."});
+  store.set({message:"커스텀 제시어 팩을 저장했습니다."});
  }catch(error){if(message)message.textContent=messageFor(error);}
  finally{editorBusy=false;if(save)save.disabled=false;}
 }
@@ -180,7 +187,7 @@ async function deleteSelected(){
  try{
   await commands.deleteWordPack(packId);
   await loadPacks({force:true});
-  if(slot===currentSlot()){slot.dataset.wordSourceMode="builtin";renderHostSlot(slot);slot.dataset.hydrated="true";}
+  if(slot===currentSlot()){renderHostSlot(slot);slot.dataset.hydrated="true";}
   store.set({message:"커스텀 제시어 팩을 삭제했습니다."});
  }catch(error){store.set({message:messageFor(error)});}
 }
