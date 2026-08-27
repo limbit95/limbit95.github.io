@@ -23,6 +23,6 @@ export function roleRecallModalView(role,gameMode=GAME_MODE.CLASSIC) {
   const word = isLiar ? "" : `<div class="role-modal-word"><span>제시어</span><strong>${escapeHTML(role.word)}</strong></div>`;
   const teammates=Array.isArray(role?.teammates)?role.teammates:[];
   const team=isLiar&&teammates.length?`<div class="role-teammates"><span>같은 ${hiddenRoleName} 팀</span><div class="role-teammate-list">${teammates.map(name=>`<strong class="role-teammate-chip">${escapeHTML(name)}</strong>`).join("")}</div></div>`:"";
-  const shop=hintShopView(role,{compact:true});
+  const shop=hintShopView(role);
   return `<div class="role-modal-backdrop" data-role-modal-backdrop role="presentation"><section class="role-modal" data-role-modal-panel role="dialog" aria-modal="true" aria-labelledby="role-modal-title"><header class="role-modal-header"><h2 id="role-modal-title">나의 역할</h2><button class="role-modal-close" data-action="close-role-modal" data-role-modal-close aria-label="역할 확인 창 닫기">×</button></header><p class="role-modal-role">${isLiar ? `🎭 ${hiddenRoleName}` : "시민"}</p>${category}${word}${team}${shop}<div class="role-modal-actions"><button data-action="close-role-modal">닫기</button></div></section></div>`;
 }
