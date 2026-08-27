@@ -83,11 +83,13 @@ function messageHTML(message){
 function syncChatAvailability(){
  const form=document.querySelector('form[data-action="discussion-chat"]');
  const status=document.querySelector("[data-discussion-chat-status]");
+ const notice=document.querySelector("[data-discussion-time-notice]");
+ const expired=discussionExpired();
+ if(notice)notice.hidden=!expired;
  if(!form){
-  if(status&&discussionExpired())status.textContent="토론 시간이 종료되었습니다.";
+  if(status)status.hidden=expired;
   return;
  }
- const expired=discussionExpired();
  const textarea=form.querySelector('textarea[name="chat"]');
  const submit=form.querySelector('button[type="submit"]');
  form.classList.toggle("is-time-locked",expired);
@@ -97,9 +99,10 @@ function syncChatAvailability(){
   textarea.placeholder=expired?"토론 시간이 종료되어 채팅이 잠겼습니다":"메시지를 입력하세요 · Enter 전송 / Shift+Enter 줄바꿈";
  }
  if(submit)submit.disabled=expired||realtimeStatus!=="subscribed";
- if(status)status.textContent=expired
-  ?"토론 시간이 종료되어 채팅이 잠겼습니다"
-  :realtimeStatus==="subscribed"?"실시간 채팅 연결됨":realtimeStatus==="error"?"채팅 연결이 불안정합니다":"채팅 연결 중…";
+ if(status){
+  status.hidden=expired;
+  status.textContent=realtimeStatus==="subscribed"?"실시간 채팅 연결됨":realtimeStatus==="error"?"채팅 연결이 불안정합니다":"채팅 연결 중…";
+ }
 }
 
 function renderChat(){

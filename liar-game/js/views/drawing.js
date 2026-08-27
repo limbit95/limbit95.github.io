@@ -1,10 +1,11 @@
 import { escapeHTML } from "../constants.js";
 
-const orderTrackItem=(player,position,index,meId)=>{
+const orderTrackItem=(player,position,index,meId,submittedIds)=>{
  const state=position<index?"done":position===index?"current":"upcoming";
- const marker=state==="done"?"✓":state==="current"?"🎨":String(position+1);
- const label=state==="done"?"완료":state==="current"?"NOW":"대기";
- return `<li class="drawing-turn-track-item is-${state}" ${state==="current"?'aria-current="step"':""}>
+ const missed=state==="done"&&!submittedIds.has(String(player.id));
+ const marker=missed?"⏰":state==="done"?"✓":state==="current"?"🎨":String(position+1);
+ const label=missed?"미제출":state==="done"?"완료":state==="current"?"NOW":"대기";
+ return `<li class="drawing-turn-track-item is-${missed?"missed":state}" ${state==="current"?'aria-current="step"':""}>
   <span class="drawing-turn-track-marker" aria-hidden="true">${marker}</span>
   <span class="drawing-turn-track-copy"><strong>${escapeHTML(player.nickname_snapshot)}</strong><small>${player.player_id===meId?`나 · ${label}`:label}</small></span>
  </li>`;
@@ -26,6 +27,8 @@ export function drawingView(s,isHost){
  const next=ordered[index+1];
  const drawing=s.drawing||{};
  const runoff=drawing.is_runoff===true;
+ const drawingStageNo=Number(drawing.drawing_stage_no||0);
+ const submittedIds=new Set((Array.isArray(drawing.strokes)?drawing.strokes:[]).filter(stroke=>Number(stroke.drawing_stage_no||0)===drawingStageNo).map(stroke=>String(stroke.round_player_id||"")));
  const strokeLimit=Number(drawing.stroke_limit||s.round.drawing_stroke_limit_snapshot||3);
  const unlimitedStrokes=drawing.stroke_unlimited===true;
  const used=Number(drawing.current_stroke_count||0);
@@ -33,7 +36,7 @@ export function drawingView(s,isHost){
  const isCurrentDrawer=current?.player_id===s.me?.player_id;
  const canDraw=isCurrentDrawer&&(unlimitedStrokes||remaining>0);
  const canAdvance=isCurrentDrawer||isHost;
- const orderTrack=ordered.map((player,position)=>orderTrackItem(player,position,index,s.me?.player_id)).join("");
+ const orderTrack=ordered.map((player,position)=>orderTrackItem(player,position,index,s.me?.player_id,submittedIds)).join("");
  const guide=isCurrentDrawer
   ?unlimitedStrokes
    ?`내 차례입니다. 3초 준비 후 <strong>${Number(drawing.time_limit||15)}초</strong> 동안 자유롭게 그릴 수 있습니다.`

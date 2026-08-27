@@ -1,0 +1,81 @@
+/* Liar Game v1.2 result, vote and success-reveal polish */
+
+.result-next-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;margin:0 0 14px}
+.result-next-actions button{width:100%;min-width:0;min-height:52px;font-size:1rem;font-weight:850}
+.result-next-waiting{grid-column:1 / -1;margin:0;padding:12px;text-align:center;border:1px dashed var(--border);border-radius:12px;background:var(--bg)}
+
+/* MVP / fun-stat cards: equal height and never truncate player names. */
+.game-fun-stats{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(104px,auto);align-items:stretch}
+.game-fun-stat{align-items:flex-start;min-height:104px;height:100%;padding:13px}
+.game-fun-stat>div{align-content:start;gap:4px;width:100%}
+.game-fun-stat small{line-height:1.35;word-break:keep-all}
+.game-fun-stat strong{display:block;overflow:visible!important;text-overflow:clip!important;white-space:normal!important;line-height:1.42;overflow-wrap:anywhere;word-break:keep-all}
+.game-fun-stat em{margin-top:2px}
+
+/* Result vote history: ranking + proportional bars make totals readable at a glance. */
+.result-vote-history{display:grid;gap:14px}
+.result-vote-stage{display:grid;gap:14px;padding:16px;border:1px solid var(--border);border-radius:15px;background:var(--surface)}
+.result-vote-stage-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.result-vote-stage-header h4{margin:0;font-size:1rem}
+.result-vote-stage-header>span{padding:5px 9px;border-radius:999px;background:#f0ebff;color:var(--primary);font-size:.72rem;font-weight:800;white-space:nowrap}
+.result-vote-block{display:grid;gap:9px}
+.result-vote-subheading{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.result-vote-subheading h5{margin:0;font-size:.82rem}
+.result-vote-subheading small{color:var(--muted);font-size:.68rem;text-align:right}
+.result-vote-tally{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+.result-vote-tally-row{display:grid;gap:6px;padding:10px 11px;border:1px solid var(--border);border-radius:11px;background:var(--bg)}
+.result-vote-tally-row.is-top{border-color:color-mix(in srgb,var(--primary) 34%,var(--border));background:color-mix(in srgb,var(--primary) 4%,var(--bg))}
+.result-vote-tally-line{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:8px;min-width:0}
+.result-vote-rank{display:grid;place-items:center;width:26px;height:26px;border-radius:8px;background:#ede9f4;color:var(--muted);font-size:.72rem;font-weight:900}
+.result-vote-tally-row.is-top .result-vote-rank{background:var(--primary);color:#fff}
+.result-vote-name{min-width:0;font-size:.88rem;overflow-wrap:anywhere}
+.result-vote-count{padding:4px 8px;border-radius:999px;background:#fff;border:1px solid var(--border);color:var(--ink);font-size:.75rem;font-weight:900;white-space:nowrap}
+.result-vote-meter{height:7px;overflow:hidden;border-radius:999px;background:#e9e6ee}
+.result-vote-meter>span{display:block;width:var(--vote-width,0%);height:100%;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--primary) 68%,#fff),var(--primary));transition:width .28s ease}
+.result-vote-ballots{display:grid;gap:7px}
+.result-vote-ballot-row{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;padding:9px 10px;border-radius:10px;background:var(--bg);font-size:.78rem}
+.result-vote-ballot-row>strong{text-align:right;overflow-wrap:anywhere}
+.result-vote-ballot-row>span:last-child{text-align:left;color:var(--muted);overflow-wrap:anywhere}
+.result-vote-empty{padding:12px;text-align:center;color:var(--muted);border-radius:10px;background:var(--bg)}
+
+/* Successful capture gets a distinct, celebratory but restrained reveal treatment. */
+.capture-success-countdown{position:fixed;z-index:1850;inset:0;display:grid;place-items:center;padding:24px;overflow:hidden;background:radial-gradient(circle at 50% 40%,rgba(85,210,171,.28),transparent 27%),linear-gradient(160deg,rgba(11,35,38,.97),rgba(14,48,57,.98));color:#fff;text-align:center;backdrop-filter:blur(5px);animation:capture-success-overlay-in .28s ease-out both}
+.capture-success-countdown::before,.capture-success-countdown::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
+.capture-success-countdown::before{width:min(80vw,610px);height:min(80vw,610px);border:1px solid rgba(179,242,220,.18);box-shadow:inset 0 0 80px rgba(87,215,174,.06);animation:capture-success-orbit 6s linear infinite}
+.capture-success-countdown::after{width:min(58vw,420px);height:min(58vw,420px);border:1px dashed rgba(255,222,138,.25);animation:capture-success-orbit 4.7s linear infinite reverse}
+.capture-success-countdown-inner{position:relative;z-index:2;display:grid;justify-items:center;gap:10px;width:min(100%,540px)}
+.capture-success-kicker{color:#9ce8ce;font-size:.75rem;font-weight:900;letter-spacing:.19em}
+.capture-success-countdown h2{margin:0;font-size:clamp(2rem,8vw,3.3rem);font-weight:950;letter-spacing:-.04em;text-shadow:0 8px 24px rgba(0,0,0,.28)}
+.capture-success-countdown p{margin:0;color:rgba(255,255,255,.76);font-size:clamp(.92rem,3.5vw,1.06rem);line-height:1.55;word-break:keep-all}
+.capture-success-count{position:relative;z-index:2;display:grid;place-items:center;width:clamp(150px,46vw,225px);height:clamp(150px,46vw,225px);margin-top:18px;border:2px solid rgba(185,244,224,.26);border-radius:50%;background:radial-gradient(circle,rgba(74,205,163,.23),rgba(74,205,163,.05) 60%,transparent 72%);box-shadow:0 0 0 12px rgba(74,205,163,.05),0 20px 70px rgba(0,0,0,.32),inset 0 0 42px rgba(91,228,184,.16);font-size:clamp(5.3rem,27vw,8.8rem);font-weight:950;line-height:1;color:#e8fff7;text-shadow:0 8px 26px rgba(88,225,181,.35)}
+.capture-success-count.is-ticking{animation:capture-success-number .7s cubic-bezier(.16,.9,.26,1.15) both}
+.capture-success-ring{position:absolute;z-index:1;width:clamp(176px,53vw,266px);height:clamp(176px,53vw,266px);margin-top:126px;border:3px solid rgba(179,242,220,.18);border-top-color:#9ce8ce;border-right-color:#f1d78c;border-radius:50%;animation:capture-success-ring-spin 1.1s linear infinite}
+.capture-success-countdown-inner.is-revealed{gap:16px;animation:capture-success-stage-in .58s cubic-bezier(.16,.88,.28,1.16) both}
+.capture-success-names{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin:10px 0 3px}
+.capture-success-name{display:inline-flex;align-items:center;justify-content:center;min-width:min(76vw,250px);padding:15px 20px;border:1px solid rgba(190,246,226,.25);border-radius:18px;background:linear-gradient(135deg,rgba(73,205,162,.27),rgba(247,213,128,.12));box-shadow:0 15px 40px rgba(0,0,0,.2),inset 0 0 24px rgba(179,242,220,.08);color:#fff;font-size:clamp(1.5rem,7vw,2.35rem);font-weight:950;letter-spacing:-.035em}
+.capture-success-close{width:min(100%,320px);min-height:52px;margin-top:8px;border:1px solid rgba(255,255,255,.2);border-radius:14px;background:#f4fff9;color:#163c35;font-weight:900;box-shadow:0 14px 34px rgba(0,0,0,.2)}
+.capture-success-close:hover{filter:brightness(.98);transform:translateY(-1px)}
+
+@keyframes capture-success-overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes capture-success-number{0%{opacity:.2;transform:scale(.64)}50%{opacity:1;transform:scale(1.12)}100%{transform:none}}
+@keyframes capture-success-ring-spin{to{transform:rotate(360deg)}}
+@keyframes capture-success-orbit{0%{transform:rotate(0deg) scale(.98)}50%{transform:rotate(180deg) scale(1.04)}100%{transform:rotate(360deg) scale(.98)}}
+@keyframes capture-success-stage-in{0%{opacity:.2;transform:scale(.82) translateY(15px);filter:blur(7px)}60%{opacity:1;transform:scale(1.035) translateY(-2px);filter:none}100%{transform:none;filter:none}}
+
+@media(max-width:720px){
+ .game-fun-stats{grid-template-columns:1fr;grid-auto-rows:auto}
+ .game-fun-stat{min-height:92px;align-items:center}
+ .result-vote-stage{padding:13px}
+ .result-vote-subheading{align-items:flex-start;flex-direction:column;gap:2px}
+ .result-vote-subheading small{text-align:left}
+}
+@media(max-width:560px){
+ .result-next-actions{grid-template-columns:1fr}
+ .result-vote-stage-header{align-items:flex-start}
+ .result-vote-tally-line{grid-template-columns:26px minmax(0,1fr) auto;gap:6px}
+ .result-vote-ballot-row{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);font-size:.74rem}
+ .capture-success-countdown{padding:18px}
+}
+@media(prefers-reduced-motion:reduce){
+ .result-vote-meter>span,.capture-success-countdown,.capture-success-countdown::before,.capture-success-countdown::after,.capture-success-count,.capture-success-ring,.capture-success-countdown-inner.is-revealed{animation:none!important;transition:none!important}
+}

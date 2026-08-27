@@ -1,0 +1,96 @@
+/* Liar Game v1.2 setup interaction + mobile layout polish */
+html,body{max-width:100%;overflow-x:hidden;overflow-x:clip}
+body{min-width:0}
+.app-shell,.card,.setup-card,.setup-form,.setup-fieldset,.setup-section,.setup-step-heading,.setup-step-copy,.setup-word-details,.setup-role-options-grid,.setup-flow-grid,.game-mode-grid{box-sizing:border-box;min-width:0;max-width:100%}
+img,svg,canvas{max-width:100%}
+
+.setup-start-control{display:grid;width:100%;min-width:0;margin:0 0 14px}
+.setup-start-button{box-sizing:border-box;width:100%;min-width:0;min-height:52px;font-size:1rem;font-weight:850;white-space:normal;overflow-wrap:break-word}
+.setup-start-button:disabled{opacity:1;border:1px solid var(--border);background:#eee9fa;color:var(--muted);box-shadow:none}
+
+.setup-card-v11 .setup-header{gap:0;text-align:center}
+.setup-card-v11 .setup-form{margin-top:-2px}
+.setup-step-copy,.setup-section-description,.setup-word-details-heading,.setup-setting-copy{overflow-wrap:break-word;word-break:keep-all}
+
+.setup-difficulty-control{grid-template-rows:auto auto!important}
+.setup-difficulty-row{display:flex;align-items:center;gap:10px;min-width:0;max-width:100%}
+.setup-difficulty-row select{flex:0 0 min(180px,45%);width:auto;min-width:120px;max-width:100%}
+.setup-difficulty-row small{flex:1;min-width:0;margin:0;color:var(--muted);font-size:.78rem;line-height:1.35;word-break:keep-all}
+
+.setup-progress-section .setup-flow-grid>.setup-control{grid-template-rows:auto 48px!important;align-content:start;min-width:0}
+.setup-control-title{position:relative;display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;font-weight:650}
+.setup-info{position:relative;z-index:4;display:inline-grid;place-items:center;flex:0 0 18px;width:18px;height:18px;border:1px solid color-mix(in srgb,var(--muted) 55%,var(--border));border-radius:50%;color:var(--muted);font-size:.66rem;font-weight:900;font-style:normal;line-height:1;cursor:help;outline:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+.setup-info:focus-visible{border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 16%,transparent);color:var(--primary)}
+.setup-tooltip{position:absolute;left:50%;bottom:calc(100% + 8px);z-index:30;width:max-content;max-width:min(230px,70vw);padding:8px 10px;border:1px solid color-mix(in srgb,var(--ink) 18%,var(--border));border-radius:9px;background:var(--ink);box-shadow:0 8px 22px rgba(24,18,40,.18);color:white;font-size:.72rem;font-weight:600;line-height:1.42;text-align:left;white-space:normal;opacity:0;pointer-events:none;transform:translate(-50%,4px);transition:opacity .14s ease,transform .14s ease;overflow-wrap:break-word;word-break:keep-all}
+.setup-tooltip::after{content:"";position:absolute;left:50%;top:100%;width:8px;height:8px;background:var(--ink);transform:translate(-50%,-4px) rotate(45deg)}
+.setup-info:hover .setup-tooltip,.setup-info:focus-visible .setup-tooltip,.setup-info.is-open .setup-tooltip{opacity:1;transform:translate(-50%,0)}
+
+.setup-number-stepper{display:grid;grid-template-columns:42px minmax(54px,72px) 42px;justify-content:center;align-items:center;gap:6px;width:100%;min-width:0}
+.setup-number-stepper input{box-sizing:border-box;width:100%;min-width:0;height:42px;min-height:42px;padding:8px 4px;text-align:center;font-weight:800;font-size:.95rem;appearance:textfield;-moz-appearance:textfield}
+.setup-number-stepper input::-webkit-outer-spin-button,.setup-number-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.setup-stepper-button{display:grid;place-items:center;box-sizing:border-box;width:42px;min-width:42px;height:42px;min-height:42px;padding:0;border:1px solid color-mix(in srgb,var(--primary) 24%,var(--border));background:#f4f0ff;color:var(--primary);font-size:1.2rem;font-weight:900;line-height:1}
+.setup-stepper-button:not(:disabled):hover{background:#ece5ff}
+.setup-number-stepper.is-readonly{opacity:.62}
+.setup-number-stepper.is-readonly input{background:#f4f2f7;color:var(--muted)}
+
+.setup-role-count-control>.setup-number-stepper{align-self:center}
+.setup-role-count-control>input{width:auto}
+
+@media(max-width:600px){
+ .app-shell{width:calc(100% - 20px);padding-left:0;padding-right:0}
+ .card{padding-left:16px;padding-right:16px}
+ .setup-section{padding:16px 14px}
+ .setup-step-heading{justify-items:center;text-align:center;gap:8px}
+ .setup-step-copy{width:100%;text-align:center}
+ .setup-section-title,.setup-section-description{max-width:100%;text-align:center}
+ .setup-player-info,.setup-role-summary{justify-content:center;width:100%}
+ .setup-word-details-heading{text-align:center}
+ .setup-difficulty-control>span{text-align:center}
+ .setup-difficulty-row{justify-content:center}
+ .setup-options-grid{width:100%}
+ .game-mode-option>span{text-align:center}
+ .setup-control-title{justify-content:center;width:100%;text-align:center}
+ .setup-progress-section .setup-flow-grid{grid-template-columns:1fr!important;width:100%;gap:10px!important}
+ .setup-progress-section .setup-flow-grid>.setup-control{grid-template-rows:auto auto!important;justify-items:center;text-align:center;padding:0}
+ .setup-progress-section .setup-flow-grid>.setup-control>select{width:min(220px,100%)}
+ .setup-tooltip{left:50%;width:min(250px,calc(100vw - 56px));max-width:calc(100vw - 56px);text-align:center}
+ .setup-role-options-grid{grid-template-columns:1fr!important;gap:10px}
+ .setup-role-options-grid>.setup-control,.setup-role-options-grid>.setup-setting-row{min-height:0!important}
+ .setup-role-count-control{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:auto auto auto!important;justify-items:center;gap:9px;padding:14px!important;text-align:center}
+ .setup-role-count-control>span,.setup-role-count-control>small,.setup-role-count-control>.setup-number-stepper{grid-column:1!important;grid-row:auto!important;width:100%;text-align:center}
+ .setup-role-toggle,.drawing-unlimited-row{display:grid!important;grid-template-columns:1fr!important;justify-items:center;align-content:center;gap:10px;padding:14px!important;text-align:center}
+ .setup-role-toggle .setup-setting-copy,.drawing-unlimited-row .setup-setting-copy{justify-items:center;text-align:center}
+ .setup-role-toggle>input,.drawing-unlimited-row>input{position:static!important;width:22px;height:22px;margin:0!important;transform:none!important;justify-self:center}
+ .setup-setting-row{gap:10px}
+ .drawing-mode-hint{text-align:center}
+ .category-option:has(input:checked),.setup-setting-row:has(input:checked){transform:none!important}
+}
+
+@media(max-width:480px){
+ .app-shell{width:calc(100% - 16px)}
+ .card{padding-left:14px;padding-right:14px}
+ .setup-section{padding:14px 12px}
+ .setup-section-description{font-size:.8rem;line-height:1.5}
+ .setup-role-summary span{white-space:normal;text-align:center}
+ .setup-difficulty-row{gap:8px;align-items:center}
+ .setup-difficulty-row select{flex-basis:42%;min-width:100px}
+ .setup-difficulty-row small{font-size:.7rem;text-align:left}
+ .setup-category-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .setup-category-grid .category-option{padding-left:3px;padding-right:3px}
+ .setup-number-stepper{grid-template-columns:40px minmax(52px,68px) 40px;gap:5px}
+ .setup-stepper-button{width:40px;min-width:40px;height:40px;min-height:40px}
+ .setup-number-stepper input{height:40px;min-height:40px}
+}
+
+@media(max-width:360px){
+ .app-shell{width:calc(100% - 12px)}
+ .card{padding-left:12px;padding-right:12px}
+ .setup-section{padding:13px 10px}
+ .setup-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .setup-difficulty-row{align-items:stretch;flex-direction:column}
+ .setup-difficulty-row select{width:min(220px,100%);min-width:0;align-self:center}
+ .setup-difficulty-row small{text-align:center}
+ .setup-tooltip{width:min(230px,calc(100vw - 36px));max-width:calc(100vw - 36px)}
+}
+
+@media(prefers-reduced-motion:reduce){.setup-tooltip{transition:none}}

@@ -1,0 +1,85 @@
+/* Liar Game v1.2 discussion, vote and synchronized guess polish */
+
+/* Setup save note: split exactly at the comma and keep both lines aligned. */
+.setup-save-note{display:grid!important;justify-items:center;gap:2px;text-align:center!important;word-break:keep-all}
+.setup-save-note>span{display:block;max-width:100%;text-align:center}
+
+/* Free talk guidance: quiet, centered and sentence-by-sentence. */
+.discussion-guide{box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:11px;width:min(100%,660px);margin:0 auto;padding:12px 16px;border:1px solid color-mix(in srgb,var(--primary) 18%,var(--border));border-radius:13px;background:linear-gradient(135deg,color-mix(in srgb,var(--primary) 5%,var(--surface)),var(--surface));color:var(--muted);text-align:left}
+.discussion-guide-icon{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#eee8ff;font-size:1rem}
+.discussion-guide>div{display:grid;gap:3px;min-width:0}
+.discussion-guide p{margin:0;font-size:.78rem;line-height:1.45;word-break:keep-all}
+.discussion-time-notice{display:grid!important;justify-items:center;gap:3px;width:min(100%,620px);margin:0 auto!important;padding:11px 15px!important;text-align:center;word-break:keep-all}
+.discussion-time-notice[hidden]{display:none!important}
+.discussion-time-notice span{display:block}
+.discussion-footer{display:flex;justify-content:center;align-items:center;width:100%;min-height:0}
+.discussion-footer.is-host [data-action="start-vote"]{display:block;width:min(100%,360px);min-height:48px;margin-left:auto;margin-right:auto;padding-left:30px;padding-right:30px;font-size:.95rem;font-weight:850}
+
+/* Next-round start uses the same single readiness button pattern as initial setup. */
+.round-waiting-start-control{width:100%}
+.round-waiting-start-control .setup-start-button{width:100%}
+.round-waiting-host-notice{text-align:center}
+
+/* Ballot guidance and progress hierarchy. */
+.vote-target-guide{box-sizing:border-box;width:min(100%,620px);margin:0 auto!important;padding:11px 15px!important;text-align:center;font-weight:750;word-break:keep-all}
+.vote-ballot-form{gap:13px!important}
+.vote-selection-meta{display:flex;align-items:center;justify-content:center;gap:10px 16px;flex-wrap:wrap;width:100%;text-align:center}
+.vote-selection-meta p{margin:0;font-size:.88rem}
+.vote-selection-meta small{position:relative;padding-left:10px;color:var(--muted);font-size:.7rem;line-height:1.35;white-space:nowrap}
+.vote-selection-meta small::before{content:"";position:absolute;left:0;top:50%;width:4px;height:4px;border-radius:50%;background:color-mix(in srgb,var(--primary) 55%,var(--muted));transform:translateY(-50%)}
+.vote-progress-row{box-sizing:border-box;display:grid;grid-template-columns:minmax(70px,auto) minmax(130px,1fr) minmax(110px,160px);align-items:center;gap:12px;width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.vote-progress-label{justify-self:start;font-size:.9rem}
+.vote-progress-count{justify-self:center;color:var(--muted);font-size:.8rem;font-weight:750;white-space:nowrap}
+.vote-progress-count b{color:var(--primary);font-size:.95rem}
+.vote-progress-row [data-action="close-vote"]{justify-self:end;width:100%;min-height:40px;padding:7px 14px}
+.vote-progress-row [data-action="close-vote"]:disabled{opacity:1;background:#efedf3;color:#aaa4b3;border-color:#ddd9e3;box-shadow:none}
+.vote-progress-row:not(:has([data-action="close-vote"])){grid-template-columns:auto auto;justify-content:center}
+
+/* Product card's whole content group sits in the exact center with balanced padding. */
+.hint-shop-item,.hint-shop.is-compact .hint-shop-item{box-sizing:border-box!important;display:grid!important;place-items:center!important;min-height:238px!important;padding:18px!important;text-align:center!important;grid-template:none!important}
+.hint-shop-item-content{box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;min-height:198px;margin:auto;text-align:center}
+.hint-shop-item-content .hint-shop-item-icon{flex:0 0 42px}
+.hint-shop-item-content .hint-shop-item-copy{display:grid;justify-items:center;gap:4px;width:100%;text-align:center}
+.hint-shop-item-content .hint-shop-item-copy strong,.hint-shop-item-content .hint-shop-item-copy small{text-align:center}
+.hint-shop-item-content .hint-shop-value{box-sizing:border-box;display:grid;place-items:center;width:100%;min-height:44px;text-align:center}
+.hint-shop-item-content .hint-shop-value.is-placeholder{visibility:hidden}
+.hint-shop-item-content .hint-shop-buy{width:100%!important;min-height:38px;margin:0!important}
+.hint-shop.is-compact .hint-shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+.hint-shop-footnote{display:grid!important;justify-items:center;gap:1px;width:100%;text-align:center!important;line-height:1.45!important;word-break:keep-all}
+.hint-shop-footnote span{display:block;text-align:center}
+
+/* Guest setup: hide disabled native radio glyphs completely. */
+.setup-fieldset:disabled .game-mode-option>input[type="radio"]{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;opacity:0!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;overflow:hidden!important;pointer-events:none!important}
+
+/* Shared transition before the hidden-role team can type a guess. */
+.guess-unlock-card{box-sizing:border-box;display:grid;justify-items:center;gap:5px;width:min(100%,420px);margin:16px auto 0;padding:16px 18px;border:1px solid color-mix(in srgb,var(--primary) 26%,var(--border));border-radius:15px;background:linear-gradient(145deg,#f5f1ff,#fff);box-shadow:0 8px 24px rgba(71,45,115,.07);text-align:center}
+.guess-unlock-card>span{color:var(--muted);font-size:.76rem;font-weight:800}
+.guess-unlock-card>strong{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;background:var(--primary);color:#fff;font-size:1.8rem;font-weight:950;line-height:1;box-shadow:0 7px 18px color-mix(in srgb,var(--primary) 22%,transparent)}
+.guess-unlock-card>small{color:var(--muted);font-size:.72rem;line-height:1.45;word-break:keep-all}
+.capture-success-auto-note{color:rgba(255,255,255,.64);font-size:.72rem;line-height:1.4}
+
+@media(max-width:600px){
+ .setup-save-note{font-size:.75rem!important;line-height:1.5}
+ .discussion-guide{flex-direction:column;gap:7px;padding:12px 13px;text-align:center}
+ .discussion-guide>div{justify-items:center}
+ .discussion-guide p{text-align:center;font-size:.74rem}
+ .discussion-time-notice{font-size:.78rem}
+ .discussion-footer.is-host [data-action="start-vote"]{width:min(100%,320px)}
+ .vote-selection-meta{gap:5px 10px}
+ .vote-selection-meta small{white-space:normal}
+ .vote-progress-row{grid-template-columns:auto minmax(0,1fr) minmax(96px,130px);gap:8px;padding:10px}
+ .vote-progress-count{font-size:.74rem}
+ .hint-shop.is-compact .hint-shop-grid{grid-template-columns:1fr!important}
+ .hint-shop-item,.hint-shop.is-compact .hint-shop-item{min-height:224px!important;padding:17px!important}
+ .hint-shop-item-content{min-height:188px}
+ .hint-shop-footnote{font-size:.68rem!important}
+}
+@media(max-width:420px){
+ .vote-progress-row{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"label count" "button button"}
+ .vote-progress-label{grid-area:label;justify-self:start}
+ .vote-progress-count{grid-area:count;justify-self:end}
+ .vote-progress-row [data-action="close-vote"]{grid-area:button;justify-self:stretch}
+ .vote-progress-row:not(:has([data-action="close-vote"])){grid-template-columns:auto auto;grid-template-areas:none}
+ .hint-shop-footnote span{max-width:290px}
+ .guess-unlock-card{padding:14px}
+}

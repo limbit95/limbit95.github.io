@@ -1,0 +1,33 @@
+/* Liar Game v1.2 rule card layout */
+.setup-rule-layout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch;width:100%;min-width:0}
+.setup-rule-card{box-sizing:border-box;display:grid!important;align-content:center;justify-items:center;gap:10px;min-width:0;min-height:132px;padding:16px!important;border:1px solid var(--border);border-radius:14px;background:var(--surface);text-align:center}
+.setup-rule-card>.setup-control-title{justify-content:center;width:100%;text-align:center}
+.setup-rule-card>.setup-number-stepper{align-self:center}
+.setup-rule-card>select{box-sizing:border-box;width:min(160px,100%);min-width:0;justify-self:center;text-align:center;text-align-last:center}
+.setup-rule-select.is-content-width{width:auto!important;min-width:92px;max-width:132px;padding-left:12px;padding-right:30px}
+.setup-unlimited-choice{position:relative;cursor:pointer;overflow:hidden}
+.setup-unlimited-choice>.setup-choice-input{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;opacity:0!important;pointer-events:none!important;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden}
+.setup-unlimited-symbol{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:#f4f0ff;color:var(--primary);font-size:1.8rem;font-weight:900;line-height:1}
+.setup-unlimited-choice>strong{font-size:.9rem}
+.setup-unlimited-choice>small,.setup-rule-recommendation>small{max-width:180px;color:var(--muted);font-size:.72rem;line-height:1.45;word-break:keep-all}
+.setup-unlimited-choice:has(.setup-choice-input:checked){border-color:var(--primary);background:#f0ebff;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 18%,transparent)}
+.setup-unlimited-choice:has(.setup-choice-input:checked) .setup-unlimited-symbol{background:var(--primary);color:#fff}
+.setup-unlimited-choice:has(.setup-choice-input:focus-visible){outline:3px solid color-mix(in srgb,var(--primary) 22%,transparent);outline-offset:2px}
+.setup-rule-recommendation{border-style:dashed;background:color-mix(in srgb,var(--primary) 3%,var(--surface))}
+.setup-rule-recommendation>span{font-size:1.55rem;line-height:1}
+.setup-rule-recommendation>strong{font-size:.9rem}
+.setup-rule-recommendation b{color:var(--primary-dark)}
+
+@media(max-width:760px){
+ .setup-rule-layout{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .setup-rule-card{min-height:126px;padding:14px!important}
+}
+@media(max-width:520px){
+ .setup-rule-layout{grid-template-columns:1fr;gap:10px}
+ .setup-rule-card{min-height:0;padding:14px!important}
+ .setup-rule-select.is-content-width{width:min(150px,100%)!important}
+}
+@media(hover:hover) and (pointer:fine){
+ .setup-unlimited-choice:hover{border-color:color-mix(in srgb,var(--primary) 42%,var(--border));background:color-mix(in srgb,var(--primary) 4%,var(--surface))}
+ .setup-unlimited-choice:has(.setup-choice-input:checked):hover{background:#ebe4ff}
+}
