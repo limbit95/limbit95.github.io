@@ -68,6 +68,13 @@ async function login(page) {
   await expect(page).toHaveTitle("홈 | 청파 같이");
 }
 
+async function clearMemberNotifications() {
+  await serviceRoleRequest(`/rest/v1/notifications?user_id=eq.${encodeURIComponent(memberUserId)}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+}
+
 async function createNotificationBatch(token, count = 25) {
   const payload = Array.from({ length: count }, (_, index) => ({
     user_id: memberUserId,
@@ -93,6 +100,7 @@ test.describe("notification cursor pagination", () => {
 
   test("loads only the first page and appends older notifications on demand", async ({ page }, testInfo) => {
     const token = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${Date.now()}`;
+    await clearMemberNotifications();
     const created = await createNotificationBatch(token, 25);
     expect(created).toHaveLength(25);
 

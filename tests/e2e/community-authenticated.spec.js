@@ -357,6 +357,7 @@ test.describe("approved member flow", () => {
     expect(selectedRows).toHaveLength(2);
 
     await page.goto("/#/mypage/edit");
+    await assertHealthyPage(page, "프로필 수정");
     await page.locator("#profile-display_name").fill("E2E 회원");
     await page.locator("#profile-bio").fill("");
     const restoreInterests = page.locator('input[name="interests"]');
@@ -507,7 +508,7 @@ test.describe("admin flow", () => {
     await page.getByRole("searchbox", { name: "회원 검색" }).fill(pending.email);
     const memberRow = page.locator("tbody tr").filter({ hasText: pending.email });
     await expect(memberRow).toBeVisible();
-    await expect(memberRow).toContainText("이용 가능");
+    await expect(memberRow.getByRole("button", { name: "이용 정지", exact: true })).toBeVisible();
     await memberRow.getByRole("button", { name: "이용 정지", exact: true }).click();
     const suspendDialog = page.getByRole("alertdialog");
     await suspendDialog.getByRole("button", { name: "이용 정지", exact: true }).click();
