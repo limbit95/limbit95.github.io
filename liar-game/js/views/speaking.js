@@ -47,7 +47,6 @@ export function discussionView(s,isHost){
   <p class="notice discussion-time-notice" data-discussion-time-notice hidden><span>토론 시간이 종료되어 실시간 채팅이 잠겼습니다.</span><span>방장이 준비되면 투표를 시작해 주세요.</span></p>
   <div class="discussion-chat" data-discussion-chat role="log" aria-live="polite"><p class="discussion-chat-empty">아직 대화가 없습니다. 첫 메시지를 남겨보세요.</p></div>
   ${canChat?`<form class="discussion-chat-form" data-action="discussion-chat"><textarea name="chat" maxlength="160" rows="2" placeholder="메시지를 입력하세요 · Enter 전송 / Shift+Enter 줄바꿈" aria-label="토론 메시지"></textarea><button type="submit">보내기</button></form>`:'<p class="notice">관전자는 대화를 볼 수 있지만 메시지를 보낼 수 없습니다.</p>'}
-  <small class="muted discussion-chat-status" data-discussion-chat-status>채팅 연결 중…</small>
   <div class="discussion-footer${isHost?" is-host":""}">${isHost?'<button type="button" data-action="start-vote">투표 시작</button>':""}</div>
  </section>`;
 }
