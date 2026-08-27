@@ -238,7 +238,14 @@ function setupFormFrom(target){return target?.closest?.('form[data-action="setti
 
 document.addEventListener("change",event=>{
  const form=setupFormFrom(event.target);
- if(form)queueSetupSave(form,{delay:120});
+ if(!form)return;
+ queueSetupSave(form,{delay:120});
+ if(event.target.closest?.("[data-custom-word-pack-slot]")&&event.target.name==="wordSourceMode"){
+  queueMicrotask(()=>{
+   const liveForm=document.querySelector('form[data-action="settings"][data-settings-autosave]');
+   if(liveForm)queueSetupSave(liveForm,{delay:0});
+  });
+ }
 },true);
 
 document.addEventListener("input",event=>{
