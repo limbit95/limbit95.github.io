@@ -1,4 +1,8 @@
-import { approveJoinRequest, listJoinRequests, reviewJoinRequest } from "../../api.js";
+import {
+  approveJoinRequest,
+  listJoinRequests,
+  reviewJoinRequest,
+} from "../../api/admin.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { JOIN_REQUEST_STATUS_LABEL, PROFILE_STATUS_LABEL } from "../../constants.js";

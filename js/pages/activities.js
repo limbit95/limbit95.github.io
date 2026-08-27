@@ -1,5 +1,5 @@
 import { getAuthState } from "../auth.js";
-import { listCategories } from "../api.js";
+import { listCategories } from "../api/activities.js";
 import { debounce, el, pageContainer } from "../ui.js";
 import { renderActivityCalendar } from "./activities/calendarView.js";
 import { renderActivityList } from "./activities/listView.js";

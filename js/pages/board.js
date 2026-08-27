@@ -1,5 +1,5 @@
 import { getAuthState } from "../auth.js";
-import { listPosts } from "../api.js";
+import { listPosts } from "../api/boards.js";
 import { PAGE_SIZE } from "../constants.js";
 import { el, emptyState, formatDate, pageContainer } from "../ui.js";
 

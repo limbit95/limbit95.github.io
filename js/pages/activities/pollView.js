@@ -5,7 +5,7 @@ import {
   createDatePoll,
   listDatePolls,
   replaceDatePollVotes,
-} from "../../api.js";
+} from "../../api/polls.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { POLL_STATUS_LABEL } from "../../constants.js";

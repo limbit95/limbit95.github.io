@@ -1,4 +1,8 @@
-import { cancelEventParticipation, joinEvent, listEvents } from "../../api.js";
+import {
+  cancelEventParticipation,
+  joinEvent,
+  listEvents,
+} from "../../api/activities.js";
 import { createActivityCard } from "../../components/activityCard.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";

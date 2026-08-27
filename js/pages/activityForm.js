@@ -5,7 +5,7 @@ import {
   getEvent,
   listCategories,
   updateEvent,
-} from "../api.js";
+} from "../api/activities.js";
 import { confirmDialog } from "../components/modal.js";
 import { showToast } from "../components/toast.js";
 import {

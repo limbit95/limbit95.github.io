@@ -1,5 +1,5 @@
 import { getAuthState, signOut } from "../auth.js";
-import { getMyJoinRequest } from "../api.js";
+import { getMyJoinRequest } from "../api/admin.js";
 import { JOIN_REQUEST_STATUS_LABEL } from "../constants.js";
 import { el, formatDateTime, getErrorMessage, loadingState } from "../ui.js";
 import { showToast } from "../components/toast.js";

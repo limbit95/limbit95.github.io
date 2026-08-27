@@ -1,10 +1,12 @@
 import {
-  listAllMembers,
   listCategories,
-  listCategoryManagers,
   listEvents,
+} from "../../api/activities.js";
+import {
+  listAllMembers,
+  listCategoryManagers,
   listJoinRequests,
-} from "../../api.js";
+} from "../../api/admin.js";
 import { el, seoulDateString } from "../../ui.js";
 
 export async function renderAdminDashboard() {

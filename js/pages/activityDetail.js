@@ -1,12 +1,12 @@
 import { canManageCategory, getAuthState } from "../auth.js";
+import { getSignedAvatarUrl } from "../api/profiles.js";
 import {
   cancelEventParticipation,
   getEvent,
-  getSignedAvatarUrl,
   joinEvent,
   listEventParticipants,
   updateEvent,
-} from "../api.js";
+} from "../api/activities.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
 import { confirmDialog } from "../components/modal.js";
 import { createProfileAvatarTrigger } from "../components/profilePopover.js";

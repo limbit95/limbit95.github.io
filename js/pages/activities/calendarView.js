@@ -1,4 +1,4 @@
-import { listEvents } from "../../api.js";
+import { listEvents } from "../../api/activities.js";
 import { el } from "../../ui.js";
 
 export async function renderActivityCalendar(route, categoryId, search) {

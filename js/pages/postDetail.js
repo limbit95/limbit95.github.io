@@ -1,15 +1,15 @@
 import { getAuthState } from "../auth.js";
+import { getSignedAvatarUrl } from "../api/profiles.js";
 import {
   createComment,
   deleteComment,
   deletePost,
   getCommentReactionSummary,
   getPost,
-  getSignedAvatarUrl,
   incrementPostView,
   listCommentsPage,
   updateComment,
-} from "../api.js";
+} from "../api/boards.js";
 import { confirmDialog } from "../components/modal.js";
 import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";

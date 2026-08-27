@@ -1,5 +1,9 @@
 import { getAuthState } from "../auth.js";
-import { createPost, getPost, updatePost } from "../api.js";
+import {
+  createPost,
+  getPost,
+  updatePost,
+} from "../api/boards.js";
 import { showToast } from "../components/toast.js";
 import { accessDeniedState, el, getErrorMessage, pageContainer, setBusy } from "../ui.js";
 import { clearFieldErrors, setFieldError, validateRequiredFields, valueInRange } from "../validators.js";

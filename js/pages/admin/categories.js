@@ -1,4 +1,8 @@
-import { createCategory, listCategories, updateCategory } from "../../api.js";
+import {
+  createCategory,
+  listCategories,
+  updateCategory,
+} from "../../api/activities.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { el, getErrorMessage, setBusy } from "../../ui.js";

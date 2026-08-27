@@ -1,13 +1,15 @@
 import { getAuthState, refreshAuthContext } from "../auth.js";
 import {
-  getMyParticipationOverview,
   getProfileInterests,
   getSignedAvatarUrl,
-  listCategories,
   replaceProfileInterests,
   updateProfile,
   uploadAvatar,
-} from "../api.js";
+} from "../api/profiles.js";
+import {
+  getMyParticipationOverview,
+  listCategories,
+} from "../api/activities.js";
 import { createActivityCard } from "../components/activityCard.js";
 import { showToast } from "../components/toast.js";
 import {

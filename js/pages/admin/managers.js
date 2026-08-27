@@ -1,4 +1,9 @@
-import { listAllMembers, listCategories, listCategoryManagers, setCategoryManager } from "../../api.js";
+import { listCategories } from "../../api/activities.js";
+import {
+  listAllMembers,
+  listCategoryManagers,
+  setCategoryManager,
+} from "../../api/admin.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { el, formatDate, getErrorMessage, setBusy } from "../../ui.js";

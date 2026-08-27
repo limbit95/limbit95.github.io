@@ -1,5 +1,9 @@
 import { getAuthState } from "../auth.js";
-import { getProfileInterests, getPublicProfiles, getSignedAvatarUrl } from "../api.js";
+import {
+  getProfileInterests,
+  getPublicProfiles,
+  getSignedAvatarUrl,
+} from "../api/profiles.js";
 import { sendDirectMessage } from "../notifications.js";
 import { el, getErrorMessage, setBusy } from "../ui.js";
 import { closeModal, contentDialog } from "./modal.js";

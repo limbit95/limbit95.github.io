@@ -1,4 +1,8 @@
-import { listMembers, setMemberRole, setMemberStatus } from "../../api.js";
+import {
+  listMembers,
+  setMemberRole,
+  setMemberStatus,
+} from "../../api/admin.js";
 import { getAuthState } from "../../auth.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
