@@ -12,11 +12,11 @@ welcomeRoot.className = "app-shell";
 welcomeRoot.innerHTML = welcomeView();
 
 const gameNavigation = document.createElement("nav");
-gameNavigation.className = "app-shell row between";
+gameNavigation.className = "app-shell row";
 gameNavigation.style.paddingBottom = "0";
+gameNavigation.style.justifyContent = "flex-end";
 gameNavigation.setAttribute("aria-label", "라이어 게임 이동");
 gameNavigation.innerHTML = `
-  <button class="secondary" type="button" data-liar-welcome>처음으로</button>
   <a class="button" href="../#/games">게임 목록으로</a>
 `;
 
@@ -38,17 +38,7 @@ function showGame() {
   gameRoot.focus({ preventScroll: true });
 }
 
-function showWelcome() {
-  setVisible(gameRoot, false);
-  setVisible(gameNavigation, false);
-  setVisible(welcomeRoot, true);
-  welcomeRoot.querySelector("[data-action='open-lobby']")?.focus({ preventScroll: true });
-  window.scrollTo({ top: 0, behavior: "auto" });
-}
-
 welcomeRoot.addEventListener("click", (event) => {
   if (!event.target.closest("[data-action='open-lobby']")) return;
   showGame();
 });
-
-gameNavigation.querySelector("[data-liar-welcome]")?.addEventListener("click", showWelcome);
