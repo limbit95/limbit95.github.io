@@ -1,6 +1,7 @@
 import { getMyWordPack, getMyWordPacks } from "./api.js";
 import { commands } from "./commands.js";
 import { ERROR_MESSAGES, escapeHTML } from "./constants.js";
+import { getSetupDraft, patchSetupDraft } from "./setupDraft.js";
 import { store } from "./store.js";
 
 let packs=[];
@@ -17,14 +18,20 @@ const currentGameId=()=>store.get().snapshot?.game?.id||"";
 function selectedPack(){return packs.find(pack=>pack.selected_in_current_game===true)||null;}
 function sourceLabel(mode){return mode==="custom"?"내 팩만":mode==="mixed"?"기본 + 내 팩":"기본 제시어";}
 function selectedOption(pack,selectedId){return `<option value="${escapeHTML(pack.id)}" ${String(pack.id)===String(selectedId||"")?"selected":""}>${escapeHTML(pack.name)} · ${Number(pack.word_count)}개</option>`;}
-function requestSettingsAutosave(slot=currentSlot()){slot?.dispatchEvent(new CustomEvent("liar:settings-autosave",{bubbles:true}));}
 
 function renderHostSlot(slot){
+ const snapshot=store.get().snapshot;
+ const draft=getSetupDraft(snapshot)||{};
  const mode=["builtin","custom","mixed"].includes(slot.dataset.wordSourceMode)?slot.dataset.wordSourceMode:"builtin";
  const selected=selectedPack();
- const selectedId=selected?.id||"";
+ const requestedId=slot.dataset.customPackId||draft.customWordPackId||"";
+ const requested=packs.find(pack=>String(pack.id)===String(requestedId));
+ const fallback=selected||packs[0]||null;
+ const selectedId=(requested||fallback)?.id||"";
  const hasPacks=packs.length>0;
- slot.dataset.selectedPackId=selectedId;
+ slot.dataset.selectedPackId=String(selectedId||"");
+ slot.dataset.customPackId=String(selectedId||"");
+ if(selectedId)patchSetupDraft(snapshot,{customWordPackId:String(selectedId)});
  slot.innerHTML=`
   <div class="setup-section-heading"><h3 class="setup-section-title">🧩 제시어 소스</h3><p class="setup-section-description">기본 제시어와 내가 저장한 커스텀 팩을 선택합니다. 팩의 실제 단어 목록은 다른 참가자에게 공개되지 않습니다.</p></div>
   <div class="custom-word-source-grid" role="radiogroup" aria-label="제시어 소스">
@@ -33,10 +40,10 @@ function renderHostSlot(slot){
    <label class="custom-word-source-option ${mode==="mixed"?"is-selected":""}"><input type="radio" name="wordSourceMode" value="mixed" ${mode==="mixed"?"checked":""} ${hasPacks?"":"disabled"}><span><strong>🔀 기본 + 내 팩</strong><small>${hasPacks?"두 풀이 남아 있으면 대략 반반으로 출제합니다.":"먼저 커스텀 팩을 만들어 주세요."}</small></span></label>
   </div>
   <div class="custom-pack-picker ${mode==="builtin"?"is-inactive":""}" data-custom-pack-picker>
-   <label class="setup-control"><span>사용할 커스텀 팩</span><select name="customWordPackId" ${mode==="builtin"?"disabled":""}>${hasPacks?packs.map(pack=>selectedOption(pack,selectedId)).join(""):'<option value="">저장된 팩 없음</option>'}</select><small>${selected?`현재 Game에 적용 중: ${escapeHTML(selected.name)} · ${Number(selected.word_count)}개`:hasPacks?"팩을 선택하면 현재 Game에 자동으로 적용됩니다.":"새 팩은 5~200개의 제시어로 만들 수 있습니다."}</small></label>
+   <label class="setup-control"><span>사용할 커스텀 팩</span><select name="customWordPackId" ${mode==="builtin"?"disabled":""}>${hasPacks?packs.map(pack=>selectedOption(pack,selectedId)).join(""):'<option value="">저장된 팩 없음</option>'}</select><small>${selectedId?`현재 선택: ${escapeHTML((requested||fallback)?.name||"커스텀 팩")} · ${Number((requested||fallback)?.word_count||0)}개 · 게임 시작 시 적용됩니다.`:hasPacks?"팩을 선택하면 게임 시작 시 적용됩니다.":"새 팩은 5~200개의 제시어로 만들 수 있습니다."}</small></label>
    <div class="custom-pack-actions"><button type="button" class="secondary" data-custom-pack-new>+ 새 팩</button><button type="button" class="secondary" data-custom-pack-edit ${selectedId?"":"disabled"}>편집</button><button type="button" class="danger-secondary" data-custom-pack-delete ${selectedId?"":"disabled"}>삭제</button></div>
   </div>
-  <p class="custom-pack-note">💡 현재 Game에서 사용하는 팩을 편집하면 저장 후 새 내용이 자동으로 다시 적용됩니다.</p>`;
+  <p class="custom-pack-note">💡 게임 설정 선택값은 서버에 바로 저장되지 않으며, <strong>게임 시작</strong>을 누를 때 현재 선택한 내용이 한 번에 적용됩니다.</p>`;
  updateSourceUI(slot);
 }
 
@@ -57,6 +64,9 @@ function updateSourceUI(slot=currentSlot()){
  picker?.classList.toggle("is-inactive",mode==="builtin");
  const select=slot.querySelector('select[name="customWordPackId"]');
  if(select)select.disabled=mode==="builtin";
+ const patch={wordSourceMode:mode};
+ if(mode!=="builtin"&&select?.value)patch.customWordPackId=String(select.value);
+ patchSetupDraft(store.get().snapshot,patch);
 }
 
 async function loadPacks({force=false}={}){
@@ -72,7 +82,7 @@ async function loadPacks({force=false}={}){
 async function hydrateSlot(){
  const slot=currentSlot();
  if(!slot)return;
- const key=`${currentGameId()}:${slot.dataset.host}:${slot.dataset.wordSourceMode}:${slot.dataset.customPackName}:${slot.dataset.customWordCount}`;
+ const key=`${currentGameId()}:${slot.dataset.host}:${slot.dataset.wordSourceMode}:${slot.dataset.customPackId||""}:${slot.dataset.customPackName}:${slot.dataset.customWordCount}`;
  if(slotKey===key&&slot.dataset.hydrated==="true")return;
  slotKey=key;
  if(slot.dataset.host!=="true"){
@@ -166,15 +176,13 @@ async function saveEditor(form){
   await loadPacks({force:true});
   const slot=currentSlot();
   if(slot){
+   if(savedId){slot.dataset.customPackId=String(savedId);patchSetupDraft(store.get().snapshot,{customWordPackId:String(savedId)});}
    renderHostSlot(slot);slot.dataset.hydrated="true";
-   const select=slot.querySelector('select[name="customWordPackId"]');
-   if(select&&savedId){select.value=String(savedId);slot.dataset.selectedPackId=String(savedId);}
    updateSourceUI(slot);
-   if(slot.dataset.wordSourceMode!=="builtin")requestSettingsAutosave(slot);
   }
   if(typeof ensureDialog().close==="function")ensureDialog().close();else ensureDialog().removeAttribute("open");
   editorPackId=null;
-  store.set({message:"커스텀 제시어 팩을 저장했습니다."});
+  store.set({message:"커스텀 제시어 팩을 저장했습니다. 게임 시작 시 현재 선택에 반영됩니다."});
  }catch(error){if(message)message.textContent=messageFor(error);}
  finally{editorBusy=false;if(save)save.disabled=false;}
 }
@@ -187,7 +195,15 @@ async function deleteSelected(){
  try{
   await commands.deleteWordPack(packId);
   await loadPacks({force:true});
-  if(slot===currentSlot()){renderHostSlot(slot);slot.dataset.hydrated="true";}
+  const snapshot=store.get().snapshot;
+  const nextPack=packs[0]||null;
+  if(nextPack)patchSetupDraft(snapshot,{customWordPackId:String(nextPack.id)});
+  else patchSetupDraft(snapshot,{customWordPackId:null,wordSourceMode:"builtin"});
+  if(slot===currentSlot()){
+   slot.dataset.customPackId=nextPack?String(nextPack.id):"";
+   if(!nextPack)slot.dataset.wordSourceMode="builtin";
+   renderHostSlot(slot);slot.dataset.hydrated="true";
+  }
   store.set({message:"커스텀 제시어 팩을 삭제했습니다."});
  }catch(error){store.set({message:messageFor(error)});}
 }
@@ -199,7 +215,11 @@ document.addEventListener("change",event=>{
  const slot=event.target.closest?.("[data-custom-word-pack-slot]");
  if(!slot)return;
  if(event.target.name==="wordSourceMode")updateSourceUI(slot);
- if(event.target.name==="customWordPackId")slot.dataset.selectedPackId=event.target.value;
+ if(event.target.name==="customWordPackId"){
+  slot.dataset.selectedPackId=event.target.value;
+  slot.dataset.customPackId=event.target.value;
+  patchSetupDraft(store.get().snapshot,{customWordPackId:String(event.target.value||"")||null});
+ }
 });
 
 document.addEventListener("click",event=>{
