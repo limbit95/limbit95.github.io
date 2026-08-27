@@ -1,5 +1,5 @@
 import { commands } from "./commands.js";
-import { ERROR_MESSAGES, ROUND_STATUS } from "./constants.js";
+import { ERROR_MESSAGES, MIN_CITIZENS, MIN_READY_PLAYERS, ROUND_STATUS } from "./constants.js";
 import { store } from "./store.js";
 
 let speakingKey="";
@@ -14,9 +14,12 @@ let setupQueuedPayload=null;
 let setupSaveVersion=null;
 let setupSaveGameId="";
 let setupSavedSignature="";
+let setupLastSaveError=null;
+let setupStartInFlight=false;
 
 const codeFor=error=>Object.keys(ERROR_MESSAGES).find(code=>String(error?.message||"").includes(code));
 const messageFor=error=>ERROR_MESSAGES[codeFor(error)]||String(error?.message||"요청을 처리하지 못했습니다.");
+const sleep=ms=>new Promise(resolve=>window.setTimeout(resolve,ms));
 
 function orderedSpeakers(snapshot){
  const all=[...(snapshot?.round_players||[])].sort((a,b)=>Number(a.turn_order)-Number(b.turn_order));
@@ -120,8 +123,30 @@ function collectSetupSettings(form,snapshot){
  };
 }
 
+function startButton(){return document.querySelector('[data-action="start-round"][data-can-start]');}
+
+function draftStartState(form){
+ const snapshot=store.get().snapshot;
+ if(!snapshot||!form)return null;
+ const readyCount=(snapshot.players||[]).filter(player=>player.ready).length;
+ const liarCount=Math.max(1,Number(form.elements?.liarCount?.value||snapshot.game?.liar_count||1));
+ const requiredReady=Math.max(MIN_READY_PLAYERS,liarCount+MIN_CITIZENS);
+ const missing=Math.max(0,requiredReady-readyCount);
+ return {canStart:missing===0,label:missing===0?"게임 시작":`게임 시작까지 ${missing}명이 더 필요합니다`};
+}
+
+function updateDraftStartButton(form){
+ if(setupSaveInFlight||setupStartInFlight)return;
+ const button=startButton();
+ const state=draftStartState(form);
+ if(!button||!state)return;
+ button.dataset.canStart=state.canStart?"true":"false";
+ button.textContent=state.label;
+ button.disabled=!state.canStart;
+}
+
 function setSetupSaving(saving){
- const button=document.querySelector('[data-action="start-round"][data-can-start]');
+ const button=startButton();
  if(!button)return;
  if(saving){
   if(!button.dataset.autosaveLabel)button.dataset.autosaveLabel=button.textContent||"게임 시작";
@@ -146,6 +171,7 @@ function setupPayload(form){
   setupSaveVersion=Number(snapshot.room.version||0);
   setupSavedSignature="";
   setupQueuedPayload=null;
+  setupLastSaveError=null;
  }
  const signature=JSON.stringify(settings);
  return {gameId,settings,signature};
@@ -153,7 +179,9 @@ function setupPayload(form){
 
 function queueSetupSave(form,{delay=180}={}){
  const payload=setupPayload(form);
+ updateDraftStartButton(form);
  if(!payload||payload.signature===setupSavedSignature)return;
+ setupLastSaveError=null;
  setupQueuedPayload=payload;
  window.clearTimeout(setupSaveTimer);
  setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},delay);
@@ -173,6 +201,7 @@ async function flushSetupSave(){
   const parsed=Number(nextVersion);
   if(Number.isFinite(parsed))setupSaveVersion=parsed;
   setupSavedSignature=payload.signature;
+  setupLastSaveError=null;
  }catch(error){
   const code=codeFor(error);
   const busy=String(error?.message||"").includes("요청을 처리 중");
@@ -181,12 +210,28 @@ async function flushSetupSave(){
    setupQueuedPayload=payload;
    window.clearTimeout(setupSaveTimer);
    setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;const latest=store.get().snapshot;if(latest?.room?.version!=null)setupSaveVersion=Number(latest.room.version);void flushSetupSave();},320);
-  }else store.set({message:messageFor(error)});
+  }else{
+   setupLastSaveError=error;
+   store.set({message:messageFor(error)});
+  }
  }finally{
   setupSaveInFlight=false;
   setSetupSaving(false);
   if(setupQueuedPayload&&!setupSaveTimer){setupSaveTimer=window.setTimeout(()=>{setupSaveTimer=null;void flushSetupSave();},0);}
  }
+}
+
+async function drainSetupSaves(){
+ window.clearTimeout(setupSaveTimer);setupSaveTimer=null;
+ if(setupQueuedPayload&&!setupSaveInFlight)await flushSetupSave();
+ let spins=0;
+ while((setupSaveInFlight||setupQueuedPayload||setupSaveTimer)&&spins<80){
+  if(setupSaveTimer&&!setupSaveInFlight){window.clearTimeout(setupSaveTimer);setupSaveTimer=null;await flushSetupSave();}
+  else if(setupQueuedPayload&&!setupSaveInFlight)await flushSetupSave();
+  else await sleep(30);
+  spins+=1;
+ }
+ return !setupSaveInFlight&&!setupQueuedPayload&&!setupSaveTimer&&!setupLastSaveError;
 }
 
 function setupFormFrom(target){return target?.closest?.('form[data-action="settings"][data-settings-autosave]')||null;}
@@ -206,13 +251,45 @@ document.addEventListener("liar:settings-autosave",event=>{
  if(form)queueSetupSave(form,{delay:0});
 },true);
 
-// Keep the historical submit path blocked. Settings are now saved automatically
-// as controls change; pressing Enter inside the form simply flushes the queue.
+// Keep the historical submit path blocked. Settings are saved automatically.
 document.addEventListener("submit",event=>{
  const form=event.target;
  if(!(form instanceof HTMLFormElement)||form.dataset.action!=="settings")return;
  event.preventDefault();event.stopPropagation();
  queueSetupSave(form,{delay:0});
+},true);
+
+// The start button is outside the settings form. Intercept it before app.js so
+// a just-changed setting is persisted and its latest room version is used.
+document.addEventListener("click",async event=>{
+ const button=event.target.closest?.('[data-action="start-round"][data-can-start]');
+ if(!button||button.disabled||setupStartInFlight)return;
+ const snapshot=store.get().snapshot;
+ if(!snapshot?.me?.is_host||snapshot.round||snapshot.game?.status!=="setup")return;
+ event.preventDefault();event.stopImmediatePropagation();
+ const form=document.querySelector('form[data-action="settings"][data-settings-autosave]');
+ if(form){
+  if(!form.checkValidity()){form.reportValidity();return;}
+  queueSetupSave(form,{delay:0});
+ }
+ setupStartInFlight=true;
+ button.disabled=true;
+ button.textContent="게임 시작 중…";
+ try{
+  const saved=await drainSetupSaves();
+  if(!saved)return;
+  const latest=store.get().snapshot;
+  const version=Number.isFinite(setupSaveVersion)?setupSaveVersion:Number(latest?.room?.version||0);
+  await commands.startRound(version);
+ }catch(error){
+  const code=codeFor(error);
+  if(code!=="STALE_VERSION")store.set({message:messageFor(error)});
+  else store.set({message:"상태가 변경되었습니다. 잠시 후 다시 게임 시작을 눌러 주세요."});
+ }finally{
+  setupStartInFlight=false;
+  const liveForm=document.querySelector('form[data-action="settings"][data-settings-autosave]');
+  updateDraftStartButton(liveForm);
+ }
 },true);
 
 const timer=window.setInterval(tick,140);
