@@ -7,34 +7,40 @@ on:
       - "feature/**"
     paths:
       - "index.html"
+      - "index.template.html"
       - "js/**"
       - "css/**"
       - "assets/**"
       - "liar-game/**"
       - "supabase/site/**"
+      - "scripts/build-community-assets.mjs"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
       - "scripts/setup-e2e-community-fixtures.mjs"
       - "tests/e2e/**"
       - "playwright.config.js"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/community-authenticated-e2e.yml"
   pull_request:
     branches:
       - main
     paths:
       - "index.html"
+      - "index.template.html"
       - "js/**"
       - "css/**"
       - "assets/**"
       - "liar-game/**"
       - "supabase/site/**"
+      - "scripts/build-community-assets.mjs"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
       - "scripts/setup-e2e-community-fixtures.mjs"
       - "tests/e2e/**"
       - "playwright.config.js"
       - "package.json"
+      - "package-lock.json"
       - ".github/workflows/community-authenticated-e2e.yml"
 
 jobs:
@@ -57,8 +63,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Playwright dependency
-        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Install Playwright and build dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build content-hashed community assets
+        run: npm run build:assets
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
