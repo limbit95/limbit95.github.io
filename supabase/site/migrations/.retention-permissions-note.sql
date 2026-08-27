@@ -1,0 +1,3 @@
+-- The live private.cleanup_notification_retention() function is executable only by postgres.
+-- The checked-in 20260826092211 migration restores its schema/function/cron history.
+-- Execution grants are audited against production in Phase 6.
