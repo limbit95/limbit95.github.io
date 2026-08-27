@@ -68,24 +68,22 @@ export function setupView(s,isHost){
      </div>
     </section>
 
-    <section class="setup-section setup-step">
+    <section class="setup-section setup-step setup-role-section">
      <div class="setup-step-heading">
       <span class="setup-step-number">3</span>
       <div class="setup-step-copy">
        <h3 class="setup-section-title">역할</h3>
        <p class="setup-section-description">라이어·스파이 수와 역할 공개 방식을 정하세요.</p>
       </div>
-      <div class="setup-player-info"><span>준비 <strong>${readyCount}명</strong></span><span>권장 <strong>${recommendedLiarCount}명</strong></span></div>
+      <div class="setup-player-info setup-role-summary"><span>준비 완료 <strong>${readyCount}명</strong></span><span>추천 라이어·스파이 <strong>${recommendedLiarCount}명</strong></span></div>
      </div>
-     <div class="setup-role-grid">
-      <label class="setup-control"><span>라이어 / 스파이 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 · 시민은 최소 ${MIN_CITIZENS}명이 필요합니다.</small></label>
-     </div>
-     <div class="setup-toggle-stack">
-      <label class="setup-setting-row">
+     <div class="setup-role-options-grid">
+      <label class="setup-control setup-role-count-control"><span>라이어 / 스파이 수</span><input name="liarCount" type="number" min="1" max="3" value="${g.liar_count}"><small>1~3명 · 시민은 최소 ${MIN_CITIZENS}명이 필요합니다.</small></label>
+      <label class="setup-setting-row setup-role-toggle">
        <span class="setup-setting-copy"><strong>카테고리 공개</strong><small>라이어/스파이에게 카테고리만 보여주고 제시어는 숨깁니다.</small></span>
        <input name="showCategoryToLiar" type="checkbox" ${g.show_category_to_liar?"checked":""}>
       </label>
-      <label class="setup-setting-row">
+      <label class="setup-setting-row setup-role-toggle">
        <span class="setup-setting-copy"><strong>같은 팀 정체 공개</strong><small>라이어/스파이가 2명 이상이면 서로의 닉네임을 확인합니다.</small></span>
        <input name="liarsKnowEachOther" type="checkbox" ${liarsKnowEachOther?"checked":""}>
       </label>
