@@ -1,4 +1,4 @@
-/* Liar Game v1.1 setup micro-polish: compact category toggle grid */
+/* Liar Game v1.1 setup micro-polish */
 .setup-category-grid{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -44,7 +44,6 @@
   border-color:var(--primary);
   background:#f0ebff;
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 16%,transparent);
-  transform:none;
 }
 
 .setup-category-grid .category-option:has(input:focus-visible){
@@ -52,54 +51,89 @@
   outline-offset:2px;
 }
 
-/* Step 3: keep role controls compact instead of stretching across the card. */
-.setup-role-grid{
-  grid-template-columns:140px;
-  justify-content:start;
+/* Step 3: role count + two role toggles use one aligned row. */
+.setup-role-summary{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
 }
 
-.setup-role-grid .setup-control{
-  width:140px;
-  min-width:0;
+.setup-role-summary span{
+  white-space:nowrap;
 }
 
-.setup-role-grid .setup-control>input{
-  width:100%;
-}
-
-.setup-toggle-stack{
+.setup-role-options-grid{
   display:grid;
-  grid-template-columns:repeat(2,minmax(0,210px));
+  grid-template-columns:repeat(3,minmax(0,180px));
   justify-content:start;
+  align-items:stretch;
   gap:10px;
 }
 
-.setup-toggle-stack .setup-setting-row{
+.setup-role-options-grid>.setup-control,
+.setup-role-options-grid>.setup-setting-row{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  min-height:106px;
+  margin:0;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:var(--surface);
+}
+
+.setup-role-count-control{
+  display:grid;
+  grid-template-rows:auto 42px 1fr;
+  align-content:start;
+  gap:6px;
+  padding:13px;
+}
+
+.setup-role-count-control>span{
+  font-size:.9rem;
+  font-weight:800;
+  line-height:1.25;
+}
+
+.setup-role-count-control>input{
+  box-sizing:border-box;
+  width:76px;
+  min-width:0;
+  height:42px;
+  min-height:42px;
+}
+
+.setup-role-count-control>small{
+  align-self:end;
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.4;
+}
+
+.setup-role-toggle{
   position:relative;
   display:grid;
   align-content:center;
-  min-width:0;
-  min-height:88px;
-  padding:13px 44px 13px 13px;
-  border-radius:12px;
+  padding:13px 43px 13px 13px;
 }
 
-.setup-toggle-stack .setup-setting-copy{
-  gap:4px;
+.setup-role-toggle .setup-setting-copy{
+  gap:5px;
   min-width:0;
 }
 
-.setup-toggle-stack .setup-setting-copy strong{
+.setup-role-toggle .setup-setting-copy strong{
   font-size:.9rem;
   line-height:1.25;
 }
 
-.setup-toggle-stack .setup-setting-copy small{
-  font-size:.75rem;
+.setup-role-toggle .setup-setting-copy small{
+  font-size:.72rem;
   line-height:1.42;
 }
 
-.setup-toggle-stack .setup-setting-row>input{
+.setup-role-toggle>input{
   position:absolute;
   top:50%;
   right:13px;
@@ -136,21 +170,46 @@
   }
 }
 
+@media(max-width:600px){
+  .setup-role-options-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:8px;
+  }
+
+  .setup-role-options-grid>.setup-control,
+  .setup-role-options-grid>.setup-setting-row{
+    min-height:112px;
+  }
+
+  .setup-role-count-control,
+  .setup-role-toggle{
+    padding:11px;
+  }
+
+  .setup-role-toggle{
+    padding-right:36px;
+  }
+
+  .setup-role-toggle>input{
+    right:9px;
+    width:19px;
+    height:19px;
+  }
+
+  .setup-role-count-control>span,
+  .setup-role-toggle .setup-setting-copy strong{
+    font-size:.82rem;
+  }
+
+  .setup-role-count-control>small,
+  .setup-role-toggle .setup-setting-copy small{
+    font-size:.67rem;
+  }
+}
+
 @media(max-width:520px){
   .setup-category-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
   .setup-category-grid .category-option{min-height:40px;padding:7px 4px;font-size:.82rem}
-
-  .setup-toggle-stack{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px;
-  }
-  .setup-toggle-stack .setup-setting-row{
-    min-height:92px;
-    padding:12px 38px 12px 11px;
-  }
-  .setup-toggle-stack .setup-setting-row>input{right:10px}
-  .setup-toggle-stack .setup-setting-copy strong{font-size:.84rem}
-  .setup-toggle-stack .setup-setting-copy small{font-size:.7rem}
 
   .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid{
     grid-template-columns:repeat(3,minmax(0,1fr));
@@ -168,10 +227,33 @@
   }
 }
 
-@media(max-width:380px){
-  .setup-toggle-stack{grid-template-columns:1fr}
-  .setup-toggle-stack .setup-setting-row{min-height:78px}
+@media(max-width:420px){
+  .setup-role-options-grid{
+    grid-template-columns:1fr;
+  }
 
+  .setup-role-options-grid>.setup-control,
+  .setup-role-options-grid>.setup-setting-row{
+    min-height:80px;
+  }
+
+  .setup-role-count-control{
+    grid-template-columns:minmax(0,1fr) 76px;
+    grid-template-rows:auto auto;
+    align-items:center;
+  }
+
+  .setup-role-count-control>input{
+    grid-column:2;
+    grid-row:1 / span 2;
+  }
+
+  .setup-role-count-control>small{
+    grid-column:1;
+  }
+}
+
+@media(max-width:380px){
   .setup-fieldset:has(input[name="gameMode"][value="classic"]:checked) .setup-flow-grid{
     grid-template-columns:1fr;
   }
