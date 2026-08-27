@@ -1,16 +1,13 @@
-import { CATEGORIES, escapeHTML, GAME_MODE, MIN_CITIZENS, MIN_READY_PLAYERS } from "../constants.js";
+import { CATEGORIES, escapeHTML, GAME_MODE, MIN_CITIZENS } from "../constants.js";
 
 const selected=(value,current)=>Number(value)===Number(current)?"selected":"";
+const info=(text)=>`<span class="setup-info" tabindex="0" aria-label="${escapeHTML(text)}">i<span class="setup-tooltip" role="tooltip">${escapeHTML(text)}</span></span>`;
+const controlTitle=(title,description)=>`<span class="setup-control-title">${escapeHTML(title)}${info(description)}</span>`;
 
 export function setupView(s,isHost){
  const g=s.game;
  const readyCount=s.players.filter(player=>player.ready).length;
- const liarCount=Number(g.liar_count);
  const recommendedLiarCount=readyCount<=4?1:readyCount<=9?2:3;
- const hasEnoughPlayers=readyCount>=MIN_READY_PLAYERS;
- const citizenCount=readyCount-liarCount;
- const hasEnoughCitizens=citizenCount>=MIN_CITIZENS;
- const canStart=hasEnoughPlayers&&hasEnoughCitizens;
  const mode=g.game_mode||GAME_MODE.CLASSIC;
  const unlimitedStrokes=g.drawing_stroke_unlimited===true;
  const speakingTime=Number(g.speaking_time_limit??30);
@@ -19,17 +16,9 @@ export function setupView(s,isHost){
  const wordSourceMode=["builtin","custom","mixed"].includes(g.word_source_mode)?g.word_source_mode:"builtin";
  const customPackName=String(g.custom_word_pack_name||"");
  const customWordCount=Math.max(0,Number(g.custom_word_count||0));
- const startStatus=!hasEnoughPlayers
-  ?`게임 시작까지 ${MIN_READY_PLAYERS-readyCount}명이 더 필요합니다.`
-  :!hasEnoughCitizens
-   ?`현재 설정에서는 시민이 ${Math.max(0,citizenCount)}명입니다. 게임 시작에는 최소 ${MIN_CITIZENS}명의 시민이 필요합니다.`
-   :"게임을 시작할 수 있습니다.";
  return `<section class="card setup-card setup-card-v11">
-  <header class="setup-header">
-   <h2>게임 설정</h2>
-   <p class="setup-subtitle">위에서부터 차례대로 정하면 바로 시작할 수 있어요.</p>
-  </header>
-  <form data-action="settings" class="setup-form setup-flow-form" data-word-source-mode="${escapeHTML(wordSourceMode)}">
+  <header class="setup-header"><h2>게임 설정</h2></header>
+  <form data-action="settings" class="setup-form setup-flow-form" data-word-source-mode="${escapeHTML(wordSourceMode)}" data-settings-autosave>
    <fieldset class="setup-fieldset" ${isHost?"":"disabled"}>
     <legend class="setup-legend">게임 설정 항목</legend>
 
@@ -63,7 +52,7 @@ export function setupView(s,isHost){
        <strong>기본 제시어 범위</strong>
        <small>기본 제시어를 사용하는 경우에만 적용됩니다.</small>
       </div>
-      <label class="setup-control setup-difficulty-control"><span>난이도</span><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>원하는 난이도를 선택하세요.</small></label>
+      <label class="setup-control setup-difficulty-control"><span>난이도</span><div class="setup-difficulty-row"><select name="difficulty"><option value="all" ${g.difficulty==="all"?"selected":""}>전체</option><option value="easy" ${g.difficulty==="easy"?"selected":""}>쉬움</option><option value="normal" ${g.difficulty==="normal"?"selected":""}>보통</option><option value="hard" ${g.difficulty==="hard"?"selected":""}>어려움</option></select><small>원하는 난이도를 선택하세요.</small></div></label>
       <div class="setup-options-grid setup-category-grid">${CATEGORIES.map(c=>`<label class="category-option"><input type="checkbox" name="category" value="${c}" ${g.selected_categories.includes(c)?"checked":""}> <span>${c}</span></label>`).join("")}</div>
      </div>
     </section>
@@ -104,13 +93,13 @@ export function setupView(s,isHost){
      </div>
 
      <div class="setup-rule-grid setup-flow-grid">
-      <label class="setup-control" data-mode-only="classic"><span>발언 시간</span><select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select><small>한 사람의 설명 차례에 적용됩니다.</small></label>
+      <label class="setup-control" data-mode-only="classic">${controlTitle("발언 시간","한 사람의 설명 차례에 적용됩니다.")}<select name="speakingTimeLimit"><option value="0" ${selected(0,speakingTime)}>무제한</option><option value="15" ${selected(15,speakingTime)}>15초</option><option value="30" ${selected(30,speakingTime)}>30초</option><option value="45" ${selected(45,speakingTime)}>45초</option><option value="60" ${selected(60,speakingTime)}>60초</option></select></label>
 
-      <label class="setup-control" data-mode-only="drawing_spy"><span>그림 시간</span><input name="drawingTimeLimit" type="number" min="5" max="60" value="${Number(g.drawing_time_limit||15)}"><small>한 사람당 5~60초</small></label>
-      <label class="setup-control drawing-stroke-limit-control ${unlimitedStrokes?"is-unlimited":""}" data-mode-only="drawing_spy"><span>최대 획 수</span><input name="drawingStrokeLimit" type="number" min="1" max="10" value="${Number(g.drawing_stroke_limit||3)}" ${unlimitedStrokes?"readonly":""}><small>${unlimitedStrokes?"무제한 모드에서는 사용하지 않습니다.":"한 사람당 1~10획"}</small></label>
+      <label class="setup-control" data-mode-only="drawing_spy">${controlTitle("그림 시간","한 사람당 5~60초로 설정합니다.")}<input name="drawingTimeLimit" type="number" min="5" max="60" value="${Number(g.drawing_time_limit||15)}"></label>
+      <label class="setup-control drawing-stroke-limit-control ${unlimitedStrokes?"is-unlimited":""}" data-mode-only="drawing_spy">${controlTitle("최대 획 수",unlimitedStrokes?"현재 획 수 무제한 모드입니다.":"한 사람당 1~10획으로 설정합니다.")}<input name="drawingStrokeLimit" type="number" min="1" max="10" value="${Number(g.drawing_stroke_limit||3)}" ${unlimitedStrokes?"readonly":""}></label>
 
-      <label class="setup-control"><span>자유토론 시간</span><select name="discussionTimeLimit"><option value="0" ${selected(0,discussionTime)}>무제한</option><option value="60" ${selected(60,discussionTime)}>60초</option><option value="90" ${selected(90,discussionTime)}>90초</option><option value="120" ${selected(120,discussionTime)}>120초</option><option value="180" ${selected(180,discussionTime)}>180초</option></select><small>토론 종료 후 방장이 투표를 시작합니다.</small></label>
-      <label class="setup-control"><span>제시어 추측 횟수</span><input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"><small>붙잡힌 라이어/스파이 팀이 공유하는 기회입니다.</small></label>
+      <label class="setup-control">${controlTitle("자유토론 시간","토론 종료 후 방장이 투표를 시작합니다.")}<select name="discussionTimeLimit"><option value="0" ${selected(0,discussionTime)}>무제한</option><option value="60" ${selected(60,discussionTime)}>60초</option><option value="90" ${selected(90,discussionTime)}>90초</option><option value="120" ${selected(120,discussionTime)}>120초</option><option value="180" ${selected(180,discussionTime)}>180초</option></select></label>
+      <label class="setup-control">${controlTitle("제시어 추측 횟수","붙잡힌 라이어/스파이 팀이 함께 공유하는 추측 기회입니다.")}<input name="guessLimit" type="number" min="1" max="3" value="${g.guess_limit}"></label>
      </div>
 
      <label class="setup-setting-row drawing-unlimited-row" data-mode-only="drawing_spy">
@@ -120,9 +109,7 @@ export function setupView(s,isHost){
      <p class="drawing-mode-hint" data-mode-only="drawing_spy">기본 추천은 <strong>15초 · 3획</strong>입니다.</p>
     </section>
    </fieldset>
-
-   <p class="start-readiness ${canStart?"is-ready":""}" role="status" aria-live="polite">${startStatus}</p>
-   ${isHost?`<div class="setup-actions"><button type="submit" class="secondary">설정 저장</button><button type="button" data-action="start-round" ${canStart?"":"disabled"}>게임 시작</button></div>`:`<p class="muted setup-host-notice">방장만 설정하고 게임을 시작할 수 있습니다.</p>`}
+   ${isHost?"":`<p class="muted setup-host-notice">방장만 설정할 수 있습니다.</p>`}
   </form>
  </section>`;
 }
