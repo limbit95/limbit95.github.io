@@ -1,0 +1,70 @@
+name: Rebuild E2E stabilize once
+
+on:
+  push:
+    branches:
+      - feature/rebuild-finalization
+    paths:
+      - ".github/workflows/rebuild-e2e-stabilize-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/rebuild-finalization
+
+      - name: Apply isolated E2E fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          auth_path = Path("tests/e2e/community-authenticated.spec.js")
+          auth = auth_path.read_text()
+
+          old = '    await expect(memberRow).toContainText("이용 가능");\n'
+          new = '    await expect(memberRow.getByRole("button", { name: "이용 정지", exact: true })).toBeVisible();\n'
+          if old not in auth:
+              raise SystemExit("stale admin status assertion not found")
+          auth = auth.replace(old, new, 1)
+
+          old = '''    await page.goto("/#/mypage/edit");\n    await page.locator("#profile-display_name").fill("E2E 회원");\n'''
+          new = '''    await page.goto("/#/mypage/edit");\n    await assertHealthyPage(page, "프로필 수정");\n    await page.locator("#profile-display_name").fill("E2E 회원");\n'''
+          if old not in auth:
+              raise SystemExit("profile restore navigation block not found")
+          auth = auth.replace(old, new, 1)
+          auth_path.write_text(auth)
+
+          pagination_path = Path("tests/e2e/community-notification-pagination.spec.js")
+          pagination = pagination_path.read_text()
+
+          anchor = '''async function createNotificationBatch(token, count = 25) {\n'''
+          helper = '''async function clearMemberNotifications() {\n  await serviceRoleRequest(`/rest/v1/notifications?user_id=eq.${encodeURIComponent(memberUserId)}`, {\n    method: "DELETE",\n    headers: { Prefer: "return=minimal" },\n  });\n}\n\n'''
+          if helper not in pagination:
+              if anchor not in pagination:
+                  raise SystemExit("notification batch helper anchor not found")
+              pagination = pagination.replace(anchor, helper + anchor, 1)
+
+          old = '''    const token = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${Date.now()}`;\n    const created = await createNotificationBatch(token, 25);\n'''
+          new = '''    const token = `${testInfo.project.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${Date.now()}`;\n    await clearMemberNotifications();\n    const created = await createNotificationBatch(token, 25);\n'''
+          if old not in pagination:
+              raise SystemExit("pagination fixture creation block not found")
+          pagination = pagination.replace(old, new, 1)
+          pagination_path.write_text(pagination)
+          PY
+
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/rebuild-e2e-stabilize-once.yml
+
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/community-authenticated.spec.js tests/e2e/community-notification-pagination.spec.js .github/workflows/rebuild-e2e-stabilize-once.yml
+          git diff --cached --check
+          git commit -m "Stabilize rebuild authenticated E2E"
+          git push origin HEAD:feature/rebuild-finalization
