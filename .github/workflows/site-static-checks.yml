@@ -39,6 +39,9 @@ jobs:
             exit 1
           fi
 
+      - name: Guard community API boundaries
+        run: node scripts/check-community-api-boundaries.mjs
+
       - name: Link-check community ES modules
         run: node --experimental-vm-modules scripts/check-community-modules.mjs
 
