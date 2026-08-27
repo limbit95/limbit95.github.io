@@ -59,14 +59,6 @@ const EVENT_DETAIL_COLUMNS = `
   category:activity_categories(${CATEGORY_COLUMNS}),
   series:event_series(${EVENT_SERIES_COLUMNS})
 `;
-const PARTICIPATION_WITH_EVENT_COLUMNS = `
-  ${EVENT_PARTICIPANT_COLUMNS},
-  event:events(
-    ${EVENT_COLUMNS},
-    category:activity_categories(${CATEGORY_COLUMNS})
-  )
-`;
-
 export async function listCategories({ activeOnly = false } = {}) {
   let query = supabase
     .from("activity_categories")
@@ -225,21 +217,3 @@ export async function getMyParticipationOverview({
   };
 }
 
-// Backward compatibility for cached pre-P2 mypage modules.
-// Current code should use getMyParticipationOverview(); this export remains
-// temporarily so older browser module graphs can still link and recover.
-export async function listMyParticipations(userId) {
-  const participations = unwrap(await supabase
-    .from("event_participants")
-    .select(PARTICIPATION_WITH_EVENT_COLUMNS)
-    .eq("user_id", userId)
-    .in("status", ["joined", "waitlisted"])
-    .order("created_at", { ascending: false })) ?? [];
-  const events = participations.map((item) => item.event).filter(Boolean);
-  const eventsWithSummaries = await attachEventParticipationSummaries(events);
-  const eventMap = new Map(eventsWithSummaries.map((event) => [Number(event.id), event]));
-  return participations.map((item) => ({
-    ...item,
-    event: item.event ? eventMap.get(Number(item.event.id)) ?? item.event : null,
-  }));
-}

@@ -19,16 +19,6 @@ const NOTIFICATION_COLUMNS = [
   "dedupe_key",
 ].join(",");
 
-// Backward-compatible API kept intentionally so cached pre-pagination headers
-// and newer pagination headers can coexist during GitHub Pages cache rollover.
-export async function listNotifications(limit = 20) {
-  return unwrap(await supabase
-    .from("notifications")
-    .select(NOTIFICATION_COLUMNS)
-    .order("created_at", { ascending: false })
-    .limit(limit)) ?? [];
-}
-
 export async function listNotificationsPage({ cursor = null, pageSize = 20 } = {}) {
   const safePageSize = Math.min(Math.max(Number(pageSize) || 20, 1), 50);
   let query = supabase
