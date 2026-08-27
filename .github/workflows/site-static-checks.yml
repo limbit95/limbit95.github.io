@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,6 +69,9 @@ jobs:
 
       - name: Link-check Liar Game ES modules
         run: node --experimental-vm-modules scripts/check-liar-modules.mjs
+
+      - name: Verify Liar Game canonical SQL baseline
+        run: node scripts/build-liar-canonical.mjs --check
 
       - name: Check site file integrity
         run: node scripts/check-site.mjs

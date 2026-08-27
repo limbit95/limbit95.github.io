@@ -1,10 +1,12 @@
 # Liar Game Production Deployment Checklist
 
-이 문서는 Liar Game / Drawing Spy의 **Phase 4 + Final Production Cleanup 기준** 배포 순서와 회귀 테스트를 정리한다.
+이 문서는 Liar Game / Drawing Spy **v1.0.0 Production PASS** 기준 배포 순서와 회귀 테스트를 정리한다.
+
+릴리스 기준 문서는 `docs/liar-game/release-v1.0.0.md`, fresh install canonical 기준은 `supabase/liar-game/canonical/`을 사용한다.
 
 ## A. 기존 운영 DB 업데이트
 
-현재 운영 DB에는 2026-08-26 Gameplay Phase 4와 최종 보안 정리까지 적용한다. 다른 환경을 같은 버전으로 올릴 때는 **미적용 항목만 아래 순서대로** 실행한다.
+기존 운영 DB는 **canonical fresh installer를 다시 실행하지 않는다.** 이미 배포된 DB는 미적용 migration만 순서대로 적용한다.
 
 1. [ ] 운영 DB 백업 또는 복구 지점 확보
 2. [ ] `supabase/liar-game/functions-result.sql` — 검거 실패 5초 지연 공개 + Result projection
@@ -25,7 +27,42 @@
 
 `schema.sql`, `functions-core.sql`, `functions-vote.sql`은 기존 운영 DB에 다시 실행하지 않는다. `functions-runtime-overrides.sql` 역시 운영 중 임의 재실행하지 않는다. 부득이하게 재적용할 경우 **그 뒤의 Phase 2 → Phase 3 → normalize fix → phase3 polish → Phase 4 → 최신 RLS/Realtime → final cleanup 순서를 다시 보장**해야 한다.
 
-## B. 빈 Supabase fresh install
+## B. 빈 Supabase fresh install — v1.0.0 권장 경로
+
+수동으로 20개 파일을 복사하는 대신 **canonical builder**를 사용한다.
+
+1. [ ] 저장소 루트에서 canonical source 고정 상태 확인
+
+```bash
+node scripts/build-liar-canonical.mjs --check
+```
+
+2. [ ] 단일 installer 생성
+
+```bash
+node scripts/build-liar-canonical.mjs
+```
+
+생성 파일:
+
+```text
+supabase/liar-game/canonical/liar-game-v1.0.0-install.sql
+```
+
+3. [ ] **빈 Supabase 프로젝트**에 생성된 installer를 한 번 실행
+4. [ ] 설치 직후 `supabase/liar-game/canonical/verify-v1.0.0.sql` 실행
+5. [ ] 결과 JSON의 최상위 `pass`가 `true`인지 확인
+6. [ ] 그 다음 Section C 이하의 release gate / 실제 플레이 테스트 수행
+
+> canonical installer는 fresh install 전용이다. 기존 운영 DB에는 실행하지 않는다.
+
+### B-1. Canonical installer 구성 원본
+
+`supabase/liar-game/canonical/v1.0.0.manifest.json`이 아래 파일 순서와 Git blob SHA를 고정한다. CI에서도 manifest hash 검사를 수행하므로 기준 SQL이 조용히 변경되는 것을 막는다.
+
+### B-2. 수동 분해 설치 순서 — 디버깅/복구 참고용
+
+canonical builder를 사용할 수 없는 환경에서만 아래 순서를 사용한다.
 
 1. [ ] `supabase/liar-game/schema.sql`
 2. [ ] `supabase/liar-game/seed.sql`
@@ -48,7 +85,7 @@
 19. [ ] `supabase/liar-game/realtime.sql`
 20. [ ] `supabase/liar-game/migrations/20260826_final_production_cleanup.sql`
 
-> `20260825_temp_two_player_test.sql`과 `20260825_z_restore_production_player_minimum.sql`은 과거 테스트 이력용이다. 새 설치 절차에는 포함하지 않는다.
+> `20260825_temp_two_player_test.sql`과 `20260825_z_restore_production_player_minimum.sql`은 과거 테스트 이력용이다. v1.0.0 fresh install에는 포함하지 않는다.
 
 ## C. 공통 release gate
 
@@ -57,6 +94,7 @@
 - [ ] `/liar-game/` 직접 접근 성공
 - [ ] 기존 로그인 세션 공유 / 비로그인 접근 차단
 - [ ] Liar Game JS syntax + ES module link CI PASS
+- [ ] canonical SQL manifest CI PASS
 - [ ] private room Realtime subscribe/reconnect 성공
 - [ ] authenticated business RPC 성공
 - [ ] anon business RPC 및 base-table 직접 접근 거부
@@ -220,4 +258,4 @@ Static/DB QA가 모두 통과한 뒤 실제 4명 이상, 가능하면 2개 이�
 - [ ] 모바일 그림 순서 트랙/current-next 강조 확인
 - [ ] 네트워크 재연결/백그라운드 복귀 시 최신 snapshot 회복
 
-최종 판정은 **Static/DB QA PASS + Final Playtest PASS**가 모두 충족될 때 Production PASS로 기록한다.
+최종 판정은 **Static/DB QA PASS + Final Playtest PASS**가 모두 충족될 때 Production PASS로 기록한다. v1.0.0은 두 조건을 모두 통과한 production baseline이다.
