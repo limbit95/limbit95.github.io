@@ -1,0 +1,32 @@
+{
+  "format": 1,
+  "version": "1.0.0",
+  "output": "supabase/liar-game/canonical/liar-game-v1.0.0-install.sql",
+  "description": "Deterministic fresh-install source order for the Liar Game / Drawing Spy v1.0.0 production baseline.",
+  "files": [
+    { "path": "supabase/liar-game/schema.sql", "blobSha": "55684f992562ba7624c92c05c4c11bd5cf38cd07" },
+    { "path": "supabase/liar-game/seed.sql", "blobSha": "1db46065ceedbc3980395e4c01ad1e779d488c9a" },
+    { "path": "supabase/liar-game/functions-core.sql", "blobSha": "0fb1eb31a3e2677280d245553f7977fcf76fd52c" },
+    { "path": "supabase/liar-game/functions-vote.sql", "blobSha": "be26c67aa5743a2002d81bf40ab1a12b70bbbac5" },
+    { "path": "supabase/liar-game/migrations/20260825_runoff_tied_speakers.sql", "blobSha": "92ca39f11cbf595f6a09c9139b77a6faf7082fe5" },
+    { "path": "supabase/liar-game/functions-guess.sql", "blobSha": "aed1eb1930ae8d66b8937fcb5fa414a591d6fc7d" },
+    { "path": "supabase/liar-game/functions-result.sql", "blobSha": "811d23f76e40bf2b557e3fe92e9a51dca07f2da5" },
+    { "path": "supabase/liar-game/migrations/20260824_refresh_word_pool.sql", "blobSha": "5e8a304312c117cb99232fe0a98b9fe7a3d37101" },
+    { "path": "supabase/liar-game/migrations/20260825_drawing_spy_mode.sql", "blobSha": "e4139311ba8ddd1f4d5279c6dc5410cd5cc62539" },
+    { "path": "supabase/liar-game/migrations/20260825_drawing_unlimited_strokes.sql", "blobSha": "54ec791f7dfa2132372d6c2b2cbd871186e993bf" },
+    { "path": "supabase/liar-game/migrations/20260826_drawing_spy_phase1.sql", "blobSha": "6a49a4a78cd42be98b52ecb6830586a671143587" },
+    { "path": "supabase/liar-game/functions-runtime-overrides.sql", "blobSha": "7194894e1e6f38993ac5b08c2a9a13ce85325af1" },
+    { "path": "supabase/liar-game/migrations/20260826_drawing_spy_phase2.sql", "blobSha": "519cca9ed193582a0755f0fa8487f001fbf53790" },
+    { "path": "supabase/liar-game/migrations/20260826_gameplay_phase3.sql", "blobSha": "b67075d1e160c6c3b21a0bda829daa4c4c8adb13" },
+    { "path": "supabase/liar-game/migrations/20260826_phase3_guess_normalize_fix.sql", "blobSha": "9d7eda73b6826d1eeff5017e8cea5b4149c8b8d6" },
+    { "path": "supabase/liar-game/migrations/20260826_phase3_polish.sql", "blobSha": "eb238f0f42779deb5cf95fef1a4e3eff03f90e65" },
+    { "path": "supabase/liar-game/migrations/20260826_gameplay_phase4_stats.sql", "blobSha": "635d02c127353848be1dbac271e0db67568f61a0" },
+    { "path": "supabase/liar-game/rls.sql", "blobSha": "182f9e082692540fc4ad8b349e031a3c82427e06" },
+    { "path": "supabase/liar-game/realtime.sql", "blobSha": "a94c6462338cec74cd6c0efab3290fca2c49456d" },
+    { "path": "supabase/liar-game/migrations/20260826_final_production_cleanup.sql", "blobSha": "9adf42e6fbc768c5642e01b70beea2d65106d188" }
+  ],
+  "excludedHistoricalFiles": [
+    "supabase/liar-game/migrations/20260825_temp_two_player_test.sql",
+    "supabase/liar-game/migrations/20260825_z_restore_production_player_minimum.sql"
+  ]
+}
