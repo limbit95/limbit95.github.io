@@ -49,9 +49,12 @@ function syncDrawingFinishGuard(){
 
   const saving=stage.querySelector("[data-drawing-board-anchor]")?.classList.contains("is-saving")===true;
   const blocked=used<1;
-  button.disabled=blocked||saving;
-  button.dataset.emptyDrawingBlocked=blocked?"true":"false";
-  button.title=blocked?"한 획 이상 그린 뒤 완료할 수 있습니다.":"";
+  const shouldDisable=blocked||saving;
+  if(button.disabled!==shouldDisable)button.disabled=shouldDisable;
+  const blockedValue=blocked?"true":"false";
+  if(button.dataset.emptyDrawingBlocked!==blockedValue)button.dataset.emptyDrawingBlocked=blockedValue;
+  const title=blocked?"한 획 이상 그린 뒤 완료할 수 있습니다.":"";
+  if(button.title!==title)button.title=title;
   note?.classList.toggle("is-satisfied",!blocked);
 }
 
@@ -68,7 +71,8 @@ function syncMvpSeparators(){
 function syncRoundProgressLabel(){
   document.querySelectorAll(".game-round-count").forEach(card=>{
     const count=Number(card.querySelector("strong")?.textContent||0);
-    card.setAttribute("aria-label",`${count} ROUND 진행`);
+    const label=`${count} ROUND 진행`;
+    if(card.getAttribute("aria-label")!==label)card.setAttribute("aria-label",label);
   });
 }
 
@@ -92,7 +96,7 @@ document.addEventListener("click",event=>{
   if(!stage||!isCurrent||used>0)return;
   event.preventDefault();
   event.stopImmediatePropagation();
-  button.disabled=true;
+  if(!button.disabled)button.disabled=true;
   const status=stage.querySelector("[data-drawing-local-status]");
   if(status)status.textContent="한 획 이상 그린 뒤 그림을 완료할 수 있습니다.";
   syncDrawingFinishGuard();
@@ -100,6 +104,8 @@ document.addEventListener("click",event=>{
 
 store.subscribe(schedule);
 observer=new MutationObserver(schedule);
-observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:["class","disabled"]});
+// Observe rendered content only. Do not observe class/disabled attributes because
+// this module updates those attributes itself and could create a feedback loop.
+observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true,characterData:true});
 schedule();
 window.addEventListener("pagehide",()=>observer?.disconnect(),{once:true});
