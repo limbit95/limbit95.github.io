@@ -279,7 +279,7 @@ async function openGame(gameSnapshot) {
   gameModule.openOnlineGame({
     api,
     gameSnapshot,
-    onReturnToLobby: openLobby,
+    onReturnToLobby: (nextSnapshot) => openLobby(nextSnapshot, "재대결 대기방으로 돌아왔습니다. 모두 다시 준비해 주세요."),
   });
 }
 
@@ -412,13 +412,13 @@ function subscribeCurrentLobby() {
   });
 }
 
-function openLobby(nextSnapshot) {
+function openLobby(nextSnapshot, message = "") {
   snapshot = nextSnapshot;
   lobbyOpen = true;
   views.online.hidden = true;
   views.lobby.hidden = false;
   setMessage(views.onlineMessage);
-  setMessage(views.lobbyMessage, "같은 멤버로 다시 준비해 주세요.");
+  setMessage(views.lobbyMessage, message);
   renderLobby();
   subscribeCurrentLobby();
 }
