@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="3D 블록 타워 게임 프로토타입">
+    <title>BLOCK TOWER 3D</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">3D PHYSICS PROTOTYPE</p>
+          <h1>BLOCK TOWER</h1>
+          <p class="subtitle">54개의 블록으로 만든 3D 타워를 여러 각도에서 살펴보세요.</p>
+        </div>
+        <a class="back-link" href="../#/games">게임 목록으로</a>
+      </header>
+
+      <section class="stage-card" aria-label="3D 블록 타워">
+        <div id="scene" class="scene" role="application" aria-label="3D 블록 타워 화면"></div>
+        <div class="hud" aria-live="polite">
+          <span class="hud-badge"><strong>54</strong> blocks</span>
+          <span id="selection-status" class="hud-badge">선택된 블록 없음</span>
+        </div>
+        <div class="loading" id="loading">3D 장면을 준비하고 있습니다…</div>
+      </section>
+
+      <section class="controls" aria-label="조작 방법">
+        <article>
+          <span class="control-icon" aria-hidden="true">🖱️</span>
+          <div><strong>우클릭 + 드래그</strong><span>타워를 360° 회전</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">↕️</span>
+          <div><strong>마우스 휠</strong><span>확대 / 축소</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">👆</span>
+          <div><strong>좌클릭</strong><span>블록 선택</span></div>
+        </article>
+      </section>
+
+      <p class="prototype-note">1단계 프로토타입 · 다음 단계에서 블록 밀기/당기기와 물리엔진을 연결합니다.</p>
+    </main>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
