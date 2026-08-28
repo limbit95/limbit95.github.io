@@ -37,5 +37,6 @@ export function guessView(voteState,guessState,gameMode){
 export function captureRevealView(voteState,isHost,gameMode){
  const hiddenRoleName=modeOf(gameMode)===GAME_MODE.DRAWING_SPY?"스파이":"라이어";
  const round=store.get().snapshot?.round;
- return `<section class="card stack capture-success-card" data-capture-success-card data-round-id="${escapeHTML(round?.id||"")}" data-round-version="${Number(round?.version||0)}" data-hidden-role-name="${hiddenRoleName}" data-is-host="${isHost?"true":"false"}"><h2>${hiddenRoleName} 검거 성공!</h2><p>${hiddenRoleName}를 정확히 찾아냈습니다. 잠시 후 자동으로 공개됩니다.</p>${voteBallotDetails(voteState)}</section>`;
+ const canReveal=isHost||voteState?.is_round_participant===true;
+ return `<section class="card stack capture-success-card" data-capture-success-card data-round-id="${escapeHTML(round?.id||"")}" data-round-version="${Number(round?.version||0)}" data-hidden-role-name="${hiddenRoleName}" data-is-host="${isHost?"true":"false"}" data-can-reveal="${canReveal?"true":"false"}"><h2>${hiddenRoleName} 검거 성공!</h2><p>${hiddenRoleName}를 정확히 찾아냈습니다. 잠시 후 자동으로 공개됩니다.</p>${voteBallotDetails(voteState)}</section>`;
 }
