@@ -19,15 +19,41 @@ test.describe("The Game lobby layout polish", () => {
     await page.goto("/the-game/");
   });
 
-  test("indents the core rule copy beneath its heading", async ({ page }) => {
+  test("centers the core rule copy with balanced sentence indentation", async ({ page }) => {
     const summary = page.locator("#mode-screen .rule-summary");
     const copy = summary.locator("p");
 
     await expect(summary).toBeVisible();
-    await expect(summary).toHaveCSS("text-align", "left");
+    await expect(summary).toHaveCSS("text-align", "center");
+    await expect(copy).toHaveCSS("text-align", "center");
 
-    const copyPadding = await copy.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
-    expect(copyPadding).toBeGreaterThanOrEqual(8);
+    const summaryRect = await readRect(summary);
+    const copyRect = await readRect(copy);
+    const leftInset = copyRect.left - summaryRect.left;
+    const rightInset = summaryRect.right - copyRect.right;
+
+    expect(copyRect.width).toBeLessThan(summaryRect.width);
+    expect(leftInset).toBeGreaterThanOrEqual(9);
+    expect(rightInset).toBeGreaterThanOrEqual(9);
+    expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(2);
+    await expect(page.getByRole("button", { name: "게임 규칙", exact: true })).toBeVisible();
+  });
+
+  test("opens and closes the detailed game rules modal", async ({ page }) => {
+    const openButton = page.getByRole("button", { name: "게임 규칙", exact: true });
+    await openButton.click();
+
+    const dialog = page.getByRole("dialog", { name: "게임 규칙" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "게임 목표" })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "±10 되돌리기" })).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "승리와 패배" })).toBeVisible();
+    await expect(dialog).toContainText("1명은 8장, 2명은 7장, 3~5명은 각자 6장");
+    await expect(dialog).toContainText("뽑기 덱에 카드가 남아 있는 동안에는 한 턴에 최소 2장");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await expect(openButton).toBeFocused();
   });
 
   test("keeps room code and invite actions aligned on desktop and mobile", async ({ page }) => {
