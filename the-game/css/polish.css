@@ -106,15 +106,12 @@ button,
 }
 
 .rule-summary__line {
-  width: fit-content;
-  max-width: 100%;
-  display: block;
-  margin: 0 auto;
+  display: inline;
   text-align: center;
 }
 
 .rule-summary__line--indent {
-  padding-left: 1.35em;
+  margin-left: 0.9em;
 }
 
 .rules-open-button {
@@ -396,7 +393,7 @@ button,
 
 @media (max-width: 580px) {
   .rule-summary__line--indent {
-    padding-left: 1em;
+    margin-left: 0.75em;
   }
 
   .rules-open-button {
