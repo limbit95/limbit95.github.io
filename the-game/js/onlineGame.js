@@ -28,7 +28,7 @@ function ensureScreen() {
           <span>DECK</span>
           <strong data-online-deck-count>0</strong>
         </div>
-        <button class="ghost-button" type="button" data-online-game-close>화면 닫기</button>
+        <button class="ghost-button" type="button" data-online-game-close>게임 종료</button>
       </div>
     </header>
 
@@ -84,10 +84,7 @@ function ensureScreen() {
 }
 
 function bindEvents() {
-  screen.querySelector("[data-online-game-close]").addEventListener("click", () => {
-    closeOnlineGame();
-    document.dispatchEvent(new CustomEvent("the-game:return-home"));
-  });
+  screen.querySelector("[data-online-game-close]").addEventListener("click", handleHeaderClose);
 
   screen.querySelector("[data-online-hand]").addEventListener("click", (event) => {
     const button = event.target.closest("[data-online-card]");
@@ -123,7 +120,7 @@ function friendlyError(error) {
   const message = error?.message ?? String(error ?? "");
   const mappings = [
     ["AUTH_REQUIRED", "로그인 상태를 확인해 주세요."],
-    ["PLAYER_NOT_MEMBER", "이 게임에 참여 중인 플레이어가 아닙니다."],
+    ["PLAYER_NOT_MEMBER", "이 게임은 이미 종료되었거나 방에서 나간 상태입니다."],
     ["GAME_NOT_FOUND", "진행 중인 게임을 찾을 수 없습니다."],
     ["GAME_NOT_PLAYING", "이미 종료된 게임입니다."],
     ["NOT_YOUR_TURN", "현재 내 턴이 아닙니다."],
@@ -132,7 +129,7 @@ function friendlyError(error) {
     ["MINIMUM_NOT_MET", "이번 턴의 최소 제출 장수를 먼저 채워 주세요."],
     ["STATE_CHANGED", "다른 변경사항이 먼저 반영됐습니다. 최신 상태로 다시 맞췄습니다."],
     ["CLIENT_ACTION_REUSED", "중복 요청을 안전하게 차단했습니다. 최신 상태를 다시 확인해 주세요."],
-    ["GAME_IN_PROGRESS", "게임 진행 중에는 방에서 나갈 수 없습니다."],
+    ["GAME_IN_PROGRESS", "게임 진행 중에는 일반 방 나가기를 사용할 수 없습니다. 게임 종료를 이용해 주세요."],
   ];
 
   return mappings.find(([code]) => message.includes(code))?.[1]
@@ -323,6 +320,10 @@ function render() {
       ? `${remainingRequired}장 더 내면 턴 종료 가능`
       : "현재 플레이어의 턴을 기다리는 중";
 
+  const closeButton = screen.querySelector("[data-online-game-close]");
+  closeButton.disabled = busy;
+  closeButton.textContent = isPlaying() ? "게임 종료" : "게임 종료하고 나가기";
+
   renderResult(game);
 }
 
@@ -334,6 +335,12 @@ async function refresh() {
     snapshot = next;
     render();
   } catch (error) {
+    const message = error?.message ?? "";
+    if (message.includes("PLAYER_NOT_MEMBER") || message.includes("ROOM_NOT_FOUND")) {
+      closeOnlineGame();
+      document.dispatchEvent(new CustomEvent("the-game:return-home"));
+      return;
+    }
     notice = friendlyError(error);
     render();
   }
@@ -417,6 +424,43 @@ async function endCurrentTurn() {
     if ((error?.message ?? "").includes("STATE_CHANGED")) await refresh();
     notice = friendlyError(error);
   } finally {
+    busy = false;
+    render();
+  }
+}
+
+function handleHeaderClose() {
+  if (isPlaying()) {
+    closeActiveGame();
+    return;
+  }
+  leaveFinishedGame();
+}
+
+async function closeActiveGame() {
+  if (busy || !isPlaying() || !snapshot?.room || !snapshot?.game) return;
+
+  const confirmed = window.confirm(
+    "진행 중인 게임을 종료하면 모든 참가자가 방에서 나가고 현재 게임 진행 상황이 삭제됩니다. 게임을 종료할까요?",
+  );
+  if (!confirmed) return;
+
+  busy = true;
+  selectedCard = null;
+  notice = "게임을 종료하고 방을 정리하고 있습니다…";
+  render();
+
+  try {
+    await api.closeGame({
+      roomId: snapshot.room.id,
+      expectedRoomVersion: snapshot.room.version,
+      expectedGameVersion: snapshot.game.version,
+    });
+    closeOnlineGame();
+    document.dispatchEvent(new CustomEvent("the-game:return-home"));
+  } catch (error) {
+    if ((error?.message ?? "").includes("STATE_CHANGED")) await refresh();
+    notice = friendlyError(error);
     busy = false;
     render();
   }
