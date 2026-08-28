@@ -1,4 +1,4 @@
-import { getGameStats } from "./api.js";
+import { getGameStats } from "./api.js?v=20260829-liar-v13-mvp1";
 import { escapeHTML, GAME_MODE } from "./constants.js";
 import { store } from "./store.js";
 
