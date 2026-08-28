@@ -79,8 +79,9 @@ function rotateCamera(deltaX, deltaY) {
   const offset = camera.position.clone().sub(target);
   const spherical = new THREE.Spherical().setFromVector3(offset);
   spherical.theta -= deltaX * CAMERA_ROTATE_SPEED;
+  // Match OrbitControls: dragging downward raises the camera so the tower top becomes visible.
   spherical.phi = THREE.MathUtils.clamp(
-    spherical.phi + deltaY * CAMERA_ROTATE_SPEED,
+    spherical.phi - deltaY * CAMERA_ROTATE_SPEED,
     MIN_POLAR_ANGLE,
     MAX_POLAR_ANGLE,
   );
