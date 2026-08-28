@@ -2,7 +2,6 @@ import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 
 const STORAGE_KEY = "block-tower-game-settings-v1";
-const sceneHost = document.querySelector("#scene");
 const selectionStatus = document.querySelector("#selection-status");
 const physicsDifficultyStatus = document.querySelector("#difficulty-status");
 const gameDifficultyStatus = document.querySelector("#game-difficulty-status");
@@ -64,13 +63,14 @@ function loadSettings() {
 }
 
 let settings = loadSettings();
-window.__blockTowerGameSettings = settings;
-window.__blockTowerGameRuntime = {
+const runtime = window.__blockTowerGameRuntime ?? {
   scene: null,
   camera: null,
   dragMarker: null,
   orbitTarget: new THREE.Vector3(0, 5.3, 0),
 };
+window.__blockTowerGameRuntime = runtime;
+window.__blockTowerGameSettings = settings;
 
 function persistSettings() {
   try {
@@ -96,6 +96,117 @@ if (physicsDifficultyStatus) {
   });
 }
 
+function isPlacementGhost(object) {
+  return Boolean(
+    object?.isMesh
+    && object.userData?.slotIndex !== undefined
+    && object.material?.isMeshBasicMaterial
+    && object.geometry?.type === "BoxGeometry",
+  );
+}
+
+function isDragMarker(object) {
+  return Boolean(
+    object?.isMesh
+    && object.geometry?.type === "SphereGeometry"
+    && object.material?.isMeshBasicMaterial
+    && object.material.color?.getHex() === 0xffc27e,
+  );
+}
+
+function isTowerBlock(object) {
+  return Boolean(
+    object?.isMesh
+    && object.userData?.index !== undefined
+    && object.material?.isMeshStandardMaterial,
+  );
+}
+
+function applyThemeToBlock(object) {
+  if (!isTowerBlock(object)) return;
+  const palette = THEMES[settings.theme] ?? THEMES.classic;
+  const color = palette[object.userData.index % palette.length];
+  if (object.material.color.getHex() !== color) object.material.color.setHex(color);
+  object.material.userData.blockTowerTheme = settings.theme;
+}
+
+function patchPlacementGhostVisibility(ghost) {
+  if (!isPlacementGhost(ghost) || ghost.userData.gameSettingsVisibilityPatched) return;
+  let requestedVisibility = Boolean(ghost.visible);
+  Object.defineProperty(ghost, "visible", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      return settings.placementGuide && requestedVisibility;
+    },
+    set(value) {
+      requestedVisibility = Boolean(value);
+    },
+  });
+  ghost.userData.gameSettingsVisibilityPatched = true;
+}
+
+function syncRuntimeScene() {
+  if (!runtime.scene) return;
+  runtime.scene.traverse((object) => {
+    if (isDragMarker(object)) runtime.dragMarker = object;
+    if (isTowerBlock(object)) applyThemeToBlock(object);
+    if (isPlacementGhost(object)) patchPlacementGhostVisibility(object);
+  });
+}
+
+function installThreeRuntimeHooks() {
+  const object3dPrototype = THREE.Object3D.prototype;
+  if (!object3dPrototype.__blockTowerRuntimeAddPatched) {
+    const originalAdd = object3dPrototype.add;
+    Object.defineProperty(object3dPrototype, "__blockTowerRuntimeAddPatched", { value: true });
+    object3dPrototype.add = function addWithBlockTowerRuntime(...objects) {
+      const result = originalAdd.apply(this, objects);
+      if (this.isScene) {
+        runtime.scene = this;
+        queueMicrotask(syncRuntimeScene);
+      }
+      return result;
+    };
+  }
+
+  const raycasterPrototype = THREE.Raycaster.prototype;
+  if (!raycasterPrototype.__blockTowerRuntimeCameraPatched) {
+    const originalSetFromCamera = raycasterPrototype.setFromCamera;
+    Object.defineProperty(raycasterPrototype, "__blockTowerRuntimeCameraPatched", { value: true });
+    raycasterPrototype.setFromCamera = function setFromCameraWithBlockTowerRuntime(coords, camera) {
+      runtime.camera = camera;
+      return originalSetFromCamera.call(this, coords, camera);
+    };
+  }
+}
+
+function installRapierRuntimeHooks() {
+  const rigidBodyPrototype = RAPIER.RigidBody?.prototype;
+  if (!rigidBodyPrototype || rigidBodyPrototype.__blockTowerPlacementAssistPatched) return;
+
+  const originalAddForce = rigidBodyPrototype.addForce;
+  const originalAddTorque = rigidBodyPrototype.addTorque;
+  Object.defineProperty(rigidBodyPrototype, "__blockTowerPlacementAssistPatched", { value: true });
+
+  rigidBodyPrototype.addForce = function addForceWithGameSettings(force, wakeUp) {
+    const placementIsActive = selectionStatus?.textContent.includes("최상단 정렬 중");
+    if (placementIsActive && !settings.autoPlacementAssist) return undefined;
+    return originalAddForce.call(this, force, wakeUp);
+  };
+
+  rigidBodyPrototype.addTorque = function addTorqueWithGameSettings(torque, wakeUp) {
+    const placementIsActive = selectionStatus?.textContent.includes("최상단 정렬 중");
+    if (placementIsActive && !settings.autoPlacementAssist) return undefined;
+    return originalAddTorque.call(this, torque, wakeUp);
+  };
+}
+
+installThreeRuntimeHooks();
+void RAPIER.init()
+  .then(installRapierRuntimeHooks)
+  .catch((error) => console.warn("Block Tower game-setting physics hook could not initialize.", error));
+
 function syncControls() {
   window.__blockTowerGameSettings = settings;
   if (gameDifficultyStatus) {
@@ -108,6 +219,8 @@ function syncControls() {
   document.querySelectorAll("[data-game-difficulty]").forEach((button) => {
     button.classList.toggle("is-active", button.dataset.gameDifficulty === settings.difficulty);
   });
+
+  syncRuntimeScene();
 }
 
 function updateSettings(patch, { markCustom = false } = {}) {
@@ -127,85 +240,6 @@ function applyGamePreset(name) {
     ...preset,
     difficulty: name,
   });
-}
-
-function isPlacementGhost(object) {
-  return Boolean(
-    object?.isMesh
-    && object.userData?.slotIndex !== undefined
-    && object.material?.isMeshBasicMaterial,
-  );
-}
-
-function isDragMarker(object) {
-  return Boolean(
-    object?.isMesh
-    && object.geometry?.type === "SphereGeometry"
-    && object.material?.isMeshBasicMaterial
-    && object.material.color?.getHex() === 0xffc27e,
-  );
-}
-
-function applyThemeToBlock(object) {
-  if (!object?.isMesh || object.userData?.index === undefined || !object.material?.isMeshStandardMaterial) return;
-  if (object.material.userData.blockTowerTheme === settings.theme) return;
-  const palette = THEMES[settings.theme] ?? THEMES.classic;
-  object.material.color.setHex(palette[object.userData.index % palette.length]);
-  object.material.userData.blockTowerTheme = settings.theme;
-}
-
-const originalRender = THREE.WebGLRenderer.prototype.render;
-if (!THREE.WebGLRenderer.prototype.__blockTowerGameSettingsPatched) {
-  Object.defineProperty(THREE.WebGLRenderer.prototype, "__blockTowerGameSettingsPatched", {
-    value: true,
-  });
-
-  THREE.WebGLRenderer.prototype.render = function renderWithGameSettings(scene, camera) {
-    const temporarilyHidden = [];
-    const runtime = window.__blockTowerGameRuntime;
-    runtime.scene = scene;
-    runtime.camera = camera;
-    runtime.dragMarker = null;
-
-    scene.traverse((object) => {
-      applyThemeToBlock(object);
-      if (isDragMarker(object)) runtime.dragMarker = object;
-      if (!settings.placementGuide && isPlacementGhost(object) && object.visible) {
-        temporarilyHidden.push(object);
-        object.visible = false;
-      }
-    });
-
-    try {
-      return originalRender.call(this, scene, camera);
-    } finally {
-      temporarilyHidden.forEach((object) => {
-        object.visible = true;
-      });
-    }
-  };
-}
-
-const rigidBodyPrototype = RAPIER.RigidBody?.prototype;
-if (rigidBodyPrototype && !rigidBodyPrototype.__blockTowerPlacementAssistPatched) {
-  const originalAddForce = rigidBodyPrototype.addForce;
-  const originalAddTorque = rigidBodyPrototype.addTorque;
-
-  Object.defineProperty(rigidBodyPrototype, "__blockTowerPlacementAssistPatched", {
-    value: true,
-  });
-
-  rigidBodyPrototype.addForce = function addForceWithGameSetting(force, wakeUp) {
-    const placementIsActive = selectionStatus?.textContent.includes("최상단 정렬 중");
-    if (placementIsActive && !settings.autoPlacementAssist) return undefined;
-    return originalAddForce.call(this, force, wakeUp);
-  };
-
-  rigidBodyPrototype.addTorque = function addTorqueWithGameSetting(torque, wakeUp) {
-    const placementIsActive = selectionStatus?.textContent.includes("최상단 정렬 중");
-    if (placementIsActive && !settings.autoPlacementAssist) return undefined;
-    return originalAddTorque.call(this, torque, wakeUp);
-  };
 }
 
 function closeGameSettings() {
