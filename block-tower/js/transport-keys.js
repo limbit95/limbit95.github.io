@@ -1,77 +1,116 @@
+import * as THREE from "three";
+
 const sceneHost = document.querySelector("#scene");
 const selectionStatus = document.querySelector("#selection-status");
 
-const HEIGHT_SPEED_PX_PER_SECOND = 520;
-const FINE_HEIGHT_SPEED_PX_PER_SECOND = 150;
+const HEIGHT_SPEED_PX_PER_SECOND = 260;
+const FINE_HEIGHT_SPEED_PX_PER_SECOND = 70;
+const CAMERA_ROTATE_SPEED = 0.005;
+const MIN_POLAR_ANGLE = Math.PI * 0.17;
+const MAX_POLAR_ANGLE = Math.PI * 0.49;
 const HEIGHT_KEYS = new Set(["KeyE", "KeyQ"]);
 
 let canvas = null;
 let activePointer = null;
 let heightOffset = 0;
+let pointerOffsetX = 0;
+let pointerOffsetY = 0;
 let raisePressed = false;
 let lowerPressed = false;
 let finePressed = false;
+let cameraDrag = null;
 let previousFrame = performance.now();
+
+function hasSelectedBlock() {
+  const text = selectionStatus?.textContent ?? "";
+  return Boolean(text && !text.startsWith("선택된 블록 없음"));
+}
 
 function isExtractedDrag() {
   return Boolean(activePointer && selectionStatus?.textContent.includes("추출됨"));
 }
 
-function resetTransportKeys() {
+function hasVirtualPointerOffset() {
+  return Math.abs(heightOffset) > 0.01
+    || Math.abs(pointerOffsetX) > 0.01
+    || Math.abs(pointerOffsetY) > 0.01;
+}
+
+function resetTransportState() {
   activePointer = null;
   heightOffset = 0;
+  pointerOffsetX = 0;
+  pointerOffsetY = 0;
   raisePressed = false;
   lowerPressed = false;
   finePressed = false;
+  cameraDrag = null;
 }
 
-function dispatchVirtualHeightMove() {
-  if (!canvas || !activePointer || !isExtractedDrag()) return;
-  const virtualEvent = new PointerEvent("pointermove", {
+function virtualClientPosition() {
+  return {
+    x: (activePointer?.clientX ?? 0) + pointerOffsetX,
+    y: (activePointer?.clientY ?? 0) + pointerOffsetY + heightOffset,
+  };
+}
+
+function dispatchVirtualPointer(type, { button = -1, buttons = 1 } = {}) {
+  if (!canvas || !activePointer) return;
+  const client = virtualClientPosition();
+  canvas.dispatchEvent(new PointerEvent(type, {
     bubbles: true,
     cancelable: true,
     pointerId: activePointer.pointerId,
     pointerType: activePointer.pointerType,
     isPrimary: true,
-    button: -1,
-    buttons: 1,
-    clientX: activePointer.clientX,
-    clientY: activePointer.clientY + heightOffset,
-  });
-  canvas.dispatchEvent(virtualEvent);
+    button,
+    buttons,
+    clientX: client.x,
+    clientY: client.y,
+  }));
+}
+
+function rotateCamera(deltaX, deltaY) {
+  const runtime = window.__blockTowerGameRuntime;
+  const camera = runtime?.camera;
+  const target = runtime?.orbitTarget;
+  if (!camera || !target) return;
+
+  const offset = camera.position.clone().sub(target);
+  const spherical = new THREE.Spherical().setFromVector3(offset);
+  spherical.theta -= deltaX * CAMERA_ROTATE_SPEED;
+  spherical.phi = THREE.MathUtils.clamp(
+    spherical.phi + deltaY * CAMERA_ROTATE_SPEED,
+    MIN_POLAR_ANGLE,
+    MAX_POLAR_ANGLE,
+  );
+
+  camera.position.copy(target).add(new THREE.Vector3().setFromSpherical(spherical));
+  camera.lookAt(target);
+  camera.updateMatrixWorld(true);
+}
+
+function rebasePointerToDragMarker() {
+  if (!activePointer || !canvas) return;
+  const runtime = window.__blockTowerGameRuntime;
+  const camera = runtime?.camera;
+  const marker = runtime?.dragMarker;
+  if (!camera || !marker?.visible) return;
+
+  camera.updateMatrixWorld(true);
+  const projected = marker.position.clone().project(camera);
+  const rect = canvas.getBoundingClientRect();
+  const screenX = rect.left + ((projected.x + 1) * 0.5) * rect.width;
+  const screenY = rect.top + ((1 - projected.y) * 0.5) * rect.height;
+
+  pointerOffsetX = screenX - activePointer.clientX;
+  pointerOffsetY = screenY - activePointer.clientY - heightOffset;
+  dispatchVirtualPointer("pointermove");
 }
 
 function bindCanvas(nextCanvas) {
   if (!nextCanvas || canvas === nextCanvas) return;
   canvas = nextCanvas;
-
-  canvas.addEventListener("pointerdown", (event) => {
-    if (event.pointerType === "touch" || event.button !== 0) return;
-    activePointer = {
-      pointerId: event.pointerId,
-      pointerType: event.pointerType || "mouse",
-      clientX: event.clientX,
-      clientY: event.clientY,
-    };
-    heightOffset = 0;
-  }, { capture: true });
-
-  canvas.addEventListener("pointermove", (event) => {
-    if (!activePointer || event.pointerId !== activePointer.pointerId || !event.isTrusted) return;
-    activePointer.clientX = event.clientX;
-    activePointer.clientY = event.clientY;
-    if (isExtractedDrag() && Math.abs(heightOffset) > 0.01) {
-      dispatchVirtualHeightMove();
-    }
-  }, { capture: true });
-
-  const finishPointer = (event) => {
-    if (!activePointer || event.pointerId !== activePointer.pointerId) return;
-    resetTransportKeys();
-  };
-
-  canvas.addEventListener("pointerup", finishPointer, { capture: true });
-  canvas.addEventListener("pointercancel", finishPointer, { capture: true });
 }
 
 function findCanvas() {
@@ -87,6 +126,93 @@ if (sceneHost && !canvas) {
   });
   observer.observe(sceneHost, { childList: true, subtree: true });
 }
+
+sceneHost?.addEventListener("pointerdown", (event) => {
+  if (!event.isTrusted || event.pointerType === "touch") return;
+
+  if (event.button === 0) {
+    activePointer = {
+      pointerId: event.pointerId,
+      pointerType: event.pointerType || "mouse",
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+    heightOffset = 0;
+    pointerOffsetX = 0;
+    pointerOffsetY = 0;
+    return;
+  }
+
+  if (
+    event.button === 2
+    && activePointer
+    && event.pointerId === activePointer.pointerId
+    && (event.buttons & 1) !== 0
+    && hasSelectedBlock()
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+    cameraDrag = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+  }
+}, { capture: true });
+
+sceneHost?.addEventListener("pointermove", (event) => {
+  if (!event.isTrusted || !activePointer || event.pointerId !== activePointer.pointerId) return;
+
+  if (cameraDrag && (event.buttons & 2) !== 0) {
+    event.preventDefault();
+    event.stopPropagation();
+    const deltaX = event.clientX - cameraDrag.clientX;
+    const deltaY = event.clientY - cameraDrag.clientY;
+    cameraDrag.clientX = event.clientX;
+    cameraDrag.clientY = event.clientY;
+    activePointer.clientX = event.clientX;
+    activePointer.clientY = event.clientY;
+    rotateCamera(deltaX, deltaY);
+    return;
+  }
+
+  activePointer.clientX = event.clientX;
+  activePointer.clientY = event.clientY;
+
+  if (isExtractedDrag() && hasVirtualPointerOffset()) {
+    event.preventDefault();
+    event.stopPropagation();
+    dispatchVirtualPointer("pointermove");
+  }
+}, { capture: true });
+
+sceneHost?.addEventListener("pointerup", (event) => {
+  if (!event.isTrusted || !activePointer || event.pointerId !== activePointer.pointerId) return;
+
+  if (event.button === 2 && cameraDrag) {
+    event.preventDefault();
+    event.stopPropagation();
+    cameraDrag = null;
+    rebasePointerToDragMarker();
+    return;
+  }
+
+  if (event.button !== 0) return;
+
+  if (isExtractedDrag() && hasVirtualPointerOffset()) {
+    event.preventDefault();
+    event.stopPropagation();
+    dispatchVirtualPointer("pointerup", { button: 0, buttons: 0 });
+    resetTransportState();
+    return;
+  }
+
+  queueMicrotask(resetTransportState);
+}, { capture: true });
+
+sceneHost?.addEventListener("pointercancel", (event) => {
+  if (!event.isTrusted || !activePointer || event.pointerId !== activePointer.pointerId) return;
+  resetTransportState();
+}, { capture: true });
 
 window.addEventListener("keydown", (event) => {
   if (!activePointer) return;
@@ -116,19 +242,20 @@ window.addEventListener("blur", () => {
   raisePressed = false;
   lowerPressed = false;
   finePressed = false;
+  cameraDrag = null;
 });
 
 function animateHeightInput(now) {
   const deltaSeconds = Math.min((now - previousFrame) / 1000, 0.05);
   previousFrame = now;
 
-  if (isExtractedDrag() && raisePressed !== lowerPressed) {
+  if (isExtractedDrag() && !cameraDrag && raisePressed !== lowerPressed) {
     const speed = finePressed
       ? FINE_HEIGHT_SPEED_PX_PER_SECOND
       : HEIGHT_SPEED_PX_PER_SECOND;
     const direction = raisePressed ? -1 : 1;
     heightOffset += direction * speed * deltaSeconds;
-    dispatchVirtualHeightMove();
+    dispatchVirtualPointer("pointermove");
   }
 
   requestAnimationFrame(animateHeightInput);
