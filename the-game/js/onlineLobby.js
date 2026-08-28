@@ -2,6 +2,7 @@ const NICKNAME_STORAGE_KEY = "the-game-online-nickname";
 
 let api = null;
 let supabaseClient = null;
+let onlineGameModule = null;
 let views = null;
 let snapshot = null;
 let unsubscribeLobby = null;
@@ -39,6 +40,11 @@ async function ensureOnlineModules() {
   ]);
   api = apiModule;
   supabaseClient = supabaseModule.supabase;
+}
+
+async function ensureOnlineGameModule() {
+  onlineGameModule ??= await import("./onlineGame.js");
+  return onlineGameModule;
 }
 
 function createViews() {
@@ -176,6 +182,9 @@ function friendlyError(error) {
     ["ROOM_FULL", "방의 최대 인원이 모두 찼습니다."],
     ["ACTIVE_ROOM_EXISTS", "이미 참여 중인 더 게임 방이 있습니다. 온라인 플레이를 다시 열어 기존 방으로 복귀해 주세요."],
     ["PLAYER_NOT_MEMBER", "이 방에 참여 중인 플레이어가 아닙니다."],
+    ["HOST_REQUIRED", "게임 시작은 방장만 할 수 있습니다."],
+    ["INVALID_PLAYER_COUNT", "온라인 게임은 2명 이상이 모여야 시작할 수 있습니다."],
+    ["PLAYERS_NOT_READY", "모든 참가자가 준비 완료 상태여야 시작할 수 있습니다."],
     ["STATE_CHANGED", "다른 플레이어의 변경사항이 먼저 반영됐습니다. 최신 상태를 불러왔으니 다시 시도해 주세요."],
   ];
 
@@ -198,6 +207,7 @@ function setBusy(nextBusy) {
   for (const button of views.online.querySelectorAll("button")) button.disabled = nextBusy;
   views.readyButton.disabled = nextBusy;
   views.leaveButton.disabled = nextBusy;
+  views.startButton.disabled = nextBusy || !(snapshot?.room?.can_start && snapshot?.self?.is_host);
 }
 
 function closeSubscription() {
@@ -214,6 +224,7 @@ function closeSubscription() {
 function showOnlineEntry() {
   snapshot = null;
   closeSubscription();
+  onlineGameModule?.closeOnlineGame?.();
   views.lobby.hidden = true;
   views.online.hidden = false;
   setMessage(views.lobbyMessage);
@@ -221,9 +232,20 @@ function showOnlineEntry() {
 
 function returnToMode() {
   closeSubscription();
+  onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = true;
   views.lobby.hidden = true;
   document.dispatchEvent(new CustomEvent("the-game:return-home"));
+}
+
+async function openGame(gameSnapshot) {
+  if (!gameSnapshot?.game) return;
+  closeSubscription();
+  snapshot = null;
+  views.online.hidden = true;
+  views.lobby.hidden = true;
+  const gameModule = await ensureOnlineGameModule();
+  gameModule.openOnlineGame({ api, gameSnapshot });
 }
 
 function renderLobby() {
@@ -265,9 +287,14 @@ function renderLobby() {
   }
 
   views.readyButton.textContent = self.is_ready ? "준비 취소" : "준비하기";
-  views.startButton.textContent = room.can_start
-    ? "모두 준비 완료 · 게임 시작 연결 예정"
-    : "모두 준비되면 게임 시작";
+  if (self.is_host && room.can_start) {
+    views.startButton.textContent = "게임 시작";
+  } else if (!self.is_host && room.can_start) {
+    views.startButton.textContent = "방장의 게임 시작을 기다리는 중";
+  } else {
+    views.startButton.textContent = "모두 준비되면 게임 시작";
+  }
+  views.startButton.disabled = busy || !(self.is_host && room.can_start);
 }
 
 function scheduleRefresh() {
@@ -280,13 +307,21 @@ function scheduleRefresh() {
 
 async function refreshLobby() {
   if (!snapshot?.room?.id || !api) return;
+  const roomId = snapshot.room.id;
   try {
-    const next = await api.getLobbySnapshot(snapshot.room.id);
+    const next = await api.getLobbySnapshot(roomId);
     if (!next) {
       showOnlineEntry();
       setMessage(views.onlineMessage, "방이 종료되어 온라인 시작 화면으로 돌아왔습니다.");
       return;
     }
+
+    if (next.room?.status === "playing") {
+      const gameSnapshot = await api.getGameSnapshot(roomId);
+      if (gameSnapshot) await openGame(gameSnapshot);
+      return;
+    }
+
     snapshot = next;
     renderLobby();
   } catch (error) {
@@ -322,6 +357,7 @@ function openLobby(nextSnapshot) {
 
 async function bootOnline() {
   createViews();
+  onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = false;
   views.lobby.hidden = true;
   views.loading.hidden = false;
@@ -331,18 +367,28 @@ async function bootOnline() {
 
   try {
     await ensureOnlineModules();
-    const { data, error } = await supabaseClient.auth.getSession();
-    if (error) throw error;
-
-    if (!data.session) {
+    const { data, error } = await supabaseClient.auth.getUser();
+    if (error || !data.user) {
       views.loading.hidden = true;
       views.authGate.hidden = false;
+      return;
+    }
+
+    const activeGame = await api.getMyActiveGame();
+    if (activeGame) {
+      views.loading.hidden = true;
+      await openGame(activeGame);
       return;
     }
 
     const activeRoom = await api.getMyActiveRoom();
     views.loading.hidden = true;
     if (activeRoom) {
+      if (activeRoom.room?.status === "playing") {
+        const gameSnapshot = await api.getGameSnapshot(activeRoom.room.id);
+        if (gameSnapshot) await openGame(gameSnapshot);
+        return;
+      }
       openLobby(activeRoom);
       return;
     }
@@ -425,6 +471,24 @@ async function toggleReady() {
   }
 }
 
+async function startCurrentGame() {
+  if (busy || !snapshot?.room || !snapshot?.self?.is_host || !snapshot.room.can_start) return;
+  setBusy(true);
+  setMessage(views.lobbyMessage, "카드를 섞고 각 플레이어에게 배분하고 있습니다…");
+  try {
+    const gameSnapshot = await api.startGame({
+      roomId: snapshot.room.id,
+      expectedVersion: snapshot.room.version,
+    });
+    await openGame(gameSnapshot);
+  } catch (error) {
+    if ((error?.message ?? "").includes("STATE_CHANGED")) await refreshLobby();
+    setMessage(views.lobbyMessage, friendlyError(error));
+  } finally {
+    setBusy(false);
+  }
+}
+
 async function leaveCurrentRoom() {
   if (busy || !snapshot?.room) return;
   setBusy(true);
@@ -463,6 +527,7 @@ function bindEvents() {
   views.createForm.addEventListener("submit", createRoom);
   views.joinForm.addEventListener("submit", joinRoom);
   views.readyButton.addEventListener("click", toggleReady);
+  views.startButton.addEventListener("click", startCurrentGame);
   views.leaveButton.addEventListener("click", leaveCurrentRoom);
   views.copyButton.addEventListener("click", copyRoomCode);
   views.roomCodeInput.addEventListener("input", () => {
@@ -477,6 +542,7 @@ export async function openOnlineLobby() {
 export function closeOnlineLobby() {
   if (!views) return;
   closeSubscription();
+  onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = true;
   views.lobby.hidden = true;
 }
