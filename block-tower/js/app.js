@@ -82,10 +82,10 @@ const BLOCK_HEIGHT = 0.72;
 const GAP = 0.055;
 const LEVELS = 18;
 const PHYSICS_STEP = 1 / 60;
-const DRAG_DISTANCE_PER_PIXEL = 0.012;
-const DRAG_SPRING = 95;
-const DRAG_DAMPING = 13;
-const MAX_DRAG_FORCE = 130;
+const GRAB_SPRING = 105;
+const GRAB_DAMPING = 14;
+const MAX_GRAB_FORCE = 220;
+const MAX_GRAB_DISTANCE = 4.2;
 const blocks = [];
 const blockGeometry = new THREE.BoxGeometry(BLOCK_LENGTH, BLOCK_HEIGHT, BLOCK_WIDTH, 3, 1, 1);
 
@@ -107,7 +107,7 @@ const groundBody = world.createRigidBody(
 );
 world.createCollider(
   RAPIER.ColliderDesc.cuboid(7.2, 0.25, 7.2)
-    .setFriction(0.92)
+    .setFriction(0.9)
     .setRestitution(0.01),
   groundBody,
 );
@@ -142,7 +142,7 @@ for (let level = 0; level < LEVELS; level += 1) {
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(BLOCK_LENGTH / 2, BLOCK_HEIGHT / 2, BLOCK_WIDTH / 2)
         .setDensity(0.58)
-        .setFriction(0.72)
+        .setFriction(0.66)
         .setRestitution(0.015),
       body,
     );
@@ -155,7 +155,6 @@ for (let level = 0; level < LEVELS; level += 1) {
       slot: slot + 1,
       selected: false,
       body,
-      dragAxis: rotate ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0),
     };
     scene.add(block);
     blocks.push(block);
@@ -164,6 +163,13 @@ for (let level = 0; level < LEVELS; level += 1) {
 
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
+const dragTargetMarker = new THREE.Mesh(
+  new THREE.SphereGeometry(0.09, 16, 12),
+  new THREE.MeshBasicMaterial({ color: 0xffc27e, transparent: true, opacity: 0.78 }),
+);
+dragTargetMarker.visible = false;
+scene.add(dragTargetMarker);
+
 let selectedBlock = null;
 let pointerDown = null;
 let dragState = null;
@@ -199,28 +205,69 @@ function updatePointer(event) {
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 }
 
-function pickBlock(event) {
+function pickBlockHit(event) {
   updatePointer(event);
   raycaster.setFromCamera(pointer, camera);
   const [hit] = raycaster.intersectObjects(blocks, false);
-  return hit?.object ?? null;
+  return hit ?? null;
 }
 
-function screenDragDirection(block, axis) {
-  const rect = renderer.domElement.getBoundingClientRect();
-  const origin = block.position.clone().project(camera);
-  const axisPoint = block.position.clone().add(axis).project(camera);
-  const dx = (axisPoint.x - origin.x) * rect.width * 0.5;
-  const dy = -(axisPoint.y - origin.y) * rect.height * 0.5;
-  const length = Math.hypot(dx, dy);
-  if (length < 0.001) return { x: 1, y: 0 };
-  return { x: dx / length, y: dy / length };
+function localPointFromWorld(block, worldPoint) {
+  block.updateMatrixWorld(true);
+  return block.worldToLocal(worldPoint.clone());
+}
+
+function bodyPointToWorld(body, localPoint) {
+  const translation = body.translation();
+  const rotation = body.rotation();
+  const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+  return localPoint.clone().applyQuaternion(quaternion).add(
+    new THREE.Vector3(translation.x, translation.y, translation.z),
+  );
+}
+
+function pointVelocity(body, worldPoint) {
+  const translation = body.translation();
+  const linearVelocity = body.linvel();
+  const angularVelocity = body.angvel();
+  const radius = worldPoint.clone().sub(
+    new THREE.Vector3(translation.x, translation.y, translation.z),
+  );
+  const angular = new THREE.Vector3(
+    angularVelocity.x,
+    angularVelocity.y,
+    angularVelocity.z,
+  );
+  return new THREE.Vector3(
+    linearVelocity.x,
+    linearVelocity.y,
+    linearVelocity.z,
+  ).add(angular.cross(radius));
+}
+
+function updateDragTarget(event) {
+  if (!dragState) return;
+
+  updatePointer(event);
+  raycaster.setFromCamera(pointer, camera);
+  const nextTarget = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(dragState.plane, nextTarget)) return;
+
+  const offset = nextTarget.sub(dragState.startTarget);
+  if (offset.length() > MAX_GRAB_DISTANCE) {
+    offset.setLength(MAX_GRAB_DISTANCE);
+  }
+
+  dragState.targetPoint.copy(dragState.startTarget).add(offset);
+  dragTargetMarker.position.copy(dragState.targetPoint);
 }
 
 function finishDrag(pointerId) {
   if (!dragState || dragState.pointerId !== pointerId) return;
   dragState.body.resetForces(true);
+  dragState.body.resetTorques(true);
   dragState = null;
+  dragTargetMarker.visible = false;
   sceneHost.classList.remove("is-dragging");
   selectionStatus.textContent = selectionLabel(selectedBlock);
   if (renderer.domElement.hasPointerCapture(pointerId)) {
@@ -231,44 +278,45 @@ function finishDrag(pointerId) {
 renderer.domElement.addEventListener("pointerdown", (event) => {
   if (event.button !== 0) return;
 
-  const block = pickBlock(event);
+  const hit = pickBlockHit(event);
+  const block = hit?.object ?? null;
   pointerDown = { x: event.clientX, y: event.clientY, block };
 
-  if (!block) return;
+  if (!hit || !block) return;
 
   setSelectedBlock(block);
-  const translation = block.userData.body.translation();
+  const cameraDirection = camera.getWorldDirection(new THREE.Vector3()).normalize();
+  const grabPoint = hit.point.clone();
   dragState = {
     pointerId: event.pointerId,
     block,
     body: block.userData.body,
-    axis: block.userData.dragAxis.clone(),
-    screenAxis: screenDragDirection(block, block.userData.dragAxis),
+    localGrabPoint: localPointFromWorld(block, grabPoint),
+    plane: new THREE.Plane().setFromNormalAndCoplanarPoint(cameraDirection, grabPoint),
+    startTarget: grabPoint.clone(),
+    targetPoint: grabPoint.clone(),
     startClientX: event.clientX,
     startClientY: event.clientY,
-    startPosition: new THREE.Vector3(translation.x, translation.y, translation.z),
-    targetOffset: 0,
     moved: false,
   };
+  dragTargetMarker.position.copy(grabPoint);
+  dragTargetMarker.visible = true;
   renderer.domElement.setPointerCapture(event.pointerId);
 });
 
 renderer.domElement.addEventListener("pointermove", (event) => {
   if (!dragState || dragState.pointerId !== event.pointerId) return;
 
-  const deltaX = event.clientX - dragState.startClientX;
-  const deltaY = event.clientY - dragState.startClientY;
-  const projectedPixels = deltaX * dragState.screenAxis.x + deltaY * dragState.screenAxis.y;
-  dragState.targetOffset = THREE.MathUtils.clamp(
-    projectedPixels * DRAG_DISTANCE_PER_PIXEL,
-    -3.4,
-    3.4,
+  updateDragTarget(event);
+  const movedPixels = Math.hypot(
+    event.clientX - dragState.startClientX,
+    event.clientY - dragState.startClientY,
   );
-  dragState.moved = dragState.moved || Math.abs(projectedPixels) > 4;
+  dragState.moved = dragState.moved || movedPixels > 4;
 
   if (dragState.moved) {
     sceneHost.classList.add("is-dragging");
-    selectionStatus.textContent = selectionLabel(dragState.block, " · 밀기/당기기 중");
+    selectionStatus.textContent = selectionLabel(dragState.block, " · 자유 조작 중");
   }
 });
 
@@ -286,7 +334,7 @@ renderer.domElement.addEventListener("pointerup", (event) => {
   }
 
   if (moved <= 6) {
-    setSelectedBlock(pressedBlock ?? pickBlock(event));
+    setSelectedBlock(pressedBlock ?? pickBlockHit(event)?.object ?? null);
   }
 });
 
@@ -295,29 +343,27 @@ renderer.domElement.addEventListener("pointercancel", (event) => {
   finishDrag(event.pointerId);
 });
 
-function applyDragForce() {
+function applyGrabForce() {
   if (!dragState) return;
 
-  const position = dragState.body.translation();
-  const velocity = dragState.body.linvel();
-  const current = new THREE.Vector3(position.x, position.y, position.z);
-  const target = dragState.startPosition.clone().addScaledVector(dragState.axis, dragState.targetOffset);
-  const error = target.sub(current).dot(dragState.axis);
-  const velocityAlongAxis = velocity.x * dragState.axis.x
-    + velocity.y * dragState.axis.y
-    + velocity.z * dragState.axis.z;
-  const magnitude = THREE.MathUtils.clamp(
-    error * DRAG_SPRING - velocityAlongAxis * DRAG_DAMPING,
-    -MAX_DRAG_FORCE,
-    MAX_DRAG_FORCE,
-  );
+  const currentGrabPoint = bodyPointToWorld(dragState.body, dragState.localGrabPoint);
+  const velocityAtGrabPoint = pointVelocity(dragState.body, currentGrabPoint);
+  const force = dragState.targetPoint.clone()
+    .sub(currentGrabPoint)
+    .multiplyScalar(GRAB_SPRING)
+    .addScaledVector(velocityAtGrabPoint, -GRAB_DAMPING);
+
+  if (force.length() > MAX_GRAB_FORCE) {
+    force.setLength(MAX_GRAB_FORCE);
+  }
 
   dragState.body.resetForces(true);
-  dragState.body.addForce({
-    x: dragState.axis.x * magnitude,
-    y: 0,
-    z: dragState.axis.z * magnitude,
-  }, true);
+  dragState.body.resetTorques(true);
+  dragState.body.addForceAtPoint(
+    { x: force.x, y: force.y, z: force.z },
+    { x: currentGrabPoint.x, y: currentGrabPoint.y, z: currentGrabPoint.z },
+    true,
+  );
 }
 
 function syncBlocksFromPhysics() {
@@ -352,7 +398,7 @@ function animate(now) {
   accumulator += elapsed;
 
   while (accumulator >= PHYSICS_STEP) {
-    applyDragForce();
+    applyGrabForce();
     world.step();
     accumulator -= PHYSICS_STEP;
   }
