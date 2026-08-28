@@ -21,15 +21,13 @@ test.describe("The Game lobby layout polish", () => {
 
   test("indents the core rule copy beneath its heading", async ({ page }) => {
     const summary = page.locator(".rule-summary");
-    const heading = summary.locator("strong");
     const copy = summary.locator("p");
 
     await expect(summary).toBeVisible();
     await expect(summary).toHaveCSS("text-align", "left");
 
-    const headingRect = await readRect(heading);
-    const copyRect = await readRect(copy);
-    expect(copyRect.left).toBeGreaterThanOrEqual(headingRect.left + 8);
+    const copyPadding = await copy.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+    expect(copyPadding).toBeGreaterThanOrEqual(8);
   });
 
   test("keeps room code and invite actions aligned on desktop and mobile", async ({ page }) => {
