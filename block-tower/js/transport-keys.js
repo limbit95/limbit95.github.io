@@ -125,7 +125,9 @@ function rebasePointerToDragMarker() {
   if (!camera || !marker?.visible) return;
 
   camera.updateMatrixWorld(true);
-  const projected = marker.position.clone().project(camera);
+  // The ray hook adds the accumulated WASD floor offset after projection.
+  // Remove it here so releasing right-click does not apply that offset twice.
+  const projected = marker.position.clone().sub(floorOffset).project(camera);
   const rect = canvas.getBoundingClientRect();
   const screenX = rect.left + ((projected.x + 1) * 0.5) * rect.width;
   const screenY = rect.top + ((1 - projected.y) * 0.5) * rect.height;
