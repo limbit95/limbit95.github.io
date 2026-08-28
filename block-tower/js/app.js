@@ -92,6 +92,8 @@ const MAX_POINTER_TARGET_SPEED = 9;
 const POINTER_VELOCITY_SMOOTHING = 0.45;
 const POINTER_VELOCITY_DECAY = 0.82;
 const MAX_GRAB_DISTANCE = 4.2;
+// Lower levels stay physically heavy, but fast hand movement gets extra breakaway force
+// so tightly loaded blocks remain removable without making the whole tower lighter.
 const LOWER_BREAKAWAY_LEVELS = 4;
 const BREAKAWAY_SPEED_START = 2.8;
 const BREAKAWAY_SPEED_FULL = 7.2;
