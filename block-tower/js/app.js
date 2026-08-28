@@ -82,9 +82,15 @@ const BLOCK_HEIGHT = 0.72;
 const GAP = 0.055;
 const LEVELS = 18;
 const PHYSICS_STEP = 1 / 60;
-const GRAB_SPRING = 105;
-const GRAB_DAMPING = 14;
-const MAX_GRAB_FORCE = 220;
+const GRAB_SPRING = 115;
+const GRAB_DAMPING = 13;
+const GRAB_POINTER_VELOCITY_GAIN = 24;
+const MAX_GRAB_FORCE = 260;
+const MAX_FAST_GRAB_FORCE = 460;
+const POINTER_SPEED_FOR_MAX_BOOST = 6.5;
+const MAX_POINTER_TARGET_SPEED = 9;
+const POINTER_VELOCITY_SMOOTHING = 0.45;
+const POINTER_VELOCITY_DECAY = 0.82;
 const MAX_GRAB_DISTANCE = 4.2;
 const blocks = [];
 const blockGeometry = new THREE.BoxGeometry(BLOCK_LENGTH, BLOCK_HEIGHT, BLOCK_WIDTH, 3, 1, 1);
@@ -107,7 +113,7 @@ const groundBody = world.createRigidBody(
 );
 world.createCollider(
   RAPIER.ColliderDesc.cuboid(7.2, 0.25, 7.2)
-    .setFriction(0.9)
+    .setFriction(0.82)
     .setRestitution(0.01),
   groundBody,
 );
@@ -136,13 +142,13 @@ for (let level = 0; level < LEVELS; level += 1) {
         z: block.quaternion.z,
         w: block.quaternion.w,
       })
-      .setLinearDamping(0.28)
-      .setAngularDamping(0.42);
+      .setLinearDamping(0.24)
+      .setAngularDamping(0.38);
     const body = world.createRigidBody(rigidBodyDesc);
     world.createCollider(
       RAPIER.ColliderDesc.cuboid(BLOCK_LENGTH / 2, BLOCK_HEIGHT / 2, BLOCK_WIDTH / 2)
-        .setDensity(0.58)
-        .setFriction(0.66)
+        .setDensity(0.5)
+        .setFriction(0.56)
         .setRestitution(0.015),
       body,
     );
@@ -250,15 +256,30 @@ function updateDragTarget(event) {
 
   updatePointer(event);
   raycaster.setFromCamera(pointer, camera);
-  const nextTarget = new THREE.Vector3();
-  if (!raycaster.ray.intersectPlane(dragState.plane, nextTarget)) return;
+  const projectedTarget = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(dragState.plane, projectedTarget)) return;
 
-  const offset = nextTarget.sub(dragState.startTarget);
+  const offset = projectedTarget.sub(dragState.startTarget);
   if (offset.length() > MAX_GRAB_DISTANCE) {
     offset.setLength(MAX_GRAB_DISTANCE);
   }
 
-  dragState.targetPoint.copy(dragState.startTarget).add(offset);
+  const nextTarget = dragState.startTarget.clone().add(offset);
+  const elapsed = THREE.MathUtils.clamp(
+    (event.timeStamp - dragState.lastPointerTime) / 1000,
+    1 / 240,
+    0.05,
+  );
+  const instantTargetVelocity = nextTarget.clone()
+    .sub(dragState.targetPoint)
+    .divideScalar(elapsed);
+  if (instantTargetVelocity.length() > MAX_POINTER_TARGET_SPEED) {
+    instantTargetVelocity.setLength(MAX_POINTER_TARGET_SPEED);
+  }
+
+  dragState.targetVelocity.lerp(instantTargetVelocity, POINTER_VELOCITY_SMOOTHING);
+  dragState.targetPoint.copy(nextTarget);
+  dragState.lastPointerTime = event.timeStamp;
   dragTargetMarker.position.copy(dragState.targetPoint);
 }
 
@@ -295,6 +316,8 @@ renderer.domElement.addEventListener("pointerdown", (event) => {
     plane: new THREE.Plane().setFromNormalAndCoplanarPoint(cameraDirection, grabPoint),
     startTarget: grabPoint.clone(),
     targetPoint: grabPoint.clone(),
+    targetVelocity: new THREE.Vector3(),
+    lastPointerTime: event.timeStamp,
     startClientX: event.clientX,
     startClientY: event.clientY,
     moved: false,
@@ -348,13 +371,25 @@ function applyGrabForce() {
 
   const currentGrabPoint = bodyPointToWorld(dragState.body, dragState.localGrabPoint);
   const velocityAtGrabPoint = pointVelocity(dragState.body, currentGrabPoint);
+  const pointerSpeed = dragState.targetVelocity.length();
+  const speedBoost = THREE.MathUtils.clamp(
+    pointerSpeed / POINTER_SPEED_FOR_MAX_BOOST,
+    0,
+    1,
+  );
+  const maxForce = THREE.MathUtils.lerp(
+    MAX_GRAB_FORCE,
+    MAX_FAST_GRAB_FORCE,
+    speedBoost,
+  );
   const force = dragState.targetPoint.clone()
     .sub(currentGrabPoint)
     .multiplyScalar(GRAB_SPRING)
+    .addScaledVector(dragState.targetVelocity, GRAB_POINTER_VELOCITY_GAIN)
     .addScaledVector(velocityAtGrabPoint, -GRAB_DAMPING);
 
-  if (force.length() > MAX_GRAB_FORCE) {
-    force.setLength(MAX_GRAB_FORCE);
+  if (force.length() > maxForce) {
+    force.setLength(maxForce);
   }
 
   dragState.body.resetForces(true);
@@ -364,6 +399,7 @@ function applyGrabForce() {
     { x: currentGrabPoint.x, y: currentGrabPoint.y, z: currentGrabPoint.z },
     true,
   );
+  dragState.targetVelocity.multiplyScalar(POINTER_VELOCITY_DECAY);
 }
 
 function syncBlocksFromPhysics() {
