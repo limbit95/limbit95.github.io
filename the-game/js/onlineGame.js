@@ -350,12 +350,14 @@ function scheduleRefresh() {
 function subscribe() {
   closeSubscription();
   const gameId = snapshot?.game?.id;
-  if (!gameId) return;
+  const roomId = snapshot?.room?.id;
+  if (!gameId || !roomId) return;
 
   const connection = screen.querySelector("[data-online-game-connection]");
   connection.textContent = "실시간 연결 중…";
   unsubscribeGame = api.subscribeGame({
     gameId,
+    roomId,
     onChange: scheduleRefresh,
     onStatus(status) {
       if (status === "SUBSCRIBED") connection.textContent = "실시간 연결됨";
