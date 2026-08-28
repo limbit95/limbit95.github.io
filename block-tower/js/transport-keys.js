@@ -3,8 +3,8 @@ import * as THREE from "three";
 const sceneHost = document.querySelector("#scene");
 const selectionStatus = document.querySelector("#selection-status");
 
-const HEIGHT_SPEED_PX_PER_SECOND = 260;
-const FINE_HEIGHT_SPEED_PX_PER_SECOND = 70;
+const HEIGHT_SPEED_PX_PER_SECOND = 240;
+const FINE_HEIGHT_SPEED_PX_PER_SECOND = 60;
 const CAMERA_ROTATE_SPEED = 0.005;
 const MIN_POLAR_ANGLE = Math.PI * 0.17;
 const MAX_POLAR_ANGLE = Math.PI * 0.49;
