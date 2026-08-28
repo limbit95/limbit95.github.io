@@ -1,10 +1,5 @@
-.content-grid[aria-label="게임 목록"] {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 360px));
-  justify-content: center;
-}
-
 .content-grid[aria-label="게임 목록"] > .card.page-stack {
-  grid-template-columns: clamp(76px, 18vw, 88px) minmax(0, 1fr);
+  grid-template-columns: clamp(76px, 18vw, 88px) minmax(0, 320px);
   grid-template-rows: auto auto;
   grid-template-areas:
     "icon details"
