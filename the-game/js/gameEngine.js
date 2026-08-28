@@ -40,6 +40,55 @@ function createResult(outcome, remainingCards, reason) {
   };
 }
 
+function canCompleteMinimumPlay(state) {
+  const required = getRequiredCardsThisTurn(state);
+  const needed = Math.max(0, required - state.cardsPlayedThisTurn);
+  if (needed === 0) return true;
+
+  const player = state.players[state.currentPlayerIndex];
+  if (!player || player.hand.length < needed) return false;
+
+  function search(handCards, piles, remainingNeeded) {
+    for (let cardIndex = 0; cardIndex < handCards.length; cardIndex += 1) {
+      const card = handCards[cardIndex];
+
+      for (let pileIndex = 0; pileIndex < piles.length; pileIndex += 1) {
+        const pile = piles[pileIndex];
+        if (!canPlayCard(card, pile)) continue;
+        if (remainingNeeded === 1) return true;
+
+        const nextHand = handCards.filter((_, index) => index !== cardIndex);
+        const nextPiles = piles.map((candidate, index) => (
+          index === pileIndex ? { ...candidate, value: card } : candidate
+        ));
+
+        if (search(nextHand, nextPiles, remainingNeeded - 1)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  return search(player.hand, state.piles, needed);
+}
+
+function getNextActivePlayerIndex(players, currentPlayerIndex, drawPileIsEmpty) {
+  if (!drawPileIsEmpty) {
+    return (currentPlayerIndex + 1) % players.length;
+  }
+
+  for (let offset = 1; offset <= players.length; offset += 1) {
+    const candidateIndex = (currentPlayerIndex + offset) % players.length;
+    if (players[candidateIndex].hand.length > 0) {
+      return candidateIndex;
+    }
+  }
+
+  return currentPlayerIndex;
+}
+
 export function createDeck() {
   return Array.from({ length: TOTAL_NUMBER_CARDS }, (_, index) => CARD_MIN + index);
 }
@@ -174,8 +223,7 @@ export function evaluateGameState(state) {
     };
   }
 
-  const requiredCards = getRequiredCardsThisTurn(state);
-  if (state.cardsPlayedThisTurn < requiredCards && getPlayableMoves(state).length === 0) {
+  if (!canCompleteMinimumPlay(state)) {
     return {
       ...state,
       status: GAME_STATUS.LOST,
@@ -264,7 +312,11 @@ export function endTurn(state) {
     ...state,
     players,
     drawPile,
-    currentPlayerIndex: (state.currentPlayerIndex + 1) % state.playerCount,
+    currentPlayerIndex: getNextActivePlayerIndex(
+      players,
+      state.currentPlayerIndex,
+      drawPile.length === 0,
+    ),
     cardsPlayedThisTurn: 0,
     turnNumber: state.turnNumber + 1,
   };
