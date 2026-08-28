@@ -1,0 +1,138 @@
+/* Extra compression for short landscape phones.
+   Loaded after responsive-board.css so the game fits in one visual viewport. */
+
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1100px) {
+  .online-game-screen:not([hidden]) > *,
+  #game-screen:not([hidden]) > * {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    grid-template-rows: 40px 30px minmax(0, 1fr) 44px;
+  }
+
+  .online-game-screen .online-game-header,
+  #game-screen .game-header {
+    height: 40px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .online-game-screen .online-game-header .ghost-button,
+  #game-screen .game-header .ghost-button {
+    min-height: 36px;
+    height: 36px;
+  }
+
+  .online-game-screen .deck-counter,
+  #game-screen .deck-counter {
+    min-height: 36px;
+    height: 36px;
+    padding-block: 3px;
+  }
+
+  .online-game-screen .turn-progress,
+  #game-screen .turn-progress {
+    height: 30px;
+    min-height: 0;
+    padding: 5px 8px;
+    overflow: hidden;
+  }
+
+  .online-game-screen .turn-progress p,
+  #game-screen .turn-progress p {
+    display: none;
+  }
+
+  .online-game-screen .pile-grid,
+  #game-screen .pile-grid {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .online-game-screen .online-game-players {
+    height: 44px;
+    min-height: 0;
+    max-height: 44px;
+    overflow-y: hidden;
+  }
+
+  .online-game-screen .online-game-player {
+    height: 40px;
+    min-height: 0;
+    padding: 5px 8px;
+    justify-content: center;
+  }
+
+  .online-game-screen .online-game-player span {
+    display: none;
+  }
+
+  .online-game-screen .hand-panel,
+  #game-screen .hand-panel {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .online-game-screen .hand,
+  #game-screen .hand {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .online-game-screen .online-game-actions,
+  #game-screen .end-turn-button {
+    min-height: 0;
+    height: 44px;
+  }
+
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    min-height: 44px;
+    height: 44px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 360px) and (max-width: 850px) {
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    grid-template-rows: 36px 26px minmax(0, 1fr) 40px;
+  }
+
+  .online-game-screen .online-game-header,
+  #game-screen .game-header {
+    height: 36px;
+  }
+
+  .online-game-screen .online-game-header .ghost-button,
+  #game-screen .game-header .ghost-button,
+  .online-game-screen .deck-counter,
+  #game-screen .deck-counter {
+    min-height: 32px;
+    height: 32px;
+  }
+
+  .online-game-screen .turn-progress,
+  #game-screen .turn-progress {
+    height: 26px;
+    padding: 3px 7px;
+  }
+
+  .online-game-screen .online-game-players {
+    height: 40px;
+    max-height: 40px;
+  }
+
+  .online-game-screen .online-game-player {
+    height: 36px;
+  }
+
+  .online-game-screen .online-game-actions,
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    min-height: 40px;
+    height: 40px;
+  }
+}
