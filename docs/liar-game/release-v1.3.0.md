@@ -28,10 +28,10 @@ v1.3.0은 기존 게임 규칙을 변경하지 않고, 같은 `game_id` 안에�
 실제 라이어/스파이 여부와 관계없이 최종 검거 후보(`is_final_suspect`)에게 준 표를 누적한다.
 
 ### 💸 힌트 플렉스
-같은 게임에서 힌트 구매에 사용한 코인 비용을 합산해 가장 많이 사용한 플레이어를 표시한다.
+**정상 종료되고 라이어/스파이 신원 공개까지 완료된 라운드만** 대상으로, 힌트 구매에 사용한 코인 비용을 합산해 가장 많이 사용한 플레이어를 표시한다. 현재 진행 중이거나 공개 대기 중인 라운드의 구매는 통계에 포함하지 않는다.
 
 ### 🏦 존버왕
-힌트 코인을 1P 이상 획득한 플레이어 중 `현재 잔액 / 총 획득 코인` 비율이 가장 높은 플레이어를 표시한다. 모두 사용한 경우 0%도 유효한 기록이다.
+신원 공개가 완료된 라운드에서 획득·사용한 코인 기록만 다시 합산하고, 1P 이상 획득한 플레이어 중 `공개 완료 라운드 기준 잔액 / 총 획득 코인` 비율이 가장 높은 플레이어를 표시한다. 모두 사용한 경우 0%도 유효한 기록이다. 실제 지갑의 현재 `balance/spent` 값을 직접 노출하지 않기 때문에 진행 중 라운드의 힌트 구매 여부가 역추론되지 않는다.
 
 ### 🎨 폭풍 드로잉
 정상 종료된 그림 스파이 라운드에서 서버에 저장된 획 수를 플레이어별로 누적한다.
@@ -55,16 +55,19 @@ v1.3.0은 기존 게임 규칙을 변경하지 않고, 같은 `game_id` 안에�
 
 ## Database
 
-Production migration:
+Production migrations:
 
 ```text
 supabase/liar-game/migrations/20260828223226_liar_expanded_mvp_stats_v13.sql
 supabase/liar-game/migrations/20260828224040_liar_expanded_mvp_mutual_rival_fix.sql
+supabase/liar-game/migrations/20260828224614_liar_expanded_mvp_hint_privacy_fix.sql
 ```
 
 신규 `liar_get_game_stats_v13(uuid)` RPC는 기존 `liar_get_game_stats_v12(uuid)` 결과를 기반으로 확장한다. 기존 v1.2 함수와 기존 5개 통계 계산은 변경하지 않는다.
 
 두 번째 migration은 초기 v13의 2인 조합 집계에서 한 방향 투표만 있는 쌍도 라이벌 후보가 될 수 있던 의미 차이를 바로잡아, 양방향 투표가 모두 존재하는 쌍만 허용한다.
+
+세 번째 migration은 힌트 MVP가 현재 라운드 구매를 통해 숨은 역할을 공개 전에 역추론할 수 없도록, `힌트 플렉스`와 `존버왕`의 입력 데이터를 **완료 + 신원 공개 라운드**로 제한한다.
 
 권한은 기존 통계 RPC와 동일하게 유지한다.
 
@@ -79,5 +82,6 @@ supabase/liar-game/migrations/20260828224040_liar_expanded_mvp_mutual_rival_fix.
 - `운명의 라이벌`, `한우물만 판다`, `대세를 따르는 자`, `힌트 플렉스`, `존버왕`, `폭풍 드로잉` 실제 값 반환 확인
 - 과거 게임에서 양방향 투표 쌍(`directions=2`)과 단방향 투표 쌍(`directions=1`)이 함께 존재함을 확인하고, 라이벌 후보는 양방향 쌍만 남도록 보정
 - 재투표가 존재하는 과거 게임으로 `갈대왕` / `고집왕` 계산 확인
-- 테스트를 위해 바꾼 room/player 상태는 transaction rollback 처리
-- 신규 RPC를 사용하기 전 기존 프론트는 계속 v1.2 RPC를 사용하므로 DB migration 자체는 기존 클라이언트 동작에 영향 없음
+- 실제 힌트 구매가 있던 완료 라운드의 `liars_revealed_at`을 transaction 안에서 임시로 숨긴 상태에서 다른 참가자 권한으로 v13 RPC 호출 → `hint_spender = null` 확인
+- 같은 테스트에서 `존버왕`도 해당 미공개 구매를 소비 기록으로 반영하지 않는 것을 확인
+- 테스트를 위해 바꾼 room/player/round 상태는 transaction rollback 처리
