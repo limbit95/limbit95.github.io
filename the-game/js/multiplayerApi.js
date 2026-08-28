@@ -50,6 +50,13 @@ export function startGame({ roomId, expectedVersion }) {
   });
 }
 
+export function prepareRematch({ roomId, expectedVersion }) {
+  return rpc("the_game_prepare_rematch", {
+    p_room_id: roomId,
+    p_expected_version: expectedVersion,
+  });
+}
+
 export function getGameSnapshot(roomId) {
   return rpc("the_game_get_game_snapshot", { p_room_id: roomId });
 }
