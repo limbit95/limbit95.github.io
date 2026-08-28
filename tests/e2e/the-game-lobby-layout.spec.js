@@ -19,23 +19,20 @@ test.describe("The Game lobby layout polish", () => {
     await page.goto("/the-game/");
   });
 
-  test("centers the core rule copy with balanced sentence indentation", async ({ page }) => {
+  test("centers core rules and indents only the second sentence", async ({ page }) => {
     const summary = page.locator("#mode-screen .rule-summary");
-    const copy = summary.locator("p");
+    const firstLine = summary.locator(".rule-summary__line").first();
+    const secondLine = summary.locator(".rule-summary__line--indent");
 
     await expect(summary).toBeVisible();
     await expect(summary).toHaveCSS("text-align", "center");
-    await expect(copy).toHaveCSS("text-align", "center");
+    await expect(firstLine).toHaveText("오름차순은 큰 수, 내림차순은 작은 수를 놓습니다.");
+    await expect(secondLine).toHaveText("정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.");
+    await expect(firstLine).toHaveCSS("text-align", "center");
+    await expect(secondLine).toHaveCSS("text-align", "center");
 
-    const summaryRect = await readRect(summary);
-    const copyRect = await readRect(copy);
-    const leftInset = copyRect.left - summaryRect.left;
-    const rightInset = summaryRect.right - copyRect.right;
-
-    expect(copyRect.width).toBeLessThan(summaryRect.width);
-    expect(leftInset).toBeGreaterThanOrEqual(9);
-    expect(rightInset).toBeGreaterThanOrEqual(9);
-    expect(Math.abs(leftInset - rightInset)).toBeLessThanOrEqual(2);
+    const secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+    expect(secondPadding).toBeGreaterThanOrEqual(10);
     await expect(page.getByRole("button", { name: "게임 규칙", exact: true })).toBeVisible();
   });
 
