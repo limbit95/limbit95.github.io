@@ -11,6 +11,21 @@ test.describe("The Game local prototype", () => {
     await expect(page.getByRole("button", { name: /한 기기 플레이/ })).toBeVisible();
   });
 
+  test("loads the online game screen controller as a browser module", async ({ page }) => {
+    const exportedTypes = await page.evaluate(async () => {
+      const module = await import("/the-game/js/onlineGame.js");
+      return {
+        openOnlineGame: typeof module.openOnlineGame,
+        closeOnlineGame: typeof module.closeOnlineGame,
+      };
+    });
+
+    expect(exportedTypes).toEqual({
+      openOnlineGame: "function",
+      closeOnlineGame: "function",
+    });
+  });
+
   test("starts a three-player one-device game with the original pile and hand setup", async ({ page }) => {
     await page.getByRole("button", { name: /한 기기 플레이/ }).click();
     await page.getByRole("button", { name: "게임 시작" }).click();
