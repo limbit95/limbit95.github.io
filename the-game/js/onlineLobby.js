@@ -7,7 +7,10 @@ let views = null;
 let snapshot = null;
 let unsubscribeLobby = null;
 let refreshTimer = null;
+let reconnectTimer = null;
 let busy = false;
+let lobbyOpen = false;
+let networkEventsBound = false;
 
 function ensureSupabaseLibrary() {
   if (window.supabase?.createClient) return Promise.resolve();
@@ -164,6 +167,7 @@ function createViews() {
   };
 
   bindEvents();
+  bindNetworkEvents();
   return views;
 }
 
@@ -215,22 +219,48 @@ function closeSubscription() {
     clearTimeout(refreshTimer);
     refreshTimer = null;
   }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
   if (unsubscribeLobby) {
     unsubscribeLobby();
     unsubscribeLobby = null;
   }
 }
 
+function bindNetworkEvents() {
+  if (networkEventsBound) return;
+  networkEventsBound = true;
+
+  window.addEventListener("offline", () => {
+    if (!lobbyOpen || !views) return;
+    views.connectionStatus.textContent = "오프라인 · 네트워크 연결을 기다리는 중";
+  });
+
+  window.addEventListener("online", () => {
+    if (!lobbyOpen || !views) return;
+    views.connectionStatus.textContent = "네트워크 복구 중…";
+    scheduleLobbyReconnect(80);
+  });
+}
+
 function showOnlineEntry() {
+  lobbyOpen = false;
   snapshot = null;
   closeSubscription();
   onlineGameModule?.closeOnlineGame?.();
   views.lobby.hidden = true;
   views.online.hidden = false;
+  views.loading.hidden = true;
+  views.authGate.hidden = true;
+  views.controls.hidden = false;
+  views.nickname.value = localStorage.getItem(NICKNAME_STORAGE_KEY) ?? views.nickname.value;
   setMessage(views.lobbyMessage);
 }
 
 function returnToMode() {
+  lobbyOpen = false;
   closeSubscription();
   onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = true;
@@ -240,12 +270,17 @@ function returnToMode() {
 
 async function openGame(gameSnapshot) {
   if (!gameSnapshot?.game) return;
+  lobbyOpen = false;
   closeSubscription();
   snapshot = null;
   views.online.hidden = true;
   views.lobby.hidden = true;
   const gameModule = await ensureOnlineGameModule();
-  gameModule.openOnlineGame({ api, gameSnapshot });
+  gameModule.openOnlineGame({
+    api,
+    gameSnapshot,
+    onReturnToLobby: openLobby,
+  });
 }
 
 function renderLobby() {
@@ -305,6 +340,17 @@ function scheduleRefresh() {
   }, 80);
 }
 
+function scheduleLobbyReconnect(delay = 1200) {
+  if (!lobbyOpen || reconnectTimer) return;
+  reconnectTimer = window.setTimeout(async () => {
+    reconnectTimer = null;
+    if (!lobbyOpen) return;
+    await refreshLobby();
+    if (!lobbyOpen || !snapshot?.room?.id) return;
+    subscribeCurrentLobby();
+  }, delay);
+}
+
 async function refreshLobby() {
   if (!snapshot?.room?.id || !api) return;
   const roomId = snapshot.room.id;
@@ -325,38 +371,61 @@ async function refreshLobby() {
     snapshot = next;
     renderLobby();
   } catch (error) {
+    const message = error?.message ?? "";
+    if (message.includes("PLAYER_NOT_MEMBER") || message.includes("ROOM_NOT_FOUND")) {
+      showOnlineEntry();
+      setMessage(views.onlineMessage, "방이 종료되어 온라인 시작 화면으로 돌아왔습니다.");
+      return;
+    }
     setMessage(views.lobbyMessage, friendlyError(error));
   }
 }
 
 function subscribeCurrentLobby() {
-  closeSubscription();
+  if (!lobbyOpen) return;
+  if (unsubscribeLobby) {
+    unsubscribeLobby();
+    unsubscribeLobby = null;
+  }
+
   const roomId = snapshot?.room?.id;
   if (!roomId) return;
 
-  views.connectionStatus.textContent = "실시간 연결 중…";
+  views.connectionStatus.textContent = navigator.onLine === false ? "오프라인 · 네트워크 연결을 기다리는 중" : "실시간 연결 중…";
   unsubscribeLobby = api.subscribeLobby(roomId, {
     onChange: scheduleRefresh,
     onStatus(status) {
-      if (status === "SUBSCRIBED") views.connectionStatus.textContent = "실시간 연결됨";
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") views.connectionStatus.textContent = "연결 재확인 필요";
-      else if (status === "CLOSED") views.connectionStatus.textContent = "연결 종료됨";
+      if (!lobbyOpen) return;
+      if (status === "SUBSCRIBED") {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        views.connectionStatus.textContent = "실시간 연결됨";
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        views.connectionStatus.textContent = "연결이 끊겼습니다 · 재연결 중…";
+        scheduleLobbyReconnect();
+      } else if (status === "CLOSED") {
+        views.connectionStatus.textContent = navigator.onLine === false ? "오프라인 · 네트워크 연결을 기다리는 중" : "실시간 연결 종료됨";
+      }
     },
   });
 }
 
 function openLobby(nextSnapshot) {
   snapshot = nextSnapshot;
+  lobbyOpen = true;
   views.online.hidden = true;
   views.lobby.hidden = false;
   setMessage(views.onlineMessage);
-  setMessage(views.lobbyMessage);
+  setMessage(views.lobbyMessage, "같은 멤버로 다시 준비해 주세요.");
   renderLobby();
   subscribeCurrentLobby();
 }
 
 async function bootOnline() {
   createViews();
+  lobbyOpen = false;
   onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = false;
   views.lobby.hidden = true;
@@ -499,9 +568,6 @@ async function leaveCurrentRoom() {
       expectedVersion: snapshot.room.version,
     });
     showOnlineEntry();
-    views.loading.hidden = true;
-    views.authGate.hidden = true;
-    views.controls.hidden = false;
     setMessage(views.onlineMessage, "방에서 나왔습니다.");
   } catch (error) {
     if ((error?.message ?? "").includes("STATE_CHANGED")) await refreshLobby();
@@ -541,6 +607,7 @@ export async function openOnlineLobby() {
 
 export function closeOnlineLobby() {
   if (!views) return;
+  lobbyOpen = false;
   closeSubscription();
   onlineGameModule?.closeOnlineGame?.();
   views.online.hidden = true;
