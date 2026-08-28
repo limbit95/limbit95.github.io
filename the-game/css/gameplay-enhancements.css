@@ -8,31 +8,117 @@
   content: "+10";
 }
 
+.pile-card.is-empty-pile {
+  background: linear-gradient(145deg, #151513, #10100e);
+  box-shadow: inset 0 0 0 1px rgba(245, 245, 241, 0.035);
+}
+
+.pile-card.is-empty-pile .pile-value {
+  min-height: 1em;
+  opacity: 0.28;
+}
+
+.pile-card.is-empty-pile .pile-value::before {
+  content: "";
+  width: clamp(28px, 34%, 48px);
+  height: 2px;
+  display: block;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .card-flight {
   position: fixed;
-  z-index: 90;
-  min-height: 0 !important;
+  z-index: 95;
   margin: 0;
+  pointer-events: none;
+  perspective: 900px;
+  transform-origin: 50% 52%;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 20px 28px rgba(0, 0, 0, 0.42));
+}
+
+.card-flight__inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.card-flight__face {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
-  pointer-events: none;
-  will-change: transform, opacity;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.46), 0 0 0 2px rgba(216, 255, 115, 0.34);
+  overflow: hidden;
+  border: 1px solid rgba(245, 245, 241, 0.28);
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-flight__front {
+  color: #11110f;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(145deg, #fafaf5, #dddcd3);
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.card-flight__back {
+  transform: rotateY(180deg);
+  color: #d8ff73;
+  background:
+    linear-gradient(135deg, rgba(216, 255, 115, 0.08), transparent 42%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 5px, transparent 5px 10px),
+    #10110d;
+}
+
+.card-flight__back::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(216, 255, 115, 0.28);
+  border-radius: 8px;
+}
+
+.card-flight__back span {
+  position: relative;
+  z-index: 1;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: 0.08em;
+  text-align: center;
 }
 
 .pile-card.is-receiving-card {
-  animation: pile-receive-card 360ms ease;
+  animation: pile-receive-card 665ms cubic-bezier(0.18, 0.72, 0.2, 1);
 }
 
 @keyframes pile-receive-card {
-  0%, 68% {
+  0%, 72% {
     transform: translateY(0) scale(1);
+    filter: brightness(1);
   }
-  82% {
-    transform: translateY(-3px) scale(1.025);
+  83% {
+    transform: translateY(-3px) scale(1.018);
+    filter: brightness(1.06);
+  }
+  91% {
+    transform: translateY(2px) scale(0.992);
+    filter: brightness(1.02);
   }
   100% {
     transform: translateY(0) scale(1);
+    filter: brightness(1);
   }
 }
 
@@ -91,7 +177,7 @@
 .pile-preset-option__body {
   min-height: 76px;
   display: grid;
-  grid-template-columns: minmax(118px, 0.72fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(150px, 0.82fr) minmax(0, 1.18fr);
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
@@ -133,14 +219,35 @@
 }
 
 .pile-preset-preview > span {
-  min-height: 40px;
+  min-height: 42px;
   display: grid;
+  grid-template-columns: auto 1fr;
   place-items: center;
+  gap: 3px;
+  padding: 4px;
   border: 1px solid #353530;
   border-radius: 8px;
   color: #d9d9d1;
   font-size: 11px;
   font-weight: 800;
+}
+
+.pile-preset-preview b,
+.pile-preset-preview em {
+  font: inherit;
+  font-style: normal;
+}
+
+.pile-preset-preview > span.is-blank {
+  border-style: dashed;
+  color: #8b8b83;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.pile-preset-preview > span.is-blank em {
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .game-settings-message {
@@ -183,26 +290,8 @@
   .pile-card.is-receiving-card {
     animation: none;
   }
-}
 
-/* Keep optional starting piles balanced instead of reserving four empty columns. */
-.online-game-screen .pile-grid:has(> .pile-card:nth-child(2):last-child) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.online-game-screen .pile-grid:has(> .pile-card:nth-child(3):last-child) {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-@media (max-width: 700px) and (orientation: portrait),
-  (orientation: landscape) and (max-height: 600px) and (max-width: 1100px) {
-  .online-game-screen .pile-grid:has(> .pile-card:nth-child(2):last-child) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  .online-game-screen .pile-grid:has(> .pile-card:nth-child(3):last-child) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+  .card-flight {
+    display: none;
   }
 }

@@ -1,23 +1,23 @@
 const PILE_PRESETS = Object.freeze([
   Object.freeze({
     value: "standard",
-    label: "기본 4더미",
+    label: "기본 시작",
     values: ["1", "1", "100", "100"],
   }),
   Object.freeze({
     value: "one-ascending",
-    label: "오름차순 1개",
-    values: ["1", "—", "100", "100"],
-  }),
-  Object.freeze({
-    value: "one-each",
-    label: "오름·내림 1개씩",
-    values: ["1", "—", "100", "—"],
+    label: "오름차순 2번 빈 카드",
+    values: ["1", null, "100", "100"],
   }),
   Object.freeze({
     value: "one-descending",
-    label: "내림차순 1개",
-    values: ["1", "1", "100", "—"],
+    label: "내림차순 2번 빈 카드",
+    values: ["1", "1", "100", null],
+  }),
+  Object.freeze({
+    value: "one-each",
+    label: "양쪽 2번 빈 카드",
+    values: ["1", null, "100", null],
   }),
 ]);
 
@@ -31,17 +31,29 @@ function ensureApi() {
   return apiPromise;
 }
 
+function previewCell(direction, value) {
+  const ascending = direction === "ascending";
+  const arrow = ascending ? "↑" : "↓";
+  const empty = value === null;
+  return `
+    <span class="${direction}${empty ? " is-blank" : ""}">
+      <b aria-hidden="true">${arrow}</b>
+      <em>${empty ? "빈 카드" : value}</em>
+    </span>
+  `;
+}
+
 function presetOptionsMarkup() {
   return PILE_PRESETS.map((preset, index) => `
     <label class="pile-preset-option">
       <input type="radio" name="the-game-pile-preset" value="${preset.value}" ${index === 0 ? "checked" : ""}>
       <span class="pile-preset-option__body">
         <strong>${preset.label}</strong>
-        <span class="pile-preset-preview" aria-label="${preset.values.join(", ")}">
-          <span class="ascending">↑ ${preset.values[0]}</span>
-          <span class="ascending">↑ ${preset.values[1]}</span>
-          <span class="descending">↓ ${preset.values[2]}</span>
-          <span class="descending">↓ ${preset.values[3]}</span>
+        <span class="pile-preset-preview" aria-label="${preset.values.map((value) => value ?? "빈 카드").join(", ")}">
+          ${previewCell("ascending", preset.values[0])}
+          ${previewCell("ascending", preset.values[1])}
+          ${previewCell("descending", preset.values[2])}
+          ${previewCell("descending", preset.values[3])}
         </span>
       </span>
     </label>
@@ -58,9 +70,9 @@ function ensureModal() {
     <form class="overlay-card game-settings-card" data-game-settings-form role="dialog" aria-modal="true" aria-labelledby="the-game-settings-title">
       <p class="eyebrow">GAME SETTINGS</p>
       <h2 id="the-game-settings-title">게임 설정</h2>
-      <p class="game-settings-copy">게임을 시작할 때 사용할 오름차순·내림차순 더미 구성을 선택하세요.</p>
+      <p class="game-settings-copy">네 개의 더미는 그대로 유지됩니다. 빈 카드는 첫 숫자가 놓이는 순간 그 숫자를 기준으로 오름차순·내림차순이 이어집니다.</p>
       <fieldset class="pile-preset-list" data-pile-preset-list>
-        <legend>시작 더미</legend>
+        <legend>시작 카드</legend>
         ${presetOptionsMarkup()}
       </fieldset>
       <p class="game-settings-message" data-game-settings-message role="status" aria-live="polite"></p>
