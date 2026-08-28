@@ -82,19 +82,26 @@ async function readBoardLayout(page) {
     const endTurn = screen.querySelector("[data-online-end-turn]");
     const screenRect = screen.getBoundingClientRect();
     const pilesRect = piles.getBoundingClientRect();
+    const playersRect = players.getBoundingClientRect();
     const handRect = handPanel.getBoundingClientRect();
     const endTurnRect = endTurn.getBoundingClientRect();
+    const firstCardRect = cards[0]?.getBoundingClientRect();
     const lastCardRect = cards.at(-1)?.getBoundingClientRect();
     const screenStyle = getComputedStyle(screen);
 
     return {
       screenRect: { top: screenRect.top, right: screenRect.right, bottom: screenRect.bottom, left: screenRect.left },
       pilesRect: { top: pilesRect.top, right: pilesRect.right, bottom: pilesRect.bottom, left: pilesRect.left },
+      playersRect: { top: playersRect.top, right: playersRect.right, bottom: playersRect.bottom, left: playersRect.left },
       handRect: { top: handRect.top, right: handRect.right, bottom: handRect.bottom, left: handRect.left },
       endTurnRect: { top: endTurnRect.top, right: endTurnRect.right, bottom: endTurnRect.bottom, left: endTurnRect.left },
+      firstCardRect: firstCardRect
+        ? { top: firstCardRect.top, right: firstCardRect.right, bottom: firstCardRect.bottom, left: firstCardRect.left }
+        : null,
       lastCardRect: lastCardRect
         ? { top: lastCardRect.top, right: lastCardRect.right, bottom: lastCardRect.bottom, left: lastCardRect.left }
         : null,
+      pileColumns: getComputedStyle(piles).gridTemplateColumns.split(" ").length,
       playerDisplay: getComputedStyle(players).display,
       playerOverflow: getComputedStyle(players).overflowX,
       handColumns: getComputedStyle(hand).gridTemplateColumns.split(" ").length,
@@ -163,25 +170,34 @@ test.describe("The Game interaction polish", () => {
     expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
   });
 
-  test("moves the hand to a right-side dock in mobile landscape", async ({ page }) => {
-    await page.setViewportSize({ width: 844, height: 390 });
+  test("matches the tablet board flow in mobile landscape", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
     await openMockOnlineGame(page);
+    const tabletLayout = await readBoardLayout(page);
+
+    expect(tabletLayout.pileColumns).toBe(4);
+    expect(tabletLayout.playerDisplay).toBe("grid");
+    expect(tabletLayout.pilesRect.bottom).toBeLessThan(tabletLayout.playersRect.top);
+    expect(tabletLayout.playersRect.bottom).toBeLessThan(tabletLayout.handRect.top);
+
+    await page.setViewportSize({ width: 844, height: 390 });
     const layout = await readBoardLayout(page);
 
-    expect(layout.handColumns).toBe(4);
+    expect(layout.pileColumns).toBe(tabletLayout.pileColumns);
+    expect(layout.playerDisplay).toBe(tabletLayout.playerDisplay);
     expect(layout.screenVerticalFits).toBe(true);
     expect(layout.screenOverflowX).toBe("hidden");
     expect(layout.screenOverflowY).toBe("hidden");
-    expect(layout.playerDisplay).toBe("flex");
-    expect(["auto", "scroll"]).toContain(layout.playerOverflow);
     expect(layout.screenRect.left).toBeGreaterThanOrEqual(-1);
     expect(layout.screenRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(layout.screenRect.top).toBeGreaterThanOrEqual(-1);
     expect(layout.screenRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
-    expect(layout.pilesRect.right).toBeLessThan(layout.handRect.left);
-    expect(layout.handRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
-    expect(layout.endTurnRect.left).toBeGreaterThanOrEqual(layout.handRect.left - 1);
-    expect(layout.endTurnRect.right).toBeLessThanOrEqual(layout.handRect.right + 1);
+    expect(layout.pilesRect.bottom).toBeLessThanOrEqual(layout.playersRect.top + 1);
+    expect(layout.playersRect.bottom).toBeLessThanOrEqual(layout.handRect.top + 1);
+    expect(layout.handRect.bottom).toBeLessThanOrEqual(layout.endTurnRect.top + 1);
+    expect(Math.abs(layout.pilesRect.left - layout.handRect.left)).toBeLessThanOrEqual(2);
+    expect(Math.abs(layout.pilesRect.right - layout.handRect.right)).toBeLessThanOrEqual(2);
+    expect(layout.firstCardRect?.top ?? -Infinity).toBeCloseTo(layout.lastCardRect?.top ?? Infinity, 0);
     expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
     expect(layout.lastCardRect?.bottom ?? Infinity).toBeLessThanOrEqual(layout.handRect.bottom + 1);
   });
