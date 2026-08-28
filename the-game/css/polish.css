@@ -106,12 +106,15 @@ button,
 }
 
 .rule-summary__line {
-  display: inline;
+  width: fit-content;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto;
   text-align: center;
 }
 
 .rule-summary__line--indent {
-  margin-left: 0.9em;
+  padding-left: 1.35em;
 }
 
 .rules-open-button {
@@ -393,7 +396,7 @@ button,
 
 @media (max-width: 580px) {
   .rule-summary__line--indent {
-    margin-left: 0.75em;
+    padding-left: 1em;
   }
 
   .rules-open-button {
@@ -483,8 +486,8 @@ button,
 
 @media (prefers-reduced-motion: reduce) {
   *,
-  *::before,
-  *::after {
+  *::after,
+  *::before {
     scroll-behavior: auto !important;
   }
 
