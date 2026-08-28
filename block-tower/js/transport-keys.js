@@ -286,8 +286,9 @@ window.addEventListener("keydown", (event) => {
   }
 
   if (FLOOR_KEYS.has(event.code)) {
+    if (!isExtractedDrag()) return;
+    event.preventDefault();
     floorKeysPressed.add(event.code);
-    if (isExtractedDrag()) event.preventDefault();
   }
 });
 
