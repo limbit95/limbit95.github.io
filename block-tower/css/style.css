@@ -71,7 +71,7 @@ h1 {
 .stage-card {
   position: relative;
   overflow: hidden;
-  min-height: 740px;
+  min-height: 860px;
   border: 1px solid var(--border);
   border-radius: 24px;
   background: #201b17;
@@ -342,7 +342,7 @@ h1 {
 @media (max-width: 760px) {
   .game-shell { width: min(100% - 20px, 1180px); padding-top: 20px; }
   .game-header { align-items: flex-start; flex-direction: column; }
-  .stage-card { min-height: 600px; border-radius: 18px; }
+  .stage-card { min-height: 680px; border-radius: 18px; }
   .hud { top: 10px; left: 10px; max-width: calc(100% - 20px); padding-right: 112px; }
   .physics-settings-toggle { top: 10px; right: 10px; }
   .physics-settings-panel {
@@ -357,7 +357,7 @@ h1 {
 }
 
 @media (max-width: 420px) {
-  .stage-card { min-height: 540px; }
+  .stage-card { min-height: 620px; }
   .subtitle { font-size: 14px; }
   .physics-metrics dl { grid-template-columns: 1fr 1fr; }
 }
