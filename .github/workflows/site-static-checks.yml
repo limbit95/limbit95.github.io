@@ -29,6 +29,19 @@ jobs:
       - name: Rebuild content-hashed community assets
         run: npm run build:assets
 
+      - name: Expose merged asset build for conflict resolution
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          app_file="$(node -p "require('./assets/build/manifest.json').entry")"
+          games_file="$(find assets/build/chunks -maxdepth 1 -type f -name 'games-*.js' -print -quit)"
+          echo "BT_APP_FILE=$app_file"
+          echo "BT_APP_BASE64=$(base64 -w0 "$app_file")"
+          echo "BT_GAMES_FILE=$games_file"
+          echo "BT_GAMES_BASE64=$(base64 -w0 "$games_file")"
+          echo "BT_MANIFEST_BASE64=$(base64 -w0 assets/build/manifest.json)"
+          echo "BT_INDEX_BASE64=$(base64 -w0 index.html)"
+
       - name: Guard committed hashed assets are current
         if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         shell: bash
