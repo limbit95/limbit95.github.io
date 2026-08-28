@@ -86,7 +86,7 @@ test.describe("The Game rematch and reconnect polish", () => {
     await page.goto("/the-game/");
   });
 
-  test("host can prepare a rematch and return the same members to the lobby", async ({ page }) => {
+  test("host sees an explicit loss result and can prepare a rematch", async ({ page }) => {
     await page.evaluate(async ({ snapshot, nextLobby }) => {
       const module = await import("/the-game/js/onlineGame.js");
       window.__rematchCall = null;
@@ -116,7 +116,8 @@ test.describe("The Game rematch and reconnect polish", () => {
       });
     }, { snapshot: finishedSnapshot(), nextLobby: lobbySnapshot() });
 
-    await expect(page.getByRole("heading", { name: "이번 게임은 여기까지" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "게임 패배 결과" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "패배" })).toBeVisible();
     await expect(page.locator("[data-online-result-played]")).toHaveText("75");
     await expect(page.locator("[data-online-result-remaining]")).toHaveText("23");
     await expect(page.locator("[data-online-result-turns]")).toHaveText("14");
