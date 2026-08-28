@@ -76,6 +76,14 @@ export function endTurn({ roomId, expectedVersion, clientActionId }) {
   });
 }
 
+export function closeGame({ roomId, expectedRoomVersion, expectedGameVersion }) {
+  return rpc("the_game_close_game", {
+    p_room_id: roomId,
+    p_expected_room_version: expectedRoomVersion,
+    p_expected_game_version: expectedGameVersion,
+  });
+}
+
 export function subscribeLobby(roomId, { onChange, onStatus } = {}) {
   const channel = supabase
     .channel(`the-game-lobby:${roomId}`)
