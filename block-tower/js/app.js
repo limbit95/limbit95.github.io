@@ -8,6 +8,7 @@ const sceneHost = document.querySelector("#scene");
 const loading = document.querySelector("#loading");
 const selectionStatus = document.querySelector("#selection-status");
 const difficultyStatus = document.querySelector("#difficulty-status");
+const turnStatus = document.querySelector("#turn-status");
 const physicsSettingsToggle = document.querySelector("#physics-settings-toggle");
 const physicsSettingsPanel = document.querySelector("#physics-settings-panel");
 const physicsSettingsClose = document.querySelector("#physics-settings-close");
@@ -28,6 +29,20 @@ const BLOCK_HEIGHT = 0.72;
 const GAP = 0.055;
 const LEVELS = 18;
 const PHYSICS_STEP = 1 / 60;
+const LEVEL_STEP = BLOCK_HEIGHT + GAP * 0.28;
+const EXTRACTION_AXIS_DISTANCE = 3.35;
+const EXTRACTION_HORIZONTAL_DISTANCE = 3.1;
+const EXTRACTED_GRAB_DISTANCE = 18;
+const PLACEMENT_RELEASE_DISTANCE = 1.65;
+const PLACEMENT_ASSIST_MAX_DISTANCE = 2.5;
+const PLACEMENT_ASSIST_TIMEOUT_MS = 3200;
+const PLACEMENT_POSITION_SPRING = 86;
+const PLACEMENT_POSITION_DAMPING = 13;
+const PLACEMENT_MAX_FORCE = 185;
+const PLACEMENT_ROTATION_SPRING = 42;
+const PLACEMENT_ROTATION_DAMPING = 8;
+const PLACEMENT_MAX_TORQUE = 62;
+const PLACEMENT_STABLE_STEPS = 10;
 
 const DEFAULT_PHYSICS_SETTINGS = Object.freeze({
   difficulty: "normal",
@@ -343,6 +358,35 @@ function makeBlockMaterial(index) {
   });
 }
 
+function levelCenterY(levelIndex) {
+  return BLOCK_HEIGHT / 2 + levelIndex * LEVEL_STEP;
+}
+
+function levelIsRotated(levelIndex) {
+  return levelIndex % 2 === 1;
+}
+
+function levelLongAxis(levelIndex) {
+  return levelIsRotated(levelIndex)
+    ? new THREE.Vector3(0, 0, 1)
+    : new THREE.Vector3(1, 0, 0);
+}
+
+function placementTarget(levelIndex, slotIndex) {
+  const offset = (slotIndex - 1) * (BLOCK_WIDTH + GAP);
+  const rotated = levelIsRotated(levelIndex);
+  return {
+    levelIndex,
+    slotIndex,
+    position: rotated
+      ? new THREE.Vector3(offset, levelCenterY(levelIndex), 0)
+      : new THREE.Vector3(0, levelCenterY(levelIndex), offset),
+    quaternion: new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(0, rotated ? Math.PI / 2 : 0, 0),
+    ),
+  };
+}
+
 const world = new RAPIER.World({ x: 0, y: -9.81, z: 0 });
 world.timestep = PHYSICS_STEP;
 
@@ -357,8 +401,8 @@ world.createCollider(
 );
 
 for (let level = 0; level < LEVELS; level += 1) {
-  const rotate = level % 2 === 1;
-  const y = BLOCK_HEIGHT / 2 + level * (BLOCK_HEIGHT + GAP * 0.28);
+  const rotate = levelIsRotated(level);
+  const y = levelCenterY(level);
 
   for (let slot = 0; slot < 3; slot += 1) {
     const index = level * 3 + slot;
@@ -372,6 +416,8 @@ for (let level = 0; level < LEVELS; level += 1) {
       block.position.set(0, y, offset);
     }
 
+    const originalPosition = block.position.clone();
+    const originalLongAxis = levelLongAxis(level);
     const rigidBodyDesc = RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(block.position.x, block.position.y, block.position.z)
       .setRotation({
@@ -398,8 +444,11 @@ for (let level = 0; level < LEVELS; level += 1) {
       level: level + 1,
       slot: slot + 1,
       selected: false,
+      extracted: false,
       body,
       collider,
+      originalPosition,
+      originalLongAxis,
     };
     scene.add(block);
     blocks.push(block);
@@ -416,6 +465,100 @@ function applyPhysicsSettingsToBlocks() {
   updateDifficultyStatus();
 }
 
+const placementGhosts = Array.from({ length: 3 }, (_, slotIndex) => {
+  const ghost = new THREE.Mesh(
+    blockGeometry,
+    new THREE.MeshBasicMaterial({
+      color: 0xf0a85f,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+      wireframe: false,
+    }),
+  );
+  ghost.visible = false;
+  ghost.userData.slotIndex = slotIndex;
+  scene.add(ghost);
+  return ghost;
+});
+
+let currentTopLevelIndex = LEVELS;
+let occupiedTopSlots = new Set();
+let completedTurns = 0;
+let placementAssist = null;
+
+function updateTurnStatus() {
+  if (!turnStatus) return;
+  turnStatus.textContent = `쌓기 · ${currentTopLevelIndex + 1}층 ${occupiedTopSlots.size}/3`;
+}
+
+function availablePlacementTargets() {
+  return [0, 1, 2]
+    .filter((slotIndex) => !occupiedTopSlots.has(slotIndex))
+    .map((slotIndex) => placementTarget(currentTopLevelIndex, slotIndex));
+}
+
+function blockBodyPosition(block) {
+  const translation = block.userData.body.translation();
+  return new THREE.Vector3(translation.x, translation.y, translation.z);
+}
+
+function nearestPlacementTarget(block) {
+  const position = blockBodyPosition(block);
+  let nearest = null;
+  let nearestDistance = Infinity;
+  availablePlacementTargets().forEach((target) => {
+    const distance = position.distanceTo(target.position);
+    if (distance < nearestDistance) {
+      nearest = target;
+      nearestDistance = distance;
+    }
+  });
+  return nearest ? { ...nearest, distance: nearestDistance } : null;
+}
+
+function hidePlacementGhosts() {
+  placementGhosts.forEach((ghost) => {
+    ghost.visible = false;
+  });
+}
+
+function updatePlacementGhosts(block = null) {
+  if (placementAssist) {
+    placementGhosts.forEach((ghost) => {
+      const isTarget = ghost.userData.slotIndex === placementAssist.target.slotIndex;
+      ghost.visible = isTarget;
+      if (isTarget) {
+        ghost.position.copy(placementAssist.target.position);
+        ghost.quaternion.copy(placementAssist.target.quaternion);
+        ghost.material.opacity = 0.34;
+      }
+    });
+    return;
+  }
+
+  if (!block?.userData.extracted) {
+    hidePlacementGhosts();
+    return;
+  }
+
+  const nearest = nearestPlacementTarget(block);
+  placementGhosts.forEach((ghost) => {
+    const slotIndex = ghost.userData.slotIndex;
+    if (occupiedTopSlots.has(slotIndex)) {
+      ghost.visible = false;
+      return;
+    }
+    const target = placementTarget(currentTopLevelIndex, slotIndex);
+    ghost.position.copy(target.position);
+    ghost.quaternion.copy(target.quaternion);
+    ghost.material.opacity = nearest?.slotIndex === slotIndex ? 0.48 : 0.16;
+    ghost.visible = true;
+  });
+}
+
+updateTurnStatus();
+
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const dragTargetMarker = new THREE.Mesh(
@@ -431,7 +574,8 @@ let dragState = null;
 
 function selectionLabel(block, suffix = "") {
   if (!block) return "선택된 블록 없음";
-  return `${block.userData.level}층 · ${block.userData.slot}번 블록${suffix}`;
+  const extracted = block.userData.extracted ? " · 추출됨" : "";
+  return `${block.userData.level}층 · ${block.userData.slot}번 블록${extracted}${suffix}`;
 }
 
 function setSelectedBlock(block) {
@@ -506,6 +650,7 @@ function smoothstep(min, max, value) {
 }
 
 function lowerBreakawayFactor(block) {
+  if (block.userData.extracted) return 0;
   const { level, slot } = block.userData;
   const maxLevel = Math.min(physicsSettings.lowerBreakawayMaxLevel, LEVELS - 1);
   if (maxLevel <= 0 || level > maxLevel) return 0;
@@ -525,8 +670,11 @@ function updateDragTarget(event) {
   if (!raycaster.ray.intersectPlane(dragState.plane, projectedTarget)) return;
 
   const offset = projectedTarget.sub(dragState.startTarget);
-  if (offset.length() > physicsSettings.maxGrabDistance) {
-    offset.setLength(physicsSettings.maxGrabDistance);
+  const maxGrabDistance = dragState.block.userData.extracted
+    ? EXTRACTED_GRAB_DISTANCE
+    : physicsSettings.maxGrabDistance;
+  if (offset.length() > maxGrabDistance) {
+    offset.setLength(maxGrabDistance);
   }
 
   const nextTarget = dragState.startTarget.clone().add(offset);
@@ -551,19 +699,70 @@ function updateDragTarget(event) {
   dragTargetMarker.position.copy(dragState.targetPoint);
 }
 
-function finishDrag(pointerId) {
+function updateExtractionState() {
+  if (!dragState || dragState.block.userData.extracted) return;
+  const block = dragState.block;
+  const currentPosition = blockBodyPosition(block);
+  const displacement = currentPosition.clone().sub(block.userData.originalPosition);
+  const axisDistance = Math.abs(displacement.dot(block.userData.originalLongAxis));
+  const horizontalDistance = Math.hypot(displacement.x, displacement.z);
+
+  if (axisDistance < EXTRACTION_AXIS_DISTANCE || horizontalDistance < EXTRACTION_HORIZONTAL_DISTANCE) return;
+
+  block.userData.extracted = true;
+  lastBreakawayStrength = 0;
+  updatePlacementGhosts(block);
+  selectionStatus.textContent = selectionLabel(block, " · 최상단으로 이동하세요");
+}
+
+function placementReleaseTarget(block) {
+  if (!block?.userData.extracted) return null;
+  const nearest = nearestPlacementTarget(block);
+  if (!nearest || nearest.distance > PLACEMENT_RELEASE_DISTANCE) return null;
+  return nearest;
+}
+
+function cancelPlacementAssist() {
+  if (!placementAssist) return;
+  placementAssist.block.userData.body.resetForces(true);
+  placementAssist.block.userData.body.resetTorques(true);
+  placementAssist = null;
+  hidePlacementGhosts();
+}
+
+function beginPlacementAssist(block, target) {
+  cancelPlacementAssist();
+  placementAssist = {
+    block,
+    target,
+    startedAt: performance.now(),
+    stableSteps: 0,
+  };
+  updatePlacementGhosts(block);
+  selectionStatus.textContent = selectionLabel(block, " · 최상단 정렬 중");
+}
+
+function finishDrag(pointerId, { cancelled = false } = {}) {
   if (!dragState || dragState.pointerId !== pointerId) return;
-  dragState.body.resetForces(true);
-  dragState.body.resetTorques(true);
+  const releasedState = dragState;
+  const placementTargetOnRelease = cancelled ? null : placementReleaseTarget(releasedState.block);
+  releasedState.body.resetForces(true);
+  releasedState.body.resetTorques(true);
   dragState = null;
   dragTargetMarker.visible = false;
   sceneHost.classList.remove("is-dragging");
-  selectionStatus.textContent = selectionLabel(selectedBlock);
   lastAppliedForce = 0;
   lastPointerSpeed = 0;
   lastBreakawayStrength = 0;
   if (renderer.domElement.hasPointerCapture(pointerId)) {
     renderer.domElement.releasePointerCapture(pointerId);
+  }
+
+  if (placementTargetOnRelease) {
+    beginPlacementAssist(releasedState.block, placementTargetOnRelease);
+  } else {
+    updatePlacementGhosts(releasedState.block.userData.extracted ? releasedState.block : null);
+    selectionStatus.textContent = selectionLabel(selectedBlock);
   }
 }
 
@@ -575,6 +774,8 @@ function handleBlockPointerDown(event) {
   pointerDown = { x: event.clientX, y: event.clientY, block };
 
   if (!hit || !block) return;
+
+  if (placementAssist?.block === block) cancelPlacementAssist();
 
   // OrbitControls also treats one-finger touch as camera rotation. Stop that
   // interaction only when the touch actually starts on a block.
@@ -601,6 +802,7 @@ function handleBlockPointerDown(event) {
   };
   dragTargetMarker.position.copy(grabPoint);
   dragTargetMarker.visible = true;
+  updatePlacementGhosts(block.userData.extracted ? block : null);
   renderer.domElement.setPointerCapture(event.pointerId);
 }
 
@@ -618,13 +820,15 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   dragState.moved = dragState.moved || movedPixels > 4;
 
   if (dragState.moved) {
-    const isBreakawayPull = dragState.block.userData.level
-      <= physicsSettings.lowerBreakawayMaxLevel
+    const isBreakawayPull = !dragState.block.userData.extracted
+      && dragState.block.userData.level <= physicsSettings.lowerBreakawayMaxLevel
       && dragState.targetVelocity.length() >= physicsSettings.breakawaySpeedStart;
     sceneHost.classList.add("is-dragging");
     selectionStatus.textContent = selectionLabel(
       dragState.block,
-      isBreakawayPull ? " · 강한 힘 적용 중" : " · 자유 조작 중",
+      dragState.block.userData.extracted
+        ? " · 최상단으로 이동 중"
+        : isBreakawayPull ? " · 강한 힘 적용 중" : " · 자유 조작 중",
     );
   }
 }, { capture: true });
@@ -655,7 +859,7 @@ renderer.domElement.addEventListener("pointercancel", (event) => {
     event.stopImmediatePropagation();
   }
   pointerDown = null;
-  finishDrag(event.pointerId);
+  finishDrag(event.pointerId, { cancelled: true });
 }, { capture: true });
 
 function applyGrabForce() {
@@ -705,6 +909,95 @@ function applyGrabForce() {
     true,
   );
   dragState.targetVelocity.multiplyScalar(physicsSettings.pointerVelocityDecay);
+}
+
+function quaternionErrorVector(current, target) {
+  const currentInverse = current.clone().invert();
+  const error = target.clone().multiply(currentInverse).normalize();
+  if (error.w < 0) error.set(-error.x, -error.y, -error.z, -error.w);
+  const angle = 2 * Math.acos(THREE.MathUtils.clamp(error.w, -1, 1));
+  const sinHalf = Math.sqrt(Math.max(1 - error.w * error.w, 0));
+  if (sinHalf < 0.0001 || angle < 0.0001) return new THREE.Vector3();
+  return new THREE.Vector3(error.x / sinHalf, error.y / sinHalf, error.z / sinHalf)
+    .multiplyScalar(angle);
+}
+
+function completePlacement() {
+  if (!placementAssist) return;
+  const { block, target } = placementAssist;
+  const body = block.userData.body;
+  body.resetForces(true);
+  body.resetTorques(true);
+
+  block.userData.level = target.levelIndex + 1;
+  block.userData.slot = target.slotIndex + 1;
+  block.userData.extracted = false;
+  block.userData.originalPosition.copy(target.position);
+  block.userData.originalLongAxis.copy(levelLongAxis(target.levelIndex));
+
+  occupiedTopSlots.add(target.slotIndex);
+  completedTurns += 1;
+  placementAssist = null;
+
+  if (occupiedTopSlots.size === 3) {
+    currentTopLevelIndex += 1;
+    occupiedTopSlots = new Set();
+  }
+
+  hidePlacementGhosts();
+  updateTurnStatus();
+  selectionStatus.textContent = `${selectionLabel(block)} · ${completedTurns}턴 배치 완료`;
+}
+
+function applyPlacementAssist() {
+  if (!placementAssist) return;
+  const { block, target, startedAt } = placementAssist;
+  const body = block.userData.body;
+  const translation = body.translation();
+  const rotation = body.rotation();
+  const linvel = body.linvel();
+  const angvel = body.angvel();
+  const currentPosition = new THREE.Vector3(translation.x, translation.y, translation.z);
+  const currentRotation = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+  const linearVelocity = new THREE.Vector3(linvel.x, linvel.y, linvel.z);
+  const angularVelocity = new THREE.Vector3(angvel.x, angvel.y, angvel.z);
+  const positionError = target.position.clone().sub(currentPosition);
+  const rotationError = quaternionErrorVector(currentRotation, target.quaternion);
+
+  if (
+    performance.now() - startedAt > PLACEMENT_ASSIST_TIMEOUT_MS
+    || positionError.length() > PLACEMENT_ASSIST_MAX_DISTANCE
+  ) {
+    body.resetForces(true);
+    body.resetTorques(true);
+    placementAssist = null;
+    hidePlacementGhosts();
+    selectionStatus.textContent = selectionLabel(block, " · 배치 위치에서 벗어남");
+    return;
+  }
+
+  const force = positionError
+    .multiplyScalar(PLACEMENT_POSITION_SPRING)
+    .addScaledVector(linearVelocity, -PLACEMENT_POSITION_DAMPING);
+  if (force.length() > PLACEMENT_MAX_FORCE) force.setLength(PLACEMENT_MAX_FORCE);
+
+  const torque = rotationError
+    .multiplyScalar(PLACEMENT_ROTATION_SPRING)
+    .addScaledVector(angularVelocity, -PLACEMENT_ROTATION_DAMPING);
+  if (torque.length() > PLACEMENT_MAX_TORQUE) torque.setLength(PLACEMENT_MAX_TORQUE);
+
+  body.resetForces(true);
+  body.resetTorques(true);
+  body.addForce({ x: force.x, y: force.y, z: force.z }, true);
+  body.addTorque({ x: torque.x, y: torque.y, z: torque.z }, true);
+
+  const stable = target.position.distanceTo(currentPosition) < 0.16
+    && quaternionErrorVector(currentRotation, target.quaternion).length() < 0.12
+    && linearVelocity.length() < 0.45
+    && angularVelocity.length() < 0.5;
+  placementAssist.stableSteps = stable ? placementAssist.stableSteps + 1 : 0;
+
+  if (placementAssist.stableSteps >= PLACEMENT_STABLE_STEPS) completePlacement();
 }
 
 function syncBlocksFromPhysics() {
@@ -930,11 +1223,14 @@ function animate(now) {
 
   while (accumulator >= PHYSICS_STEP) {
     applyGrabForce();
+    applyPlacementAssist();
     world.step();
     accumulator -= PHYSICS_STEP;
   }
 
   syncBlocksFromPhysics();
+  updateExtractionState();
+  if (dragState?.block.userData.extracted) updatePlacementGhosts(dragState.block);
   updatePhysicsMetrics(now);
   controls.update();
   renderer.render(scene, camera);
