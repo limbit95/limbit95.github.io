@@ -8,6 +8,13 @@ const GAMES = [
     href: "./liar-game/",
     buttonText: "라이어 게임 시작",
   },
+  {
+    icon: "🧱",
+    title: "블록 타워 3D",
+    description: "54개의 블록 타워를 3D로 돌려보고 원하는 블록을 선택해보세요.",
+    href: "./block-tower/",
+    buttonText: "블록 타워 시작",
+  },
 ];
 
 export function renderGames() {
