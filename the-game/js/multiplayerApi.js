@@ -36,6 +36,14 @@ export function setReady({ roomId, ready, expectedVersion }) {
   });
 }
 
+export function setGameSettings({ roomId, pilePreset, expectedVersion }) {
+  return rpc("the_game_set_game_settings", {
+    p_room_id: roomId,
+    p_pile_preset: pilePreset,
+    p_expected_version: expectedVersion,
+  });
+}
+
 export function leaveRoom({ roomId, expectedVersion }) {
   return rpc("the_game_leave_room", {
     p_room_id: roomId,
