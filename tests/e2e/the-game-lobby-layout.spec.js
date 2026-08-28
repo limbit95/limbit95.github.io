@@ -31,8 +31,12 @@ test.describe("The Game lobby layout polish", () => {
     await expect(firstLine).toHaveCSS("text-align", "center");
     await expect(secondLine).toHaveCSS("text-align", "center");
 
-    const secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+    let secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
     expect(secondPadding).toBeGreaterThanOrEqual(10);
+
+    await page.setViewportSize({ width: 375, height: 700 });
+    secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+    expect(secondPadding).toBeGreaterThanOrEqual(8);
     await expect(page.getByRole("button", { name: "게임 규칙", exact: true })).toBeVisible();
   });
 
