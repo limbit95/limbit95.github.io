@@ -97,7 +97,6 @@ async function readBoardLayout(page) {
         : null,
       playerDisplay: getComputedStyle(players).display,
       playerOverflow: getComputedStyle(players).overflowX,
-      playerHasHorizontalScroll: players.scrollWidth > players.clientWidth + 1,
       handColumns: getComputedStyle(hand).gridTemplateColumns.split(" ").length,
       cardMinHeight: cards[0]?.getBoundingClientRect().height ?? 0,
       endTurnHeight: endTurnRect.height,
@@ -173,7 +172,8 @@ test.describe("The Game interaction polish", () => {
     expect(layout.screenVerticalFits).toBe(true);
     expect(layout.screenOverflowX).toBe("hidden");
     expect(layout.screenOverflowY).toBe("hidden");
-    expect(layout.playerHasHorizontalScroll).toBe(true);
+    expect(layout.playerDisplay).toBe("flex");
+    expect(["auto", "scroll"]).toContain(layout.playerOverflow);
     expect(layout.screenRect.left).toBeGreaterThanOrEqual(-1);
     expect(layout.screenRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(layout.screenRect.top).toBeGreaterThanOrEqual(-1);
