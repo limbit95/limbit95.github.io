@@ -1,0 +1,41 @@
+.online-result-card:not([hidden]) {
+  position: fixed;
+  z-index: 60;
+  inset: 50% auto auto 50%;
+  width: min(calc(100vw - 28px), 520px);
+  max-height: calc(100vh - 28px);
+  margin: 0;
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.76), 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.online-result-card[data-outcome="won"] {
+  border-color: #d8ff73;
+}
+
+.online-result-card[data-outcome="lost"] {
+  border-color: #f5f5f1;
+}
+
+.online-result-card [data-online-result-title] {
+  margin-top: 4px;
+  font-size: clamp(36px, 10vw, 56px);
+  letter-spacing: -0.04em;
+}
+
+.online-result-card[data-outcome="won"] [data-online-result-title] {
+  color: #d8ff73;
+}
+
+.online-result-card[data-outcome="lost"] [data-online-result-title] {
+  color: #f5f5f1;
+}
+
+@media (max-width: 580px) {
+  .online-result-card:not([hidden]) {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+    padding: 22px 18px;
+  }
+}
