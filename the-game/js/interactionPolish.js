@@ -84,6 +84,11 @@ function syncTurnFeedback() {
   if (key) previousTurnKey = key;
 }
 
+function setBadgeState(badge, text, outcome) {
+  if (badge.textContent !== text) badge.textContent = text;
+  if (badge.dataset.outcome !== outcome) badge.dataset.outcome = outcome;
+}
+
 function syncTeamResultBadge() {
   const onlineResult = document.querySelector("[data-online-result]:not([hidden])");
   if (onlineResult) {
@@ -95,21 +100,19 @@ function syncTeamResultBadge() {
       badge.className = "team-result-badge";
       onlineResult.querySelector("[data-online-result-title]")?.insertAdjacentElement("afterend", badge);
     }
-    badge.textContent = outcome === "won" ? "팀 결과 · 협력 성공" : "팀 결과 · 협력 실패";
-    badge.dataset.outcome = outcome;
+    setBadgeState(badge, outcome === "won" ? "팀 결과 · 협력 성공" : "팀 결과 · 협력 실패", outcome);
   }
 
   const localOverlay = document.querySelector("#result-overlay:not([hidden])");
   if (localOverlay) {
-    const won = localOverlay.querySelector("#result-kicker")?.textContent?.trim() === "MISSION COMPLETE";
+    const outcome = localOverlay.querySelector("#result-kicker")?.textContent?.trim() === "MISSION COMPLETE" ? "won" : "lost";
     let badge = localOverlay.querySelector(".team-result-badge");
     if (!badge) {
       badge = document.createElement("p");
       badge.className = "team-result-badge";
       localOverlay.querySelector("#result-title")?.insertAdjacentElement("afterend", badge);
     }
-    badge.textContent = won ? "팀 결과 · 협력 성공" : "팀 결과 · 협력 실패";
-    badge.dataset.outcome = won ? "won" : "lost";
+    setBadgeState(badge, outcome === "won" ? "팀 결과 · 협력 성공" : "팀 결과 · 협력 실패", outcome);
   }
 }
 
