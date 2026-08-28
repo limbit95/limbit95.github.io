@@ -8,6 +8,7 @@ import {
 } from "./gameEngine.js";
 import { GAME_STATUS, PILE_DIRECTION, REVERSE_JUMP } from "./constants.js";
 
+const shell = document.querySelector(".app-shell");
 const setupScreen = document.querySelector("#setup-screen");
 const gameScreen = document.querySelector("#game-screen");
 const setupForm = document.querySelector("#setup-form");
@@ -35,6 +36,55 @@ const setupButton = document.querySelector("#setup-button");
 let state = null;
 let selectedCard = null;
 let handLocked = false;
+let onlineLobbyModule = null;
+
+function createModeScreen() {
+  const existing = document.querySelector("#mode-screen");
+  if (existing) return existing;
+  if (!shell || !setupScreen) throw new Error("The Game setup shell was not found.");
+
+  const screen = document.createElement("section");
+  screen.id = "mode-screen";
+  screen.className = "screen setup-screen";
+  screen.innerHTML = `
+    <div class="title-mark" aria-hidden="true">☠</div>
+    <p class="eyebrow">COOPERATIVE CARD GAME</p>
+    <h1>THE GAME</h1>
+    <p class="setup-copy">모두 함께 2부터 99까지의 카드를 네 개의 더미에 전부 내려놓으세요.</p>
+    <div class="mode-grid" aria-label="플레이 방식 선택">
+      <button class="mode-card" type="button" data-online-mode>
+        <span class="mode-card__icon" aria-hidden="true">🌐</span>
+        <strong>온라인 플레이</strong>
+        <span>각자 휴대폰으로 같은 방에 접속해서 플레이합니다.</span>
+      </button>
+      <button class="mode-card" type="button" data-local-mode>
+        <span class="mode-card__icon" aria-hidden="true">📱</span>
+        <strong>한 기기 플레이</strong>
+        <span>한 화면을 돌아가며 넘겨서 로컬로 플레이합니다.</span>
+      </button>
+    </div>
+    <p id="mode-message" class="online-message" role="alert" aria-live="polite"></p>
+    <a class="back-link" href="../#/games">← 게임 목록으로</a>
+    <div class="rule-summary">
+      <strong>핵심 규칙</strong>
+      <p>오름차순은 큰 수, 내림차순은 작은 수를 놓습니다. 정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.</p>
+    </div>
+  `;
+
+  shell.insertBefore(screen, setupScreen);
+  return screen;
+}
+
+const modeScreen = createModeScreen();
+const localModeButton = modeScreen.querySelector("[data-local-mode]");
+const onlineModeButton = modeScreen.querySelector("[data-online-mode]");
+const modeMessage = modeScreen.querySelector("#mode-message");
+
+const localBackButton = document.createElement("button");
+localBackButton.type = "button";
+localBackButton.className = "ghost-button full-width-button";
+localBackButton.textContent = "플레이 방식 다시 선택";
+setupForm.append(localBackButton);
 
 function getCurrentPlayer() {
   return state?.players[state.currentPlayerIndex] ?? null;
@@ -47,20 +97,49 @@ function isReverseJump(card, pile) {
   return card - pile.value === REVERSE_JUMP;
 }
 
-function showSetup() {
+function resetLocalState() {
   state = null;
   selectedCard = null;
   handLocked = false;
-  setupScreen.hidden = false;
   gameScreen.hidden = true;
+  setupScreen.hidden = true;
   passOverlay.hidden = true;
   resultOverlay.hidden = true;
+}
+
+function showMode() {
+  resetLocalState();
+  onlineLobbyModule?.closeOnlineLobby?.();
+  modeScreen.hidden = false;
+  modeMessage.textContent = "";
+}
+
+function showSetup() {
+  resetLocalState();
+  modeScreen.hidden = true;
+  setupScreen.hidden = false;
+}
+
+async function showOnline() {
+  resetLocalState();
+  modeScreen.hidden = true;
+  modeMessage.textContent = "";
+  try {
+    onlineLobbyModule ??= await import("./onlineLobby.js");
+    await onlineLobbyModule.openOnlineLobby();
+  } catch (error) {
+    modeScreen.hidden = false;
+    modeMessage.textContent = error instanceof Error
+      ? error.message
+      : "온라인 플레이 화면을 불러오지 못했습니다.";
+  }
 }
 
 function startGame(playerCount) {
   state = createInitialState({ playerCount });
   selectedCard = null;
   handLocked = false;
+  modeScreen.hidden = true;
   setupScreen.hidden = true;
   gameScreen.hidden = false;
   passOverlay.hidden = true;
@@ -167,7 +246,6 @@ function renderResult() {
 function render() {
   if (!state) return;
 
-  const player = getCurrentPlayer();
   turnLabel.textContent = `플레이어 ${state.currentPlayerIndex + 1}의 턴`;
   deckCount.textContent = String(state.drawPile.length);
   playedCount.textContent = String(state.cardsPlayedThisTurn);
@@ -212,6 +290,11 @@ setupForm.addEventListener("submit", (event) => {
   startGame(playerCount);
 });
 
+localModeButton.addEventListener("click", showSetup);
+onlineModeButton.addEventListener("click", showOnline);
+localBackButton.addEventListener("click", showMode);
+document.addEventListener("the-game:return-home", showMode);
+
 for (const button of pileButtons) {
   button.addEventListener("click", () => playSelectedCard(button.dataset.pileId));
 }
@@ -241,11 +324,11 @@ passConfirmButton.addEventListener("click", () => {
   render();
 });
 
-quitButton.addEventListener("click", showSetup);
+quitButton.addEventListener("click", showMode);
 setupButton.addEventListener("click", showSetup);
 restartButton.addEventListener("click", () => {
   if (!state) return;
   startGame(state.playerCount);
 });
 
-showSetup();
+showMode();
