@@ -9,12 +9,12 @@
   }
 
   .online-game-screen:not([hidden]) {
-    grid-template-rows: 36px 28px 34px minmax(0, 1fr) auto 40px;
+    grid-template-rows: 36px 28px minmax(0, 1fr) 34px auto 40px;
     grid-template-areas:
       "header"
       "progress"
-      "players"
       "piles"
+      "players"
       "hand"
       "actions";
   }
@@ -224,7 +224,7 @@
 
 @media (orientation: landscape) and (max-height: 360px) and (max-width: 850px) {
   .online-game-screen:not([hidden]) {
-    grid-template-rows: 32px 24px 30px minmax(0, 1fr) auto 36px;
+    grid-template-rows: 32px 24px minmax(0, 1fr) 30px auto 36px;
   }
 
   #game-screen:not([hidden]) {
