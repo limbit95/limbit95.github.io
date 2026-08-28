@@ -192,6 +192,13 @@ export class FruitBellGame {
         this.winnerId = drawable[0].id;
         return true;
       }
+      if (drawable.length === 0 && contenders.length > 0) {
+        const ranked = [...contenders].sort(
+          (left, right) => (right.drawPile.length + right.faceUpPile.length) - (left.drawPile.length + left.faceUpPile.length),
+        );
+        this.winnerId = ranked[0].id;
+        return true;
+      }
     }
 
     return false;
