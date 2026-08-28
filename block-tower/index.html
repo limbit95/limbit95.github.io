@@ -31,29 +31,79 @@
         <div id="scene" class="scene" role="application" aria-label="3D 블록 타워 화면"></div>
         <div class="hud" aria-live="polite">
           <span class="hud-badge"><strong>54</strong> blocks</span>
+          <span id="difficulty-status" class="hud-badge">난이도 · 보통</span>
           <span id="selection-status" class="hud-badge">선택된 블록 없음</span>
         </div>
+
+        <button
+          id="physics-settings-toggle"
+          class="physics-settings-toggle"
+          type="button"
+          aria-controls="physics-settings-panel"
+          aria-expanded="false"
+          hidden
+        >⚙️ 물리 설정</button>
+
+        <aside id="physics-settings-panel" class="physics-settings-panel" aria-label="관리자 물리 설정" hidden>
+          <div class="physics-settings-panel__header">
+            <div>
+              <span class="physics-admin-badge">ADMIN</span>
+              <h2>물리 튜닝</h2>
+            </div>
+            <button id="physics-settings-close" class="physics-icon-button" type="button" aria-label="물리 설정 닫기">×</button>
+          </div>
+
+          <p class="physics-settings-help">
+            슬라이더 변경은 현재 게임에 즉시 적용됩니다. 원하는 감각을 찾은 뒤 저장하세요.
+          </p>
+
+          <div class="physics-presets" aria-label="난이도 프리셋">
+            <button type="button" data-physics-preset="easy">쉬움</button>
+            <button type="button" data-physics-preset="normal">보통</button>
+            <button type="button" data-physics-preset="hard">어려움</button>
+          </div>
+
+          <div id="physics-settings-fields" class="physics-settings-fields"></div>
+
+          <section class="physics-metrics" aria-label="실시간 물리 상태">
+            <h3>실시간 상태</h3>
+            <dl>
+              <div><dt>선택 블록</dt><dd id="physics-metric-block">없음</dd></div>
+              <div><dt>마우스 속도</dt><dd id="physics-metric-speed">0.00</dd></div>
+              <div><dt>현재 힘</dt><dd id="physics-metric-force">0</dd></div>
+              <div><dt>돌파 보정</dt><dd id="physics-metric-assist">×1.00</dd></div>
+            </dl>
+          </section>
+
+          <div class="physics-settings-actions">
+            <button id="physics-settings-reload" type="button">저장값 불러오기</button>
+            <button id="physics-settings-save" class="is-primary" type="button">현재값 저장</button>
+          </div>
+          <p id="physics-settings-message" class="physics-settings-message" role="status" aria-live="polite"></p>
+        </aside>
+
         <div class="loading" id="loading">3D 물리 장면을 준비하고 있습니다…</div>
       </section>
 
       <section class="controls" aria-label="조작 방법">
         <article>
           <span class="control-icon" aria-hidden="true">🖱️</span>
-          <div><strong>우클릭 + 드래그</strong><span>타워를 360° 회전</span></div>
+          <div><strong>우클릭 / 빈 공간 터치</strong><span>타워 시야를 회전</span></div>
         </article>
         <article>
           <span class="control-icon" aria-hidden="true">↕️</span>
-          <div><strong>마우스 휠</strong><span>확대 / 축소</span></div>
+          <div><strong>휠 / 두 손가락</strong><span>확대 / 축소</span></div>
         </article>
         <article>
           <span class="control-icon" aria-hidden="true">✋</span>
-          <div><strong>좌클릭 + 드래그</strong><span>잡은 지점을 화면 방향대로 자유 조작</span></div>
+          <div><strong>좌클릭 / 블록 터치</strong><span>잡은 지점을 자유 조작</span></div>
         </article>
       </section>
 
-      <p class="prototype-note">3단계 프로토타입 · 블록의 클릭 지점에 물리 힘을 적용해 이동·기울기·회전이 자연스럽게 이어집니다.</p>
+      <p class="prototype-note">관리자는 물리 설정을 실시간으로 조절·저장할 수 있으며, 모바일에서는 블록 드래그와 시야 회전을 분리했습니다.</p>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="module" src="./js/app.js"></script>
   </body>
 </html>
