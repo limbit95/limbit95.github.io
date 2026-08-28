@@ -103,6 +103,8 @@ button,
 
 .rule-summary__copy {
   max-width: 100%;
+  display: grid;
+  justify-items: center;
 }
 
 .rule-summary__line {
