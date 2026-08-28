@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build:assets": "node scripts/build-community-assets.mjs",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:the-game": "node --test the-game/tests/*.test.js"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",
