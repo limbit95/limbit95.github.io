@@ -6,6 +6,7 @@
 
 - `20260828005112_create_the_game_multiplayer_lobby`
 - `20260828011611_the_game_online_game_start`
+- `20260828012211_the_game_online_game_security_index_fix`
 
 ## 대기방
 
@@ -61,6 +62,7 @@
 - `anon`, `authenticated` 직접 SELECT 권한 없음
 - Realtime publication에 등록하지 않음
 - 게임 snapshot RPC가 `auth.uid()` 본인 손패만 반환
+- `user_id` FK 조회/삭제 경로를 위한 인덱스 적용
 
 ## 공개 RPC
 
@@ -99,6 +101,7 @@
 - 쓰기 작업은 검증된 RPC에서만 수행
 - 상태 변경 RPC는 `version`을 사용해 오래된 동시 변경을 거절
 - 실제 덱/손패는 `private` 스키마에 두어 Data API 표면에서 분리
+- RLS 게임 멤버 판별 helper는 `authenticated` 정책 평가에 필요한 실행 권한만 부여
 
 ## Realtime
 
