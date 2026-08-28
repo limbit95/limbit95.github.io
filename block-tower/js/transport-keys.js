@@ -25,6 +25,22 @@ function resetTransportKeys() {
   finePressed = false;
 }
 
+function dispatchVirtualHeightMove() {
+  if (!canvas || !activePointer || !isExtractedDrag()) return;
+  const virtualEvent = new PointerEvent("pointermove", {
+    bubbles: true,
+    cancelable: true,
+    pointerId: activePointer.pointerId,
+    pointerType: activePointer.pointerType,
+    isPrimary: true,
+    button: -1,
+    buttons: 1,
+    clientX: activePointer.clientX,
+    clientY: activePointer.clientY + heightOffset,
+  });
+  canvas.dispatchEvent(virtualEvent);
+}
+
 function bindCanvas(nextCanvas) {
   if (!nextCanvas || canvas === nextCanvas) return;
   canvas = nextCanvas;
@@ -44,6 +60,9 @@ function bindCanvas(nextCanvas) {
     if (!activePointer || event.pointerId !== activePointer.pointerId || !event.isTrusted) return;
     activePointer.clientX = event.clientX;
     activePointer.clientY = event.clientY;
+    if (isExtractedDrag() && Math.abs(heightOffset) > 0.01) {
+      dispatchVirtualHeightMove();
+    }
   }, { capture: true });
 
   const finishPointer = (event) => {
@@ -98,22 +117,6 @@ window.addEventListener("blur", () => {
   lowerPressed = false;
   finePressed = false;
 });
-
-function dispatchVirtualHeightMove() {
-  if (!canvas || !activePointer || !isExtractedDrag()) return;
-  const virtualEvent = new PointerEvent("pointermove", {
-    bubbles: true,
-    cancelable: true,
-    pointerId: activePointer.pointerId,
-    pointerType: activePointer.pointerType,
-    isPrimary: true,
-    button: -1,
-    buttons: 1,
-    clientX: activePointer.clientX,
-    clientY: activePointer.clientY + heightOffset,
-  });
-  canvas.dispatchEvent(virtualEvent);
-}
 
 function animateHeightInput(now) {
   const deltaSeconds = Math.min((now - previousFrame) / 1000, 0.05);
