@@ -4,10 +4,20 @@ const previousHands = new WeakMap();
 let previousTurnKey = "";
 let pendingPileKey = "";
 let pendingReversePileKey = "";
+let pendingPileTimer = null;
 let syncQueued = false;
 
 function getPileKey(pile) {
   return pile?.dataset?.onlinePileId || pile?.dataset?.pileId || "";
+}
+
+function clearPendingPile() {
+  pendingPileKey = "";
+  pendingReversePileKey = "";
+  if (pendingPileTimer) {
+    clearTimeout(pendingPileTimer);
+    pendingPileTimer = null;
+  }
 }
 
 function animateOnce(element, className) {
@@ -31,20 +41,11 @@ function syncPiles() {
 
     if (previousValue !== undefined && previousValue !== value) {
       animateOnce(pile, pendingReversePileKey === key ? "is-reverse-landed" : "is-updated");
+      if (pendingPileKey === key) clearPendingPile();
     }
 
     previousPileValues.set(scopedKey, value);
   }
-
-  if (pendingPileKey) {
-    const target = [...piles].find((pile) => getPileKey(pile) === pendingPileKey);
-    if (target && !target.classList.contains("is-updated") && !target.classList.contains("is-reverse-landed")) {
-      animateOnce(target, pendingReversePileKey === pendingPileKey ? "is-reverse-landed" : "is-updated");
-    }
-  }
-
-  pendingPileKey = "";
-  pendingReversePileKey = "";
 }
 
 function syncHands() {
@@ -129,8 +130,11 @@ function queueSync() {
 document.addEventListener("click", (event) => {
   const pile = event.target.closest(".pile-card.is-playable");
   if (!pile || pile.disabled) return;
+
+  clearPendingPile();
   pendingPileKey = getPileKey(pile);
   pendingReversePileKey = pile.classList.contains("is-reverse") ? pendingPileKey : "";
+  pendingPileTimer = window.setTimeout(clearPendingPile, 3000);
   pile.classList.add("is-submitting");
 }, true);
 
@@ -146,8 +150,7 @@ observer.observe(document.body, {
 document.addEventListener("the-game:return-home", () => {
   previousPileValues.clear();
   previousTurnKey = "";
-  pendingPileKey = "";
-  pendingReversePileKey = "";
+  clearPendingPile();
 });
 
 queueSync();
