@@ -15,7 +15,7 @@
 .game-settings-toggle:hover { border-color: #8ab9ff; }
 
 .physics-settings-toggle {
-  top: 56px;
+  top: 62px;
 }
 
 .game-settings-panel {
@@ -37,8 +37,8 @@
 }
 
 .physics-settings-panel {
-  top: 98px;
-  max-height: calc(100% - 114px);
+  top: 104px;
+  max-height: calc(100% - 120px);
 }
 
 .game-settings-panel__header {
@@ -196,7 +196,7 @@
   }
 
   .physics-settings-toggle {
-    top: 50px;
+    top: 56px;
     right: 10px;
   }
 
