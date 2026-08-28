@@ -1,0 +1,211 @@
+.game-settings-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 16px;
+  right: 16px;
+  border: 1px solid rgba(130, 180, 255, 0.42);
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: var(--text);
+  background: rgba(20, 17, 14, 0.82);
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+.game-settings-toggle:hover { border-color: #8ab9ff; }
+
+.physics-settings-toggle {
+  top: 56px;
+}
+
+.game-settings-panel {
+  position: absolute;
+  z-index: 6;
+  top: 58px;
+  right: 16px;
+  width: min(330px, calc(100% - 32px));
+  max-height: calc(100% - 74px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  border: 1px solid rgba(130, 180, 255, 0.25);
+  border-radius: 18px;
+  background: rgba(24, 20, 17, 0.96);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(18px);
+  touch-action: pan-y;
+}
+
+.physics-settings-panel {
+  top: 98px;
+  max-height: calc(100% - 114px);
+}
+
+.game-settings-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.game-settings-panel h2 {
+  margin: 4px 0 0;
+  font-size: 20px;
+}
+
+.game-settings-badge {
+  color: #8ab9ff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.game-settings-help {
+  margin: 10px 0 14px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.game-settings-section {
+  padding: 13px 0;
+  border-top: 1px solid var(--border);
+}
+
+.game-settings-section h3 {
+  margin: 0 0 10px;
+  color: #e4edff;
+  font-size: 12px;
+}
+
+.game-difficulty-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.game-difficulty-options button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: var(--text);
+  background: var(--panel-soft);
+  cursor: pointer;
+}
+
+.game-difficulty-options button.is-active {
+  border-color: rgba(138, 185, 255, 0.78);
+  background: rgba(90, 145, 225, 0.18);
+}
+
+.game-difficulty-note,
+.game-settings-footnote {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.game-setting-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 0;
+}
+
+.game-setting-toggle-row + .game-setting-toggle-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.game-setting-toggle-row strong,
+.game-setting-toggle-row span {
+  display: block;
+}
+
+.game-setting-toggle-row strong {
+  font-size: 12px;
+}
+
+.game-setting-toggle-row span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.game-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 24px;
+}
+
+.game-switch input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.game-switch span {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.game-switch span::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #eee5db;
+  transition: transform 140ms ease;
+}
+
+.game-switch input:checked + span {
+  border-color: rgba(138, 185, 255, 0.72);
+  background: rgba(90, 145, 225, 0.36);
+}
+
+.game-switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.game-theme-select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 11px;
+  color: var(--text);
+  background: #2a241f;
+}
+
+@media (max-width: 760px) {
+  .game-settings-toggle {
+    top: 10px;
+    right: 10px;
+  }
+
+  .physics-settings-toggle {
+    top: 50px;
+    right: 10px;
+  }
+
+  .game-settings-panel,
+  .physics-settings-panel {
+    top: auto;
+    right: 10px;
+    bottom: 10px;
+    width: calc(100% - 20px);
+    max-height: 72%;
+  }
+}
