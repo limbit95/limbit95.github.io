@@ -157,6 +157,82 @@ test("the game is lost when the current player cannot reach the minimum play req
   assert.equal(evaluated.result.remainingCards, 2);
 });
 
+test("the game is lost immediately when one legal card exists but no legal two-card sequence exists", () => {
+  const blocked = createState({
+    handSize: 2,
+    players: [{ id: "player-1", hand: [80, 50] }],
+    drawPile: [70],
+    piles: [
+      { id: "ascending-1", direction: PILE_DIRECTION.ASCENDING, value: 90, history: [1, 90] },
+      { id: "ascending-2", direction: PILE_DIRECTION.ASCENDING, value: 91, history: [1, 91] },
+      { id: "descending-1", direction: PILE_DIRECTION.DESCENDING, value: 10, history: [100, 10] },
+      { id: "descending-2", direction: PILE_DIRECTION.DESCENDING, value: 11, history: [100, 11] },
+    ],
+  });
+
+  const evaluated = evaluateGameState(blocked);
+  assert.equal(evaluated.status, GAME_STATUS.LOST);
+  assert.equal(evaluated.result.reason, "minimum_cards_unplayable");
+  assert.equal(evaluated.result.remainingCards, 3);
+});
+
+test("a valid two-card sequence prevents an early loss", () => {
+  const playable = createState({
+    handSize: 2,
+    players: [{ id: "player-1", hand: [80, 85] }],
+    drawPile: [70],
+    piles: [
+      { id: "ascending-1", direction: PILE_DIRECTION.ASCENDING, value: 90, history: [1, 90] },
+      { id: "ascending-2", direction: PILE_DIRECTION.ASCENDING, value: 91, history: [1, 91] },
+      { id: "descending-1", direction: PILE_DIRECTION.DESCENDING, value: 10, history: [100, 10] },
+      { id: "descending-2", direction: PILE_DIRECTION.DESCENDING, value: 11, history: [100, 11] },
+    ],
+  });
+
+  const evaluated = evaluateGameState(playable);
+  assert.equal(evaluated.status, GAME_STATUS.PLAYING);
+});
+
+test("players with no cards are skipped once the draw pile is empty", () => {
+  const state = createState({
+    playerCount: 3,
+    handSize: 6,
+    players: [
+      { id: "player-1", hand: [20] },
+      { id: "player-2", hand: [] },
+      { id: "player-3", hand: [30] },
+    ],
+    drawPile: [],
+  });
+
+  const afterPlay = playCard(state, { card: 20, pileId: "ascending-1" });
+  const nextTurn = endTurn(afterPlay);
+
+  assert.equal(nextTurn.status, GAME_STATUS.PLAYING);
+  assert.equal(nextTurn.currentPlayerIndex, 2);
+  assert.equal(nextTurn.players[1].hand.length, 0);
+});
+
+test("the last active player keeps taking turns after the others finish", () => {
+  const state = createState({
+    playerCount: 3,
+    handSize: 6,
+    players: [
+      { id: "player-1", hand: [20, 30] },
+      { id: "player-2", hand: [] },
+      { id: "player-3", hand: [] },
+    ],
+    drawPile: [],
+  });
+
+  const afterPlay = playCard(state, { card: 20, pileId: "ascending-1" });
+  const nextTurn = endTurn(afterPlay);
+
+  assert.equal(nextTurn.status, GAME_STATUS.PLAYING);
+  assert.equal(nextTurn.currentPlayerIndex, 0);
+  assert.deepEqual(nextTurn.players[0].hand, [30]);
+});
+
 test("playing the final remaining card wins immediately", () => {
   const state = createState({
     players: [{ id: "player-1", hand: [20] }],
