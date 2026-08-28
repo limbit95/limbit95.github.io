@@ -23,7 +23,7 @@
         <div>
           <p class="eyebrow">3D PHYSICS PROTOTYPE</p>
           <h1>BLOCK TOWER</h1>
-          <p class="subtitle">블록을 잡아 화면 기준으로 자유롭게 움직이며 타워의 실제 물리 반응을 확인해보세요.</p>
+          <p class="subtitle">블록을 물리적으로 빼낸 뒤 최상단 가이드까지 옮겨 다시 쌓아보세요.</p>
         </div>
         <a class="back-link" href="../#/games">게임 목록으로</a>
       </header>
@@ -33,6 +33,7 @@
         <div class="hud" aria-live="polite">
           <span class="hud-badge"><strong>54</strong> blocks</span>
           <span id="difficulty-status" class="hud-badge">난이도 · 보통</span>
+          <span id="turn-status" class="hud-badge">쌓기 · 19층 0/3</span>
           <span id="selection-status" class="hud-badge">선택된 블록 없음</span>
         </div>
 
@@ -97,11 +98,11 @@
         </article>
         <article>
           <span class="control-icon" aria-hidden="true">✋</span>
-          <div><strong>좌클릭 / 블록 터치</strong><span>잡은 지점을 자유 조작</span></div>
+          <div><strong>좌클릭 / 블록 터치</strong><span>블록을 완전히 빼면 이동 범위가 확장되어 최상단에 배치 가능</span></div>
         </article>
       </section>
 
-      <p class="prototype-note">관리자는 물리 설정을 실시간으로 조절·저장할 수 있으며, 모바일에서는 블록 드래그와 시야 회전을 분리했습니다.</p>
+      <p class="prototype-note">4단계 프로토타입 · 완전 추출된 블록은 최상단의 반투명 슬롯으로 옮길 수 있으며, 가까이 놓으면 물리 보정으로 정렬·안착합니다.</p>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
