@@ -362,8 +362,38 @@
   line-height: 1.65;
 }
 
-.online-result-card .result-score {
+.online-result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin: 20px 0;
+}
+
+.online-result-stats .result-score {
+  margin: 0;
+  padding: 16px 10px;
+}
+
+.online-result-stats .result-score strong {
+  font-size: clamp(28px, 7vw, 38px);
+}
+
+.online-result-note {
+  min-height: 42px;
+  margin: 0 0 16px !important;
+  color: #8f8f88 !important;
+  font-size: 12px;
+}
+
+.online-result-actions {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 10px;
+}
+
+.online-result-actions .ghost-button {
+  width: 100%;
+  min-height: 50px;
 }
 
 .online-game-connection {
@@ -373,7 +403,8 @@
 @media (max-width: 580px) {
   .mode-grid,
   .online-action-grid,
-  .lobby-actions {
+  .lobby-actions,
+  .online-result-actions {
     grid-template-columns: 1fr;
   }
 
@@ -395,6 +426,22 @@
 
   .online-game-players {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .online-result-card {
+    padding: 20px 16px;
+  }
+
+  .online-result-stats {
+    gap: 6px;
+  }
+
+  .online-result-stats .result-score {
+    padding: 14px 6px;
+  }
+
+  .online-result-stats .result-score span {
+    font-size: 10px;
   }
 
   .online-game-connection {
