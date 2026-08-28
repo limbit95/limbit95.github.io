@@ -19,7 +19,7 @@ test.describe("The Game lobby layout polish", () => {
     await page.goto("/the-game/");
   });
 
-  test("centers core rules and spaces the second sentence", async ({ page }) => {
+  test("centers core rules and places the second sentence on an indented line", async ({ page }) => {
     const summary = page.locator("#mode-screen .rule-summary");
     const firstSentence = summary.locator(".rule-summary__line").first();
     const secondSentence = summary.locator(".rule-summary__line--indent");
@@ -28,15 +28,23 @@ test.describe("The Game lobby layout polish", () => {
     await expect(summary).toHaveCSS("text-align", "center");
     await expect(firstSentence).toHaveText("오름차순은 큰 수, 내림차순은 작은 수를 놓습니다.");
     await expect(secondSentence).toHaveText("정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.");
-    await expect(firstSentence).toHaveCSS("display", "inline");
-    await expect(secondSentence).toHaveCSS("display", "inline");
+    await expect(firstSentence).toHaveCSS("display", "block");
+    await expect(secondSentence).toHaveCSS("display", "block");
 
-    let secondMargin = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).marginLeft));
-    expect(secondMargin).toBeGreaterThanOrEqual(8);
+    let firstRect = await readRect(firstSentence);
+    let secondRect = await readRect(secondSentence);
+    let secondPadding = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+
+    expect(secondRect.top).toBeGreaterThanOrEqual(firstRect.bottom - 1);
+    expect(secondPadding).toBeGreaterThanOrEqual(10);
 
     await page.setViewportSize({ width: 375, height: 700 });
-    secondMargin = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).marginLeft));
-    expect(secondMargin).toBeGreaterThanOrEqual(6);
+    firstRect = await readRect(firstSentence);
+    secondRect = await readRect(secondSentence);
+    secondPadding = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
+
+    expect(secondRect.top).toBeGreaterThanOrEqual(firstRect.bottom - 1);
+    expect(secondPadding).toBeGreaterThanOrEqual(8);
     await expect(page.getByRole("button", { name: "게임 규칙", exact: true })).toBeVisible();
   });
 
