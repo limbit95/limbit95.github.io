@@ -1,0 +1,41 @@
+.content-grid[aria-label="게임 목록"] > .card.page-stack {
+  grid-template-columns: clamp(76px, 18vw, 88px) minmax(0, 320px);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "icon details"
+    "action action";
+  justify-content: center;
+  align-content: start;
+  align-items: stretch;
+  column-gap: 1rem;
+  row-gap: 1.1rem;
+}
+
+.content-grid[aria-label="게임 목록"] > .card.page-stack > .status-page__icon {
+  grid-area: icon;
+  width: 100%;
+  height: auto;
+  min-height: 76px;
+  align-self: stretch;
+  border-radius: 20px;
+  font-size: clamp(2.25rem, 7vw, 2.75rem);
+}
+
+.content-grid[aria-label="게임 목록"] > .card.page-stack > div:nth-child(2) {
+  grid-area: details;
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: .35rem;
+}
+
+.content-grid[aria-label="게임 목록"] > .card.page-stack > div:nth-child(2) > .section-title,
+.content-grid[aria-label="게임 목록"] > .card.page-stack > div:nth-child(2) > .subtle {
+  margin: 0;
+}
+
+.content-grid[aria-label="게임 목록"] > .card.page-stack > .button {
+  grid-area: action;
+  width: min(100%, 240px);
+  justify-self: center;
+}
