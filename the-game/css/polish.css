@@ -1,0 +1,251 @@
+button,
+.mode-card,
+.number-card,
+.pile-card {
+  touch-action: manipulation;
+}
+
+.primary-button,
+.ghost-button,
+.mode-card,
+.number-card,
+.pile-card {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.primary-button,
+.ghost-button {
+  transition: transform 120ms ease, opacity 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.primary-button:not(:disabled):active,
+.ghost-button:not(:disabled):active,
+.mode-card:active,
+.number-card:not(:disabled):active,
+.pile-card.is-playable:active {
+  transform: scale(0.975);
+}
+
+.primary-button:focus-visible,
+.ghost-button:focus-visible,
+.mode-card:focus-visible,
+.number-card:focus-visible,
+.pile-card:focus-visible {
+  outline: 3px solid rgba(216, 255, 115, 0.72);
+  outline-offset: 3px;
+}
+
+.number-card.is-selected {
+  outline: 2px solid #d8ff73;
+  outline-offset: 2px;
+}
+
+.pile-card.is-submitting {
+  transform: translateY(-3px) scale(0.985);
+  opacity: 0.88;
+}
+
+.pile-card.is-updated {
+  animation: pile-update 420ms ease-out;
+}
+
+.pile-card.is-reverse-landed {
+  animation: reverse-land 560ms ease-out;
+}
+
+.number-card.is-new-card {
+  animation: new-card 420ms ease-out;
+}
+
+.online-game-player.is-turn-entering,
+#turn-label.is-turn-entering {
+  animation: turn-enter 500ms ease-out;
+}
+
+[data-online-turn].is-turn-updated,
+#turn-label.is-turn-updated {
+  animation: turn-title 420ms ease-out;
+}
+
+.team-result-badge {
+  width: fit-content;
+  margin: 0 auto 14px !important;
+  padding: 6px 10px;
+  border: 1px solid #45453f;
+  border-radius: 999px;
+  background: #11110f;
+  color: #d7d7d0 !important;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.team-result-badge[data-outcome="won"] {
+  border-color: rgba(216, 255, 115, 0.58);
+  color: #d8ff73 !important;
+}
+
+.end-turn-button {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+@keyframes pile-update {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 245, 241, 0); }
+  35% { transform: scale(1.035); box-shadow: 0 0 0 4px rgba(245, 245, 241, 0.2); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 245, 241, 0); }
+}
+
+@keyframes reverse-land {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(216, 255, 115, 0); }
+  30% { transform: scale(1.045) rotate(-1deg); box-shadow: 0 0 0 5px rgba(216, 255, 115, 0.25); }
+  60% { transform: scale(1.02) rotate(1deg); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(216, 255, 115, 0); }
+}
+
+@keyframes new-card {
+  0% { opacity: 0; transform: translateY(12px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes turn-enter {
+  0% { transform: translateY(5px); opacity: 0.6; }
+  45% { transform: translateY(-2px); opacity: 1; }
+  100% { transform: translateY(0); }
+}
+
+@keyframes turn-title {
+  0% { opacity: 0.55; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 680px) {
+  .app-shell {
+    padding-bottom: calc(34px + env(safe-area-inset-bottom));
+  }
+
+  .primary-button,
+  .ghost-button {
+    min-height: 52px;
+  }
+
+  .online-game-header,
+  .game-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .online-game-header .header-actions,
+  .game-header .header-actions {
+    margin-left: auto;
+  }
+
+  .online-game-screen .pile-grid {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .online-game-screen .pile-card {
+    min-height: clamp(136px, 42vw, 170px);
+    border-radius: 16px;
+  }
+
+  .online-game-screen .pile-card .pile-value {
+    font-size: clamp(42px, 14vw, 58px);
+  }
+
+  .online-game-players {
+    display: flex;
+    gap: 8px;
+    margin: 0 -2px 16px;
+    padding: 0 2px 4px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .online-game-players::-webkit-scrollbar {
+    display: none;
+  }
+
+  .online-game-player {
+    flex: 0 0 136px;
+    min-width: 136px;
+    scroll-snap-align: start;
+  }
+
+  .online-game-screen .hand-panel {
+    padding: 14px;
+  }
+
+  .online-game-screen .hand {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .online-game-screen .online-number-card {
+    min-height: 82px;
+    font-size: clamp(24px, 8vw, 30px);
+  }
+
+  .online-game-screen .online-game-actions {
+    position: sticky;
+    z-index: 20;
+    bottom: 0;
+    margin: 0 -4px 14px;
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, #0d0d0d 62%, rgba(13, 13, 13, 0));
+  }
+
+  .online-game-screen .end-turn-button {
+    position: static;
+    min-height: 56px;
+  }
+
+  .online-game-note {
+    min-height: 38px;
+  }
+}
+
+@media (max-width: 390px) {
+  .online-game-header .header-actions,
+  .game-header .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .online-game-screen .hand {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .online-game-screen .online-number-card {
+    min-height: 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .primary-button,
+  .ghost-button,
+  .mode-card,
+  .number-card,
+  .pile-card {
+    transition-duration: 0.01ms !important;
+  }
+
+  .pile-card.is-updated,
+  .pile-card.is-reverse-landed,
+  .number-card.is-new-card,
+  .online-game-player.is-turn-entering,
+  #turn-label.is-turn-entering,
+  [data-online-turn].is-turn-updated,
+  #turn-label.is-turn-updated {
+    animation: none !important;
+  }
+}

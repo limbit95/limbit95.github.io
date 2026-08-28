@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111111">
+    <meta name="description" content="협력 숫자 카드게임 The Game 웹 버전">
+    <title>The Game</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/online.css">
+    <link rel="stylesheet" href="./css/result.css">
+    <link rel="stylesheet" href="./css/polish.css">
+    <link rel="stylesheet" href="./css/responsive-board.css">
+    <link rel="stylesheet" href="./css/landscape-board.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="setup-screen" class="screen setup-screen" aria-labelledby="setup-title">
+        <div class="title-mark" aria-hidden="true">☠</div>
+        <p class="eyebrow">COOPERATIVE CARD GAME</p>
+        <h1 id="setup-title">THE GAME</h1>
+        <p class="setup-copy">모두 함께 2부터 99까지의 카드를 네 개의 더미에 전부 내려놓으세요.</p>
+
+        <form id="setup-form" class="setup-form">
+          <fieldset>
+            <legend>플레이 인원</legend>
+            <div class="player-count-grid">
+              <label><input type="radio" name="player-count" value="1"><span>1인</span></label>
+              <label><input type="radio" name="player-count" value="2"><span>2인</span></label>
+              <label><input type="radio" name="player-count" value="3" checked><span>3인</span></label>
+              <label><input type="radio" name="player-count" value="4"><span>4인</span></label>
+              <label><input type="radio" name="player-count" value="5"><span>5인</span></label>
+            </div>
+          </fieldset>
+          <button class="primary-button" type="submit">게임 시작</button>
+        </form>
+
+        <div class="rule-summary">
+          <strong>핵심 규칙</strong>
+          <p>오름차순은 큰 수, 내림차순은 작은 수를 놓습니다. 정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.</p>
+        </div>
+      </section>
+
+      <section id="game-screen" class="screen game-screen" hidden aria-label="게임 화면">
+        <header class="game-header">
+          <div>
+            <p class="eyebrow">THE GAME</p>
+            <h1 id="turn-label">플레이어 1의 턴</h1>
+          </div>
+          <div class="header-actions">
+            <div class="deck-counter" aria-label="남은 덱">
+              <span>DECK</span>
+              <strong id="deck-count">0</strong>
+            </div>
+            <button id="quit-button" class="ghost-button" type="button">나가기</button>
+          </div>
+        </header>
+
+        <section class="turn-progress" aria-live="polite">
+          <div>
+            <span>이번 턴</span>
+            <strong><span id="played-count">0</span> / 최소 <span id="required-count">2</span>장</strong>
+          </div>
+          <p id="status-message">카드를 선택한 뒤 놓을 더미를 선택하세요.</p>
+        </section>
+
+        <section id="pile-grid" class="pile-grid" aria-label="공용 카드 더미">
+          <button class="pile-card ascending" type="button" data-pile-id="ascending-1">
+            <span class="pile-direction">↑</span>
+            <strong class="pile-value">1</strong>
+            <span class="pile-caption">오름차순</span>
+          </button>
+          <button class="pile-card ascending" type="button" data-pile-id="ascending-2">
+            <span class="pile-direction">↑</span>
+            <strong class="pile-value">1</strong>
+            <span class="pile-caption">오름차순</span>
+          </button>
+          <button class="pile-card descending" type="button" data-pile-id="descending-1">
+            <span class="pile-direction">↓</span>
+            <strong class="pile-value">100</strong>
+            <span class="pile-caption">내림차순</span>
+          </button>
+          <button class="pile-card descending" type="button" data-pile-id="descending-2">
+            <span class="pile-direction">↓</span>
+            <strong class="pile-value">100</strong>
+            <span class="pile-caption">내림차순</span>
+          </button>
+        </section>
+
+        <section class="hand-panel" aria-labelledby="hand-title">
+          <div class="hand-header">
+            <div>
+              <p class="eyebrow">YOUR CARDS</p>
+              <h2 id="hand-title">내 카드</h2>
+            </div>
+            <span id="hand-count" class="hand-count">0장</span>
+          </div>
+          <div id="hand" class="hand" aria-live="polite"></div>
+        </section>
+
+        <button id="end-turn-button" class="primary-button end-turn-button" type="button" disabled>턴 종료</button>
+      </section>
+    </main>
+
+    <div id="pass-overlay" class="overlay" hidden>
+      <div class="overlay-card">
+        <p class="eyebrow">PASS THE DEVICE</p>
+        <h2 id="pass-title">플레이어 2 차례</h2>
+        <p>다음 플레이어에게 화면을 넘겨주세요. 준비되면 아래 버튼을 누르세요.</p>
+        <button id="pass-confirm-button" class="primary-button" type="button">내 카드 보기</button>
+      </div>
+    </div>
+
+    <div id="result-overlay" class="overlay" hidden>
+      <div class="overlay-card result-card">
+        <p id="result-kicker" class="eyebrow">GAME OVER</p>
+        <h2 id="result-title">게임 종료</h2>
+        <p id="result-message"></p>
+        <div class="result-score">
+          <span>남은 카드</span>
+          <strong id="remaining-count">0</strong>
+        </div>
+        <div class="result-actions">
+          <button id="restart-button" class="primary-button" type="button">같은 인원으로 다시</button>
+          <button id="setup-button" class="ghost-button" type="button">인원 다시 선택</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./js/resultPresentation.js"></script>
+    <script type="module" src="./js/interactionPolish.js"></script>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

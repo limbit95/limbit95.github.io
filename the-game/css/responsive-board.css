@@ -1,0 +1,607 @@
+/* Mobile game-board layouts keep the shared piles and the current hand visible together. */
+
+@media (max-width: 700px) and (orientation: portrait) {
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    position: fixed;
+    z-index: 25;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    margin: 0;
+    padding:
+      max(8px, env(safe-area-inset-top))
+      10px
+      max(8px, env(safe-area-inset-bottom));
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  .online-game-screen:not([hidden]) {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "header"
+      "progress"
+      "piles"
+      "players"
+      "hand"
+      "actions";
+    gap: clamp(5px, 0.9dvh, 8px);
+  }
+
+  #game-screen:not([hidden]) {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "header"
+      "progress"
+      "piles"
+      "hand"
+      "actions";
+    gap: clamp(5px, 0.9dvh, 8px);
+  }
+
+  .online-game-screen .online-game-header,
+  #game-screen .game-header {
+    grid-area: header;
+    min-height: 0;
+    margin: 0;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .online-game-screen .online-game-header .eyebrow,
+  #game-screen .game-header .eyebrow {
+    display: none;
+  }
+
+  .online-game-screen .online-game-header h1,
+  #game-screen .game-header h1 {
+    font-size: clamp(19px, 5.5vw, 26px);
+    line-height: 1.05;
+  }
+
+  .online-game-screen .online-game-header .header-actions,
+  #game-screen .game-header .header-actions {
+    width: auto;
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .online-game-screen .deck-counter,
+  #game-screen .deck-counter {
+    min-width: 58px;
+    padding: 5px 8px;
+    border-radius: 10px;
+  }
+
+  .online-game-screen .deck-counter strong,
+  #game-screen .deck-counter strong {
+    font-size: 18px;
+  }
+
+  .online-game-screen .online-game-header .ghost-button,
+  #game-screen .game-header .ghost-button {
+    min-height: 42px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .online-game-screen .turn-progress,
+  #game-screen .turn-progress {
+    grid-area: progress;
+    min-height: 0;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 11px;
+  }
+
+  .online-game-screen .turn-progress div,
+  #game-screen .turn-progress div {
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .online-game-screen .turn-progress p,
+  #game-screen .turn-progress p {
+    margin-top: 4px;
+    overflow: hidden;
+    color: #aaa9a2;
+    font-size: 11px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .online-game-screen .pile-grid,
+  #game-screen .pile-grid {
+    grid-area: piles;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: clamp(5px, 1vw, 8px);
+  }
+
+  .online-game-screen .pile-card,
+  #game-screen .pile-card {
+    width: 100%;
+    height: 100%;
+    min-height: 0 !important;
+    aspect-ratio: auto;
+    padding: 5px;
+    border-radius: 13px;
+  }
+
+  .online-game-screen .pile-card.ascending::before,
+  .online-game-screen .pile-card.descending::before,
+  #game-screen .pile-card.ascending::before,
+  #game-screen .pile-card.descending::before {
+    inset: 5px;
+    border-radius: 9px;
+  }
+
+  .online-game-screen .pile-card .pile-direction,
+  #game-screen .pile-card .pile-direction {
+    font-size: clamp(18px, 5vw, 24px);
+  }
+
+  .online-game-screen .pile-card .pile-value,
+  #game-screen .pile-card .pile-value {
+    font-size: clamp(30px, 10vw, 46px);
+  }
+
+  .online-game-screen .pile-caption,
+  #game-screen .pile-caption {
+    margin-top: 3px;
+    font-size: 9px;
+  }
+
+  .online-game-screen .pile-card.is-reverse::after,
+  #game-screen .pile-card.is-reverse::after {
+    top: 7px;
+    right: 7px;
+    padding: 3px 5px;
+    font-size: 9px;
+  }
+
+  .online-game-screen .online-game-players {
+    grid-area: players;
+    min-height: 40px;
+    max-height: 48px;
+    margin: 0;
+    padding: 0 2px 2px;
+    align-items: stretch;
+  }
+
+  .online-game-screen .online-game-player {
+    flex: 0 0 112px;
+    min-width: 112px;
+    min-height: 40px;
+    padding: 6px 8px;
+    border-radius: 10px;
+  }
+
+  .online-game-screen .online-game-player strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .online-game-screen .online-game-player span {
+    font-size: 9px;
+  }
+
+  .online-game-screen .hand-panel,
+  #game-screen .hand-panel {
+    grid-area: hand;
+    min-height: 0;
+    margin: 0;
+    padding: 8px 10px;
+    border-color: #3c3c37;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #181815, #11110f);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.24);
+  }
+
+  .online-game-screen .hand-header,
+  #game-screen .hand-header {
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .online-game-screen .hand-header .eyebrow,
+  #game-screen .hand-header .eyebrow {
+    display: none;
+  }
+
+  .online-game-screen .hand-header h2,
+  #game-screen .hand-header h2 {
+    font-size: 15px;
+  }
+
+  .online-game-screen .hand-count,
+  #game-screen .hand-count {
+    font-size: 11px;
+  }
+
+  .online-game-screen .hand,
+  #game-screen .hand {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .online-game-screen .online-number-card,
+  #game-screen .number-card {
+    min-height: clamp(52px, 8.8dvh, 74px);
+    border-radius: 10px;
+    font-size: clamp(21px, 7vw, 28px);
+  }
+
+  .online-game-screen .online-game-note {
+    display: none;
+  }
+
+  .online-game-screen .online-game-actions {
+    grid-area: actions;
+    position: static;
+    z-index: auto;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    grid-area: actions;
+    position: static;
+    width: 100%;
+    min-height: 50px;
+    margin: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  }
+
+  .online-game-screen .online-game-connection {
+    display: none;
+  }
+}
+
+@media (max-width: 700px) and (orientation: portrait) and (max-height: 700px) {
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    gap: 4px;
+    padding-top: max(5px, env(safe-area-inset-top));
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
+  }
+
+  .online-game-screen .turn-progress,
+  #game-screen .turn-progress {
+    padding: 6px 9px;
+  }
+
+  .online-game-screen .turn-progress p,
+  #game-screen .turn-progress p {
+    display: none;
+  }
+
+  .online-game-screen .online-game-players {
+    min-height: 34px;
+    max-height: 38px;
+  }
+
+  .online-game-screen .online-game-player {
+    min-height: 34px;
+    padding: 4px 7px;
+  }
+
+  .online-game-screen .online-game-player span {
+    display: none;
+  }
+
+  .online-game-screen .hand-panel,
+  #game-screen .hand-panel {
+    padding: 6px 8px;
+  }
+
+  .online-game-screen .online-number-card,
+  #game-screen .number-card {
+    min-height: clamp(46px, 8dvh, 58px);
+  }
+
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    min-height: 46px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1100px) {
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    position: fixed;
+    z-index: 25;
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    margin: 0;
+    padding:
+      max(7px, env(safe-area-inset-top))
+      max(9px, env(safe-area-inset-right))
+      max(7px, env(safe-area-inset-bottom))
+      max(9px, env(safe-area-inset-left));
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  .online-game-screen:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.78fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header hand"
+      "progress hand"
+      "piles hand"
+      "players actions";
+    gap: 6px 10px;
+  }
+
+  #game-screen:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(250px, 0.78fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header hand"
+      "progress hand"
+      "piles hand"
+      ". actions";
+    gap: 6px 10px;
+  }
+
+  .online-game-screen .online-game-header,
+  #game-screen .game-header {
+    grid-area: header;
+    min-height: 0;
+    margin: 0;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .online-game-screen .online-game-header .eyebrow,
+  #game-screen .game-header .eyebrow {
+    display: none;
+  }
+
+  .online-game-screen .online-game-header h1,
+  #game-screen .game-header h1 {
+    font-size: clamp(18px, 4.8vh, 24px);
+  }
+
+  .online-game-screen .online-game-header .header-actions,
+  #game-screen .game-header .header-actions {
+    width: auto;
+    margin-left: auto;
+  }
+
+  .online-game-screen .deck-counter,
+  #game-screen .deck-counter {
+    min-width: 54px;
+    padding: 4px 7px;
+  }
+
+  .online-game-screen .deck-counter strong,
+  #game-screen .deck-counter strong {
+    font-size: 17px;
+  }
+
+  .online-game-screen .online-game-header .ghost-button,
+  #game-screen .game-header .ghost-button {
+    min-height: 38px;
+    padding: 0 9px;
+    font-size: 11px;
+  }
+
+  .online-game-screen .turn-progress,
+  #game-screen .turn-progress {
+    grid-area: progress;
+    min-height: 0;
+    margin: 0;
+    padding: 6px 9px;
+    border-radius: 10px;
+  }
+
+  .online-game-screen .turn-progress div,
+  #game-screen .turn-progress div {
+    font-size: 10px;
+  }
+
+  .online-game-screen .turn-progress p,
+  #game-screen .turn-progress p {
+    margin-top: 3px;
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .online-game-screen .pile-grid,
+  #game-screen .pile-grid {
+    grid-area: piles;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .online-game-screen .pile-card,
+  #game-screen .pile-card {
+    width: 100%;
+    height: 100%;
+    min-height: 0 !important;
+    aspect-ratio: auto;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .online-game-screen .pile-card.ascending::before,
+  .online-game-screen .pile-card.descending::before,
+  #game-screen .pile-card.ascending::before,
+  #game-screen .pile-card.descending::before {
+    inset: 4px;
+    border-radius: 8px;
+  }
+
+  .online-game-screen .pile-card .pile-direction,
+  #game-screen .pile-card .pile-direction {
+    font-size: clamp(16px, 5vh, 22px);
+  }
+
+  .online-game-screen .pile-card .pile-value,
+  #game-screen .pile-card .pile-value {
+    font-size: clamp(28px, 10vh, 44px);
+  }
+
+  .online-game-screen .pile-caption,
+  #game-screen .pile-caption {
+    margin-top: 2px;
+    font-size: 8px;
+  }
+
+  .online-game-screen .online-game-players {
+    grid-area: players;
+    min-height: 36px;
+    max-height: 42px;
+    margin: 0;
+    padding: 0 0 2px;
+  }
+
+  .online-game-screen .online-game-player {
+    flex: 0 0 108px;
+    min-width: 108px;
+    min-height: 34px;
+    padding: 4px 7px;
+  }
+
+  .online-game-screen .online-game-player strong {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .online-game-screen .online-game-player span {
+    font-size: 8px;
+  }
+
+  .online-game-screen .hand-panel,
+  #game-screen .hand-panel {
+    grid-area: hand;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 9px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-color: #3c3c37;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #181815, #11110f);
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.2);
+  }
+
+  .online-game-screen .hand-header,
+  #game-screen .hand-header {
+    align-items: center;
+    margin-bottom: 5px;
+  }
+
+  .online-game-screen .hand-header .eyebrow,
+  #game-screen .hand-header .eyebrow {
+    display: none;
+  }
+
+  .online-game-screen .hand-header h2,
+  #game-screen .hand-header h2 {
+    font-size: 14px;
+  }
+
+  .online-game-screen .hand,
+  #game-screen .hand {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .online-game-screen .online-number-card,
+  #game-screen .number-card {
+    min-height: 0;
+    height: 100%;
+    border-radius: 9px;
+    font-size: clamp(19px, 6vh, 26px);
+  }
+
+  .online-game-screen .online-game-note {
+    display: none;
+  }
+
+  .online-game-screen .online-game-actions {
+    grid-area: actions;
+    position: static;
+    z-index: auto;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    grid-area: actions;
+    position: static;
+    width: 100%;
+    min-height: 46px;
+    margin: 0;
+  }
+
+  .online-game-screen .online-game-connection {
+    display: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 420px) and (max-width: 850px) {
+  .online-game-screen:not([hidden]),
+  #game-screen:not([hidden]) {
+    gap: 4px 8px;
+    padding-top: max(5px, env(safe-area-inset-top));
+    padding-bottom: max(5px, env(safe-area-inset-bottom));
+  }
+
+  .online-game-screen .turn-progress p,
+  #game-screen .turn-progress p,
+  .online-game-screen .pile-caption,
+  #game-screen .pile-caption,
+  .online-game-screen .online-game-player span {
+    display: none;
+  }
+
+  .online-game-screen .hand-panel,
+  #game-screen .hand-panel {
+    padding: 7px;
+  }
+
+  .online-game-screen .online-game-header .ghost-button,
+  #game-screen .game-header .ghost-button,
+  .online-game-screen .end-turn-button,
+  #game-screen .end-turn-button {
+    min-height: 40px;
+  }
+}
