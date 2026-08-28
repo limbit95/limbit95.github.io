@@ -1,0 +1,40 @@
+name: Block Tower build export
+
+on:
+  push:
+    branches:
+      - feature/block-tower-3d-v1
+
+permissions:
+  contents: read
+
+jobs:
+  export-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:assets
+      - name: Export generated hashed files
+        shell: bash
+        run: |
+          echo '===INDEX_START==='
+          base64 -w0 index.html
+          echo
+          echo '===INDEX_END==='
+          echo '===MANIFEST_START==='
+          base64 -w0 assets/build/manifest.json
+          echo
+          echo '===MANIFEST_END==='
+          echo '===ENTRY_START==='
+          base64 -w0 "$(node -p "JSON.parse(require('fs').readFileSync('assets/build/manifest.json','utf8')).entry")"
+          echo
+          echo '===ENTRY_END==='
+          GAMES_FILE="$(node -e "const m=JSON.parse(require('fs').readFileSync('assets/build/manifest.json','utf8')); console.log(m.outputs.find(x=>/assets\/build\/chunks\/games-.*\.js$/.test(x)))")"
+          echo '===GAMES_START==='
+          base64 -w0 "$GAMES_FILE"
+          echo
+          echo '===GAMES_END==='
