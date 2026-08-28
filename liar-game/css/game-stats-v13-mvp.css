@@ -1,0 +1,14 @@
+/* Liar Game v1.3 expanded MVP grouping */
+.game-mvp-groups{display:grid;gap:16px;width:100%;min-width:0}
+.game-mvp-group{display:grid;gap:9px;min-width:0}
+.game-mvp-group.is-play-style{padding-top:14px;border-top:1px solid var(--border)}
+.game-mvp-group-heading{display:grid;gap:2px;justify-items:start;text-align:left}
+.game-mvp-group-heading strong{font-size:.9rem;font-weight:900;color:var(--ink)}
+.game-mvp-group-heading small{color:var(--muted);font-size:.72rem;line-height:1.45;word-break:keep-all}
+.game-mvp-group .game-fun-stats{margin-top:0}
+.game-mvp-group .game-fun-stat-result{overflow-wrap:anywhere;word-break:keep-all}
+@media(max-width:720px){
+ .game-mvp-groups{gap:14px}
+ .game-mvp-group.is-play-style{padding-top:12px}
+ .game-mvp-group-heading{justify-items:center;text-align:center}
+}
