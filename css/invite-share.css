@@ -1,0 +1,50 @@
+.invite-share-dialog {
+  width: min(92vw, 420px);
+  max-width: 420px;
+  border: 0;
+  border-radius: 24px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.invite-share-dialog::backdrop {
+  background: rgb(0 0 0 / 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.invite-share-card {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 22px;
+  border-radius: 24px;
+  background: #fff;
+  color: #171717;
+  box-shadow: 0 24px 70px rgb(0 0 0 / 0.3);
+}
+
+.invite-share-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.invite-share-header h2 { margin: 2px 0 0; font-size: 1.35rem; }
+.invite-share-eyebrow { margin: 0; font-size: .72rem; font-weight: 900; letter-spacing: .14em; color: #63706a; }
+.invite-share-description { margin: 0; color: #59625e; line-height: 1.55; }
+.invite-share-close { border: 0; background: transparent; color: #333; font-size: 2rem; line-height: 1; cursor: pointer; }
+.invite-share-qr { min-height: 220px; display: grid; place-items: center; border-radius: 18px; background: #f4f7f5; padding: 12px; }
+.invite-share-qr canvas { max-width: 100%; height: auto !important; border-radius: 8px; }
+.invite-share-label { display: grid; gap: 7px; font-size: .82rem; font-weight: 800; }
+.invite-share-input { width: 100%; box-sizing: border-box; border: 1px solid #d6ddd9; border-radius: 12px; padding: 11px 12px; background: #f8faf9; color: #333; font: inherit; }
+.invite-share-message { min-height: 1.2em; margin: 0; color: #3e6e58; font-size: .85rem; }
+.invite-share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.invite-share-actions button { min-height: 46px; border: 0; border-radius: 14px; padding: 10px 14px; font: inherit; font-weight: 900; cursor: pointer; background: #171717; color: #fff; }
+.invite-share-actions button:last-child { background: #dcefe6; color: #173d2d; }
+
+@media (max-width: 480px) {
+  .invite-share-card { padding: 18px; gap: 13px; }
+  .invite-share-qr { min-height: 190px; }
+}
