@@ -82,8 +82,11 @@ function createFlightCard(card, sourceRect) {
   flight.setAttribute("aria-hidden", "true");
   flight.innerHTML = `
     <div class="card-flight__inner">
-      <div class="card-flight__face card-flight__front">${card}</div>
-      <div class="card-flight__face card-flight__back"><span>THE<br>GAME</span></div>
+      <div class="card-flight__face card-flight__front">
+        <span class="card-flight__pile-skin" aria-hidden="true"></span>
+        <span class="card-flight__number">${card}</span>
+      </div>
+      <div class="card-flight__face card-flight__back" aria-hidden="true"></div>
     </div>
   `;
   Object.assign(flight.style, {
@@ -264,15 +267,13 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
   );
   const scaleTowardPile = (progress) => 1 + ((landingScale - 1) * progress);
   const inner = flight.querySelector(".card-flight__inner");
-  let landingCueTimer = null;
+  const front = flight.querySelector(".card-flight__front");
+  const pileSkin = flight.querySelector(".card-flight__pile-skin");
+  const number = flight.querySelector(".card-flight__number");
 
   target.classList.add("is-receiving-card");
 
   try {
-    if (typeof onLanding === "function") {
-      landingCueTimer = window.setTimeout(playLandingCue, 445);
-    }
-
     const pathAnimation = flight.animate([
       { transform: "translate3d(0, -11px, 0) scale(1.045) rotateZ(-1.2deg)", opacity: 1, offset: 0 },
       { transform: `translate3d(${dx * 0.2}px, ${dy * 0.12 - 24}px, 0) scale(${scaleTowardPile(0.12)}) rotateZ(-2deg)`, opacity: 1, offset: 0.22 },
@@ -299,10 +300,50 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
       fill: "forwards",
     });
 
+    const skinAnimation = pileSkin?.animate([
+      { opacity: 0, offset: 0 },
+      { opacity: 0, offset: 0.7 },
+      { opacity: 0.16, offset: 0.78 },
+      { opacity: 0.58, offset: 0.9 },
+      { opacity: 1, offset: 1 },
+    ], {
+      duration: 570,
+      easing: "cubic-bezier(0.18, 0.72, 0.2, 1)",
+      fill: "forwards",
+    });
+
+    const numberAnimation = number?.animate([
+      { color: "#11110f", textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0 },
+      { color: "#11110f", textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0.76 },
+      { color: "#7f7f78", textShadow: "0 1px 8px rgba(0, 0, 0, 0.14)", offset: 0.9 },
+      { color: "#f5f5f1", textShadow: "0 1px 10px rgba(0, 0, 0, 0.22)", offset: 1 },
+    ], {
+      duration: 570,
+      easing: "linear",
+      fill: "forwards",
+    });
+
+    const frontAnimation = front?.animate([
+      { borderColor: "rgba(245, 245, 241, 0.28)", offset: 0 },
+      { borderColor: "rgba(245, 245, 241, 0.28)", offset: 0.74 },
+      { borderColor: "rgba(54, 54, 50, 0.9)", offset: 1 },
+    ], {
+      duration: 570,
+      easing: "linear",
+      fill: "forwards",
+    });
+
     await Promise.all([
       pathAnimation.finished.catch(() => {}),
       flipAnimation?.finished.catch(() => {}) ?? Promise.resolve(),
+      skinAnimation?.finished.catch(() => {}) ?? Promise.resolve(),
+      numberAnimation?.finished.catch(() => {}) ?? Promise.resolve(),
+      frontAnimation?.finished.catch(() => {}) ?? Promise.resolve(),
     ]);
+
+    // The floating card now visually matches the target pile. Update the real
+    // pile underneath before fading the floating card so there is no color or
+    // number snap at the final handoff.
     playLandingCue();
 
     const settle = flight.animate([
@@ -316,7 +357,6 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
     });
     await settle.finished.catch(() => {});
   } finally {
-    if (landingCueTimer) clearTimeout(landingCueTimer);
     flight.remove();
     target.classList.remove("is-receiving-card");
   }
@@ -339,7 +379,10 @@ async function animatePileChange({ button, valueElement, previousValue, nextValu
     sourceRect: source.sourceRect,
     target: button,
     existingFlight: source.flight,
-    onLanding: reverseJump ? playTenPlusVoice : null,
+    onLanding: () => {
+      if (valueElement.isConnected) setPileVisualValue(button, valueElement, nextValue);
+      if (reverseJump) playTenPlusVoice();
+    },
   });
 
   if (valueElement.isConnected) setPileVisualValue(button, valueElement, nextValue);
