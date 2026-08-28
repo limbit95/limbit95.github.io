@@ -176,6 +176,7 @@
 
 - `the_game_games`
 - `the_game_game_players`
+- `the_game_rooms` (게임 종료 후 참가자 이탈로 바뀌는 방 버전까지 즉시 반영)
 
 클라이언트는 Postgres Changes 이벤트를 신호로만 사용하고, 실제 화면 상태는 항상 검증된 snapshot RPC를 다시 읽어 갱신합니다.
 
