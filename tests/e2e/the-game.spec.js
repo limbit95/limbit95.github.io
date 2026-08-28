@@ -5,8 +5,14 @@ test.describe("The Game local prototype", () => {
     await page.goto("/the-game/");
   });
 
-  test("starts a three-player game with the original pile and hand setup", async ({ page }) => {
+  test("offers online and one-device play modes", async ({ page }) => {
     await expect(page.getByRole("heading", { name: "THE GAME" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /온라인 플레이/ })).toBeVisible();
+    await expect(page.getByRole("button", { name: /한 기기 플레이/ })).toBeVisible();
+  });
+
+  test("starts a three-player one-device game with the original pile and hand setup", async ({ page }) => {
+    await page.getByRole("button", { name: /한 기기 플레이/ }).click();
     await page.getByRole("button", { name: "게임 시작" }).click();
 
     await expect(page.getByRole("heading", { name: "플레이어 1의 턴" })).toBeVisible();
@@ -19,6 +25,7 @@ test.describe("The Game local prototype", () => {
   });
 
   test("plays two cards, ends the turn, and protects the next player's hand", async ({ page }) => {
+    await page.getByRole("button", { name: /한 기기 플레이/ }).click();
     await page.getByRole("button", { name: "게임 시작" }).click();
 
     const firstCard = page.locator("#hand .number-card").first();
