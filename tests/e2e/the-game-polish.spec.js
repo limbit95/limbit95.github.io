@@ -85,6 +85,7 @@ async function readBoardLayout(page) {
     const handRect = handPanel.getBoundingClientRect();
     const endTurnRect = endTurn.getBoundingClientRect();
     const lastCardRect = cards.at(-1)?.getBoundingClientRect();
+    const screenStyle = getComputedStyle(screen);
 
     return {
       screenRect: { top: screenRect.top, right: screenRect.right, bottom: screenRect.bottom, left: screenRect.left },
@@ -96,10 +97,13 @@ async function readBoardLayout(page) {
         : null,
       playerDisplay: getComputedStyle(players).display,
       playerOverflow: getComputedStyle(players).overflowX,
+      playerHasHorizontalScroll: players.scrollWidth > players.clientWidth + 1,
       handColumns: getComputedStyle(hand).gridTemplateColumns.split(" ").length,
       cardMinHeight: cards[0]?.getBoundingClientRect().height ?? 0,
       endTurnHeight: endTurnRect.height,
-      screenFits: screen.scrollHeight <= screen.clientHeight + 1 && screen.scrollWidth <= screen.clientWidth + 1,
+      screenVerticalFits: screen.scrollHeight <= screen.clientHeight + 1,
+      screenOverflowX: screenStyle.overflowX,
+      screenOverflowY: screenStyle.overflowY,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
     };
@@ -138,7 +142,8 @@ test.describe("The Game interaction polish", () => {
     expect(layout.handColumns).toBe(4);
     expect(layout.cardMinHeight).toBeGreaterThanOrEqual(52);
     expect(layout.endTurnHeight).toBeGreaterThanOrEqual(50);
-    expect(layout.screenFits).toBe(true);
+    expect(layout.screenVerticalFits).toBe(true);
+    expect(layout.screenOverflowY).toBe("hidden");
     expect(layout.pilesRect.bottom).toBeLessThan(layout.handRect.top);
     expect(layout.handRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
     expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
@@ -152,7 +157,8 @@ test.describe("The Game interaction polish", () => {
 
     expect(layout.handColumns).toBe(4);
     expect(layout.cardMinHeight).toBeGreaterThanOrEqual(46);
-    expect(layout.screenFits).toBe(true);
+    expect(layout.screenVerticalFits).toBe(true);
+    expect(layout.screenOverflowY).toBe("hidden");
     expect(layout.pilesRect.top).toBeGreaterThanOrEqual(-1);
     expect(layout.pilesRect.bottom).toBeLessThan(layout.handRect.top);
     expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
@@ -164,7 +170,14 @@ test.describe("The Game interaction polish", () => {
     const layout = await readBoardLayout(page);
 
     expect(layout.handColumns).toBe(4);
-    expect(layout.screenFits).toBe(true);
+    expect(layout.screenVerticalFits).toBe(true);
+    expect(layout.screenOverflowX).toBe("hidden");
+    expect(layout.screenOverflowY).toBe("hidden");
+    expect(layout.playerHasHorizontalScroll).toBe(true);
+    expect(layout.screenRect.left).toBeGreaterThanOrEqual(-1);
+    expect(layout.screenRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.screenRect.top).toBeGreaterThanOrEqual(-1);
+    expect(layout.screenRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
     expect(layout.pilesRect.right).toBeLessThan(layout.handRect.left);
     expect(layout.handRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
     expect(layout.endTurnRect.left).toBeGreaterThanOrEqual(layout.handRect.left - 1);
