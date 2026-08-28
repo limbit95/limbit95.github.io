@@ -58,6 +58,24 @@ export function getMyActiveGame() {
   return rpc("the_game_get_my_active_game");
 }
 
+export function playCard({ roomId, card, pileId, expectedVersion, clientActionId }) {
+  return rpc("the_game_play_card", {
+    p_room_id: roomId,
+    p_card: card,
+    p_pile_id: pileId,
+    p_expected_version: expectedVersion,
+    p_client_action_id: clientActionId,
+  });
+}
+
+export function endTurn({ roomId, expectedVersion, clientActionId }) {
+  return rpc("the_game_end_turn", {
+    p_room_id: roomId,
+    p_expected_version: expectedVersion,
+    p_client_action_id: clientActionId,
+  });
+}
+
 export function subscribeLobby(roomId, { onChange, onStatus } = {}) {
   const channel = supabase
     .channel(`the-game-lobby:${roomId}`)
