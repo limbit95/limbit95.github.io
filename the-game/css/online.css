@@ -307,12 +307,24 @@
 .online-number-card {
   display: grid;
   place-items: center;
-  cursor: default;
   user-select: none;
 }
 
-.online-number-card:hover {
-  transform: none;
+.online-number-card:not(:disabled) {
+  cursor: pointer;
+}
+
+.online-number-card:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.online-number-card:disabled {
+  opacity: 0.72;
+  cursor: default;
+}
+
+.online-number-card.is-selected {
+  opacity: 1;
 }
 
 .online-game-note {
@@ -320,6 +332,38 @@
   color: #7f7f78;
   font-size: 12px;
   line-height: 1.6;
+}
+
+.online-game-actions {
+  margin-bottom: 18px;
+}
+
+.online-game-actions .end-turn-button {
+  width: 100%;
+}
+
+.online-result-card {
+  margin-bottom: 18px;
+  padding: 24px;
+  border: 1px solid #383834;
+  border-radius: 18px;
+  background: #151513;
+  text-align: center;
+}
+
+.online-result-card h2 {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 6vw, 36px);
+}
+
+.online-result-card > p:not(.eyebrow) {
+  margin: 0;
+  color: #aaa9a2;
+  line-height: 1.65;
+}
+
+.online-result-card .result-score {
+  margin: 20px 0;
 }
 
 .online-game-connection {
