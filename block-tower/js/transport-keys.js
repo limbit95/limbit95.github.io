@@ -74,7 +74,7 @@ function rotateCamera(deltaX, deltaY) {
   const runtime = window.__blockTowerGameRuntime;
   const camera = runtime?.camera;
   const target = runtime?.orbitTarget;
-  if (!camera || !target) return;
+  if (!camera || !target) return false;
 
   const offset = camera.position.clone().sub(target);
   const spherical = new THREE.Spherical().setFromVector3(offset);
@@ -88,6 +88,7 @@ function rotateCamera(deltaX, deltaY) {
   camera.position.copy(target).add(new THREE.Vector3().setFromSpherical(spherical));
   camera.lookAt(target);
   camera.updateMatrixWorld(true);
+  return true;
 }
 
 function rebasePointerToDragMarker() {
@@ -128,35 +129,34 @@ if (sceneHost && !canvas) {
 }
 
 sceneHost?.addEventListener("pointerdown", (event) => {
-  if (!event.isTrusted || event.pointerType === "touch") return;
+  if (!event.isTrusted || event.pointerType === "touch" || event.button !== 0) return;
+  activePointer = {
+    pointerId: event.pointerId,
+    pointerType: event.pointerType || "mouse",
+    clientX: event.clientX,
+    clientY: event.clientY,
+  };
+  heightOffset = 0;
+  pointerOffsetX = 0;
+  pointerOffsetY = 0;
+}, { capture: true });
 
-  if (event.button === 0) {
-    activePointer = {
-      pointerId: event.pointerId,
-      pointerType: event.pointerType || "mouse",
-      clientX: event.clientX,
-      clientY: event.clientY,
-    };
-    heightOffset = 0;
-    pointerOffsetX = 0;
-    pointerOffsetY = 0;
-    return;
-  }
-
+// Pointer Events only fire pointerdown for the first pressed mouse button.
+// Use mouse events for the left+right button chord so the second (right) press is always detected.
+sceneHost?.addEventListener("mousedown", (event) => {
   if (
-    event.button === 2
-    && activePointer
-    && event.pointerId === activePointer.pointerId
-    && (event.buttons & 1) !== 0
-    && hasSelectedBlock()
-  ) {
-    event.preventDefault();
-    event.stopPropagation();
-    cameraDrag = {
-      clientX: event.clientX,
-      clientY: event.clientY,
-    };
-  }
+    event.button !== 2
+    || !activePointer
+    || (event.buttons & 1) === 0
+    || !hasSelectedBlock()
+  ) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+  cameraDrag = {
+    clientX: event.clientX,
+    clientY: event.clientY,
+  };
 }, { capture: true });
 
 sceneHost?.addEventListener("pointermove", (event) => {
@@ -185,17 +185,15 @@ sceneHost?.addEventListener("pointermove", (event) => {
   }
 }, { capture: true });
 
+window.addEventListener("mouseup", (event) => {
+  if (event.button !== 2 || !cameraDrag || !activePointer) return;
+  event.preventDefault();
+  cameraDrag = null;
+  rebasePointerToDragMarker();
+}, { capture: true });
+
 sceneHost?.addEventListener("pointerup", (event) => {
   if (!event.isTrusted || !activePointer || event.pointerId !== activePointer.pointerId) return;
-
-  if (event.button === 2 && cameraDrag) {
-    event.preventDefault();
-    event.stopPropagation();
-    cameraDrag = null;
-    rebasePointerToDragMarker();
-    return;
-  }
-
   if (event.button !== 0) return;
 
   if (isExtractedDrag() && hasVirtualPointerOffset()) {
