@@ -94,7 +94,7 @@ export function subscribeLobby(roomId, { onChange, onStatus } = {}) {
   return () => supabase.removeChannel(channel);
 }
 
-export function subscribeGame({ gameId, onChange, onStatus } = {}) {
+export function subscribeGame({ gameId, roomId, onChange, onStatus } = {}) {
   const channel = supabase
     .channel(`the-game-play:${gameId}`)
     .on(
@@ -105,6 +105,11 @@ export function subscribeGame({ gameId, onChange, onStatus } = {}) {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "the_game_game_players", filter: `game_id=eq.${gameId}` },
+      () => onChange?.(),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "the_game_rooms", filter: `id=eq.${roomId}` },
       () => onChange?.(),
     )
     .subscribe((status, error) => onStatus?.(status, error));
