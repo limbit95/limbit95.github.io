@@ -31,6 +31,7 @@ test.describe("The Game lobby layout polish", () => {
     await expect(firstSentence).toHaveCSS("display", "block");
     await expect(secondSentence).toHaveCSS("display", "block");
 
+    await summary.scrollIntoViewIfNeeded();
     let firstRect = await readRect(firstSentence);
     let secondRect = await readRect(secondSentence);
     let secondPadding = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
@@ -39,6 +40,7 @@ test.describe("The Game lobby layout polish", () => {
     expect(secondPadding).toBeGreaterThanOrEqual(10);
 
     await page.setViewportSize({ width: 375, height: 700 });
+    await summary.scrollIntoViewIfNeeded();
     firstRect = await readRect(firstSentence);
     secondRect = await readRect(secondSentence);
     secondPadding = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
