@@ -39,6 +39,31 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
+function playTenPlusVoice() {
+  if (typeof window.speechSynthesis?.speak !== "function" || typeof SpeechSynthesisUtterance !== "function") {
+    return;
+  }
+
+  const utterance = new SpeechSynthesisUtterance("텐플러스!");
+  utterance.lang = "ko-KR";
+  utterance.rate = 1.12;
+  utterance.pitch = 1.06;
+  utterance.volume = 0.95;
+
+  const koreanVoice = window.speechSynthesis.getVoices()
+    .find((voice) => voice.lang?.toLowerCase().startsWith("ko"));
+  if (koreanVoice) utterance.voice = koreanVoice;
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function isReverseTransition(button, previousValue, nextValue) {
+  if (!Number.isInteger(previousValue) || !Number.isInteger(nextValue)) return false;
+  if (button.classList.contains("ascending")) return previousValue - nextValue === 10;
+  if (button.classList.contains("descending")) return nextValue - previousValue === 10;
+  return false;
+}
+
 function createFlightCard(card, sourceRect) {
   if (!sourceRect || prefersReducedMotion()) return null;
 
@@ -198,20 +223,34 @@ function readPileVisualValue(button, valueElement) {
   return value;
 }
 
-async function animateCardFlight({ card, sourceRect, target, existingFlight = null }) {
+async function animateCardFlight({ card, sourceRect, target, existingFlight = null, onLanding = null }) {
+  const playLandingCue = (() => {
+    let played = false;
+    return () => {
+      if (played || typeof onLanding !== "function") return;
+      played = true;
+      onLanding();
+    };
+  })();
+
   if (!sourceRect || !target?.isConnected || prefersReducedMotion() || typeof target.animate !== "function") {
     removeFlight(existingFlight, false);
+    playLandingCue();
     return;
   }
 
   const targetRect = target.getBoundingClientRect();
   if (targetRect.width <= 0 || targetRect.height <= 0) {
     removeFlight(existingFlight, false);
+    playLandingCue();
     return;
   }
 
   const flight = existingFlight?.isConnected ? existingFlight : createFlightCard(card, sourceRect);
-  if (!flight) return;
+  if (!flight) {
+    playLandingCue();
+    return;
+  }
   for (const animation of flight.getAnimations()) animation.cancel();
 
   const flightRect = flight.getBoundingClientRect();
@@ -219,18 +258,28 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
   const endTop = targetRect.top + (targetRect.height - flightRect.height) / 2;
   const dx = endLeft - flightRect.left;
   const dy = endTop - flightRect.top;
+  const landingScale = Math.max(
+    0.92,
+    Math.min(targetRect.width / flightRect.width, targetRect.height / flightRect.height) * 0.95,
+  );
+  const scaleTowardPile = (progress) => 1 + ((landingScale - 1) * progress);
   const inner = flight.querySelector(".card-flight__inner");
+  let landingCueTimer = null;
 
   target.classList.add("is-receiving-card");
 
   try {
+    if (typeof onLanding === "function") {
+      landingCueTimer = window.setTimeout(playLandingCue, 445);
+    }
+
     const pathAnimation = flight.animate([
       { transform: "translate3d(0, -11px, 0) scale(1.045) rotateZ(-1.2deg)", opacity: 1, offset: 0 },
-      { transform: `translate3d(${dx * 0.2}px, ${dy * 0.12 - 24}px, 0) scale(1.06) rotateZ(-2deg)`, opacity: 1, offset: 0.22 },
-      { transform: `translate3d(${dx * 0.52}px, ${dy * 0.42 - 34}px, 0) scale(1.04) rotateZ(3.2deg)`, opacity: 1, offset: 0.5 },
-      { transform: `translate3d(${dx * 0.82}px, ${dy * 0.76 - 18}px, 0) scale(0.99) rotateZ(-1.5deg)`, opacity: 1, offset: 0.78 },
-      { transform: `translate3d(${dx}px, ${dy - 6}px, 0) scale(0.94) rotateZ(0.7deg)`, opacity: 1, offset: 0.94 },
-      { transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.92) rotateZ(0deg)`, opacity: 1, offset: 1 },
+      { transform: `translate3d(${dx * 0.2}px, ${dy * 0.12 - 24}px, 0) scale(${scaleTowardPile(0.12)}) rotateZ(-2deg)`, opacity: 1, offset: 0.22 },
+      { transform: `translate3d(${dx * 0.52}px, ${dy * 0.42 - 34}px, 0) scale(${scaleTowardPile(0.36)}) rotateZ(3.2deg)`, opacity: 1, offset: 0.5 },
+      { transform: `translate3d(${dx * 0.82}px, ${dy * 0.76 - 18}px, 0) scale(${scaleTowardPile(0.7)}) rotateZ(-1.5deg)`, opacity: 1, offset: 0.78 },
+      { transform: `translate3d(${dx}px, ${dy - 6}px, 0) scale(${scaleTowardPile(0.94)}) rotateZ(0.7deg)`, opacity: 1, offset: 0.94 },
+      { transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale}) rotateZ(0deg)`, opacity: 1, offset: 1 },
     ], {
       duration: 570,
       easing: "cubic-bezier(0.18, 0.72, 0.2, 1)",
@@ -254,17 +303,20 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
       pathAnimation.finished.catch(() => {}),
       flipAnimation?.finished.catch(() => {}) ?? Promise.resolve(),
     ]);
+    playLandingCue();
 
     const settle = flight.animate([
-      { opacity: 1, transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.92)` },
-      { opacity: 0, transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(0.9)` },
+      { opacity: 1, transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale})` },
+      { opacity: 1, transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(${landingScale * 0.988})`, offset: 0.46 },
+      { opacity: 0, transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(${landingScale})` },
     ], {
-      duration: 95,
-      easing: "ease-out",
+      duration: 120,
+      easing: "cubic-bezier(0.2, 0.72, 0.2, 1)",
       fill: "forwards",
     });
     await settle.finished.catch(() => {});
   } finally {
+    if (landingCueTimer) clearTimeout(landingCueTimer);
     flight.remove();
     target.classList.remove("is-receiving-card");
   }
@@ -276,6 +328,7 @@ async function animatePileChange({ button, valueElement, previousValue, nextValu
   const context = pileContext(button);
   const id = pileId(button);
   const source = sourceForChange(context, id, nextValue);
+  const reverseJump = isReverseTransition(button, previousValue, nextValue);
 
   // MutationObserver runs before the browser paints the new pile number. Keep
   // the previous face visible until the physical-card motion has landed.
@@ -286,6 +339,7 @@ async function animatePileChange({ button, valueElement, previousValue, nextValu
     sourceRect: source.sourceRect,
     target: button,
     existingFlight: source.flight,
+    onLanding: reverseJump ? playTenPlusVoice : null,
   });
 
   if (valueElement.isConnected) setPileVisualValue(button, valueElement, nextValue);
