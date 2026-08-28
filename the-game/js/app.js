@@ -67,7 +67,10 @@ function createModeScreen() {
     <a class="back-link" href="../#/games">← 게임 목록으로</a>
     <div class="rule-summary">
       <strong>핵심 규칙</strong>
-      <p>오름차순은 큰 수, 내림차순은 작은 수를 놓습니다. 정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.</p>
+      <p class="rule-summary__copy">
+        <span class="rule-summary__line">오름차순은 큰 수, 내림차순은 작은 수를 놓습니다.</span>
+        <span class="rule-summary__line rule-summary__line--indent">정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.</span>
+      </p>
     </div>
   `;
 
