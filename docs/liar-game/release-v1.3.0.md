@@ -13,7 +13,7 @@ v1.3.0은 기존 게임 규칙을 변경하지 않고, 같은 `game_id` 안에�
 ## 신규 플레이 스타일 MVP
 
 ### 🤝 운명의 라이벌
-완료된 라운드의 모든 닫힌 투표 단계에서 두 사람이 서로 주고받은 표를 합산한다. 상호 투표 합계가 가장 높은 한 쌍을 표시한다.
+완료된 라운드의 모든 닫힌 투표 단계에서 두 사람이 서로 주고받은 표를 합산한다. **A → B와 B → A가 모두 존재하는 진짜 상호투표 관계만** 후보가 되며, 상호 투표 합계가 가장 높은 한 쌍을 표시한다.
 
 ### 🔄 갈대왕
 같은 라운드에서 본투표/재투표처럼 연속된 닫힌 투표 단계에 모두 참여했을 때, 직전 단계에서 선택했던 사람을 한 명도 유지하지 않은 횟수를 집계한다.
@@ -59,9 +59,12 @@ Production migration:
 
 ```text
 supabase/liar-game/migrations/20260828223226_liar_expanded_mvp_stats_v13.sql
+supabase/liar-game/migrations/20260828224040_liar_expanded_mvp_mutual_rival_fix.sql
 ```
 
 신규 `liar_get_game_stats_v13(uuid)` RPC는 기존 `liar_get_game_stats_v12(uuid)` 결과를 기반으로 확장한다. 기존 v1.2 함수와 기존 5개 통계 계산은 변경하지 않는다.
+
+두 번째 migration은 초기 v13의 2인 조합 집계에서 한 방향 투표만 있는 쌍도 라이벌 후보가 될 수 있던 의미 차이를 바로잡아, 양방향 투표가 모두 존재하는 쌍만 허용한다.
 
 권한은 기존 통계 RPC와 동일하게 유지한다.
 
@@ -74,6 +77,7 @@ supabase/liar-game/migrations/20260828223226_liar_expanded_mvp_stats_v13.sql
 
 - 과거 4라운드 Drawing Spy 게임으로 관계/대세/힌트/그림 통계 계산 확인
 - `운명의 라이벌`, `한우물만 판다`, `대세를 따르는 자`, `힌트 플렉스`, `존버왕`, `폭풍 드로잉` 실제 값 반환 확인
+- 과거 게임에서 양방향 투표 쌍(`directions=2`)과 단방향 투표 쌍(`directions=1`)이 함께 존재함을 확인하고, 라이벌 후보는 양방향 쌍만 남도록 보정
 - 재투표가 존재하는 과거 게임으로 `갈대왕` / `고집왕` 계산 확인
 - 테스트를 위해 바꾼 room/player 상태는 transaction rollback 처리
 - 신규 RPC를 사용하기 전 기존 프론트는 계속 v1.2 RPC를 사용하므로 DB migration 자체는 기존 클라이언트 동작에 영향 없음
