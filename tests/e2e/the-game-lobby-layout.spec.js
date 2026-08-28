@@ -19,24 +19,24 @@ test.describe("The Game lobby layout polish", () => {
     await page.goto("/the-game/");
   });
 
-  test("centers core rules and indents only the second sentence", async ({ page }) => {
+  test("centers core rules and spaces the second sentence", async ({ page }) => {
     const summary = page.locator("#mode-screen .rule-summary");
-    const firstLine = summary.locator(".rule-summary__line").first();
-    const secondLine = summary.locator(".rule-summary__line--indent");
+    const firstSentence = summary.locator(".rule-summary__line").first();
+    const secondSentence = summary.locator(".rule-summary__line--indent");
 
     await expect(summary).toBeVisible();
     await expect(summary).toHaveCSS("text-align", "center");
-    await expect(firstLine).toHaveText("오름차순은 큰 수, 내림차순은 작은 수를 놓습니다.");
-    await expect(secondLine).toHaveText("정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.");
-    await expect(firstLine).toHaveCSS("text-align", "center");
-    await expect(secondLine).toHaveCSS("text-align", "center");
+    await expect(firstSentence).toHaveText("오름차순은 큰 수, 내림차순은 작은 수를 놓습니다.");
+    await expect(secondSentence).toHaveText("정확히 10 차이면 반대 방향으로 되돌릴 수 있습니다.");
+    await expect(firstSentence).toHaveCSS("display", "inline");
+    await expect(secondSentence).toHaveCSS("display", "inline");
 
-    let secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
-    expect(secondPadding).toBeGreaterThanOrEqual(10);
+    let secondMargin = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).marginLeft));
+    expect(secondMargin).toBeGreaterThanOrEqual(8);
 
     await page.setViewportSize({ width: 375, height: 700 });
-    secondPadding = await secondLine.evaluate((element) => parseFloat(getComputedStyle(element).paddingLeft));
-    expect(secondPadding).toBeGreaterThanOrEqual(8);
+    secondMargin = await secondSentence.evaluate((element) => parseFloat(getComputedStyle(element).marginLeft));
+    expect(secondMargin).toBeGreaterThanOrEqual(6);
     await expect(page.getByRole("button", { name: "게임 규칙", exact: true })).toBeVisible();
   });
 
