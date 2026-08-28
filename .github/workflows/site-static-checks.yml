@@ -48,7 +48,10 @@ jobs:
               continue
             fi
             node --check "$file"
-          done < <(find js liar-game/js -type f -name '*.js' -print0)
+          done < <(find js liar-game/js the-game/js -type f -name '*.js' -print0)
+
+      - name: Test The Game rules engine
+        run: npm run test:the-game
 
       - name: Guard removed reminder client API
         shell: bash
