@@ -20,7 +20,7 @@ test.describe("The Game lobby layout polish", () => {
   });
 
   test("indents the core rule copy beneath its heading", async ({ page }) => {
-    const summary = page.locator(".rule-summary");
+    const summary = page.locator("#mode-screen .rule-summary");
     const copy = summary.locator("p");
 
     await expect(summary).toBeVisible();
