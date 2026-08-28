@@ -36,6 +36,6 @@
 
 .content-grid[aria-label="게임 목록"] > .card.page-stack > .button {
   grid-area: action;
-  width: min(100%, 240px);
-  justify-self: center;
+  width: 100%;
+  justify-self: stretch;
 }
