@@ -43,6 +43,21 @@ export function leaveRoom({ roomId, expectedVersion }) {
   });
 }
 
+export function startGame({ roomId, expectedVersion }) {
+  return rpc("the_game_start_game", {
+    p_room_id: roomId,
+    p_expected_version: expectedVersion,
+  });
+}
+
+export function getGameSnapshot(roomId) {
+  return rpc("the_game_get_game_snapshot", { p_room_id: roomId });
+}
+
+export function getMyActiveGame() {
+  return rpc("the_game_get_my_active_game");
+}
+
 export function subscribeLobby(roomId, { onChange, onStatus } = {}) {
   const channel = supabase
     .channel(`the-game-lobby:${roomId}`)
@@ -54,6 +69,24 @@ export function subscribeLobby(roomId, { onChange, onStatus } = {}) {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "the_game_room_players", filter: `room_id=eq.${roomId}` },
+      () => onChange?.(),
+    )
+    .subscribe((status, error) => onStatus?.(status, error));
+
+  return () => supabase.removeChannel(channel);
+}
+
+export function subscribeGame({ gameId, onChange, onStatus } = {}) {
+  const channel = supabase
+    .channel(`the-game-play:${gameId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "the_game_games", filter: `id=eq.${gameId}` },
+      () => onChange?.(),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "the_game_game_players", filter: `game_id=eq.${gameId}` },
       () => onChange?.(),
     )
     .subscribe((status, error) => onStatus?.(status, error));
