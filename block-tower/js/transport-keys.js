@@ -1,4 +1,5 @@
 const sceneHost = document.querySelector("#scene");
+const selectionStatus = document.querySelector("#selection-status");
 
 const HEIGHT_SPEED_PX_PER_SECOND = 520;
 const FINE_HEIGHT_SPEED_PX_PER_SECOND = 150;
@@ -11,6 +12,10 @@ let raisePressed = false;
 let lowerPressed = false;
 let finePressed = false;
 let previousFrame = performance.now();
+
+function isExtractedDrag() {
+  return Boolean(activePointer && selectionStatus?.textContent.includes("추출됨"));
+}
 
 function resetTransportKeys() {
   activePointer = null;
@@ -72,7 +77,7 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (!HEIGHT_KEYS.has(event.code)) return;
+  if (!HEIGHT_KEYS.has(event.code) || !isExtractedDrag()) return;
   event.preventDefault();
   if (event.code === "KeyE") raisePressed = true;
   if (event.code === "KeyQ") lowerPressed = true;
@@ -95,7 +100,7 @@ window.addEventListener("blur", () => {
 });
 
 function dispatchVirtualHeightMove() {
-  if (!canvas || !activePointer) return;
+  if (!canvas || !activePointer || !isExtractedDrag()) return;
   const virtualEvent = new PointerEvent("pointermove", {
     bubbles: true,
     cancelable: true,
@@ -114,7 +119,7 @@ function animateHeightInput(now) {
   const deltaSeconds = Math.min((now - previousFrame) / 1000, 0.05);
   previousFrame = now;
 
-  if (activePointer && raisePressed !== lowerPressed) {
+  if (isExtractedDrag() && raisePressed !== lowerPressed) {
     const speed = finePressed
       ? FINE_HEIGHT_SPEED_PX_PER_SECOND
       : HEIGHT_SPEED_PX_PER_SECOND;
