@@ -3,9 +3,13 @@ let snapshot = null;
 let screen = null;
 let unsubscribeGame = null;
 let refreshTimer = null;
+let reconnectTimer = null;
 let selectedCard = null;
 let busy = false;
 let notice = "";
+let isOpen = false;
+let onReturnToLobby = null;
+let networkEventsBound = false;
 
 function ensureScreen() {
   if (screen) return screen;
@@ -64,11 +68,25 @@ function ensureScreen() {
       <p class="eyebrow" data-online-result-kicker>RESULT</p>
       <h2 data-online-result-title>게임 종료</h2>
       <p data-online-result-message></p>
-      <div class="result-score">
-        <span>남은 카드</span>
-        <strong data-online-result-remaining>0</strong>
+      <div class="online-result-stats">
+        <div class="result-score">
+          <span>내려놓은 카드</span>
+          <strong data-online-result-played>0</strong>
+        </div>
+        <div class="result-score">
+          <span>남은 카드</span>
+          <strong data-online-result-remaining>0</strong>
+        </div>
+        <div class="result-score">
+          <span>진행 턴</span>
+          <strong data-online-result-turns>0</strong>
+        </div>
       </div>
-      <button class="primary-button" type="button" data-online-result-exit>게임 종료하고 나가기</button>
+      <p class="online-result-note" data-online-result-rematch-note></p>
+      <div class="online-result-actions">
+        <button class="primary-button" type="button" data-online-result-rematch>같은 멤버로 재대결</button>
+        <button class="ghost-button" type="button" data-online-result-exit>방 나가기</button>
+      </div>
     </section>
 
     <div class="lobby-meta online-game-connection">
@@ -80,6 +98,7 @@ function ensureScreen() {
   const firstScreen = shell.querySelector(".screen");
   shell.insertBefore(screen, firstScreen);
   bindEvents();
+  bindNetworkEvents();
   return screen;
 }
 
@@ -102,13 +121,36 @@ function bindEvents() {
   });
 
   screen.querySelector("[data-online-end-turn]").addEventListener("click", endCurrentTurn);
+  screen.querySelector("[data-online-result-rematch]").addEventListener("click", prepareRematch);
   screen.querySelector("[data-online-result-exit]").addEventListener("click", leaveFinishedGame);
+}
+
+function bindNetworkEvents() {
+  if (networkEventsBound) return;
+  networkEventsBound = true;
+
+  window.addEventListener("offline", () => {
+    if (!isOpen || !screen) return;
+    const connection = screen.querySelector("[data-online-game-connection]");
+    connection.textContent = "오프라인 · 네트워크 연결을 기다리는 중";
+  });
+
+  window.addEventListener("online", () => {
+    if (!isOpen || !screen) return;
+    const connection = screen.querySelector("[data-online-game-connection]");
+    connection.textContent = "네트워크 복구 중…";
+    scheduleReconnect(80);
+  });
 }
 
 function closeSubscription() {
   if (refreshTimer) {
     clearTimeout(refreshTimer);
     refreshTimer = null;
+  }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
   }
   if (unsubscribeGame) {
     unsubscribeGame();
@@ -123,6 +165,9 @@ function friendlyError(error) {
     ["PLAYER_NOT_MEMBER", "이 게임은 이미 종료되었거나 방에서 나간 상태입니다."],
     ["GAME_NOT_FOUND", "진행 중인 게임을 찾을 수 없습니다."],
     ["GAME_NOT_PLAYING", "이미 종료된 게임입니다."],
+    ["GAME_NOT_FINISHED", "재대결은 게임이 완전히 끝난 뒤 시작할 수 있습니다."],
+    ["NOT_ENOUGH_PLAYERS_FOR_REMATCH", "재대결에는 방에 남아 있는 플레이어가 2명 이상 필요합니다."],
+    ["HOST_REQUIRED", "같은 멤버 재대결은 방장만 시작할 수 있습니다."],
     ["NOT_YOUR_TURN", "현재 내 턴이 아닙니다."],
     ["CARD_NOT_IN_HAND", "내 손패에 없는 카드입니다. 최신 상태를 다시 불러옵니다."],
     ["CARD_NOT_PLAYABLE", "선택한 카드는 그 더미에 놓을 수 없습니다."],
@@ -138,6 +183,14 @@ function friendlyError(error) {
 
 function isPlaying() {
   return snapshot?.game?.status === "playing";
+}
+
+function isFinished() {
+  return snapshot?.game?.status === "won" || snapshot?.game?.status === "lost";
+}
+
+function isHost() {
+  return Boolean(snapshot?.room?.host_user_id && snapshot?.room?.host_user_id === snapshot?.self?.user_id);
 }
 
 function isMyTurn() {
@@ -264,12 +317,27 @@ function renderResult(game) {
   if (!finished) return;
 
   const won = game.status === "won";
+  const cardsPlayed = game.result?.cards_played ?? (98 - (game.remaining_cards ?? 98));
+  const remainingCards = game.result?.remaining_cards ?? game.remaining_cards ?? 0;
+  const turns = Math.max(1, game.turn_number ?? 1);
+
   screen.querySelector("[data-online-result-kicker]").textContent = won ? "MISSION COMPLETE" : "GAME OVER";
   screen.querySelector("[data-online-result-title]").textContent = won ? "모든 카드를 내려놓았습니다!" : "이번 게임은 여기까지";
   screen.querySelector("[data-online-result-message]").textContent = won
     ? "네 개의 더미에 2부터 99까지의 카드를 모두 내려놓는 데 성공했습니다."
-    : `총 ${game.result?.cards_played ?? 0}장을 내려놓았습니다. 다음 게임에서는 ±10 되돌리기를 더 적극적으로 활용해 보세요.`;
-  screen.querySelector("[data-online-result-remaining]").textContent = String(game.result?.remaining_cards ?? game.remaining_cards ?? 0);
+    : `총 ${cardsPlayed}장을 내려놓았습니다. 같은 멤버로 다시 도전해 기록을 갱신해 보세요.`;
+  screen.querySelector("[data-online-result-played]").textContent = String(cardsPlayed);
+  screen.querySelector("[data-online-result-remaining]").textContent = String(remainingCards);
+  screen.querySelector("[data-online-result-turns]").textContent = String(turns);
+
+  const rematchButton = screen.querySelector("[data-online-result-rematch]");
+  const rematchNote = screen.querySelector("[data-online-result-rematch-note]");
+  rematchButton.disabled = busy || !isHost();
+  rematchButton.textContent = isHost() ? "같은 멤버로 재대결" : "방장의 재대결 선택을 기다리는 중";
+  rematchNote.textContent = isHost()
+    ? "재대결을 선택하면 같은 방과 멤버를 유지한 채 모두 준비 전 상태로 대기방에 돌아갑니다."
+    : "방장이 재대결을 선택하면 자동으로 같은 대기방으로 이동합니다.";
+
   screen.querySelector("[data-online-result-exit]").disabled = busy;
 }
 
@@ -327,13 +395,28 @@ function render() {
   renderResult(game);
 }
 
+function moveToLobby(lobbySnapshot) {
+  const callback = onReturnToLobby;
+  closeOnlineGame();
+  callback?.(lobbySnapshot);
+}
+
 async function refresh() {
   if (!snapshot?.room?.id || !api) return;
+  const roomId = snapshot.room.id;
+
   try {
-    const next = await api.getGameSnapshot(snapshot.room.id);
-    if (!next) return;
-    snapshot = next;
-    render();
+    const next = await api.getGameSnapshot(roomId);
+    if (next) {
+      snapshot = next;
+      render();
+      return;
+    }
+
+    const lobbySnapshot = await api.getLobbySnapshot(roomId);
+    if (lobbySnapshot?.room?.status === "waiting") {
+      moveToLobby(lobbySnapshot);
+    }
   } catch (error) {
     const message = error?.message ?? "";
     if (message.includes("PLAYER_NOT_MEMBER") || message.includes("ROOM_NOT_FOUND")) {
@@ -354,22 +437,50 @@ function scheduleRefresh() {
   }, 80);
 }
 
+function scheduleReconnect(delay = 1200) {
+  if (!isOpen || reconnectTimer) return;
+  reconnectTimer = window.setTimeout(async () => {
+    reconnectTimer = null;
+    if (!isOpen) return;
+
+    await refresh();
+    if (!isOpen || !snapshot?.game?.id) return;
+    subscribe();
+  }, delay);
+}
+
 function subscribe() {
-  closeSubscription();
+  if (!isOpen) return;
+  if (unsubscribeGame) {
+    unsubscribeGame();
+    unsubscribeGame = null;
+  }
+
   const gameId = snapshot?.game?.id;
   const roomId = snapshot?.room?.id;
   if (!gameId || !roomId) return;
 
   const connection = screen.querySelector("[data-online-game-connection]");
-  connection.textContent = "실시간 연결 중…";
+  connection.textContent = navigator.onLine === false ? "오프라인 · 네트워크 연결을 기다리는 중" : "실시간 연결 중…";
+
   unsubscribeGame = api.subscribeGame({
     gameId,
     roomId,
     onChange: scheduleRefresh,
     onStatus(status) {
-      if (status === "SUBSCRIBED") connection.textContent = "실시간 연결됨";
-      else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") connection.textContent = "연결 재확인 필요";
-      else if (status === "CLOSED") connection.textContent = "연결 종료됨";
+      if (!isOpen) return;
+      if (status === "SUBSCRIBED") {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        connection.textContent = "실시간 연결됨";
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        connection.textContent = "연결이 끊겼습니다 · 재연결 중…";
+        scheduleReconnect();
+      } else if (status === "CLOSED") {
+        connection.textContent = navigator.onLine === false ? "오프라인 · 네트워크 연결을 기다리는 중" : "실시간 연결 종료됨";
+      }
     },
   });
 }
@@ -401,7 +512,7 @@ async function submitSelectedCard(pileId) {
     notice = friendlyError(error);
   } finally {
     busy = false;
-    render();
+    if (isOpen) render();
   }
 }
 
@@ -425,7 +536,29 @@ async function endCurrentTurn() {
     notice = friendlyError(error);
   } finally {
     busy = false;
-    render();
+    if (isOpen) render();
+  }
+}
+
+async function prepareRematch() {
+  if (busy || !isFinished() || !isHost() || !snapshot?.room) return;
+
+  busy = true;
+  selectedCard = null;
+  notice = "같은 멤버로 재대결을 준비하고 있습니다…";
+  render();
+
+  try {
+    const lobbySnapshot = await api.prepareRematch({
+      roomId: snapshot.room.id,
+      expectedVersion: snapshot.room.version,
+    });
+    moveToLobby(lobbySnapshot);
+  } catch (error) {
+    if ((error?.message ?? "").includes("STATE_CHANGED")) await refresh();
+    notice = friendlyError(error);
+    busy = false;
+    if (isOpen) render();
   }
 }
 
@@ -462,7 +595,7 @@ async function closeActiveGame() {
     if ((error?.message ?? "").includes("STATE_CHANGED")) await refresh();
     notice = friendlyError(error);
     busy = false;
-    render();
+    if (isOpen) render();
   }
 }
 
@@ -483,16 +616,18 @@ async function leaveFinishedGame() {
     if ((error?.message ?? "").includes("STATE_CHANGED")) await refresh();
     notice = friendlyError(error);
     busy = false;
-    render();
+    if (isOpen) render();
   }
 }
 
-export function openOnlineGame({ api: apiModule, gameSnapshot }) {
+export function openOnlineGame({ api: apiModule, gameSnapshot, onReturnToLobby: returnHandler } = {}) {
   api = apiModule;
   snapshot = gameSnapshot;
+  onReturnToLobby = typeof returnHandler === "function" ? returnHandler : null;
   selectedCard = null;
   busy = false;
   notice = "";
+  isOpen = true;
   ensureScreen();
 
   for (const candidate of document.querySelectorAll(".app-shell > .screen")) {
@@ -505,9 +640,11 @@ export function openOnlineGame({ api: apiModule, gameSnapshot }) {
 }
 
 export function closeOnlineGame() {
+  isOpen = false;
   closeSubscription();
   selectedCard = null;
   busy = false;
   notice = "";
+  onReturnToLobby = null;
   if (screen) screen.hidden = true;
 }
