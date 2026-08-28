@@ -260,13 +260,15 @@ function scheduleBotBellRace(state) {
 function setAction(playerId, action, emotion, resetAfter = 0) {
   const current = avatarStates.get(playerId);
   if (!current) return;
-  avatarStates.set(playerId, setAvatarAction(current, action, emotion));
+  const next = setAvatarAction(current, action, emotion);
+  avatarStates.set(playerId, next);
   applyAvatarState(playerId);
 
   if (resetAfter > 0) {
+    const actionNonce = next.actionNonce;
     schedule(() => {
       const latest = avatarStates.get(playerId);
-      if (!latest) return;
+      if (!latest || latest.actionNonce !== actionNonce) return;
       avatarStates.set(playerId, resetAvatarPose(latest));
       applyAvatarState(playerId);
     }, resetAfter);
