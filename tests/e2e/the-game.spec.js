@@ -73,7 +73,8 @@ test.describe("The Game local prototype", () => {
       window.__theGameOnlineCalls = [];
       const api = {
         getGameSnapshot: async () => structuredClone(current),
-        subscribeGame: ({ onStatus }) => {
+        subscribeGame: ({ gameId: subscribedGameId, roomId: subscribedRoomId, onStatus }) => {
+          window.__theGameOnlineSubscription = { subscribedGameId, subscribedRoomId };
           onStatus?.("SUBSCRIBED");
           return () => {};
         },
@@ -113,6 +114,12 @@ test.describe("The Game local prototype", () => {
 
     await expect(page.getByRole("heading", { name: "내 턴" })).toBeVisible();
     await expect(page.locator("[data-online-end-turn]")).toBeDisabled();
+
+    const subscription = await page.evaluate(() => window.__theGameOnlineSubscription);
+    expect(subscription).toEqual({
+      subscribedGameId: "44444444-4444-4444-8444-444444444444",
+      subscribedRoomId: "33333333-3333-4333-8333-333333333333",
+    });
 
     await page.getByRole("button", { name: "내 카드 26" }).click();
     await expect(page.locator("[data-online-pile-id].is-playable")).toHaveCount(4);
