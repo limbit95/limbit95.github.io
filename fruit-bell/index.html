@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#171b20">
+  <title>프루츠 벨 | 청파 같이</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <main class="game-page">
+    <header class="game-header">
+      <div>
+        <p class="brand-kicker">CHEONGPA GACHI · GAME LAB</p>
+        <h1>프루츠 벨</h1>
+      </div>
+      <a class="back-link" href="../#games">게임 목록</a>
+    </header>
+
+    <section id="avatar-lobby" class="lobby-panel" aria-labelledby="avatar-title">
+      <div class="lobby-copy">
+        <h2 id="avatar-title">오늘은 어떤 동물로 플레이할까요?</h2>
+        <p>내 아바타를 고른 뒤 시작하세요. 게임 중 마우스를 움직이면 내 아바타도 시선을 따라 움직이고, 스페이스바를 누르면 종을 칩니다.</p>
+      </div>
+      <div id="animal-grid" class="animal-grid" aria-label="동물 아바타 선택"></div>
+      <button id="start-game" class="primary-button" type="button">이 동물로 시작</button>
+    </section>
+
+    <section id="game-screen" class="game-screen" hidden>
+      <div class="game-hud">
+        <p id="game-status" class="game-status" aria-live="polite"></p>
+        <div id="fruit-totals" class="fruit-totals" aria-label="현재 공개 과일 합계"></div>
+      </div>
+
+      <div id="game-stage" class="game-stage" tabindex="-1" aria-label="프루츠 벨 게임 테이블">
+        <div class="table-surface" aria-hidden="true"></div>
+        <div id="player-table" class="player-table"></div>
+        <div class="bell-zone">
+          <button id="bell-button" class="bell-button" type="button" aria-label="종 치기">🔔</button>
+          <span class="bell-hint">SPACE</span>
+        </div>
+      </div>
+
+      <div class="game-footer">
+        <button id="restart-game" class="secondary-button" type="button">아바타 다시 고르기</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
