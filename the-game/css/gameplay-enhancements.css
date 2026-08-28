@@ -1,0 +1,318 @@
+/* Gameplay feedback and pre-game pile setup enhancements. */
+
+.pile-card.ascending.is-reverse::after {
+  content: "-10";
+}
+
+.pile-card.descending.is-reverse::after {
+  content: "+10";
+}
+
+.pile-card.is-empty-pile {
+  background: linear-gradient(145deg, #151513, #10100e);
+  box-shadow: inset 0 0 0 1px rgba(245, 245, 241, 0.035);
+}
+
+.pile-card.is-empty-pile .pile-value {
+  min-height: 1em;
+  opacity: 0.28;
+}
+
+.pile-card.is-empty-pile .pile-value::before {
+  content: "";
+  width: clamp(28px, 34%, 48px);
+  height: 2px;
+  display: block;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.card-flight {
+  position: fixed;
+  z-index: 95;
+  margin: 0;
+  pointer-events: none;
+  perspective: 900px;
+  transform-origin: 50% 52%;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 20px 28px rgba(0, 0, 0, 0.42));
+}
+
+.card-flight__inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.card-flight__face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(245, 245, 241, 0.28);
+  border-radius: 12px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 -12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-flight__front {
+  isolation: isolate;
+  color: #11110f;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(145deg, #fafaf5, #dddcd3);
+  font-size: clamp(24px, 3.2vw, 34px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.card-flight__pile-skin {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  background: linear-gradient(150deg, #20201d, #121210);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+    inset 0 0 0 8px rgba(18, 18, 16, 0.16);
+  pointer-events: none;
+}
+
+.card-flight__pile-skin::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid #33332f;
+  border-radius: 8px;
+}
+
+.card-flight__number {
+  position: relative;
+  z-index: 1;
+  color: #11110f;
+}
+
+.card-flight__back {
+  transform: rotateY(180deg);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.018) 0 5px, transparent 5px 10px),
+    linear-gradient(145deg, #191917, #10100e);
+}
+
+.card-flight__back::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(245, 245, 241, 0.13);
+  border-radius: 8px;
+}
+
+/* Hide the ±10 badge while the moving card is edge-on above the pile so no
+   bright green number flashes through the flip. */
+.pile-card.is-receiving-card.is-reverse::after {
+  opacity: 0;
+}
+
+.pile-card.is-receiving-card {
+  animation: pile-receive-card 690ms cubic-bezier(0.18, 0.72, 0.2, 1);
+}
+
+@keyframes pile-receive-card {
+  0%, 72% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+  83% {
+    transform: translateY(-3px) scale(1.018);
+    filter: brightness(1.06);
+  }
+  91% {
+    transform: translateY(2px) scale(0.992);
+    filter: brightness(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+}
+
+.lobby-actions.has-game-settings {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.lobby-settings-button {
+  width: 100%;
+  min-height: 50px;
+}
+
+.game-settings-modal {
+  z-index: 80;
+  background: rgba(13, 13, 13, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.game-settings-card {
+  width: min(100%, 560px);
+  max-height: min(88dvh, 720px);
+  overflow-y: auto;
+  text-align: left;
+}
+
+.game-settings-card h2 {
+  margin-bottom: 8px;
+}
+
+.game-settings-card .game-settings-copy {
+  margin-bottom: 22px;
+}
+
+.pile-preset-list {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 0;
+}
+
+.pile-preset-list legend {
+  margin-bottom: 8px;
+}
+
+.pile-preset-option {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.pile-preset-option > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pile-preset-option__body {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(150px, 0.82fr) minmax(0, 1.18fr);
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #343430;
+  border-radius: 13px;
+  background: #10100f;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.pile-preset-option__body > strong {
+  font-size: 13px;
+}
+
+.pile-preset-option > input:checked + .pile-preset-option__body {
+  border-color: #d8ff73;
+  background: #181a12;
+  box-shadow: inset 0 0 0 1px rgba(216, 255, 115, 0.14);
+}
+
+.pile-preset-option > input:focus-visible + .pile-preset-option__body {
+  outline: 2px solid #f5f5f1;
+  outline-offset: 2px;
+}
+
+.pile-preset-option > input:not(:disabled) + .pile-preset-option__body:hover {
+  transform: translateY(-1px);
+  border-color: #66665f;
+}
+
+.pile-preset-option > input:disabled + .pile-preset-option__body {
+  cursor: default;
+  opacity: 0.76;
+}
+
+.pile-preset-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.pile-preset-preview > span {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  place-items: center;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid #353530;
+  border-radius: 8px;
+  color: #d9d9d1;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.pile-preset-preview b,
+.pile-preset-preview em {
+  font: inherit;
+  font-style: normal;
+}
+
+.pile-preset-preview > span.is-blank {
+  border-style: dashed;
+  color: #8b8b83;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.pile-preset-preview > span.is-blank em {
+  font-size: 9px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.game-settings-message {
+  min-height: 20px;
+  margin: 12px 0 0 !important;
+  color: #d8ff73 !important;
+  font-size: 12px;
+  line-height: 1.5 !important;
+}
+
+.game-settings-actions {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+.game-settings-actions .ghost-button,
+.game-settings-actions .primary-button {
+  width: 100%;
+}
+
+@media (max-width: 580px) {
+  .lobby-actions.has-game-settings,
+  .game-settings-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .game-settings-card {
+    padding: 22px 16px;
+  }
+
+  .pile-preset-option__body {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pile-card.is-receiving-card {
+    animation: none;
+  }
+
+  .card-flight {
+    display: none;
+  }
+}
