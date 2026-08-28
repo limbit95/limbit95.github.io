@@ -92,6 +92,12 @@ const MAX_POINTER_TARGET_SPEED = 9;
 const POINTER_VELOCITY_SMOOTHING = 0.45;
 const POINTER_VELOCITY_DECAY = 0.82;
 const MAX_GRAB_DISTANCE = 4.2;
+const LOWER_BREAKAWAY_LEVELS = 4;
+const BREAKAWAY_SPEED_START = 2.8;
+const BREAKAWAY_SPEED_FULL = 7.2;
+const LOWER_BREAKAWAY_FORCE_BONUS = 220;
+const LOWER_BREAKAWAY_VELOCITY_GAIN = 14;
+const CENTER_BLOCK_BREAKAWAY_MULTIPLIER = 1.2;
 const blocks = [];
 const blockGeometry = new THREE.BoxGeometry(BLOCK_LENGTH, BLOCK_HEIGHT, BLOCK_WIDTH, 3, 1, 1);
 
@@ -251,6 +257,21 @@ function pointVelocity(body, worldPoint) {
   ).add(angular.cross(radius));
 }
 
+function smoothstep(min, max, value) {
+  const progress = THREE.MathUtils.clamp((value - min) / (max - min), 0, 1);
+  return progress * progress * (3 - 2 * progress);
+}
+
+function lowerBreakawayFactor(block) {
+  const { level, slot } = block.userData;
+  if (level > LOWER_BREAKAWAY_LEVELS) return 0;
+
+  const depthProgress = (LOWER_BREAKAWAY_LEVELS - level + 1) / LOWER_BREAKAWAY_LEVELS;
+  const depthFactor = THREE.MathUtils.lerp(0.82, 1, depthProgress);
+  const centerFactor = slot === 2 ? CENTER_BLOCK_BREAKAWAY_MULTIPLIER : 1;
+  return depthFactor * centerFactor;
+}
+
 function updateDragTarget(event) {
   if (!dragState) return;
 
@@ -338,8 +359,13 @@ renderer.domElement.addEventListener("pointermove", (event) => {
   dragState.moved = dragState.moved || movedPixels > 4;
 
   if (dragState.moved) {
+    const isBreakawayPull = dragState.block.userData.level <= LOWER_BREAKAWAY_LEVELS
+      && dragState.targetVelocity.length() >= BREAKAWAY_SPEED_START;
     sceneHost.classList.add("is-dragging");
-    selectionStatus.textContent = selectionLabel(dragState.block, " · 자유 조작 중");
+    selectionStatus.textContent = selectionLabel(
+      dragState.block,
+      isBreakawayPull ? " · 강한 힘 적용 중" : " · 자유 조작 중",
+    );
   }
 });
 
@@ -377,15 +403,24 @@ function applyGrabForce() {
     0,
     1,
   );
+  const breakawaySpeed = smoothstep(
+    BREAKAWAY_SPEED_START,
+    BREAKAWAY_SPEED_FULL,
+    pointerSpeed,
+  );
+  const lowerAssist = lowerBreakawayFactor(dragState.block);
+  const breakawayStrength = breakawaySpeed * lowerAssist;
   const maxForce = THREE.MathUtils.lerp(
     MAX_GRAB_FORCE,
     MAX_FAST_GRAB_FORCE,
     speedBoost,
-  );
+  ) + LOWER_BREAKAWAY_FORCE_BONUS * breakawayStrength;
+  const pointerVelocityGain = GRAB_POINTER_VELOCITY_GAIN
+    + LOWER_BREAKAWAY_VELOCITY_GAIN * breakawayStrength;
   const force = dragState.targetPoint.clone()
     .sub(currentGrabPoint)
     .multiplyScalar(GRAB_SPRING)
-    .addScaledVector(dragState.targetVelocity, GRAB_POINTER_VELOCITY_GAIN)
+    .addScaledVector(dragState.targetVelocity, pointerVelocityGain)
     .addScaledVector(velocityAtGrabPoint, -GRAB_DAMPING);
 
   if (force.length() > maxForce) {
