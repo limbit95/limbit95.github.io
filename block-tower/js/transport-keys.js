@@ -5,19 +5,25 @@ const selectionStatus = document.querySelector("#selection-status");
 
 const HEIGHT_SPEED_PX_PER_SECOND = 240;
 const FINE_HEIGHT_SPEED_PX_PER_SECOND = 60;
+const FLOOR_SPEED_UNITS_PER_SECOND = 2.4;
+const FINE_FLOOR_SPEED_UNITS_PER_SECOND = 0.65;
 const CAMERA_ROTATE_SPEED = 0.005;
 const MIN_POLAR_ANGLE = Math.PI * 0.17;
 const MAX_POLAR_ANGLE = Math.PI * 0.49;
 const HEIGHT_KEYS = new Set(["KeyE", "KeyQ"]);
+const FLOOR_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD"]);
+const WORLD_UP = new THREE.Vector3(0, 1, 0);
 
 let canvas = null;
 let activePointer = null;
 let heightOffset = 0;
 let pointerOffsetX = 0;
 let pointerOffsetY = 0;
+const floorOffset = new THREE.Vector3();
 let raisePressed = false;
 let lowerPressed = false;
 let finePressed = false;
+const floorKeysPressed = new Set();
 let cameraDrag = null;
 let previousFrame = performance.now();
 
@@ -41,9 +47,11 @@ function resetTransportState() {
   heightOffset = 0;
   pointerOffsetX = 0;
   pointerOffsetY = 0;
+  floorOffset.set(0, 0, 0);
   raisePressed = false;
   lowerPressed = false;
   finePressed = false;
+  floorKeysPressed.clear();
   cameraDrag = null;
 }
 
@@ -69,6 +77,23 @@ function dispatchVirtualPointer(type, { button = -1, buttons = 1 } = {}) {
     clientY: client.y,
   }));
 }
+
+function installFloorOffsetHook() {
+  const rayPrototype = THREE.Ray.prototype;
+  if (rayPrototype.__blockTowerFloorTransportPatched) return;
+
+  const originalIntersectPlane = rayPrototype.intersectPlane;
+  Object.defineProperty(rayPrototype, "__blockTowerFloorTransportPatched", { value: true });
+  rayPrototype.intersectPlane = function intersectPlaneWithFloorTransport(plane, target) {
+    const result = originalIntersectPlane.call(this, plane, target);
+    if (result && isExtractedDrag() && floorOffset.lengthSq() > 0.000001) {
+      result.add(floorOffset);
+    }
+    return result;
+  };
+}
+
+installFloorOffsetHook();
 
 function rotateCamera(deltaX, deltaY) {
   const runtime = window.__blockTowerGameRuntime;
@@ -110,6 +135,33 @@ function rebasePointerToDragMarker() {
   dispatchVirtualPointer("pointermove");
 }
 
+function cameraFloorBasis() {
+  const camera = window.__blockTowerGameRuntime?.camera;
+  if (!camera) return null;
+
+  const forward = camera.getWorldDirection(new THREE.Vector3());
+  forward.y = 0;
+  if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
+  forward.normalize();
+
+  const right = new THREE.Vector3().crossVectors(forward, WORLD_UP).normalize();
+  return { forward, right };
+}
+
+function floorInputDirection() {
+  const basis = cameraFloorBasis();
+  if (!basis) return null;
+
+  const direction = new THREE.Vector3();
+  if (floorKeysPressed.has("KeyW")) direction.add(basis.forward);
+  if (floorKeysPressed.has("KeyS")) direction.sub(basis.forward);
+  if (floorKeysPressed.has("KeyD")) direction.add(basis.right);
+  if (floorKeysPressed.has("KeyA")) direction.sub(basis.right);
+
+  if (direction.lengthSq() < 0.0001) return null;
+  return direction.normalize();
+}
+
 function bindCanvas(nextCanvas) {
   if (!nextCanvas || canvas === nextCanvas) return;
   canvas = nextCanvas;
@@ -140,6 +192,8 @@ sceneHost?.addEventListener("pointerdown", (event) => {
   heightOffset = 0;
   pointerOffsetX = 0;
   pointerOffsetY = 0;
+  floorOffset.set(0, 0, 0);
+  floorKeysPressed.clear();
 }, { capture: true });
 
 // Pointer Events only fire pointerdown for the first pressed mouse button.
@@ -221,10 +275,18 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
-  if (!HEIGHT_KEYS.has(event.code) || !isExtractedDrag()) return;
-  event.preventDefault();
-  if (event.code === "KeyE") raisePressed = true;
-  if (event.code === "KeyQ") lowerPressed = true;
+  if (HEIGHT_KEYS.has(event.code)) {
+    if (!isExtractedDrag()) return;
+    event.preventDefault();
+    if (event.code === "KeyE") raisePressed = true;
+    if (event.code === "KeyQ") lowerPressed = true;
+    return;
+  }
+
+  if (FLOOR_KEYS.has(event.code)) {
+    floorKeysPressed.add(event.code);
+    if (isExtractedDrag()) event.preventDefault();
+  }
 });
 
 window.addEventListener("keyup", (event) => {
@@ -235,29 +297,46 @@ window.addEventListener("keyup", (event) => {
 
   if (event.code === "KeyE") raisePressed = false;
   if (event.code === "KeyQ") lowerPressed = false;
+  if (FLOOR_KEYS.has(event.code)) floorKeysPressed.delete(event.code);
 });
 
 window.addEventListener("blur", () => {
   raisePressed = false;
   lowerPressed = false;
   finePressed = false;
+  floorKeysPressed.clear();
   cameraDrag = null;
 });
 
-function animateHeightInput(now) {
+function animateTransportInput(now) {
   const deltaSeconds = Math.min((now - previousFrame) / 1000, 0.05);
   previousFrame = now;
 
-  if (isExtractedDrag() && !cameraDrag && raisePressed !== lowerPressed) {
-    const speed = finePressed
-      ? FINE_HEIGHT_SPEED_PX_PER_SECOND
-      : HEIGHT_SPEED_PX_PER_SECOND;
-    const direction = raisePressed ? -1 : 1;
-    heightOffset += direction * speed * deltaSeconds;
-    dispatchVirtualPointer("pointermove");
+  if (isExtractedDrag() && !cameraDrag) {
+    let targetChanged = false;
+
+    if (raisePressed !== lowerPressed) {
+      const speed = finePressed
+        ? FINE_HEIGHT_SPEED_PX_PER_SECOND
+        : HEIGHT_SPEED_PX_PER_SECOND;
+      const direction = raisePressed ? -1 : 1;
+      heightOffset += direction * speed * deltaSeconds;
+      targetChanged = true;
+    }
+
+    const floorDirection = floorInputDirection();
+    if (floorDirection) {
+      const speed = finePressed
+        ? FINE_FLOOR_SPEED_UNITS_PER_SECOND
+        : FLOOR_SPEED_UNITS_PER_SECOND;
+      floorOffset.addScaledVector(floorDirection, speed * deltaSeconds);
+      targetChanged = true;
+    }
+
+    if (targetChanged) dispatchVirtualPointer("pointermove");
   }
 
-  requestAnimationFrame(animateHeightInput);
+  requestAnimationFrame(animateTransportInput);
 }
 
-requestAnimationFrame(animateHeightInput);
+requestAnimationFrame(animateTransportInput);
