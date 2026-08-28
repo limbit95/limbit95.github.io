@@ -51,6 +51,61 @@ function onlineSnapshot() {
   };
 }
 
+async function openMockOnlineGame(page) {
+  await page.evaluate(async ({ snapshot }) => {
+    const module = await import("/the-game/js/onlineGame.js");
+    const api = {
+      subscribeGame: ({ onStatus }) => {
+        onStatus?.("SUBSCRIBED");
+        return () => {};
+      },
+      getGameSnapshot: async () => structuredClone(snapshot),
+      getLobbySnapshot: async () => null,
+      playCard: async () => structuredClone(snapshot),
+      endTurn: async () => structuredClone(snapshot),
+      prepareRematch: async () => null,
+      leaveRoom: async () => ({ left: true }),
+      closeGame: async () => ({ closed: true }),
+    };
+    module.openOnlineGame({ api, gameSnapshot: structuredClone(snapshot) });
+  }, { snapshot: onlineSnapshot() });
+}
+
+async function readBoardLayout(page) {
+  return page.evaluate(() => {
+    const screen = document.querySelector(".online-game-screen:not([hidden])");
+    const piles = screen.querySelector("[data-online-piles]");
+    const players = screen.querySelector(".online-game-players");
+    const handPanel = screen.querySelector(".hand-panel");
+    const hand = screen.querySelector(".hand");
+    const cards = [...screen.querySelectorAll(".online-number-card")];
+    const endTurn = screen.querySelector("[data-online-end-turn]");
+    const screenRect = screen.getBoundingClientRect();
+    const pilesRect = piles.getBoundingClientRect();
+    const handRect = handPanel.getBoundingClientRect();
+    const endTurnRect = endTurn.getBoundingClientRect();
+    const lastCardRect = cards.at(-1)?.getBoundingClientRect();
+
+    return {
+      screenRect: { top: screenRect.top, right: screenRect.right, bottom: screenRect.bottom, left: screenRect.left },
+      pilesRect: { top: pilesRect.top, right: pilesRect.right, bottom: pilesRect.bottom, left: pilesRect.left },
+      handRect: { top: handRect.top, right: handRect.right, bottom: handRect.bottom, left: handRect.left },
+      endTurnRect: { top: endTurnRect.top, right: endTurnRect.right, bottom: endTurnRect.bottom, left: endTurnRect.left },
+      lastCardRect: lastCardRect
+        ? { top: lastCardRect.top, right: lastCardRect.right, bottom: lastCardRect.bottom, left: lastCardRect.left }
+        : null,
+      playerDisplay: getComputedStyle(players).display,
+      playerOverflow: getComputedStyle(players).overflowX,
+      handColumns: getComputedStyle(hand).gridTemplateColumns.split(" ").length,
+      cardMinHeight: cards[0]?.getBoundingClientRect().height ?? 0,
+      endTurnHeight: endTurnRect.height,
+      screenFits: screen.scrollHeight <= screen.clientHeight + 1 && screen.scrollWidth <= screen.clientWidth + 1,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+    };
+  });
+}
+
 test.describe("The Game interaction polish", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/the-game/");
@@ -73,54 +128,60 @@ test.describe("The Game interaction polish", () => {
     await expect(badge).toHaveText("팀 결과 · 협력 성공");
   });
 
-  test("uses the compact mobile online layout and large touch targets", async ({ page }) => {
+  test("keeps piles, full hand, and turn action visible in portrait mobile", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await page.evaluate(async ({ snapshot }) => {
-      const module = await import("/the-game/js/onlineGame.js");
-      const api = {
-        subscribeGame: ({ onStatus }) => {
-          onStatus?.("SUBSCRIBED");
-          return () => {};
-        },
-        getGameSnapshot: async () => structuredClone(snapshot),
-        getLobbySnapshot: async () => null,
-        playCard: async () => structuredClone(snapshot),
-        endTurn: async () => structuredClone(snapshot),
-        prepareRematch: async () => null,
-        leaveRoom: async () => ({ left: true }),
-        closeGame: async () => ({ closed: true }),
-      };
-      module.openOnlineGame({ api, gameSnapshot: structuredClone(snapshot) });
-    }, { snapshot: onlineSnapshot() });
-
-    const layout = await page.evaluate(() => {
-      const players = document.querySelector(".online-game-players");
-      const hand = document.querySelector(".online-game-screen .hand");
-      const card = document.querySelector(".online-game-screen .online-number-card");
-      const endTurn = document.querySelector("[data-online-end-turn]");
-      return {
-        playerDisplay: getComputedStyle(players).display,
-        playerOverflow: getComputedStyle(players).overflowX,
-        handColumns: getComputedStyle(hand).gridTemplateColumns.split(" ").length,
-        cardHeight: card.getBoundingClientRect().height,
-        endTurnHeight: endTurn.getBoundingClientRect().height,
-        pageFits: document.documentElement.scrollWidth <= window.innerWidth + 1,
-      };
-    });
+    await openMockOnlineGame(page);
+    const layout = await readBoardLayout(page);
 
     expect(layout.playerDisplay).toBe("flex");
     expect(["auto", "scroll"]).toContain(layout.playerOverflow);
     expect(layout.handColumns).toBe(4);
-    expect(layout.cardHeight).toBeGreaterThanOrEqual(76);
-    expect(layout.endTurnHeight).toBeGreaterThanOrEqual(52);
-    expect(layout.pageFits).toBe(true);
+    expect(layout.cardMinHeight).toBeGreaterThanOrEqual(52);
+    expect(layout.endTurnHeight).toBeGreaterThanOrEqual(50);
+    expect(layout.screenFits).toBe(true);
+    expect(layout.pilesRect.bottom).toBeLessThan(layout.handRect.top);
+    expect(layout.handRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    expect(layout.lastCardRect?.bottom ?? Infinity).toBeLessThanOrEqual(layout.handRect.bottom + 1);
+  });
+
+  test("compresses the portrait board for shorter phones without page scrolling", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await openMockOnlineGame(page);
+    const layout = await readBoardLayout(page);
+
+    expect(layout.handColumns).toBe(4);
+    expect(layout.cardMinHeight).toBeGreaterThanOrEqual(46);
+    expect(layout.screenFits).toBe(true);
+    expect(layout.pilesRect.top).toBeGreaterThanOrEqual(-1);
+    expect(layout.pilesRect.bottom).toBeLessThan(layout.handRect.top);
+    expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  });
+
+  test("moves the hand to a right-side dock in mobile landscape", async ({ page }) => {
+    await page.setViewportSize({ width: 844, height: 390 });
+    await openMockOnlineGame(page);
+    const layout = await readBoardLayout(page);
+
+    expect(layout.handColumns).toBe(4);
+    expect(layout.screenFits).toBe(true);
+    expect(layout.pilesRect.right).toBeLessThan(layout.handRect.left);
+    expect(layout.handRect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.endTurnRect.left).toBeGreaterThanOrEqual(layout.handRect.left - 1);
+    expect(layout.endTurnRect.right).toBeLessThanOrEqual(layout.handRect.right + 1);
+    expect(layout.endTurnRect.bottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    expect(layout.lastCardRect?.bottom ?? Infinity).toBeLessThanOrEqual(layout.handRect.bottom + 1);
   });
 
   test("defines pile feedback and a reduced-motion fallback", async ({ page }) => {
     const cssText = await page.evaluate(async () => fetch("/the-game/css/polish.css").then((response) => response.text()));
+    const responsiveCss = await page.evaluate(async () => fetch("/the-game/css/responsive-board.css").then((response) => response.text()));
     expect(cssText).toContain("@keyframes pile-update");
     expect(cssText).toContain("@keyframes reverse-land");
     expect(cssText).toContain("@keyframes new-card");
     expect(cssText).toContain("prefers-reduced-motion: reduce");
+    expect(responsiveCss).toContain("orientation: portrait");
+    expect(responsiveCss).toContain("orientation: landscape");
+    expect(responsiveCss).toContain("100dvh");
   });
 });
