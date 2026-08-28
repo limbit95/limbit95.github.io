@@ -7,6 +7,7 @@ let activeRoundId="";
 let overlay=null;
 let timer=null;
 let revealCloseTimer=null;
+let revealRetryTimer=null;
 let deadline=0;
 let revealRequested=false;
 let revealed=false;
@@ -17,6 +18,7 @@ const markerKey=roundId=>`${MARKER_PREFIX}:${store.get().session?.user?.id||"ano
 const roleName=()=>overlay?.dataset.hiddenRoleName||"라이어";
 const clearTimer=()=>{if(timer){clearInterval(timer);timer=null;}};
 const clearRevealCloseTimer=()=>{if(revealCloseTimer){clearTimeout(revealCloseTimer);revealCloseTimer=null;}};
+const clearRevealRetryTimer=()=>{if(revealRetryTimer){clearTimeout(revealRetryTimer);revealRetryTimer=null;}};
 
 function writeMarker(roundId,value){try{localStorage.setItem(markerKey(roundId),value);}catch{}}
 function readMarker(roundId){try{return localStorage.getItem(markerKey(roundId))||"";}catch{return "";}}
@@ -27,7 +29,7 @@ function currentNames(){
 }
 
 function removeOverlay(){
- clearTimer();clearRevealCloseTimer();
+ clearTimer();clearRevealCloseTimer();clearRevealRetryTimer();
  overlay?.remove();
  overlay=null;
  activeRoundId="";
@@ -68,7 +70,7 @@ function setCount(value){
 function showRevealed(){
  if(!overlay||revealed)return;
  revealed=true;
- clearTimer();clearRevealCloseTimer();
+ clearTimer();clearRevealCloseTimer();clearRevealRetryTimer();
  writeMarker(activeRoundId,"revealed");
  const inner=overlay.querySelector(".capture-success-countdown-inner");
  if(!inner)return;
@@ -93,32 +95,59 @@ function showRevealed(){
 
 async function syncNextStage(){
  const snapshot=await getRoomSnapshot();
- if(snapshot?.round?.status!=="LIAR_GUESS")return false;
+ if(snapshot?.round?.status!=="LIAR_GUESS"){
+  store.set({snapshot});
+  return false;
+ }
  const [voteState,guessState]=await Promise.all([getVoteSnapshot(),getGuessSnapshot()]);
  store.set({snapshot,voteState,guessState,message:"",myBallot:[]});
  return true;
+}
+
+function scheduleRevealRetry(card,delay=250){
+ clearRevealRetryTimer();
+ revealRequested=false;
+ revealRetryTimer=setTimeout(()=>{
+  revealRetryTimer=null;
+  if(!overlay||revealed)return;
+  void requestReveal(card);
+ },delay);
 }
 
 async function requestReveal(card){
  if(revealRequested||revealed)return;
  revealRequested=true;
  clearTimer();
- const isHost=card.dataset.isHost==="true";
- if(!isHost){
+ const canReveal=card.dataset.canReveal==="true"||card.dataset.isHost==="true";
+ if(!canReveal){
   const count=overlay?.querySelector("[data-capture-success-count]");
   if(count)count.textContent="✓";
   return;
  }
  try{
-  const version=Number(card.dataset.roundVersion||store.get().snapshot?.round?.version);
+  const version=Number(store.get().snapshot?.round?.version||card.dataset.roundVersion);
   await commands.revealLiars(version);
   await syncNextStage();
   if(store.get().snapshot?.round?.status==="LIAR_GUESS")showRevealed();
  }catch(error){
   const message=String(error?.message||"");
-  if(message.includes("STALE_VERSION")||message.includes("INVALID_ROUND_STATE")||message.includes("요청을 처리 중")){
+  if(message.includes("REVEAL_NOT_READY")||message.includes("요청을 처리 중")){
+   const count=overlay?.querySelector("[data-capture-success-count]");
+   if(count)count.textContent="…";
+   scheduleRevealRetry(card);
+   return;
+  }
+  if(message.includes("STALE_VERSION")||message.includes("INVALID_ROUND_STATE")){
    try{await syncNextStage();}catch{}
-   if(store.get().snapshot?.round?.status==="LIAR_GUESS")showRevealed();
+   if(store.get().snapshot?.round?.status==="LIAR_GUESS"){
+    showRevealed();
+    return;
+   }
+   if(store.get().snapshot?.round?.status==="LIAR_REVEAL"){
+    scheduleRevealRetry(card);
+    return;
+   }
+   removeOverlay();
    return;
   }
   removeOverlay();
@@ -170,4 +199,4 @@ document.addEventListener("click",event=>{
 observer=new MutationObserver(inspect);
 observer.observe(document.querySelector("#app")||document.body,{childList:true,subtree:true});
 inspect();
-window.addEventListener("pagehide",()=>{observer?.disconnect();clearTimer();clearRevealCloseTimer();},{once:true});
+window.addEventListener("pagehide",()=>{observer?.disconnect();clearTimer();clearRevealCloseTimer();clearRevealRetryTimer();},{once:true});
