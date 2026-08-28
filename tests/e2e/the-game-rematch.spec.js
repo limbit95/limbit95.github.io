@@ -116,8 +116,9 @@ test.describe("The Game rematch and reconnect polish", () => {
       });
     }, { snapshot: finishedSnapshot(), nextLobby: lobbySnapshot() });
 
-    await expect(page.getByRole("dialog", { name: "게임 패배 결과" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "패배" })).toBeVisible();
+    const resultDialog = page.getByRole("dialog", { name: "게임 패배 결과" });
+    await expect(resultDialog).toBeVisible();
+    await expect(resultDialog.getByRole("heading", { name: "패배" })).toBeVisible();
     await expect(page.locator("[data-online-result-played]")).toHaveText("75");
     await expect(page.locator("[data-online-result-remaining]")).toHaveText("23");
     await expect(page.locator("[data-online-result-turns]")).toHaveText("14");
