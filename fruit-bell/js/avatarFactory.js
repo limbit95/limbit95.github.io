@@ -142,6 +142,8 @@ export function createAnimalAvatar(animalId) {
 
   const leftArm = makeArm(profile, -1);
   const rightArm = makeArm(profile, 1);
+  leftArm.rotation.z = -2.35;
+  leftArm.rotation.x = -0.1;
   body.add(leftArm, rightArm);
   group.add(chair, body, belly, headPivot);
   group.scale.setScalar(0.92);
@@ -165,7 +167,9 @@ export function updateAvatarIdle(avatar, elapsed, intensity = 1) {
   if (!avatar.action) {
     avatar.headPivot.rotation.y += (Math.sin(phase * 0.47) * 0.08 - avatar.headPivot.rotation.y) * 0.035;
     avatar.headPivot.rotation.x += (Math.sin(phase * 0.32) * 0.025 - avatar.headPivot.rotation.x) * 0.035;
-    avatar.leftArm.rotation.z += (-0.35 - avatar.leftArm.rotation.z) * 0.08;
+    avatar.leftArm.rotation.z += (-2.35 - avatar.leftArm.rotation.z) * 0.08;
+    avatar.leftArm.rotation.x += (-0.1 - avatar.leftArm.rotation.x) * 0.08;
     avatar.rightArm.rotation.z += (0.35 - avatar.rightArm.rotation.z) * 0.08;
+    avatar.rightArm.rotation.x += (-0.42 - avatar.rightArm.rotation.x) * 0.08;
   }
 }
