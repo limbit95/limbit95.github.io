@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#9fcfdf">
+    <meta name="description" content="청파 같이 초대 링크 연결">
+    <title>초대 링크 | 청파 같이</title>
+    <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./css/reset.css">
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/layout.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/pages.css">
+  </head>
+  <body>
+    <main class="auth-layout" data-invite-entry>
+      <section class="auth-card page-stack" aria-live="polite">
+        <a class="auth-brand" href="./#/" aria-label="청파 같이 홈">
+          <img src="./assets/images/logo.svg" alt="" width="68" height="68">
+        </a>
+        <div class="page-stack">
+          <div>
+            <p class="eyebrow">INVITATION</p>
+            <h1 class="page-title">초대 링크 확인 중</h1>
+            <p class="page-description">로그인 상태와 초대 정보를 확인한 뒤 알맞은 화면으로 연결할게요.</p>
+          </div>
+          <div class="notice-box" data-invite-message role="status">초대 정보를 준비하고 있습니다…</div>
+          <a class="button" href="./#/">청파 같이 홈으로</a>
+        </div>
+      </section>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="./js/invites/inviteEntry.js"></script>
+  </body>
+</html>
