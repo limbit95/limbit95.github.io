@@ -106,6 +106,7 @@ test.describe("The Game local prototype", () => {
           current.players[1].is_current = true;
           return structuredClone(current);
         },
+        closeGame: async () => ({ closed: true }),
         leaveRoom: async () => ({ left: true }),
       };
 
@@ -146,6 +147,81 @@ test.describe("The Game local prototype", () => {
       { type: "play", card: 26, pileId: "ascending-1", expectedVersion: 0 },
       { type: "play", card: 30, pileId: "ascending-1", expectedVersion: 1 },
       { type: "end", expectedVersion: 2 },
+    ]);
+  });
+
+  test("can abandon an active online game and return to mode selection", async ({ page }) => {
+    await page.evaluate(async () => {
+      const module = await import("/the-game/js/onlineGame.js");
+      const roomId = "55555555-5555-4555-8555-555555555555";
+      const gameId = "66666666-6666-4666-8666-666666666666";
+      const selfUserId = "77777777-7777-4777-8777-777777777777";
+
+      const current = {
+        room: { id: roomId, status: "playing", version: 9 },
+        game: {
+          id: gameId,
+          status: "playing",
+          version: 12,
+          hand_size: 7,
+          current_seat: 1,
+          turn_number: 4,
+          cards_played_this_turn: 0,
+          required_cards: 2,
+          can_end_turn: false,
+          draw_count: 70,
+          remaining_cards: 84,
+          piles: [
+            { id: "ascending-1", direction: "ascending", value: 12 },
+            { id: "ascending-2", direction: "ascending", value: 18 },
+            { id: "descending-1", direction: "descending", value: 91 },
+            { id: "descending-2", direction: "descending", value: 95 },
+          ],
+          result: null,
+        },
+        self: {
+          user_id: selfUserId,
+          nickname: "나",
+          seat: 1,
+          hand: [20, 22, 31, 45, 66, 77, 88],
+          hand_count: 7,
+          is_current: true,
+        },
+        players: [
+          { user_id: selfUserId, nickname: "나", seat: 1, hand_count: 7, is_current: true },
+        ],
+      };
+
+      window.__theGameCloseCalls = [];
+      const api = {
+        getGameSnapshot: async () => structuredClone(current),
+        subscribeGame: () => () => {},
+        closeGame: async (params) => {
+          window.__theGameCloseCalls.push(params);
+          return { closed: true };
+        },
+        leaveRoom: async () => ({ left: true }),
+      };
+
+      module.openOnlineGame({ api, gameSnapshot: structuredClone(current) });
+    });
+
+    page.once("dialog", async (dialog) => {
+      expect(dialog.type()).toBe("confirm");
+      expect(dialog.message()).toContain("모든 참가자가 방에서 나가고");
+      await dialog.accept();
+    });
+
+    await page.getByRole("button", { name: "게임 종료" }).click();
+    await expect(page.getByRole("heading", { name: "THE GAME" })).toBeVisible();
+
+    const calls = await page.evaluate(() => window.__theGameCloseCalls);
+    expect(calls).toEqual([
+      {
+        roomId: "55555555-5555-4555-8555-555555555555",
+        expectedRoomVersion: 9,
+        expectedGameVersion: 12,
+      },
     ]);
   });
 
