@@ -1,0 +1,125 @@
+#rule-status[data-state="selected"],
+#rule-status[data-state="committed"],
+#rule-status[data-state="extracted"] {
+  border-color: rgba(240, 168, 95, 0.52);
+  color: #ffe6c8;
+  background: rgba(92, 54, 24, 0.82);
+}
+
+#rule-status[data-state="settling"],
+#rule-status[data-state="collapsing"] {
+  border-color: rgba(255, 210, 118, 0.56);
+  color: #fff0c6;
+  background: rgba(82, 66, 24, 0.88);
+}
+
+#rule-status[data-state="game-over"] {
+  border-color: rgba(255, 120, 120, 0.58);
+  color: #ffd5d5;
+  background: rgba(92, 30, 30, 0.88);
+}
+
+.game-over-overlay {
+  position: absolute;
+  z-index: 12;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(12, 9, 8, 0.72);
+  backdrop-filter: blur(9px);
+}
+
+.game-over-card {
+  width: min(430px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(255, 145, 120, 0.3);
+  border-radius: 22px;
+  background: rgba(34, 27, 23, 0.97);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+  text-align: center;
+}
+
+.game-over-card__eyebrow {
+  margin: 0 0 8px;
+  color: #ff9c82;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+}
+
+.game-over-card h2 {
+  margin: 0;
+  font-size: clamp(25px, 5vw, 34px);
+  letter-spacing: -0.035em;
+}
+
+.game-over-card__message {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.game-over-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin: 20px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.game-over-score span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.game-over-score strong {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+.game-over-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.game-over-actions button,
+.game-over-actions a {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 14px;
+  color: var(--text);
+  background: var(--panel-soft);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.game-over-actions button {
+  border-color: rgba(240, 168, 95, 0.58);
+  background: rgba(240, 168, 95, 0.18);
+}
+
+.game-over-actions button:hover {
+  border-color: var(--accent);
+}
+
+.game-over-actions button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@media (max-width: 600px) {
+  .game-over-overlay {
+    padding: 16px;
+  }
+
+  .game-over-card {
+    padding: 22px 18px;
+  }
+}

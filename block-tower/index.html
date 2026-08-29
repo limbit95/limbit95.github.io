@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="3D 물리 기반 블록 타워 게임 프로토타입">
+    <title>BLOCK TOWER 3D</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/physics-help.css">
+    <link rel="stylesheet" href="./css/game-settings.css">
+    <link rel="stylesheet" href="./css/stage5-rules.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+          "@dimforge/rapier3d-compat": "https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.20.0/+esm"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">3D PHYSICS PROTOTYPE</p>
+          <h1>BLOCK TOWER</h1>
+          <p class="subtitle">블록 하나를 신중하게 골라 빼낸 뒤 최상단에 다시 쌓아 턴을 이어가세요.</p>
+        </div>
+        <a class="back-link" href="../#/games">게임 목록으로</a>
+      </header>
+
+      <section class="stage-card" aria-label="3D 블록 타워">
+        <div id="scene" class="scene" role="application" aria-label="3D 블록 타워 화면"></div>
+        <div class="hud" aria-live="polite">
+          <span class="hud-badge"><strong>54</strong> blocks</span>
+          <span id="game-difficulty-status" class="hud-badge">게임 · 정통</span>
+          <span id="difficulty-status" class="hud-badge">물리 · 보통</span>
+          <span id="rule-status" class="hud-badge" data-state="loading">턴 준비 중</span>
+          <span id="turn-status" class="hud-badge">쌓기 · 19층 0/3</span>
+          <span id="selection-status" class="hud-badge">선택된 블록 없음</span>
+        </div>
+
+        <button
+          id="game-settings-toggle"
+          class="game-settings-toggle"
+          type="button"
+          aria-controls="game-settings-panel"
+          aria-expanded="false"
+        >🎮 게임 설정</button>
+
+        <button
+          id="tower-reset-button"
+          class="tower-reset-button"
+          type="button"
+          title="현재 블록 타워를 처음 상태로 되돌립니다"
+        >↻ 블록 리셋</button>
+
+        <button
+          id="physics-settings-toggle"
+          class="physics-settings-toggle"
+          type="button"
+          aria-controls="physics-settings-panel"
+          aria-expanded="false"
+          hidden
+        >⚙️ 물리 설정</button>
+
+        <aside id="game-settings-panel" class="game-settings-panel" aria-label="게임 설정" hidden>
+          <div class="game-settings-panel__header">
+            <div>
+              <span class="game-settings-badge">GAME</span>
+              <h2>게임 설정</h2>
+            </div>
+            <button id="game-settings-close" class="physics-icon-button" type="button" aria-label="게임 설정 닫기">×</button>
+          </div>
+
+          <p class="game-settings-help">
+            물리값과 별개로 플레이 규칙, 보조 기능, 디자인을 설정합니다. 설정은 이 브라우저에 저장됩니다.
+          </p>
+
+          <section class="game-settings-section" aria-labelledby="game-difficulty-title">
+            <h3 id="game-difficulty-title">플레이 난이도</h3>
+            <div class="game-difficulty-options">
+              <button type="button" data-game-difficulty="casual">캐주얼</button>
+              <button type="button" data-game-difficulty="standard">정통</button>
+            </div>
+            <p class="game-difficulty-note">캐주얼은 상단 가이드·자동 보정을 켜고 바닥 낙하를 허용합니다. 정통은 보조 기능을 끄고, 들어 올린 블록을 바닥에 떨어뜨리면 게임이 종료됩니다. 직접 바꾸면 커스텀으로 표시됩니다.</p>
+          </section>
+
+          <section class="game-settings-section" aria-labelledby="game-assist-title">
+            <h3 id="game-assist-title">쌓기 보조</h3>
+            <div class="game-setting-toggle-row">
+              <div>
+                <strong>상단 쌓기 자동 보정</strong>
+                <span>가까이 놓은 블록의 위치와 각도를 물리 힘으로 보정합니다.</span>
+              </div>
+              <label class="game-switch">
+                <input id="game-auto-placement-assist" type="checkbox">
+                <span aria-hidden="true"></span>
+              </label>
+            </div>
+            <div class="game-setting-toggle-row">
+              <div>
+                <strong>상단 배치 가이드</strong>
+                <span>다음 블록을 놓을 위치를 반투명 블록으로 보여줍니다.</span>
+              </div>
+              <label class="game-switch">
+                <input id="game-placement-guide" type="checkbox">
+                <span aria-hidden="true"></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="game-settings-section" aria-labelledby="game-rule-title">
+            <h3 id="game-rule-title">플레이 규칙</h3>
+            <div class="game-setting-toggle-row">
+              <div>
+                <strong>바닥 낙하 허용</strong>
+                <span>켜면 추출한 블록을 바닥에 떨어뜨려도 다시 주워 계속할 수 있습니다. 끄면 들어 올린 블록이 바닥에 닿는 순간 해당 게임이 종료됩니다.</span>
+              </div>
+              <label class="game-switch">
+                <input id="game-allow-floor-drop" type="checkbox">
+                <span aria-hidden="true"></span>
+              </label>
+            </div>
+          </section>
+
+          <section class="game-settings-section" aria-labelledby="game-theme-title">
+            <h3 id="game-theme-title">블록 테마</h3>
+            <select id="game-theme" class="game-theme-select" aria-label="블록 테마 선택">
+              <option value="classic">클래식 우드</option>
+              <option value="walnut">다크 월넛</option>
+              <option value="colorMix">컬러 믹스</option>
+            </select>
+            <p class="game-settings-footnote">게임 규칙과 보조 기능은 난이도 프리셋으로 한 번에 바꾸거나 각 항목을 직접 조정할 수 있습니다.</p>
+          </section>
+        </aside>
+
+        <aside id="physics-settings-panel" class="physics-settings-panel" aria-label="관리자 물리 설정" hidden>
+          <div class="physics-settings-panel__header">
+            <div>
+              <span class="physics-admin-badge">ADMIN</span>
+              <h2>물리 튜닝</h2>
+            </div>
+            <button id="physics-settings-close" class="physics-icon-button" type="button" aria-label="물리 설정 닫기">×</button>
+          </div>
+
+          <p class="physics-settings-help">
+            슬라이더 변경은 현재 게임에 즉시 적용됩니다. 원하는 감각을 찾은 뒤 저장하세요.
+          </p>
+
+          <div class="physics-presets" aria-label="난이도 프리셋">
+            <button type="button" data-physics-preset="easy">쉬움</button>
+            <button type="button" data-physics-preset="normal">보통</button>
+            <button type="button" data-physics-preset="hard">어려움</button>
+          </div>
+
+          <div id="physics-settings-fields" class="physics-settings-fields"></div>
+
+          <section class="physics-metrics" aria-label="실시간 물리 상태">
+            <h3>실시간 상태</h3>
+            <dl>
+              <div><dt>선택 블록</dt><dd id="physics-metric-block">없음</dd></div>
+              <div><dt>마우스 속도</dt><dd id="physics-metric-speed">0.00</dd></div>
+              <div><dt>현재 힘</dt><dd id="physics-metric-force">0</dd></div>
+              <div><dt>돌파 보정</dt><dd id="physics-metric-assist">×1.00</dd></div>
+            </dl>
+          </section>
+
+          <div class="physics-settings-actions">
+            <button id="physics-settings-reload" type="button">저장값 불러오기</button>
+            <button id="physics-settings-save" class="is-primary" type="button">현재값 저장</button>
+          </div>
+          <p id="physics-settings-message" class="physics-settings-message" role="status" aria-live="polite"></p>
+        </aside>
+
+        <div id="game-over-overlay" class="game-over-overlay" hidden>
+          <section class="game-over-card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+            <p class="game-over-card__eyebrow">GAME OVER</p>
+            <h2 id="game-over-title">타워가 무너졌습니다</h2>
+            <p id="game-over-message" class="game-over-card__message">타워가 안정 상태를 잃었습니다.</p>
+            <div class="game-over-score" aria-label="완료한 턴 수">
+              <span>기록</span>
+              <strong id="game-over-score">0턴 완료</strong>
+            </div>
+            <div class="game-over-actions">
+              <button id="game-restart-button" type="button">다시 시작</button>
+              <a href="../#/games">게임 목록으로</a>
+            </div>
+          </section>
+        </div>
+
+        <div class="loading" id="loading">3D 물리 장면을 준비하고 있습니다…</div>
+      </section>
+
+      <section class="controls" aria-label="조작 방법">
+        <article>
+          <span class="control-icon" aria-hidden="true">🖱️</span>
+          <div><strong>우클릭 / 빈 공간 터치</strong><span>타워 시야를 회전</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">↕️</span>
+          <div><strong>휠 / 두 손가락</strong><span>확대 / 축소 · 더 멀리 축소해 타워 전체 확인</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">✋</span>
+          <div><strong>좌클릭 / 블록 터치</strong><span>블록을 잡아 빼고 이동</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">🔒</span>
+          <div><strong>처음 잡은 블록으로 턴 확정</strong><span>첫 선택 즉시 해당 블록만 조작할 수 있으며 최상단 배치 전까지 다른 블록으로 바꿀 수 없습니다</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">⌨️</span>
+          <div><strong>추출 후 E / Q</strong><span>잡은 채 E로 올리고 Q로 내리기 · Shift와 함께 누르면 더 미세하게 조절</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">🎮</span>
+          <div><strong>추출 후 W / A / S / D</strong><span>현재 시점 기준으로 바닥면 전후좌우 이동 · Shift와 함께 누르면 미세 이동</span></div>
+        </article>
+        <article>
+          <span class="control-icon" aria-hidden="true">🔄</span>
+          <div><strong>좌클릭 유지 + 우클릭 드래그</strong><span>일반 우클릭과 같은 방향으로 시야를 회전</span></div>
+        </article>
+      </section>
+
+      <p class="prototype-note">5단계 · 현재 가장 높은 완성층은 뽑을 수 없습니다. 처음 잡은 합법 블록이 즉시 그 턴의 블록으로 확정되며, 완전히 추출해 최상단에 배치해야 다음 턴으로 넘어갑니다. 타워 붕괴는 블록들이 실제로 바닥에 흩어지고 안정된 뒤 판정합니다.</p>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="./js/game-settings.js"></script>
+    <script type="module" src="./js/camera-view.js"></script>
+    <script type="module" src="./js/play-area.js"></script>
+    <script type="module" src="./js/stage5-rules.js"></script>
+    <script type="module" src="./js/turn-control-lock.js"></script>
+    <script type="module" src="./js/transport-keys.js"></script>
+    <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/reset.js"></script>
+    <script type="module" src="./js/physics-help-loader.js"></script>
+  </body>
+</html>

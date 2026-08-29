@@ -9,6 +9,13 @@ const GAMES = [
     buttonText: "라이어 게임 시작",
   },
   {
+    icon: "🧱",
+    title: "블록 타워 3D",
+    description: "54개의 블록을 실제 물리처럼 빼고 최상단에 다시 쌓는 3D 블록 타워 게임이에요.",
+    href: "./block-tower/",
+    buttonText: "블록 타워 시작",
+  },
+  {
     icon: "🔢",
     title: "더 게임",
     description: "1부터 100 사이의 네 더미를 함께 관리하며 모든 숫자 카드를 내려놓는 협력 카드 게임이에요.",
