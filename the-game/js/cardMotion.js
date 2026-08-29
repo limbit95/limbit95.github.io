@@ -245,6 +245,15 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
   const front = flight.querySelector(".card-flight__front");
   const pileSkin = flight.querySelector(".card-flight__pile-skin");
   const number = flight.querySelector(".card-flight__number");
+  const pileNumber = target.querySelector(".pile-value");
+  const flightNumberSize = number ? Number.parseFloat(getComputedStyle(number).fontSize) : NaN;
+  const pileNumberSize = pileNumber ? Number.parseFloat(getComputedStyle(pileNumber).fontSize) : NaN;
+  const matchingNumberSize = Number.isFinite(pileNumberSize)
+    ? pileNumberSize / landingScale
+    : flightNumberSize;
+  const numberSizeAt = (progress) => Number.isFinite(pileNumberSize)
+    ? pileNumberSize / scaleTowardPile(progress)
+    : flightNumberSize;
 
   target.classList.add("is-receiving-card");
 
@@ -288,10 +297,11 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
     });
 
     const numberAnimation = number?.animate([
-      { color: "#11110f", textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0 },
-      { color: "#11110f", textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0.76 },
-      { color: "#7f7f78", textShadow: "0 1px 8px rgba(0, 0, 0, 0.14)", offset: 0.9 },
-      { color: "#f5f5f1", textShadow: "0 1px 10px rgba(0, 0, 0, 0.22)", offset: 1 },
+      { color: "#11110f", fontSize: `${flightNumberSize}px`, textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0 },
+      { color: "#11110f", fontSize: `${flightNumberSize}px`, textShadow: "0 0 0 rgba(0, 0, 0, 0)", offset: 0.7 },
+      { color: "#22221f", fontSize: `${numberSizeAt(0.7)}px`, textShadow: "0 1px 4px rgba(0, 0, 0, 0.05)", offset: 0.78 },
+      { color: "#7f7f78", fontSize: `${numberSizeAt(0.88)}px`, textShadow: "0 1px 8px rgba(0, 0, 0, 0.14)", offset: 0.9 },
+      { color: "#f5f5f1", fontSize: `${matchingNumberSize}px`, textShadow: "0 1px 10px rgba(0, 0, 0, 0.22)", offset: 1 },
     ], {
       duration: 570,
       easing: "linear",
