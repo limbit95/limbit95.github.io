@@ -39,31 +39,6 @@ function prefersReducedMotion() {
   return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 }
 
-function playTenPlusVoice() {
-  if (typeof window.speechSynthesis?.speak !== "function" || typeof SpeechSynthesisUtterance !== "function") {
-    return;
-  }
-
-  const utterance = new SpeechSynthesisUtterance("텐플러스!");
-  utterance.lang = "ko-KR";
-  utterance.rate = 1.12;
-  utterance.pitch = 1.06;
-  utterance.volume = 0.95;
-
-  const koreanVoice = window.speechSynthesis.getVoices()
-    .find((voice) => voice.lang?.toLowerCase().startsWith("ko"));
-  if (koreanVoice) utterance.voice = koreanVoice;
-
-  window.speechSynthesis.speak(utterance);
-}
-
-function isReverseTransition(button, previousValue, nextValue) {
-  if (!Number.isInteger(previousValue) || !Number.isInteger(nextValue)) return false;
-  if (button.classList.contains("ascending")) return previousValue - nextValue === 10;
-  if (button.classList.contains("descending")) return nextValue - previousValue === 10;
-  return false;
-}
-
 function createFlightCard(card, sourceRect) {
   if (!sourceRect || prefersReducedMotion()) return null;
 
@@ -227,31 +202,31 @@ function readPileVisualValue(button, valueElement) {
 }
 
 async function animateCardFlight({ card, sourceRect, target, existingFlight = null, onLanding = null }) {
-  const playLandingCue = (() => {
-    let played = false;
+  const completeLanding = (() => {
+    let completed = false;
     return () => {
-      if (played || typeof onLanding !== "function") return;
-      played = true;
+      if (completed || typeof onLanding !== "function") return;
+      completed = true;
       onLanding();
     };
   })();
 
   if (!sourceRect || !target?.isConnected || prefersReducedMotion() || typeof target.animate !== "function") {
     removeFlight(existingFlight, false);
-    playLandingCue();
+    completeLanding();
     return;
   }
 
   const targetRect = target.getBoundingClientRect();
   if (targetRect.width <= 0 || targetRect.height <= 0) {
     removeFlight(existingFlight, false);
-    playLandingCue();
+    completeLanding();
     return;
   }
 
   const flight = existingFlight?.isConnected ? existingFlight : createFlightCard(card, sourceRect);
   if (!flight) {
-    playLandingCue();
+    completeLanding();
     return;
   }
   for (const animation of flight.getAnimations()) animation.cancel();
@@ -344,7 +319,7 @@ async function animateCardFlight({ card, sourceRect, target, existingFlight = nu
     // The floating card now visually matches the target pile. Update the real
     // pile underneath before fading the floating card so there is no color or
     // number snap at the final handoff.
-    playLandingCue();
+    completeLanding();
 
     const settle = flight.animate([
       { opacity: 1, transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale})` },
@@ -368,7 +343,6 @@ async function animatePileChange({ button, valueElement, previousValue, nextValu
   const context = pileContext(button);
   const id = pileId(button);
   const source = sourceForChange(context, id, nextValue);
-  const reverseJump = isReverseTransition(button, previousValue, nextValue);
 
   // MutationObserver runs before the browser paints the new pile number. Keep
   // the previous face visible until the physical-card motion has landed.
@@ -381,7 +355,6 @@ async function animatePileChange({ button, valueElement, previousValue, nextValu
     existingFlight: source.flight,
     onLanding: () => {
       if (valueElement.isConnected) setPileVisualValue(button, valueElement, nextValue);
-      if (reverseJump) playTenPlusVoice();
     },
   });
 
