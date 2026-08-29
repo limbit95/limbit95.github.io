@@ -4,10 +4,12 @@ import { ANIMALS } from "./avatarFactory.js";
 import { FruitBellScene } from "./scene.js";
 import { FruitBellPresentationController } from "./presentationController.js";
 import { createPrototypeRevealAt } from "./revealTiming.js";
+import { playWrongPenaltyTransfers } from "./penaltyAnimation.js";
 
 const LOCAL_ID = "local-player";
 const BOT_NAMES = ["모모", "두부", "콩이"];
 const BOT_REACTIONS = [760, 930, 1080];
+const CLOCKWISE_TURN_ORDER = [0, 2, 1, 3];
 
 const elements = {
   lobby: document.querySelector("#game-lobby"),
@@ -18,6 +20,7 @@ const elements = {
   status: document.querySelector("#status-text"),
   turn: document.querySelector("#turn-label"),
   totals: document.querySelector("#fruit-totals"),
+  turnHudLabel: document.querySelector(".game-hud--right .hud-label"),
   playerList: document.querySelector("#player-list"),
   reset: document.querySelector("#reset-button"),
   gestureHint: document.querySelector("#gesture-hint"),
@@ -35,6 +38,7 @@ let bellInputEnabled = true;
 let timers = new Set();
 let flowGeneration = 0;
 let audioContext = null;
+let wrongPopupTimer = null;
 
 function renderAnimalChoices() {
   elements.animalGrid.replaceChildren();
@@ -72,7 +76,7 @@ function startGame() {
   clearTimers();
   flowGeneration += 1;
   players = buildPlayers();
-  game = new FruitBellGame({ players });
+  game = new FruitBellGame({ players, turnOrder: CLOCKWISE_TURN_ORDER });
   const snapshot = game.start();
   if (!scene) {
     scene = new FruitBellScene(elements.canvas);
@@ -98,9 +102,37 @@ function resetGame() {
   gesture = null;
   flipLocked = false;
   bellInputEnabled = true;
+  if (wrongPopupTimer) window.clearTimeout(wrongPopupTimer);
+  document.querySelector("#wrong-bell-popup")?.remove();
   elements.game.hidden = true;
   elements.lobby.hidden = false;
   renderAnimalChoices();
+}
+
+function renderTurnCard(snapshot, active) {
+  elements.turnHudLabel.textContent = "TURN";
+  elements.totals.replaceChildren();
+  const card = document.createElement("div");
+  card.className = "turn-card-display";
+  card.dataset.local = String(active?.id === LOCAL_ID);
+  card.dataset.finished = String(Boolean(snapshot.winnerId));
+
+  if (snapshot.winnerId) {
+    const winner = snapshot.players.find((player) => player.id === snapshot.winnerId);
+    card.innerHTML = `
+      <span>GAME OVER</span>
+      <strong>${winner?.id === LOCAL_ID ? "내 승리" : `${winner?.name || "상대"} 승리`}</strong>
+      <small>게임 종료</small>
+    `;
+  } else {
+    card.innerHTML = `
+      <span>현재 차례</span>
+      <strong>${active?.id === LOCAL_ID ? "내 차례" : active?.name || "상대 차례"}</strong>
+      <small>${active?.id === LOCAL_ID ? "카드를 넘기세요" : "카드 공개 대기"}</small>
+      <em>시계 방향</em>
+    `;
+  }
+  elements.totals.append(card);
 }
 
 function renderHud(snapshot = game?.snapshot()) {
@@ -112,16 +144,7 @@ function renderHud(snapshot = game?.snapshot()) {
       ? "내 차례"
       : `${active?.name || "상대"} 차례`;
 
-  elements.totals.replaceChildren();
-  FRUITS.forEach((fruit) => {
-    const total = snapshot.visibleTotals[fruit.id] || 0;
-    const item = document.createElement("div");
-    item.className = "fruit-total";
-    item.dataset.hit = String(total === 5);
-    item.innerHTML = `<span>${fruit.emoji}</span><strong>${total}</strong>`;
-    item.setAttribute("aria-label", `${fruit.label} 합계 ${total}`);
-    elements.totals.append(item);
-  });
+  renderTurnCard(snapshot, active);
 
   elements.playerList.replaceChildren();
   snapshot.players.forEach((player) => {
@@ -146,6 +169,28 @@ function renderHud(snapshot = game?.snapshot()) {
 
 function setStatus(message) {
   elements.status.textContent = message;
+}
+
+function showWrongBellPopup({ eliminated = false, penaltyCount = 0 } = {}) {
+  let popup = document.querySelector("#wrong-bell-popup");
+  if (!popup) {
+    popup = document.createElement("div");
+    popup.id = "wrong-bell-popup";
+    popup.className = "wrong-bell-popup";
+    popup.setAttribute("role", "status");
+    popup.setAttribute("aria-live", "assertive");
+    document.querySelector(".canvas-frame")?.append(popup);
+  }
+
+  popup.innerHTML = `
+    <strong>오답!</strong>
+    <span>${eliminated ? "패널티로 카드가 없어져 탈락했습니다" : `잘못 종을 눌렀어요 · 카드 ${penaltyCount}장 패널티`}</span>
+  `;
+  popup.classList.remove("is-visible");
+  void popup.offsetWidth;
+  popup.classList.add("is-visible");
+  if (wrongPopupTimer) window.clearTimeout(wrongPopupTimer);
+  wrongPopupTimer = window.setTimeout(() => popup.classList.remove("is-visible"), 1150);
 }
 
 function continueFlow() {
@@ -294,19 +339,25 @@ function handleBell(playerId) {
       return;
     }
 
+    if (playerId === LOCAL_ID) {
+      showWrongBellPopup({ eliminated: result.eliminated, penaltyCount: result.penaltyCount });
+    }
+
     if (result.eliminated) {
       setStatus(`${player?.name || "플레이어"} 오답! 패널티로 카드가 없어져 탈락했습니다.`);
     } else {
-      setStatus(`${player?.name || "플레이어"} 오답! 너무 일찍 종을 쳤습니다.`);
+      setStatus(`${player?.name || "플레이어"} 오답! 카드 ${result.penaltyCount}장이 다른 플레이어에게 넘어갑니다.`);
     }
 
     schedule(() => {
       if (!game || generation !== flowGeneration) return;
-      scene.syncSnapshot(result.state);
-      renderHud(result.state);
-      bellInputEnabled = true;
-      continueFlow();
-    }, 720);
+      playWrongPenaltyTransfers(scene, beforeState, result.state, result.penaltyTransfers, () => {
+        if (!game || generation !== flowGeneration) return;
+        renderHud(result.state);
+        bellInputEnabled = true;
+        continueFlow();
+      });
+    }, 180);
   } catch (error) {
     bellInputEnabled = true;
     setStatus(error.message);
@@ -368,19 +419,48 @@ function playDeskBell(context, when) {
   impact.start(when);
 }
 
+function makeDistortionCurve(amount = 42) {
+  const samples = 256;
+  const curve = new Float32Array(samples);
+  for (let index = 0; index < samples; index += 1) {
+    const x = (index * 2) / samples - 1;
+    curve[index] = ((3 + amount) * x * 20 * Math.PI / 180) / (Math.PI + amount * Math.abs(x));
+  }
+  return curve;
+}
+
 function playWrongCue(context, when) {
-  [0, 0.13].forEach((offset, index) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = "square";
-    oscillator.frequency.setValueAtTime(index === 0 ? 310 : 225, when + offset);
-    oscillator.frequency.exponentialRampToValueAtTime(index === 0 ? 255 : 180, when + offset + 0.11);
-    gain.gain.setValueAtTime(0.0001, when + offset);
-    gain.gain.exponentialRampToValueAtTime(0.075, when + offset + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, when + offset + 0.12);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start(when + offset);
-    oscillator.stop(when + offset + 0.13);
+  [0, 0.145].forEach((offset, index) => {
+    const pulseAt = when + offset;
+    const master = context.createGain();
+    const filter = context.createBiquadFilter();
+    const shaper = context.createWaveShaper();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(index === 0 ? 980 : 760, pulseAt);
+    filter.Q.setValueAtTime(2.8, pulseAt);
+    shaper.curve = makeDistortionCurve(index === 0 ? 48 : 58);
+    shaper.oversample = "2x";
+    master.gain.setValueAtTime(0.0001, pulseAt);
+    master.gain.exponentialRampToValueAtTime(0.12, pulseAt + 0.006);
+    master.gain.setValueAtTime(0.1, pulseAt + 0.065);
+    master.gain.exponentialRampToValueAtTime(0.0001, pulseAt + 0.13);
+    filter.connect(shaper).connect(master).connect(context.destination);
+
+    [
+      [index === 0 ? 690 : 555, "square", 0.62],
+      [index === 0 ? 345 : 278, "sawtooth", 0.34],
+    ].forEach(([frequency, type, level]) => {
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(frequency, pulseAt);
+      oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.92, pulseAt + 0.12);
+      gain.gain.setValueAtTime(level, pulseAt);
+      gain.gain.exponentialRampToValueAtTime(0.001, pulseAt + 0.13);
+      oscillator.connect(gain).connect(filter);
+      oscillator.start(pulseAt);
+      oscillator.stop(pulseAt + 0.135);
+    });
   });
 }
 
@@ -390,7 +470,7 @@ function playBellSound(correct) {
     if (!context) return;
     const when = context.currentTime + 0.005;
     playDeskBell(context, when);
-    if (!correct) playWrongCue(context, when + 0.12);
+    if (!correct) playWrongCue(context, when + 0.1);
   } catch {
     // Audio is presentation-only; gameplay must continue if the browser blocks it.
   }

@@ -17,6 +17,19 @@ function shuffle(items, rng = Math.random) {
   return result;
 }
 
+function normalizeTurnOrder(playerCount, turnOrder) {
+  const natural = Array.from({ length: playerCount }, (_, index) => index);
+  if (!turnOrder) return natural;
+  if (!Array.isArray(turnOrder) || turnOrder.length !== playerCount) {
+    throw new Error("턴 순서는 모든 플레이어 자리를 한 번씩 포함해야 합니다.");
+  }
+  const normalized = turnOrder.map(Number);
+  const valid = normalized.every((index) => Number.isInteger(index) && index >= 0 && index < playerCount)
+    && new Set(normalized).size === playerCount;
+  if (!valid) throw new Error("턴 순서가 올바르지 않습니다.");
+  return normalized;
+}
+
 export function createDeck(rng = Math.random) {
   let serial = 0;
   const deck = [];
@@ -48,7 +61,7 @@ export function bellFruit(players) {
 }
 
 export class FruitBellGame {
-  constructor({ players = [], rng = Math.random } = {}) {
+  constructor({ players = [], rng = Math.random, turnOrder = null } = {}) {
     if (players.length < 2) throw new Error("최소 2명의 플레이어가 필요합니다.");
     this.rng = rng;
     this.players = players.map((player, index) => ({
@@ -59,7 +72,8 @@ export class FruitBellGame {
       faceUpPile: [],
       isOut: false,
     }));
-    this.activePlayerIndex = 0;
+    this.turnOrder = normalizeTurnOrder(this.players.length, turnOrder);
+    this.activePlayerIndex = this.turnOrder[0] ?? 0;
     this.started = false;
     this.winnerId = null;
     this.lastEvent = null;
@@ -108,7 +122,8 @@ export class FruitBellGame {
 
   ringBell(playerId) {
     this.#assertPlayable();
-    const player = this.players.find((candidate) => candidate.id === playerId);
+    const playerIndex = this.players.findIndex((candidate) => candidate.id === playerId);
+    const player = this.players[playerIndex];
     if (!player || player.isOut) throw new Error("종을 칠 수 없는 상태입니다.");
 
     const targetFruit = bellFruit(this.players);
@@ -116,33 +131,59 @@ export class FruitBellGame {
       const collected = [];
       this.players.forEach((candidate) => collected.push(...candidate.faceUpPile.splice(0)));
       player.drawPile.push(...shuffle(collected, this.rng));
-      this.activePlayerIndex = this.players.findIndex((candidate) => candidate.id === playerId);
+      this.activePlayerIndex = playerIndex;
       this.lastEvent = { type: "bell-correct", playerId, fruit: targetFruit, collectedCount: collected.length };
       this.#refreshOutState();
       this.#resolveWinner();
       return { correct: true, fruit: targetFruit, collectedCount: collected.length, state: this.snapshot() };
     }
 
-    let penaltyCount = 0;
-    this.players.forEach((recipient) => {
-      if (recipient.id === playerId || recipient.isOut) return;
+    const penaltyTransfers = [];
+    this.#indicesAfter(playerIndex).forEach((recipientIndex) => {
+      const recipient = this.players[recipientIndex];
+      if (!recipient || recipient.id === playerId || recipient.isOut) return;
       const penaltyCard = player.drawPile.shift();
       if (!penaltyCard) return;
       recipient.drawPile.push(penaltyCard);
-      penaltyCount += 1;
+      penaltyTransfers.push({
+        fromPlayerId: playerId,
+        toPlayerId: recipient.id,
+        cardId: penaltyCard.id,
+      });
     });
 
     if (player.drawPile.length === 0) player.isOut = true;
-    this.lastEvent = { type: "bell-wrong", playerId, penaltyCount, eliminated: player.isOut };
+    this.lastEvent = {
+      type: "bell-wrong",
+      playerId,
+      penaltyCount: penaltyTransfers.length,
+      penaltyTransfers,
+      eliminated: player.isOut,
+    };
     this.#refreshOutState();
     if (!this.#resolveWinner() && this.players[this.activePlayerIndex]?.isOut) this.#advanceTurn();
-    return { correct: false, penaltyCount, eliminated: player.isOut, state: this.snapshot() };
+    return {
+      correct: false,
+      penaltyCount: penaltyTransfers.length,
+      penaltyTransfers,
+      eliminated: player.isOut,
+      state: this.snapshot(),
+    };
+  }
+
+  #indicesAfter(playerIndex) {
+    const orderPosition = this.turnOrder.indexOf(playerIndex);
+    if (orderPosition < 0) return [];
+    const result = [];
+    for (let offset = 1; offset < this.turnOrder.length; offset += 1) {
+      result.push(this.turnOrder[(orderPosition + offset) % this.turnOrder.length]);
+    }
+    return result;
   }
 
   #advanceTurn() {
     if (this.#resolveWinner()) return;
-    for (let offset = 1; offset <= this.players.length; offset += 1) {
-      const index = (this.activePlayerIndex + offset) % this.players.length;
+    for (const index of this.#indicesAfter(this.activePlayerIndex)) {
       if (!this.players[index].isOut && this.players[index].drawPile.length) {
         this.activePlayerIndex = index;
         return;
