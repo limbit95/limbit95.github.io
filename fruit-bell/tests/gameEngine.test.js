@@ -59,3 +59,20 @@ test("wrong bell gives penalty cards to opponents", () => {
   assert.equal(result.penaltyCount, 3);
   assert.equal(game.players[0].drawPile.length, before - 3);
 });
+
+test("wrong-bell elimination advances an active player instead of stalling", () => {
+  const game = new FruitBellGame({ players, rng: zeroRng });
+  game.start();
+  game.players[0].drawPile = game.players[0].drawPile.slice(0, 2);
+  game.players[0].faceUpPile = [{ id: "visible", fruit: "banana", count: 1 }];
+
+  const result = game.ringBell("p1");
+  const eliminated = result.state.players.find((player) => player.id === "p1");
+
+  assert.equal(result.correct, false);
+  assert.equal(result.penaltyCount, 2);
+  assert.equal(result.eliminated, true);
+  assert.equal(eliminated.isOut, true);
+  assert.notEqual(result.state.activePlayerId, "p1");
+  assert.doesNotThrow(() => game.flipCard(result.state.activePlayerId));
+});
