@@ -83,6 +83,10 @@ function createAwardCard(award, featured = false) {
   label.className = "round-mvp-label";
   label.textContent = definition.title;
 
+  const description = document.createElement("span");
+  description.className = "round-mvp-label round-mvp-description";
+  description.textContent = definition.description;
+
   const names = document.createElement("strong");
   names.textContent = winnerNames(award);
 
@@ -90,7 +94,7 @@ function createAwardCard(award, featured = false) {
   value.className = "round-mvp-value";
   value.textContent = formatMvpValue(award.code, award.winners?.[0]?.value);
 
-  copy.append(label, names, value);
+  copy.append(label, description, names, value);
   card.append(icon, copy);
   return card;
 }
