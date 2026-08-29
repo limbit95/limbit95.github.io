@@ -97,6 +97,25 @@
   position: relative;
   z-index: 1;
   color: #11110f;
+  transform-origin: center;
+}
+
+/* The descending pile reads a touch larger at the exact visual handoff.
+   Keep the ascending motion untouched and apply only a late optical correction. */
+body:has(.pile-card.descending.is-receiving-card) .card-flight__number {
+  animation: descending-flight-number-match 570ms linear both;
+}
+
+@keyframes descending-flight-number-match {
+  0%, 90% {
+    transform: scale(1);
+  }
+  96% {
+    transform: scale(0.99);
+  }
+  100% {
+    transform: scale(0.97);
+  }
 }
 
 .card-flight__back {
