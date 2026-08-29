@@ -101,6 +101,11 @@ function blockLabel(block) {
   return `${levelText}${slotText}`;
 }
 
+function stopPointerDown(event) {
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
 function handlePointerDown(event) {
   if (event.button !== 0) return;
 
@@ -112,7 +117,16 @@ function handlePointerDown(event) {
 
   const currentLock = syncLockFromRules();
   if (!currentLock) {
-    if (!canBecomeTurnBlock(pressedBlock, rules)) return;
+    if (!canBecomeTurnBlock(pressedBlock, rules)) {
+      // The visually front-most block owns this click. Never let an illegal
+      // top/front block become transparent to the input ray and expose a
+      // removable block behind it.
+      stopPointerDown(event);
+      if (selectionStatus) {
+        selectionStatus.textContent = `${blockLabel(pressedBlock)}은(는) 현재 선택할 수 없습니다 · 뒤쪽 블록으로 선택이 관통되지 않습니다.`;
+      }
+      return;
+    }
 
     // Lock before app.js receives this pointerdown. Even if the Stage 5
     // rule layer is one event behind, a second block can never create a drag.
@@ -123,8 +137,7 @@ function handlePointerDown(event) {
 
   if (pressedBlock === currentLock) return;
 
-  event.preventDefault();
-  event.stopImmediatePropagation();
+  stopPointerDown(event);
 
   if (selectionStatus) {
     selectionStatus.textContent = `${blockLabel(currentLock)} 턴 진행 중 · 최상단 배치와 안정화가 끝날 때까지 다른 블록은 조작할 수 없습니다.`;
