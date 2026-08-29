@@ -168,8 +168,9 @@ body:has(.pile-card.descending.is-receiving-card) .card-flight__number {
 }
 
 #mode-screen .rule-summary {
+  order: 1;
   width: min(100%, 280px);
-  margin-top: 10px;
+  margin-top: 12px;
   padding: 0;
   border: 0;
   line-height: normal;
@@ -209,11 +210,38 @@ body:has(.pile-card.descending.is-receiving-card) .card-flight__number {
 }
 
 #mode-screen .back-link {
-  margin-top: 22px;
+  order: 2;
+  margin-top: 8px;
+  font-size: 0;
+}
+
+#mode-screen .back-link::after {
+  content: "게임 목록으로";
+  font-size: 13px;
 }
 
 #mode-screen .rules-open-button {
   margin-top: 0;
+}
+
+#mode-screen #mode-message {
+  order: 3;
+  width: min(100%, 620px);
+  min-height: 0;
+  margin: 0;
+}
+
+#mode-screen #mode-message:empty {
+  display: none;
+}
+
+#mode-screen #mode-message:not(:empty) {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(216, 255, 115, 0.22);
+  border-radius: 10px;
+  background: rgba(216, 255, 115, 0.045);
+  text-align: center;
 }
 
 #mode-screen .back-link:hover,
