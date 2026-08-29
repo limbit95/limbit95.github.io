@@ -1,17 +1,17 @@
 @media (min-width: 581px) {
   .record-open-button {
-    min-width: 112px;
-    min-height: 50px;
-    gap: 2px;
-    padding: 8px 16px;
-    border-radius: 14px;
+    min-width: 136px;
+    min-height: 64px;
+    gap: 3px;
+    padding: 10px 18px;
+    border-radius: 16px;
   }
 
   .record-open-button > span {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .record-open-button > strong {
-    font-size: 13px;
+    font-size: 20px;
   }
 }
