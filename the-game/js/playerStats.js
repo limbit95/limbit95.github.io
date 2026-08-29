@@ -6,6 +6,7 @@ import {
   getMvpDefinition,
   recordRoundPlay,
 } from "./gameStats.js";
+import { setHiddenIfChanged } from "./domState.js";
 
 const TOTAL_NUMBER_CARDS = 98;
 
@@ -96,7 +97,7 @@ function createAwardCard(award, featured = false) {
 
 function renderRoundMvp(container, awards, { loading = false, error = "" } = {}) {
   container.replaceChildren();
-  container.hidden = false;
+  setHiddenIfChanged(container, false);
 
   const header = document.createElement("div");
   header.className = "round-mvp-header";
@@ -182,7 +183,7 @@ function resetLocalStats(playerCount) {
   localTurnNumber = 1;
   const container = ensureLocalMvpContainer();
   if (container) {
-    container.hidden = true;
+    setHiddenIfChanged(container, true);
     container.replaceChildren();
   }
 }
@@ -228,7 +229,7 @@ function syncLocalResult() {
   if (!overlay || !container) return;
 
   if (overlay.hidden || !localRoundStats) {
-    container.hidden = true;
+    setHiddenIfChanged(container, true);
     delete container.dataset.renderKey;
     return;
   }
@@ -246,7 +247,7 @@ async function syncOnlineResult() {
   if (!result || !container) return;
 
   if (result.hidden) {
-    container.hidden = true;
+    setHiddenIfChanged(container, true);
     delete container.dataset.loaded;
     onlineStatsGameId = null;
     return;
