@@ -1,9 +1,5 @@
-import { getMvpDefinition } from "./gameStats.js";
-
 const TOOLTIP_ID = "the-game-mvp-tooltip";
-const INFO_TRIGGER_SELECTOR = ".round-mvp-label > [title], .round-mvp-label > [data-mvp-tooltip]";
-const SYMBOL_TRIGGER_SELECTOR = ".round-mvp-icon";
-const TRIGGER_SELECTOR = `${INFO_TRIGGER_SELECTOR}, ${SYMBOL_TRIGGER_SELECTOR}`;
+const TRIGGER_SELECTOR = ".round-mvp-label > [title], .round-mvp-label > [data-mvp-tooltip]";
 
 let tooltip = null;
 let activeTrigger = null;
@@ -43,6 +39,7 @@ function installTooltipStyle() {
       pointer-events: none;
       opacity: 1;
       transform: translateZ(0);
+      animation: mvp-tooltip-float-in 180ms cubic-bezier(0.22, 0.75, 0.28, 1) both;
     }
 
     #${TOOLTIP_ID}[hidden] {
@@ -69,6 +66,27 @@ function installTooltipStyle() {
       top: -5px;
       border-left: 1px solid #4a4a44;
       border-top: 1px solid #4a4a44;
+    }
+
+    @keyframes mvp-tooltip-float-in {
+      0% {
+        opacity: 0;
+        transform: translate3d(0, 3px, 0) scale(0.99);
+      }
+      72% {
+        opacity: 1;
+        transform: translate3d(0, -1px, 0) scale(1);
+      }
+      100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #${TOOLTIP_ID} {
+        animation-duration: 0.01ms !important;
+      }
     }
   `;
   document.head.append(style);
@@ -101,11 +119,6 @@ function getTrigger(element) {
 function getDescription(trigger) {
   if (!trigger) return "";
 
-  if (trigger.matches(SYMBOL_TRIGGER_SELECTOR)) {
-    const code = trigger.closest("[data-mvp-code]")?.dataset.mvpCode;
-    return getMvpDefinition(code)?.description ?? "";
-  }
-
   const title = trigger.getAttribute("title");
   if (title && !trigger.dataset.mvpTooltip) {
     trigger.dataset.mvpTooltip = title;
@@ -115,7 +128,7 @@ function getDescription(trigger) {
 }
 
 function setTriggerExpanded(trigger, expanded) {
-  if (!trigger || trigger.matches(SYMBOL_TRIGGER_SELECTOR)) return;
+  if (!trigger) return;
   trigger.setAttribute("aria-expanded", String(expanded));
   if (expanded) {
     trigger.setAttribute("aria-describedby", TOOLTIP_ID);
@@ -158,6 +171,12 @@ function positionTooltip(trigger) {
   layer.style.setProperty("--tooltip-arrow-left", `${Math.round(arrowLeft)}px`);
 }
 
+function restartTooltipAnimation(layer) {
+  layer.style.animation = "none";
+  void layer.offsetWidth;
+  layer.style.animation = "";
+}
+
 function showTooltip(trigger, { pin = false } = {}) {
   const description = getDescription(trigger);
   if (!description) return;
@@ -171,6 +190,7 @@ function showTooltip(trigger, { pin = false } = {}) {
   pinned = pin;
   layer.textContent = description;
   layer.hidden = false;
+  restartTooltipAnimation(layer);
   setTriggerExpanded(trigger, true);
   positionTooltip(trigger);
 }
@@ -203,7 +223,7 @@ document.addEventListener("pointerout", (event) => {
 
 document.addEventListener("focusin", (event) => {
   const trigger = getTrigger(event.target);
-  if (!trigger || trigger.matches(SYMBOL_TRIGGER_SELECTOR)) return;
+  if (!trigger) return;
   showTooltip(trigger);
 });
 
