@@ -2,6 +2,7 @@ import { FruitBellGame, FRUITS } from "./gameEngine.js";
 import { getFlipGestureProgress, isUpwardFlipGesture } from "./gesture.js";
 import { ANIMALS } from "./avatarFactory.js";
 import { FruitBellScene } from "./scene.js";
+import { FruitBellPresentationController } from "./presentationController.js";
 
 const LOCAL_ID = "local-player";
 const BOT_NAMES = ["모모", "두부", "콩이"];
@@ -25,6 +26,7 @@ const elements = {
 let selectedAnimalId = ANIMALS[0].id;
 let game = null;
 let scene = null;
+let presentation = null;
 let players = [];
 let gesture = null;
 let flipLocked = false;
@@ -71,7 +73,10 @@ function startGame() {
   players = buildPlayers();
   game = new FruitBellGame({ players });
   const snapshot = game.start();
-  if (!scene) scene = new FruitBellScene(elements.canvas);
+  if (!scene) {
+    scene = new FruitBellScene(elements.canvas);
+    presentation = new FruitBellPresentationController(scene);
+  }
   scene.configurePlayers(players);
   scene.syncSnapshot(snapshot);
   elements.lobby.hidden = true;
@@ -124,9 +129,10 @@ function renderHud(snapshot = game?.snapshot()) {
     const row = document.createElement("div");
     row.className = "player-row";
     row.dataset.active = String(player.id === snapshot.activePlayerId);
+    row.dataset.out = String(player.isOut);
     row.innerHTML = `
       <span class="player-row__dot" data-animal="${animal?.id || "fox"}"></span>
-      <span>${player.name}</span>
+      <span>${player.name}${player.isOut ? " · 탈락" : ""}</span>
       <strong>${player.drawCount}장</strong>
     `;
     elements.playerList.append(row);
@@ -249,6 +255,8 @@ function handleBell(playerId) {
     if (result.correct) {
       const fruit = FRUITS.find((candidate) => candidate.id === result.fruit);
       setStatus(`${player?.name || "플레이어"} 성공! ${fruit?.label || "과일"} 합계 5를 먼저 잡았습니다.`);
+    } else if (result.eliminated) {
+      setStatus(`${player?.name || "플레이어"} 오답! 패널티로 카드가 없어져 탈락했습니다.`);
     } else {
       setStatus(`${player?.name || "플레이어"} 오답! 너무 일찍 종을 쳤습니다.`);
     }
