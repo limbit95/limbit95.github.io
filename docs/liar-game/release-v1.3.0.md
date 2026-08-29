@@ -85,3 +85,4 @@ supabase/liar-game/migrations/20260828224614_liar_expanded_mvp_hint_privacy_fix.
 - 실제 힌트 구매가 있던 완료 라운드의 `liars_revealed_at`을 transaction 안에서 임시로 숨긴 상태에서 다른 참가자 권한으로 v13 RPC 호출 → `hint_spender = null` 확인
 - 같은 테스트에서 `존버왕`도 해당 미공개 구매를 소비 기록으로 반영하지 않는 것을 확인
 - 테스트를 위해 바꾼 room/player/round 상태는 transaction rollback 처리
+- 최신 `main` `21a2b06949602d4cfd6a74624af9e219f5137954`를 v1.3 작업 브랜치에 병합하고 합본 상태에서 CI를 재검증한다.
