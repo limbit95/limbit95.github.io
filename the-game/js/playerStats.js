@@ -81,11 +81,33 @@ function createAwardCard(award, featured = false) {
 
   const label = document.createElement("span");
   label.className = "round-mvp-label";
+  label.style.display = "inline-flex";
+  label.style.alignItems = "center";
+  label.style.gap = "5px";
   label.textContent = definition.title;
 
-  const description = document.createElement("span");
-  description.className = "round-mvp-label round-mvp-description";
-  description.textContent = definition.description;
+  const info = document.createElement("span");
+  info.textContent = "i";
+  info.title = definition.description;
+  info.tabIndex = 0;
+  info.setAttribute("role", "button");
+  info.setAttribute("aria-label", `${definition.title} 설명: ${definition.description}`);
+  info.style.cssText = [
+    "width:15px",
+    "height:15px",
+    "display:inline-grid",
+    "place-items:center",
+    "flex:0 0 15px",
+    "border:1px solid #55554f",
+    "border-radius:50%",
+    "color:#9a9a92",
+    "font-size:9px",
+    "font-weight:900",
+    "font-style:normal",
+    "line-height:1",
+    "cursor:help",
+  ].join(";");
+  label.append(info);
 
   const names = document.createElement("strong");
   names.textContent = winnerNames(award);
@@ -94,7 +116,7 @@ function createAwardCard(award, featured = false) {
   value.className = "round-mvp-value";
   value.textContent = formatMvpValue(award.code, award.winners?.[0]?.value);
 
-  copy.append(label, description, names, value);
+  copy.append(label, names, value);
   card.append(icon, copy);
   return card;
 }
