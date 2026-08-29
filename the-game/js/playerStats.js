@@ -518,7 +518,6 @@ const observer = new MutationObserver(queueSync);
 observer.observe(document.body, {
   subtree: true,
   childList: true,
-  characterData: true,
   attributes: true,
   attributeFilter: ["hidden"],
 });
