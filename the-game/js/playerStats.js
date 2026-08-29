@@ -57,6 +57,20 @@ async function getStatsApi() {
   return statsApiPromise;
 }
 
+function ensureMvpLayoutStyle() {
+  if (document.querySelector("style[data-the-game-mvp-layout]")) return;
+  const style = document.createElement("style");
+  style.dataset.theGameMvpLayout = "true";
+  style.textContent = `
+    @media (min-width: 581px) {
+      .round-mvp-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+  `;
+  document.head.append(style);
+}
+
 function winnerNames(award) {
   return (award?.winners ?? [])
     .map((winner) => winner.nickname || (winner.playerIndex !== undefined ? `플레이어 ${winner.playerIndex + 1}` : `플레이어 ${winner.seat ?? 1}`))
@@ -238,6 +252,9 @@ function captureLocalPilePlay(event) {
   const pileDirection = pile.classList.contains("ascending") ? "ascending" : "descending";
   const playerIndex = currentLocalPlayerIndex();
   const remainingBefore = TOTAL_NUMBER_CARDS - localRoundStats.totalCardsPlayed;
+  const handCards = [...document.querySelectorAll("#hand .number-card")]
+    .map((button) => Number(button.dataset.card ?? button.textContent))
+    .filter(Number.isInteger);
 
   recordRoundPlay(localRoundStats, {
     playerIndex,
@@ -246,6 +263,7 @@ function captureLocalPilePlay(event) {
     previousValue: Number.isInteger(previousValue) ? previousValue : null,
     turnNumber: localTurnNumber,
     remainingBefore,
+    handCards,
   });
 }
 
@@ -548,6 +566,7 @@ observer.observe(document.body, {
   attributeFilter: ["hidden"],
 });
 
+ensureMvpLayoutStyle();
 ensureLocalMvpContainer();
 installRecordButton();
 queueSync();
