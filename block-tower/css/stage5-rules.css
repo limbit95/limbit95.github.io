@@ -1,8 +1,16 @@
+#rule-status[data-state="selected"],
 #rule-status[data-state="committed"],
 #rule-status[data-state="extracted"] {
   border-color: rgba(240, 168, 95, 0.52);
   color: #ffe6c8;
   background: rgba(92, 54, 24, 0.82);
+}
+
+#rule-status[data-state="settling"],
+#rule-status[data-state="collapsing"] {
+  border-color: rgba(255, 210, 118, 0.56);
+  color: #fff0c6;
+  background: rgba(82, 66, 24, 0.88);
 }
 
 #rule-status[data-state="game-over"] {
