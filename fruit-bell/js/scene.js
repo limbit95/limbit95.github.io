@@ -1,13 +1,16 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js";
 import { FRUITS } from "./gameEngine.js";
 import { createAnimalAvatar, getAnimalProfile, updateAvatarIdle } from "./avatarFactory.js";
+import { CARD_FLIP_DURATION_MS, CARD_REVEAL_PROGRESS } from "./revealTiming.js";
 
 const FRUIT_MAP = new Map(FRUITS.map((fruit) => [fruit.id, fruit]));
+const TABLE_SURFACE_Y = 1.145;
+const CARD_THICKNESS = 0.026;
 const CARD_POSITIONS = [
-  { deck: new THREE.Vector3(1.05, 1.13, 3.15), face: new THREE.Vector3(-0.7, 1.16, 2.22), rotation: 0 },
-  { deck: new THREE.Vector3(0.95, 1.13, -2.78), face: new THREE.Vector3(-0.65, 1.16, -1.78), rotation: Math.PI },
-  { deck: new THREE.Vector3(-3.25, 1.13, 0.55), face: new THREE.Vector3(-2.18, 1.16, -0.38), rotation: -Math.PI / 2 },
-  { deck: new THREE.Vector3(3.25, 1.13, 0.55), face: new THREE.Vector3(2.18, 1.16, -0.38), rotation: Math.PI / 2 },
+  { deck: new THREE.Vector3(1.05, TABLE_SURFACE_Y, 3.15), face: new THREE.Vector3(-0.7, 1.16, 2.22), rotation: 0 },
+  { deck: new THREE.Vector3(0.95, TABLE_SURFACE_Y, -2.78), face: new THREE.Vector3(-0.65, 1.16, -1.92), rotation: Math.PI },
+  { deck: new THREE.Vector3(-3.25, TABLE_SURFACE_Y, 0.55), face: new THREE.Vector3(-2.18, 1.16, -0.38), rotation: -Math.PI / 2 },
+  { deck: new THREE.Vector3(3.25, TABLE_SURFACE_Y, 0.55), face: new THREE.Vector3(2.18, 1.16, -0.38), rotation: Math.PI / 2 },
 ];
 
 const AVATAR_SEATS = [
@@ -51,6 +54,30 @@ function createCardBase(back = false) {
   return group;
 }
 
+function createDeckStack() {
+  const group = new THREE.Group();
+  const core = makeMesh(new THREE.BoxGeometry(0.92, 1, 1.28), 0x294552);
+  const inset = makeMesh(new THREE.BoxGeometry(0.7, 0.018, 1.04), 0xd9664a);
+  group.add(core, inset);
+  group.userData.core = core;
+  group.userData.inset = inset;
+  group.userData.count = 0;
+  return group;
+}
+
+function setDeckStackCount(group, count) {
+  if (!group) return;
+  const safeCount = Math.max(0, Number(count) || 0);
+  const core = group.userData.core;
+  const inset = group.userData.inset;
+  const height = Math.max(CARD_THICKNESS, safeCount * CARD_THICKNESS);
+  group.userData.count = safeCount;
+  group.visible = safeCount > 0;
+  core.scale.y = height;
+  core.position.y = height / 2;
+  inset.position.y = height + 0.01;
+}
+
 function fruitLayout(count) {
   const layouts = {
     1: [[0, 0]],
@@ -62,20 +89,30 @@ function fruitLayout(count) {
   return layouts[count] || layouts[1];
 }
 
-function createFruitCard(card) {
+function createFruitCard(card, { faceVisible = true } = {}) {
   const group = createCardBase(false);
   const fruit = FRUIT_MAP.get(card.fruit) || FRUITS[0];
+  const tokens = [];
   fruitLayout(card.count).forEach(([x, z]) => {
     const token = makeMesh(new THREE.SphereGeometry(0.13, 14, 9), fruit.color);
     token.scale.set(1, 0.22, 1);
     token.position.set(x, 0.08, z);
+    token.visible = faceVisible;
+    tokens.push(token);
     group.add(token);
     if (card.fruit === "banana") {
       token.scale.set(1.35, 0.18, 0.65);
       token.rotation.y = 0.55;
     }
   });
+  group.userData.faceTokens = tokens;
   return group;
+}
+
+function setFruitCardFaceVisible(card, visible) {
+  card?.userData?.faceTokens?.forEach((token) => {
+    token.visible = visible;
+  });
 }
 
 function createViewArm(profile, side) {
@@ -103,17 +140,20 @@ export class FruitBellScene {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x152128);
     this.scene.fog = new THREE.Fog(0x152128, 11, 24);
-    this.camera = new THREE.PerspectiveCamera(48, 1, 0.1, 50);
-    this.camera.position.set(0, 3.25, 7.45);
+    this.camera = new THREE.PerspectiveCamera(49, 1, 0.1, 50);
+    this.camera.position.set(0, 4.7, 7.45);
     this.baseCameraPosition = this.camera.position.clone();
-    this.camera.lookAt(0, 1.15, 0.2);
+    this.camera.lookAt(0, 1.05, 0.2);
     this.raycaster = new THREE.Raycaster();
     this.pointer = new THREE.Vector2();
     this.lookOffset = new THREE.Vector2();
     this.targetLookOffset = new THREE.Vector2();
     this.avatarMap = new Map();
+    this.deckMap = new Map();
     this.visibleCards = new Map();
     this.cardFlights = [];
+    this.collectionFlights = [];
+    this.collectionCompletion = null;
     this.avatarActions = [];
     this.rightHandAction = null;
     this.leftHandAction = null;
@@ -156,7 +196,6 @@ export class FruitBellScene {
 
     const table = makeMesh(new THREE.BoxGeometry(9.25, 0.55, 6.25), 0x5f4030);
     table.position.y = 0.78;
-    table.geometry.translate(0, 0, 0);
     this.scene.add(table);
     const felt = makeMesh(new THREE.BoxGeometry(8.75, 0.09, 5.75), 0x274f49);
     felt.position.y = 1.1;
@@ -167,33 +206,37 @@ export class FruitBellScene {
     rimTop.position.y = 1.17;
     this.scene.add(rimTop);
 
-    const bellBase = makeMesh(new THREE.CylinderGeometry(0.58, 0.72, 0.18, 32), 0x30343a, { roughness: 0.45, metalness: 0.65 });
-    bellBase.position.set(0, 1.24, 0);
-    this.bellTop = makeMesh(new THREE.SphereGeometry(0.48, 28, 18), 0xe8b84e, { roughness: 0.28, metalness: 0.82 });
+    const bellBase = makeMesh(new THREE.CylinderGeometry(0.46, 0.57, 0.15, 32), 0x30343a, { roughness: 0.45, metalness: 0.65 });
+    bellBase.position.set(0, 1.22, 0);
+    this.bellTop = makeMesh(new THREE.SphereGeometry(0.37, 28, 18), 0xe8b84e, { roughness: 0.28, metalness: 0.82 });
     this.bellTop.scale.set(1.08, 0.62, 1.08);
-    this.bellTop.position.set(0, 1.57, 0);
-    const button = makeMesh(new THREE.CylinderGeometry(0.1, 0.14, 0.18, 18), 0xefe1b0, { roughness: 0.3, metalness: 0.7 });
-    button.position.set(0, 1.96, 0);
+    this.bellTop.position.set(0, 1.47, 0);
+    const button = makeMesh(new THREE.CylinderGeometry(0.075, 0.105, 0.14, 18), 0xefe1b0, { roughness: 0.3, metalness: 0.7 });
+    button.position.set(0, 1.77, 0);
     this.scene.add(bellBase, this.bellTop, button);
-
-    CARD_POSITIONS.forEach((seat, index) => {
-      const deck = createCardBase(true);
-      deck.position.copy(seat.deck);
-      deck.rotation.y = seat.rotation;
-      this.scene.add(deck);
-      if (index === 0) {
-        this.localDeck = deck;
-        this.localDeckHitTarget = deck.children[0];
-      }
-    });
   }
 
   configurePlayers(players) {
     this.players = players;
     this.avatarMap.forEach((avatar) => this.scene.remove(avatar.group));
     this.avatarMap.clear();
+    this.deckMap.forEach((deck) => this.scene.remove(deck));
+    this.deckMap.clear();
     this.visibleCards.forEach((card) => this.scene.remove(card));
     this.visibleCards.clear();
+
+    players.forEach((player, index) => {
+      const seat = CARD_POSITIONS[index];
+      const deck = createDeckStack();
+      deck.position.copy(seat.deck);
+      deck.rotation.y = seat.rotation;
+      this.scene.add(deck);
+      this.deckMap.set(player.id, deck);
+      if (index === 0) {
+        this.localDeck = deck;
+        this.localDeckHitTarget = deck.userData.core;
+      }
+    });
 
     players.slice(1, 4).forEach((player, index) => {
       const avatar = createAnimalAvatar(player.animalId);
@@ -241,7 +284,7 @@ export class FruitBellScene {
   }
 
   isPointerOverLocalDeck(clientX, clientY) {
-    if (!this.localDeckHitTarget) return false;
+    if (!this.localDeckHitTarget || !this.localDeck?.visible) return false;
     const rect = this.canvas.getBoundingClientRect();
     this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
     this.pointer.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
@@ -262,17 +305,23 @@ export class FruitBellScene {
     this.rightHand.rotation.x = 0;
   }
 
-  playLocalFlip(card, onReveal) {
-    this.rightHandAction = { start: performance.now(), duration: 620 };
-    this.#launchCardFlight(0, card, 610, onReveal);
+  syncDeckCounts(snapshot) {
+    snapshot.players.forEach((player) => {
+      setDeckStackCount(this.deckMap.get(player.id), player.drawCount);
+    });
   }
 
-  playOpponentFlip(playerId, card, onReveal) {
+  playLocalFlip(card, callbacks = {}) {
+    this.rightHandAction = { start: performance.now(), duration: CARD_FLIP_DURATION_MS };
+    this.#launchCardFlight(0, card, callbacks);
+  }
+
+  playOpponentFlip(playerId, card, callbacks = {}) {
     const index = this.players.findIndex((player) => player.id === playerId);
     const avatar = this.avatarMap.get(playerId);
     if (index < 1 || !avatar) return;
     this.avatarActions.push({ avatar, type: "flip", start: performance.now(), duration: 640 });
-    this.#launchCardFlight(index, card, 610, onReveal);
+    this.#launchCardFlight(index, card, callbacks);
   }
 
   playLocalBell(correct) {
@@ -288,6 +337,7 @@ export class FruitBellScene {
   }
 
   syncSnapshot(snapshot) {
+    this.syncDeckCounts(snapshot);
     snapshot.players.forEach((player, index) => {
       const previous = this.visibleCards.get(player.id);
       if (previous) {
@@ -299,9 +349,21 @@ export class FruitBellScene {
       const seat = CARD_POSITIONS[index];
       card.position.copy(seat.face);
       card.rotation.y = seat.rotation;
+      card.position.y += Math.min(player.faceUpCount, 16) * 0.004;
       this.scene.add(card);
       this.visibleCards.set(player.id, card);
     });
+  }
+
+  playCollectionToWinner(beforeSnapshot, afterSnapshot, winnerId, onComplete) {
+    const begin = () => {
+      if (this.cardFlights.length) {
+        requestAnimationFrame(begin);
+        return;
+      }
+      this.#startCollectionFlights(beforeSnapshot, afterSnapshot, winnerId, onComplete);
+    };
+    begin();
   }
 
   pulseBell() {
@@ -314,23 +376,96 @@ export class FruitBellScene {
     this.renderer.dispose();
   }
 
-  #launchCardFlight(playerIndex, card, duration, onReveal) {
+  #launchCardFlight(playerIndex, card, { revealAt = null, onReveal = null, onSettled = null } = {}) {
     const seat = CARD_POSITIONS[playerIndex];
-    const flying = createFruitCard(card);
+    const start = performance.now();
+    const flying = createFruitCard(card, { faceVisible: false });
     flying.position.copy(seat.deck);
+    const deck = this.players[playerIndex] ? this.deckMap.get(this.players[playerIndex].id) : null;
+    if (deck?.visible) flying.position.y += Math.max(CARD_THICKNESS, deck.userData.count * CARD_THICKNESS);
     flying.rotation.y = seat.rotation;
     flying.rotation.x = Math.PI;
     this.scene.add(flying);
     this.cardFlights.push({
       mesh: flying,
-      from: seat.deck.clone(),
+      from: flying.position.clone(),
       to: seat.face.clone(),
       rotation: seat.rotation,
-      start: performance.now(),
-      duration,
+      start,
+      duration: CARD_FLIP_DURATION_MS,
+      revealAt: Number.isFinite(revealAt) ? revealAt : start + CARD_FLIP_DURATION_MS * CARD_REVEAL_PROGRESS,
       revealed: false,
       onReveal,
+      onSettled,
     });
+  }
+
+  #startCollectionFlights(beforeSnapshot, afterSnapshot, winnerId, onComplete) {
+    if (this.collectionFlights.length) return;
+    const winnerIndex = afterSnapshot.players.findIndex((player) => player.id === winnerId);
+    if (winnerIndex < 0) {
+      onComplete?.();
+      return;
+    }
+
+    this.visibleCards.forEach((card) => this.scene.remove(card));
+    this.visibleCards.clear();
+    this.syncDeckCounts(beforeSnapshot);
+
+    const winnerDeck = this.deckMap.get(winnerId);
+    const winnerBefore = beforeSnapshot.players.find((player) => player.id === winnerId)?.drawCount || 0;
+    let landed = 0;
+    const total = beforeSnapshot.players.reduce((sum, player) => sum + player.faceUpCount, 0);
+    if (!total) {
+      this.syncSnapshot(afterSnapshot);
+      onComplete?.();
+      return;
+    }
+
+    const now = performance.now();
+    let sequence = 0;
+    beforeSnapshot.players.forEach((player, playerIndex) => {
+      const source = CARD_POSITIONS[playerIndex].face;
+      for (let cardIndex = 0; cardIndex < player.faceUpCount; cardIndex += 1) {
+        const mesh = createCardBase(true);
+        const spread = (cardIndex - (player.faceUpCount - 1) / 2) * 0.008;
+        mesh.position.copy(source).add(new THREE.Vector3(spread, 0.03 + cardIndex * 0.006, spread));
+        mesh.rotation.y = CARD_POSITIONS[playerIndex].rotation;
+        this.scene.add(mesh);
+
+        const startDelay = sequence * Math.max(10, Math.min(24, 420 / Math.max(1, total)));
+        this.collectionFlights.push({
+          mesh,
+          from: mesh.position.clone(),
+          winnerId,
+          winnerIndex,
+          start: now + startDelay,
+          duration: 520 + (sequence % 4) * 35,
+          lane: ((sequence % 5) - 2) * 0.08,
+          onLand: () => {
+            landed += 1;
+            setDeckStackCount(winnerDeck, winnerBefore + landed);
+          },
+        });
+        sequence += 1;
+      }
+    });
+
+    this.collectionCompletion = {
+      afterSnapshot,
+      onComplete,
+      total,
+      finished: 0,
+    };
+  }
+
+  #deckTopPosition(playerIndex, extraCount = 0) {
+    const player = this.players[playerIndex];
+    const deck = player ? this.deckMap.get(player.id) : null;
+    const count = (deck?.userData?.count || 0) + extraCount;
+    const base = CARD_POSITIONS[playerIndex].deck.clone();
+    base.y += Math.max(CARD_THICKNESS, count * CARD_THICKNESS) + 0.05;
+    return base;
   }
 
   #renderFrame() {
@@ -340,15 +475,16 @@ export class FruitBellScene {
     const shakeX = (Math.random() - 0.5) * this.shake;
     const shakeY = (Math.random() - 0.5) * this.shake * 0.5;
     this.camera.position.set(
-      this.baseCameraPosition.x + this.lookOffset.x * 0.22 + shakeX,
-      this.baseCameraPosition.y - this.lookOffset.y * 0.12 + shakeY,
+      this.baseCameraPosition.x + this.lookOffset.x * 0.25 + shakeX,
+      this.baseCameraPosition.y - this.lookOffset.y * 0.14 + shakeY,
       this.baseCameraPosition.z,
     );
-    this.camera.lookAt(this.lookOffset.x * 0.7, 1.25 - this.lookOffset.y * 0.22, 0.15);
+    this.camera.lookAt(this.lookOffset.x * 0.88, 1.02 - this.lookOffset.y * 0.3, 0.08);
     this.shake *= 0.86;
 
     this.avatarMap.forEach((avatar) => updateAvatarIdle(avatar, elapsed));
     this.#updateCardFlights(now);
+    this.#updateCollectionFlights(now);
     this.#updateRightHand(now);
     this.#updateLeftHand(now);
     this.#updateAvatarActions(now);
@@ -369,16 +505,48 @@ export class FruitBellScene {
       flight.mesh.position.y += Math.sin(Math.PI * t) * 0.72;
       flight.mesh.rotation.y = flight.rotation;
       flight.mesh.rotation.x = Math.PI * (1 - eased);
-      if (!flight.revealed && t >= 0.52) {
+      if (!flight.revealed && now >= flight.revealAt) {
         flight.revealed = true;
+        setFruitCardFaceVisible(flight.mesh, true);
         flight.onReveal?.();
       }
       if (t >= 1) {
         this.scene.remove(flight.mesh);
+        flight.onSettled?.();
         return false;
       }
       return true;
     });
+  }
+
+  #updateCollectionFlights(now) {
+    if (!this.collectionFlights.length) return;
+    this.collectionFlights = this.collectionFlights.filter((flight) => {
+      if (now < flight.start) return true;
+      const t = THREE.MathUtils.clamp((now - flight.start) / flight.duration, 0, 1);
+      const eased = easeInOut(t);
+      const target = this.#deckTopPosition(flight.winnerIndex);
+      flight.mesh.position.copy(lerpVector(flight.from, target, eased));
+      flight.mesh.position.y += Math.sin(Math.PI * t) * (0.68 + Math.abs(flight.lane));
+      flight.mesh.position.x += Math.sin(Math.PI * t) * flight.lane;
+      flight.mesh.rotation.x = Math.sin(Math.PI * t) * 0.26;
+      flight.mesh.rotation.y += 0.035;
+      flight.mesh.rotation.z = Math.sin(Math.PI * t) * flight.lane * 2.6;
+      if (t >= 1) {
+        this.scene.remove(flight.mesh);
+        flight.onLand?.();
+        if (this.collectionCompletion) this.collectionCompletion.finished += 1;
+        return false;
+      }
+      return true;
+    });
+
+    if (!this.collectionFlights.length && this.collectionCompletion) {
+      const completion = this.collectionCompletion;
+      this.collectionCompletion = null;
+      this.syncSnapshot(completion.afterSnapshot);
+      completion.onComplete?.();
+    }
   }
 
   #updateRightHand(now) {
@@ -407,14 +575,14 @@ export class FruitBellScene {
     if (!this.leftStrike || !this.leftHandAction) return;
     const t = THREE.MathUtils.clamp((now - this.leftHandAction.start) / this.leftHandAction.duration, 0, 1);
     const start = new THREE.Vector3(-2.45, 2.72, 5.2);
-    const hit = new THREE.Vector3(-0.08, 1.95, 0.3);
+    const hit = new THREE.Vector3(-0.08, 1.78, 0.25);
     if (t < 0.34) {
       this.leftStrike.visible = true;
       this.leftStrike.position.copy(lerpVector(start, hit, easeOutCubic(t / 0.34)));
       this.leftStrike.rotation.x = -1.1 * (t / 0.34);
     } else if (t < 0.52) {
       this.leftStrike.position.copy(hit);
-      this.leftStrike.position.y -= Math.sin(((t - 0.34) / 0.18) * Math.PI) * 0.18;
+      this.leftStrike.position.y -= Math.sin(((t - 0.34) / 0.18) * Math.PI) * 0.15;
     } else {
       this.leftStrike.position.copy(lerpVector(hit, start, easeInOut((t - 0.52) / 0.48)));
     }

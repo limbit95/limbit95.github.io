@@ -1,9 +1,9 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js";
 
 const CAMERA_PROFILE = Object.freeze({
-  horizontalLook: 2.35,
-  verticalLook: 2,
-  eyeHeight: 3.68,
+  horizontalLook: 2.7,
+  verticalLook: 2.3,
+  eyeHeight: 4.75,
 });
 
 function easeOutCubic(value) {
@@ -42,7 +42,7 @@ export class FruitBellPresentationController {
     const originalSyncSnapshot = this.scene.syncSnapshot.bind(this.scene);
 
     this.scene.syncSnapshot = (snapshot) => {
-      if (!this.scene.cardFlights.length) {
+      if (!this.scene.cardFlights.length && !this.scene.collectionFlights.length) {
         originalSyncSnapshot(snapshot);
         return;
       }
@@ -50,9 +50,9 @@ export class FruitBellPresentationController {
       this.pendingSnapshot = snapshot;
       if (this.snapshotFrame) return;
 
-      const waitForCardToSettle = () => {
-        if (this.scene.cardFlights.length) {
-          this.snapshotFrame = requestAnimationFrame(waitForCardToSettle);
+      const waitForCardsToSettle = () => {
+        if (this.scene.cardFlights.length || this.scene.collectionFlights.length) {
+          this.snapshotFrame = requestAnimationFrame(waitForCardsToSettle);
           return;
         }
 
@@ -62,7 +62,7 @@ export class FruitBellPresentationController {
         if (pending) originalSyncSnapshot(pending);
       };
 
-      this.snapshotFrame = requestAnimationFrame(waitForCardToSettle);
+      this.snapshotFrame = requestAnimationFrame(waitForCardsToSettle);
     };
   }
 

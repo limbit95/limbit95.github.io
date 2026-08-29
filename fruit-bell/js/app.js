@@ -3,6 +3,7 @@ import { getFlipGestureProgress, isUpwardFlipGesture } from "./gesture.js";
 import { ANIMALS } from "./avatarFactory.js";
 import { FruitBellScene } from "./scene.js";
 import { FruitBellPresentationController } from "./presentationController.js";
+import { createPrototypeRevealAt } from "./revealTiming.js";
 
 const LOCAL_ID = "local-player";
 const BOT_NAMES = ["모모", "두부", "콩이"];
@@ -172,6 +173,31 @@ function continueFlow() {
   scheduleBotFlip(active);
 }
 
+function revealFlipResult(result, generation, playerName) {
+  if (!game || generation !== flowGeneration) return;
+  const fruit = FRUITS.find((candidate) => candidate.id === result.card.fruit);
+  renderHud(result.state);
+  bellInputEnabled = true;
+
+  if (result.state.bellFruit) {
+    setStatus("과일 합계 5! 왼손으로 스페이스바를 먼저 누르세요!");
+    scheduleBotBellRace(result.state);
+    return;
+  }
+
+  setStatus(`${playerName} ${fruit?.label || "과일"} ${result.card.count}개 공개!`);
+}
+
+function settleFlipResult(result, generation) {
+  if (!game || generation !== flowGeneration) return;
+  scene.syncSnapshot(result.state);
+  flipLocked = false;
+  if (!result.state.bellFruit) {
+    bellInputEnabled = true;
+    continueFlow();
+  }
+}
+
 function handleLocalFlip() {
   if (!game || flipLocked) return;
   const snapshot = game.snapshot();
@@ -183,18 +209,17 @@ function handleLocalFlip() {
 
   clearTimers();
   flowGeneration += 1;
+  const generation = flowGeneration;
   flipLocked = true;
   bellInputEnabled = false;
   try {
     const result = game.flipCard(LOCAL_ID);
-    const fruit = FRUITS.find((candidate) => candidate.id === result.card.fruit);
-    setStatus(`${fruit?.label || "과일"} ${result.card.count}개 — 카드를 공개합니다.`);
-    scene.playLocalFlip(result.card, () => {
-      scene.syncSnapshot(result.state);
-      renderHud(result.state);
-      flipLocked = false;
-      bellInputEnabled = true;
-      continueFlow();
+    scene.syncDeckCounts(result.state);
+    setStatus("카드를 뒤집는 중입니다…");
+    scene.playLocalFlip(result.card, {
+      revealAt: createPrototypeRevealAt(performance.now()),
+      onReveal: () => revealFlipResult(result, generation, "내 카드:"),
+      onSettled: () => settleFlipResult(result, generation),
     });
   } catch (error) {
     flipLocked = false;
@@ -213,13 +238,12 @@ function scheduleBotFlip(player) {
     bellInputEnabled = false;
     try {
       const result = game.flipCard(player.id);
-      const fruit = FRUITS.find((candidate) => candidate.id === result.card.fruit);
-      setStatus(`${player.name}이 ${fruit?.label || "과일"} ${result.card.count}개 카드를 뒤집습니다.`);
-      scene.playOpponentFlip(player.id, result.card, () => {
-        scene.syncSnapshot(result.state);
-        renderHud(result.state);
-        bellInputEnabled = true;
-        continueFlow();
+      scene.syncDeckCounts(result.state);
+      setStatus(`${player.name}이 카드를 뒤집는 중입니다…`);
+      scene.playOpponentFlip(player.id, result.card, {
+        revealAt: createPrototypeRevealAt(performance.now()),
+        onReveal: () => revealFlipResult(result, generation, `${player.name}:`),
+        onSettled: () => settleFlipResult(result, generation),
       });
     } catch (error) {
       bellInputEnabled = true;
@@ -242,9 +266,12 @@ function scheduleBotBellRace(snapshot) {
 
 function handleBell(playerId) {
   if (!game || !bellInputEnabled || game.snapshot().winnerId) return;
+  const beforeState = game.snapshot();
   clearTimers();
   flowGeneration += 1;
+  const generation = flowGeneration;
   bellInputEnabled = false;
+  flipLocked = false;
   try {
     const result = game.ringBell(playerId);
     const player = players.find((candidate) => candidate.id === playerId);
@@ -255,16 +282,28 @@ function handleBell(playerId) {
     if (result.correct) {
       const fruit = FRUITS.find((candidate) => candidate.id === result.fruit);
       setStatus(`${player?.name || "플레이어"} 성공! ${fruit?.label || "과일"} 합계 5를 먼저 잡았습니다.`);
-    } else if (result.eliminated) {
+      schedule(() => {
+        if (!game || generation !== flowGeneration) return;
+        scene.playCollectionToWinner(beforeState, result.state, playerId, () => {
+          if (!game || generation !== flowGeneration) return;
+          renderHud(result.state);
+          bellInputEnabled = true;
+          continueFlow();
+        });
+      }, 210);
+      return;
+    }
+
+    if (result.eliminated) {
       setStatus(`${player?.name || "플레이어"} 오답! 패널티로 카드가 없어져 탈락했습니다.`);
     } else {
       setStatus(`${player?.name || "플레이어"} 오답! 너무 일찍 종을 쳤습니다.`);
     }
 
-    renderHud(result.state);
     schedule(() => {
-      if (!game) return;
-      scene.syncSnapshot(game.snapshot());
+      if (!game || generation !== flowGeneration) return;
+      scene.syncSnapshot(result.state);
+      renderHud(result.state);
       bellInputEnabled = true;
       continueFlow();
     }, 720);
@@ -275,20 +314,83 @@ function handleBell(playerId) {
   }
 }
 
+function ensureAudioContext() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  audioContext ||= new AudioContextClass();
+  if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  return audioContext;
+}
+
+function playDeskBell(context, when) {
+  const master = context.createGain();
+  master.gain.setValueAtTime(0.8, when);
+  master.connect(context.destination);
+
+  const partials = [
+    [930, 0.25, 0.78],
+    [1378, 0.19, 0.66],
+    [1886, 0.13, 0.56],
+    [2525, 0.085, 0.44],
+    [3260, 0.045, 0.34],
+  ];
+
+  partials.forEach(([frequency, level, decay], index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = index < 2 ? "sine" : "triangle";
+    oscillator.frequency.setValueAtTime(frequency, when);
+    oscillator.detune.setValueAtTime((index - 2) * 2.7, when);
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(level, when + 0.003 + index * 0.001);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + decay);
+    oscillator.connect(gain).connect(master);
+    oscillator.start(when);
+    oscillator.stop(when + decay + 0.04);
+  });
+
+  const noiseLength = Math.max(1, Math.floor(context.sampleRate * 0.026));
+  const buffer = context.createBuffer(1, noiseLength, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let index = 0; index < data.length; index += 1) {
+    const envelope = 1 - index / data.length;
+    data[index] = (Math.random() * 2 - 1) * envelope;
+  }
+  const impact = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  impact.buffer = buffer;
+  filter.type = "highpass";
+  filter.frequency.setValueAtTime(1600, when);
+  gain.gain.setValueAtTime(0.12, when);
+  gain.gain.exponentialRampToValueAtTime(0.0001, when + 0.04);
+  impact.connect(filter).connect(gain).connect(master);
+  impact.start(when);
+}
+
+function playWrongCue(context, when) {
+  [0, 0.13].forEach((offset, index) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(index === 0 ? 310 : 225, when + offset);
+    oscillator.frequency.exponentialRampToValueAtTime(index === 0 ? 255 : 180, when + offset + 0.11);
+    gain.gain.setValueAtTime(0.0001, when + offset);
+    gain.gain.exponentialRampToValueAtTime(0.075, when + offset + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + offset + 0.12);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(when + offset);
+    oscillator.stop(when + offset + 0.13);
+  });
+}
+
 function playBellSound(correct) {
   try {
-    audioContext ||= new AudioContext();
-    const oscillator = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(correct ? 940 : 520, audioContext.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(correct ? 620 : 390, audioContext.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.34);
-    oscillator.connect(gain).connect(audioContext.destination);
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.36);
+    const context = ensureAudioContext();
+    if (!context) return;
+    const when = context.currentTime + 0.005;
+    playDeskBell(context, when);
+    if (!correct) playWrongCue(context, when + 0.12);
   } catch {
     // Audio is presentation-only; gameplay must continue if the browser blocks it.
   }
