@@ -1,8 +1,9 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js";
 
 const CAMERA_PROFILE = Object.freeze({
-  horizontalLook: 1.55,
-  verticalLook: 1.3,
+  horizontalLook: 2.35,
+  verticalLook: 2,
+  eyeHeight: 3.68,
 });
 
 function easeOutCubic(value) {
@@ -19,16 +20,49 @@ export class FruitBellPresentationController {
     this.localBridge = null;
     this.localBridgeFrame = 0;
     this.opponentFrames = new Map();
+    this.pendingSnapshot = null;
+    this.snapshotFrame = 0;
     this.#installCameraTuning();
+    this.#installCardPresentation();
     this.#installBellPresentation();
   }
 
   #installCameraTuning() {
+    this.scene.baseCameraPosition.y = CAMERA_PROFILE.eyeHeight;
+    this.scene.camera.position.y = CAMERA_PROFILE.eyeHeight;
     this.scene.setLookOffset = (x, y) => {
       this.scene.targetLookOffset.set(
         THREE.MathUtils.clamp(x * CAMERA_PROFILE.horizontalLook, -CAMERA_PROFILE.horizontalLook, CAMERA_PROFILE.horizontalLook),
         THREE.MathUtils.clamp(y * CAMERA_PROFILE.verticalLook, -CAMERA_PROFILE.verticalLook, CAMERA_PROFILE.verticalLook),
       );
+    };
+  }
+
+  #installCardPresentation() {
+    const originalSyncSnapshot = this.scene.syncSnapshot.bind(this.scene);
+
+    this.scene.syncSnapshot = (snapshot) => {
+      if (!this.scene.cardFlights.length) {
+        originalSyncSnapshot(snapshot);
+        return;
+      }
+
+      this.pendingSnapshot = snapshot;
+      if (this.snapshotFrame) return;
+
+      const waitForCardToSettle = () => {
+        if (this.scene.cardFlights.length) {
+          this.snapshotFrame = requestAnimationFrame(waitForCardToSettle);
+          return;
+        }
+
+        const pending = this.pendingSnapshot;
+        this.pendingSnapshot = null;
+        this.snapshotFrame = 0;
+        if (pending) originalSyncSnapshot(pending);
+      };
+
+      this.snapshotFrame = requestAnimationFrame(waitForCardToSettle);
     };
   }
 
