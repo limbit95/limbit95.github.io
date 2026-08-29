@@ -110,8 +110,16 @@ function openRules(trigger) {
 }
 
 function installRuleButton() {
-  const summary = document.querySelector("#mode-screen .rule-summary");
-  if (!summary) return false;
+  const modeScreen = document.querySelector("#mode-screen");
+  const summary = modeScreen?.querySelector(".rule-summary");
+  const backLink = modeScreen?.querySelector(".back-link");
+  const modeMessage = modeScreen?.querySelector("#mode-message");
+  if (!modeScreen || !summary || !backLink) return false;
+
+  backLink.textContent = "게임 목록으로";
+  modeScreen.insertBefore(summary, backLink);
+  if (modeMessage) modeScreen.append(modeMessage);
+
   if (summary.querySelector("[data-game-rules-open]")) return true;
 
   const button = document.createElement("button");
