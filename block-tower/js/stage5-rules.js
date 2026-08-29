@@ -11,10 +11,16 @@ const gameRestartButton = document.querySelector("#game-restart-button");
 
 const INITIAL_COLLAPSE_GRACE_MS = 2500;
 const COLLAPSE_CONFIRM_MS = 1800;
-const LEVEL_Y_TOLERANCE = 0.32;
-const TOWER_FOOTPRINT_RADIUS = 2.35;
-const FLOOR_CONTACT_Y = 0.68;
-const FLOOR_DROP_ARM_Y = 1.05;
+const TURN_SETTLE_MIN_MS = 700;
+const TURN_STABLE_CONFIRM_MS = 1400;
+const TOWER_STABLE_LINEAR_SPEED = 0.055;
+const TOWER_STABLE_ANGULAR_SPEED = 0.07;
+const FLOOR_TOP_Y = -0.02;
+const FLOOR_CONTACT_MARGIN = 0.09;
+const ACTIVE_LIFT_CLEARANCE = 0.28;
+const BLOCK_HALF_LENGTH = 4.5 / 2;
+const BLOCK_HALF_HEIGHT = 0.72 / 2;
+const BLOCK_HALF_WIDTH = 1.42 / 2;
 const COLLAPSE_LOW_HEIGHT_LEVELS = 3.25;
 const COLLAPSE_MAJOR_DROP_LEVELS = 2.4;
 const COLLAPSE_FLOOR_SCATTER_COUNT = 12;
@@ -26,10 +32,12 @@ const COLLAPSE_SCATTER_SHIFT = 0.65;
 const COLLAPSE_SCATTER_TILT = THREE.MathUtils.degToRad(42);
 const MOVEMENT_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "KeyE", "KeyQ"]);
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
 const originalIntersectObjects = THREE.Raycaster.prototype.intersectObjects;
+const turnStartLevels = new Map();
 
 const towerGeometry = {
   baseY: null,
@@ -45,28 +53,19 @@ const state = {
   activeSourceLevel: null,
   activeSourceDataLevel: null,
   activeLifted: false,
+  placementStartedAt: null,
+  stableSince: null,
   highestCompletedLevel: null,
   removableMaxLevel: null,
   collapseCandidateSince: null,
   gameOver: false,
   startedAt: performance.now(),
+  resetSession: null,
 };
 
 window.__blockTowerStage5Rules = state;
 
-function installCameraCapture() {
-  const prototype = THREE.Object3D.prototype;
-  if (prototype.__blockTowerStage5CameraPatched) return;
-
-  const originalLookAt = prototype.lookAt;
-  Object.defineProperty(prototype, "__blockTowerStage5CameraPatched", { value: true });
-  prototype.lookAt = function stage5LookAt(...args) {
-    if (this.isCamera && window.__blockTowerGameRuntime) {
-      window.__blockTowerGameRuntime.camera = this;
-    }
-    return originalLookAt.apply(this, args);
-  };
-}
+let selectionAttemptOpen = false;
 
 function isTowerBlock(object) {
   return Boolean(
@@ -91,16 +90,26 @@ function getBlocks() {
   return blocks.sort((a, b) => a.userData.index - b.userData.index);
 }
 
+function logicalLevel(block) {
+  const level = Number(block?.userData?.level);
+  return Number.isInteger(level) && level > 0 ? level : null;
+}
+
 function bodyPosition(block) {
   const translation = block?.userData?.body?.translation?.();
   if (!translation) return null;
   return new THREE.Vector3(translation.x, translation.y, translation.z);
 }
 
-function bodyTiltAngle(block) {
+function bodyQuaternion(block) {
   const rotation = block?.userData?.body?.rotation?.();
-  if (!rotation) return 0;
-  const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+  if (!rotation) return null;
+  return new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+}
+
+function bodyTiltAngle(block) {
+  const quaternion = bodyQuaternion(block);
+  if (!quaternion) return 0;
   const up = WORLD_UP.clone().applyQuaternion(quaternion).normalize();
   return up.angleTo(WORLD_UP);
 }
@@ -111,12 +120,38 @@ function bodyLinearSpeed(block) {
   return Math.hypot(velocity.x, velocity.y, velocity.z);
 }
 
+function bodyAngularSpeed(block) {
+  const velocity = block?.userData?.body?.angvel?.();
+  if (!velocity) return 0;
+  return Math.hypot(velocity.x, velocity.y, velocity.z);
+}
+
+function blockBottomY(block) {
+  const position = bodyPosition(block);
+  const quaternion = bodyQuaternion(block);
+  if (!position || !quaternion) return Infinity;
+
+  const xAxis = X_AXIS.clone().applyQuaternion(quaternion);
+  const yAxis = Y_AXIS.clone().applyQuaternion(quaternion);
+  const zAxis = Z_AXIS.clone().applyQuaternion(quaternion);
+  const projectedHalfHeight = (
+    Math.abs(xAxis.y) * BLOCK_HALF_LENGTH
+    + Math.abs(yAxis.y) * BLOCK_HALF_HEIGHT
+    + Math.abs(zAxis.y) * BLOCK_HALF_WIDTH
+  );
+  return position.y - projectedHalfHeight;
+}
+
+function blockTouchesFloor(block) {
+  return blockBottomY(block) <= FLOOR_TOP_Y + FLOOR_CONTACT_MARGIN;
+}
+
 function captureTowerGeometry(blocks) {
   const levelCenters = new Map();
   blocks.forEach((block) => {
-    const level = Number(block.userData.level);
+    const level = logicalLevel(block);
     const position = bodyPosition(block);
-    if (!Number.isFinite(level) || !position) return;
+    if (level === null || !position) return;
     const values = levelCenters.get(level) ?? [];
     values.push(position.y);
     levelCenters.set(level, values);
@@ -145,33 +180,11 @@ function captureTowerGeometry(blocks) {
     : 0.7354;
 }
 
-function levelCenterY(level) {
-  if (!Number.isFinite(towerGeometry.baseY) || !Number.isFinite(towerGeometry.levelStep)) return null;
-  return towerGeometry.baseY + (level - 1) * towerGeometry.levelStep;
-}
-
-function recognizedTowerLevel(block, { requireFootprint = true } = {}) {
-  const position = bodyPosition(block);
-  if (!position || !Number.isFinite(towerGeometry.baseY) || !Number.isFinite(towerGeometry.levelStep)) {
-    return null;
-  }
-
-  if (requireFootprint && Math.hypot(position.x, position.z) > TOWER_FOOTPRINT_RADIUS) return null;
-
-  const level = Math.round((position.y - towerGeometry.baseY) / towerGeometry.levelStep) + 1;
-  if (level < 1) return null;
-  const centerY = levelCenterY(level);
-  if (centerY === null || Math.abs(position.y - centerY) > LEVEL_Y_TOLERANCE) return null;
-  return level;
-}
-
 function highestCompletedLevel(blocks = getBlocks()) {
-  if (blocks.length === 0) return null;
-
   const levelCounts = new Map();
   blocks.forEach((block) => {
     if (block.userData.extracted) return;
-    const level = recognizedTowerLevel(block);
+    const level = logicalLevel(block);
     if (level === null) return;
     levelCounts.set(level, (levelCounts.get(level) ?? 0) + 1);
   });
@@ -190,18 +203,22 @@ function refreshLevelRules(blocks = getBlocks()) {
 }
 
 function isLegalSourceBlock(block) {
-  if (!block || block.userData.extracted || state.activeBlock) return false;
-  const level = recognizedTowerLevel(block);
+  if (!block || block.userData.extracted || state.activeBlock || state.phase !== "ready") return false;
+  const level = logicalLevel(block);
   if (level === null || state.removableMaxLevel === null) return false;
   return level <= state.removableMaxLevel;
 }
 
 function displayedBlockLevel(block) {
   if (!block) return null;
-  if (block === state.activeBlock && state.activeSourceLevel !== null && block.userData.extracted) {
+  if (
+    block === state.activeBlock
+    && state.activeSourceLevel !== null
+    && state.phase !== "settling"
+  ) {
     return state.activeSourceLevel;
   }
-  return recognizedTowerLevel(block) ?? Number(block.userData.level) ?? null;
+  return logicalLevel(block);
 }
 
 function blockName(block) {
@@ -234,69 +251,77 @@ function updateReadyStatus() {
   );
 }
 
-function pickBlock(event) {
-  const camera = getRuntime()?.camera;
-  const blocks = getBlocks();
-  if (!camera || blocks.length === 0 || !sceneHost) return null;
-
-  const rect = sceneHost.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return null;
-  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-  raycaster.setFromCamera(pointer, camera);
-  return originalIntersectObjects.call(raycaster, blocks, false)[0]?.object ?? null;
+function captureTurnStartLevels() {
+  turnStartLevels.clear();
+  getBlocks().forEach((block) => {
+    const level = logicalLevel(block);
+    if (level !== null) turnStartLevels.set(block.userData.index, level);
+  });
 }
 
 function activateBlock(block) {
-  if (!block || state.activeBlock || state.gameOver) return;
-  const sourceLevel = recognizedTowerLevel(block);
-  if (sourceLevel === null) return;
+  if (!block || state.activeBlock || state.gameOver) return false;
+  const sourceLevel = logicalLevel(block);
+  if (sourceLevel === null) return false;
 
   state.activeBlock = block;
   state.activeSourceLevel = sourceLevel;
-  state.activeSourceDataLevel = Number(block.userData.level);
+  state.activeSourceDataLevel = sourceLevel;
   state.activeLifted = false;
+  state.placementStartedAt = null;
+  state.stableSince = null;
   state.phase = "selected";
+  captureTurnStartLevels();
   updateRuleStatus(`턴 ${state.turn} · ${blockName(block)} 확정`, "selected");
-  showRuleMessage(`${blockName(block)} · 이번 턴 블록으로 확정됨`);
+  showRuleMessage(`${blockName(block)} · 최상단 배치와 타워 안정화가 끝날 때까지 이 블록만 조작할 수 있습니다.`);
+  return true;
+}
+
+function beginSettling(block) {
+  if (!block || state.phase === "settling" || state.gameOver) return;
+  state.phase = "settling";
+  state.placementStartedAt = performance.now();
+  state.stableSince = null;
+  updateRuleStatus(`턴 ${state.turn} · 타워 안정화 확인 중`, "settling");
+  showRuleMessage(`${blockName(block)} 최상단 배치 완료 · 타워의 흔들림과 다른 블록의 낙하 여부를 확인하고 있습니다.`);
 }
 
 function updateActivePhase() {
   const block = state.activeBlock;
   if (!block || state.gameOver) return;
 
-  if (
+  const currentDataLevel = logicalLevel(block);
+  const placementCompleted = (
     state.activeSourceDataLevel !== null
-    && Number(block.userData.level) !== state.activeSourceDataLevel
+    && currentDataLevel !== null
+    && currentDataLevel !== state.activeSourceDataLevel
     && !block.userData.extracted
-  ) {
-    state.completedTurns += 1;
-    state.turn += 1;
-    state.activeBlock = null;
-    state.activeSourceLevel = null;
-    state.activeSourceDataLevel = null;
-    state.activeLifted = false;
-    refreshLevelRules();
-    updateReadyStatus();
-    showRuleMessage(`${state.completedTurns}턴 배치 완료 · 다음 블록을 선택하세요`);
+  );
+
+  if (placementCompleted) {
+    beginSettling(block);
     return;
   }
 
+  if (state.phase === "settling") return;
+
   if (block.userData.extracted) {
-    const position = bodyPosition(block);
-    if (position && position.y > FLOOR_DROP_ARM_Y) state.activeLifted = true;
-    if (state.activeSourceLevel !== null && state.activeSourceLevel >= 2) state.activeLifted = true;
+    if (state.activeSourceLevel !== null && state.activeSourceLevel >= 2) {
+      state.activeLifted = true;
+    } else if (blockBottomY(block) > FLOOR_TOP_Y + ACTIVE_LIFT_CLEARANCE) {
+      state.activeLifted = true;
+    }
+
+    if (state.phase !== "extracted") {
+      state.phase = "extracted";
+      updateRuleStatus(`턴 ${state.turn} · 추출 완료`, "extracted");
+    }
+    return;
   }
 
-  const nextPhase = block.userData.extracted ? "extracted" : "selected";
-  if (state.phase !== nextPhase) {
-    state.phase = nextPhase;
-    updateRuleStatus(
-      nextPhase === "extracted"
-        ? `턴 ${state.turn} · 추출 완료`
-        : `턴 ${state.turn} · ${blockName(block)} 확정`,
-      nextPhase,
-    );
+  if (state.phase !== "selected") {
+    state.phase = "selected";
+    updateRuleStatus(`턴 ${state.turn} · ${blockName(block)} 확정`, "selected");
   }
 }
 
@@ -304,18 +329,104 @@ function floorDropIsAllowed() {
   return Boolean(window.__blockTowerGameSettings?.allowFloorDrop);
 }
 
-function detectForbiddenFloorDrop() {
+function detectForbiddenActiveFloorDrop() {
   if (state.gameOver || floorDropIsAllowed()) return false;
   const block = state.activeBlock;
-  if (!block?.userData?.extracted || !state.activeLifted) return false;
-  const position = bodyPosition(block);
-  if (!position || position.y > FLOOR_CONTACT_Y) return false;
+  if (!block?.userData?.extracted || !state.activeLifted || !blockTouchesFloor(block)) return false;
 
   endGame(
-    "추출한 블록을 바닥에 떨어뜨렸습니다. 정통 모드에서는 블록을 바닥에 놓지 않고 최상단까지 운반해야 합니다.",
-    "블록을 떨어뜨렸습니다",
+    "선택한 블록을 바닥에 떨어뜨렸습니다. 현재 설정에서는 선택한 블록을 바닥에 놓지 않고 최상단까지 운반해야 합니다.",
+    "선택한 블록을 떨어뜨렸습니다",
   );
   return true;
+}
+
+function detectOtherBlockFloorDrop() {
+  if (state.gameOver || !state.activeBlock) return false;
+
+  for (const block of getBlocks()) {
+    if (block === state.activeBlock) continue;
+    const startLevel = turnStartLevels.get(block.userData.index);
+    if (!Number.isInteger(startLevel) || startLevel <= 1) continue;
+    if (!blockTouchesFloor(block)) continue;
+
+    endGame(
+      `${startLevel}층의 다른 블록이 바닥에 떨어졌습니다. 선택한 블록 외 다른 블록이 바닥에 떨어지면 해당 턴은 즉시 실패합니다.`,
+      "다른 블록이 떨어졌습니다",
+    );
+    return true;
+  }
+
+  return false;
+}
+
+function towerMotionSnapshot(blocks = getBlocks()) {
+  let movingCount = 0;
+  let maxLinearSpeed = 0;
+  let maxAngularSpeed = 0;
+
+  blocks.forEach((block) => {
+    const body = block.userData.body;
+    const sleeping = typeof body.isSleeping === "function" && body.isSleeping();
+    const linearSpeed = bodyLinearSpeed(block);
+    const angularSpeed = bodyAngularSpeed(block);
+    maxLinearSpeed = Math.max(maxLinearSpeed, linearSpeed);
+    maxAngularSpeed = Math.max(maxAngularSpeed, angularSpeed);
+    if (
+      !sleeping
+      && (linearSpeed > TOWER_STABLE_LINEAR_SPEED || angularSpeed > TOWER_STABLE_ANGULAR_SPEED)
+    ) {
+      movingCount += 1;
+    }
+  });
+
+  return {
+    movingCount,
+    maxLinearSpeed,
+    maxAngularSpeed,
+    stable: movingCount === 0,
+  };
+}
+
+function finishStableTurn() {
+  const placedBlock = state.activeBlock;
+  state.completedTurns += 1;
+  state.turn += 1;
+  state.activeBlock = null;
+  state.activeSourceLevel = null;
+  state.activeSourceDataLevel = null;
+  state.activeLifted = false;
+  state.placementStartedAt = null;
+  state.stableSince = null;
+  turnStartLevels.clear();
+  refreshLevelRules();
+  updateReadyStatus();
+  showRuleMessage(`${blockName(placedBlock)} 배치 후 타워 안정 확인 완료 · 다음 사람의 턴입니다.`);
+}
+
+function updateSettlingState() {
+  if (state.gameOver || state.phase !== "settling" || !state.activeBlock) return;
+  const now = performance.now();
+  if (state.placementStartedAt === null || now - state.placementStartedAt < TURN_SETTLE_MIN_MS) return;
+
+  const motion = towerMotionSnapshot();
+  if (!motion.stable) {
+    state.stableSince = null;
+    updateRuleStatus(
+      `턴 ${state.turn} · 흔들림 멈춤 대기 (${motion.movingCount}개 움직임)`,
+      "settling",
+    );
+    return;
+  }
+
+  if (state.stableSince === null) {
+    state.stableSince = now;
+    updateRuleStatus(`턴 ${state.turn} · 안정 상태 확인 중`, "settling");
+    return;
+  }
+
+  if (now - state.stableSince < TURN_STABLE_CONFIRM_MS) return;
+  finishStableTurn();
 }
 
 function collapseSnapshot(blocks) {
@@ -347,7 +458,7 @@ function collapseSnapshot(blocks) {
     if (position.y <= lowHeight) lowMassCount += 1;
     if (speed > COLLAPSE_MOVING_SPEED) movingCount += 1;
 
-    const isFloorHeight = position.y <= FLOOR_CONTACT_Y + 0.12;
+    const isFloorHeight = blockTouchesFloor(block);
     const isScattered = horizontalShift > COLLAPSE_SCATTER_SHIFT || tiltAngle > COLLAPSE_SCATTER_TILT;
     const cameFromAboveFloor = expected.y > baseY + levelStep * 0.75;
     if (isFloorHeight && isScattered && cameFromAboveFloor) floorScatterCount += 1;
@@ -358,19 +469,13 @@ function collapseSnapshot(blocks) {
     Math.max(18, Math.ceil(monitoredCount * 0.52)),
   );
 
-  const fullyCollapsed = (
-    floorScatterCount >= COLLAPSE_FLOOR_SCATTER_COUNT
-    && majorDropCount >= COLLAPSE_MAJOR_DROP_COUNT
-    && lowMassCount >= requiredLowMass
-    && movingCount <= COLLAPSE_MAX_MOVING_COUNT
-  );
-
   return {
-    fullyCollapsed,
-    floorScatterCount,
-    majorDropCount,
-    lowMassCount,
-    movingCount,
+    fullyCollapsed: (
+      floorScatterCount >= COLLAPSE_FLOOR_SCATTER_COUNT
+      && majorDropCount >= COLLAPSE_MAJOR_DROP_COUNT
+      && lowMassCount >= requiredLowMass
+      && movingCount <= COLLAPSE_MAX_MOVING_COUNT
+    ),
   };
 }
 
@@ -379,6 +484,8 @@ function endGame(reason, title = "타워가 무너졌습니다") {
   state.gameOver = true;
   state.phase = "game-over";
   state.collapseCandidateSince = null;
+  state.stableSince = null;
+  selectionAttemptOpen = false;
 
   updateRuleStatus(`게임 종료 · ${state.completedTurns}턴`, "game-over");
   showRuleMessage(reason);
@@ -411,89 +518,121 @@ function detectCollapse() {
   endGame("타워가 완전히 무너져 블록들이 바닥에 흩어졌습니다.");
 }
 
+function showIllegalBlockMessage(block) {
+  const level = logicalLevel(block);
+  const maxLevel = state.removableMaxLevel;
+  showRuleMessage(
+    maxLevel === null
+      ? "현재 제거할 수 있는 블록이 없습니다."
+      : `${level ?? "현재"}층 블록은 제거할 수 없습니다 · ${maxLevel}층 이하에서 선택하세요.`,
+  );
+  updateRuleStatus(`턴 ${state.turn} · 제거 가능 ${maxLevel ?? "-"}층 이하`, "ready");
+}
+
 function installInputRaycastGuard() {
   const prototype = THREE.Raycaster.prototype;
   if (prototype.__blockTowerStage5InputGuardPatched) return;
 
-  const original = originalIntersectObjects;
   Object.defineProperty(prototype, "__blockTowerStage5InputGuardPatched", { value: true });
   prototype.intersectObjects = function intersectObjectsWithStage5Guard(objects, recursive, optionalTarget) {
-    const intersections = original.call(this, objects, recursive, optionalTarget);
-    const firstTowerHit = intersections.find((hit) => isTowerBlock(hit.object));
-    if (!firstTowerHit) return intersections;
+    const intersections = originalIntersectObjects.call(this, objects, recursive, optionalTarget);
+    const towerHits = intersections.filter((hit) => isTowerBlock(hit.object));
+    if (towerHits.length === 0) return intersections;
 
-    if (state.gameOver || state.phase === "loading") return [];
+    if (state.gameOver || state.phase === "loading" || state.phase === "settling") return [];
+
     if (state.activeBlock) {
-      return firstTowerHit.object === state.activeBlock
-        ? intersections.filter((hit) => !isTowerBlock(hit.object) || hit.object === state.activeBlock)
-        : [];
+      return intersections.filter(
+        (hit) => !isTowerBlock(hit.object) || hit.object === state.activeBlock,
+      );
     }
 
-    return isLegalSourceBlock(firstTowerHit.object) ? intersections : [];
+    refreshLevelRules();
+    const firstBlock = towerHits[0].object;
+
+    if (selectionAttemptOpen) {
+      if (!isLegalSourceBlock(firstBlock)) {
+        showIllegalBlockMessage(firstBlock);
+        return [];
+      }
+      activateBlock(firstBlock);
+      return intersections.filter(
+        (hit) => !isTowerBlock(hit.object) || hit.object === state.activeBlock,
+      );
+    }
+
+    return intersections.filter(
+      (hit) => !isTowerBlock(hit.object) || isLegalSourceBlock(hit.object),
+    );
   };
 }
 
 function blockPointerDown(event) {
   if (event.button !== 0) return;
 
-  if (state.gameOver) {
+  if (state.gameOver || state.phase === "settling") {
     event.preventDefault();
     event.stopImmediatePropagation();
     return;
   }
 
-  const block = pickBlock(event);
-  if (!block) return;
+  if (state.activeBlock) return;
 
-  if (state.activeBlock) {
-    if (block === state.activeBlock) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    showRuleMessage(`${blockName(state.activeBlock)}을(를) 이번 턴에 끝까지 사용해야 합니다.`);
-    updateRuleStatus(`턴 ${state.turn} · 다른 블록 조작 불가`, state.phase);
-    return;
-  }
-
-  refreshLevelRules();
-  if (!isLegalSourceBlock(block)) {
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    const clickedLevel = recognizedTowerLevel(block);
-    const maxLevel = state.removableMaxLevel;
-    showRuleMessage(
-      maxLevel === null
-        ? "현재 제거할 수 있는 블록이 없습니다."
-        : `${clickedLevel ?? "현재"}층 블록은 제거할 수 없습니다 · ${maxLevel}층 이하에서 선택하세요`,
-    );
-    updateRuleStatus(`턴 ${state.turn} · 제거 가능 ${maxLevel ?? "-"}층 이하`, "ready");
-    return;
-  }
-
-  activateBlock(block);
+  selectionAttemptOpen = true;
+  queueMicrotask(() => {
+    selectionAttemptOpen = false;
+  });
 }
 
 function blockPointerMove(event) {
   if (event.button === 2) return;
-  if (!state.gameOver) return;
+  if (!state.gameOver && state.phase !== "settling") return;
   if ((event.buttons & 1) === 0) return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
 function blockKeyDown(event) {
-  if (!state.gameOver || !MOVEMENT_KEYS.has(event.code)) return;
+  if (!MOVEMENT_KEYS.has(event.code)) return;
+  if (!state.gameOver && state.phase !== "settling") return;
   event.preventDefault();
   event.stopImmediatePropagation();
 }
 
-installCameraCapture();
-installInputRaycastGuard();
+function resetSession() {
+  state.phase = "loading";
+  state.turn = 1;
+  state.completedTurns = 0;
+  state.activeBlock = null;
+  state.activeSourceLevel = null;
+  state.activeSourceDataLevel = null;
+  state.activeLifted = false;
+  state.placementStartedAt = null;
+  state.stableSince = null;
+  state.collapseCandidateSince = null;
+  state.gameOver = false;
+  state.startedAt = performance.now();
+  selectionAttemptOpen = false;
+  turnStartLevels.clear();
+  if (gameOverOverlay) gameOverOverlay.hidden = true;
+  sceneHost?.removeAttribute("aria-disabled");
+  const blocks = getBlocks();
+  if (blocks.length >= 54) {
+    captureTowerGeometry(blocks);
+    refreshLevelRules(blocks);
+    updateReadyStatus();
+  }
+}
 
+state.resetSession = resetSession;
+
+installInputRaycastGuard();
 sceneHost?.addEventListener("pointerdown", blockPointerDown, { capture: true });
 sceneHost?.addEventListener("pointermove", blockPointerMove, { capture: true });
 window.addEventListener("keydown", blockKeyDown, { capture: true });
 
 gameRestartButton?.addEventListener("click", () => {
+  resetSession();
   gameRestartButton.disabled = true;
   gameRestartButton.textContent = "다시 시작하는 중…";
   window.location.reload();
@@ -514,7 +653,12 @@ function initializeWhenReady() {
   function monitorRules() {
     refreshLevelRules();
     updateActivePhase();
-    if (!detectForbiddenFloorDrop()) detectCollapse();
+
+    if (!detectOtherBlockFloorDrop() && !detectForbiddenActiveFloorDrop()) {
+      detectCollapse();
+      updateSettlingState();
+    }
+
     requestAnimationFrame(monitorRules);
   }
 
