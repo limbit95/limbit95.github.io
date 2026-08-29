@@ -75,7 +75,7 @@
           </div>
 
           <p class="game-settings-help">
-            물리값과 별개로 플레이 보조와 디자인을 설정합니다. 설정은 이 브라우저에 저장됩니다.
+            물리값과 별개로 플레이 규칙, 보조 기능, 디자인을 설정합니다. 설정은 이 브라우저에 저장됩니다.
           </p>
 
           <section class="game-settings-section" aria-labelledby="game-difficulty-title">
@@ -84,7 +84,7 @@
               <button type="button" data-game-difficulty="casual">캐주얼</button>
               <button type="button" data-game-difficulty="standard">정통</button>
             </div>
-            <p class="game-difficulty-note">캐주얼은 상단 가이드와 자동 보정을 켜고, 정통은 두 보조 기능을 끕니다. 직접 바꾸면 커스텀으로 표시됩니다.</p>
+            <p class="game-difficulty-note">캐주얼은 상단 가이드·자동 보정을 켜고 바닥 낙하를 허용합니다. 정통은 보조 기능을 끄고, 들어 올린 블록을 바닥에 떨어뜨리면 게임이 종료됩니다. 직접 바꾸면 커스텀으로 표시됩니다.</p>
           </section>
 
           <section class="game-settings-section" aria-labelledby="game-assist-title">
@@ -111,6 +111,20 @@
             </div>
           </section>
 
+          <section class="game-settings-section" aria-labelledby="game-rule-title">
+            <h3 id="game-rule-title">플레이 규칙</h3>
+            <div class="game-setting-toggle-row">
+              <div>
+                <strong>바닥 낙하 허용</strong>
+                <span>켜면 추출한 블록을 바닥에 떨어뜨려도 다시 주워 계속할 수 있습니다. 끄면 들어 올린 블록이 바닥에 닿는 순간 해당 게임이 종료됩니다.</span>
+              </div>
+              <label class="game-switch">
+                <input id="game-allow-floor-drop" type="checkbox">
+                <span aria-hidden="true"></span>
+              </label>
+            </div>
+          </section>
+
           <section class="game-settings-section" aria-labelledby="game-theme-title">
             <h3 id="game-theme-title">블록 테마</h3>
             <select id="game-theme" class="game-theme-select" aria-label="블록 테마 선택">
@@ -118,7 +132,7 @@
               <option value="walnut">다크 월넛</option>
               <option value="colorMix">컬러 믹스</option>
             </select>
-            <p class="game-settings-footnote">이후 게임 규칙, 연출, 사운드 같은 재미 요소도 이 설정 화면에 확장할 수 있습니다.</p>
+            <p class="game-settings-footnote">게임 규칙과 보조 기능은 난이도 프리셋으로 한 번에 바꾸거나 각 항목을 직접 조정할 수 있습니다.</p>
           </section>
         </aside>
 
@@ -194,7 +208,7 @@
         </article>
         <article>
           <span class="control-icon" aria-hidden="true">🔒</span>
-          <div><strong>블록이 실제로 움직이면 확정</strong><span>그 턴에는 확정한 블록만 다시 잡을 수 있으며 다른 블록으로 바꿀 수 없습니다</span></div>
+          <div><strong>처음 잡은 블록으로 턴 확정</strong><span>첫 선택 즉시 해당 블록만 조작할 수 있으며 최상단 배치 전까지 다른 블록으로 바꿀 수 없습니다</span></div>
         </article>
         <article>
           <span class="control-icon" aria-hidden="true">⌨️</span>
@@ -210,7 +224,7 @@
         </article>
       </section>
 
-      <p class="prototype-note">5단계 · 현재 가장 높은 완성층은 뽑을 수 없습니다. 블록을 실제로 움직이는 순간 그 턴의 블록으로 확정되며, 완전히 추출해 최상단에 배치해야 다음 턴으로 넘어갑니다.</p>
+      <p class="prototype-note">5단계 · 현재 가장 높은 완성층은 뽑을 수 없습니다. 처음 잡은 합법 블록이 즉시 그 턴의 블록으로 확정되며, 완전히 추출해 최상단에 배치해야 다음 턴으로 넘어갑니다. 타워 붕괴는 블록들이 실제로 바닥에 흩어지고 안정된 뒤 판정합니다.</p>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

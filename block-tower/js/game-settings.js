@@ -12,16 +12,19 @@ const physicsSettingsToggle = document.querySelector("#physics-settings-toggle")
 const physicsSettingsPanel = document.querySelector("#physics-settings-panel");
 const autoPlacementAssistInput = document.querySelector("#game-auto-placement-assist");
 const placementGuideInput = document.querySelector("#game-placement-guide");
+const allowFloorDropInput = document.querySelector("#game-allow-floor-drop");
 const themeSelect = document.querySelector("#game-theme");
 
 const GAME_PRESETS = Object.freeze({
   casual: {
     autoPlacementAssist: true,
     placementGuide: true,
+    allowFloorDrop: true,
   },
   standard: {
     autoPlacementAssist: false,
     placementGuide: false,
+    allowFloorDrop: false,
   },
 });
 
@@ -41,6 +44,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   difficulty: "standard",
   autoPlacementAssist: false,
   placementGuide: false,
+  allowFloorDrop: false,
   theme: "classic",
 });
 
@@ -50,6 +54,7 @@ function normalizeSettings(value = {}) {
   if (!Object.hasOwn(THEMES, next.theme)) next.theme = "classic";
   next.autoPlacementAssist = Boolean(next.autoPlacementAssist);
   next.placementGuide = Boolean(next.placementGuide);
+  next.allowFloorDrop = Boolean(next.allowFloorDrop);
   return next;
 }
 
@@ -214,6 +219,7 @@ function syncControls() {
   }
   if (autoPlacementAssistInput) autoPlacementAssistInput.checked = settings.autoPlacementAssist;
   if (placementGuideInput) placementGuideInput.checked = settings.placementGuide;
+  if (allowFloorDropInput) allowFloorDropInput.checked = settings.allowFloorDrop;
   if (themeSelect) themeSelect.value = settings.theme;
 
   document.querySelectorAll("[data-game-difficulty]").forEach((button) => {
@@ -272,6 +278,10 @@ autoPlacementAssistInput?.addEventListener("change", () => {
 
 placementGuideInput?.addEventListener("change", () => {
   updateSettings({ placementGuide: placementGuideInput.checked }, { markCustom: true });
+});
+
+allowFloorDropInput?.addEventListener("change", () => {
+  updateSettings({ allowFloorDrop: allowFloorDropInput.checked }, { markCustom: true });
 });
 
 themeSelect?.addEventListener("change", () => {
