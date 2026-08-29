@@ -131,10 +131,12 @@ export class FruitBellGame {
       recipient.drawPile.push(penaltyCard);
       penaltyCount += 1;
     });
-    this.lastEvent = { type: "bell-wrong", playerId, penaltyCount };
+
+    if (player.drawPile.length === 0) player.isOut = true;
+    this.lastEvent = { type: "bell-wrong", playerId, penaltyCount, eliminated: player.isOut };
     this.#refreshOutState();
-    this.#resolveWinner();
-    return { correct: false, penaltyCount, state: this.snapshot() };
+    if (!this.#resolveWinner() && this.players[this.activePlayerIndex]?.isOut) this.#advanceTurn();
+    return { correct: false, penaltyCount, eliminated: player.isOut, state: this.snapshot() };
   }
 
   #advanceTurn() {
@@ -151,6 +153,7 @@ export class FruitBellGame {
 
   #refreshOutState() {
     this.players.forEach((player) => {
+      if (player.isOut) return;
       player.isOut = player.drawPile.length === 0 && player.faceUpPile.length === 0;
     });
   }
