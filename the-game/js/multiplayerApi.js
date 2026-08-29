@@ -69,6 +69,14 @@ export function getGameSnapshot(roomId) {
   return rpc("the_game_get_game_snapshot", { p_room_id: roomId });
 }
 
+export function getGameStats(roomId) {
+  return rpc("the_game_get_game_stats", { p_room_id: roomId });
+}
+
+export function getMyStats() {
+  return rpc("the_game_get_my_stats");
+}
+
 export function getMyActiveGame() {
   return rpc("the_game_get_my_active_game");
 }
