@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
-import { FruitBellScene } from "./scene.js";
+import { FRUIT_BELL_LAYOUT, FruitBellScene } from "./scene.js";
 import {
   createArmChain,
   getEffectorDistance,
@@ -13,9 +13,9 @@ import {
 const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
 const PILOT_TARGET_HEIGHT = 3.45;
 const PILOT_SEATED_ROOT_Y = -0.32;
-const TABLE_HALF_WIDTH = 4.625;
-const TABLE_HALF_DEPTH = 3.125;
-const PILOT_TABLE_CLEARANCE = 0.62;
+const TABLE_HALF_WIDTH = FRUIT_BELL_LAYOUT.tableWidth / 2;
+const TABLE_HALF_DEPTH = FRUIT_BELL_LAYOUT.tableDepth / 2;
+const PILOT_TABLE_CLEARANCE = FRUIT_BELL_LAYOUT.avatarClearance;
 const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
 const BELL_CONTACT_PROGRESS = 0.56;
 const CARD_CONTACT_PROGRESS = 0.58;
