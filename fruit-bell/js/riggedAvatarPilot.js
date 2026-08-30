@@ -2,8 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FruitBellScene } from "./scene.js";
 
-const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/main/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
+const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
 const PILOT_TARGET_HEIGHT = 2.72;
+const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
 const stateByScene = new WeakMap();
 const loader = new GLTFLoader();
 let pilotAssetPromise = null;
@@ -34,6 +35,15 @@ function loadPilotAsset() {
   return pilotAssetPromise;
 }
 
+function shouldHideAccessory(object) {
+  const materialNames = object.material
+    ? (Array.isArray(object.material) ? object.material : [object.material])
+      .map((material) => material?.name || "")
+      .join(" ")
+    : "";
+  return HIDDEN_ACCESSORY_PATTERN.test(`${object.name || ""} ${object.parent?.name || ""} ${materialNames}`);
+}
+
 function prepareModel(model) {
   if (model.userData.fruitBellPilotPrepared) return;
 
@@ -55,6 +65,11 @@ function prepareModel(model) {
   model.position.y -= scaledBox.min.y;
 
   model.traverse((object) => {
+    if (shouldHideAccessory(object)) {
+      object.visible = false;
+      return;
+    }
+
     if (!object.isMesh) return;
     object.castShadow = true;
     object.receiveShadow = true;
@@ -90,18 +105,20 @@ function restoreIdle(rig) {
   rig.currentAction?.fadeOut(0.08);
   next.reset();
   next.enabled = true;
+  next.timeScale = 1;
   next.setLoop(THREE.LoopRepeat, Infinity);
   next.clampWhenFinished = false;
   next.fadeIn(0.12).play();
   rig.currentAction = next;
 }
 
-function playOneShot(rig, clip) {
+function playOneShot(rig, clip, { timeScale = 1 } = {}) {
   if (!rig || !clip) return;
   const next = rig.mixer.clipAction(clip);
   rig.currentAction?.fadeOut(0.06);
   next.reset();
   next.enabled = true;
+  next.timeScale = timeScale;
   next.setLoop(THREE.LoopOnce, 1);
   next.clampWhenFinished = false;
   next.fadeIn(0.06).play();
@@ -164,13 +181,13 @@ function triggerRiggedReaction(sceneController, playerId, type, correct = true) 
   else if (correct) clip = rig.bellClip;
   else clip = rig.missClip;
 
-  playOneShot(rig, clip);
+  playOneShot(rig, clip, { timeScale: type === "flip" ? 1.55 : 1 });
   rig.motion = {
     start: performance.now(),
-    duration: type === "bell" ? 620 : 500,
-    distance: type === "bell" ? (correct ? 0.48 : -0.12) : 0.1,
-    tilt: type === "bell" ? -0.12 : -0.06,
-    twist: type === "bell" ? 0 : 0.035,
+    duration: type === "bell" ? 620 : 420,
+    distance: type === "bell" ? (correct ? 0.48 : -0.12) : 0.14,
+    tilt: type === "bell" ? -0.12 : -0.04,
+    twist: type === "bell" ? 0 : 0.02,
   };
 }
 
@@ -214,7 +231,7 @@ async function mountPilotRig(sceneController, players) {
       fallback: currentFallback.group,
       currentAction: null,
       idleClip: chooseClip(asset.animations, ["Idle"]),
-      flipClip: chooseClip(asset.animations, ["Wave", "Punch"]),
+      flipClip: chooseClip(asset.animations, ["Punch"]),
       bellClip: chooseClip(asset.animations, ["Punch", "Yes"]),
       missClip: chooseClip(asset.animations, ["HitReact", "No"]),
       basePosition: root.position.clone(),
