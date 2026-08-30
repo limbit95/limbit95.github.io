@@ -1,13 +1,23 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { FruitBellScene } from "./scene.js";
-import { createArmChain, reachEnvelope, solveCcdChain } from "./rigIkSolver.js";
+import {
+  createArmChain,
+  getEffectorDistance,
+  getReachDeficit,
+  reachEnvelope,
+  solveCcdChain,
+} from "./rigIkSolver.js";
 
 const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
 const PILOT_TARGET_HEIGHT = 2.72;
+const PILOT_BASE_TABLE_ADVANCE = 0.82;
 const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
-const BELL_CONTACT_PROGRESS = 0.54;
+const BELL_CONTACT_PROGRESS = 0.56;
 const CARD_CONTACT_PROGRESS = 0.58;
+const BELL_CONTACT_TOLERANCE = 0.105;
+const BELL_MAX_BODY_TRAVEL = 2.6;
+const CARD_MAX_BODY_TRAVEL = 0.62;
 const stateByScene = new WeakMap();
 const loader = new GLTFLoader();
 let pilotAssetPromise = null;
@@ -56,9 +66,7 @@ function prepareModel(model) {
 
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
-  if (size.y > 0.0001) {
-    model.scale.setScalar(PILOT_TARGET_HEIGHT / size.y);
-  }
+  if (size.y > 0.0001) model.scale.setScalar(PILOT_TARGET_HEIGHT / size.y);
 
   model.updateMatrixWorld(true);
   const scaledBox = new THREE.Box3().setFromObject(model);
@@ -76,13 +84,13 @@ function prepareModel(model) {
     if (!object.isMesh) return;
     object.castShadow = true;
     object.receiveShadow = true;
-    if (object.material) {
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
-      materials.forEach((material) => {
-        if ("roughness" in material) material.roughness = Math.max(0.62, material.roughness ?? 0.62);
-        if ("metalness" in material) material.metalness = Math.min(0.18, material.metalness ?? 0.18);
-      });
-    }
+    if (!object.material) return;
+
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.forEach((material) => {
+      if ("roughness" in material) material.roughness = Math.max(0.62, material.roughness ?? 0.62);
+      if ("metalness" in material) material.metalness = Math.min(0.18, material.metalness ?? 0.18);
+    });
   });
 
   model.userData.fruitBellPilotPrepared = true;
@@ -138,23 +146,7 @@ function clearRiggedAvatars(sceneController) {
   });
   state.rigs.clear();
   sceneController.canvas.dataset.riggedAvatar = "fallback";
-}
-
-function updateMotion(rig, now) {
-  if (!rig.motion) return;
-  const elapsed = now - rig.motion.start;
-  const t = THREE.MathUtils.clamp(elapsed / rig.motion.duration, 0, 1);
-  const pulse = Math.sin(Math.PI * t);
-
-  rig.root.position.copy(rig.basePosition).addScaledVector(rig.toBell, rig.motion.distance * pulse);
-  rig.motionRoot.rotation.x = rig.motion.tilt * pulse;
-  rig.motionRoot.rotation.z = rig.motion.twist * pulse;
-
-  if (t >= 1) {
-    rig.root.position.copy(rig.basePosition);
-    rig.motionRoot.rotation.set(0, 0, 0);
-    rig.motion = null;
-  }
+  delete sceneController.canvas.dataset.rigBellContactError;
 }
 
 function getDeckReachTarget(sceneController, rig, target) {
@@ -169,8 +161,55 @@ function getDeckReachTarget(sceneController, rig, target) {
 function getBellReachTarget(sceneController, target) {
   if (!sceneController.bellTop) return null;
   sceneController.bellTop.getWorldPosition(target);
-  target.y += 0.29;
+  target.y += 0.36;
   return target;
+}
+
+function getInteractionTarget(sceneController, rig, type, target) {
+  return type === "bell"
+    ? getBellReachTarget(sceneController, target)
+    : getDeckReachTarget(sceneController, rig, target);
+}
+
+function computeRequiredBodyTravel(sceneController, rig, type) {
+  const chain = type === "bell" ? rig.leftArmChain : rig.rightArmChain;
+  const target = getInteractionTarget(sceneController, rig, type, rig.travelTarget);
+  if (!chain || !target) return type === "bell" ? 0.55 : 0.1;
+
+  rig.root.position.copy(rig.basePosition);
+  rig.motionRoot.rotation.set(0, 0, 0);
+  rig.root.updateMatrixWorld(true);
+
+  const deficit = getReachDeficit(chain, target, {
+    reachScale: type === "bell" ? 0.91 : 0.96,
+  });
+  const safety = type === "bell" ? 0.12 : 0.035;
+  return THREE.MathUtils.clamp(
+    deficit + safety,
+    type === "bell" ? 0.45 : 0.06,
+    type === "bell" ? BELL_MAX_BODY_TRAVEL : CARD_MAX_BODY_TRAVEL,
+  );
+}
+
+function updateMotion(rig, now) {
+  if (!rig.motion) return;
+  const elapsed = now - rig.motion.start;
+  const progress = THREE.MathUtils.clamp(elapsed / rig.motion.duration, 0, 1);
+  const weight = reachEnvelope(progress, {
+    contactAt: rig.motion.contactAt,
+    releaseAt: rig.motion.releaseAt,
+  });
+
+  rig.root.position.copy(rig.basePosition).addScaledVector(rig.toBell, rig.motion.distance * weight);
+  rig.motionRoot.rotation.x = rig.motion.tilt * weight;
+  rig.motionRoot.rotation.z = rig.motion.twist * weight;
+  rig.root.updateMatrixWorld(true);
+
+  if (progress >= 1) {
+    rig.root.position.copy(rig.basePosition);
+    rig.motionRoot.rotation.set(0, 0, 0);
+    rig.motion = null;
+  }
 }
 
 function updateReach(sceneController, rig, now) {
@@ -180,36 +219,44 @@ function updateReach(sceneController, rig, now) {
   const progress = THREE.MathUtils.clamp(elapsed / rig.reach.duration, 0, 1);
   const isBell = rig.reach.type === "bell";
   const contactAt = isBell ? BELL_CONTACT_PROGRESS : CARD_CONTACT_PROGRESS;
+  const releaseAt = isBell ? 0.8 : 0.76;
   const chain = isBell ? rig.leftArmChain : rig.rightArmChain;
-  const target = isBell
-    ? getBellReachTarget(sceneController, rig.reach.target)
-    : getDeckReachTarget(sceneController, rig, rig.reach.target);
+  const target = getInteractionTarget(sceneController, rig, rig.reach.type, rig.reach.target);
 
+  let contactError = Infinity;
   if (chain && target) {
-    const weight = reachEnvelope(progress, {
-      contactAt,
-      releaseAt: isBell ? 0.8 : 0.76,
-    });
+    const weight = reachEnvelope(progress, { contactAt, releaseAt });
     solveCcdChain({
       chain,
       targetWorld: target,
       weight,
-      iterations: 5,
-      maxJointStep: isBell ? Math.PI / 4.5 : Math.PI / 5.5,
+      iterations: isBell ? 11 : 8,
+      maxJointStep: isBell ? Math.PI / 3.8 : Math.PI / 4.8,
     });
+    contactError = getEffectorDistance(chain, target);
+    if (isBell && Number.isFinite(contactError)) {
+      sceneController.canvas.dataset.rigBellContactError = contactError.toFixed(3);
+    }
   }
 
-  if (isBell && !rig.reach.contactFired && progress >= contactAt) {
+  if (
+    isBell
+    && !rig.reach.contactFired
+    && progress >= contactAt
+    && contactError <= BELL_CONTACT_TOLERANCE
+  ) {
     rig.reach.contactFired = true;
     sceneController.pulseBell();
     sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rig-contact", {
-      detail: { playerId: rig.playerId, interaction: "bell" },
+      detail: {
+        playerId: rig.playerId,
+        interaction: "bell",
+        error: contactError,
+      },
     }));
   }
 
-  if (progress >= 1) {
-    rig.reach = null;
-  }
+  if (progress >= 1) rig.reach = null;
 }
 
 function updateDelayedReaction(rig, now) {
@@ -246,16 +293,23 @@ function triggerRiggedReaction(sceneController, playerId, type, correct = true) 
     playOneShot(rig, rig.flipClip, { timeScale: 1.55 });
   } else {
     playOneShot(rig, rig.bellClip, { timeScale: 1.08 });
-    rig.delayedMissAt = correct ? 0 : performance.now() + 690;
+    rig.delayedMissAt = correct ? 0 : performance.now() + 760;
   }
 
-  const duration = type === "bell" ? 690 : 440;
+  const isBell = type === "bell";
+  const duration = isBell ? 760 : 440;
+  const contactAt = isBell ? BELL_CONTACT_PROGRESS : CARD_CONTACT_PROGRESS;
+  const releaseAt = isBell ? 0.8 : 0.76;
+  const bodyTravel = computeRequiredBodyTravel(sceneController, rig, type);
+
   rig.motion = {
     start: performance.now(),
     duration,
-    distance: type === "bell" ? 0.42 : 0.11,
-    tilt: type === "bell" ? -0.15 : -0.045,
-    twist: type === "bell" ? 0 : 0.018,
+    contactAt,
+    releaseAt,
+    distance: bodyTravel,
+    tilt: isBell ? -0.2 : -0.045,
+    twist: isBell ? 0 : 0.018,
   };
   rig.reach = {
     type,
@@ -294,6 +348,10 @@ async function mountPilotRig(sceneController, players) {
     root.position.copy(currentFallback.group.position);
     root.position.y -= 0.42;
     root.rotation.copy(currentFallback.group.rotation);
+
+    const seatToBell = new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize();
+    root.position.addScaledVector(seatToBell, PILOT_BASE_TABLE_ADVANCE);
+
     motionRoot.add(model);
     root.add(motionRoot);
     sceneController.scene.add(root);
@@ -314,6 +372,7 @@ async function mountPilotRig(sceneController, players) {
       rightArmChain: createArmChain(model, "R"),
       basePosition: root.position.clone(),
       toBell: new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize(),
+      travelTarget: new THREE.Vector3(),
       motion: null,
       reach: null,
       delayedMissAt: 0,
@@ -327,7 +386,7 @@ async function mountPilotRig(sceneController, players) {
     state.rigs.set(pilotPlayer.id, rig);
     restoreIdle(rig);
     ensureMixerLoop(sceneController);
-    sceneController.canvas.dataset.riggedAvatar = rig.leftArmChain && rig.rightArmChain ? "ik-ready" : "ready";
+    sceneController.canvas.dataset.riggedAvatar = rig.leftArmChain && rig.rightArmChain ? "ik-calibrated" : "ready";
     sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rigged-avatar-ready", {
       detail: {
         playerId: pilotPlayer.id,
