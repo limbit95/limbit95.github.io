@@ -1,8 +1,9 @@
 import * as THREE from "three";
 
-const IDENTITY_QUATERNION = new THREE.Quaternion();
 const jointWorldPosition = new THREE.Vector3();
 const effectorWorldPosition = new THREE.Vector3();
+const chainPointA = new THREE.Vector3();
+const chainPointB = new THREE.Vector3();
 const toEffector = new THREE.Vector3();
 const toTarget = new THREE.Vector3();
 const jointWorldQuaternion = new THREE.Quaternion();
@@ -19,24 +20,21 @@ function normalizeNodeName(value) {
 function findNode(root, candidates) {
   if (!root) return null;
   const wanted = candidates.map(normalizeNodeName);
-  let partialMatch = null;
+  let match = null;
 
   root.traverse((object) => {
-    if (partialMatch) return;
+    if (match) return;
     const name = normalizeNodeName(object.name);
     if (!name) return;
-    if (wanted.includes(name)) {
-      partialMatch = object;
-      return;
-    }
-    if (wanted.some((candidate) => name.includes(candidate))) partialMatch ||= object;
+    if (wanted.includes(name) || wanted.some((candidate) => name.includes(candidate))) match = object;
   });
 
-  return partialMatch;
+  return match;
 }
 
 export function createArmChain(root, side = "L") {
   const suffix = String(side || "L").toUpperCase() === "R" ? "R" : "L";
+  const shoulder = findNode(root, [`Shoulder.${suffix}`, `Shoulder_${suffix}`, `${suffix}_Shoulder`]);
   const upperArm = findNode(root, [`UpperArm.${suffix}`, `UpperArm_${suffix}`, `${suffix}_UpperArm`]);
   const lowerArm = findNode(root, [`LowerArm.${suffix}`, `LowerArm_${suffix}`, `${suffix}_LowerArm`]);
   const handAnchor = findNode(root, [
@@ -48,8 +46,9 @@ export function createArmChain(root, side = "L") {
 
   if (!upperArm || !lowerArm || !handAnchor) return null;
   return {
-    joints: [upperArm, lowerArm],
+    joints: [shoulder, upperArm, lowerArm].filter(Boolean),
     effector: handAnchor,
+    reachRoot: shoulder || upperArm,
   };
 }
 
@@ -61,12 +60,39 @@ function clampQuaternionAngle(quaternion, maxAngle) {
   return limitedDeltaQuaternion;
 }
 
+export function measureChainReach(chain) {
+  if (!chain?.effector || !chain?.joints?.length) return 0;
+  const points = [...chain.joints, chain.effector];
+  let reach = 0;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    points[index].getWorldPosition(chainPointA);
+    points[index + 1].getWorldPosition(chainPointB);
+    reach += chainPointA.distanceTo(chainPointB);
+  }
+
+  return reach;
+}
+
+export function getReachDeficit(chain, targetWorld, { reachScale = 0.94 } = {}) {
+  if (!chain?.reachRoot || !targetWorld) return 0;
+  chain.reachRoot.getWorldPosition(chainPointA);
+  const availableReach = measureChainReach(chain) * THREE.MathUtils.clamp(reachScale, 0.75, 1);
+  return Math.max(0, chainPointA.distanceTo(targetWorld) - availableReach);
+}
+
+export function getEffectorDistance(chain, targetWorld) {
+  if (!chain?.effector || !targetWorld) return Infinity;
+  chain.effector.getWorldPosition(effectorWorldPosition);
+  return effectorWorldPosition.distanceTo(targetWorld);
+}
+
 export function solveCcdChain({
   chain,
   targetWorld,
   weight = 1,
-  iterations = 4,
-  maxJointStep = Math.PI / 5,
+  iterations = 7,
+  maxJointStep = Math.PI / 4,
 } = {}) {
   if (!chain?.effector || !chain?.joints?.length || !targetWorld) return false;
   const safeWeight = THREE.MathUtils.clamp(weight, 0, 1);
@@ -102,6 +128,8 @@ export function solveCcdChain({
       joint.quaternion.slerp(desiredLocalQuaternion, safeWeight);
       joint.updateMatrixWorld(true);
     }
+
+    if (getEffectorDistance(chain, targetWorld) <= 0.025) break;
   }
 
   return true;
