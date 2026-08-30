@@ -8,6 +8,14 @@
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/feedback-enhancements.css">
   <link rel="stylesheet" href="./css/interaction-refinements.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
   <main class="prototype-shell">
@@ -73,6 +81,7 @@
     </section>
   </main>
 
+  <script type="module" src="./js/riggedAvatarPilot.js"></script>
   <script type="module" src="./js/bellTouch.js"></script>
   <script type="module" src="./js/app.js"></script>
   <script type="module" src="./js/statusPresentation.js"></script>
