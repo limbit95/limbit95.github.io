@@ -12,7 +12,8 @@ import {
 
 const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
 const PILOT_TARGET_HEIGHT = 3.45;
-const PILOT_BASE_TABLE_ADVANCE = 0.76;
+const PILOT_BASE_TABLE_ADVANCE = 0.08;
+const PILOT_SEATED_ROOT_Y = -0.32;
 const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
 const BELL_CONTACT_PROGRESS = 0.56;
 const CARD_CONTACT_PROGRESS = 0.58;
@@ -368,7 +369,7 @@ function createRig(sceneController, player, seatIndex, fallbackAvatar, asset) {
   const root = new THREE.Group();
   const motionRoot = new THREE.Group();
   root.position.copy(fallbackAvatar.group.position);
-  root.position.y -= 0.42;
+  root.position.y = PILOT_SEATED_ROOT_Y;
   root.rotation.copy(fallbackAvatar.group.rotation);
 
   const seatToBell = new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize();
