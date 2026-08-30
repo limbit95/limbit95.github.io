@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { clone as cloneSkeleton } from "three/addons/utils/SkeletonUtils.js";
 import { FruitBellScene } from "./scene.js";
 import {
   createArmChain,
@@ -126,6 +127,15 @@ function getState(sceneController) {
   return state;
 }
 
+function updateRigReadiness(sceneController) {
+  const state = getState(sceneController);
+  const readyRigs = [...state.rigs.values()].filter((rig) => rig.leftArmChain && rig.rightArmChain).length;
+  sceneController.canvas.dataset.riggedAvatarCount = String(state.rigs.size);
+  sceneController.canvas.dataset.riggedAvatar = readyRigs === state.rigs.size && readyRigs > 0
+    ? "multi-seat-ik-ready"
+    : state.rigs.size > 0 ? "multi-seat-ready" : "fallback";
+}
+
 function restoreIdle(rig) {
   if (!rig?.idleClip) return;
   const next = rig.mixer.clipAction(rig.idleClip);
@@ -162,6 +172,7 @@ function clearRiggedAvatars(sceneController) {
   });
   state.rigs.clear();
   sceneController.canvas.dataset.riggedAvatar = "fallback";
+  sceneController.canvas.dataset.riggedAvatarCount = "0";
   delete sceneController.canvas.dataset.rigBellContactError;
 }
 
@@ -263,6 +274,7 @@ function updateReach(sceneController, rig, now) {
     });
     contactError = getEffectorDistance(chain, target);
     if (isBell && Number.isFinite(contactError)) {
+      rig.lastBellContactError = contactError;
       sceneController.canvas.dataset.rigBellContactError = contactError.toFixed(3);
     }
   }
@@ -278,6 +290,7 @@ function updateReach(sceneController, rig, now) {
     sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rig-contact", {
       detail: {
         playerId: rig.playerId,
+        seatIndex: rig.seatIndex,
         interaction: "bell",
         error: contactError,
       },
@@ -348,85 +361,104 @@ function triggerRiggedReaction(sceneController, playerId, type, correct = true) 
   return true;
 }
 
-async function mountPilotRig(sceneController, players) {
-  const pilotPlayer = players?.[1];
-  if (!pilotPlayer) return;
+function createRig(sceneController, player, seatIndex, fallbackAvatar, asset) {
+  const model = cloneSkeleton(asset.scene);
+  model.removeFromParent();
+
+  const root = new THREE.Group();
+  const motionRoot = new THREE.Group();
+  root.position.copy(fallbackAvatar.group.position);
+  root.position.y -= 0.42;
+  root.rotation.copy(fallbackAvatar.group.rotation);
+
+  const seatToBell = new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize();
+  root.position.addScaledVector(seatToBell, PILOT_BASE_TABLE_ADVANCE);
+
+  motionRoot.add(model);
+  root.add(motionRoot);
+  sceneController.scene.add(root);
+
+  const mixer = new THREE.AnimationMixer(model);
+  const rig = {
+    playerId: player.id,
+    animalId: player.animalId,
+    seatIndex,
+    root,
+    motionRoot,
+    mixer,
+    fallback: fallbackAvatar.group,
+    currentAction: null,
+    idleClip: chooseClip(asset.animations, ["Idle"]),
+    flipClip: chooseClip(asset.animations, ["Punch"]),
+    bellClip: chooseClip(asset.animations, ["Punch", "Yes"]),
+    missClip: chooseClip(asset.animations, ["HitReact", "No"]),
+    torso: findNode(model, ["Torso", "Chest", "Spine"]),
+    leftArmChain: createArmChain(model, "L"),
+    rightArmChain: createArmChain(model, "R"),
+    basePosition: root.position.clone(),
+    toBell: new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize(),
+    travelTarget: new THREE.Vector3(),
+    lastTorsoShift: 0,
+    lastBellContactError: Infinity,
+    motion: null,
+    reach: null,
+    delayedMissAt: 0,
+  };
+
+  mixer.addEventListener("finished", () => {
+    if (getState(sceneController).rigs.get(player.id) === rig && !rig.delayedMissAt) restoreIdle(rig);
+  });
+
+  fallbackAvatar.group.visible = false;
+  return rig;
+}
+
+async function mountPilotRigs(sceneController, players) {
+  const opponents = players?.slice(1, 4) || [];
+  if (!opponents.length) return;
 
   const state = getState(sceneController);
   const generation = state.generation;
-  const fallbackAvatar = sceneController.avatarMap.get(pilotPlayer.id);
-  if (!fallbackAvatar) return;
-
   sceneController.canvas.dataset.riggedAvatar = "loading";
+  sceneController.canvas.dataset.riggedAvatarCount = "0";
 
   try {
     const asset = await loadPilotAsset();
     if (state.generation !== generation) return;
 
-    const currentFallback = sceneController.avatarMap.get(pilotPlayer.id);
-    if (!currentFallback) return;
+    prepareModel(asset.scene);
 
-    const model = asset.scene;
-    model.removeFromParent();
-    prepareModel(model);
+    opponents.forEach((player, opponentIndex) => {
+      if (state.generation !== generation) return;
+      const currentFallback = sceneController.avatarMap.get(player.id);
+      if (!currentFallback) return;
 
-    const root = new THREE.Group();
-    const motionRoot = new THREE.Group();
-    root.position.copy(currentFallback.group.position);
-    root.position.y -= 0.42;
-    root.rotation.copy(currentFallback.group.rotation);
-
-    const seatToBell = new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize();
-    root.position.addScaledVector(seatToBell, PILOT_BASE_TABLE_ADVANCE);
-
-    motionRoot.add(model);
-    root.add(motionRoot);
-    sceneController.scene.add(root);
-
-    const mixer = new THREE.AnimationMixer(model);
-    const rig = {
-      playerId: pilotPlayer.id,
-      root,
-      motionRoot,
-      mixer,
-      fallback: currentFallback.group,
-      currentAction: null,
-      idleClip: chooseClip(asset.animations, ["Idle"]),
-      flipClip: chooseClip(asset.animations, ["Punch"]),
-      bellClip: chooseClip(asset.animations, ["Punch", "Yes"]),
-      missClip: chooseClip(asset.animations, ["HitReact", "No"]),
-      torso: findNode(model, ["Torso", "Chest", "Spine"]),
-      leftArmChain: createArmChain(model, "L"),
-      rightArmChain: createArmChain(model, "R"),
-      basePosition: root.position.clone(),
-      toBell: new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize(),
-      travelTarget: new THREE.Vector3(),
-      lastTorsoShift: 0,
-      motion: null,
-      reach: null,
-      delayedMissAt: 0,
-    };
-
-    mixer.addEventListener("finished", () => {
-      if (getState(sceneController).rigs.get(pilotPlayer.id) === rig && !rig.delayedMissAt) restoreIdle(rig);
+      const rig = createRig(sceneController, player, opponentIndex + 1, currentFallback, asset);
+      state.rigs.set(player.id, rig);
+      restoreIdle(rig);
+      updateRigReadiness(sceneController);
+      sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rigged-avatar-ready", {
+        detail: {
+          playerId: player.id,
+          animalId: player.animalId,
+          seatIndex: opponentIndex + 1,
+          model: "rae-shared-motion-pilot",
+          ik: Boolean(rig.leftArmChain && rig.rightArmChain),
+        },
+      }));
     });
 
-    currentFallback.group.visible = false;
-    state.rigs.set(pilotPlayer.id, rig);
-    restoreIdle(rig);
     ensureMixerLoop(sceneController);
-    sceneController.canvas.dataset.riggedAvatar = rig.leftArmChain && rig.rightArmChain ? "ik-proportioned" : "ready";
-    sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rigged-avatar-ready", {
-      detail: {
-        playerId: pilotPlayer.id,
-        model: "rae-red-panda-pilot",
-        ik: Boolean(rig.leftArmChain && rig.rightArmChain),
-      },
-    }));
+    updateRigReadiness(sceneController);
   } catch (error) {
     if (state.generation !== generation) return;
-    sceneController.canvas.dataset.riggedAvatar = "fallback";
-    console.warn("Fruit Bell rigged avatar pilot could not load; using procedural fallback.", error);
+    state.rigs.forEach((rig) => {
+      rig.root.removeFromParent();
+      if (rig.fallback) rig.fallback.visible = true;
+    });
+    state.rigs.clear();
+    updateRigReadiness(sceneController);
+    console.warn("Fruit Bell rigged avatar pilots could not load; using procedural fallbacks.", error);
   }
 }
 
@@ -441,10 +473,10 @@ if (!FruitBellScene.prototype.__fruitBellRiggedPilotInstalled) {
     enumerable: false,
   });
 
-  FruitBellScene.prototype.configurePlayers = function configurePlayersWithRiggedPilot(players) {
+  FruitBellScene.prototype.configurePlayers = function configurePlayersWithRiggedPilots(players) {
     clearRiggedAvatars(this);
     const result = originalConfigurePlayers.call(this, players);
-    mountPilotRig(this, players);
+    mountPilotRigs(this, players);
     return result;
   };
 
