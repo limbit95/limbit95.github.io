@@ -2,7 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.m
 
 const CAMERA_PROFILE = Object.freeze({
   horizontalLook: 2.7,
-  verticalLook: 2.3,
+  verticalLook: 3.6,
   eyeHeight: 4.75,
 });
 

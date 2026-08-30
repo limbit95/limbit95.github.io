@@ -7,6 +7,7 @@
   <title>프루트 벨 3D 프로토타입</title>
   <link rel="stylesheet" href="./css/style.css">
   <link rel="stylesheet" href="./css/feedback-enhancements.css">
+  <link rel="stylesheet" href="./css/interaction-refinements.css">
 </head>
 <body>
   <main class="prototype-shell">
@@ -16,8 +17,8 @@
       <p class="lobby-copy">가상 테이블에 직접 앉아 오른손으로 카드를 넘기고, 왼손으로 종을 치는 감각을 먼저 확인하는 3D 프로토타입입니다.</p>
 
       <div class="rule-strip" aria-label="프로토타입 조작법">
-        <div><span>오른손</span><strong>좌클릭 유지 + 위로 드래그</strong></div>
-        <div><span>왼손</span><strong>스페이스바로 종 치기</strong></div>
+        <div><span>오른손</span><strong>카드를 누른 채 위로 드래그</strong></div>
+        <div><span>왼손</span><strong>스페이스바 / 화면 종 버튼</strong></div>
         <div><span>시선</span><strong>마우스를 움직여 둘러보기</strong></div>
       </div>
 
@@ -42,7 +43,6 @@
             <span id="turn-label" class="turn-pill">내 차례</span>
             <p id="status-text" aria-live="polite">게임을 준비하고 있습니다.</p>
           </div>
-          <button id="reset-button" class="ghost-button" type="button">나가기</button>
         </header>
 
         <aside class="game-hud game-hud--left" aria-label="플레이어 상태">
@@ -58,17 +58,27 @@
         <div class="interaction-guide" aria-hidden="true">
           <div id="gesture-hint" class="guide-chip" data-active="false">
             <span class="mouse-icon"></span>
-            <div><strong>카드 뒤집기</strong><small>카드 위 좌클릭 유지 → 위로</small></div>
+            <div><strong>카드 뒤집기</strong><small>카드 위 누른 채 → 위로</small></div>
           </div>
           <div id="bell-hint" class="guide-chip guide-chip--bell" data-active="false">
             <kbd>SPACE</kbd>
             <div><strong>왼손 종 치기</strong><small>과일 합계 5를 먼저 잡기</small></div>
           </div>
         </div>
+
+        <button id="mobile-bell-button" class="mobile-bell-button" type="button" aria-label="종 치기">
+          <span aria-hidden="true">🔔</span>
+          <strong>종 치기</strong>
+        </button>
+      </div>
+
+      <div class="game-view-actions">
+        <button id="reset-button" class="ghost-button" type="button">나가기</button>
       </div>
     </section>
   </main>
 
   <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/mobileBell.js"></script>
 </body>
 </html>
