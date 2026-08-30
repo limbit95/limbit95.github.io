@@ -12,8 +12,10 @@ import {
 
 const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
 const PILOT_TARGET_HEIGHT = 3.45;
-const PILOT_BASE_TABLE_ADVANCE = 0.08;
 const PILOT_SEATED_ROOT_Y = -0.32;
+const TABLE_HALF_WIDTH = 4.625;
+const TABLE_HALF_DEPTH = 3.125;
+const PILOT_TABLE_CLEARANCE = 0.62;
 const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
 const BELL_CONTACT_PROGRESS = 0.56;
 const CARD_CONTACT_PROGRESS = 0.58;
@@ -362,18 +364,27 @@ function triggerRiggedReaction(sceneController, playerId, type, correct = true) 
   return true;
 }
 
+function placeRigOutsideTable(root, fallbackPosition, seatIndex) {
+  root.position.copy(fallbackPosition);
+  root.position.y = PILOT_SEATED_ROOT_Y;
+
+  if (seatIndex === 1) {
+    root.position.z = -Math.max(Math.abs(root.position.z), TABLE_HALF_DEPTH + PILOT_TABLE_CLEARANCE);
+  } else if (seatIndex === 2) {
+    root.position.x = -Math.max(Math.abs(root.position.x), TABLE_HALF_WIDTH + PILOT_TABLE_CLEARANCE);
+  } else if (seatIndex === 3) {
+    root.position.x = Math.max(Math.abs(root.position.x), TABLE_HALF_WIDTH + PILOT_TABLE_CLEARANCE);
+  }
+}
+
 function createRig(sceneController, player, seatIndex, fallbackAvatar, asset) {
   const model = cloneSkeleton(asset.scene);
   model.removeFromParent();
 
   const root = new THREE.Group();
   const motionRoot = new THREE.Group();
-  root.position.copy(fallbackAvatar.group.position);
-  root.position.y = PILOT_SEATED_ROOT_Y;
+  placeRigOutsideTable(root, fallbackAvatar.group.position, seatIndex);
   root.rotation.copy(fallbackAvatar.group.rotation);
-
-  const seatToBell = new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize();
-  root.position.addScaledVector(seatToBell, PILOT_BASE_TABLE_ADVANCE);
 
   motionRoot.add(model);
   root.add(motionRoot);
