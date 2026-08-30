@@ -3,20 +3,28 @@ import { FRUITS } from "./gameEngine.js";
 import { createAnimalAvatar, getAnimalProfile, updateAvatarIdle } from "./avatarFactory.js";
 import { CARD_FLIP_DURATION_MS, CARD_REVEAL_PROGRESS } from "./revealTiming.js";
 
+export const FRUIT_BELL_LAYOUT = Object.freeze({
+  tableWidth: 4.9,
+  tableDepth: 4.15,
+  feltInset: 0.24,
+  avatarClearance: 0.48,
+  surfaceY: 1.145,
+});
+
 const FRUIT_MAP = new Map(FRUITS.map((fruit) => [fruit.id, fruit]));
-const TABLE_SURFACE_Y = 1.145;
+const TABLE_SURFACE_Y = FRUIT_BELL_LAYOUT.surfaceY;
 const CARD_THICKNESS = 0.026;
 const CARD_POSITIONS = [
-  { deck: new THREE.Vector3(1.05, TABLE_SURFACE_Y, 3.15), face: new THREE.Vector3(-0.7, 1.16, 2.22), rotation: 0 },
-  { deck: new THREE.Vector3(0.95, TABLE_SURFACE_Y, -2.78), face: new THREE.Vector3(-0.65, 1.16, -1.92), rotation: Math.PI },
-  { deck: new THREE.Vector3(-3.25, TABLE_SURFACE_Y, 0.55), face: new THREE.Vector3(-2.18, 1.16, -0.38), rotation: -Math.PI / 2 },
-  { deck: new THREE.Vector3(3.25, TABLE_SURFACE_Y, 0.55), face: new THREE.Vector3(2.18, 1.16, -0.38), rotation: Math.PI / 2 },
+  { deck: new THREE.Vector3(0.72, TABLE_SURFACE_Y, 1.35), face: new THREE.Vector3(-0.55, 1.16, 0.95), rotation: 0 },
+  { deck: new THREE.Vector3(0.72, TABLE_SURFACE_Y, -1.35), face: new THREE.Vector3(-0.55, 1.16, -0.95), rotation: Math.PI },
+  { deck: new THREE.Vector3(-1.75, TABLE_SURFACE_Y, 0.4), face: new THREE.Vector3(-1.2, 1.16, -0.32), rotation: -Math.PI / 2 },
+  { deck: new THREE.Vector3(1.75, TABLE_SURFACE_Y, 0.4), face: new THREE.Vector3(1.2, 1.16, -0.32), rotation: Math.PI / 2 },
 ];
 
 const AVATAR_SEATS = [
-  { position: [0, 0.83, -4.15], rotation: 0 },
-  { position: [-4.15, 0.83, -0.35], rotation: Math.PI / 2 },
-  { position: [4.15, 0.83, -0.35], rotation: -Math.PI / 2 },
+  { position: [0, 0.83, -2.72], rotation: 0 },
+  { position: [-3.05, 0.83, -0.2], rotation: Math.PI / 2 },
+  { position: [3.05, 0.83, -0.2], rotation: -Math.PI / 2 },
 ];
 
 function easeOutCubic(value) {
@@ -141,7 +149,7 @@ export class FruitBellScene {
     this.scene.background = new THREE.Color(0x152128);
     this.scene.fog = new THREE.Fog(0x152128, 11, 24);
     this.camera = new THREE.PerspectiveCamera(49, 1, 0.1, 50);
-    this.camera.position.set(0, 4.7, 7.45);
+    this.camera.position.set(0, 4.7, 5.95);
     this.baseCameraPosition = this.camera.position.clone();
     this.camera.lookAt(0, 1.05, 0.2);
     this.raycaster = new THREE.Raycaster();
@@ -194,15 +202,19 @@ export class FruitBellScene {
     floor.position.y = 0;
     this.scene.add(floor);
 
-    const table = makeMesh(new THREE.BoxGeometry(9.25, 0.55, 6.25), 0x5f4030);
+    const table = makeMesh(new THREE.BoxGeometry(FRUIT_BELL_LAYOUT.tableWidth, 0.55, FRUIT_BELL_LAYOUT.tableDepth), 0x5f4030);
     table.position.y = 0.78;
     this.scene.add(table);
-    const felt = makeMesh(new THREE.BoxGeometry(8.75, 0.09, 5.75), 0x274f49);
+    const felt = makeMesh(new THREE.BoxGeometry(
+      FRUIT_BELL_LAYOUT.tableWidth - FRUIT_BELL_LAYOUT.feltInset * 2,
+      0.09,
+      FRUIT_BELL_LAYOUT.tableDepth - FRUIT_BELL_LAYOUT.feltInset * 2,
+    ), 0x274f49);
     felt.position.y = 1.1;
     this.scene.add(felt);
-    const rimTop = new THREE.Mesh(new THREE.TorusGeometry(3.1, 0.035, 8, 64), makeMaterial(0xd0a967, { roughness: 0.45, metalness: 0.5 }));
+    const rimTop = new THREE.Mesh(new THREE.TorusGeometry(1.68, 0.035, 8, 64), makeMaterial(0xd0a967, { roughness: 0.45, metalness: 0.5 }));
     rimTop.rotation.x = Math.PI / 2;
-    rimTop.scale.x = 1.35;
+    rimTop.scale.x = 1.28;
     rimTop.position.y = 1.17;
     this.scene.add(rimTop);
 
@@ -253,7 +265,7 @@ export class FruitBellScene {
     if (this.leftStrike) this.scene.remove(this.leftStrike);
 
     this.rightHand = createViewArm(localProfile, 1);
-    this.rightHand.position.set(1.55, 1.78, 5.28);
+    this.rightHand.position.set(1.35, 1.78, 4.35);
     this.rightHand.rotation.y = -0.15;
     this.scene.add(this.rightHand);
 
@@ -262,7 +274,7 @@ export class FruitBellScene {
     elbowArm.rotation.z = -0.92;
     elbowArm.rotation.x = 0.28;
     this.leftElbow.add(elbowArm);
-    this.leftElbow.position.set(-2.38, 2.35, 5.68);
+    this.leftElbow.position.set(-2.0, 2.35, 4.62);
     this.scene.add(this.leftElbow);
 
     this.leftStrike = createViewArm(localProfile, -1);
@@ -295,13 +307,13 @@ export class FruitBellScene {
   previewLocalFlip(progress) {
     if (!this.rightHand || this.rightHandAction) return;
     const amount = THREE.MathUtils.clamp(progress, 0, 1);
-    this.rightHand.position.lerpVectors(new THREE.Vector3(1.55, 1.78, 5.28), new THREE.Vector3(1.03, 1.48, 3.55), amount * 0.7);
+    this.rightHand.position.lerpVectors(new THREE.Vector3(1.35, 1.78, 4.35), new THREE.Vector3(0.74, 1.48, 1.62), amount * 0.7);
     this.rightHand.rotation.x = -amount * 0.25;
   }
 
   resetLocalFlipPreview() {
     if (!this.rightHand || this.rightHandAction) return;
-    this.rightHand.position.set(1.55, 1.78, 5.28);
+    this.rightHand.position.set(1.35, 1.78, 4.35);
     this.rightHand.rotation.x = 0;
   }
 
@@ -552,9 +564,9 @@ export class FruitBellScene {
   #updateRightHand(now) {
     if (!this.rightHand || !this.rightHandAction) return;
     const t = THREE.MathUtils.clamp((now - this.rightHandAction.start) / this.rightHandAction.duration, 0, 1);
-    const rest = new THREE.Vector3(1.55, 1.78, 5.28);
-    const deck = new THREE.Vector3(1.03, 1.42, 3.42);
-    const lift = new THREE.Vector3(0.75, 2.08, 2.85);
+    const rest = new THREE.Vector3(1.35, 1.78, 4.35);
+    const deck = new THREE.Vector3(0.72, 1.42, 1.58);
+    const lift = new THREE.Vector3(0.5, 2.08, 0.92);
     if (t < 0.38) {
       this.rightHand.position.copy(lerpVector(rest, deck, easeOutCubic(t / 0.38)));
     } else if (t < 0.68) {
@@ -574,7 +586,7 @@ export class FruitBellScene {
   #updateLeftHand(now) {
     if (!this.leftStrike || !this.leftHandAction) return;
     const t = THREE.MathUtils.clamp((now - this.leftHandAction.start) / this.leftHandAction.duration, 0, 1);
-    const start = new THREE.Vector3(-2.45, 2.72, 5.2);
+    const start = new THREE.Vector3(-2.0, 2.72, 4.25);
     const hit = new THREE.Vector3(-0.08, 1.78, 0.25);
     if (t < 0.34) {
       this.leftStrike.visible = true;
