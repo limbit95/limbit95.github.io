@@ -18,7 +18,7 @@
 
       <div class="rule-strip" aria-label="프로토타입 조작법">
         <div><span>오른손</span><strong>카드를 누른 채 위로 드래그</strong></div>
-        <div><span>왼손</span><strong>스페이스바 / 화면 종 버튼</strong></div>
+        <div><span>왼손</span><strong>PC 스페이스바 · 모바일 중앙 종 터치</strong></div>
         <div><span>시선</span><strong>마우스를 움직여 둘러보기</strong></div>
       </div>
 
@@ -62,14 +62,9 @@
           </div>
           <div id="bell-hint" class="guide-chip guide-chip--bell" data-active="false">
             <kbd>SPACE</kbd>
-            <div><strong>왼손 종 치기</strong><small>과일 합계 5를 먼저 잡기</small></div>
+            <div><strong>종 치기</strong><small>PC SPACE · 모바일 중앙 종 터치</small></div>
           </div>
         </div>
-
-        <button id="mobile-bell-button" class="mobile-bell-button" type="button" aria-label="종 치기">
-          <span aria-hidden="true">🔔</span>
-          <strong>종 치기</strong>
-        </button>
       </div>
 
       <div class="game-view-actions">
@@ -78,8 +73,8 @@
     </section>
   </main>
 
+  <script type="module" src="./js/bellTouch.js"></script>
   <script type="module" src="./js/app.js"></script>
   <script type="module" src="./js/statusPresentation.js"></script>
-  <script type="module" src="./js/mobileBell.js"></script>
 </body>
 </html>

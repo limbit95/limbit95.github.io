@@ -1,4 +1,4 @@
-/* Fruit Bell prototype interaction refinements: centered guidance, mobile bell and separated exit. */
+/* Fruit Bell prototype interaction refinements: centered guidance, direct bell touch and separated exit. */
 .game-hud--top {
   justify-content: center;
   align-items: flex-start;
@@ -39,67 +39,9 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
 }
 
-.mobile-bell-button {
-  position: absolute;
-  z-index: 16;
-  right: 18px;
-  bottom: 18px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  min-width: 142px;
-  min-height: 62px;
-  padding: 12px 17px;
-  border: 1px solid rgba(240, 187, 90, 0.82);
-  border-bottom-width: 4px;
-  border-radius: 18px;
-  background:
-    radial-gradient(circle at 35% 20%, rgba(255, 239, 190, 0.3), transparent 40%),
-    linear-gradient(155deg, #e3ac45, #b87423);
-  color: #281b0d;
-  box-shadow:
-    0 14px 34px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.26);
-  cursor: pointer;
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.mobile-bell-button > span {
-  font-size: 24px;
-  line-height: 1;
-}
-
-.mobile-bell-button > strong {
-  font-size: 16px;
-  font-weight: 950;
-  letter-spacing: -0.025em;
-}
-
-.mobile-bell-button.is-pressed {
-  transform: translateY(2px) scale(0.97);
-  border-bottom-width: 2px;
-  filter: brightness(1.06);
-}
-
 @media (hover: none) and (pointer: coarse) {
-  .mobile-bell-button {
-    display: inline-flex;
-  }
-
-  .guide-chip--bell {
+  .guide-chip--bell kbd {
     display: none;
-  }
-
-  .interaction-guide {
-    right: auto;
-    width: min(52%, 260px);
-  }
-
-  .interaction-guide .guide-chip {
-    width: 100%;
   }
 }
 
@@ -119,23 +61,6 @@
     font-size: clamp(14px, 3.5vw, 17px);
   }
 
-  .mobile-bell-button {
-    display: inline-flex;
-    right: 12px;
-    bottom: 12px;
-    min-width: 132px;
-    min-height: 58px;
-  }
-
-  .guide-chip--bell {
-    display: none;
-  }
-
-  .interaction-guide {
-    right: auto;
-    width: min(52%, 250px);
-  }
-
   .game-view-actions {
     margin-top: 10px;
   }
@@ -150,27 +75,6 @@
 
   .hud-status p {
     font-size: 14px;
-  }
-
-  .mobile-bell-button {
-    right: 9px;
-    bottom: 9px;
-    min-width: 116px;
-    min-height: 54px;
-    padding: 10px 13px;
-    border-radius: 15px;
-  }
-
-  .mobile-bell-button > span {
-    font-size: 21px;
-  }
-
-  .mobile-bell-button > strong {
-    font-size: 14px;
-  }
-
-  .interaction-guide {
-    width: min(50%, 190px);
   }
 
   .game-view-actions .ghost-button {
