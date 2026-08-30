@@ -10,20 +10,36 @@ import {
 } from "./rigIkSolver.js";
 
 const PILOT_MODEL_URL = "https://raw.githubusercontent.com/danvanderboom/Aetherium/3e3c35a18adfb283b81f087c977bd5e41cac5259/samples/unity/Aphelion/Assets/ThirdParty/Quaternius/Animated/reclaimer-rae.gltf";
-const PILOT_TARGET_HEIGHT = 2.72;
-const PILOT_BASE_TABLE_ADVANCE = 0.82;
+const PILOT_TARGET_HEIGHT = 3.45;
+const PILOT_BASE_TABLE_ADVANCE = 0.76;
 const HIDDEN_ACCESSORY_PATTERN = /(pistol|gun|rifle|weapon|blaster|laser|cannon|launcher)/i;
 const BELL_CONTACT_PROGRESS = 0.56;
 const CARD_CONTACT_PROGRESS = 0.58;
-const BELL_CONTACT_TOLERANCE = 0.105;
-const BELL_MAX_BODY_TRAVEL = 2.6;
-const CARD_MAX_BODY_TRAVEL = 0.62;
+const BELL_CONTACT_TOLERANCE = 0.11;
+const MAX_TORSO_BELL_SHIFT = 0.86;
+const MAX_TORSO_CARD_SHIFT = 0.2;
+const CARD_ROOT_TRAVEL = 0.08;
 const stateByScene = new WeakMap();
 const loader = new GLTFLoader();
 let pilotAssetPromise = null;
 
 function normalizeName(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function findNode(root, candidates) {
+  if (!root) return null;
+  const wanted = candidates.map(normalizeName);
+  let match = null;
+
+  root.traverse((object) => {
+    if (match) return;
+    const name = normalizeName(object.name);
+    if (!name) return;
+    if (wanted.includes(name) || wanted.some((candidate) => name.includes(candidate))) match = object;
+  });
+
+  return match;
 }
 
 function chooseClip(animations, preferredNames) {
@@ -171,23 +187,28 @@ function getInteractionTarget(sceneController, rig, type, target) {
     : getDeckReachTarget(sceneController, rig, target);
 }
 
-function computeRequiredBodyTravel(sceneController, rig, type) {
+function restoreTorsoOffset(rig) {
+  if (!rig.torso || !rig.lastTorsoShift) return;
+  rig.torso.position.z -= rig.lastTorsoShift;
+  rig.lastTorsoShift = 0;
+}
+
+function computeTorsoShift(sceneController, rig, type) {
   const chain = type === "bell" ? rig.leftArmChain : rig.rightArmChain;
   const target = getInteractionTarget(sceneController, rig, type, rig.travelTarget);
-  if (!chain || !target) return type === "bell" ? 0.55 : 0.1;
+  if (!chain || !target) return 0;
 
   rig.root.position.copy(rig.basePosition);
-  rig.motionRoot.rotation.set(0, 0, 0);
   rig.root.updateMatrixWorld(true);
 
   const deficit = getReachDeficit(chain, target, {
-    reachScale: type === "bell" ? 0.91 : 0.96,
+    reachScale: type === "bell" ? 0.97 : 0.98,
   });
-  const safety = type === "bell" ? 0.12 : 0.035;
+  const safety = type === "bell" ? 0.08 : 0.025;
   return THREE.MathUtils.clamp(
     deficit + safety,
-    type === "bell" ? 0.45 : 0.06,
-    type === "bell" ? BELL_MAX_BODY_TRAVEL : CARD_MAX_BODY_TRAVEL,
+    0,
+    type === "bell" ? MAX_TORSO_BELL_SHIFT : MAX_TORSO_CARD_SHIFT,
   );
 }
 
@@ -200,14 +221,21 @@ function updateMotion(rig, now) {
     releaseAt: rig.motion.releaseAt,
   });
 
-  rig.root.position.copy(rig.basePosition).addScaledVector(rig.toBell, rig.motion.distance * weight);
-  rig.motionRoot.rotation.x = rig.motion.tilt * weight;
-  rig.motionRoot.rotation.z = rig.motion.twist * weight;
+  rig.root.position.copy(rig.basePosition);
+  if (rig.motion.rootTravel > 0) {
+    rig.root.position.addScaledVector(rig.toBell, rig.motion.rootTravel * weight);
+  }
+
+  if (rig.torso && rig.motion.torsoShift > 0) {
+    const shift = rig.motion.torsoShift * weight;
+    rig.torso.position.z += shift;
+    rig.lastTorsoShift = shift;
+  }
+
   rig.root.updateMatrixWorld(true);
 
   if (progress >= 1) {
     rig.root.position.copy(rig.basePosition);
-    rig.motionRoot.rotation.set(0, 0, 0);
     rig.motion = null;
   }
 }
@@ -230,8 +258,8 @@ function updateReach(sceneController, rig, now) {
       chain,
       targetWorld: target,
       weight,
-      iterations: isBell ? 11 : 8,
-      maxJointStep: isBell ? Math.PI / 3.8 : Math.PI / 4.8,
+      iterations: isBell ? 13 : 8,
+      maxJointStep: isBell ? Math.PI / 3.6 : Math.PI / 4.8,
     });
     contactError = getEffectorDistance(chain, target);
     if (isBell && Number.isFinite(contactError)) {
@@ -274,6 +302,7 @@ function ensureMixerLoop(sceneController) {
     const delta = Math.min(0.05, Math.max(0, (now - state.lastTime) / 1000));
     state.lastTime = now;
     state.rigs.forEach((rig) => {
+      restoreTorsoOffset(rig);
       rig.mixer.update(delta);
       updateMotion(rig, now);
       updateReach(sceneController, rig, now);
@@ -300,16 +329,14 @@ function triggerRiggedReaction(sceneController, playerId, type, correct = true) 
   const duration = isBell ? 760 : 440;
   const contactAt = isBell ? BELL_CONTACT_PROGRESS : CARD_CONTACT_PROGRESS;
   const releaseAt = isBell ? 0.8 : 0.76;
-  const bodyTravel = computeRequiredBodyTravel(sceneController, rig, type);
 
   rig.motion = {
     start: performance.now(),
     duration,
     contactAt,
     releaseAt,
-    distance: bodyTravel,
-    tilt: isBell ? -0.2 : -0.045,
-    twist: isBell ? 0 : 0.018,
+    rootTravel: isBell ? 0 : CARD_ROOT_TRAVEL,
+    torsoShift: computeTorsoShift(sceneController, rig, type),
   };
   rig.reach = {
     type,
@@ -368,11 +395,13 @@ async function mountPilotRig(sceneController, players) {
       flipClip: chooseClip(asset.animations, ["Punch"]),
       bellClip: chooseClip(asset.animations, ["Punch", "Yes"]),
       missClip: chooseClip(asset.animations, ["HitReact", "No"]),
+      torso: findNode(model, ["Torso", "Chest", "Spine"]),
       leftArmChain: createArmChain(model, "L"),
       rightArmChain: createArmChain(model, "R"),
       basePosition: root.position.clone(),
       toBell: new THREE.Vector3(-root.position.x, 0, -root.position.z).normalize(),
       travelTarget: new THREE.Vector3(),
+      lastTorsoShift: 0,
       motion: null,
       reach: null,
       delayedMissAt: 0,
@@ -386,7 +415,7 @@ async function mountPilotRig(sceneController, players) {
     state.rigs.set(pilotPlayer.id, rig);
     restoreIdle(rig);
     ensureMixerLoop(sceneController);
-    sceneController.canvas.dataset.riggedAvatar = rig.leftArmChain && rig.rightArmChain ? "ik-calibrated" : "ready";
+    sceneController.canvas.dataset.riggedAvatar = rig.leftArmChain && rig.rightArmChain ? "ik-proportioned" : "ready";
     sceneController.canvas.dispatchEvent(new CustomEvent("fruit-bell-rigged-avatar-ready", {
       detail: {
         playerId: pilotPlayer.id,
