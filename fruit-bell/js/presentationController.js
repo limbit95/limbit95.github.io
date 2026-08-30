@@ -100,7 +100,7 @@ export class FruitBellPresentationController {
     const bridge = this.#ensureLocalBridge();
     const start = performance.now();
     const duration = 520;
-    const shoulder = new THREE.Vector3(-2.28, 2.62, 6.05);
+    const shoulder = new THREE.Vector3(-1.92, 2.62, 4.95);
     const midpoint = new THREE.Vector3();
     const direction = new THREE.Vector3();
     const up = new THREE.Vector3(0, 1, 0);
@@ -122,7 +122,7 @@ export class FruitBellPresentationController {
 
       if (this.scene.leftElbow) {
         const reach = t < 0.42 ? easeOutCubic(t / 0.42) : 1 - easeInOut((t - 0.42) / 0.58);
-        this.scene.leftElbow.position.z = 5.68 - reach * 0.72;
+        this.scene.leftElbow.position.z = 4.62 - reach * 0.58;
         this.scene.leftElbow.rotation.x = 0.28 - reach * 0.35;
       }
 
@@ -131,7 +131,7 @@ export class FruitBellPresentationController {
       } else {
         bridge.visible = false;
         if (this.scene.leftElbow) {
-          this.scene.leftElbow.position.z = 5.68;
+          this.scene.leftElbow.position.z = 4.62;
           this.scene.leftElbow.rotation.x = 0.28;
         }
         this.localBridgeFrame = 0;
@@ -161,7 +161,7 @@ export class FruitBellPresentationController {
       arm.position.set(
         startPosition.x,
         startPosition.y - reach * 0.28,
-        startPosition.z + reach * 2.25,
+        startPosition.z + reach * 1.45,
       );
       arm.rotation.z = THREE.MathUtils.lerp(startRotationZ, -0.18, reach);
       avatar.body.rotation.x = startBodyRotationX - reach * 0.18;
