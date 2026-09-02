@@ -1,0 +1,373 @@
+.activity-form {
+  gap: 1rem;
+  padding: clamp(0.85rem, 2vw, 1.2rem);
+  border-color: #dcebee;
+  background: #f8fbfc;
+  box-shadow: 0 10px 28px rgba(82, 128, 145, 0.07);
+}
+
+.activity-form__section {
+  min-width: 0;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid #deebef;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(82, 128, 145, 0.035);
+}
+
+.activity-form__section-heading {
+  display: grid;
+  gap: 0.16rem;
+  margin-bottom: 0.1rem;
+}
+
+.activity-form__section-kicker {
+  color: #7a98a3;
+  font-size: 0.73rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+}
+
+.activity-form__section-title {
+  color: var(--forest-900);
+  font-size: 1.08rem;
+  line-height: 1.4;
+  letter-spacing: -0.018em;
+}
+
+.activity-form .field {
+  gap: 0.34rem;
+}
+
+.activity-form .field > label,
+.activity-form .field-label {
+  color: #486873;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.activity-form input:not([type="checkbox"]):not([type="hidden"]),
+.activity-form textarea,
+.activity-form select,
+.activity-date-trigger {
+  min-height: 41px;
+  border-color: #d6e5ea;
+  border-radius: 11px;
+  padding: 0.56rem 0.72rem;
+  background: #fff;
+  font-size: 0.93rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.activity-form input:not([type="checkbox"]):not([type="hidden"]):hover,
+.activity-form textarea:hover,
+.activity-form select:hover,
+.activity-date-trigger:hover {
+  border-color: #bfd7df;
+}
+
+.activity-form input:not([type="checkbox"]):not([type="hidden"]):focus,
+.activity-form textarea:focus,
+.activity-form select:focus,
+.activity-date-trigger:focus-visible {
+  border-color: #9fc8d6;
+  box-shadow: 0 0 0 3px rgba(159, 200, 214, 0.18);
+}
+
+.activity-form select {
+  appearance: none;
+  padding-right: 2.2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #72909a 50%),
+    linear-gradient(135deg, #72909a 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 2px),
+    calc(100% - 11px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.activity-form textarea {
+  min-height: 90px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.activity-form__textarea--description {
+  min-height: 108px;
+}
+
+.activity-form .field-help,
+.activity-form .field-error {
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
+.activity-form__toggle {
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.78rem;
+  border: 1px solid #e0ebee;
+  border-radius: 12px;
+  background: #f8fbfc;
+  color: #526f79;
+}
+
+.activity-form__toggle input {
+  margin-top: 0;
+}
+
+.activity-form__toggle--compact {
+  min-height: 41px;
+  padding-block: 0.48rem;
+}
+
+.activity-form__subsection {
+  min-width: 0;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0.9rem;
+  border: 1px dashed #cfdee3;
+  border-radius: 14px;
+  background: #f9fcfd;
+}
+
+.activity-form__subsection-title {
+  padding: 0 0.25rem;
+  color: #5d7a84;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
+.activity-form__actions {
+  margin-top: 0;
+  padding: 0.1rem 0.15rem 0;
+}
+
+.activity-form__actions .button {
+  min-height: 42px;
+  border-radius: 12px;
+  padding: 0.58rem 0.95rem;
+}
+
+.activity-date-control {
+  position: relative;
+  max-width: 100%;
+}
+
+.activity-date-input[aria-invalid="true"] + .activity-date-trigger {
+  border-color: var(--danger);
+}
+
+.activity-date-trigger {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.activity-date-trigger__icon {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border: 1.5px solid #7799a4;
+  border-radius: 4px;
+  color: transparent;
+  position: relative;
+}
+
+.activity-date-trigger__icon::before,
+.activity-date-trigger__icon::after {
+  content: "";
+  position: absolute;
+}
+
+.activity-date-trigger__icon::before {
+  left: 2px;
+  right: 2px;
+  top: 4px;
+  border-top: 1.5px solid #7799a4;
+}
+
+.activity-date-trigger__icon::after {
+  width: 7px;
+  height: 2px;
+  top: -2px;
+  border-left: 1.5px solid #7799a4;
+  border-right: 1.5px solid #7799a4;
+}
+
+.activity-date-trigger__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-date-trigger__value--placeholder {
+  color: #8c9da3;
+}
+
+.activity-date-trigger__chevron {
+  color: #75919b;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.activity-date-picker {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 0.45rem);
+  left: 0;
+  width: min(310px, calc(100vw - 3.2rem));
+  padding: 0.75rem;
+  border: 1px solid #d6e5ea;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(53, 91, 105, 0.16);
+}
+
+.activity-date-picker[hidden] {
+  display: none;
+}
+
+.activity-date-picker__header {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.48rem;
+}
+
+.activity-date-picker__title {
+  color: #405f69;
+  font-size: 0.93rem;
+  text-align: center;
+}
+
+.activity-date-picker__nav {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #67858f;
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.activity-date-picker__nav:hover,
+.activity-date-picker__nav:focus-visible {
+  background: #eef6f8;
+  color: #496c78;
+  outline: none;
+}
+
+.activity-date-picker__weekdays,
+.activity-date-picker__days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.activity-date-picker__weekdays {
+  margin-bottom: 0.18rem;
+}
+
+.activity-date-picker__weekdays span {
+  padding: 0.26rem 0;
+  color: #8ba0a7;
+  font-size: 0.69rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.activity-date-picker__days {
+  gap: 2px;
+}
+
+.activity-date-picker__blank,
+.activity-date-picker__day {
+  min-width: 0;
+  aspect-ratio: 1;
+}
+
+.activity-date-picker__day {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #4d666f;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.activity-date-picker__day:hover,
+.activity-date-picker__day:focus-visible {
+  background: #edf6f8;
+  color: #355d6b;
+  outline: none;
+}
+
+.activity-date-picker__day--today {
+  box-shadow: inset 0 0 0 1px #b9d7e1;
+}
+
+.activity-date-picker__day--selected,
+.activity-date-picker__day--selected:hover,
+.activity-date-picker__day--selected:focus-visible {
+  background: #cfe6ed;
+  color: #355d68;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .activity-form {
+    gap: 1.15rem;
+    padding: 1.1rem;
+  }
+
+  .activity-form__section {
+    padding: 1.1rem 1.15rem;
+  }
+
+  .activity-form__field--select select {
+    max-width: 320px;
+  }
+
+  .activity-form__field--number input,
+  .activity-form__field--time input {
+    max-width: 180px;
+  }
+
+  .activity-date-control {
+    max-width: 260px;
+  }
+}
+
+@media (min-width: 900px) {
+  .activity-form__schedule-grid {
+    grid-template-columns: minmax(210px, 1fr) minmax(230px, 1.15fr) 165px 165px;
+    align-items: start;
+  }
+
+  .activity-form__schedule-grid .activity-form__field {
+    min-width: 0;
+  }
+
+  .activity-form__actions .button {
+    min-width: 112px;
+  }
+}
