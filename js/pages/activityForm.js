@@ -17,6 +17,8 @@ import {
 } from "../ui.js";
 import { clearFieldErrors, setFieldError, validateRequiredFields, validateUrl } from "../validators.js";
 
+const KOREAN_WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
 export async function renderActivityForm(route, mode) {
   const auth = getAuthState();
   const editing = mode === "edit";
@@ -55,7 +57,7 @@ export async function renderActivityForm(route, mode) {
 }
 
 function createForm(categories, event, editing) {
-  const form = el("form", { className: "card form-grid", novalidate: true });
+  const form = el("form", { className: "card form-grid activity-form", novalidate: true });
   const category = el("select", { id: "event-category", name: "category_id", required: true }, categories.map((item) => el("option", {
     value: item.id,
     text: `${item.icon} ${item.name}`,
@@ -63,13 +65,13 @@ function createForm(categories, event, editing) {
   })));
   const recurring = el("input", { id: "event-recurring", name: "recurring", type: "checkbox", disabled: editing });
   const recurrenceFields = el("fieldset", {
-    className: "card card--flat form-grid form-grid--2",
+    className: "activity-form__subsection form-grid form-grid--2",
     hidden: true,
   }, [
-    el("legend", { className: "section-title", text: "반복 규칙" }),
+    el("legend", { className: "activity-form__subsection-title", text: "반복 규칙" }),
     selectControl("recurrence_frequency", "반복 주기", [["WEEKLY", "매주"], ["MONTHLY", "매월"]]),
     inputControl("recurrence_interval", "반복 간격", "number", { min: "1", max: "12", value: "1" }, "예: 2이면 격주 또는 격월"),
-    inputControl("recurrence_end_date", "반복 종료일", "date", {}, "", true),
+    dateControl("recurrence_end_date", "반복 종료일", "", true),
   ]);
   recurring.addEventListener("change", () => {
     recurrenceFields.hidden = !recurring.checked;
@@ -77,24 +79,31 @@ function createForm(categories, event, editing) {
   });
 
   form.append(
-    el("section", { className: "form-grid form-grid--2" }, [
+    el("section", { className: "activity-form__section form-grid form-grid--2" }, [
+      el("div", { className: "activity-form__section-heading field--full" }, [
+        el("p", { className: "activity-form__section-kicker", text: "기본 정보" }),
+        el("h2", { className: "activity-form__section-title", text: "어떤 활동인가요?" }),
+      ]),
       control("카테고리", category, true),
-      inputControl("title", "활동 이름", "text", { maxlength: "150", value: event?.title ?? "" }, "", true),
+      inputControl("title", "활동 이름", "text", { maxlength: "150", value: event?.title ?? "", placeholder: "활동 이름을 입력해 주세요" }, "", true),
       el("div", { className: "field field--full" }, [
         el("label", { className: "required", for: "event-description", text: "활동 소개" }),
-        el("textarea", { id: "event-description", name: "description", maxlength: "5000", required: true, text: event?.description ?? "" }),
+        el("textarea", { className: "activity-form__textarea activity-form__textarea--description", id: "event-description", name: "description", maxlength: "5000", required: true, text: event?.description ?? "", placeholder: "활동 내용과 진행 방식을 간단히 소개해 주세요" }),
         errorFor("description"),
       ]),
     ]),
-    el("section", { className: "card card--flat form-grid" }, [
-      el("h2", { className: "section-title", text: "🗓️ 일정" }),
-      el("div", { className: "form-grid form-grid--2" }, [
-        inputControl("event_date", "활동 날짜", "date", { value: event?.event_date ?? "" }, "", true),
+    el("section", { className: "activity-form__section form-grid" }, [
+      el("div", { className: "activity-form__section-heading" }, [
+        el("p", { className: "activity-form__section-kicker", text: "일정" }),
+        el("h2", { className: "activity-form__section-title", text: "언제 진행하나요?" }),
+      ]),
+      el("div", { className: "form-grid form-grid--2 activity-form__schedule-grid" }, [
+        dateControl("event_date", "활동 날짜", event?.event_date ?? "", true),
         inputControl("registration_deadline", "신청 마감", "datetime-local", { value: event ? isoToSeoulInput(event.registration_deadline) : "" }, "", true),
         inputControl("start_time", "시작 시간", "time", { value: event?.start_time?.slice(0, 5) ?? "" }, "", true),
         inputControl("end_time", "종료 시간", "time", { value: event?.end_time?.slice(0, 5) ?? "" }),
       ]),
-      !editing ? el("label", { className: "checkbox" }, [
+      !editing ? el("label", { className: "checkbox activity-form__toggle" }, [
         recurring,
         el("span", {}, [
           el("strong", { text: "반복 활동으로 등록" }),
@@ -103,28 +112,31 @@ function createForm(categories, event, editing) {
       ]) : null,
       recurrenceFields,
     ]),
-    el("section", { className: "card card--flat form-grid form-grid--2" }, [
-      el("h2", { className: "section-title field--full", text: "📍 장소와 참여 정보" }),
-      inputControl("location_name", "장소", "text", { maxlength: "200", value: event?.location_name ?? "" }, "", true),
+    el("section", { className: "activity-form__section form-grid form-grid--2" }, [
+      el("div", { className: "activity-form__section-heading field--full" }, [
+        el("p", { className: "activity-form__section-kicker", text: "장소 · 참여" }),
+        el("h2", { className: "activity-form__section-title", text: "참여에 필요한 정보를 알려주세요" }),
+      ]),
+      inputControl("location_name", "장소", "text", { maxlength: "200", value: event?.location_name ?? "", placeholder: "예: 청파공원" }, "", true),
       inputControl("location_url", "지도 링크", "url", { value: event?.location_url ?? "", placeholder: "https://..." }),
       inputControl("capacity", "모집 정원", "number", { min: "1", value: event?.capacity ?? "" }, "비워 두면 정원 제한 없음"),
       inputControl("fee_text", "참가비", "text", { maxlength: "200", value: event?.fee_text ?? "무료" }),
       inputControl("difficulty", "난이도", "text", { maxlength: "100", value: event?.difficulty ?? "", placeholder: "예: 쉬움, 5km 완주 가능자" }),
       el("div", { className: "field" }, [
         el("span", { className: "field-label", text: "초보자 참여" }),
-        el("label", { className: "checkbox" }, [
+        el("label", { className: "checkbox activity-form__toggle activity-form__toggle--compact" }, [
           el("input", { type: "checkbox", name: "beginner_friendly", checked: event?.beginner_friendly ?? true }),
           el("span", { text: "초보자 환영 표시" }),
         ]),
       ]),
       el("div", { className: "field field--full" }, [
         el("label", { for: "event-preparation", text: "준비물" }),
-        el("textarea", { id: "event-preparation", name: "preparation", maxlength: "1000", text: event?.preparation ?? "" }),
+        el("textarea", { className: "activity-form__textarea", id: "event-preparation", name: "preparation", maxlength: "1000", text: event?.preparation ?? "", placeholder: "필요한 준비물이 있다면 적어주세요" }),
         errorFor("preparation"),
       ]),
       el("div", { className: "field field--full" }, [
         el("label", { for: "event-participant_notice", text: "참여자 유의사항" }),
-        el("textarea", { id: "event-participant_notice", name: "participant_notice", maxlength: "2000", text: event?.participant_notice ?? "" }),
+        el("textarea", { className: "activity-form__textarea", id: "event-participant_notice", name: "participant_notice", maxlength: "2000", text: event?.participant_notice ?? "", placeholder: "참여 전에 꼭 알아야 할 내용을 적어주세요" }),
         errorFor("participant_notice"),
       ]),
       editing ? selectControl("status", "활동 상태", [
@@ -134,7 +146,7 @@ function createForm(categories, event, editing) {
         ["cancelled", "일정 취소"],
       ], event.status) : null,
     ]),
-    el("div", { className: "form-actions" }, [
+    el("div", { className: "form-actions activity-form__actions" }, [
       el("a", { className: "button button--ghost", href: event ? `#/activities/${event.id}` : "#/activities", text: "취소" }),
       el("button", { className: "button button--coral", type: "submit", text: editing ? "변경사항 저장" : "활동 등록" }),
     ]),
@@ -181,7 +193,11 @@ async function handleSubmit(submitEvent, context) {
     }
   }
   if (!valid) {
-    form.querySelector('[aria-invalid="true"]')?.focus();
+    const invalid = form.querySelector('[aria-invalid="true"]');
+    const focusTarget = invalid?.classList.contains("activity-date-input")
+      ? invalid.parentElement?.querySelector(".activity-date-trigger")
+      : invalid;
+    focusTarget?.focus();
     return;
   }
 
@@ -318,12 +334,153 @@ function inputControl(name, label, type, attributes = {}, help = "", required = 
     required,
     ...attributes,
   });
-  return el("div", { className: "field" }, [
+  return el("div", { className: `field activity-form__field activity-form__field--${type}` }, [
     el("label", { className: required ? "required" : "", for: input.id, text: label }),
     input,
     help ? el("p", { className: "field-help", text: help }) : null,
     errorFor(name),
   ]);
+}
+
+function dateControl(name, label, value = "", required = false) {
+  const inputId = `event-${name}`;
+  const triggerId = `${inputId}-trigger`;
+  const input = el("input", {
+    className: "activity-date-input",
+    id: inputId,
+    name,
+    type: "hidden",
+    required,
+    value,
+  });
+  const valueText = el("span", {
+    className: value ? "activity-date-trigger__value" : "activity-date-trigger__value activity-date-trigger__value--placeholder",
+    text: value ? formatKoreanDate(value) : "날짜 선택",
+  });
+  const trigger = el("button", {
+    className: "activity-date-trigger",
+    id: triggerId,
+    type: "button",
+    "aria-haspopup": "dialog",
+    "aria-expanded": "false",
+  }, [
+    el("span", { className: "activity-date-trigger__icon", text: "▣", "aria-hidden": "true" }),
+    valueText,
+    el("span", { className: "activity-date-trigger__chevron", text: "⌄", "aria-hidden": "true" }),
+  ]);
+  const picker = createDatePicker(input, trigger, valueText);
+  return el("div", { className: "field activity-form__field activity-date-field" }, [
+    el("label", { className: required ? "required" : "", for: triggerId, text: label }),
+    el("div", { className: "activity-date-control" }, [input, trigger, picker]),
+    errorFor(name),
+  ]);
+}
+
+function createDatePicker(input, trigger, valueText) {
+  const picker = el("div", {
+    className: "activity-date-picker",
+    hidden: true,
+    role: "dialog",
+    "aria-label": "날짜 선택",
+  });
+  const title = el("strong", { className: "activity-date-picker__title" });
+  const days = el("div", { className: "activity-date-picker__days" });
+  const previous = el("button", {
+    className: "activity-date-picker__nav",
+    type: "button",
+    text: "‹",
+    "aria-label": "이전 달",
+  });
+  const next = el("button", {
+    className: "activity-date-picker__nav",
+    type: "button",
+    text: "›",
+    "aria-label": "다음 달",
+  });
+  picker.append(
+    el("div", { className: "activity-date-picker__header" }, [previous, title, next]),
+    el("div", { className: "activity-date-picker__weekdays" }, KOREAN_WEEKDAYS.map((weekday) => el("span", { text: weekday }))),
+    days,
+  );
+
+  let visibleMonth = dateFromValue(input.value) ?? startOfMonth(new Date());
+
+  const render = () => {
+    title.textContent = `${visibleMonth.getFullYear()}년 ${visibleMonth.getMonth() + 1}월`;
+    days.replaceChildren();
+    const year = visibleMonth.getFullYear();
+    const month = visibleMonth.getMonth();
+    const firstWeekday = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const selected = input.value;
+    const today = localDateString(new Date());
+
+    for (let index = 0; index < firstWeekday; index += 1) {
+      days.append(el("span", { className: "activity-date-picker__blank", "aria-hidden": "true" }));
+    }
+    for (let day = 1; day <= lastDate; day += 1) {
+      const value = localDateString(new Date(year, month, day));
+      const classNames = ["activity-date-picker__day"];
+      if (value === selected) classNames.push("activity-date-picker__day--selected");
+      if (value === today) classNames.push("activity-date-picker__day--today");
+      const button = el("button", {
+        className: classNames.join(" "),
+        type: "button",
+        text: String(day),
+        "aria-label": formatKoreanDate(value),
+        "aria-pressed": value === selected ? "true" : "false",
+      });
+      button.addEventListener("click", () => {
+        input.value = value;
+        input.setAttribute("value", value);
+        input.removeAttribute("aria-invalid");
+        valueText.textContent = formatKoreanDate(value);
+        valueText.classList.remove("activity-date-trigger__value--placeholder");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+        close();
+      });
+      days.append(button);
+    }
+  };
+
+  const open = () => {
+    const selected = dateFromValue(input.value);
+    visibleMonth = selected ? startOfMonth(selected) : startOfMonth(new Date());
+    picker.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    render();
+  };
+  const close = () => {
+    picker.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  };
+
+  trigger.addEventListener("click", () => {
+    if (picker.hidden) open();
+    else close();
+  });
+  previous.addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+    render();
+  });
+  next.addEventListener("click", () => {
+    visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+    render();
+  });
+  picker.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      close();
+      trigger.focus();
+    }
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!picker.hidden && !picker.contains(event.target) && event.target !== trigger && !trigger.contains(event.target)) {
+      close();
+    }
+  });
+
+  return picker;
 }
 
 function selectControl(name, label, options, selected = null) {
@@ -336,7 +493,7 @@ function selectControl(name, label, options, selected = null) {
 }
 
 function control(label, input, required = false) {
-  return el("div", { className: "field" }, [
+  return el("div", { className: "field activity-form__field activity-form__field--select" }, [
     el("label", { className: required ? "required" : "", for: input.id, text: label }),
     input,
     errorFor(input.name),
@@ -360,6 +517,23 @@ function isoToSeoulInput(value) {
   });
   const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+function formatKoreanDate(value) {
+  const date = dateFromValue(value);
+  if (!date) return "날짜 선택";
+  return `${date.getFullYear()}. ${String(date.getMonth() + 1).padStart(2, "0")}. ${String(date.getDate()).padStart(2, "0")} (${KOREAN_WEEKDAYS[date.getDay()]})`;
+}
+
+function dateFromValue(value) {
+  if (!value) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function startOfMonth(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
 function localDateString(date) {
