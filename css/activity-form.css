@@ -1,119 +1,171 @@
+.activity-form-page-header {
+  margin-bottom: 0.35rem;
+}
+
+.activity-form-notice {
+  margin-bottom: 0.55rem;
+  padding: 0.58rem 0.75rem;
+  border-left-width: 3px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .activity-form {
-  gap: 1rem;
-  padding: clamp(0.85rem, 2vw, 1.2rem);
+  gap: 0;
+  padding: 0.8rem 0.9rem;
   border-color: #dcebee;
-  background: #f8fbfc;
-  box-shadow: 0 10px 28px rgba(82, 128, 145, 0.07);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(82, 128, 145, 0.06);
 }
 
 .activity-form__section {
   min-width: 0;
-  gap: 0.9rem;
-  padding: 1rem;
-  border: 1px solid #deebef;
-  border-radius: 17px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgba(82, 128, 145, 0.035);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.2rem 0 0.85rem;
+}
+
+.activity-form__section + .activity-form__section {
+  padding-top: 0.85rem;
+  border-top: 1px solid #e6eff2;
 }
 
 .activity-form__section-heading {
-  display: grid;
-  gap: 0.16rem;
-  margin-bottom: 0.1rem;
-}
-
-.activity-form__section-kicker {
-  color: #7a98a3;
-  font-size: 0.73rem;
-  font-weight: 850;
-  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  min-height: 28px;
 }
 
 .activity-form__section-title {
   color: var(--forest-900);
-  font-size: 1.08rem;
-  line-height: 1.4;
-  letter-spacing: -0.018em;
+  font-size: 1rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.activity-form__basic-grid,
+.activity-form__location-row,
+.activity-form__notice-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.activity-form__cluster {
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+  padding-top: 0.05rem;
+}
+
+.activity-form__cluster + .activity-form__cluster {
+  padding-top: 0.7rem;
+  border-top: 1px dashed #e2ecef;
+}
+
+.activity-form__cluster-title {
+  color: #6c8993;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.035em;
+}
+
+.activity-form__schedule-row,
+.activity-form__participation-row,
+.activity-form__recurrence-fields {
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+  align-items: end;
 }
 
 .activity-form .field {
-  gap: 0.34rem;
+  gap: 0.28rem;
 }
 
 .activity-form .field > label,
 .activity-form .field-label {
   color: #486873;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 800;
 }
 
 .activity-form input:not([type="checkbox"]):not([type="hidden"]),
 .activity-form textarea,
 .activity-form select,
-.activity-date-trigger {
-  min-height: 41px;
-  border-color: #d6e5ea;
-  border-radius: 11px;
-  padding: 0.56rem 0.72rem;
+.activity-picker-trigger {
+  min-height: 38px;
+  border: 1px solid #d6e5ea;
+  border-radius: 10px;
+  padding: 0.48rem 0.65rem;
   background: #fff;
-  font-size: 0.93rem;
+  color: var(--ink);
+  font-size: 0.89rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .activity-form input:not([type="checkbox"]):not([type="hidden"]):hover,
 .activity-form textarea:hover,
 .activity-form select:hover,
-.activity-date-trigger:hover {
+.activity-picker-trigger:hover {
   border-color: #bfd7df;
 }
 
 .activity-form input:not([type="checkbox"]):not([type="hidden"]):focus,
 .activity-form textarea:focus,
 .activity-form select:focus,
-.activity-date-trigger:focus-visible {
+.activity-picker-trigger:focus-visible {
   border-color: #9fc8d6;
-  box-shadow: 0 0 0 3px rgba(159, 200, 214, 0.18);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(159, 200, 214, 0.16);
 }
 
 .activity-form select {
   appearance: none;
-  padding-right: 2.2rem;
+  padding-right: 2rem;
   background-image:
     linear-gradient(45deg, transparent 50%, #72909a 50%),
     linear-gradient(135deg, #72909a 50%, transparent 50%);
   background-position:
-    calc(100% - 16px) calc(50% - 2px),
-    calc(100% - 11px) calc(50% - 2px);
+    calc(100% - 14px) calc(50% - 2px),
+    calc(100% - 9px) calc(50% - 2px);
   background-size: 5px 5px, 5px 5px;
   background-repeat: no-repeat;
 }
 
 .activity-form textarea {
-  min-height: 90px;
+  min-height: 76px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .activity-form__textarea--description {
-  min-height: 108px;
+  min-height: 82px;
 }
 
 .activity-form .field-help,
 .activity-form .field-error {
-  font-size: 0.77rem;
-  line-height: 1.45;
+  min-height: 0;
+  font-size: 0.73rem;
+  line-height: 1.35;
+}
+
+.activity-form .field-error:empty {
+  display: none;
 }
 
 .activity-form__toggle {
   width: fit-content;
   max-width: 100%;
+  min-height: 38px;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.65rem 0.78rem;
+  gap: 0.48rem;
+  padding: 0.45rem 0.62rem;
   border: 1px solid #e0ebee;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #f8fbfc;
   color: #526f79;
+  font-size: 0.83rem;
 }
 
 .activity-form__toggle input {
@@ -121,83 +173,87 @@
 }
 
 .activity-form__toggle--compact {
-  min-height: 41px;
-  padding-block: 0.48rem;
+  width: 100%;
+  justify-content: flex-start;
+  padding-block: 0.42rem;
 }
 
-.activity-form__subsection {
-  min-width: 0;
-  gap: 0.8rem;
+.activity-form__repeat-toggle {
+  align-self: end;
+  white-space: nowrap;
+}
+
+.activity-form__repeat-toggle .small {
+  font-size: 0.72rem;
+}
+
+.activity-form__recurrence-fields {
   margin: 0;
-  padding: 0.9rem;
-  border: 1px dashed #cfdee3;
-  border-radius: 14px;
+  padding: 0.62rem;
+  border: 1px solid #dfebee;
+  border-radius: 11px;
   background: #f9fcfd;
 }
 
-.activity-form__subsection-title {
-  padding: 0 0.25rem;
-  color: #5d7a84;
-  font-size: 0.88rem;
-  font-weight: 850;
+.activity-form__recurrence-fields[hidden] {
+  display: none;
 }
 
 .activity-form__actions {
   margin-top: 0;
-  padding: 0.1rem 0.15rem 0;
+  padding: 0.7rem 0 0;
+  border-top: 1px solid #e6eff2;
 }
 
 .activity-form__actions .button {
-  min-height: 42px;
-  border-radius: 12px;
-  padding: 0.58rem 0.95rem;
+  min-height: 39px;
+  border-radius: 10px;
+  padding: 0.52rem 0.85rem;
 }
 
-.activity-date-control {
+.activity-picker-control {
   position: relative;
-  max-width: 100%;
+  min-width: 0;
 }
 
-.activity-date-input[aria-invalid="true"] + .activity-date-trigger {
+.activity-picker-control:has(.activity-picker-input[aria-invalid="true"]) .activity-picker-trigger {
   border-color: var(--danger);
 }
 
-.activity-date-trigger {
+.activity-picker-trigger {
   width: 100%;
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 16px;
+  grid-template-columns: 17px minmax(0, 1fr) 14px;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
   text-align: left;
-  color: var(--ink);
   cursor: pointer;
 }
 
-.activity-date-trigger__icon {
+.activity-picker-trigger__icon {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 16px;
+  height: 16px;
   border: 1.5px solid #7799a4;
   border-radius: 4px;
-  color: transparent;
-  position: relative;
 }
 
-.activity-date-trigger__icon::before,
-.activity-date-trigger__icon::after {
+.activity-picker-trigger__icon::before,
+.activity-picker-trigger__icon::after {
   content: "";
   position: absolute;
 }
 
-.activity-date-trigger__icon::before {
+.activity-picker-trigger__icon::before {
   left: 2px;
   right: 2px;
   top: 4px;
   border-top: 1.5px solid #7799a4;
 }
 
-.activity-date-trigger__icon::after {
+.activity-picker-trigger__icon::after {
   width: 7px;
   height: 2px;
   top: -2px;
@@ -205,32 +261,32 @@
   border-right: 1.5px solid #7799a4;
 }
 
-.activity-date-trigger__value {
+.activity-picker-trigger__value {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.activity-date-trigger__value--placeholder {
+.activity-picker-trigger__value--placeholder {
   color: #8c9da3;
 }
 
-.activity-date-trigger__chevron {
+.activity-picker-trigger__chevron {
   color: #75919b;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
 .activity-date-picker {
   position: absolute;
-  z-index: 60;
-  top: calc(100% + 0.45rem);
+  z-index: 70;
+  top: calc(100% + 0.38rem);
   left: 0;
-  width: min(310px, calc(100vw - 3.2rem));
-  padding: 0.75rem;
+  width: min(322px, calc(100vw - 2.8rem));
+  padding: 0.68rem;
   border: 1px solid #d6e5ea;
-  border-radius: 16px;
+  border-radius: 14px;
   background: #fff;
   box-shadow: 0 16px 38px rgba(53, 91, 105, 0.16);
 }
@@ -241,28 +297,28 @@
 
 .activity-date-picker__header {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   align-items: center;
-  gap: 0.35rem;
-  margin-bottom: 0.48rem;
+  gap: 0.3rem;
+  margin-bottom: 0.4rem;
 }
 
 .activity-date-picker__title {
   color: #405f69;
-  font-size: 0.93rem;
+  font-size: 0.89rem;
   text-align: center;
 }
 
 .activity-date-picker__nav {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: #67858f;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   cursor: pointer;
 }
 
@@ -280,13 +336,13 @@
 }
 
 .activity-date-picker__weekdays {
-  margin-bottom: 0.18rem;
+  margin-bottom: 0.12rem;
 }
 
 .activity-date-picker__weekdays span {
-  padding: 0.26rem 0;
+  padding: 0.22rem 0;
   color: #8ba0a7;
-  font-size: 0.69rem;
+  font-size: 0.66rem;
   font-weight: 800;
   text-align: center;
 }
@@ -305,10 +361,10 @@
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   color: #4d666f;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -333,41 +389,169 @@
   box-shadow: none;
 }
 
+.activity-date-picker__footer {
+  display: grid;
+  gap: 0.58rem;
+  margin-top: 0.58rem;
+  padding-top: 0.58rem;
+  border-top: 1px solid #e6eff2;
+}
+
+.activity-date-picker__footer--single {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.activity-date-picker__done {
+  min-height: 34px;
+  padding: 0.4rem 0.7rem;
+  border-radius: 9px;
+  font-size: 0.8rem;
+}
+
+.activity-time-picker__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.activity-time-picker {
+  min-width: 0;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.activity-time-picker__label {
+  color: #5b7781;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.activity-time-picker__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.22rem;
+  min-width: 0;
+}
+
+.activity-form .activity-time-picker__select {
+  width: 54px;
+  min-height: 34px;
+  padding: 0.36rem 1.15rem 0.36rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  background-position:
+    calc(100% - 9px) calc(50% - 2px),
+    calc(100% - 5px) calc(50% - 2px);
+  background-size: 4px 4px, 4px 4px;
+}
+
+.activity-time-picker__colon {
+  color: #78919a;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.activity-time-picker__clear {
+  min-height: 30px;
+  margin-left: 0.15rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #dce9ed;
+  border-radius: 8px;
+  background: #f7fafb;
+  color: #708991;
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.activity-time-picker__clear:hover {
+  background: #eef6f8;
+}
+
 @media (min-width: 640px) {
   .activity-form {
-    gap: 1.15rem;
-    padding: 1.1rem;
+    padding: 0.95rem 1rem;
   }
 
-  .activity-form__section {
-    padding: 1.1rem 1.15rem;
+  .activity-form__basic-grid,
+  .activity-form__location-row,
+  .activity-form__notice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-form__basic-grid {
+    grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.7fr);
+  }
+
+  .activity-form__schedule-row {
+    grid-template-columns: minmax(260px, 1.35fr) minmax(230px, 1fr) auto;
+  }
+
+  .activity-form__participation-row {
+    grid-template-columns: minmax(110px, 0.7fr) minmax(120px, 0.8fr) minmax(180px, 1.2fr) minmax(150px, 0.9fr);
+  }
+
+  .activity-form__recurrence-fields {
+    grid-template-columns: minmax(150px, 0.8fr) minmax(130px, 0.7fr) minmax(220px, 1.1fr);
   }
 
   .activity-form__field--select select {
-    max-width: 320px;
+    max-width: none;
   }
 
-  .activity-form__field--number input,
-  .activity-form__field--time input {
-    max-width: 180px;
+  .activity-form__field--number input {
+    max-width: none;
   }
 
-  .activity-date-control {
-    max-width: 260px;
+  .activity-form__notice-grid .activity-form__textarea {
+    min-height: 78px;
+  }
+
+  .activity-form__actions .button {
+    min-width: 108px;
   }
 }
 
 @media (min-width: 900px) {
-  .activity-form__schedule-grid {
-    grid-template-columns: minmax(210px, 1fr) minmax(230px, 1.15fr) 165px 165px;
-    align-items: start;
+  .activity-form__section {
+    gap: 0.68rem;
   }
 
-  .activity-form__schedule-grid .activity-form__field {
-    min-width: 0;
+  .activity-form__cluster + .activity-form__cluster {
+    padding-top: 0.62rem;
   }
 
-  .activity-form__actions .button {
-    min-width: 112px;
+  .activity-form__description-field textarea {
+    min-height: 76px;
+  }
+}
+
+@media (max-width: 639px) {
+  .activity-form-page-header {
+    margin-bottom: 0.2rem;
+  }
+
+  .activity-form {
+    padding-inline: 0.75rem;
+  }
+
+  .activity-form__schedule-row,
+  .activity-form__participation-row,
+  .activity-form__recurrence-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-form__repeat-toggle {
+    width: 100%;
+  }
+
+  .activity-date-picker {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .activity-date-picker__footer--single {
+    grid-template-columns: 1fr auto;
   }
 }
