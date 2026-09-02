@@ -227,6 +227,17 @@ async function handleSubmit(submitEvent, context) {
     "start_time",
     "location_name",
   ]);
+  if (!form.event_date.value && !form.start_time.value) {
+    setFieldError(form, "event_date", "활동 날짜와 시작 시간을 선택해 주세요.");
+    setFieldError(form, "start_time");
+    valid = false;
+  } else if (!form.event_date.value) {
+    setFieldError(form, "event_date", "활동 날짜를 선택해 주세요.");
+    valid = false;
+  } else if (!form.start_time.value) {
+    setFieldError(form, "start_time", "시작 시간을 선택해 주세요.");
+    valid = false;
+  }
   if (!validateUrl(form.location_url.value)) {
     setFieldError(form, "location_url", "http 또는 https로 시작하는 올바른 링크를 입력해 주세요.");
     valid = false;
