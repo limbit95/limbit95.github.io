@@ -178,6 +178,9 @@ function groupDetailContentColumns(body, mapCard) {
 function enhanceActivityDetailBody(body) {
   if (body.dataset.locationMapEnhanced === "true") return;
 
+  const noticeTitle = body.querySelector(":scope > .notice-box--warning > strong");
+  if (noticeTitle) noticeTitle.textContent = "참여자 주의사항";
+
   const page = body.parentElement;
   const locationMeta = page ? findLocationMeta(page) : null;
   const locationLink = locationMeta?.querySelector("a.activity-detail__meta-value");
