@@ -1,0 +1,251 @@
+@media (max-width: 899px) {
+  .activity-detail-hero {
+    gap: .8rem;
+    padding: .95rem;
+  }
+
+  .activity-detail__header {
+    gap: .65rem;
+  }
+
+  .activity-detail__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+
+  .activity-detail__meta {
+    min-height: 54px;
+    padding: .5rem .62rem;
+  }
+
+  .activity-detail__meta-body {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: .42rem;
+  }
+
+  .activity-detail__meta-value {
+    padding-left: .58rem;
+  }
+
+  .activity-detail__participation-panel {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .activity-detail__utility-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-detail__utility-actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 639px) {
+  .activity-form-page-header {
+    margin-bottom: .18rem;
+  }
+
+  .activity-form-notice {
+    margin-bottom: .45rem;
+    padding: .58rem .68rem;
+    font-size: .76rem;
+  }
+
+  .activity-form {
+    padding: .72rem;
+    border-radius: 14px;
+  }
+
+  .activity-form__section {
+    gap: .68rem;
+    padding-bottom: .78rem;
+  }
+
+  .activity-form__section + .activity-form__section {
+    padding-top: .78rem;
+  }
+
+  .activity-form__section-title {
+    font-size: .96rem;
+  }
+
+  .activity-form__basic-grid,
+  .activity-form__location-row,
+  .activity-form__notice-grid,
+  .activity-form__schedule-row,
+  .activity-form__participation-row,
+  .activity-form__recurrence-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form__cluster {
+    gap: .5rem;
+  }
+
+  .activity-form input:not([type="checkbox"]):not([type="hidden"]),
+  .activity-form textarea,
+  .activity-form select,
+  .activity-picker-trigger {
+    min-height: 42px;
+    font-size: .88rem;
+  }
+
+  .activity-form textarea,
+  .activity-form__textarea--description {
+    min-height: 88px;
+  }
+
+  .activity-form__toggle,
+  .activity-form__toggle--compact {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .activity-date-picker {
+    width: min(100%, calc(100vw - 2rem));
+    padding: .62rem;
+  }
+
+  .activity-date-picker__footer--single,
+  .activity-time-picker__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-time-picker__controls {
+    flex-wrap: wrap;
+  }
+
+  .activity-form .activity-time-picker__select {
+    width: 68px;
+    min-height: 38px;
+  }
+
+  .activity-form__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .5rem;
+  }
+
+  .activity-form__actions .button {
+    width: 100%;
+    min-height: 42px;
+  }
+
+  .activity-detail-hero {
+    gap: .7rem;
+    padding: .85rem;
+  }
+
+  .activity-detail__header {
+    align-items: flex-start;
+  }
+
+  .activity-detail__title-group {
+    gap: .24rem;
+  }
+
+  .activity-detail__summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .46rem;
+  }
+
+  .activity-detail__meta {
+    min-height: 52px;
+    padding: .48rem .58rem;
+    border-radius: 12px;
+  }
+
+  .activity-detail__meta-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .activity-detail__meta-body {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .activity-detail__meta-label {
+    font-size: .7rem;
+  }
+
+  .activity-detail__meta-value {
+    padding-left: .52rem;
+    font-size: .84rem;
+  }
+
+  .activity-detail__participation-panel {
+    gap: .5rem;
+    padding: .62rem;
+    border-radius: 13px;
+  }
+
+  .activity-detail__participation-overview {
+    padding: .7rem .72rem;
+  }
+
+  .activity-detail__overview-deadline {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .activity-detail__overview-deadline-date {
+    justify-self: end;
+    text-align: right;
+  }
+
+  .activity-detail__participation-button {
+    min-height: 44px;
+  }
+
+  .activity-detail__utility-actions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .42rem;
+  }
+
+  .activity-detail__utility-actions .button {
+    min-height: 42px;
+  }
+
+  .activity-participants-dialog__summary {
+    align-items: flex-start;
+  }
+
+  .activity-participants-dialog__list .participant-person {
+    padding: .65rem .55rem;
+  }
+
+  .activity-detail__management {
+    gap: .65rem;
+    padding-top: .75rem;
+  }
+
+  .activity-detail__cancel-schedule {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-form {
+    padding: .65rem;
+  }
+
+  .activity-date-picker {
+    width: min(100%, calc(100vw - 1.5rem));
+  }
+
+  .activity-detail-hero {
+    padding: .78rem;
+  }
+
+  .activity-detail__overview-deadline {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .14rem;
+  }
+
+  .activity-detail__overview-deadline-date {
+    justify-self: start;
+    text-align: left;
+  }
+}

@@ -1,0 +1,405 @@
+.activity-detail-hero {
+  gap: 1rem;
+  padding: clamp(1.05rem, 3vw, 1.55rem);
+  border-top-color: var(--category-color, rgba(116, 157, 173, .2));
+}
+
+.activity-detail__header {
+  align-items: flex-start;
+}
+
+.activity-detail__title-group {
+  min-width: 0;
+  display: grid;
+  gap: .32rem;
+}
+
+.activity-detail__summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .52rem;
+}
+
+.activity-detail__meta {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: .62rem;
+  min-height: 52px;
+  padding: .48rem .68rem;
+  border: 1px solid #e2edf0;
+  border-radius: 14px;
+  background: #f8fbfc;
+}
+
+.activity-detail__meta-icon {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf4f7;
+  font-size: 1rem;
+}
+
+.activity-detail__meta-body {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: .5rem;
+}
+
+.activity-detail__meta-label {
+  color: #8299a2;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.activity-detail__meta-value {
+  min-width: 0;
+  padding-left: .72rem;
+  border-left: 1px solid #d6e4e8;
+  color: #45636e;
+  font-size: .9rem;
+  font-weight: 820;
+  line-height: 1.42;
+  overflow-wrap: anywhere;
+}
+
+.activity-detail__meta--schedule .activity-detail__meta-value {
+  white-space: normal;
+}
+
+a.activity-detail__meta-value:hover {
+  color: #365d6b;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.activity-detail__participation-panel {
+  width: min(100%, 270px);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .58rem;
+  margin-left: auto;
+  padding: .72rem;
+  border: 1px solid #cfe2e8;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #f4fafc 0%, #edf6f9 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
+}
+
+.activity-detail__participation-overview {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  display: grid;
+  gap: .32rem;
+  padding: .78rem .82rem;
+  border: 1px solid rgba(190, 216, 225, .86);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .8);
+}
+
+.activity-detail__overview-heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.activity-detail__overview-label {
+  color: #78929c;
+  font-size: .72rem;
+  font-weight: 850;
+}
+
+.activity-detail__overview-count {
+  flex: 0 0 auto;
+  color: #405f6b;
+  font-size: 1.14rem;
+  line-height: 1.15;
+}
+
+.activity-detail__overview-waitlist {
+  color: #7b9199;
+  font-size: .72rem;
+  line-height: 1.3;
+}
+
+.activity-detail__my-status {
+  width: fit-content;
+  margin-top: .04rem;
+  padding: .2rem .38rem;
+  border-radius: 999px;
+  background: #eef6f8;
+  color: #56737d;
+  font-size: .72rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.activity-detail__overview-deadline {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: .55rem;
+  margin-top: .24rem;
+  padding-top: .48rem;
+  border-top: 1px solid #e2ecef;
+}
+
+.activity-detail__overview-deadline-label {
+  color: #8299a2;
+  font-size: .68rem;
+  font-weight: 800;
+}
+
+.activity-detail__overview-deadline-date {
+  min-width: 0;
+  justify-self: end;
+  color: #5f7881;
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.activity-detail__participants-button {
+  width: 100%;
+  min-height: 34px;
+  margin-top: .18rem;
+  padding: .34rem .42rem;
+  border-radius: 8px;
+  font-size: .73rem;
+}
+
+.activity-detail__participation-action {
+  grid-column: 1;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+}
+
+.activity-detail__participation-button {
+  width: 100%;
+  min-height: 42px;
+  border-radius: 10px;
+  font-size: .86rem;
+}
+
+.activity-detail__participation-button--primary {
+  color: #fff;
+  border-color: var(--forest-900);
+  background: var(--forest-900);
+  box-shadow: 0 7px 16px rgba(72, 104, 117, .16);
+}
+
+.activity-detail__participation-button--primary:hover {
+  color: #fff;
+  border-color: #3d5e6a;
+  background: #3d5e6a;
+  box-shadow: 0 9px 19px rgba(72, 104, 117, .2);
+}
+
+.activity-detail__closed-message {
+  padding: .62rem .68rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .72);
+  color: #758b93;
+  font-size: .78rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.activity-detail__utility-actions {
+  gap: .48rem;
+  padding-top: .12rem;
+}
+
+.activity-detail__utility-actions .button {
+  min-height: 39px;
+  padding: .48rem .72rem;
+  border-radius: 11px;
+  font-size: .82rem;
+}
+
+.activity-detail__body {
+  margin-top: 1rem;
+}
+
+.activity-detail__content-card {
+  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));
+}
+
+.activity-participants-dialog {
+  min-width: 0;
+  gap: .9rem;
+}
+
+.activity-participants-dialog__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  padding-bottom: .7rem;
+  border-bottom: 1px solid #e4edef;
+}
+
+.activity-participants-dialog__summary > strong {
+  color: #45636e;
+  font-size: .92rem;
+}
+
+.activity-participants-dialog__list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.activity-participants-dialog__list .participant-person {
+  min-width: 0;
+  padding: .72rem;
+}
+
+.activity-participants-dialog__list .profile-trigger__menu {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
+.activity-participants-dialog__empty {
+  padding: 1.2rem .9rem;
+  border: 1px dashed #d8e7eb;
+  border-radius: 12px;
+  background: #f8fbfc;
+  color: #7a9199;
+  font-size: .86rem;
+  text-align: center;
+}
+
+.activity-detail__management {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .3rem;
+  padding: .9rem .1rem .1rem;
+  border-top: 1px solid #e3ecef;
+}
+
+.activity-detail__management-copy {
+  min-width: 0;
+  display: grid;
+  gap: .15rem;
+}
+
+.activity-detail__management-copy > strong {
+  color: #6d8188;
+  font-size: .83rem;
+}
+
+.activity-detail__cancel-schedule {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: .46rem .72rem;
+  border-color: #e3c8cb;
+  border-radius: 11px;
+  background: transparent;
+  color: #9a666d;
+  font-size: .8rem;
+  box-shadow: none;
+}
+
+.activity-detail__cancel-schedule:hover {
+  border-color: #d9b7bb;
+  background: #fff5f6;
+  color: #8f5961;
+  box-shadow: none;
+}
+
+@media (min-width: 900px) {
+  .activity-detail-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 270px;
+    column-gap: .52rem;
+    justify-content: stretch;
+    align-items: start;
+  }
+
+  .activity-detail__header,
+  .activity-detail__utility-actions {
+    grid-column: 1 / -1;
+  }
+
+  .activity-detail__summary {
+    width: 100%;
+    max-width: none;
+    grid-column: 1 / 3;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: max-content;
+    align-content: start;
+    align-self: start;
+  }
+
+  .activity-detail__participation-panel {
+    width: 100%;
+    grid-column: 3;
+    grid-row: 2;
+    align-self: stretch;
+    margin-left: 0;
+  }
+
+  .activity-detail__utility-actions {
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 620px) {
+  .activity-detail__meta-body {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: .42rem;
+  }
+
+  .activity-detail__participation-panel {
+    width: 100%;
+    margin-left: 0;
+    padding: .72rem;
+  }
+
+  .activity-detail__overview-deadline-date {
+    white-space: normal;
+  }
+
+  .activity-detail__management {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-detail__meta {
+    min-height: 50px;
+    padding: .46rem .6rem;
+  }
+
+  .activity-detail__meta-body {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .activity-detail__overview-deadline {
+    grid-template-columns: 1fr;
+    gap: .12rem;
+  }
+
+  .activity-detail__overview-deadline-date {
+    justify-self: start;
+    text-align: left;
+  }
+}
