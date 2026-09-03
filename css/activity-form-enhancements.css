@@ -181,7 +181,7 @@
 
 @media (min-width: 1040px) {
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
-    grid-column: 1 / span 2 !important;
+    grid-column: 5 / span 2 !important;
     grid-row: 3 !important;
     align-self: start;
   }
