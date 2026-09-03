@@ -31,10 +31,11 @@ export async function renderActivityDetail(route) {
   const mine = getMyParticipation(event, auth.user.id);
   const canManage = canManageCategory(event.category_id);
   const root = pageContainer();
+  const categoryColor = event.category?.color ?? "#2f6b4f";
 
   const detail = el("section", {
     className: "detail-hero activity-detail-hero",
-    style: { "--category-color": event.category?.color ?? "#2f6b4f" },
+    style: { "--category-color": categoryColor },
   }, [
     el("div", { className: "page-header activity-detail__header" }, [
       el("div", { className: "activity-detail__title-group" }, [
@@ -67,12 +68,15 @@ export async function renderActivityDetail(route) {
     ]),
   ]);
 
-  const body = el("div", { className: "page-stack activity-detail__body" }, [
-    el("section", { className: "card page-stack" }, [
+  const body = el("div", {
+    className: "page-stack activity-detail__body",
+    style: { "--category-color": categoryColor },
+  }, [
+    el("section", { className: "card page-stack activity-detail__content-card" }, [
       el("h2", { className: "section-title", text: "활동 소개" }),
       el("p", { className: "prose", text: event.description }),
     ]),
-    event.preparation ? el("section", { className: "card page-stack" }, [
+    event.preparation ? el("section", { className: "card page-stack activity-detail__content-card" }, [
       el("h2", { className: "section-title", text: "🎒 준비물" }),
       el("p", { className: "prose", text: event.preparation }),
     ]) : null,
@@ -131,19 +135,20 @@ function createParticipationPanel(event, mine, counts, participants, root) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(event.registration_deadline));
+  const headline = participationHeadline(event, mine, counts);
 
   return el("aside", { className: "activity-detail__participation-panel" }, [
     el("div", { className: "activity-detail__participation-main" }, [
       el("div", { className: "activity-detail__participation-copy" }, [
-        el("span", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
-        el("strong", {
-          className: "activity-detail__participation-title",
-          text: participationHeadline(event, mine, counts),
-        }),
-        el("span", {
-          className: "activity-detail__deadline",
-          text: `신청 마감 · ${deadline}`,
-        }),
+        el("strong", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
+        headline
+          ? el("span", {
+              className: "activity-detail__participation-title",
+              text: headline,
+            })
+          : null,
+        el("span", { className: "activity-detail__deadline-label", text: "신청 마감" }),
+        el("span", { className: "activity-detail__deadline-date", text: deadline }),
         mine && mine.status !== "cancelled"
           ? el("span", {
               className: "activity-detail__my-status",
@@ -186,8 +191,7 @@ function participationHeadline(event, mine, counts) {
   }
   if (!registrationOpen) return "현재 신청이 마감됐어요";
   if (event.capacity && counts.joined >= event.capacity) return "정원이 찼지만 대기 신청할 수 있어요";
-  if (event.capacity) return `지금 ${event.capacity - counts.joined}자리 남아 있어요`;
-  return "이 활동에 함께해 보세요";
+  return "";
 }
 
 function createParticipationAction(event, mine, counts, root) {
