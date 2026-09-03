@@ -1,5 +1,6 @@
 import { canManageCategory, getAuthState } from "../auth.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
+import { enhanceActivityDetails } from "../activity-detail-map.js";
 import {
   cancelEventParticipation,
   getEvent,
@@ -81,7 +82,7 @@ export async function renderActivityDetail(route) {
       el("p", { className: "prose", text: event.preparation }),
     ]) : null,
     event.participant_notice ? el("section", { className: "notice-box notice-box--warning" }, [
-      el("strong", { text: "참여 전 확인해 주세요" }),
+      el("strong", { text: "참여자 주의사항" }),
       el("p", { className: "prose", text: event.participant_notice }),
     ]) : null,
     canManage && event.status !== "cancelled"
@@ -90,6 +91,7 @@ export async function renderActivityDetail(route) {
   ]);
 
   root.append(detail, body);
+  enhanceActivityDetails(root, event);
   return root;
 }
 

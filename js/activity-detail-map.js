@@ -1,4 +1,5 @@
 import { NAVER_MAPS_CLIENT_ID } from "./config.js";
+import { locationCoordinates, resolveLocationCoordinates } from "./location-geocoding.js";
 
 const DETAIL_BODY_SELECTOR = ".activity-detail__body";
 const LOCATION_LABEL = "장소";
@@ -8,7 +9,7 @@ function ensureDetailMapStyles() {
   if (document.querySelector('link[data-activity-detail-map-styles="true"]')) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/activity-detail-map.css", import.meta.url).href;
+  link.href = new URL("./css/activity-detail-map.css", document.baseURI).href;
   link.dataset.activityDetailMapStyles = "true";
   document.head.append(link);
 }
@@ -25,17 +26,20 @@ function locationNameFromLink(link) {
 
 function loadNaverMapsSdk() {
   if (!NAVER_MAPS_CLIENT_ID) return Promise.resolve(null);
-  if (window.naver?.maps?.Service) return Promise.resolve(window.naver);
+  if (window.naver?.maps) return Promise.resolve(window.naver);
   if (naverMapsSdkPromise) return naverMapsSdkPromise;
 
   naverMapsSdkPromise = new Promise((resolve) => {
     const callbackName = `__cheongpaNaverMapsReady${Date.now()}`;
+    let settled = false;
     const finish = (value) => {
+      if (settled) return;
+      settled = true;
       delete window[callbackName];
       resolve(value);
     };
 
-    window[callbackName] = () => finish(window.naver?.maps?.Service ? window.naver : null);
+    window[callbackName] = () => finish(window.naver?.maps ? window.naver : null);
 
     const script = document.createElement("script");
     script.async = true;
@@ -43,6 +47,8 @@ function loadNaverMapsSdk() {
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(NAVER_MAPS_CLIENT_ID)}&submodules=geocoder&callback=${callbackName}`;
     script.addEventListener("error", () => finish(null), { once: true });
     document.head.append(script);
+
+    window.setTimeout(() => finish(window.naver?.maps ? window.naver : null), 8000);
   });
 
   return naverMapsSdkPromise;
@@ -53,45 +59,64 @@ function setFallbackMessage(fallback, message) {
   if (copy) copy.textContent = message;
 }
 
-async function hydrateNaverMap(canvas, fallback, locationName) {
+function geocodeWithNaver(naver, locationName) {
+  if (!naver?.maps?.Service) return Promise.resolve(null);
+
+  return new Promise((resolve) => {
+    naver.maps.Service.geocode({ query: locationName }, (status, response) => {
+      if (status !== naver.maps.Service.Status.OK) {
+        resolve(null);
+        return;
+      }
+
+      const address = response?.v2?.addresses?.[0];
+      const latitude = Number(address?.y);
+      const longitude = Number(address?.x);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        resolve(null);
+        return;
+      }
+      resolve({ latitude, longitude });
+    });
+  });
+}
+
+async function resolveMapCoordinates(naver, locationName, event = null) {
+  return locationCoordinates(event ?? {})
+    ?? await resolveLocationCoordinates(locationName)
+    ?? await geocodeWithNaver(naver, locationName);
+}
+
+async function hydrateNaverMap(canvas, fallback, locationName, event = null) {
   const naver = await loadNaverMapsSdk();
-  if (!naver?.maps?.Service || !canvas.isConnected) {
+  if (!naver?.maps || !canvas.isConnected) {
     if (NAVER_MAPS_CLIENT_ID) {
       setFallbackMessage(fallback, "지도 미리보기를 불러오지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
     }
     return;
   }
 
-  naver.maps.Service.geocode({ query: locationName }, (status, response) => {
-    if (status !== naver.maps.Service.Status.OK || !canvas.isConnected) {
-      setFallbackMessage(fallback, "위치를 지도에서 찾지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
-      return;
-    }
+  const coordinates = await resolveMapCoordinates(naver, locationName, event);
+  if (!coordinates || !canvas.isConnected) {
+    setFallbackMessage(fallback, "위치를 지도에서 찾지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
+    return;
+  }
 
-    const address = response?.v2?.addresses?.[0];
-    const latitude = Number(address?.y);
-    const longitude = Number(address?.x);
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-      setFallbackMessage(fallback, "위치를 지도에서 찾지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
-      return;
-    }
+  const position = new naver.maps.LatLng(coordinates.latitude, coordinates.longitude);
+  canvas.hidden = false;
+  fallback.hidden = true;
 
-    const position = new naver.maps.LatLng(latitude, longitude);
-    canvas.hidden = false;
-    fallback.hidden = true;
-
-    const map = new naver.maps.Map(canvas, {
-      center: position,
-      zoom: 16,
-      zoomControl: true,
-      zoomControlOptions: { position: naver.maps.Position.TOP_RIGHT },
-      mapDataControl: false,
-    });
-    new naver.maps.Marker({ map, position });
+  const map = new naver.maps.Map(canvas, {
+    center: position,
+    zoom: 16,
+    zoomControl: true,
+    zoomControlOptions: { position: naver.maps.Position.TOP_RIGHT },
+    mapDataControl: false,
   });
+  new naver.maps.Marker({ map, position });
 }
 
-function createMapCard(locationName, registeredMapUrl) {
+function createMapCard(locationName, registeredMapUrl, event = null) {
   const card = document.createElement("section");
   card.className = "card page-stack activity-detail__content-card activity-detail__map-card";
 
@@ -142,9 +167,16 @@ function createMapCard(locationName, registeredMapUrl) {
 
   fallback.append(pin, name, copy);
   frame.append(canvas, fallback);
-  card.append(heading, frame);
 
-  void hydrateNaverMap(canvas, fallback, locationName);
+  const attribution = document.createElement("span");
+  attribution.className = "small subtle activity-detail__map-attribution";
+  attribution.textContent = "장소 좌표 검색 © OpenStreetMap contributors";
+
+  card.append(heading, frame, attribution);
+
+  requestAnimationFrame(() => {
+    void hydrateNaverMap(canvas, fallback, locationName, event);
+  });
   return card;
 }
 
@@ -175,7 +207,7 @@ function groupDetailContentColumns(body, mapCard) {
   body.dataset.locationMapColumns = "true";
 }
 
-function enhanceActivityDetailBody(body) {
+function enhanceActivityDetailBody(body, event = null) {
   if (body.dataset.locationMapEnhanced === "true") return;
 
   const noticeTitle = body.querySelector(":scope > .notice-box--warning > strong");
@@ -189,7 +221,7 @@ function enhanceActivityDetailBody(body) {
     return;
   }
 
-  const locationName = locationNameFromLink(locationLink);
+  const locationName = event?.location_name?.trim() || locationNameFromLink(locationLink);
   if (!locationName || !locationLink.href) {
     body.dataset.locationMapEnhanced = "true";
     return;
@@ -200,7 +232,7 @@ function enhanceActivityDetailBody(body) {
   locationLink.title = `${locationName} 지도 열기`;
   locationLink.setAttribute("aria-label", `${locationName} 등록된 지도 열기`);
 
-  const mapCard = createMapCard(locationName, locationLink.href);
+  const mapCard = createMapCard(locationName, locationLink.href, event);
   const insertionPoint = body.querySelector(":scope > .notice-box--warning, :scope > .activity-detail__management");
   if (insertionPoint) body.insertBefore(mapCard, insertionPoint);
   else body.append(mapCard);
@@ -209,7 +241,9 @@ function enhanceActivityDetailBody(body) {
   body.dataset.locationMapEnhanced = "true";
 }
 
-export function enhanceActivityDetails(root = document) {
-  if (root instanceof Element && root.matches(DETAIL_BODY_SELECTOR)) enhanceActivityDetailBody(root);
-  root.querySelectorAll?.(DETAIL_BODY_SELECTOR).forEach(enhanceActivityDetailBody);
+export function enhanceActivityDetails(root = document, event = null) {
+  if (root instanceof Element && root.matches(DETAIL_BODY_SELECTOR)) {
+    enhanceActivityDetailBody(root, event);
+  }
+  root.querySelectorAll?.(DETAIL_BODY_SELECTOR).forEach((body) => enhanceActivityDetailBody(body, event));
 }
