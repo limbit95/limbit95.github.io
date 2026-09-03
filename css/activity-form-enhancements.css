@@ -41,6 +41,15 @@
   align-items: start !important;
 }
 
+.activity-form__schedule-row:not(:has(.activity-form__repeat-toggle)) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.activity-form__schedule-row:not(:has(.activity-form__repeat-toggle)) > .activity-form__field--datetime {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
 .activity-form__field--datetime {
   align-self: start;
 }
