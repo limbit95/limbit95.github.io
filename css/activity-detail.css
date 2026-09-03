@@ -270,8 +270,8 @@ a.activity-detail__meta-value:hover {
 }
 
 .activity-participants-dialog__list .profile-trigger__menu {
-  top: auto;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
+  bottom: auto;
 }
 
 .activity-participants-dialog__empty {
