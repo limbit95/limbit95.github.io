@@ -1,7 +1,7 @@
 .activity-form .activity-form__recurrence-fields {
   width: 100%;
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   align-items: start;
   gap: .5rem;
 }
@@ -13,6 +13,18 @@
   flex: none !important;
 }
 
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_frequency"]) {
+  grid-column: 1;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) {
+  grid-column: 2;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_end_date"]) {
+  grid-column: 1 / -1;
+}
+
 .activity-form .activity-form__recurrence-fields > .field > input:not([type="checkbox"]),
 .activity-form .activity-form__recurrence-fields > .field > select,
 .activity-form .activity-form__recurrence-fields > .field > .activity-picker-control,
@@ -20,6 +32,65 @@
   width: 100% !important;
   min-width: 0;
   max-width: none;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) > label {
+  position: relative;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  cursor: help;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) > label::after {
+  content: "i";
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #bfd3da;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b8791;
+  font-size: .65rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) > label::before {
+  content: "예: 2 = 격주/격월";
+  position: absolute;
+  z-index: 90;
+  left: 0;
+  bottom: calc(100% + .48rem);
+  width: max-content;
+  max-width: 180px;
+  padding: .42rem .55rem;
+  border: 1px solid #d7e5e9;
+  border-radius: 8px;
+  background: #405e68;
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(49, 78, 88, .16);
+  font-size: .68rem;
+  font-weight: 650;
+  line-height: 1.4;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+  pointer-events: none;
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) > label:hover::before,
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]):focus-within > label::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) > .field-help {
+  display: none;
 }
 
 @media (max-width: 899px) {
@@ -99,8 +170,7 @@
   .activity-form__location-row,
   .activity-form__notice-grid,
   .activity-form__schedule-row,
-  .activity-form__participation-row,
-  .activity-form__recurrence-fields {
+  .activity-form__participation-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -260,6 +330,16 @@
 @media (max-width: 430px) {
   .activity-form {
     padding: .65rem;
+  }
+
+  .activity-form .activity-form__recurrence-fields {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_frequency"]),
+  .activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_interval"]),
+  .activity-form .activity-form__recurrence-fields > .field:has([name="recurrence_end_date"]) {
+    grid-column: 1;
   }
 
   .activity-date-picker {
