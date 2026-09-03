@@ -259,11 +259,9 @@ a.activity-detail__meta-value:hover {
 }
 
 .activity-participants-dialog__list {
-  max-height: min(52vh, 420px);
-  overflow-y: auto;
-  padding-top: 112px;
-  margin-top: -112px;
-  padding-right: .15rem;
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
 }
 
 .activity-participants-dialog__list .participant-person {
