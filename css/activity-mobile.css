@@ -1,3 +1,7 @@
+.activity-form .activity-form__recurrence-fields[hidden] {
+  display: none !important;
+}
+
 .activity-form .activity-form__recurrence-fields {
   width: 100%;
   display: grid !important;
