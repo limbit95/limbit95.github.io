@@ -1,3 +1,27 @@
+.activity-form .activity-form__recurrence-fields {
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: start;
+  gap: .5rem;
+}
+
+.activity-form .activity-form__recurrence-fields > .field {
+  width: 100% !important;
+  min-width: 0;
+  max-width: none;
+  flex: none !important;
+}
+
+.activity-form .activity-form__recurrence-fields > .field > input:not([type="checkbox"]),
+.activity-form .activity-form__recurrence-fields > .field > select,
+.activity-form .activity-form__recurrence-fields > .field > .activity-picker-control,
+.activity-form .activity-form__recurrence-fields > .field .activity-picker-trigger {
+  width: 100% !important;
+  min-width: 0;
+  max-width: none;
+}
+
 @media (max-width: 899px) {
   .activity-detail-hero {
     gap: .8rem;
