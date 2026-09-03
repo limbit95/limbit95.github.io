@@ -1,3 +1,5 @@
+import { enhanceActivityDetails } from "./activity-detail-map.js";
+
 const FORM_SELECTOR = ".activity-form";
 const NOTICE_SELECTOR = ".activity-form-notice";
 const DESCRIPTION_SELECTOR = ".activity-form-page-header .page-description";
@@ -118,13 +120,18 @@ function enhanceForms(root = document) {
   root.querySelectorAll?.(FORM_SELECTOR).forEach(enhanceActivityForm);
 }
 
+function enhanceApp(root = document) {
+  enhanceForms(root);
+  enhanceActivityDetails(root);
+}
+
 const app = document.getElementById("app");
 if (app) {
-  enhanceForms(app);
+  enhanceApp(app);
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       mutation.addedNodes.forEach((node) => {
-        if (node instanceof Element) enhanceForms(node);
+        if (node instanceof Element) enhanceApp(node);
       });
     }
   });
