@@ -336,7 +336,9 @@ a.activity-detail__meta-value:hover {
     grid-column: 1 / 3;
     grid-row: 2;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-self: stretch;
+    grid-auto-rows: max-content;
+    align-content: start;
+    align-self: start;
   }
 
   .activity-detail__participation-panel {
