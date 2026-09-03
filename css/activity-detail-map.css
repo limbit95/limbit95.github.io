@@ -78,11 +78,11 @@
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid rgba(116, 157, 173, .15);
-  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));
+  border: 1px solid #eadcaf;
+  border-top: 8px solid var(--yellow-600);
   border-radius: var(--radius-md);
-  background: var(--surface);
-  color: var(--ink);
+  background: var(--yellow-100);
+  color: #654a08;
   box-shadow: var(--shadow-sm);
 }
 
@@ -90,7 +90,7 @@
   display: flex;
   align-items: center;
   gap: .42rem;
-  color: var(--forest-900);
+  color: #654a08;
   font-size: 1.25rem;
   line-height: 1.3;
 }
