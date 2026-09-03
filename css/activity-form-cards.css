@@ -303,7 +303,7 @@
   .activity-form {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    align-items: stretch;
+    align-items: start;
   }
 
   .activity-form > .activity-form__section:first-of-type {
@@ -323,13 +323,13 @@
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) {
     grid-column: 1 / span 2;
     grid-row: 2;
-    height: 100%;
+    align-self: start;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) {
     grid-column: 3 / span 2;
     grid-row: 2;
-    height: 100%;
+    align-self: start;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
@@ -342,7 +342,7 @@
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
     grid-column: 5 / span 2;
     grid-row: 2;
-    height: 100%;
+    align-self: start;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
