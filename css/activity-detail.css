@@ -60,6 +60,8 @@
 
 .activity-detail__meta-value {
   min-width: 0;
+  padding-left: .72rem;
+  border-left: 1px solid #d6e4e8;
   color: #45636e;
   font-size: .9rem;
   font-weight: 820;
@@ -259,12 +261,19 @@ a.activity-detail__meta-value:hover {
 .activity-participants-dialog__list {
   max-height: min(52vh, 420px);
   overflow-y: auto;
+  padding-top: 112px;
+  margin-top: -112px;
   padding-right: .15rem;
 }
 
 .activity-participants-dialog__list .participant-person {
   min-width: 0;
   padding: .72rem;
+}
+
+.activity-participants-dialog__list .profile-trigger__menu {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .activity-participants-dialog__empty {
