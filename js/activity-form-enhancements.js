@@ -46,6 +46,30 @@ function preventImplicitEnterSubmit(form) {
   form.dataset.enterSubmitGuard = "true";
 }
 
+function enhanceLocationSearchHint(form) {
+  const locationInput = form.elements.location_name;
+  if (!(locationInput instanceof HTMLInputElement) || locationInput.dataset.mapSearchHintEnhanced === "true") return;
+
+  const field = locationInput.closest(".activity-form__field");
+  if (!field) return;
+
+  const hint = document.createElement("p");
+  hint.className = "activity-form__location-search-hint";
+  hint.textContent = "Enter를 누르면 네이버 지도에서 이 장소를 검색해요.";
+
+  const syncHint = () => {
+    hint.hidden = !locationInput.value.trim();
+  };
+
+  const error = field.querySelector('[data-error-for="location_name"]');
+  if (error) field.insertBefore(hint, error);
+  else field.append(hint);
+
+  locationInput.addEventListener("input", syncHint);
+  syncHint();
+  locationInput.dataset.mapSearchHintEnhanced = "true";
+}
+
 function customizeDeadlineValidation(form) {
   if (form.dataset.deadlineValidationEnhanced === "true") return;
   form.addEventListener("submit", () => {
@@ -68,6 +92,7 @@ function enhanceActivityForm(form) {
   page?.querySelector(NOTICE_SELECTOR)?.remove();
   page?.querySelector(DESCRIPTION_SELECTOR)?.remove();
   preventImplicitEnterSubmit(form);
+  enhanceLocationSearchHint(form);
   customizeDeadlineValidation(form);
 
   const mapInput = form.elements.location_url;

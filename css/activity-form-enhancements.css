@@ -96,6 +96,18 @@
   align-self: center;
 }
 
+.activity-form__location-search-hint {
+  margin: 0;
+  color: #3f7fb6;
+  font-size: .73rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.activity-form__location-search-hint[hidden] {
+  display: none !important;
+}
+
 .activity-form__map-link-field {
   min-width: 0;
 }
