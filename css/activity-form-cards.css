@@ -6,6 +6,10 @@
   box-shadow: none;
 }
 
+.activity-form textarea {
+  resize: none;
+}
+
 .activity-form__section {
   min-width: 0;
   padding: .9rem;
@@ -133,12 +137,19 @@
   font-size: .62rem;
 }
 
-.activity-form__schedule-row,
 .activity-form__location-row,
 .activity-form__participation-row,
 .activity-form__recurrence-fields {
   display: flex;
   flex-wrap: wrap;
+  align-items: end;
+  gap: .58rem;
+}
+
+.activity-form__schedule-row {
+  width: min(100%, 330px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: .58rem;
 }
@@ -149,17 +160,85 @@
 }
 
 .activity-form__field--schedule {
-  flex: 0 1 330px;
-  width: min(100%, 330px);
+  width: 100%;
+  max-width: 330px;
+  grid-column: 1 / -1;
 }
 
 .activity-form__field--datetime {
-  flex: 0 1 270px;
-  width: min(100%, 270px);
+  width: 100%;
+  min-width: 0;
+  grid-column: 1;
 }
 
 .activity-form__repeat-toggle {
-  flex: 0 0 auto;
+  position: relative;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  grid-column: 2;
+  align-self: end;
+  gap: .4rem;
+  padding: .42rem .55rem;
+  white-space: nowrap;
+}
+
+.activity-form__repeat-toggle > span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.activity-form__repeat-toggle .small.subtle {
+  display: none;
+}
+
+.activity-form__repeat-toggle > span::after {
+  content: "i";
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #bfd3da;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b8791;
+  font-size: .65rem;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.activity-form__repeat-toggle > span::before {
+  content: "반복 종료일까지 설정한 주기에 따라 개별 활동 일정이 생성됩니다.";
+  position: absolute;
+  z-index: 90;
+  right: 0;
+  bottom: calc(100% + .55rem);
+  width: 230px;
+  padding: .5rem .6rem;
+  border: 1px solid #d7e5e9;
+  border-radius: 9px;
+  background: #405e68;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(49, 78, 88, .18);
+  font-size: .7rem;
+  font-weight: 650;
+  line-height: 1.45;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+  pointer-events: none;
+}
+
+.activity-form__repeat-toggle:hover > span::before,
+.activity-form__repeat-toggle:focus-within > span::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
 }
 
 .activity-form__field:has([name="location_name"]) {
@@ -290,8 +369,30 @@
   .activity-form__participation-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
+    align-items: start;
     gap: .6rem;
+  }
+
+  .activity-form__participation-row > .field {
+    min-width: 0;
+    width: 100%;
+    display: grid;
+    grid-template-rows: auto 38px auto;
+    align-content: start;
+  }
+
+  .activity-form__participation-row > .field > input:not([type="checkbox"]),
+  .activity-form__participation-row > .field > .activity-form__toggle {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .activity-form__beginner-field {
+    grid-template-rows: auto 38px;
+  }
+
+  .activity-form__beginner-field .activity-form__toggle {
+    min-height: 38px;
   }
 
   .activity-form__field:has([name="capacity"]),
@@ -342,12 +443,15 @@
   .activity-form__basic-grid > .field:first-child,
   .activity-form__basic-grid > .field:nth-child(2),
   .activity-form__description-field,
-  .activity-form__field--schedule,
-  .activity-form__field--datetime,
   .activity-form__field:has([name="location_name"]),
   .activity-form__field:has([name="location_url"]) {
     flex-basis: 100%;
     width: 100%;
+  }
+
+  .activity-form__schedule-row {
+    width: 100%;
+    max-width: 330px;
   }
 
   .activity-form__notice-grid {
@@ -385,7 +489,12 @@
   .activity-form__participation-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
+    align-items: start;
+  }
+
+  .activity-form__participation-row > .field {
+    min-width: 0;
+    width: 100%;
   }
 
   .activity-form__field:has([name="capacity"]),
@@ -393,6 +502,11 @@
   .activity-form__field:has([name="difficulty"]),
   .activity-form__beginner-field {
     width: 100%;
+  }
+
+  .activity-form__repeat-toggle {
+    width: auto;
+    min-height: 38px;
   }
 
   .activity-form__recurrence-fields > .field {
@@ -407,5 +521,28 @@
 
   .activity-form__actions .button {
     width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-form__schedule-row {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .activity-form__field--schedule,
+  .activity-form__field--datetime,
+  .activity-form__repeat-toggle {
+    grid-column: 1;
+  }
+
+  .activity-form__repeat-toggle {
+    justify-self: start;
+  }
+
+  .activity-form__repeat-toggle > span::before {
+    left: 0;
+    right: auto;
+    width: min(230px, calc(100vw - 3rem));
   }
 }
