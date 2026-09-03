@@ -78,11 +78,12 @@ a.activity-detail__meta-value:hover {
 }
 
 .activity-detail__participation-panel {
-  width: min(100%, 440px);
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 150px;
-  gap: .72rem .8rem;
+  grid-template-columns: max-content 132px;
+  gap: .72rem .72rem;
   margin-left: auto;
   padding: .78rem;
   border: 1px solid #cfe2e8;
@@ -115,6 +116,7 @@ a.activity-detail__meta-value:hover {
   color: #3f606c;
   font-size: .92rem;
   line-height: 1.35;
+  white-space: nowrap;
 }
 
 .activity-detail__deadline,
@@ -122,6 +124,10 @@ a.activity-detail__meta-value:hover {
   color: #718b95;
   font-size: .72rem;
   line-height: 1.35;
+}
+
+.activity-detail__deadline {
+  white-space: nowrap;
 }
 
 .activity-detail__my-status {
@@ -141,7 +147,7 @@ a.activity-detail__meta-value:hover {
   display: grid;
   align-content: center;
   gap: .15rem;
-  padding: .62rem .68rem;
+  padding: .62rem .62rem;
   border: 1px solid rgba(190, 216, 225, .86);
   border-radius: 11px;
   background: rgba(255, 255, 255, .78);
@@ -169,7 +175,7 @@ a.activity-detail__meta-value:hover {
   width: 100%;
   min-height: 32px;
   margin-top: .24rem;
-  padding: .32rem .42rem;
+  padding: .32rem .36rem;
   border-radius: 8px;
   font-size: .71rem;
 }
@@ -310,8 +316,9 @@ a.activity-detail__meta-value:hover {
 
 @media (min-width: 900px) {
   .activity-detail-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(400px, 440px);
+    grid-template-columns: minmax(0, 420px) max-content;
     column-gap: 1rem;
+    justify-content: space-between;
     align-items: start;
   }
 
@@ -321,6 +328,8 @@ a.activity-detail__meta-value:hover {
   }
 
   .activity-detail__summary {
+    width: 100%;
+    max-width: 420px;
     grid-column: 1;
     grid-row: 2;
     align-self: start;
@@ -349,6 +358,11 @@ a.activity-detail__meta-value:hover {
     gap: .68rem;
     margin-left: 0;
     padding: .72rem;
+  }
+
+  .activity-detail__participation-title,
+  .activity-detail__deadline {
+    white-space: normal;
   }
 
   .activity-detail__management {
