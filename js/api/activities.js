@@ -1,3 +1,4 @@
+import { resolveLocationCoordinates } from "../location-geocoding.js";
 import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
@@ -13,6 +14,8 @@ const EVENT_COLUMNS = [
   "end_time",
   "location_name",
   "location_url",
+  "location_latitude",
+  "location_longitude",
   "capacity",
   "fee_text",
   "difficulty",
@@ -38,6 +41,8 @@ const EVENT_SERIES_COLUMNS = [
   "recurrence_rule",
   "location_name",
   "location_url",
+  "location_latitude",
+  "location_longitude",
   "capacity",
   "fee_text",
   "difficulty",
@@ -59,6 +64,27 @@ const EVENT_DETAIL_COLUMNS = `
   category:activity_categories(${CATEGORY_COLUMNS}),
   series:event_series(${EVENT_SERIES_COLUMNS})
 `;
+
+async function withLocationCoordinates(payload) {
+  if (!payload || !Object.prototype.hasOwnProperty.call(payload, "location_name")) return payload;
+
+  const locationName = String(payload.location_name ?? "").trim();
+  if (!locationName) {
+    return {
+      ...payload,
+      location_latitude: null,
+      location_longitude: null,
+    };
+  }
+
+  const coordinates = await resolveLocationCoordinates(locationName);
+  return {
+    ...payload,
+    location_latitude: coordinates?.latitude ?? null,
+    location_longitude: coordinates?.longitude ?? null,
+  };
+}
+
 export async function listCategories({ activeOnly = false } = {}) {
   let query = supabase
     .from("activity_categories")
@@ -143,24 +169,27 @@ export async function getEvent(eventId) {
 }
 
 export async function createEvent(payload) {
+  const locationPayload = await withLocationCoordinates(payload);
   return unwrap(await supabase
     .from("events")
-    .insert(compact(payload))
+    .insert(compact(locationPayload))
     .select(EVENT_COLUMNS)
     .single());
 }
 
 export async function createRecurringEvent(seriesPayload, occurrencePayloads) {
+  const locationSeriesPayload = await withLocationCoordinates(seriesPayload);
   return unwrap(await supabase.rpc("create_recurring_event", {
-    p_series: compact(seriesPayload),
+    p_series: compact(locationSeriesPayload),
     p_occurrences: (occurrencePayloads ?? []).map(compact),
   }));
 }
 
 export async function updateEvent(eventId, payload) {
+  const locationPayload = await withLocationCoordinates(payload);
   return unwrap(await supabase
     .from("events")
-    .update(compact(payload))
+    .update(compact(locationPayload))
     .eq("id", Number(eventId))
     .select(EVENT_COLUMNS)
     .single());
@@ -216,4 +245,3 @@ export async function getMyParticipationOverview({
     historyOffset: Number(data.history_offset ?? historyOffset),
   };
 }
-
