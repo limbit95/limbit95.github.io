@@ -232,11 +232,52 @@ a.activity-detail__meta-value:hover {
 }
 
 .activity-detail__body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 1rem;
   margin-top: 1rem;
 }
 
 .activity-detail__content-card {
+  min-width: 0;
   border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));
+}
+
+.activity-detail__body > .notice-box--warning {
+  grid-column: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(116, 157, 173, .15);
+  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.activity-detail__body > .notice-box--warning > strong {
+  color: var(--forest-900);
+  font-size: 0;
+  line-height: 1.3;
+}
+
+.activity-detail__body > .notice-box--warning > strong::before {
+  content: "⚠️ 참여자 주의사항";
+  font-size: 1.25rem;
+}
+
+.activity-detail__management {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .3rem;
+  padding: .9rem .1rem .1rem;
+  border-top: 1px solid #e3ecef;
 }
 
 .activity-participants-dialog {
@@ -282,16 +323,6 @@ a.activity-detail__meta-value:hover {
   color: #7a9199;
   font-size: .86rem;
   text-align: center;
-}
-
-.activity-detail__management {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: .3rem;
-  padding: .9rem .1rem .1rem;
-  border-top: 1px solid #e3ecef;
 }
 
 .activity-detail__management-copy {
@@ -358,6 +389,17 @@ a.activity-detail__meta-value:hover {
 
   .activity-detail__utility-actions {
     grid-row: 3;
+  }
+}
+
+@media (max-width: 759px) {
+  .activity-detail__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-detail__body > .notice-box--warning,
+  .activity-detail__management {
+    grid-column: 1;
   }
 }
 
