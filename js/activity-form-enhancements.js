@@ -50,15 +50,16 @@ function customizeDeadlineValidation(form) {
   if (form.dataset.deadlineValidationEnhanced === "true") return;
   form.addEventListener("submit", () => {
     const deadline = form.elements.registration_deadline;
+    if (!deadline || deadline.value) return;
+
     const valueText = form.querySelector("#event-registration_deadline-trigger .activity-picker-trigger__value");
-    const dateSelectedWithoutTime = !deadline?.value && valueText?.textContent?.includes("· 시간 선택");
+    const dateSelectedWithoutTime = valueText?.textContent?.includes("시간 선택");
     if (!dateSelectedWithoutTime) return;
-    queueMicrotask(() => {
-      const error = form.querySelector('[data-error-for="registration_deadline"]');
-      deadline.setAttribute("aria-invalid", "true");
-      if (error) error.textContent = "마감 시간을 선택해 주세요.";
-    });
-  }, true);
+
+    const error = form.querySelector('[data-error-for="registration_deadline"]');
+    deadline.setAttribute("aria-invalid", "true");
+    if (error) error.textContent = "마감 시간을 선택해 주세요.";
+  });
   form.dataset.deadlineValidationEnhanced = "true";
 }
 
