@@ -78,123 +78,109 @@ a.activity-detail__meta-value:hover {
 }
 
 .activity-detail__participation-panel {
-  width: fit-content;
-  max-width: 100%;
+  width: min(100%, 320px);
   min-width: 0;
   display: grid;
-  grid-template-columns: max-content 132px;
-  align-items: start;
-  gap: .72rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .58rem;
   margin-left: auto;
-  padding: .78rem;
+  padding: .72rem;
   border: 1px solid #cfe2e8;
   border-radius: 15px;
   background: linear-gradient(145deg, #f4fafc 0%, #edf6f9 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .8);
 }
 
-.activity-detail__participation-main {
-  display: contents;
-}
-
-.activity-detail__participation-copy {
+.activity-detail__participation-overview {
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
   display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: .2rem;
-  padding-top: .04rem;
+  gap: .32rem;
+  padding: .78rem .82rem;
+  border: 1px solid rgba(190, 216, 225, .86);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .8);
 }
 
-.activity-detail__participation-kicker {
-  color: #567985;
-  font-size: .9rem;
-  font-weight: 900;
-  line-height: 1.25;
-  letter-spacing: -.01em;
+.activity-detail__overview-heading {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: .75rem;
 }
 
-.activity-detail__participation-title {
-  margin-top: .08rem;
-  color: #6d8790;
-  font-size: .76rem;
-  font-weight: 700;
-  line-height: 1.35;
-  white-space: nowrap;
-}
-
-.activity-detail__deadline-label {
-  margin-top: .38rem;
-  color: #708a94;
+.activity-detail__overview-label {
+  color: #78929c;
   font-size: .72rem;
-  font-weight: 800;
-  line-height: 1.25;
+  font-weight: 850;
 }
 
-.activity-detail__deadline-date {
-  color: #536f79;
-  font-size: .76rem;
-  font-weight: 760;
+.activity-detail__overview-count {
+  flex: 0 0 auto;
+  color: #405f6b;
+  font-size: 1.14rem;
+  line-height: 1.15;
+}
+
+.activity-detail__overview-waitlist {
+  color: #7b9199;
+  font-size: .72rem;
   line-height: 1.3;
-  white-space: nowrap;
 }
 
 .activity-detail__my-status {
   width: fit-content;
-  margin-top: .18rem;
+  margin-top: .04rem;
   padding: .2rem .38rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .78);
+  background: #eef6f8;
   color: #56737d;
   font-size: .72rem;
   font-weight: 800;
   line-height: 1.35;
 }
 
-.activity-detail__participation-overview {
-  grid-column: 2;
-  grid-row: 1;
+.activity-detail__overview-deadline {
   min-width: 0;
   display: grid;
-  align-content: center;
-  gap: .15rem;
-  padding: .62rem;
-  border: 1px solid rgba(190, 216, 225, .86);
-  border-radius: 11px;
-  background: rgba(255, 255, 255, .78);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: .55rem;
+  margin-top: .24rem;
+  padding-top: .48rem;
+  border-top: 1px solid #e2ecef;
 }
 
-.activity-detail__overview-label {
+.activity-detail__overview-deadline-label {
   color: #8299a2;
-  font-size: .66rem;
-  font-weight: 850;
+  font-size: .68rem;
+  font-weight: 800;
 }
 
-.activity-detail__overview-count {
-  color: #405f6b;
-  font-size: 1.02rem;
-  line-height: 1.2;
-}
-
-.activity-detail__overview-waitlist {
-  color: #7b9199;
-  font-size: .69rem;
-  line-height: 1.25;
+.activity-detail__overview-deadline-date {
+  min-width: 0;
+  justify-self: end;
+  color: #5f7881;
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .activity-detail__participants-button {
   width: 100%;
-  min-height: 32px;
-  margin-top: .24rem;
-  padding: .32rem .36rem;
+  min-height: 34px;
+  margin-top: .18rem;
+  padding: .34rem .42rem;
   border-radius: 8px;
-  font-size: .71rem;
+  font-size: .73rem;
 }
 
 .activity-detail__participation-action {
-  grid-column: 1 / -1;
+  grid-column: 1;
   grid-row: 2;
   width: 100%;
   min-width: 0;
@@ -333,7 +319,7 @@ a.activity-detail__meta-value:hover {
 
 @media (min-width: 900px) {
   .activity-detail-hero {
-    grid-template-columns: minmax(0, 520px) max-content;
+    grid-template-columns: minmax(0, 520px) minmax(280px, 320px);
     column-gap: 1rem;
     justify-content: space-between;
     align-items: start;
@@ -371,14 +357,11 @@ a.activity-detail__meta-value:hover {
 
   .activity-detail__participation-panel {
     width: 100%;
-    grid-template-columns: minmax(0, 1fr) 138px;
-    gap: .68rem;
     margin-left: 0;
     padding: .72rem;
   }
 
-  .activity-detail__participation-title,
-  .activity-detail__deadline-date {
+  .activity-detail__overview-deadline-date {
     white-space: normal;
   }
 
@@ -398,25 +381,13 @@ a.activity-detail__meta-value:hover {
     grid-template-columns: 48px minmax(0, 1fr);
   }
 
-  .activity-detail__participation-panel {
-    grid-template-columns: minmax(0, 1fr);
+  .activity-detail__overview-deadline {
+    grid-template-columns: 1fr;
+    gap: .12rem;
   }
 
-  .activity-detail__participation-copy,
-  .activity-detail__participation-overview,
-  .activity-detail__participation-action {
-    grid-column: 1;
-  }
-
-  .activity-detail__participation-copy {
-    grid-row: 1;
-  }
-
-  .activity-detail__participation-overview {
-    grid-row: 2;
-  }
-
-  .activity-detail__participation-action {
-    grid-row: 3;
+  .activity-detail__overview-deadline-date {
+    justify-self: start;
+    text-align: left;
   }
 }
