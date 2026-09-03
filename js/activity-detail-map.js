@@ -148,6 +148,33 @@ function createMapCard(locationName, registeredMapUrl) {
   return card;
 }
 
+function groupDetailContentColumns(body, mapCard) {
+  const introCard = body.querySelector(":scope > .activity-detail__content-card:not(.activity-detail__map-card)");
+  const notice = body.querySelector(":scope > .notice-box--warning");
+  if (!introCard || !notice) return;
+
+  const management = body.querySelector(":scope > .activity-detail__management");
+  const otherContentCards = Array.from(body.querySelectorAll(":scope > .activity-detail__content-card"))
+    .filter((card) => card !== introCard && card !== mapCard);
+
+  const leftColumn = document.createElement("div");
+  leftColumn.className = "activity-detail__content-column activity-detail__content-column--left";
+  leftColumn.append(introCard, notice);
+
+  const rightColumn = document.createElement("div");
+  rightColumn.className = "activity-detail__content-column activity-detail__content-column--right";
+  rightColumn.append(...otherContentCards, mapCard);
+
+  if (management) {
+    body.insertBefore(leftColumn, management);
+    body.insertBefore(rightColumn, management);
+  } else {
+    body.append(leftColumn, rightColumn);
+  }
+
+  body.dataset.locationMapColumns = "true";
+}
+
 function enhanceActivityDetailBody(body) {
   if (body.dataset.locationMapEnhanced === "true") return;
 
@@ -175,6 +202,7 @@ function enhanceActivityDetailBody(body) {
   if (insertionPoint) body.insertBefore(mapCard, insertionPoint);
   else body.append(mapCard);
 
+  groupDetailContentColumns(body, mapCard);
   body.dataset.locationMapEnhanced = "true";
 }
 
