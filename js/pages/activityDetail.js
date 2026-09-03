@@ -117,17 +117,36 @@ function activityScheduleText(event) {
 }
 
 function statusBadge(status, registrationDeadline = null) {
-  if (status === "scheduled" && registrationDeadline && new Date(registrationDeadline) < new Date()) {
-    return el("span", {
-      className: "status-badge status-badge--muted",
-      text: "■ 신청 마감",
-    });
-  }
-  const variant = status === "cancelled" ? "status-badge--danger" : status === "scheduled" ? "" : "status-badge--muted";
-  return el("span", {
-    className: `status-badge ${variant}`,
-    text: `${status === "scheduled" ? "●" : status === "cancelled" ? "✕" : "■"} ${EVENT_STATUS_LABEL[status] ?? status}`,
-  });
+  const registrationClosed = status === "scheduled"
+    && registrationDeadline
+    && new Date(registrationDeadline) < new Date();
+  const variant = status === "cancelled"
+    ? "status-badge--danger"
+    : registrationClosed || status !== "scheduled"
+      ? "status-badge--muted"
+      : "";
+  const dotColor = status === "cancelled"
+    ? "var(--danger)"
+    : registrationClosed
+      ? "var(--coral-500)"
+      : status === "scheduled"
+        ? "var(--success)"
+        : "#8d9892";
+  const label = registrationClosed ? "신청 마감" : EVENT_STATUS_LABEL[status] ?? status;
+
+  return el("span", { className: `status-badge ${variant}`.trim() }, [
+    el("span", {
+      "aria-hidden": "true",
+      style: {
+        width: "7px",
+        height: "7px",
+        borderRadius: "999px",
+        background: dotColor,
+        flex: "0 0 auto",
+      },
+    }),
+    el("span", { text: label }),
+  ]);
 }
 
 function createParticipationPanel(event, mine, counts, participants, root) {
