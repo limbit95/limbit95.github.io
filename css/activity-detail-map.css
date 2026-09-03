@@ -224,6 +224,39 @@
   .activity-detail__map-card {
     grid-column: 1;
   }
+
+  .activity-detail__body[data-location-map-columns="true"] {
+    row-gap: 10px;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column {
+    display: contents;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column > * {
+    grid-column: 1;
+    margin-top: 0;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column--left > .activity-detail__content-card {
+    order: 1;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column--right > .activity-detail__content-card:not(.activity-detail__map-card) {
+    order: 2;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column--left > .notice-box--warning {
+    order: 3;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] .activity-detail__content-column--right > .activity-detail__map-card {
+    order: 4;
+  }
+
+  .activity-detail__body[data-location-map-columns="true"] > .activity-detail__management {
+    order: 5;
+  }
 }
 
 @media (max-width: 430px) {
