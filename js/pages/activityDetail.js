@@ -135,44 +135,36 @@ function createParticipationPanel(event, mine, counts, participants, root) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(event.registration_deadline));
-  const headline = participationHeadline(event, mine, counts);
 
   return el("aside", { className: "activity-detail__participation-panel" }, [
-    el("div", { className: "activity-detail__participation-main" }, [
-      el("div", { className: "activity-detail__participation-copy" }, [
-        el("strong", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
-        headline
-          ? el("span", {
-              className: "activity-detail__participation-title",
-              text: headline,
-            })
-          : null,
-        el("span", { className: "activity-detail__deadline-label", text: "신청 마감" }),
-        el("span", { className: "activity-detail__deadline-date", text: deadline }),
-        mine && mine.status !== "cancelled"
-          ? el("span", {
-              className: "activity-detail__my-status",
-              text: `내 신청 상태 · ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
-            })
-          : null,
-      ]),
-      createParticipationAction(event, mine, counts, root),
-    ]),
-    createParticipationOverview(event, counts, participants),
+    createParticipationOverview(event, mine, counts, participants, deadline),
+    createParticipationAction(event, mine, counts, root),
   ]);
 }
 
-function createParticipationOverview(event, counts, participants) {
+function createParticipationOverview(event, mine, counts, participants, deadline) {
   const countText = event.capacity
     ? `${counts.joined}/${event.capacity}명`
     : `${counts.joined}명`;
 
   return el("div", { className: "activity-detail__participation-overview" }, [
-    el("span", { className: "activity-detail__overview-label", text: "참여 현황" }),
-    el("strong", { className: "activity-detail__overview-count", text: countText }),
+    el("div", { className: "activity-detail__overview-heading" }, [
+      el("span", { className: "activity-detail__overview-label", text: "참여 현황" }),
+      el("strong", { className: "activity-detail__overview-count", text: countText }),
+    ]),
     counts.waitlisted
       ? el("span", { className: "activity-detail__overview-waitlist", text: `대기 ${counts.waitlisted}명` })
       : el("span", { className: "activity-detail__overview-waitlist", text: "현재 대기 없음" }),
+    mine && mine.status !== "cancelled"
+      ? el("span", {
+          className: "activity-detail__my-status",
+          text: `내 신청 상태 · ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
+        })
+      : null,
+    el("div", { className: "activity-detail__overview-deadline" }, [
+      el("span", { className: "activity-detail__overview-deadline-label", text: "신청 마감" }),
+      el("span", { className: "activity-detail__overview-deadline-date", text: deadline }),
+    ]),
     el("button", {
       className: "button button--secondary activity-detail__participants-button",
       type: "button",
@@ -180,18 +172,6 @@ function createParticipationOverview(event, counts, participants) {
       onClick: (clickEvent) => openParticipantsDialog(participants, counts, clickEvent.currentTarget),
     }),
   ]);
-}
-
-function participationHeadline(event, mine, counts) {
-  const registrationOpen = event.status === "scheduled"
-    && new Date(event.registration_deadline) >= new Date();
-
-  if (mine && mine.status !== "cancelled") {
-    return mine.status === "waitlisted" ? "현재 대기 명단에 있어요" : "참여 신청이 완료됐어요";
-  }
-  if (!registrationOpen) return "현재 신청이 마감됐어요";
-  if (event.capacity && counts.joined >= event.capacity) return "정원이 찼지만 대기 신청할 수 있어요";
-  return "";
 }
 
 function createParticipationAction(event, mine, counts, root) {
