@@ -64,8 +64,7 @@
 }
 
 .activity-form__section:nth-of-type(2) > .activity-form__section-heading {
-  grid-column: 1 / -1;
-  padding-inline: .1rem;
+  display: none;
 }
 
 .activity-form__section:nth-of-type(2) > .activity-form__cluster {
@@ -303,12 +302,12 @@
 @media (min-width: 1040px) {
   .activity-form {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: stretch;
   }
 
   .activity-form > .activity-form__section:first-of-type {
-    grid-column: 1;
+    grid-column: 1 / span 3;
     grid-row: 1;
     height: 100%;
   }
@@ -318,36 +317,37 @@
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__section-heading {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    margin-top: .1rem;
+    display: none;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) {
-    grid-column: 1;
-    grid-row: 3;
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    height: 100%;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) {
-    grid-column: 2;
-    grid-row: 3;
+    grid-column: 3 / span 2;
+    grid-row: 2;
+    height: 100%;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
   .activity-form > .activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4) {
-    grid-column: 2;
+    grid-column: 4 / span 3;
     grid-row: 1;
     height: 100%;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
-    grid-column: 1 / -1;
-    grid-row: 4;
+    grid-column: 5 / span 2;
+    grid-row: 2;
+    height: 100%;
   }
 
   .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
     grid-column: 1 / -1;
-    grid-row: 5;
+    grid-row: 3;
   }
 
   .activity-form__basic-grid {
@@ -400,6 +400,40 @@
   .activity-form__field:has([name="difficulty"]),
   .activity-form__beginner-field {
     width: 100%;
+  }
+
+  .activity-form__schedule-row {
+    width: 100%;
+    max-width: none;
+  }
+
+  .activity-form__field--schedule {
+    max-width: none;
+  }
+
+  .activity-form__location-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .activity-form__field:has([name="location_name"]),
+  .activity-form__field:has([name="location_url"]) {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+  }
+
+  .activity-form__notice-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .58rem;
+  }
+
+  .activity-form__notice-grid > .field,
+  .activity-form__notice-grid textarea {
+    width: 100%;
+    min-width: 0;
   }
 
   .activity-form__actions {
