@@ -16,8 +16,15 @@ function validCoordinatePair(latitude, longitude) {
 }
 
 export function locationCoordinates(value = {}) {
-  const latitude = Number(value.location_latitude);
-  const longitude = Number(value.location_longitude);
+  const rawLatitude = value.location_latitude;
+  const rawLongitude = value.location_longitude;
+  if (rawLatitude === null || rawLatitude === undefined || rawLatitude === ""
+    || rawLongitude === null || rawLongitude === undefined || rawLongitude === "") {
+    return null;
+  }
+
+  const latitude = Number(rawLatitude);
+  const longitude = Number(rawLongitude);
   return validCoordinatePair(latitude, longitude)
     ? { latitude, longitude }
     : null;
