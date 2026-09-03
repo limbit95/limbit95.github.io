@@ -9,7 +9,7 @@ export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XlcGQYXgXwTBJ5U3qwZKSA_y
  * NAVER Cloud Maps > Application에서 발급한 Web Dynamic Map Client ID입니다.
  * 브라우저에 공개되는 값이므로 허용 웹 서비스 URL을 실제 배포 도메인으로 제한하세요.
  */
-export const NAVER_MAPS_CLIENT_ID = "";
+export const NAVER_MAPS_CLIENT_ID = "id0qqnxuzt";
 
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
