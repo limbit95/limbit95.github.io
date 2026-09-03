@@ -1,0 +1,325 @@
+.activity-form {
+  gap: .75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.activity-form__section {
+  min-width: 0;
+  padding: .9rem;
+  border: 1px solid #dcebee;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(82, 128, 145, .055);
+}
+
+.activity-form__section + .activity-form__section {
+  padding-top: .9rem;
+  border-top: 1px solid #dcebee;
+}
+
+.activity-form__section-heading {
+  min-height: 24px;
+}
+
+.activity-form__section-title {
+  font-size: .95rem;
+}
+
+.activity-form__basic-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .65rem;
+}
+
+.activity-form__basic-grid > .field:first-child {
+  flex: 0 1 210px;
+  width: min(100%, 210px);
+}
+
+.activity-form__basic-grid > .field:nth-child(2) {
+  flex: 0 1 520px;
+  width: min(100%, 520px);
+}
+
+.activity-form__description-field {
+  width: min(100%, 760px);
+}
+
+.activity-form__section:nth-of-type(2) {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: .7rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__section-heading {
+  grid-column: 1 / -1;
+  padding-inline: .1rem;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster {
+  min-width: 0;
+  align-content: start;
+  gap: .6rem;
+  padding: .82rem;
+  border: 1px solid #dfecef;
+  border-top: 5px solid #cfe4ea;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #fbfdfe 0%, #fff 28%);
+  box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster + .activity-form__cluster {
+  padding-top: .82rem;
+  border-top: 5px solid #cfe4ea;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) {
+  grid-column: span 7;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) {
+  grid-column: span 5;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
+  grid-column: 1 / -1;
+}
+
+.activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4) {
+  grid-column: span 8;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+  grid-column: span 4;
+}
+
+.activity-form__cluster-title {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: #5d7c87;
+  font-size: .78rem;
+  letter-spacing: .01em;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) .activity-form__cluster-title::before {
+  content: "🗓️";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) .activity-form__cluster-title::before {
+  content: "📍";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4) .activity-form__cluster-title::before {
+  content: "🙌";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) .activity-form__cluster-title::before {
+  content: "📣";
+}
+
+.activity-form__cluster--status .activity-form__cluster-title::before {
+  content: "●";
+  color: #7da28b;
+  font-size: .62rem;
+}
+
+.activity-form__schedule-row,
+.activity-form__location-row,
+.activity-form__participation-row,
+.activity-form__recurrence-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .58rem;
+}
+
+.activity-form__notice-grid {
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: .65rem;
+}
+
+.activity-form__field--schedule {
+  flex: 0 1 330px;
+  width: min(100%, 330px);
+}
+
+.activity-form__field--datetime {
+  flex: 0 1 270px;
+  width: min(100%, 270px);
+}
+
+.activity-form__repeat-toggle {
+  flex: 0 0 auto;
+}
+
+.activity-form__field:has([name="location_name"]) {
+  flex: 0 1 300px;
+  width: min(100%, 300px);
+}
+
+.activity-form__field:has([name="location_url"]) {
+  flex: 0 1 380px;
+  width: min(100%, 380px);
+}
+
+.activity-form__field:has([name="capacity"]) {
+  flex: 0 1 135px;
+  width: min(100%, 135px);
+}
+
+.activity-form__field:has([name="fee_text"]) {
+  flex: 0 1 170px;
+  width: min(100%, 170px);
+}
+
+.activity-form__field:has([name="difficulty"]) {
+  flex: 0 1 180px;
+  width: min(100%, 180px);
+}
+
+.activity-form__beginner-field {
+  flex: 0 1 175px;
+  width: min(100%, 175px);
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_frequency"]) {
+  flex: 0 1 155px;
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) {
+  flex: 0 1 125px;
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_end_date"]) {
+  flex: 0 1 240px;
+}
+
+.activity-form__cluster--status .field {
+  width: min(100%, 220px);
+}
+
+.activity-form__toggle--compact {
+  width: 100%;
+}
+
+.activity-form__actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding-top: .1rem;
+  border-top: 0;
+}
+
+@media (max-width: 1039px) {
+  .activity-form__section:nth-of-type(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__section-heading,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 759px) {
+  .activity-form__section:nth-of-type(2) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__section-heading,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: 1;
+  }
+
+  .activity-form__basic-grid > .field:first-child,
+  .activity-form__basic-grid > .field:nth-child(2),
+  .activity-form__description-field,
+  .activity-form__field--schedule,
+  .activity-form__field--datetime,
+  .activity-form__field:has([name="location_name"]),
+  .activity-form__field:has([name="location_url"]) {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .activity-form__notice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .activity-form {
+    gap: .62rem;
+    padding: 0;
+  }
+
+  .activity-form__section {
+    padding: .74rem;
+    border-radius: 14px;
+  }
+
+  .activity-form__section + .activity-form__section {
+    padding-top: .74rem;
+  }
+
+  .activity-form__section:nth-of-type(2) {
+    padding: 0;
+    border: 0;
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster + .activity-form__cluster {
+    padding: .72rem;
+    border-top-width: 4px;
+    border-radius: 13px;
+  }
+
+  .activity-form__participation-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .activity-form__field:has([name="capacity"]),
+  .activity-form__field:has([name="fee_text"]),
+  .activity-form__field:has([name="difficulty"]),
+  .activity-form__beginner-field {
+    width: 100%;
+  }
+
+  .activity-form__recurrence-fields > .field {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .activity-form__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form__actions .button {
+    width: 100%;
+  }
+}
