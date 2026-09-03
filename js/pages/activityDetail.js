@@ -31,81 +31,85 @@ export async function renderActivityDetail(route) {
   const mine = getMyParticipation(event, auth.user.id);
   const canManage = canManageCategory(event.category_id);
   const root = pageContainer();
+
   const detail = el("section", {
-    className: "detail-hero",
+    className: "detail-hero activity-detail-hero",
     style: { "--category-color": event.category?.color ?? "#2f6b4f" },
   }, [
-    el("div", { className: "page-header" }, [
-      el("div", {}, [
+    el("div", { className: "page-header activity-detail__header" }, [
+      el("div", { className: "activity-detail__title-group" }, [
         el("p", { className: "eyebrow", text: `${event.category?.icon ?? "🌿"} ${event.category?.name ?? "활동"}` }),
         el("h1", { className: "detail-title", text: event.title }),
       ]),
       statusBadge(event.status, event.registration_deadline),
     ]),
-    el("div", { className: "meta-list" }, [
-      meta("🗓️", `${formatDate(event.event_date)} ${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ""}`),
-      meta("📍", event.location_name, event.location_url),
-      meta("👥", event.capacity
-        ? `참여 ${counts.joined}/${event.capacity}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`
-        : `참여 ${counts.joined}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`),
-      meta("💳", event.fee_text || "무료"),
-      event.difficulty ? meta("🌱", `난이도 ${event.difficulty}${event.beginner_friendly ? " · 초보자 환영" : ""}`) : null,
+    el("div", { className: "activity-detail__hero-grid" }, [
+      el("div", { className: "activity-detail__summary" }, [
+        meta("🗓️", "일정", `${formatDate(event.event_date)} · ${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ""}`),
+        meta("📍", "장소", event.location_name, event.location_url),
+        meta("👥", "참여", event.capacity
+          ? `${counts.joined}/${event.capacity}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`
+          : `${counts.joined}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`),
+        meta("💳", "참가비", event.fee_text || "무료"),
+        event.difficulty
+          ? meta("🌱", "난이도", `${event.difficulty}${event.beginner_friendly ? " · 초보자 환영" : ""}`)
+          : null,
+      ]),
+      createParticipationPanel(event, mine, counts, root),
     ]),
-    el("div", { className: "button-row" }, [
+    el("div", { className: "button-row activity-detail__utility-actions" }, [
       el("button", {
         className: "button button--yellow",
         type: "button",
         text: "📅 내 캘린더에 저장",
         onClick: () => downloadCalendar(event),
       }),
-      canManage ? el("a", { className: "button button--secondary", href: `#/activities/${event.id}/edit`, text: "✏️ 활동 수정" }) : null,
-      canManage && event.status !== "cancelled"
-        ? el("button", {
-            className: "button button--ghost",
-            type: "button",
-            text: "일정 취소",
-            onClick: (clickEvent) => cancelSchedule(event, root, clickEvent.currentTarget),
-          })
-        : null,
+      canManage ? el("a", {
+        className: "button button--secondary",
+        href: `#/activities/${event.id}/edit`,
+        text: "✏️ 활동 수정",
+      }) : null,
     ]),
   ]);
-  const body = el("div", { className: "sidebar-layout" }, [
-    el("div", { className: "page-stack" }, [
-      el("section", { className: "card page-stack" }, [
-        el("h2", { className: "section-title", text: "활동 소개" }),
-        el("p", { className: "prose", text: event.description }),
-      ]),
-      event.preparation ? el("section", { className: "card page-stack" }, [
-        el("h2", { className: "section-title", text: "🎒 준비물" }),
-        el("p", { className: "prose", text: event.preparation }),
-      ]) : null,
-      event.participant_notice ? el("section", { className: "notice-box notice-box--warning" }, [
-        el("strong", { text: "참여 전 확인해 주세요" }),
-        el("p", { className: "prose", text: event.participant_notice }),
-      ]) : null,
-      await participantSection(participants, counts),
+
+  const body = el("div", { className: "page-stack activity-detail__body" }, [
+    el("section", { className: "card page-stack" }, [
+      el("h2", { className: "section-title", text: "활동 소개" }),
+      el("p", { className: "prose", text: event.description }),
     ]),
-    el("aside", { className: "page-stack" }, [
-      el("section", { className: "card page-stack" }, [
-        el("h2", { className: "section-title", text: "참여 안내" }),
-        el("p", { text: `신청 마감: ${new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.registration_deadline))}` }),
-        mine && mine.status !== "cancelled"
-          ? el("div", { className: "notice-box", text: `현재 상태: ${PARTICIPATION_STATUS_LABEL[mine.status]}` })
-          : null,
-      ]),
-      createParticipationAction(event, mine, counts, root),
-    ]),
+    event.preparation ? el("section", { className: "card page-stack" }, [
+      el("h2", { className: "section-title", text: "🎒 준비물" }),
+      el("p", { className: "prose", text: event.preparation }),
+    ]) : null,
+    event.participant_notice ? el("section", { className: "notice-box notice-box--warning" }, [
+      el("strong", { text: "참여 전 확인해 주세요" }),
+      el("p", { className: "prose", text: event.participant_notice }),
+    ]) : null,
+    await participantSection(participants, counts),
+    canManage && event.status !== "cancelled"
+      ? managementSection(event, root)
+      : null,
   ]);
+
   root.append(detail, body);
   return root;
 }
 
-function meta(icon, text, link = null) {
-  return el("div", { className: "meta-item" }, [
-    el("span", { className: "meta-icon", text: icon, "aria-hidden": "true" }),
-    link
-      ? el("a", { href: safeUrl(link), target: "_blank", rel: "noopener noreferrer", text: `${text} ↗` })
-      : el("span", { text }),
+function meta(icon, label, text, link = null) {
+  return el("div", { className: "activity-detail__meta" }, [
+    el("span", { className: "activity-detail__meta-icon", text: icon, "aria-hidden": "true" }),
+    el("div", { className: "activity-detail__meta-body" }, [
+      el("span", { className: "activity-detail__meta-label", text: label }),
+      link
+        ? el("a", {
+            className: "activity-detail__meta-value",
+            href: safeUrl(link),
+            target: "_blank",
+            rel: "noopener noreferrer",
+            text: `${text} ↗`,
+          })
+        : el("strong", { className: "activity-detail__meta-value", text }),
+    ]),
   ]);
 }
 
@@ -123,13 +127,55 @@ function statusBadge(status, registrationDeadline = null) {
   });
 }
 
-function createParticipationAction(event, mine, counts, root) {
-  const wrapper = el("div", { className: "sticky-action" });
+function createParticipationPanel(event, mine, counts, root) {
+  const deadline = new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(event.registration_deadline));
+
+  return el("aside", { className: "activity-detail__participation-panel" }, [
+    el("div", { className: "activity-detail__participation-copy" }, [
+      el("span", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
+      el("strong", {
+        className: "activity-detail__participation-title",
+        text: participationHeadline(event, mine, counts),
+      }),
+      el("span", {
+        className: "activity-detail__deadline",
+        text: `신청 마감 · ${deadline}`,
+      }),
+      mine && mine.status !== "cancelled"
+        ? el("span", {
+            className: "activity-detail__my-status",
+            text: `내 신청 상태 · ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
+          })
+        : null,
+    ]),
+    createParticipationAction(event, mine, counts, root),
+  ]);
+}
+
+function participationHeadline(event, mine, counts) {
   const registrationOpen = event.status === "scheduled"
     && new Date(event.registration_deadline) >= new Date();
+
+  if (mine && mine.status !== "cancelled") {
+    return mine.status === "waitlisted" ? "현재 대기 명단에 있어요" : "참여 신청이 완료됐어요";
+  }
+  if (!registrationOpen) return "현재 신청이 마감됐어요";
+  if (event.capacity && counts.joined >= event.capacity) return "정원이 찼지만 대기 신청할 수 있어요";
+  if (event.capacity) return `지금 ${event.capacity - counts.joined}자리 남아 있어요`;
+  return "이 활동에 함께해 보세요";
+}
+
+function createParticipationAction(event, mine, counts, root) {
+  const wrapper = el("div", { className: "activity-detail__participation-action" });
+  const registrationOpen = event.status === "scheduled"
+    && new Date(event.registration_deadline) >= new Date();
+
   if (mine && mine.status !== "cancelled" && registrationOpen) {
     wrapper.append(el("button", {
-      className: "button button--secondary button--block",
+      className: "button button--secondary button--block activity-detail__participation-button",
       type: "button",
       text: `${mine.status === "waitlisted" ? "⏳ 대기 신청 취소" : "참여 취소"}`,
       onClick: async (clickEvent) => {
@@ -153,7 +199,7 @@ function createParticipationAction(event, mine, counts, root) {
     }));
   } else if (mine && mine.status !== "cancelled") {
     wrapper.append(el("button", {
-      className: "button button--secondary button--block",
+      className: "button button--secondary button--block activity-detail__participation-button",
       type: "button",
       text: `${mine.status === "waitlisted" ? "⏳" : "✓"} ${PARTICIPATION_STATUS_LABEL[mine.status]} · 신청 마감`,
       disabled: true,
@@ -161,7 +207,7 @@ function createParticipationAction(event, mine, counts, root) {
   } else if (registrationOpen) {
     const full = event.capacity && counts.joined >= event.capacity;
     wrapper.append(el("button", {
-      className: "button button--coral button--block",
+      className: "button button--block activity-detail__participation-button activity-detail__participation-button--primary",
       type: "button",
       text: full ? "⏳ 대기 신청하기" : "🙌 참여 신청하기",
       onClick: async (clickEvent) => {
@@ -183,7 +229,10 @@ function createParticipationAction(event, mine, counts, root) {
       },
     }));
   } else {
-    wrapper.append(el("div", { className: "notice-box notice-box--warning", text: "현재는 이 활동에 참여 신청할 수 없습니다." }));
+    wrapper.append(el("div", {
+      className: "activity-detail__closed-message",
+      text: "현재는 이 활동에 참여 신청할 수 없습니다.",
+    }));
   }
   return wrapper;
 }
@@ -215,6 +264,24 @@ async function participantSection(participants, counts) {
   }));
   section.append(list);
   return section;
+}
+
+function managementSection(event, root) {
+  return el("section", { className: "activity-detail__management" }, [
+    el("div", { className: "activity-detail__management-copy" }, [
+      el("strong", { text: "관리자 작업" }),
+      el("p", {
+        className: "small subtle",
+        text: "활동 자체를 진행하지 않게 된 경우에만 일정을 취소해 주세요.",
+      }),
+    ]),
+    el("button", {
+      className: "button activity-detail__cancel-schedule",
+      type: "button",
+      text: "일정 취소",
+      onClick: (clickEvent) => cancelSchedule(event, root, clickEvent.currentTarget),
+    }),
+  ]);
 }
 
 async function cancelSchedule(event, root, button) {
