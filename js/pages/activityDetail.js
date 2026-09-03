@@ -8,7 +8,7 @@ import {
   updateEvent,
 } from "../api/activities.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
-import { confirmDialog } from "../components/modal.js";
+import { confirmDialog, contentDialog } from "../components/modal.js";
 import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";
 import { EVENT_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../constants.js";
@@ -43,20 +43,15 @@ export async function renderActivityDetail(route) {
       ]),
       statusBadge(event.status, event.registration_deadline),
     ]),
-    el("div", { className: "activity-detail__hero-grid" }, [
-      el("div", { className: "activity-detail__summary" }, [
-        meta("🗓️", "일정", `${formatDate(event.event_date)} · ${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ""}`),
-        meta("📍", "장소", event.location_name, event.location_url),
-        meta("👥", "참여", event.capacity
-          ? `${counts.joined}/${event.capacity}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`
-          : `${counts.joined}명${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}`),
-        meta("💳", "참가비", event.fee_text || "무료"),
-        event.difficulty
-          ? meta("🌱", "난이도", `${event.difficulty}${event.beginner_friendly ? " · 초보자 환영" : ""}`)
-          : null,
-      ]),
-      createParticipationPanel(event, mine, counts, root),
+    el("div", { className: "activity-detail__summary" }, [
+      meta("🗓️", "일정", activityScheduleText(event), null, "activity-detail__meta--schedule"),
+      meta("📍", "장소", event.location_name, event.location_url),
+      meta("💳", "참가비", event.fee_text || "무료"),
+      event.difficulty
+        ? meta("🌱", "난이도", `${event.difficulty}${event.beginner_friendly ? " · 초보자 환영" : ""}`)
+        : null,
     ]),
+    createParticipationPanel(event, mine, counts, participants, root),
     el("div", { className: "button-row activity-detail__utility-actions" }, [
       el("button", {
         className: "button button--yellow",
@@ -85,7 +80,6 @@ export async function renderActivityDetail(route) {
       el("strong", { text: "참여 전 확인해 주세요" }),
       el("p", { className: "prose", text: event.participant_notice }),
     ]) : null,
-    await participantSection(participants, counts),
     canManage && event.status !== "cancelled"
       ? managementSection(event, root)
       : null,
@@ -95,8 +89,8 @@ export async function renderActivityDetail(route) {
   return root;
 }
 
-function meta(icon, label, text, link = null) {
-  return el("div", { className: "activity-detail__meta" }, [
+function meta(icon, label, text, link = null, extraClass = "") {
+  return el("div", { className: `activity-detail__meta ${extraClass}`.trim() }, [
     el("span", { className: "activity-detail__meta-icon", text: icon, "aria-hidden": "true" }),
     el("div", { className: "activity-detail__meta-body" }, [
       el("span", { className: "activity-detail__meta-label", text: label }),
@@ -113,6 +107,11 @@ function meta(icon, label, text, link = null) {
   ]);
 }
 
+function activityScheduleText(event) {
+  const time = `${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ""}`;
+  return `${formatDate(event.event_date)}\n${time}`;
+}
+
 function statusBadge(status, registrationDeadline = null) {
   if (status === "scheduled" && registrationDeadline && new Date(registrationDeadline) < new Date()) {
     return el("span", {
@@ -127,31 +126,54 @@ function statusBadge(status, registrationDeadline = null) {
   });
 }
 
-function createParticipationPanel(event, mine, counts, root) {
+function createParticipationPanel(event, mine, counts, participants, root) {
   const deadline = new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(event.registration_deadline));
 
   return el("aside", { className: "activity-detail__participation-panel" }, [
-    el("div", { className: "activity-detail__participation-copy" }, [
-      el("span", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
-      el("strong", {
-        className: "activity-detail__participation-title",
-        text: participationHeadline(event, mine, counts),
-      }),
-      el("span", {
-        className: "activity-detail__deadline",
-        text: `신청 마감 · ${deadline}`,
-      }),
-      mine && mine.status !== "cancelled"
-        ? el("span", {
-            className: "activity-detail__my-status",
-            text: `내 신청 상태 · ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
-          })
-        : null,
+    el("div", { className: "activity-detail__participation-main" }, [
+      el("div", { className: "activity-detail__participation-copy" }, [
+        el("span", { className: "activity-detail__participation-kicker", text: "참여 신청" }),
+        el("strong", {
+          className: "activity-detail__participation-title",
+          text: participationHeadline(event, mine, counts),
+        }),
+        el("span", {
+          className: "activity-detail__deadline",
+          text: `신청 마감 · ${deadline}`,
+        }),
+        mine && mine.status !== "cancelled"
+          ? el("span", {
+              className: "activity-detail__my-status",
+              text: `내 신청 상태 · ${PARTICIPATION_STATUS_LABEL[mine.status]}`,
+            })
+          : null,
+      ]),
+      createParticipationAction(event, mine, counts, root),
     ]),
-    createParticipationAction(event, mine, counts, root),
+    createParticipationOverview(event, counts, participants),
+  ]);
+}
+
+function createParticipationOverview(event, counts, participants) {
+  const countText = event.capacity
+    ? `${counts.joined}/${event.capacity}명`
+    : `${counts.joined}명`;
+
+  return el("div", { className: "activity-detail__participation-overview" }, [
+    el("span", { className: "activity-detail__overview-label", text: "참여 현황" }),
+    el("strong", { className: "activity-detail__overview-count", text: countText }),
+    counts.waitlisted
+      ? el("span", { className: "activity-detail__overview-waitlist", text: `대기 ${counts.waitlisted}명` })
+      : el("span", { className: "activity-detail__overview-waitlist", text: "현재 대기 없음" }),
+    el("button", {
+      className: "button button--secondary activity-detail__participants-button",
+      type: "button",
+      text: "참여 인원 보기",
+      onClick: (clickEvent) => openParticipantsDialog(participants, counts, clickEvent.currentTarget),
+    }),
   ]);
 }
 
@@ -237,33 +259,55 @@ function createParticipationAction(event, mine, counts, root) {
   return wrapper;
 }
 
-async function participantSection(participants, counts) {
-  const section = el("section", { className: "card page-stack" }, [
-    el("div", { className: "page-header" }, [
-      el("h2", { className: "section-title", text: `함께하는 사람 ${counts.joined}명` }),
-      counts.waitlisted ? el("span", { className: "status-badge status-badge--warning", text: `⏳ 대기 ${counts.waitlisted}명` }) : null,
+async function openParticipantsDialog(participants, counts, button) {
+  setBusy(button, true, "불러오는 중…");
+  try {
+    const content = await participantDialogContent(participants, counts);
+    setBusy(button, false);
+    void contentDialog({
+      title: "참여 인원",
+      content,
+    });
+  } catch (error) {
+    showToast(getErrorMessage(error, "참여 인원을 불러오지 못했습니다."), "error");
+    setBusy(button, false);
+  }
+}
+
+async function participantDialogContent(participants, counts) {
+  const joined = participants.filter((item) => item.status === "joined");
+  const content = el("div", { className: "activity-participants-dialog page-stack" }, [
+    el("div", { className: "activity-participants-dialog__summary" }, [
+      el("strong", { text: `참여 ${counts.joined}명` }),
+      counts.waitlisted
+        ? el("span", { className: "status-badge status-badge--warning", text: `⏳ 대기 ${counts.waitlisted}명` })
+        : null,
     ]),
   ]);
-  const joined = participants.filter((item) => item.status === "joined");
+
   if (!joined.length) {
-    section.append(el("p", { className: "subtle", text: "첫 번째 참여자가 되어 보세요!" }));
-    return section;
+    content.append(el("div", {
+      className: "activity-participants-dialog__empty",
+      text: "아직 참여 신청한 사람이 없습니다.",
+    }));
+    return content;
   }
-  const list = el("div", { className: "participant-list" });
-  await Promise.all(joined.map(async (item) => {
+
+  const people = await Promise.all(joined.map(async (item) => {
     const profile = item.profile;
     const avatar = await getSignedAvatarUrl(profile?.avatar_path);
     const profileAvatar = profile
       ? createProfileAvatarTrigger(profile, { avatarUrl: avatar })
       : el("img", { className: "avatar", src: avatar, alt: "", width: "44", height: "44" });
-    list.append(el("div", { className: "participant-person" }, [
+    return el("div", { className: "participant-person" }, [
       profileAvatar,
       el("strong", { text: profile?.display_name ?? "회원" }),
       profile?.age_group ? el("span", { className: "small subtle", text: profile.age_group }) : null,
-    ]));
+    ]);
   }));
-  section.append(list);
-  return section;
+
+  content.append(el("div", { className: "participant-list activity-participants-dialog__list" }, people));
+  return content;
 }
 
 function managementSection(event, root) {
