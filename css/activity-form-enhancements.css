@@ -1,5 +1,12 @@
-.activity-form-notice {
+.activity-form-notice,
+.activity-form-page-header .page-description {
   display: none !important;
+}
+
+.activity-form > .activity-form__section:first-of-type {
+  border-top: 5px solid #cfe4ea;
+  background: linear-gradient(180deg, #fbfdfe 0%, #fff 28%);
+  box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
 }
 
 .activity-form select {
@@ -40,7 +47,7 @@
 
 .activity-form__schedule-row > .activity-form__repeat-toggle {
   align-self: start;
-  margin-top: 1.27rem;
+  margin-top: 1.65rem;
 }
 
 .activity-picker-trigger__chevron {
