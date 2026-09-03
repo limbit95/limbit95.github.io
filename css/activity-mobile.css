@@ -142,6 +142,13 @@
     align-items: flex-start;
   }
 
+  .activity-detail__header .status-badge {
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding: .22rem .55rem;
+    font-size: .74rem;
+  }
+
   .activity-detail__title-group {
     gap: .24rem;
   }
