@@ -26,9 +26,22 @@ function createMapShortcut(provider, form) {
   return button;
 }
 
+function preventImplicitEnterSubmit(form) {
+  if (form.dataset.enterSubmitGuard === "true") return;
+  form.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" || event.isComposing) return;
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (["checkbox", "radio", "hidden", "button", "submit", "reset"].includes(target.type)) return;
+    event.preventDefault();
+  });
+  form.dataset.enterSubmitGuard = "true";
+}
+
 function enhanceActivityForm(form) {
   const page = form.parentElement;
   page?.querySelector(NOTICE_SELECTOR)?.remove();
+  preventImplicitEnterSubmit(form);
 
   const mapInput = form.elements.location_url;
   if (!mapInput || mapInput.dataset.mapShortcutsEnhanced === "true") return;

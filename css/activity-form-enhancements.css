@@ -16,6 +16,73 @@
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%234f707b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
+.activity-form__basic-grid {
+  align-items: start !important;
+}
+
+.activity-form__basic-grid > .field {
+  align-self: start;
+}
+
+.activity-form__schedule-row {
+  align-items: start !important;
+}
+
+.activity-form__field--datetime {
+  align-self: start;
+}
+
+.activity-form__schedule-row > .activity-form__repeat-toggle {
+  align-self: start;
+  margin-top: 1.27rem;
+}
+
+.activity-picker-trigger__chevron {
+  width: 14px;
+  height: 14px;
+  display: block;
+  align-self: center;
+  justify-self: end;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%2367818b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 8px;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  transition: transform .14s ease;
+}
+
+.activity-picker-trigger[aria-expanded="true"] .activity-picker-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+.activity-form__repeat-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start;
+}
+
+.activity-form__repeat-toggle > input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 0 !important;
+  align-self: center;
+}
+
+.activity-form__repeat-toggle > span,
+.activity-form__repeat-toggle > span > strong {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.activity-form__repeat-toggle > span::after {
+  flex: 0 0 16px;
+  align-self: center;
+}
+
 .activity-form__map-link-field {
   min-width: 0;
 }
@@ -88,6 +155,10 @@
 }
 
 @media (max-width: 430px) {
+  .activity-form__schedule-row > .activity-form__repeat-toggle {
+    margin-top: 0;
+  }
+
   .activity-form__map-link-row {
     grid-template-columns: minmax(0, 1fr) 36px 36px;
   }
