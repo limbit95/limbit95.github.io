@@ -36,6 +36,11 @@
   box-shadow: var(--shadow-md);
 }
 
+.profile-trigger__menu--portal {
+  position: fixed;
+  z-index: 1100;
+}
+
 .profile-trigger__menu:not([hidden]) {
   display: grid;
   gap: .4rem;
@@ -91,7 +96,7 @@
 }
 
 @media (max-width: 640px) {
-  .profile-trigger__menu {
+  .profile-trigger__menu:not(.profile-trigger__menu--portal) {
     left: 50%;
     transform: translateX(-50%);
   }
