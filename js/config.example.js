@@ -20,7 +20,7 @@ export const KAKAO_JAVASCRIPT_KEY = "YOUR_KAKAO_JAVASCRIPT_KEY";
 /**
  * Kakao Developers > 도구 > 메시지 템플릿에서 만든 활동 공유용 사용자 정의 템플릿 ID를 넣으세요.
  * 템플릿에는 ${title}, ${description}, ${event_id} 사용자 인자를 사용하고,
- * 버튼/출처 링크는 /activity-link.html?id=${event_id}로 설정하세요.
+ * 활동 자세히 보기 버튼과 하단 APP 출처 링크 모두 /activity-link.html?id=${event_id}로 설정하세요.
  * 값이 없으면 기본 Feed 템플릿으로 fallback합니다.
  */
 export const KAKAO_SHARE_TEMPLATE_ID = null;
