@@ -13,6 +13,18 @@ function normalizeTime(value) {
   return String(value ?? "").slice(0, 5);
 }
 
+function normalizeEventId(eventId) {
+  const id = Number(eventId);
+  if (!Number.isInteger(id) || id <= 0) throw new Error("공유할 활동을 확인할 수 없습니다.");
+  return id;
+}
+
+function compactText(value, maxLength) {
+  const text = String(value ?? "").trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(1, maxLength - 1))}…`;
+}
+
 function activityDateLabel(event) {
   if (!event?.event_date) return "일정 미정";
   const date = new Date(`${event.event_date}T00:00:00+09:00`);
@@ -33,42 +45,35 @@ function activityTimeLabel(event) {
 
 function participantLabel(event) {
   const joined = Number(event?.joined_count ?? 0);
-  const waitlisted = Number(event?.waitlisted_count ?? 0);
   const capacity = Number(event?.capacity);
-  const base = Number.isFinite(capacity) && capacity > 0
+  return Number.isFinite(capacity) && capacity > 0
     ? `${joined}/${capacity}명`
     : `${joined}명`;
-  return waitlisted > 0 ? `${base} · 대기 ${waitlisted}명` : base;
-}
-
-function seriesLabel(event) {
-  if (!event?.series?.start_date || !event?.series?.end_date) return "";
-  return `반복 ${event.series.start_date} ~ ${event.series.end_date}`;
 }
 
 export function activityShareUrl(eventId) {
-  const id = Number(eventId);
-  if (!Number.isFinite(id)) throw new Error("공유할 활동을 확인할 수 없습니다.");
+  const id = normalizeEventId(eventId);
   const url = new URL(window.location.href);
+  url.search = "";
   url.hash = `#/activities/${id}`;
+  return url.toString();
+}
+
+function activityKakaoShareUrl(eventId) {
+  const id = normalizeEventId(eventId);
+  const url = new URL("./activity-link.html", window.location.href);
+  url.hash = "";
+  url.search = "";
+  url.searchParams.set("id", String(id));
   return url.toString();
 }
 
 export function activityShareDescription(event) {
   const schedule = [activityDateLabel(event), activityTimeLabel(event)].filter(Boolean).join(" · ");
-  const location = event?.location_name ? `📍 ${event.location_name}` : "";
-  const participation = `👥 ${participantLabel(event)} · ${event?.fee_text || "무료"}`;
-  const series = seriesLabel(event);
-  const deadline = event?.registration_deadline
-    ? `마감 ${new Intl.DateTimeFormat("ko-KR", {
-        month: "numeric",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: "Asia/Seoul",
-      }).format(new Date(event.registration_deadline))}`
-    : "";
-  return [schedule, location, participation, series || deadline].filter(Boolean).join("\n");
+  const location = compactText(event?.location_name || "장소 미정", 12);
+  const fee = compactText(event?.fee_text || "무료", 10);
+  const summary = `📍 ${location} · 👥 ${participantLabel(event)} · ${fee}`;
+  return [schedule, summary].filter(Boolean).join("\n");
 }
 
 function initializeKakao() {
@@ -129,7 +134,7 @@ export function prepareKakaoShare() {
 export function shareActivityToKakao(event) {
   const kakao = window.Kakao;
   if (!kakao || !kakao.isInitialized()) throw kakaoConfigError();
-  const url = activityShareUrl(event?.id);
+  const url = activityKakaoShareUrl(event?.id);
   return kakao.Share.sendDefault({
     objectType: "feed",
     content: {
@@ -140,13 +145,7 @@ export function shareActivityToKakao(event) {
         webUrl: url,
       },
     },
-    buttons: [{
-      title: `${SITE_NAME}에서 보기`,
-      link: {
-        mobileWebUrl: url,
-        webUrl: url,
-      },
-    }],
+    buttonTitle: "활동 자세히 보기",
   });
 }
 
