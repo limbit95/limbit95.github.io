@@ -17,5 +17,13 @@ export const NAVER_MAPS_CLIENT_ID = "YOUR_NAVER_MAPS_CLIENT_ID";
  */
 export const KAKAO_JAVASCRIPT_KEY = "YOUR_KAKAO_JAVASCRIPT_KEY";
 
+/**
+ * Kakao Developers > 도구 > 메시지 템플릿에서 만든 활동 공유용 사용자 정의 템플릿 ID를 넣으세요.
+ * 템플릿에는 ${title}, ${description}, ${event_id} 사용자 인자를 사용하고,
+ * 버튼/출처 링크는 /activity-link.html?id=${event_id}로 설정하세요.
+ * 값이 없으면 기본 Feed 템플릿으로 fallback합니다.
+ */
+export const KAKAO_SHARE_TEMPLATE_ID = null;
+
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-01";

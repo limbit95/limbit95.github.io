@@ -1,4 +1,4 @@
-import { KAKAO_JAVASCRIPT_KEY, SITE_NAME } from "./config.js";
+import { KAKAO_JAVASCRIPT_KEY, KAKAO_SHARE_TEMPLATE_ID, SITE_NAME } from "./config.js";
 
 const KAKAO_SDK_URL = "https://t1.kakaocdn.net/kakao_js_sdk/2.8.1/kakao.min.js";
 const KAKAO_SDK_INTEGRITY = "sha384-OL+ylM/iuPLtW5U3XcvLSGhE8JzReKDank5InqlHGWPhb4140/yrBw0bg0y7+C9J";
@@ -17,6 +17,11 @@ function normalizeEventId(eventId) {
   const id = Number(eventId);
   if (!Number.isInteger(id) || id <= 0) throw new Error("공유할 활동을 확인할 수 없습니다.");
   return id;
+}
+
+function customTemplateId() {
+  const id = Number(KAKAO_SHARE_TEMPLATE_ID);
+  return Number.isInteger(id) && id > 0 ? id : null;
 }
 
 function compactText(value, maxLength) {
@@ -51,6 +56,10 @@ function participantLabel(event) {
     : `${joined}명`;
 }
 
+function activityShareTitle(event) {
+  return `${event?.category?.icon ?? "🌿"} ${event?.title ?? SITE_NAME}`;
+}
+
 export function activityShareUrl(eventId) {
   const id = normalizeEventId(eventId);
   const url = new URL(window.location.href);
@@ -74,6 +83,15 @@ export function activityShareDescription(event) {
   const fee = compactText(event?.fee_text || "무료", 10);
   const summary = `📍 ${location} · 👥 ${participantLabel(event)} · ${fee}`;
   return [schedule, summary].filter(Boolean).join("\n");
+}
+
+function customTemplateArgs(event) {
+  return {
+    title: activityShareTitle(event),
+    description: activityShareDescription(event),
+    event_id: String(normalizeEventId(event?.id)),
+    site_name: SITE_NAME,
+  };
 }
 
 function initializeKakao() {
@@ -134,12 +152,21 @@ export function prepareKakaoShare() {
 export function shareActivityToKakao(event) {
   const kakao = window.Kakao;
   if (!kakao || !kakao.isInitialized()) throw kakaoConfigError();
+
+  const templateId = customTemplateId();
+  if (templateId) {
+    return kakao.Share.sendCustom({
+      templateId,
+      templateArgs: customTemplateArgs(event),
+    });
+  }
+
   const url = activityKakaoShareUrl(event?.id);
   return kakao.Share.sendDefault({
     objectType: "feed",
     content: {
-      title: `${event?.category?.icon ?? "🌿"} ${event?.title ?? SITE_NAME}`,
-      description: activityShareDescription(event),
+      title: activityShareTitle(event),
+      description: `${activityShareDescription(event)}\n👇 활동 자세히 보기 버튼을 눌러주세요`,
       link: {
         mobileWebUrl: url,
         webUrl: url,
