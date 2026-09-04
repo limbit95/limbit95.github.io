@@ -11,5 +11,19 @@ export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XlcGQYXgXwTBJ5U3qwZKSA_y
  */
 export const NAVER_MAPS_CLIENT_ID = "id0qqnxuzt";
 
+/**
+ * Kakao Developers > 앱 > 플랫폼 키에서 발급한 JavaScript 키를 입력하세요.
+ * JavaScript SDK 도메인과 제품 링크 웹 도메인에는 실제 배포 도메인을 등록해야 합니다.
+ */
+export const KAKAO_JAVASCRIPT_KEY = "aa3cd4565d7eb703f952207b09b5ca19";
+
+/**
+ * Kakao Developers > 도구 > 메시지 템플릿에서 만든 활동 공유용 사용자 정의 템플릿 ID입니다.
+ * 템플릿에는 ${title}, ${description}, ${event_id} 사용자 인자를 사용하고,
+ * 활동 자세히 보기 버튼과 하단 APP 출처 링크 모두 /activity-link.html?id=${event_id}로 설정하세요.
+ * 값이 없으면 기본 Feed 템플릿으로 안전하게 fallback합니다.
+ */
+export const KAKAO_SHARE_TEMPLATE_ID = 136832;
+
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
