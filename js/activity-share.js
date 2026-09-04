@@ -163,7 +163,8 @@ export async function copyActivityLink(eventId) {
   textarea.style.position = "fixed";
   textarea.style.opacity = "0";
   document.body.append(textarea);
-  textarea.select();
+  textarea.focus();
+  textarea.setSelectionRange(0, textarea.value.length);
   const copied = document.execCommand("copy");
   textarea.remove();
   if (!copied) throw new Error("링크를 복사하지 못했습니다.");
