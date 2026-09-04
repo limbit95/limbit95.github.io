@@ -1,6 +1,7 @@
 import { canManageCategory, getAuthState } from "../auth.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
 import { enhanceActivityDetails } from "../activity-detail-map.js";
+import { enhanceActivityShare } from "../activity-share-enhancements.js";
 import {
   cancelEventParticipation,
   getEvent,
@@ -92,6 +93,7 @@ export async function renderActivityDetail(route) {
 
   root.append(detail, body);
   enhanceActivityDetails(root, event);
+  enhanceActivityShare(root, event);
   return root;
 }
 
