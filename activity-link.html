@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>활동으로 이동 중 | 청파 같이</title>
+  </head>
+  <body>
+    <p>청파 같이 활동으로 이동 중입니다.</p>
+    <noscript><a href="./#/activities">청파 같이 활동 목록으로 이동</a></noscript>
+    <script>
+      (() => {
+        const id = new URLSearchParams(window.location.search).get("id");
+        const target = new URL("./", window.location.href);
+        target.search = "";
+        target.hash = /^\d+$/.test(id ?? "") ? `#/activities/${id}` : "#/activities";
+        window.location.replace(target.toString());
+      })();
+    </script>
+  </body>
+</html>
