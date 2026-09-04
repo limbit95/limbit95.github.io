@@ -83,6 +83,11 @@ export function createHeader({ auth, currentPath, onLogout }) {
     loadingMore: false,
   };
 
+  function closeNotificationPanel() {
+    panel.hidden = true;
+    notificationButton.setAttribute("aria-expanded", "false");
+  }
+
   function setUnreadBadge(unread) {
     const safeUnread = Math.max(Number(unread) || 0, 0);
     notificationWrap.querySelector(".notification-badge")?.remove();
@@ -139,8 +144,7 @@ export function createHeader({ auth, currentPath, onLogout }) {
       // 대상 화면/쪽지는 계속 열고 다음 조회 때 읽음 처리를 재시도한다.
     }
 
-    panel.hidden = true;
-    notificationButton.setAttribute("aria-expanded", "false");
+    closeNotificationPanel();
 
     if (notification.kind === "direct_message" && notification.message_id) {
       await refreshNotificationBadge();
@@ -272,11 +276,21 @@ export function createHeader({ auth, currentPath, onLogout }) {
     }
   }
 
+  function handleNotificationOutsidePointerDown(event) {
+    if (!header.isConnected) {
+      document.removeEventListener("pointerdown", handleNotificationOutsidePointerDown, true);
+      return;
+    }
+    if (panel.hidden || notificationWrap.contains(event.target)) return;
+    closeNotificationPanel();
+  }
+
   notificationButton.addEventListener("click", async () => {
     panel.hidden = !panel.hidden;
     notificationButton.setAttribute("aria-expanded", String(!panel.hidden));
     if (!panel.hidden) await refreshNotifications();
   });
+  document.addEventListener("pointerdown", handleNotificationOutsidePointerDown, true);
   notificationWrap.append(notificationButton, panel);
 
   subscribeNotificationUpdates(auth.user?.id, async () => {
