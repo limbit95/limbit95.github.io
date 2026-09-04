@@ -15,7 +15,7 @@ export const NAVER_MAPS_CLIENT_ID = "id0qqnxuzt";
  * Kakao Developers > 앱 > 플랫폼 키에서 발급한 JavaScript 키를 입력하세요.
  * JavaScript SDK 도메인과 제품 링크 웹 도메인에는 실제 배포 도메인을 등록해야 합니다.
  */
-export const KAKAO_JAVASCRIPT_KEY = "";
+export const KAKAO_JAVASCRIPT_KEY = "aa3cd4565d7eb703f952207b09b5ca19";
 
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
