@@ -23,7 +23,7 @@ export const KAKAO_JAVASCRIPT_KEY = "aa3cd4565d7eb703f952207b09b5ca19";
  * 활동 자세히 보기 버튼과 하단 APP 출처 링크 모두 /activity-link.html?id=${event_id}로 설정하세요.
  * 값이 없으면 기본 Feed 템플릿으로 안전하게 fallback합니다.
  */
-export const KAKAO_SHARE_TEMPLATE_ID = null;
+export const KAKAO_SHARE_TEMPLATE_ID = 136832;
 
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
