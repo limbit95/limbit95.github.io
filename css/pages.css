@@ -38,6 +38,8 @@
   background: linear-gradient(180deg, #fbfdfe 0%, #fff 28%);
   box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
 }
+.activity-grid--home .activity-card::before { display: none; }
+.activity-grid--home .activity-card__header { padding-left: 0; }
 .activity-grid--home .activity-card__header > :first-child { min-width: 0; flex: 1 1 auto; }
 .activity-grid--home .status-badge { flex: 0 0 auto; white-space: nowrap; }
 .activity-card__title { font-size: 1.16rem; line-height: 1.35; color: var(--forest-900); }
