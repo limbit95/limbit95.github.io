@@ -11,5 +11,11 @@ export const SUPABASE_PUBLISHABLE_KEY = "YOUR_SUPABASE_PUBLISHABLE_OR_ANON_KEY";
  */
 export const NAVER_MAPS_CLIENT_ID = "YOUR_NAVER_MAPS_CLIENT_ID";
 
+/**
+ * Kakao Developers > 앱 > 플랫폼 키에서 발급한 JavaScript 키를 넣으세요.
+ * JavaScript SDK 도메인과 제품 링크 웹 도메인에는 실제 배포 도메인을 등록하세요.
+ */
+export const KAKAO_JAVASCRIPT_KEY = "YOUR_KAKAO_JAVASCRIPT_KEY";
+
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-01";
