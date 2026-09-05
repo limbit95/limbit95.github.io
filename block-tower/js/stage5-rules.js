@@ -11,8 +11,8 @@ const gameRestartButton = document.querySelector("#game-restart-button");
 
 const INITIAL_COLLAPSE_GRACE_MS = 2500;
 const COLLAPSE_CONFIRM_MS = 1800;
-const TURN_SETTLE_MIN_MS = 700;
-const TURN_STABLE_CONFIRM_MS = 1400;
+const TURN_SETTLE_MIN_MS = 150;
+const TURN_STABLE_CONFIRM_MS = 450;
 const TOWER_STABLE_LINEAR_SPEED = 0.055;
 const TOWER_STABLE_ANGULAR_SPEED = 0.07;
 const FLOOR_TOP_Y = -0.02;
@@ -21,6 +21,10 @@ const ACTIVE_LIFT_CLEARANCE = 0.28;
 const BLOCK_HALF_LENGTH = 4.5 / 2;
 const BLOCK_HALF_HEIGHT = 0.72 / 2;
 const BLOCK_HALF_WIDTH = 1.42 / 2;
+const TOP_PLACEMENT_HORIZONTAL_LIMIT = 3.2;
+const TOP_SUPPORT_OVERLAP_TOLERANCE = 0.24;
+const TOP_PLACEMENT_MIN_GAP = -0.22;
+const TOP_PLACEMENT_MAX_GAP = 0.36;
 const COLLAPSE_LOW_HEIGHT_LEVELS = 3.25;
 const COLLAPSE_MAJOR_DROP_LEVELS = 2.4;
 const COLLAPSE_FLOOR_SCATTER_COUNT = 12;
@@ -126,20 +130,30 @@ function bodyAngularSpeed(block) {
   return Math.hypot(velocity.x, velocity.y, velocity.z);
 }
 
-function blockBottomY(block) {
-  const position = bodyPosition(block);
+function blockProjectedHalfHeight(block) {
   const quaternion = bodyQuaternion(block);
-  if (!position || !quaternion) return Infinity;
+  if (!quaternion) return 0;
 
   const xAxis = X_AXIS.clone().applyQuaternion(quaternion);
   const yAxis = Y_AXIS.clone().applyQuaternion(quaternion);
   const zAxis = Z_AXIS.clone().applyQuaternion(quaternion);
-  const projectedHalfHeight = (
+  return (
     Math.abs(xAxis.y) * BLOCK_HALF_LENGTH
     + Math.abs(yAxis.y) * BLOCK_HALF_HEIGHT
     + Math.abs(zAxis.y) * BLOCK_HALF_WIDTH
   );
-  return position.y - projectedHalfHeight;
+}
+
+function blockBottomY(block) {
+  const position = bodyPosition(block);
+  if (!position) return Infinity;
+  return position.y - blockProjectedHalfHeight(block);
+}
+
+function blockTopY(block) {
+  const position = bodyPosition(block);
+  if (!position) return -Infinity;
+  return position.y + blockProjectedHalfHeight(block);
 }
 
 function blockTouchesFloor(block) {
@@ -277,13 +291,50 @@ function activateBlock(block) {
   return true;
 }
 
+function highestSupportTopY(block) {
+  const activeBottom = blockBottomY(block);
+  let supportTop = -Infinity;
+
+  getBlocks().forEach((otherBlock) => {
+    if (otherBlock === block || otherBlock.userData.extracted) return;
+    const topY = blockTopY(otherBlock);
+    if (topY > activeBottom + TOP_SUPPORT_OVERLAP_TOLERANCE) return;
+    supportTop = Math.max(supportTop, topY);
+  });
+
+  return supportTop;
+}
+
+function activeBlockIsReleasedOnTop(block) {
+  if (!block?.userData?.extracted) return false;
+
+  const runtime = getRuntime();
+  if (typeof runtime?.isDraggingBlock === "function" && runtime.isDraggingBlock(block)) return false;
+  if (blockTouchesFloor(block)) return false;
+
+  const position = bodyPosition(block);
+  if (!position) return false;
+  if (
+    Math.abs(position.x) > TOP_PLACEMENT_HORIZONTAL_LIMIT
+    || Math.abs(position.z) > TOP_PLACEMENT_HORIZONTAL_LIMIT
+  ) {
+    return false;
+  }
+
+  const supportTop = highestSupportTopY(block);
+  if (!Number.isFinite(supportTop)) return false;
+
+  const supportGap = blockBottomY(block) - supportTop;
+  return supportGap >= TOP_PLACEMENT_MIN_GAP && supportGap <= TOP_PLACEMENT_MAX_GAP;
+}
+
 function beginSettling(block) {
   if (!block || state.phase === "settling" || state.gameOver) return;
   state.phase = "settling";
   state.placementStartedAt = performance.now();
   state.stableSince = null;
-  updateRuleStatus(`턴 ${state.turn} · 타워 안정화 확인 중`, "settling");
-  showRuleMessage(`${blockName(block)} 최상단 배치 완료 · 타워의 흔들림과 다른 블록의 낙하 여부를 확인하고 있습니다.`);
+  updateRuleStatus(`턴 ${state.turn} · 흔들림 멈춤 대기`, "settling");
+  showRuleMessage(`${blockName(block)} 최상단 배치 확인 · 타워의 흔들림이 멈추면 다음 턴으로 넘어갑니다.`);
 }
 
 function updateActivePhase() {
@@ -310,6 +361,11 @@ function updateActivePhase() {
       state.activeLifted = true;
     } else if (blockBottomY(block) > FLOOR_TOP_Y + ACTIVE_LIFT_CLEARANCE) {
       state.activeLifted = true;
+    }
+
+    if (activeBlockIsReleasedOnTop(block)) {
+      beginSettling(block);
+      return;
     }
 
     if (state.phase !== "extracted") {
@@ -390,6 +446,21 @@ function towerMotionSnapshot(blocks = getBlocks()) {
 
 function finishStableTurn() {
   const placedBlock = state.activeBlock;
+  const runtime = getRuntime();
+
+  if (
+    placedBlock?.userData?.extracted
+    && typeof runtime?.registerTopPlacement === "function"
+    && !runtime.registerTopPlacement(placedBlock)
+  ) {
+    state.phase = "extracted";
+    state.placementStartedAt = null;
+    state.stableSince = null;
+    updateRuleStatus(`턴 ${state.turn} · 최상단 배치 다시 확인`, "extracted");
+    showRuleMessage(`${blockName(placedBlock)} · 같은 블록을 다시 집어 최상단에 올려주세요.`);
+    return;
+  }
+
   state.completedTurns += 1;
   state.turn += 1;
   state.activeBlock = null;
@@ -401,11 +472,26 @@ function finishStableTurn() {
   turnStartLevels.clear();
   refreshLevelRules();
   updateReadyStatus();
-  showRuleMessage(`${blockName(placedBlock)} 배치 후 타워 안정 확인 완료 · 다음 사람의 턴입니다.`);
+  showRuleMessage(`${blockName(placedBlock)} 배치 후 흔들림이 멈췄습니다 · 다음 사람의 턴입니다.`);
+}
+
+function cancelLooseSettling(block) {
+  state.phase = "extracted";
+  state.placementStartedAt = null;
+  state.stableSince = null;
+  updateRuleStatus(`턴 ${state.turn} · 같은 블록 계속`, "extracted");
+  showRuleMessage(`${blockName(block)}이 최상단에서 벗어났습니다 · 다른 블록은 잠긴 상태이며 같은 블록을 다시 집어 올리세요.`);
 }
 
 function updateSettlingState() {
   if (state.gameOver || state.phase !== "settling" || !state.activeBlock) return;
+  const block = state.activeBlock;
+
+  if (block.userData.extracted && !activeBlockIsReleasedOnTop(block)) {
+    cancelLooseSettling(block);
+    return;
+  }
+
   const now = performance.now();
   if (state.placementStartedAt === null || now - state.placementStartedAt < TURN_SETTLE_MIN_MS) return;
 
@@ -421,7 +507,7 @@ function updateSettlingState() {
 
   if (state.stableSince === null) {
     state.stableSince = now;
-    updateRuleStatus(`턴 ${state.turn} · 안정 상태 확인 중`, "settling");
+    updateRuleStatus(`턴 ${state.turn} · 흔들림 멈춤 확인 중`, "settling");
     return;
   }
 
