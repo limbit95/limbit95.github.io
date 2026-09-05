@@ -949,6 +949,55 @@ function completePlacement() {
   selectionStatus.textContent = `${selectionLabel(block)} · ${completedTurns}턴 배치 완료`;
 }
 
+function blockCurrentLongAxis(block) {
+  const rotation = block.userData.body.rotation();
+  const quaternion = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w);
+  const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(quaternion);
+  axis.y = 0;
+  if (axis.lengthSq() < 0.0001) return levelLongAxis(currentTopLevelIndex);
+  return axis.normalize();
+}
+
+function registerLooseTopPlacement(block) {
+  if (!block) return false;
+  if (!block.userData.extracted) return true;
+
+  const target = nearestPlacementTarget(block);
+  if (!target) return false;
+
+  const body = block.userData.body;
+  const actualPosition = blockBodyPosition(block);
+  body.resetForces(true);
+  body.resetTorques(true);
+
+  if (placementAssist?.block === block) placementAssist = null;
+
+  block.userData.level = target.levelIndex + 1;
+  block.userData.slot = target.slotIndex + 1;
+  block.userData.extracted = false;
+  block.userData.originalPosition.copy(actualPosition);
+  block.userData.originalLongAxis.copy(blockCurrentLongAxis(block));
+
+  occupiedTopSlots.add(target.slotIndex);
+  completedTurns += 1;
+
+  if (occupiedTopSlots.size === 3) {
+    currentTopLevelIndex += 1;
+    occupiedTopSlots = new Set();
+  }
+
+  hidePlacementGhosts();
+  updateTurnStatus();
+  selectionStatus.textContent = `${selectionLabel(block)} · 최상단 배치 등록`;
+  return true;
+}
+
+const gameRuntime = window.__blockTowerGameRuntime;
+if (gameRuntime) {
+  gameRuntime.isDraggingBlock = (block) => dragState?.block === block;
+  gameRuntime.registerTopPlacement = registerLooseTopPlacement;
+}
+
 function applyPlacementAssist() {
   if (!placementAssist) return;
   const { block, target, startedAt } = placementAssist;
