@@ -7,6 +7,14 @@
     <meta name="description" content="서로 다른 세계와 규칙을 선택해 즐기는 3D 온라인 마블 보드게임">
     <title>Marble Worlds</title>
     <link rel="stylesheet" href="./css/style.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
   </head>
   <body data-theme="classic">
     <main class="marble-shell">
@@ -16,7 +24,7 @@
         <p class="eyebrow">MARBLE WORLDS</p>
         <h1>어떤 세계로 떠날까요?</h1>
         <p class="intro-copy">
-          하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. Classic 핵심 규칙은 브라우저에서 직접 테스트할 수 있습니다.
+          하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. Classic은 이제 동일한 규칙 엔진을 실제 3D 보드에 연결해 테스트할 수 있습니다.
         </p>
       </header>
 
@@ -26,7 +34,7 @@
             <p class="eyebrow">CHOOSE A WORLD</p>
             <h2 id="theme-list-title">테마 선택</h2>
           </div>
-          <span class="phase-chip">PHASE 2.5 · PLAYTEST</span>
+          <span class="phase-chip">PHASE 3 · 3D PROTOTYPE</span>
         </div>
         <div class="theme-grid" data-theme-grid></div>
       </section>
@@ -37,7 +45,7 @@
             <p class="eyebrow" data-theme-name>CLASSIC</p>
             <h2 data-theme-title>세계일주</h2>
           </div>
-          <span class="status-chip" data-theme-status>CORE READY</span>
+          <span class="status-chip" data-theme-status>3D PROTOTYPE</span>
         </div>
         <p class="theme-detail__description" data-theme-description></p>
         <ul class="feature-list" data-theme-features></ul>
@@ -46,30 +54,42 @@
           <p data-foundation-note></p>
         </div>
         <div class="playtest-entry">
-          <button class="primary-button" type="button" data-start-playtest>Classic 테스트 플레이 시작</button>
-          <p data-playtest-entry-note>브라우저 한 화면에서 2인 로컬 규칙 테스트를 진행합니다. 온라인 동기화는 아직 적용되지 않습니다.</p>
+          <button class="primary-button" type="button" data-start-playtest>Classic 3D 테스트 플레이 시작</button>
+          <p data-playtest-entry-note>2인 로컬 규칙과 3D 보드·카메라·말 이동을 함께 테스트합니다.</p>
         </div>
       </section>
 
       <section class="playtest-section" data-playtest-section hidden aria-labelledby="playtest-title">
         <div class="section-heading playtest-heading">
           <div>
-            <p class="eyebrow">CLASSIC MANUAL PLAYTEST</p>
-            <h2 id="playtest-title">직접 플레이 테스트</h2>
+            <p class="eyebrow">CLASSIC 3D TECHNICAL PROTOTYPE</p>
+            <h2 id="playtest-title">3D 직접 플레이 테스트</h2>
           </div>
           <button class="ghost-button" type="button" data-reset-playtest>새 게임</button>
         </div>
 
         <div class="playtest-layout">
           <div class="board-panel">
-            <div class="classic-board" data-classic-board aria-label="Classic 2D 테스트 보드">
-              <div class="board-center">
-                <p class="eyebrow">CURRENT TURN</p>
-                <strong data-turn-label>플레이어 A</strong>
-                <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
-                <p class="game-message" data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+            <div class="three-prototype-shell">
+              <div class="classic-three-stage" data-three-stage aria-label="Classic 3D 테스트 보드"></div>
+              <div class="three-prototype-hud">
+                <span class="prototype-badge">32 TILES · WEBGL</span>
+                <p data-three-status>3D 엔진 준비 중</p>
               </div>
             </div>
+
+            <details class="two-d-fallback">
+              <summary>2D 상태 보드 함께 보기</summary>
+              <p>3D 표현과 실제 엔진 상태가 같은지 비교할 수 있는 보조 화면입니다.</p>
+              <div class="classic-board" data-classic-board aria-label="Classic 2D 상태 보드">
+                <div class="board-center">
+                  <p class="eyebrow">CURRENT TURN</p>
+                  <strong data-turn-label>플레이어 A</strong>
+                  <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
+                  <p class="game-message" data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+                </div>
+              </div>
+            </details>
           </div>
 
           <aside class="playtest-sidebar">
@@ -93,7 +113,7 @@
       </section>
 
       <footer class="marble-footer">
-        <p>현재 수동 테스트 화면은 Classic 규칙 확인용 2D UI입니다. 다음 단계에서 같은 엔진 상태와 이동 경로를 3D Renderer에 연결합니다.</p>
+        <p>Phase 3에서는 32칸 Classic 보드로 3D 공간 규모를 검증합니다. 최종 Classic은 최소 30칸 이상을 유지합니다.</p>
       </footer>
     </main>
 
