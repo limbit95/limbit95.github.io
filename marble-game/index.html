@@ -16,7 +16,7 @@
         <p class="eyebrow">MARBLE WORLDS</p>
         <h1>어떤 세계로 떠날까요?</h1>
         <p class="intro-copy">
-          하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. 지금은 전체 개발의 첫 단계로 테마와 공통 엔진의 기반을 만들고 있습니다.
+          하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. Classic 핵심 규칙은 브라우저에서 직접 테스트할 수 있습니다.
         </p>
       </header>
 
@@ -26,7 +26,7 @@
             <p class="eyebrow">CHOOSE A WORLD</p>
             <h2 id="theme-list-title">테마 선택</h2>
           </div>
-          <span class="phase-chip">PHASE 1 · FOUNDATION</span>
+          <span class="phase-chip">PHASE 2.5 · PLAYTEST</span>
         </div>
         <div class="theme-grid" data-theme-grid></div>
       </section>
@@ -37,7 +37,7 @@
             <p class="eyebrow" data-theme-name>CLASSIC</p>
             <h2 data-theme-title>세계일주</h2>
           </div>
-          <span class="status-chip" data-theme-status>FOUNDATION</span>
+          <span class="status-chip" data-theme-status>CORE READY</span>
         </div>
         <p class="theme-detail__description" data-theme-description></p>
         <ul class="feature-list" data-theme-features></ul>
@@ -45,10 +45,55 @@
           <strong>현재 개발 단계</strong>
           <p data-foundation-note></p>
         </div>
+        <div class="playtest-entry">
+          <button class="primary-button" type="button" data-start-playtest>Classic 테스트 플레이 시작</button>
+          <p data-playtest-entry-note>브라우저 한 화면에서 2인 로컬 규칙 테스트를 진행합니다. 온라인 동기화는 아직 적용되지 않습니다.</p>
+        </div>
+      </section>
+
+      <section class="playtest-section" data-playtest-section hidden aria-labelledby="playtest-title">
+        <div class="section-heading playtest-heading">
+          <div>
+            <p class="eyebrow">CLASSIC MANUAL PLAYTEST</p>
+            <h2 id="playtest-title">직접 플레이 테스트</h2>
+          </div>
+          <button class="ghost-button" type="button" data-reset-playtest>새 게임</button>
+        </div>
+
+        <div class="playtest-layout">
+          <div class="board-panel">
+            <div class="classic-board" data-classic-board aria-label="Classic 2D 테스트 보드">
+              <div class="board-center">
+                <p class="eyebrow">CURRENT TURN</p>
+                <strong data-turn-label>플레이어 A</strong>
+                <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
+                <p class="game-message" data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+              </div>
+            </div>
+          </div>
+
+          <aside class="playtest-sidebar">
+            <div class="player-list" data-player-list></div>
+
+            <div class="action-panel">
+              <p class="panel-label">ACTION</p>
+              <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
+              <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
+            </div>
+
+            <div class="event-panel">
+              <div class="event-panel__heading">
+                <p class="panel-label">GAME LOG</p>
+                <span>최근 기록</span>
+              </div>
+              <ol class="event-log" data-event-log></ol>
+            </div>
+          </aside>
+        </div>
       </section>
 
       <footer class="marble-footer">
-        <p>3D 보드 · 온라인 멀티플레이 · 테마별 고유 규칙은 공통 엔진을 검증한 뒤 차례대로 연결합니다.</p>
+        <p>현재 수동 테스트 화면은 Classic 규칙 확인용 2D UI입니다. 다음 단계에서 같은 엔진 상태와 이동 경로를 3D Renderer에 연결합니다.</p>
       </footer>
     </main>
 
