@@ -1,0 +1,226 @@
+.activity-form-notice,
+.activity-form-page-header .page-description {
+  display: none !important;
+}
+
+.activity-form > .activity-form__section:first-of-type {
+  border-top: 5px solid #cfe4ea;
+  background: linear-gradient(180deg, #fbfdfe 0%, #fff 28%);
+  box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
+}
+
+.activity-form select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%2367818b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .72rem center;
+  background-size: 12px 8px;
+  padding-right: 2.05rem;
+}
+
+.activity-form select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%234f707b' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.activity-form .activity-time-picker__select {
+  background-position: right .5rem center;
+  background-size: 10px 7px;
+  padding-right: 1.45rem;
+}
+
+.activity-form__basic-grid {
+  align-items: start !important;
+}
+
+.activity-form__basic-grid > .field {
+  align-self: start;
+}
+
+.activity-form__schedule-row {
+  align-items: start !important;
+}
+
+.activity-form__schedule-row:not(:has(.activity-form__repeat-toggle)) {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.activity-form__schedule-row:not(:has(.activity-form__repeat-toggle)) > .activity-form__field--datetime {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.activity-form__field--datetime {
+  align-self: start;
+}
+
+.activity-form__schedule-row > .activity-form__repeat-toggle {
+  align-self: start;
+  margin-top: 1.65rem;
+}
+
+.activity-picker-trigger__chevron {
+  width: 14px;
+  height: 14px;
+  display: block;
+  align-self: center;
+  justify-self: end;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%2367818b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 8px;
+  color: transparent;
+  font-size: 0;
+  line-height: 0;
+  transition: transform .14s ease;
+}
+
+.activity-picker-trigger[aria-expanded="true"] .activity-picker-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+.activity-form__repeat-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start;
+}
+
+.activity-form__repeat-toggle > input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 0 !important;
+  align-self: center;
+}
+
+.activity-form__repeat-toggle > span,
+.activity-form__repeat-toggle > span > strong {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.1;
+}
+
+.activity-form__repeat-toggle > span::after {
+  flex: 0 0 16px;
+  align-self: center;
+}
+
+.activity-form__location-search-hint {
+  margin: 0;
+  color: #3f7fb6;
+  font-size: .73rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.activity-form__location-search-hint[hidden] {
+  display: none !important;
+}
+
+.activity-form__map-link-field {
+  min-width: 0;
+}
+
+.activity-form__map-link-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px 38px;
+  align-items: center;
+  gap: .4rem;
+  width: 100%;
+}
+
+.activity-form__map-link-row > input {
+  width: 100%;
+  min-width: 0;
+}
+
+.activity-form__map-shortcut {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+
+.activity-form__map-shortcut::before {
+  content: "";
+  width: 22px;
+  height: 22px;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+
+.activity-form__map-shortcut:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 12px rgba(49, 78, 88, .13);
+  filter: saturate(1.04);
+}
+
+.activity-form__map-shortcut:focus-visible {
+  outline: 2px solid #82b9c9;
+  outline-offset: 2px;
+}
+
+.activity-form__map-shortcut--naver {
+  background: #03c75a;
+  border-color: #03b953;
+}
+
+.activity-form__map-shortcut--naver::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M4 4h5.1l3.8 5.8V4H18v14h-5.1L9.1 12.2V18H4V4Z' fill='white'/%3E%3C/svg%3E");
+}
+
+.activity-form__map-shortcut--kakao {
+  background: #fee500;
+  border-color: #ead300;
+}
+
+.activity-form__map-shortcut--kakao::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M11 2.75c-4.42 0-8 2.94-8 6.56 0 2.33 1.5 4.38 3.76 5.55l-.96 3.51a.47.47 0 0 0 .72.51l4.2-2.82H11c4.42 0 8-2.94 8-6.56S15.42 2.75 11 2.75Z' fill='%231f1f1f'/%3E%3Ccircle cx='8.1' cy='9.45' r='1.05' fill='%23fee500'/%3E%3Ccircle cx='11' cy='9.45' r='1.05' fill='%23fee500'/%3E%3Ccircle cx='13.9' cy='9.45' r='1.05' fill='%23fee500'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 1040px) {
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: 5 / span 2 !important;
+    grid-row: 3 !important;
+    align-self: start;
+  }
+
+  .activity-form__cluster--status .field,
+  .activity-form__cluster--status select {
+    width: 100% !important;
+    max-width: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-form__schedule-row > .activity-form__repeat-toggle {
+    margin-top: 0;
+  }
+
+  .activity-form__map-link-row {
+    grid-template-columns: minmax(0, 1fr) 36px 36px;
+  }
+
+  .activity-form__map-shortcut {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 9px;
+  }
+
+  .activity-form__map-shortcut::before {
+    width: 21px;
+    height: 21px;
+  }
+}

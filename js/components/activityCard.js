@@ -88,6 +88,12 @@ export function createActivityCard(event, {
       el("span", { className: "meta-icon", text: "👥", "aria-hidden": "true" }),
       el("span", { text: `참여 ${capacityLabel}${counts.waitlisted ? ` · 대기 ${counts.waitlisted}명` : ""}` }),
     ]),
+    event.beginner_friendly
+      ? el("div", { className: "meta-item" }, [
+          el("span", { className: "meta-icon", text: "🌱", "aria-hidden": "true" }),
+          el("span", { text: "초보자 환영" }),
+        ])
+      : null,
   ]);
   const footer = el("div", { className: "activity-card__footer" });
 

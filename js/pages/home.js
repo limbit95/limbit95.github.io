@@ -184,7 +184,7 @@ export async function renderHome() {
     });
   }
   lowerGrid.append(noticeCard, myCard);
-  root.append(hero, quick, upcomingSection, lowerGrid);
+  root.append(hero, quick, lowerGrid, upcomingSection);
 
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));

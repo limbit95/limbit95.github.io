@@ -1,0 +1,582 @@
+.activity-form {
+  gap: .75rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.activity-form textarea {
+  resize: none;
+}
+
+.activity-form__section {
+  min-width: 0;
+  padding: .9rem;
+  border: 1px solid #dcebee;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(82, 128, 145, .055);
+}
+
+.activity-form__section + .activity-form__section {
+  padding-top: .9rem;
+  border-top: 1px solid #dcebee;
+}
+
+.activity-form__section-heading {
+  min-height: 24px;
+}
+
+.activity-form__section-title {
+  font-size: .95rem;
+}
+
+.activity-form__basic-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .65rem;
+}
+
+.activity-form__basic-grid > .field:first-child {
+  flex: 0 1 210px;
+  width: min(100%, 210px);
+}
+
+.activity-form__basic-grid > .field:nth-child(2) {
+  flex: 0 1 520px;
+  width: min(100%, 520px);
+}
+
+.activity-form__description-field {
+  width: min(100%, 760px);
+}
+
+.activity-form__section:nth-of-type(2) {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: start;
+  gap: .7rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__section-heading {
+  display: none;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster {
+  min-width: 0;
+  align-content: start;
+  gap: .6rem;
+  padding: .82rem;
+  border: 1px solid #dfecef;
+  border-top: 5px solid #cfe4ea;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #fbfdfe 0%, #fff 28%);
+  box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster + .activity-form__cluster {
+  padding-top: .82rem;
+  border-top: 5px solid #cfe4ea;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) {
+  grid-column: span 7;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) {
+  grid-column: span 5;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
+  grid-column: 1 / -1;
+}
+
+.activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4) {
+  grid-column: span 8;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+  grid-column: span 4;
+}
+
+.activity-form__cluster-title {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: #5d7c87;
+  font-size: .78rem;
+  letter-spacing: .01em;
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) .activity-form__cluster-title::before {
+  content: "🗓️";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) .activity-form__cluster-title::before {
+  content: "📍";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4) .activity-form__cluster-title::before {
+  content: "🙌";
+}
+
+.activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) .activity-form__cluster-title::before {
+  content: "📣";
+}
+
+.activity-form__cluster--status .activity-form__cluster-title::before {
+  content: "●";
+  color: #7da28b;
+  font-size: .62rem;
+}
+
+.activity-form__location-row,
+.activity-form__participation-row,
+.activity-form__recurrence-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .58rem;
+}
+
+.activity-form__schedule-row {
+  width: min(100%, 330px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: .58rem;
+}
+
+.activity-form__notice-grid {
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: .65rem;
+}
+
+.activity-form__field--schedule {
+  width: 100%;
+  max-width: 330px;
+  grid-column: 1 / -1;
+}
+
+.activity-form__field--datetime {
+  width: 100%;
+  min-width: 0;
+  grid-column: 1;
+}
+
+.activity-form__repeat-toggle {
+  position: relative;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
+  grid-column: 2;
+  align-self: end;
+  gap: .4rem;
+  padding: .42rem .55rem;
+  white-space: nowrap;
+}
+
+.activity-form__repeat-toggle > span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.activity-form__repeat-toggle .small.subtle {
+  display: none;
+}
+
+.activity-form__repeat-toggle > span::after {
+  content: "i";
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #bfd3da;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b8791;
+  font-size: .65rem;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.activity-form__repeat-toggle > span::before {
+  content: "반복 종료일까지 설정한 주기에 따라 개별 활동 일정이 생성됩니다.";
+  position: absolute;
+  z-index: 90;
+  right: 0;
+  bottom: calc(100% + .55rem);
+  width: 230px;
+  padding: .5rem .6rem;
+  border: 1px solid #d7e5e9;
+  border-radius: 9px;
+  background: #405e68;
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(49, 78, 88, .18);
+  font-size: .7rem;
+  font-weight: 650;
+  line-height: 1.45;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(3px);
+  transition: opacity .14s ease, transform .14s ease, visibility .14s ease;
+  pointer-events: none;
+}
+
+.activity-form__repeat-toggle:hover > span::before,
+.activity-form__repeat-toggle:focus-within > span::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.activity-form__field:has([name="location_name"]) {
+  flex: 0 1 300px;
+  width: min(100%, 300px);
+}
+
+.activity-form__field:has([name="location_url"]) {
+  flex: 0 1 380px;
+  width: min(100%, 380px);
+}
+
+.activity-form__field:has([name="capacity"]) {
+  flex: 0 1 135px;
+  width: min(100%, 135px);
+}
+
+.activity-form__field:has([name="fee_text"]) {
+  flex: 0 1 170px;
+  width: min(100%, 170px);
+}
+
+.activity-form__field:has([name="difficulty"]) {
+  flex: 0 1 180px;
+  width: min(100%, 180px);
+}
+
+.activity-form__beginner-field {
+  flex: 0 1 175px;
+  width: min(100%, 175px);
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_frequency"]) {
+  flex: 0 1 155px;
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_interval"]) {
+  flex: 0 1 125px;
+}
+
+.activity-form__recurrence-fields > .field:has([name="recurrence_end_date"]) {
+  flex: 0 1 240px;
+}
+
+.activity-form__cluster--status .field {
+  width: min(100%, 220px);
+}
+
+.activity-form__toggle--compact {
+  width: 100%;
+}
+
+.activity-form__actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding-top: .1rem;
+  border-top: 0;
+}
+
+@media (min-width: 1040px) {
+  .activity-form {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .activity-form > .activity-form__section:first-of-type {
+    grid-column: 1 / span 3;
+    grid-row: 1;
+    height: 100%;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) {
+    display: contents;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__section-heading {
+    display: none;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2) {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3) {
+    grid-column: 3 / span 2;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+  .activity-form > .activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4) {
+    grid-column: 4 / span 3;
+    grid-row: 1;
+    height: 100%;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
+    grid-column: 5 / span 2;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .activity-form > .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .activity-form__basic-grid {
+    display: grid;
+    grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);
+    align-items: end;
+  }
+
+  .activity-form__basic-grid > .field:first-child,
+  .activity-form__basic-grid > .field:nth-child(2),
+  .activity-form__description-field {
+    width: 100%;
+  }
+
+  .activity-form__description-field {
+    max-width: none;
+  }
+
+  .activity-form__participation-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: .6rem;
+  }
+
+  .activity-form__participation-row > .field {
+    min-width: 0;
+    width: 100%;
+    display: grid;
+    grid-template-rows: auto 38px auto;
+    align-content: start;
+  }
+
+  .activity-form__participation-row > .field > input:not([type="checkbox"]),
+  .activity-form__participation-row > .field > .activity-form__toggle {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .activity-form__beginner-field {
+    grid-template-rows: auto 38px;
+  }
+
+  .activity-form__beginner-field .activity-form__toggle {
+    min-height: 38px;
+  }
+
+  .activity-form__field:has([name="capacity"]),
+  .activity-form__field:has([name="fee_text"]),
+  .activity-form__field:has([name="difficulty"]),
+  .activity-form__beginner-field {
+    width: 100%;
+  }
+
+  .activity-form__schedule-row {
+    width: 100%;
+    max-width: none;
+  }
+
+  .activity-form__field--schedule {
+    max-width: none;
+  }
+
+  .activity-form__location-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .activity-form__field:has([name="location_name"]),
+  .activity-form__field:has([name="location_url"]) {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+  }
+
+  .activity-form__notice-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: .58rem;
+  }
+
+  .activity-form__notice-grid > .field,
+  .activity-form__notice-grid textarea {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .activity-form__actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 1039px) {
+  .activity-form__section:nth-of-type(2) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__section-heading,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2):has(.activity-form__cluster--status) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 759px) {
+  .activity-form__section:nth-of-type(2) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__section-heading,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(2),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(3),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(4),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster:nth-child(5),
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster--status {
+    grid-column: 1;
+  }
+
+  .activity-form__basic-grid > .field:first-child,
+  .activity-form__basic-grid > .field:nth-child(2),
+  .activity-form__description-field,
+  .activity-form__field:has([name="location_name"]),
+  .activity-form__field:has([name="location_url"]) {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .activity-form__schedule-row {
+    width: 100%;
+    max-width: 330px;
+  }
+
+  .activity-form__notice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 639px) {
+  .activity-form {
+    gap: .62rem;
+    padding: 0;
+  }
+
+  .activity-form__section {
+    padding: .74rem;
+    border-radius: 14px;
+  }
+
+  .activity-form__section + .activity-form__section {
+    padding-top: .74rem;
+  }
+
+  .activity-form__section:nth-of-type(2) {
+    padding: 0;
+    border: 0;
+  }
+
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster,
+  .activity-form__section:nth-of-type(2) > .activity-form__cluster + .activity-form__cluster {
+    padding: .72rem;
+    border-top-width: 4px;
+    border-radius: 13px;
+  }
+
+  .activity-form__participation-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .activity-form__participation-row > .field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .activity-form__field:has([name="capacity"]),
+  .activity-form__field:has([name="fee_text"]),
+  .activity-form__field:has([name="difficulty"]),
+  .activity-form__beginner-field {
+    width: 100%;
+  }
+
+  .activity-form__repeat-toggle {
+    width: auto;
+    min-height: 38px;
+  }
+
+  .activity-form__recurrence-fields > .field {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .activity-form__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form__actions .button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .activity-form__schedule-row {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .activity-form__field--schedule,
+  .activity-form__field--datetime,
+  .activity-form__repeat-toggle {
+    grid-column: 1;
+  }
+
+  .activity-form__repeat-toggle {
+    justify-self: start;
+  }
+
+  .activity-form__repeat-toggle > span::before {
+    left: 0;
+    right: auto;
+    width: min(230px, calc(100vw - 3rem));
+  }
+}
