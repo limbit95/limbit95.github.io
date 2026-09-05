@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "fix/activity-participant-profile-menu-overflow"
     paths:
       - "js/**"
       - "index.template.html"
