@@ -1,9 +1,9 @@
 {
-  "entry": "assets/build/app-DK6ACITN.js",
+  "entry": "assets/build/app-QMKJSFW4.js",
   "outputs": [
-    "assets/build/app-DK6ACITN.js",
+    "assets/build/app-QMKJSFW4.js",
     "assets/build/chunks/activities-2DDVB6JP.js",
-    "assets/build/chunks/activityDetail-KIHLCDJB.js",
+    "assets/build/chunks/activityDetail-HO2Q5VMO.js",
     "assets/build/chunks/activityForm-2ZDLUWNF.js",
     "assets/build/chunks/admin-PF3GMSPL.js",
     "assets/build/chunks/approvals-J2NWNJ2T.js",
@@ -11,10 +11,10 @@
     "assets/build/chunks/board-2T4FDGZK.js",
     "assets/build/chunks/categories-M3UFQ5FW.js",
     "assets/build/chunks/chunk-2ALCY3BQ.js",
-    "assets/build/chunks/chunk-2TRPK24S.js",
     "assets/build/chunks/chunk-BF6WMXCP.js",
     "assets/build/chunks/chunk-CWLJ3NMI.js",
     "assets/build/chunks/chunk-EHEMZPHF.js",
+    "assets/build/chunks/chunk-HEKR4IKV.js",
     "assets/build/chunks/chunk-IVGE6E4M.js",
     "assets/build/chunks/chunk-IXJM2NGQ.js",
     "assets/build/chunks/chunk-J4IR2SHV.js",
@@ -28,7 +28,7 @@
     "assets/build/chunks/chunk-VBBJQ6NV.js",
     "assets/build/chunks/dashboard-LF3LF5E4.js",
     "assets/build/chunks/errors-QVCNSEUH.js",
-    "assets/build/chunks/games-3BXCJJXC.js",
+    "assets/build/chunks/games-GM36FSSA.js",
     "assets/build/chunks/home-27IMOW57.js",
     "assets/build/chunks/login-MBQSMXF4.js",
     "assets/build/chunks/managers-5UG4ZF46.js",
@@ -36,7 +36,7 @@
     "assets/build/chunks/mypage-4FQVLCP7.js",
     "assets/build/chunks/passwordReset-DMLGOXSM.js",
     "assets/build/chunks/pending-YF6ESFOV.js",
-    "assets/build/chunks/postDetail-5RC5KECB.js",
+    "assets/build/chunks/postDetail-6MFYUUJ6.js",
     "assets/build/chunks/postForm-W7ZINVS5.js",
     "assets/build/chunks/signup-VX44YN35.js"
   ]
