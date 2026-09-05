@@ -596,10 +596,10 @@ export class FruitBellScene {
     if (t < 0.38) {
       this.rightHand.position.copy(lerpVector(rest, deck, easeOutCubic(t / 0.38)));
     } else if (t < 0.68) {
-      this.rightHand.position.copy(lerpVector(deck, lift, easeInOut((t - 0.38) / 0.3));
+      this.rightHand.position.copy(lerpVector(deck, lift, easeInOut((t - 0.38) / 0.3)));
       this.rightHand.rotation.x = -0.65 * ((t - 0.38) / 0.3);
     } else {
-      this.rightHand.position.copy(lerpVector(lift, rest, easeInOut((t - 0.68) / 0.32));
+      this.rightHand.position.copy(lerpVector(lift, rest, easeInOut((t - 0.68) / 0.32)));
       this.rightHand.rotation.x = -0.65 * (1 - ((t - 0.68) / 0.32));
     }
     if (t >= 1) {
@@ -622,7 +622,7 @@ export class FruitBellScene {
       this.leftStrike.position.copy(hit);
       this.leftStrike.position.y -= Math.sin(((t - 0.34) / 0.18) * Math.PI) * 0.15;
     } else {
-      this.leftStrike.position.copy(lerpVector(hit, start, easeInOut((t - 0.52) / 0.48));
+      this.leftStrike.position.copy(lerpVector(hit, start, easeInOut((t - 0.52) / 0.48)));
     }
     if (t >= 1) {
       this.leftStrike.visible = false;
