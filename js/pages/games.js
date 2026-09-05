@@ -15,6 +15,13 @@ const GAMES = [
     href: "./the-game/",
     buttonText: "더 게임 시작",
   },
+  {
+    icon: "🔔",
+    title: "할리갈리",
+    description: "과일 수가 정확히 5가 되는 순간 중앙 종을 먼저 치는 3D 반응 게임이에요.",
+    href: "./fruit-bell/",
+    buttonText: "할리갈리 시작",
+  },
 ];
 
 export function renderGames() {
