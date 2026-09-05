@@ -4,6 +4,8 @@ const CAMERA_PROFILE = Object.freeze({
   horizontalLook: 2.7,
   verticalLook: 6.4,
   eyeHeight: 4.15,
+  neutralTargetY: 4.15,
+  sceneTargetBaseY: 1.02,
   verticalResponse: 0.38,
 });
 
@@ -31,6 +33,15 @@ export class FruitBellPresentationController {
   #installCameraTuning() {
     this.scene.baseCameraPosition.y = CAMERA_PROFILE.eyeHeight;
     this.scene.camera.position.y = CAMERA_PROFILE.eyeHeight;
+
+    const originalLookAt = this.scene.camera.lookAt.bind(this.scene.camera);
+    this.scene.camera.lookAt = (x, y, z) => {
+      if (x?.isVector3) return originalLookAt(x);
+      const adjustedY = CAMERA_PROFILE.neutralTargetY + (y - CAMERA_PROFILE.sceneTargetBaseY);
+      return originalLookAt(x, adjustedY, z);
+    };
+    originalLookAt(0, CAMERA_PROFILE.neutralTargetY, 0.08);
+
     this.scene.setLookOffset = (x, y) => {
       const targetX = THREE.MathUtils.clamp(
         x * CAMERA_PROFILE.horizontalLook,
