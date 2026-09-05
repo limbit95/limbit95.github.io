@@ -2,8 +2,9 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.m
 
 const CAMERA_PROFILE = Object.freeze({
   horizontalLook: 2.7,
-  verticalLook: 3.6,
-  eyeHeight: 4.75,
+  verticalLook: 6.4,
+  eyeHeight: 4.15,
+  verticalResponse: 0.38,
 });
 
 function easeOutCubic(value) {
@@ -31,9 +32,21 @@ export class FruitBellPresentationController {
     this.scene.baseCameraPosition.y = CAMERA_PROFILE.eyeHeight;
     this.scene.camera.position.y = CAMERA_PROFILE.eyeHeight;
     this.scene.setLookOffset = (x, y) => {
-      this.scene.targetLookOffset.set(
-        THREE.MathUtils.clamp(x * CAMERA_PROFILE.horizontalLook, -CAMERA_PROFILE.horizontalLook, CAMERA_PROFILE.horizontalLook),
-        THREE.MathUtils.clamp(y * CAMERA_PROFILE.verticalLook, -CAMERA_PROFILE.verticalLook, CAMERA_PROFILE.verticalLook),
+      const targetX = THREE.MathUtils.clamp(
+        x * CAMERA_PROFILE.horizontalLook,
+        -CAMERA_PROFILE.horizontalLook,
+        CAMERA_PROFILE.horizontalLook,
+      );
+      const targetY = THREE.MathUtils.clamp(
+        y * CAMERA_PROFILE.verticalLook,
+        -CAMERA_PROFILE.verticalLook,
+        CAMERA_PROFILE.verticalLook,
+      );
+      this.scene.targetLookOffset.set(targetX, targetY);
+      this.scene.lookOffset.y = THREE.MathUtils.lerp(
+        this.scene.lookOffset.y,
+        targetY,
+        CAMERA_PROFILE.verticalResponse,
       );
     };
   }
