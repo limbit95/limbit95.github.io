@@ -1,6 +1,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js";
 
 const CARD_THICKNESS = 0.026;
+const CARD_VISUAL_SCALE = 0.5;
 const FLIGHT_DURATION_MS = 500;
 const STAGGER_MS = 155;
 
@@ -10,6 +11,7 @@ function easeInOut(value) {
 
 function makePenaltyCard() {
   const group = new THREE.Group();
+  group.scale.set(CARD_VISUAL_SCALE, 1, CARD_VISUAL_SCALE);
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(0.92, 0.075, 1.28),
     new THREE.MeshStandardMaterial({ color: 0x294552, roughness: 0.72, metalness: 0.02 }),
