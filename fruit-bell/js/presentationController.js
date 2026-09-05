@@ -4,7 +4,7 @@ const CAMERA_PROFILE = Object.freeze({
   horizontalLook: 2.7,
   verticalLook: 6.4,
   eyeHeight: 4.15,
-  neutralTargetY: 4.15,
+  neutralTargetY: 2.7,
   sceneTargetBaseY: 1.02,
   verticalResponse: 0.38,
 });
