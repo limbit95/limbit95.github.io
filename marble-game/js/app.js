@@ -11,13 +11,13 @@ const foundationNote = document.querySelector("[data-foundation-note]");
 let selectedThemeId = "classic";
 
 function statusLabel(theme) {
+  if (theme.status === "core") return "CORE READY";
   if (theme.status === "foundation") return "FOUNDATION";
   return "PLANNED";
 }
 
 function renderThemeCards() {
   themeGrid.replaceChildren();
-
   listThemes().forEach((theme) => {
     const button = document.createElement("button");
     button.type = "button";
@@ -50,8 +50,8 @@ function renderSelectedTheme() {
     return item;
   }));
 
-  foundationNote.textContent = theme.engineReady
-    ? "공통 엔진과 연결된 첫 기준 테마입니다. 다음 단계에서 Classic 핵심 규칙을 구현합니다."
+  foundationNote.textContent = theme.playable
+    ? "Classic 핵심 규칙 엔진이 준비되었습니다. 다음 단계에서 이 상태 데이터를 3D 보드 프로토타입에 연결합니다."
     : "테마 구조는 등록되어 있으며 공통 엔진 검증 이후 차례대로 구현합니다.";
 
   themeGrid.querySelectorAll("[data-theme-id]").forEach((button) => {

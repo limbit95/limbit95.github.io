@@ -4,54 +4,80 @@
 
 ## 현재 개발 단계
 
-`Phase 1 — Marble Foundation`
+`Phase 2 — Classic Core`
 
-현재 단계에서는 실제 게임 플레이, 온라인 방, 3D 렌더링을 구현하지 않고 이후 기능이 서로 얽히지 않도록 공통 경계를 먼저 만듭니다.
+Classic을 공통 엔진의 첫 실제 규칙 세트로 구현했습니다. 아직 3D 렌더링과 온라인 동기화는 연결하지 않고, 엔진 상태만으로 한 턴의 핵심 흐름과 한 판의 승패를 계산할 수 있도록 합니다.
 
 구현 범위:
 
-- Classic / Space / Ocean / Fantasy 테마 선택 로비
-- Theme Registry
-- 방향/분기 이동을 지원하는 Board Graph 기반
-- Turn State Machine
-- 공통 Action 타입과 Action 생성 검증
-- 공통 Game State 및 최소 START/END reducer
-- Game Engine과 3D Renderer를 분리하기 위한 renderer contract
-- Node 기반 foundation 테스트
+- 20칸 오리지널 세계일주 Classic 보드
+- 2주사위 결과 검증과 로컬 주사위 helper
+- Node/Edge 보드를 따라가는 이동 경로 계산
+- 출발점 통과 보너스
+- 도시 구매와 소유권
+- 최대 3단계 건설
+- 건설 단계별 통행료
+- 지원금 / 세금 / 이벤트 / 휴식 특수 타일
+- 이벤트 카드 순환 상태
+- 휴식 턴 스킵
+- 자금 부족 시 파산 및 소유지 은행 반환
+- 마지막 생존 플레이어 승리
+- 렌더러가 재생할 수 있는 `lastEvents` 이동/경제 이벤트 기록
 
-## 구조
+## 핵심 구조
 
 ```text
 marble-game/
-├── index.html
-├── css/
-│   └── style.css
 ├── js/
-│   ├── app.js
 │   ├── core/
 │   │   ├── actions.js
 │   │   ├── boardGraph.js
+│   │   ├── dice.js
 │   │   ├── gameEngine.js
+│   │   ├── movement.js
 │   │   └── turnMachine.js
 │   ├── renderer/
 │   │   └── rendererContract.js
 │   └── themes/
 │       ├── themeRegistry.js
-│       ├── classic/theme.js
-│       ├── space/theme.js
-│       ├── ocean/theme.js
-│       └── fantasy/theme.js
+│       └── classic/
+│           ├── board.js
+│           ├── rules.js
+│           └── theme.js
 └── tests/
-    └── foundation.test.js
+    ├── foundation.test.js
+    └── classic.test.js
 ```
 
-## 핵심 설계 원칙
+## 게임 상태와 애니메이션
 
-1. 게임 규칙은 DOM이나 3D 렌더러를 직접 참조하지 않습니다.
-2. 보드는 단순한 0~39 위치 배열이 아니라 Node/Edge 그래프로 확장할 수 있게 시작합니다.
-3. Theme은 공통 Engine에 등록되는 모듈이며 새 Theme 추가를 위해 Classic 코드를 복제하지 않습니다.
-4. 애니메이션은 서버/엔진에서 확정된 Game State를 표현하는 역할만 담당합니다.
-5. 온라인 단계에서는 클라이언트가 아니라 서버 RPC가 authoritative state를 갱신합니다.
+엔진은 주사위와 이동 결과를 먼저 확정한 뒤 `lastEvents`에 렌더링 힌트를 남깁니다.
+
+예:
+
+```text
+DICE_ROLLED
+PLAYER_MOVED(path)
+START_PASSED
+TILE_LANDED
+PROPERTY_BOUGHT / MONEY_PAID / PLAYER_BANKRUPT
+```
+
+3D 단계에서는 이 이벤트를 시각적으로 재생하되, 애니메이션 완료 여부가 게임 규칙을 결정하지 않습니다.
+
+## 현재 Classic 규칙의 의도적 한계
+
+Phase 2에서는 핵심 엔진 검증에 집중하기 때문에 아래 고급 규칙은 아직 포함하지 않습니다.
+
+- 자산 매각 후 파산 회피
+- 경매
+- 거래 / 협상
+- 비밀 목표
+- 운 조절 자원
+- 반응 카드
+- 공동 이벤트
+
+위 기능은 전체 로드맵의 Advanced Gameplay 단계에서 공통 시스템으로 추가합니다.
 
 ## 테스트
 
@@ -63,14 +89,14 @@ npm run test:marble
 
 ## 다음 단계
 
-`Phase 2 — Classic Core`
+`Phase 3 — 3D Technical Prototype`
 
-- 전체 Classic 보드 데이터
-- 주사위
-- 이동 경로 계산
-- 출발점 통과
-- 도시 구매/소유
-- 건설
-- 통행료
-- 특수 타일
-- 파산/승리의 핵심 규칙
+- Classic 3D 테스트 보드
+- 카메라 / 조명
+- 타일 선택
+- 플레이어 말
+- `PLAYER_MOVED.path` 기반 칸 단위 이동
+- PC 클릭 / 모바일 터치
+- 기본 성능 검증
+
+Game Engine은 3D 라이브러리를 직접 참조하지 않고 기존 renderer contract를 유지합니다.
