@@ -117,13 +117,6 @@ export async function renderHome() {
   ]);
 
   const joinedUpcoming = participationOverview.upcoming ?? [];
-  const quick = el("section", { className: "quick-grid", "aria-label": "빠른 메뉴" }, [
-    quickCard("🙌", "내 참여", `${joinedUpcoming.length}개 예정`, "#/mypage"),
-    quickCard("🌿", "활동 찾기", `${events.length}개 모집`, "#/activities"),
-    quickCard("📣", "새 공지", `${notices.count}개 게시`, "#/notice"),
-    quickCard("🙏", "기도 제목", "서로를 위해 함께 기도해요", "#/prayer"),
-  ]);
-
   const upcomingSection = el("section", { className: "page-stack", "aria-labelledby": "upcoming-title" }, [
     el("div", { className: "page-header" }, [
       el("div", {}, [
@@ -183,8 +176,8 @@ export async function renderHome() {
       ]));
     });
   }
-  lowerGrid.append(noticeCard, myCard);
-  root.append(hero, quick, lowerGrid, upcomingSection);
+  lowerGrid.append(myCard, noticeCard);
+  root.append(hero, lowerGrid, upcomingSection);
 
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
@@ -250,16 +243,6 @@ function dailyVerseIndex(dateKey) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) % DAILY_VERSES.length;
-}
-
-function quickCard(icon, title, detail, href) {
-  return el("a", { className: "quick-card", href }, [
-    el("span", { text: icon, "aria-hidden": "true" }),
-    el("span", {}, [
-      el("strong", { text: title }),
-      el("span", { className: "small subtle", text: detail, style: { display: "block" } }),
-    ]),
-  ]);
 }
 
 async function handleParticipation(root, event, action, button) {
