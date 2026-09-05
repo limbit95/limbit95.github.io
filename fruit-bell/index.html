@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152128">
+  <title>프루트 벨 3D 프로토타입</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <link rel="stylesheet" href="./css/feedback-enhancements.css">
+  <link rel="stylesheet" href="./css/interaction-refinements.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main class="prototype-shell">
+    <section id="game-lobby" class="lobby-panel" aria-labelledby="prototype-title">
+      <p class="eyebrow">FIRST-PERSON 3D PROTOTYPE</p>
+      <h1 id="prototype-title">프루트 벨</h1>
+      <p class="lobby-copy">가상 테이블에 직접 앉아 오른손으로 카드를 넘기고, 왼손으로 종을 치는 감각을 먼저 확인하는 3D 프로토타입입니다.</p>
+
+      <div class="rule-strip" aria-label="프로토타입 조작법">
+        <div><span>오른손</span><strong>카드를 누른 채 위로 드래그</strong></div>
+        <div><span>왼손</span><strong>PC 스페이스바 · 모바일 중앙 종 터치</strong></div>
+        <div><span>시선</span><strong>마우스를 움직여 둘러보기</strong></div>
+      </div>
+
+      <div class="animal-picker">
+        <div>
+          <p class="section-kicker">내 아바타 선택</p>
+          <h2>어떤 동물로 참여할까요?</h2>
+        </div>
+        <div id="animal-grid" class="animal-grid" aria-label="동물 선택"></div>
+      </div>
+
+      <button id="start-button" class="primary-button" type="button">3D 테이블에 앉기</button>
+      <p class="prototype-note">이번 단계는 실제 멀티플레이 연결 전, 1인칭 손과 3D 아바타 연출을 빠르게 확인하기 위한 봇 데모입니다.</p>
+    </section>
+
+    <section id="game-view" class="game-view" hidden aria-label="프루트 벨 3D 게임">
+      <div class="canvas-frame">
+        <canvas id="game-canvas" tabindex="0" aria-label="3D 프루트 벨 게임 장면"></canvas>
+
+        <header class="game-hud game-hud--top">
+          <div class="hud-status">
+            <span id="turn-label" class="turn-pill">내 차례</span>
+            <p id="status-text" aria-live="polite">게임을 준비하고 있습니다.</p>
+          </div>
+        </header>
+
+        <aside class="game-hud game-hud--left" aria-label="플레이어 상태">
+          <p class="hud-label">PLAYERS</p>
+          <div id="player-list" class="player-list"></div>
+        </aside>
+
+        <aside class="game-hud game-hud--right" aria-label="현재 차례">
+          <p class="hud-label">TURN</p>
+          <div id="fruit-totals" class="fruit-totals"></div>
+        </aside>
+
+        <div class="interaction-guide" aria-hidden="true">
+          <div id="gesture-hint" class="guide-chip" data-active="false">
+            <span class="mouse-icon"></span>
+            <div><strong>카드 뒤집기</strong><small>카드 위 누른 채 → 위로</small></div>
+          </div>
+          <div id="bell-hint" class="guide-chip guide-chip--bell" data-active="false">
+            <kbd>SPACE</kbd>
+            <div><strong>종 치기</strong><small>PC SPACE · 모바일 중앙 종 터치</small></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-view-actions">
+        <button id="reset-button" class="ghost-button" type="button">나가기</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/riggedAvatarPilot.js"></script>
+  <script type="module" src="./js/bellTouch.js"></script>
+  <script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/statusPresentation.js"></script>
+</body>
+</html>

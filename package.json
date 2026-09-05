@@ -6,6 +6,7 @@
     "build:assets": "node scripts/build-community-assets.mjs",
     "test:e2e": "playwright test",
     "test:the-game": "node --test the-game/tests/*.test.js",
+    "test:fruit-bell": "node --test fruit-bell/tests/*.test.js",
     "test:marble": "node --test marble-game/tests/*.test.js"
   },
   "devDependencies": {
