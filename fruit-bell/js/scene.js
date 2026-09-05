@@ -14,6 +14,8 @@ export const FRUIT_BELL_LAYOUT = Object.freeze({
 const FRUIT_MAP = new Map(FRUITS.map((fruit) => [fruit.id, fruit]));
 const TABLE_SURFACE_Y = FRUIT_BELL_LAYOUT.surfaceY;
 const CARD_THICKNESS = 0.026;
+const CARD_VISUAL_SCALE = 0.5;
+const CARD_FACE_FADE_MS = 70;
 const CARD_POSITIONS = [
   { deck: new THREE.Vector3(0.72, TABLE_SURFACE_Y, 1.35), face: new THREE.Vector3(-0.55, 1.16, 0.95), rotation: 0 },
   { deck: new THREE.Vector3(0.72, TABLE_SURFACE_Y, -1.35), face: new THREE.Vector3(-0.55, 1.16, -0.95), rotation: Math.PI },
@@ -52,6 +54,7 @@ function makeMesh(geometry, color, options) {
 
 function createCardBase(back = false) {
   const group = new THREE.Group();
+  group.scale.set(CARD_VISUAL_SCALE, 1, CARD_VISUAL_SCALE);
   const card = makeMesh(new THREE.BoxGeometry(0.92, 0.075, 1.28), back ? 0x294552 : 0xf9f5e9);
   group.add(card);
   if (back) {
@@ -64,6 +67,7 @@ function createCardBase(back = false) {
 
 function createDeckStack() {
   const group = new THREE.Group();
+  group.scale.set(CARD_VISUAL_SCALE, 1, CARD_VISUAL_SCALE);
   const core = makeMesh(new THREE.BoxGeometry(0.92, 1, 1.28), 0x294552);
   const inset = makeMesh(new THREE.BoxGeometry(0.7, 0.018, 1.04), 0xd9664a);
   group.add(core, inset);
@@ -99,12 +103,18 @@ function fruitLayout(count) {
 
 function createFruitCard(card, { faceVisible = true } = {}) {
   const group = createCardBase(false);
+  const backInset = makeMesh(new THREE.BoxGeometry(0.7, 0.018, 1.04), 0xd9664a);
+  backInset.position.y = -0.047;
+  group.add(backInset);
+
   const fruit = FRUIT_MAP.get(card.fruit) || FRUITS[0];
   const tokens = [];
   fruitLayout(card.count).forEach(([x, z]) => {
     const token = makeMesh(new THREE.SphereGeometry(0.13, 14, 9), fruit.color);
     token.scale.set(1, 0.22, 1);
     token.position.set(x, 0.08, z);
+    token.material.transparent = true;
+    token.material.opacity = faceVisible ? 1 : 0;
     token.visible = faceVisible;
     tokens.push(token);
     group.add(token);
@@ -117,9 +127,11 @@ function createFruitCard(card, { faceVisible = true } = {}) {
   return group;
 }
 
-function setFruitCardFaceVisible(card, visible) {
+function setFruitCardFaceOpacity(card, opacity) {
+  const safeOpacity = THREE.MathUtils.clamp(opacity, 0, 1);
   card?.userData?.faceTokens?.forEach((token) => {
-    token.visible = visible;
+    token.visible = safeOpacity > 0.001;
+    token.material.opacity = safeOpacity;
   });
 }
 
@@ -406,6 +418,7 @@ export class FruitBellScene {
       start,
       duration: CARD_FLIP_DURATION_MS,
       revealAt: Number.isFinite(revealAt) ? revealAt : start + CARD_FLIP_DURATION_MS * CARD_REVEAL_PROGRESS,
+      revealStarted: false,
       revealed: false,
       onReveal,
       onSettled,
@@ -517,14 +530,27 @@ export class FruitBellScene {
       flight.mesh.position.y += Math.sin(Math.PI * t) * 0.72;
       flight.mesh.rotation.y = flight.rotation;
       flight.mesh.rotation.x = Math.PI * (1 - eased);
-      if (!flight.revealed && now >= flight.revealAt) {
-        flight.revealed = true;
-        setFruitCardFaceVisible(flight.mesh, true);
-        flight.onReveal?.();
+
+      if (!flight.revealStarted && now >= flight.revealAt) {
+        flight.revealStarted = true;
       }
+      if (flight.revealStarted && !flight.revealed) {
+        const revealProgress = THREE.MathUtils.clamp((now - flight.revealAt) / CARD_FACE_FADE_MS, 0, 1);
+        setFruitCardFaceOpacity(flight.mesh, easeOutCubic(revealProgress));
+        if (revealProgress >= 1) {
+          flight.revealed = true;
+          flight.onReveal?.();
+        }
+      }
+
       if (t >= 1) {
-        this.scene.remove(flight.mesh);
+        if (!flight.revealed) {
+          setFruitCardFaceOpacity(flight.mesh, 1);
+          flight.revealed = true;
+          flight.onReveal?.();
+        }
         flight.onSettled?.();
+        this.scene.remove(flight.mesh);
         return false;
       }
       return true;
@@ -570,10 +596,10 @@ export class FruitBellScene {
     if (t < 0.38) {
       this.rightHand.position.copy(lerpVector(rest, deck, easeOutCubic(t / 0.38)));
     } else if (t < 0.68) {
-      this.rightHand.position.copy(lerpVector(deck, lift, easeInOut((t - 0.38) / 0.3)));
+      this.rightHand.position.copy(lerpVector(deck, lift, easeInOut((t - 0.38) / 0.3));
       this.rightHand.rotation.x = -0.65 * ((t - 0.38) / 0.3);
     } else {
-      this.rightHand.position.copy(lerpVector(lift, rest, easeInOut((t - 0.68) / 0.32)));
+      this.rightHand.position.copy(lerpVector(lift, rest, easeInOut((t - 0.68) / 0.32));
       this.rightHand.rotation.x = -0.65 * (1 - ((t - 0.68) / 0.32));
     }
     if (t >= 1) {
@@ -596,7 +622,7 @@ export class FruitBellScene {
       this.leftStrike.position.copy(hit);
       this.leftStrike.position.y -= Math.sin(((t - 0.34) / 0.18) * Math.PI) * 0.15;
     } else {
-      this.leftStrike.position.copy(lerpVector(hit, start, easeInOut((t - 0.52) / 0.48)));
+      this.leftStrike.position.copy(lerpVector(hit, start, easeInOut((t - 0.52) / 0.48));
     }
     if (t >= 1) {
       this.leftStrike.visible = false;
