@@ -9,10 +9,13 @@ import { el, getErrorMessage, setBusy } from "../ui.js";
 import { closeModal, contentDialog } from "./modal.js";
 import { showToast } from "./toast.js";
 
+const profileMenuClosers = new WeakMap();
+
 export function createProfileAvatarTrigger(profile, {
   avatarUrl,
   size = 44,
   alt = "",
+  portalMenu = false,
 } = {}) {
   const wrapper = el("span", { className: "profile-trigger" });
   const button = el("button", {
@@ -29,14 +32,24 @@ export function createProfileAvatarTrigger(profile, {
       height: String(size),
     }),
   ]);
+  let cleanupPortalPositioning = null;
+  let menu;
+
+  const closeMenu = () => {
+    cleanupPortalPositioning?.();
+    cleanupPortalPositioning = null;
+    menu.hidden = true;
+    button.setAttribute("aria-expanded", "false");
+    if (portalMenu && menu.parentElement !== wrapper) menu.remove();
+  };
+
   const menuItems = [
     el("button", {
       className: "button button--secondary profile-trigger__detail-button",
       type: "button",
       text: "프로필 상세 조회",
       onClick: async () => {
-        menu.hidden = true;
-        button.setAttribute("aria-expanded", "false");
+        closeMenu();
         await openPublicProfile(profile?.id);
       },
     }),
@@ -48,37 +61,80 @@ export function createProfileAvatarTrigger(profile, {
       type: "button",
       text: "✉️ 쪽지 보내기",
       onClick: async () => {
-        menu.hidden = true;
-        button.setAttribute("aria-expanded", "false");
+        closeMenu();
         await openDirectMessageComposer(profile.id, profile.display_name ?? "회원");
       },
     }));
   }
-  const menu = el("span", {
-    className: "profile-trigger__menu",
+  menu = el("span", {
+    className: `profile-trigger__menu${portalMenu ? " profile-trigger__menu--portal" : ""}`,
     hidden: true,
   }, menuItems);
+  profileMenuClosers.set(menu, closeMenu);
 
   button.addEventListener("click", (event) => {
     event.stopPropagation();
     const nextOpen = menu.hidden;
-    document.querySelectorAll(".profile-trigger__menu:not([hidden])").forEach((openMenu) => {
-      openMenu.hidden = true;
-      openMenu.parentElement?.querySelector(".profile-trigger__avatar-button")?.setAttribute("aria-expanded", "false");
-    });
-    menu.hidden = !nextOpen;
-    button.setAttribute("aria-expanded", String(nextOpen));
+    closeProfileMenus();
+    if (!nextOpen) return;
+
+    if (portalMenu) {
+      const portalRoot = button.closest(".modal-backdrop") || document.body;
+      portalRoot.append(menu);
+      menu.hidden = false;
+      positionPortalMenu(menu, button);
+
+      const reposition = () => {
+        if (!button.isConnected || !menu.isConnected) {
+          closeMenu();
+          return;
+        }
+        positionPortalMenu(menu, button);
+      };
+      window.addEventListener("resize", reposition);
+      document.addEventListener("scroll", reposition, true);
+      cleanupPortalPositioning = () => {
+        window.removeEventListener("resize", reposition);
+        document.removeEventListener("scroll", reposition, true);
+      };
+    } else {
+      menu.hidden = false;
+    }
+    button.setAttribute("aria-expanded", "true");
   });
   menu.addEventListener("click", (event) => event.stopPropagation());
 
-  wrapper.append(button, menu);
+  wrapper.append(button);
+  if (!portalMenu) wrapper.append(menu);
   return wrapper;
+}
+
+function positionPortalMenu(menu, button) {
+  const gap = 8;
+  const viewportPadding = 8;
+  const triggerRect = button.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const maxLeft = window.innerWidth - menuRect.width - viewportPadding;
+  let left = Math.min(triggerRect.left, maxLeft);
+  let top = triggerRect.bottom + gap;
+
+  if (top + menuRect.height > window.innerHeight - viewportPadding) {
+    const above = triggerRect.top - menuRect.height - gap;
+    if (above >= viewportPadding) top = above;
+  }
+
+  menu.style.left = `${Math.max(viewportPadding, left)}px`;
+  menu.style.top = `${Math.max(viewportPadding, top)}px`;
 }
 
 export function closeProfileMenus() {
   document.querySelectorAll(".profile-trigger__menu:not([hidden])").forEach((menu) => {
-    menu.hidden = true;
-    menu.parentElement?.querySelector(".profile-trigger__avatar-button")?.setAttribute("aria-expanded", "false");
+    const closeMenu = profileMenuClosers.get(menu);
+    if (closeMenu) closeMenu();
+    else menu.hidden = true;
+  });
+  document.querySelectorAll(".profile-trigger__avatar-button[aria-expanded='true']").forEach((button) => {
+    button.setAttribute("aria-expanded", "false");
   });
 }
 
