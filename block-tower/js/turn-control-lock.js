@@ -35,10 +35,9 @@ function getTowerBlocks() {
   return blocks;
 }
 
-function pickPhysicalBlock(event) {
+function setPointerFromEvent(event) {
   const camera = getRuntime()?.camera;
-  const blocks = getTowerBlocks();
-  if (!sceneHost || !camera || blocks.length === 0) return null;
+  if (!sceneHost || !camera) return null;
 
   const rect = sceneHost.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return null;
@@ -46,6 +45,12 @@ function pickPhysicalBlock(event) {
   pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
   pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
+  return camera;
+}
+
+function pickPhysicalBlock(event) {
+  const blocks = getTowerBlocks();
+  if (!setPointerFromEvent(event) || blocks.length === 0) return null;
 
   let nearestHit = null;
   blocks.forEach((block) => {
@@ -55,6 +60,11 @@ function pickPhysicalBlock(event) {
   });
 
   return nearestHit?.object ?? null;
+}
+
+function pointerHitsBlock(event, block) {
+  if (!block || !setPointerFromEvent(event)) return false;
+  return Boolean(raycaster.intersectObject(block, false)[0]);
 }
 
 function clearLock() {
@@ -112,36 +122,41 @@ function handlePointerDown(event) {
   const rules = getRules();
   if (!rules || rules.gameOver || rules.phase === "loading" || rules.phase === "settling") return;
 
-  const pressedBlock = pickPhysicalBlock(event);
-  if (!pressedBlock) return;
-
   const currentLock = syncLockFromRules();
-  if (!currentLock) {
-    if (!canBecomeTurnBlock(pressedBlock, rules)) {
-      // The visually front-most block owns this click. Never let an illegal
-      // top/front block become transparent to the input ray and expose a
-      // removable block behind it.
-      stopPointerDown(event);
-      if (selectionStatus) {
-        selectionStatus.textContent = `${blockLabel(pressedBlock)}은(는) 현재 선택할 수 없습니다 · 뒤쪽 블록으로 선택이 관통되지 않습니다.`;
-      }
-      return;
-    }
+  if (currentLock) {
+    // Once the selected block has been extracted, recovery takes priority.
+    // This lets the player grab the same block again after dropping it on the
+    // floor even when the camera ray also passes through another tower block.
+    if (currentLock.userData.extracted && pointerHitsBlock(event, currentLock)) return;
 
-    // Lock before app.js receives this pointerdown. Even if the Stage 5
-    // rule layer is one event behind, a second block can never create a drag.
-    lockedBlock = pressedBlock;
-    lockedTurn = rules.turn;
+    const pressedBlock = pickPhysicalBlock(event);
+    if (!pressedBlock || pressedBlock === currentLock) return;
+
+    stopPointerDown(event);
+    if (selectionStatus) {
+      selectionStatus.textContent = `${blockLabel(currentLock)} 턴 진행 중 · 최상단 배치와 안정화가 끝날 때까지 다른 블록은 조작할 수 없습니다.`;
+    }
     return;
   }
 
-  if (pressedBlock === currentLock) return;
+  const pressedBlock = pickPhysicalBlock(event);
+  if (!pressedBlock) return;
 
-  stopPointerDown(event);
-
-  if (selectionStatus) {
-    selectionStatus.textContent = `${blockLabel(currentLock)} 턴 진행 중 · 최상단 배치와 안정화가 끝날 때까지 다른 블록은 조작할 수 없습니다.`;
+  if (!canBecomeTurnBlock(pressedBlock, rules)) {
+    // The visually front-most block owns this click. Never let an illegal
+    // top/front block become transparent to the input ray and expose a
+    // removable block behind it.
+    stopPointerDown(event);
+    if (selectionStatus) {
+      selectionStatus.textContent = `${blockLabel(pressedBlock)}은(는) 현재 선택할 수 없습니다 · 뒤쪽 블록으로 선택이 관통되지 않습니다.`;
+    }
+    return;
   }
+
+  // Lock before app.js receives this pointerdown. Even if the Stage 5
+  // rule layer is one event behind, a second block can never create a drag.
+  lockedBlock = pressedBlock;
+  lockedTurn = rules.turn;
 }
 
 sceneHost?.addEventListener("pointerdown", handlePointerDown, { capture: true });
