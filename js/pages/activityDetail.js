@@ -304,7 +304,7 @@ async function participantDialogContent(participants, counts) {
     const profile = item.profile;
     const avatar = await getSignedAvatarUrl(profile?.avatar_path);
     const profileAvatar = profile
-      ? createProfileAvatarTrigger(profile, { avatarUrl: avatar })
+      ? createProfileAvatarTrigger(profile, { avatarUrl: avatar, portalMenu: true })
       : el("img", { className: "avatar", src: avatar, alt: "", width: "44", height: "44" });
     return el("div", { className: "participant-person" }, [
       profileAvatar,
