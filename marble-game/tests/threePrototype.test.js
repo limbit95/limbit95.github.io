@@ -61,11 +61,10 @@ test("visual foundation defines a bright toy-city style and keeps 30+ tile inten
   assert.ok(CLASSIC_VISUAL_PROFILE.palette.boardBase > 0);
 });
 
-test("Classic board gives tile cards more depth and limits unused center space", () => {
+test("Classic board prioritizes large tile cards and surface-printed city names", () => {
   assert.ok(CLASSIC_VISUAL_PROFILE.tileDepth >= 3);
   assert.ok(CLASSIC_VISUAL_PROFILE.centerInsetSize <= 16);
-  assert.ok(CLASSIC_VISUAL_PROFILE.labelScale[0] >= 3);
-  assert.ok(CLASSIC_VISUAL_PROFILE.labelScale[1] >= 1.2);
+  assert.equal(CLASSIC_VISUAL_PROFILE.labelPresentation, "surface");
 });
 
 test("Classic property visuals vary by region and landmark archetype", () => {
