@@ -39,7 +39,7 @@ body[data-play-mode="window"] .playtest-section {
 
   body[data-play-mode="window"] .playtest-heading {
     position: absolute;
-    top: 12px;
+    top: 92px;
     right: 12px;
     z-index: 30;
     margin: 0;
