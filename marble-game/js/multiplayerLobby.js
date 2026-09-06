@@ -8,6 +8,8 @@ import {
   setReady,
   subscribeLobby,
 } from "./multiplayerApi.js";
+import { startOnlineGame } from "./onlineGameApi.js";
+import { enterOnlineClassicPlay, getOnlineRoomId } from "./onlinePlayRoute.js";
 import {
   findViewer,
   isViewerHost,
@@ -17,8 +19,9 @@ import {
 } from "./multiplayerModel.js";
 
 const root = document.querySelector("[data-multiplayer-entry]");
+const onlinePlayRoomId = typeof location !== "undefined" ? getOnlineRoomId(location.href) : null;
 
-if (root) {
+if (root && !onlinePlayRoomId) {
   const statusBadge = root.querySelector("[data-multiplayer-status]");
   const setup = root.querySelector("[data-multiplayer-setup]");
   const lobby = root.querySelector("[data-multiplayer-lobby]");
@@ -31,6 +34,7 @@ if (root) {
   const displayedRoomCode = root.querySelector("[data-room-code]");
   const roomPlayers = root.querySelector("[data-room-players]");
   const roomMeta = root.querySelector("[data-room-meta]");
+  const startButton = root.querySelector("[data-room-start]");
   const readyButton = root.querySelector("[data-room-ready]");
   const leaveButton = root.querySelector("[data-room-leave]");
   const copyButton = root.querySelector("[data-room-copy]");
@@ -39,6 +43,7 @@ if (root) {
   let snapshot = null;
   let unsubscribeLobby = null;
   let busy = false;
+  let enteringGame = false;
 
   function setMessage(text, tone = "neutral") {
     message.textContent = text;
@@ -52,7 +57,7 @@ if (root) {
 
   function setBusy(nextBusy) {
     busy = nextBusy;
-    [createButton, joinButton, readyButton, leaveButton, copyButton]
+    [createButton, joinButton, startButton, readyButton, leaveButton, copyButton]
       .filter(Boolean)
       .forEach((button) => {
         button.disabled = nextBusy;
@@ -69,8 +74,12 @@ if (root) {
       "ROOM_NOT_FOUND",
       "ROOM_FULL",
       "ROOM_NOT_WAITING",
+      "ROOM_ALREADY_STARTED",
+      "PLAYERS_NOT_READY",
+      "HOST_REQUIRED",
       "VERSION_CONFLICT",
       "NOT_ROOM_MEMBER",
+      "GAME_IN_PROGRESS",
     ];
     return known.find((code) => messageText.includes(code)) ?? null;
   }
@@ -85,8 +94,12 @@ if (root) {
       case "ROOM_NOT_FOUND": return "입장할 수 있는 방을 찾지 못했어요. 방 코드를 다시 확인해 주세요.";
       case "ROOM_FULL": return "이미 인원이 가득 찬 방이에요.";
       case "ROOM_NOT_WAITING": return "이미 게임이 시작됐거나 닫힌 방이에요.";
+      case "ROOM_ALREADY_STARTED": return "이미 시작된 게임이에요. 게임 화면으로 이동합니다.";
+      case "PLAYERS_NOT_READY": return "모든 참가자가 준비 완료한 뒤 시작할 수 있어요.";
+      case "HOST_REQUIRED": return "게임 시작은 방장만 할 수 있어요.";
       case "VERSION_CONFLICT": return "다른 플레이어의 변경사항을 먼저 반영했어요. 다시 시도해 주세요.";
       case "NOT_ROOM_MEMBER": return "현재 이 방에 참가한 상태가 아니에요.";
+      case "GAME_IN_PROGRESS": return "게임 진행 중에는 대기실에서 나갈 수 없어요.";
       default:
         if (messageText.includes("Auth session missing")) return "온라인 플레이는 청파 같이 로그인 후 이용할 수 있어요.";
         if (messageText.includes("Supabase client is not ready")) return "온라인 연결 모듈을 불러오지 못했어요. 페이지를 새로고침해 주세요.";
@@ -99,8 +112,19 @@ if (root) {
     if (!snapshot?.room?.roomCode) return location.href;
     const url = new URL(location.href);
     url.searchParams.delete("play");
+    url.searchParams.delete("onlineRoom");
     url.searchParams.set("room", snapshot.room.roomCode);
     return url.href;
+  }
+
+  function enterStartedGameIfNeeded() {
+    if (enteringGame || snapshot?.room?.status !== "playing" || !snapshot.room.currentGameId) return false;
+    enteringGame = true;
+    unsubscribeLobby?.();
+    unsubscribeLobby = null;
+    setStatus("게임 입장 중", "online");
+    enterOnlineClassicPlay(snapshot.room.id);
+    return true;
   }
 
   function renderPlayers() {
@@ -135,6 +159,8 @@ if (root) {
   }
 
   function renderLobby() {
+    if (enterStartedGameIfNeeded()) return;
+
     const active = Boolean(snapshot?.room?.id);
     setup.hidden = active;
     lobby.hidden = !active;
@@ -151,6 +177,8 @@ if (root) {
 
     const viewer = findViewer(snapshot);
     const host = isViewerHost(snapshot);
+    startButton.hidden = !host;
+    startButton.disabled = busy || !readySummary.canStart;
     readyButton.hidden = host;
     if (!host && viewer) {
       readyButton.textContent = viewer.isReady ? "준비 취소" : "준비 완료";
@@ -159,10 +187,12 @@ if (root) {
 
     if (host) {
       startHint.textContent = readySummary.canStart
-        ? "모두 준비됐어요. 다음 하위 단계에서 방장이 실제 게임 시작을 서버에 요청하도록 연결합니다."
+        ? "모두 준비됐어요. 게임을 시작하면 모든 참가자가 같은 온라인 보드로 이동합니다."
         : "2명 이상 참가하고 모든 참가자가 준비하면 게임을 시작할 수 있어요.";
     } else {
-      startHint.textContent = "준비 상태는 다른 플레이어 화면에도 실시간으로 반영됩니다.";
+      startHint.textContent = viewer?.isReady
+        ? "방장이 게임을 시작하면 자동으로 온라인 보드에 입장합니다."
+        : "준비 완료 후 방장의 게임 시작을 기다려 주세요.";
     }
 
     setStatus("실시간 연결", "online");
@@ -202,12 +232,13 @@ if (root) {
   async function acceptSnapshot(nextSnapshot, successMessage) {
     snapshot = nextSnapshot;
     renderLobby();
+    if (enteringGame) return;
     subscribeCurrentLobby();
     if (successMessage) setMessage(successMessage, "success");
   }
 
   async function run(action) {
-    if (busy) return;
+    if (busy || enteringGame) return;
     setBusy(true);
     try {
       await action();
@@ -216,7 +247,7 @@ if (root) {
       setMessage(friendlyError(error), "error");
     } finally {
       setBusy(false);
-      renderLobby();
+      if (!enteringGame) renderLobby();
     }
   }
 
@@ -239,6 +270,17 @@ if (root) {
     const roomCode = normalizeRoomCode(roomCodeInput.value);
     const nextSnapshot = await joinRoom({ roomCode, nickname });
     await acceptSnapshot(nextSnapshot, "방에 참가했어요.");
+  }));
+
+  startButton.addEventListener("click", () => run(async () => {
+    const gameSnapshot = await startOnlineGame({
+      roomId: snapshot.room.id,
+      expectedVersion: snapshot.room.version,
+    });
+    enteringGame = true;
+    unsubscribeLobby?.();
+    unsubscribeLobby = null;
+    enterOnlineClassicPlay(gameSnapshot.room.id);
   }));
 
   readyButton.addEventListener("click", () => run(async () => {
@@ -295,7 +337,9 @@ if (root) {
 
       const activeRoom = await getMyActiveRoom();
       if (activeRoom) {
-        await acceptSnapshot(activeRoom, "참가 중이던 Marble 방에 다시 연결했어요.");
+        await acceptSnapshot(activeRoom, activeRoom.room.status === "playing"
+          ? null
+          : "참가 중이던 Marble 방에 다시 연결했어요.");
       } else {
         renderLobby();
         setMessage(requestedCode ? "닉네임을 확인하고 방 참가를 눌러 주세요." : "방을 만들거나 6자리 방 코드로 참가할 수 있어요.");
