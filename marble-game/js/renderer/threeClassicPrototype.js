@@ -13,9 +13,10 @@ export const CLASSIC_CAMERA_PROFILE = Object.freeze({
 export const CLASSIC_VISUAL_PROFILE = Object.freeze({
   style: "bright-toy-city",
   boardMinimumTiles: 30,
-  tileDepth: 3.2,
+  tileDepth: 3.8,
+  cornerTileSize: 3.8,
   labelPresentation: "surface",
-  centerInsetSize: 15.4,
+  centerInsetSize: 14.4,
   palette: Object.freeze({
     sky: 0xbfe9ff,
     fog: 0xd8f3ff,
@@ -93,11 +94,10 @@ export function createOrthographicBounds(width, height, baseViewSize = CLASSIC_C
   });
 }
 
-export function createSquareRingLayout(nodes, { halfExtent = DEFAULT_HALF_EXTENT, elevation = 0.78 } = {}) {
-  const normalized = normalizeNodes(nodes);
+function createFallbackLayout(normalized, halfExtent, elevation) {
   const count = normalized.length;
   const sideSpacing = (halfExtent * 8) / count;
-  const tileLength = Math.max(1.5, Math.min(2.25, sideSpacing * 0.82));
+  const tileLength = Math.max(1.5, Math.min(2.35, sideSpacing * 0.9));
 
   return normalized.map((node) => {
     const perimeterPosition = (node.index / count) * 4;
@@ -139,6 +139,67 @@ export function createSquareRingLayout(nodes, { halfExtent = DEFAULT_HALF_EXTENT
       rotationY,
       side,
       tileLength,
+      tileDepth: CLASSIC_VISUAL_PROFILE.tileDepth,
+      isCorner: false,
+    });
+  });
+}
+
+export function createSquareRingLayout(nodes, { halfExtent = DEFAULT_HALF_EXTENT, elevation = 0.78 } = {}) {
+  const normalized = normalizeNodes(nodes);
+  const count = normalized.length;
+  const tilesPerSide = count / 4;
+
+  if (!Number.isInteger(tilesPerSide) || tilesPerSide < 2) {
+    return createFallbackLayout(normalized, halfExtent, elevation);
+  }
+
+  const cornerSize = CLASSIC_VISUAL_PROFILE.cornerTileSize;
+  const regularTilesPerSide = tilesPerSide - 1;
+  const slotSize = ((halfExtent * 2) - cornerSize) / regularTilesPerSide;
+  const tileLength = Math.max(1.5, Math.min(2.35, slotSize * 0.92));
+
+  return normalized.map((node) => {
+    const sideIndex = Math.floor(node.index / tilesPerSide);
+    const offset = node.index % tilesPerSide;
+    const isCorner = offset === 0;
+    const distance = isCorner ? 0 : (cornerSize / 2) + (slotSize * (offset - 0.5));
+    let x;
+    let z;
+    let rotationY = 0;
+    let side;
+
+    if (sideIndex === 0) {
+      x = isCorner ? -halfExtent : -halfExtent + distance;
+      z = halfExtent;
+      side = "south";
+    } else if (sideIndex === 1) {
+      x = halfExtent;
+      z = isCorner ? halfExtent : halfExtent - distance;
+      rotationY = Math.PI / 2;
+      side = "east";
+    } else if (sideIndex === 2) {
+      x = isCorner ? halfExtent : halfExtent - distance;
+      z = -halfExtent;
+      side = "north";
+    } else {
+      x = -halfExtent;
+      z = isCorner ? -halfExtent : -halfExtent + distance;
+      rotationY = Math.PI / 2;
+      side = "west";
+    }
+
+    return Object.freeze({
+      nodeId: node.id,
+      index: node.index,
+      x,
+      y: elevation,
+      z,
+      rotationY,
+      side,
+      tileLength: isCorner ? cornerSize : tileLength,
+      tileDepth: isCorner ? cornerSize : CLASSIC_VISUAL_PROFILE.tileDepth,
+      isCorner,
     });
   });
 }
@@ -181,22 +242,22 @@ export function getClassicTileVisual(node, index = 0) {
 
 function createLabelTexture(THREE, node) {
   const canvas = document.createElement("canvas");
-  canvas.width = 768;
-  canvas.height = 256;
+  canvas.width = 1024;
+  canvas.height = 320;
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
 
   const label = String(node.label ?? node.id);
   const display = label.length > 12 ? `${label.slice(0, 11)}…` : label;
-  const fontSize = display.length >= 8 ? 56 : 68;
+  const fontSize = display.length >= 8 ? 78 : 96;
 
   context.fillStyle = "#17324d";
   context.font = `900 ${fontSize}px system-ui, "Noto Sans KR", sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.shadowColor = "rgba(255, 255, 255, 0.85)";
-  context.shadowBlur = 8;
-  context.fillText(display, 384, 128, 700);
+  context.shadowColor = "rgba(255, 255, 255, 0.9)";
+  context.shadowBlur = 12;
+  context.fillText(display, 512, 160, 940);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -665,45 +726,45 @@ export function createClassicThreePrototypeRenderer({
     const center = new THREE.Group();
 
     center.add(mesh(
-      new THREE.CylinderGeometry(4.55, 4.55, 0.18, 56),
+      new THREE.CylinderGeometry(4.25, 4.25, 0.18, 56),
       CLASSIC_VISUAL_PROFILE.palette.innerWater,
       { y: 0.55 },
     ));
     center.add(mesh(
-      new THREE.CylinderGeometry(3.72, 3.88, 0.3, 56),
+      new THREE.CylinderGeometry(3.45, 3.6, 0.3, 56),
       CLASSIC_VISUAL_PROFILE.palette.plaza,
       { y: 0.75 },
     ));
     center.add(mesh(
-      new THREE.TorusGeometry(2.78, 0.16, 8, 64),
+      new THREE.TorusGeometry(2.55, 0.16, 8, 64),
       CLASSIC_VISUAL_PROFILE.palette.road,
       { y: 0.94, rotationX: Math.PI / 2 },
     ));
     center.add(mesh(
-      new THREE.CylinderGeometry(1.9, 1.9, 0.16, 40),
+      new THREE.CylinderGeometry(1.72, 1.72, 0.16, 40),
       CLASSIC_VISUAL_PROFILE.palette.grass,
       { y: 0.98 },
     ));
 
     center.add(mesh(new THREE.CylinderGeometry(0.4, 0.54, 0.62, 16), 0xffffff, { y: 1.3 }));
-    centerGlobe = mesh(new THREE.SphereGeometry(0.86, 24, 16), 0x55bdf0, { y: 2.08 });
+    centerGlobe = mesh(new THREE.SphereGeometry(0.82, 24, 16), 0x55bdf0, { y: 2.04 });
     center.add(centerGlobe);
 
     [
-      [-1.25, -0.86, 0.48, 0.92, 0xff8d8d],
-      [-0.72, 1.0, 0.44, 1.35, 0x8fd3ff],
-      [1.0, -0.96, 0.52, 1.1, 0x7edca2],
-      [1.22, 0.74, 0.44, 1.45, 0xffb969],
+      [-1.12, -0.78, 0.45, 0.86, 0xff8d8d],
+      [-0.66, 0.9, 0.42, 1.22, 0x8fd3ff],
+      [0.9, -0.86, 0.48, 1.02, 0x7edca2],
+      [1.08, 0.68, 0.42, 1.32, 0xffb969],
     ].forEach(([x, z, width, height, color]) => {
       center.add(mesh(new THREE.BoxGeometry(width, height, width), color, { x, y: 1.0 + height / 2, z }));
     });
 
     [
-      [-2.55, -0.65],
-      [-2.1, 1.55],
-      [2.2, -1.4],
-      [2.45, 1.15],
-    ].forEach(([x, z]) => addTree(center, x, z, 0.82));
+      [-2.35, -0.58],
+      [-1.95, 1.38],
+      [2.0, -1.28],
+      [2.2, 1.0],
+    ].forEach(([x, z]) => addTree(center, x, z, 0.78));
 
     boardRoot.add(center);
 
@@ -777,8 +838,9 @@ export function createClassicThreePrototypeRenderer({
       tileRoot.userData.baseScaleY = 1;
       boardRoot.add(tileRoot);
 
-      const depth = CLASSIC_VISUAL_PROFILE.tileDepth;
-      const tile = mesh(new THREE.BoxGeometry(entry.tileLength, 0.5, depth), visual.color);
+      const depth = entry.tileDepth;
+      const width = entry.tileLength;
+      const tile = mesh(new THREE.BoxGeometry(width, 0.5, depth), visual.color);
       tile.material.emissive = new THREE.Color(0x000000);
       tile.userData.nodeId = node.id;
       tile.userData.tileRoot = tileRoot;
@@ -786,30 +848,30 @@ export function createClassicThreePrototypeRenderer({
       tileMeshes.set(node.id, tile);
 
       tileRoot.add(mesh(
-        new THREE.BoxGeometry(entry.tileLength * 0.91, 0.11, depth * 0.9),
+        new THREE.BoxGeometry(width * 0.91, 0.11, depth * 0.9),
         0xffffff,
         { y: 0.3 },
       ));
       tileRoot.add(mesh(
-        new THREE.BoxGeometry(entry.tileLength * 0.82, 0.08, 0.3),
+        new THREE.BoxGeometry(width * 0.82, 0.08, 0.32),
         visual.accent,
-        { y: 0.38, z: -(depth * 0.34) },
+        { y: 0.38, z: -(depth * 0.38) },
       ));
 
       const propRoot = new THREE.Group();
-      propRoot.position.set(0, 0.38, -(depth * 0.1));
+      propRoot.position.set(0, 0.38, -(depth * 0.17));
       if (node.type === "PROPERTY") propRoot.add(createLandmark(visual.landmark, visual));
       else propRoot.add(createSpecialProp(visual.landmark, visual));
       tileRoot.add(propRoot);
 
       const buildingRoot = new THREE.Group();
-      buildingRoot.position.set(0, 0.38, depth * 0.12);
+      buildingRoot.position.set(0, 0.38, -(depth * 0.01));
       tileRoot.add(buildingRoot);
       buildingRoots.set(node.id, buildingRoot);
 
       const labelTexture = createLabelTexture(THREE, node);
       const label = new THREE.Mesh(
-        new THREE.PlaneGeometry(entry.tileLength * 0.9, Math.min(1.0, depth * 0.3)),
+        new THREE.PlaneGeometry(width * (entry.isCorner ? 0.72 : 0.94), Math.min(1.22, depth * 0.32)),
         new THREE.MeshBasicMaterial({
           map: labelTexture,
           transparent: true,
@@ -817,7 +879,7 @@ export function createClassicThreePrototypeRenderer({
           toneMapped: false,
         }),
       );
-      label.position.set(0, 0.43, depth * 0.31);
+      label.position.set(0, 0.43, depth * 0.32);
       label.rotation.x = -Math.PI / 2;
       label.renderOrder = 6;
       label.castShadow = false;
