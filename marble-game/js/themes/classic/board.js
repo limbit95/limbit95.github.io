@@ -31,6 +31,18 @@ export const CLASSIC_NODES = Object.freeze([
   property("rio", "리우", 400, 56, 200),
   property("vancouver", "밴쿠버", 420, 60, 210),
   property("honolulu", "호놀룰루", 300, 38, 150),
+  property("san-francisco", "샌프란시스코", 430, 62, 215),
+  property("los-angeles", "로스앤젤레스", 450, 66, 225),
+  property("las-vegas", "라스베이거스", 370, 50, 185),
+  property("chicago", "시카고", 410, 58, 205),
+  property("toronto", "토론토", 390, 54, 195),
+  { id: "event-north", type: "EVENT", label: "대륙 횡단 소식" },
+  property("reykjavik", "레이캬비크", 330, 44, 165),
+  property("berlin", "베를린", 390, 54, 195),
+  property("dubai", "두바이", 430, 62, 215),
+  property("bangkok", "방콕", 350, 46, 175),
+  property("busan", "부산", 300, 40, 150),
+  property("jeju", "제주", 280, 36, 140),
 ]);
 
 export const CLASSIC_EDGES = Object.freeze(CLASSIC_NODES.map((node, index) => ({
