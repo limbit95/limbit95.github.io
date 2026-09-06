@@ -39,8 +39,7 @@
 }
 
 .tile-info-modal::backdrop {
-  background: rgba(5, 10, 16, 0.58);
-  backdrop-filter: blur(5px);
+  background: rgba(5, 10, 16, 0.42);
 }
 
 .tile-info-modal__topline {
