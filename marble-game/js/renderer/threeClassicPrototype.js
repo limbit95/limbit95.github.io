@@ -1,6 +1,14 @@
 import { createRendererContract } from "./rendererContract.js";
 
 export const THREE_IMPORT_VERSION = "0.185.1";
+export const CLASSIC_CAMERA_PROFILE = Object.freeze({
+  projection: "orthographic",
+  interaction: "fixed",
+  view: "quarter",
+  baseViewSize: 34,
+  position: Object.freeze([18, 24, 22]),
+  target: Object.freeze([0, 0.4, 0]),
+});
 
 const DEFAULT_HALF_EXTENT = 10.5;
 
@@ -13,6 +21,21 @@ function normalizeNodes(nodes) {
     id: typeof node === "string" ? node : node?.id ?? `node-${index}`,
     index,
   }));
+}
+
+export function createOrthographicBounds(width, height, baseViewSize = CLASSIC_CAMERA_PROFILE.baseViewSize) {
+  const safeWidth = Math.max(1, Number(width) || 1);
+  const safeHeight = Math.max(1, Number(height) || 1);
+  const aspect = safeWidth / safeHeight;
+  const verticalSize = aspect >= 1 ? baseViewSize : baseViewSize / aspect;
+  const horizontalSize = verticalSize * aspect;
+
+  return Object.freeze({
+    left: -horizontalSize / 2,
+    right: horizontalSize / 2,
+    top: verticalSize / 2,
+    bottom: -verticalSize / 2,
+  });
 }
 
 export function createSquareRingLayout(nodes, { halfExtent = DEFAULT_HALF_EXTENT, elevation = 0.72 } = {}) {
@@ -80,7 +103,7 @@ function createLabelTexture(THREE, node) {
   canvas.height = 160;
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = "rgba(7, 12, 20, 0.88)";
+  context.fillStyle = "rgba(7, 12, 20, 0.9)";
   context.beginPath();
   context.roundRect(12, 12, 488, 136, 28);
   context.fill();
@@ -132,12 +155,10 @@ export function createClassicThreePrototypeRenderer({
     && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true,
 } = {}) {
   let THREE = null;
-  let OrbitControls = null;
   let target = null;
   let scene = null;
   let camera = null;
   let webglRenderer = null;
-  let controls = null;
   let boardRoot = null;
   let layoutByNode = new Map();
   let tileMeshes = new Map();
@@ -148,20 +169,22 @@ export function createClassicThreePrototypeRenderer({
   let animationFrameId = null;
   let boardSignature = "";
   let disposed = false;
-  let pointerStart = null;
 
   function resize() {
     if (!target || !camera || !webglRenderer) return;
     const width = Math.max(1, target.clientWidth);
     const height = Math.max(1, target.clientHeight);
-    camera.aspect = width / height;
+    const bounds = createOrthographicBounds(width, height);
+    camera.left = bounds.left;
+    camera.right = bounds.right;
+    camera.top = bounds.top;
+    camera.bottom = bounds.bottom;
     camera.updateProjectionMatrix();
     webglRenderer.setSize(width, height, false);
   }
 
   function animate() {
     if (disposed || !webglRenderer || !scene || !camera) return;
-    controls?.update();
     webglRenderer.render(scene, camera);
     animationFrameId = requestAnimationFrame(animate);
   }
@@ -175,6 +198,7 @@ export function createClassicThreePrototypeRenderer({
     tileMeshes = new Map();
     tokenMeshes = new Map();
     buildingRoots = new Map();
+    selectedTile = null;
     boardSignature = "";
   }
 
@@ -223,11 +247,12 @@ export function createClassicThreePrototypeRenderer({
       const owner = state.players.find((player) => player.id === propertyState.ownerId);
       const color = owner?.seat === 0 ? 0x61b8ff : owner?.seat === 1 ? 0xff8c8c : 0xcbd5e1;
       for (let index = 0; index < level; index += 1) {
+        const height = 0.55 + index * 0.16;
         const building = new THREE.Mesh(
-          new THREE.BoxGeometry(0.32, 0.34 + index * 0.08, 0.32),
+          new THREE.BoxGeometry(0.34, height, 0.34),
           new THREE.MeshStandardMaterial({ color, roughness: 0.42, metalness: 0.08 }),
         );
-        building.position.set((index - (level - 1) / 2) * 0.38, 0.35, 0);
+        building.position.set((index - (level - 1) / 2) * 0.4, height / 2, 0);
         building.castShadow = true;
         root.add(building);
       }
@@ -248,6 +273,36 @@ export function createClassicThreePrototypeRenderer({
     rebuildBuildings(state);
   }
 
+  function addCenterDiorama() {
+    const center = new THREE.Group();
+    const plaza = new THREE.Mesh(
+      new THREE.CylinderGeometry(4.3, 4.3, 0.22, 48),
+      new THREE.MeshStandardMaterial({ color: 0x213952, roughness: 0.9, metalness: 0.02 }),
+    );
+    plaza.position.y = 0.52;
+    plaza.receiveShadow = true;
+    center.add(plaza);
+
+    const skyline = [
+      [-2.1, -0.5, 0.9, 1.6],
+      [-1.1, 0.7, 0.7, 2.4],
+      [0, -0.8, 1.05, 3.1],
+      [1.15, 0.55, 0.78, 2],
+      [2.05, -0.2, 0.9, 1.35],
+    ];
+    skyline.forEach(([x, z, width, height]) => {
+      const tower = new THREE.Mesh(
+        new THREE.BoxGeometry(width, height, width),
+        new THREE.MeshStandardMaterial({ color: 0x456582, roughness: 0.58, metalness: 0.06 }),
+      );
+      tower.position.set(x, 0.66 + height / 2, z);
+      tower.castShadow = true;
+      tower.receiveShadow = true;
+      center.add(tower);
+    });
+    boardRoot.add(center);
+  }
+
   function buildBoard(state) {
     clearBoard();
     boardSignature = state.board.nodes.map((node) => node.id).join("|");
@@ -255,7 +310,7 @@ export function createClassicThreePrototypeRenderer({
     scene.add(boardRoot);
 
     const base = new THREE.Mesh(
-      new THREE.BoxGeometry(24.8, 0.6, 24.8),
+      new THREE.BoxGeometry(24.8, 0.76, 24.8),
       new THREE.MeshStandardMaterial({ color: 0x111a28, roughness: 0.78, metalness: 0.08 }),
     );
     base.position.y = 0;
@@ -266,13 +321,10 @@ export function createClassicThreePrototypeRenderer({
       new THREE.BoxGeometry(18.3, 0.18, 18.3),
       new THREE.MeshStandardMaterial({ color: 0x16273a, roughness: 0.86, metalness: 0.04 }),
     );
-    inset.position.y = 0.39;
+    inset.position.y = 0.47;
     inset.receiveShadow = true;
     boardRoot.add(inset);
-
-    const grid = new THREE.GridHelper(17, 10, 0x4f7396, 0x27384c);
-    grid.position.y = 0.5;
-    boardRoot.add(grid);
+    addCenterDiorama();
 
     const layout = createSquareRingLayout(state.board.nodes);
     layoutByNode = new Map(layout.map((entry) => [entry.nodeId, entry]));
@@ -281,12 +333,7 @@ export function createClassicThreePrototypeRenderer({
       const entry = layoutByNode.get(node.id);
       const tile = new THREE.Mesh(
         new THREE.BoxGeometry(entry.tileLength, 0.42, 1.42),
-        new THREE.MeshStandardMaterial({
-          color: tileColor(node),
-          roughness: 0.5,
-          metalness: 0.12,
-          emissive: 0x000000,
-        }),
+        new THREE.MeshStandardMaterial({ color: tileColor(node), roughness: 0.5, metalness: 0.12, emissive: 0x000000 }),
       );
       tile.position.set(entry.x, entry.y, entry.z);
       tile.rotation.y = entry.rotationY;
@@ -298,9 +345,7 @@ export function createClassicThreePrototypeRenderer({
       tileMeshes.set(node.id, tile);
 
       const labelTexture = createLabelTexture(THREE, node);
-      const label = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthTest: false }),
-      );
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthTest: false }));
       label.scale.set(Math.min(2.7, entry.tileLength * 1.25), 0.84, 1);
       label.position.set(entry.x, entry.y + 1.2, entry.z);
       label.renderOrder = 5;
@@ -312,15 +357,6 @@ export function createClassicThreePrototypeRenderer({
       boardRoot.add(buildingRoot);
       buildingRoots.set(node.id, buildingRoot);
     }
-
-    const centerRing = new THREE.Mesh(
-      new THREE.TorusGeometry(3.5, 0.08, 12, 80),
-      new THREE.MeshStandardMaterial({ color: 0x79d1b0, emissive: 0x163a30, emissiveIntensity: 0.6 }),
-    );
-    centerRing.rotation.x = Math.PI / 2;
-    centerRing.position.y = 0.55;
-    boardRoot.add(centerRing);
-
     updateOwnership(state);
   }
 
@@ -338,26 +374,15 @@ export function createClassicThreePrototypeRenderer({
   }
 
   function selectTile(mesh) {
-    if (selectedTile && selectedTile !== mesh) {
-      selectedTile.scale.y = selectedTile.userData.baseScaleY ?? 1;
-    }
+    if (selectedTile && selectedTile !== mesh) selectedTile.scale.y = selectedTile.userData.baseScaleY ?? 1;
     selectedTile = mesh;
-    if (selectedTile) {
-      selectedTile.scale.y = 1.42;
-      onTileSelect(selectedTile.userData.nodeId);
-    }
-  }
-
-  function handlePointerDown(event) {
-    pointerStart = { x: event.clientX, y: event.clientY };
+    if (!selectedTile) return;
+    selectedTile.scale.y = 1.42;
+    onTileSelect(selectedTile.userData.nodeId);
   }
 
   function handlePointerUp(event) {
-    if (!pointerStart || !webglRenderer || !camera) return;
-    const distance = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
-    pointerStart = null;
-    if (distance > 8) return;
-
+    if (!webglRenderer || !camera) return;
     const rect = webglRenderer.domElement.getBoundingClientRect();
     const pointer = new THREE.Vector2(
       ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -398,15 +423,14 @@ export function createClassicThreePrototypeRenderer({
       target = targetElement;
       disposed = false;
       THREE = await import("three");
-      ({ OrbitControls } = await import("three/addons/controls/OrbitControls.js"));
-
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x07101a);
-      scene.fog = new THREE.Fog(0x07101a, 30, 55);
+      scene.fog = new THREE.Fog(0x07101a, 38, 62);
 
-      camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-      camera.position.set(18, 20, 22);
-      camera.lookAt(0, 0, 0);
+      const initialBounds = createOrthographicBounds(1, 1);
+      camera = new THREE.OrthographicCamera(initialBounds.left, initialBounds.right, initialBounds.top, initialBounds.bottom, 0.1, 100);
+      camera.position.set(...CLASSIC_CAMERA_PROFILE.position);
+      camera.lookAt(...CLASSIC_CAMERA_PROFILE.target);
 
       webglRenderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
       webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -414,26 +438,21 @@ export function createClassicThreePrototypeRenderer({
       webglRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
       webglRenderer.outputColorSpace = THREE.SRGBColorSpace;
       webglRenderer.domElement.className = "classic-three-canvas";
+      webglRenderer.domElement.style.cursor = "pointer";
+      webglRenderer.domElement.style.touchAction = "pan-y";
+      webglRenderer.domElement.setAttribute("aria-label", "고정 쿼터뷰 Classic 2.5D 스타일 보드. 타일을 선택할 수 있습니다.");
       target.replaceChildren(webglRenderer.domElement);
 
-      const hemisphere = new THREE.HemisphereLight(0xb7d9ff, 0x182131, 2.2);
-      scene.add(hemisphere);
-      const key = new THREE.DirectionalLight(0xffffff, 3.4);
-      key.position.set(9, 18, 12);
+      scene.add(new THREE.HemisphereLight(0xc6e1ff, 0x172235, 2.5));
+      const key = new THREE.DirectionalLight(0xffffff, 3.6);
+      key.position.set(8, 20, 12);
       key.castShadow = true;
       key.shadow.mapSize.set(1024, 1024);
       scene.add(key);
+      const fill = new THREE.DirectionalLight(0x8db6ff, 1.1);
+      fill.position.set(-10, 10, -6);
+      scene.add(fill);
 
-      controls = new OrbitControls(camera, webglRenderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
-      controls.minDistance = 18;
-      controls.maxDistance = 46;
-      controls.maxPolarAngle = Math.PI * 0.48;
-      controls.target.set(0, 0.3, 0);
-      controls.update();
-
-      webglRenderer.domElement.addEventListener("pointerdown", handlePointerDown);
       webglRenderer.domElement.addEventListener("pointerup", handlePointerUp);
       resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
       resizeObserver?.observe(target);
@@ -459,11 +478,7 @@ export function createClassicThreePrototypeRenderer({
         const layout = layoutByNode.get(nodeId);
         if (!layout) continue;
         const [offsetX, offsetZ] = tokenOffset(playerSeat);
-        const destination = new THREE.Vector3(
-          layout.x + offsetX,
-          layout.y + 0.58,
-          layout.z + offsetZ,
-        );
+        const destination = new THREE.Vector3(layout.x + offsetX, layout.y + 0.58, layout.z + offsetZ);
         await tweenToken(token, destination, reducedMotion ? 0 : 155);
       }
     },
@@ -473,11 +488,7 @@ export function createClassicThreePrototypeRenderer({
       if (animationFrameId !== null) cancelAnimationFrame(animationFrameId);
       resizeObserver?.disconnect();
       window.removeEventListener("resize", resize);
-      if (webglRenderer?.domElement) {
-        webglRenderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-        webglRenderer.domElement.removeEventListener("pointerup", handlePointerUp);
-      }
-      controls?.dispose?.();
+      if (webglRenderer?.domElement) webglRenderer.domElement.removeEventListener("pointerup", handlePointerUp);
       clearBoard();
       webglRenderer?.dispose?.();
       target?.replaceChildren();
@@ -485,7 +496,6 @@ export function createClassicThreePrototypeRenderer({
       scene = null;
       camera = null;
       webglRenderer = null;
-      controls = null;
     },
   };
 
