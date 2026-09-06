@@ -74,6 +74,8 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   let unsubscribe = null;
   let disposed = false;
   let refreshing = false;
+  let actionInFlight = false;
+  let pendingRefresh = false;
 
   function accept(nextSnapshot) {
     snapshot = nextSnapshot;
@@ -82,7 +84,12 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   }
 
   async function refresh({ notify = true } = {}) {
-    if (disposed || refreshing) return state;
+    if (disposed) return state;
+    if (actionInFlight) {
+      pendingRefresh = true;
+      return state;
+    }
+    if (refreshing) return state;
     refreshing = true;
     try {
       const nextSnapshot = await getOnlineGameSnapshot(roomId);
@@ -98,11 +105,21 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   }
 
   async function run(action) {
-    const nextSnapshot = await action({
-      roomId,
-      expectedVersion: snapshot.game.version,
-    });
-    return accept(nextSnapshot);
+    if (actionInFlight) throw new Error("ACTION_IN_PROGRESS");
+    actionInFlight = true;
+    try {
+      const nextSnapshot = await action({
+        roomId,
+        expectedVersion: snapshot.game.version,
+      });
+      return accept(nextSnapshot);
+    } finally {
+      actionInFlight = false;
+      if (pendingRefresh && !disposed) {
+        pendingRefresh = false;
+        void refresh();
+      }
+    }
   }
 
   unsubscribe = subscribeOnlineGame(roomId, {
