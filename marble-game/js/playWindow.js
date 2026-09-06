@@ -76,9 +76,14 @@ export function launchClassicPlay({
 }
 
 function updateEntryNote() {
+  if (document.body.dataset.theme !== "classic") return;
+
+  const startButton = document.querySelector("[data-start-playtest]");
   const note = document.querySelector("[data-playtest-entry-note]");
-  if (!note || document.body.dataset.theme !== "classic") return;
-  note.textContent = "데스크톱에서는 넓은 별도 플레이 창으로 열립니다. 모바일 또는 팝업 차단 시 현재 탭에서 진행합니다.";
+  if (startButton && !startButton.disabled) startButton.textContent = "Classic 플레이 창 열기";
+  if (note) {
+    note.textContent = "데스크톱에서는 넓은 별도 플레이 창으로 열립니다. 모바일 또는 팝업 차단 시 현재 탭에서 진행합니다.";
+  }
 }
 
 function leavePlayMode() {
