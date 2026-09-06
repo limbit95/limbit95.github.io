@@ -76,6 +76,7 @@ if (root) {
   }
 
   function friendlyError(error) {
+    const messageText = String(error?.message ?? error ?? "");
     switch (errorCode(error)) {
       case "AUTH_REQUIRED": return "온라인 플레이는 청파 같이 로그인 후 이용할 수 있어요.";
       case "INVALID_NICKNAME": return "닉네임은 1~20자로 입력해 주세요.";
@@ -86,7 +87,11 @@ if (root) {
       case "ROOM_NOT_WAITING": return "이미 게임이 시작됐거나 닫힌 방이에요.";
       case "VERSION_CONFLICT": return "다른 플레이어의 변경사항을 먼저 반영했어요. 다시 시도해 주세요.";
       case "NOT_ROOM_MEMBER": return "현재 이 방에 참가한 상태가 아니에요.";
-      default: return "온라인 대기실 처리 중 오류가 발생했어요.";
+      default:
+        if (messageText.includes("Auth session missing")) return "온라인 플레이는 청파 같이 로그인 후 이용할 수 있어요.";
+        if (messageText.includes("Supabase client is not ready")) return "온라인 연결 모듈을 불러오지 못했어요. 페이지를 새로고침해 주세요.";
+        console.error("Marble multiplayer lobby error", error);
+        return "온라인 대기실 처리 중 오류가 발생했어요.";
     }
   }
 
