@@ -2,8 +2,8 @@ import { DICE_OVERLAY_VIEW, createDiceOverlayBounds } from "./diceOverlayView.js
 
 export const DICE_STAGE_PROFILE = Object.freeze({
   durationMs: 920,
-  dieSize: 1.18,
-  settleHeight: 0.62,
+  dieSize: 0.59,
+  settleHeight: 0.31,
   defaultStrength: 0.55,
 });
 
