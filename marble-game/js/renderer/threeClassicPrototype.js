@@ -13,6 +13,9 @@ export const CLASSIC_CAMERA_PROFILE = Object.freeze({
 export const CLASSIC_VISUAL_PROFILE = Object.freeze({
   style: "bright-toy-city",
   boardMinimumTiles: 30,
+  tileDepth: 3.2,
+  labelScale: Object.freeze([3.15, 1.22]),
+  centerInsetSize: 15.4,
   palette: Object.freeze({
     sky: 0xbfe9ff,
     fog: 0xd8f3ff,
@@ -34,7 +37,7 @@ export const CLASSIC_VISUAL_PROFILE = Object.freeze({
   ]),
 });
 
-const DEFAULT_HALF_EXTENT = 10.5;
+const DEFAULT_HALF_EXTENT = 9.6;
 const OWNER_COLORS = Object.freeze([0x53b6ff, 0xff7f9b, 0xffd55a, 0x8bd48a]);
 
 const LANDMARK_ARCHETYPES = Object.freeze({
@@ -178,37 +181,37 @@ export function getClassicTileVisual(node, index = 0) {
 
 function createLabelTexture(THREE, node, visual) {
   const canvas = document.createElement("canvas");
-  canvas.width = 512;
-  canvas.height = 196;
+  canvas.width = 768;
+  canvas.height = 272;
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  context.shadowColor = "rgba(20, 52, 82, 0.2)";
+  context.shadowColor = "rgba(20, 52, 82, 0.18)";
   context.shadowBlur = 18;
   context.shadowOffsetY = 8;
-  context.fillStyle = "rgba(255, 255, 255, 0.96)";
+  context.fillStyle = "rgba(255, 255, 255, 0.97)";
   context.beginPath();
-  context.roundRect(12, 12, 488, 172, 34);
+  context.roundRect(14, 14, 740, 244, 38);
   context.fill();
 
   context.shadowColor = "transparent";
   context.fillStyle = `#${visual.color.toString(16).padStart(6, "0")}`;
   context.beginPath();
-  context.roundRect(28, 28, 456, 24, 12);
+  context.roundRect(34, 32, 700, 32, 16);
   context.fill();
 
   context.fillStyle = "#17324d";
-  context.font = '800 43px system-ui, "Noto Sans KR", sans-serif';
+  context.font = '900 68px system-ui, "Noto Sans KR", sans-serif';
   context.textAlign = "center";
   context.textBaseline = "middle";
   const label = String(node.label ?? node.id);
   const display = label.length > 12 ? `${label.slice(0, 11)}…` : label;
-  context.fillText(display, 256, 104, 448);
+  context.fillText(display, 384, 142, 680);
 
   if (node.type === "PROPERTY" && Number.isFinite(node.price)) {
-    context.fillStyle = "#61758a";
-    context.font = '700 25px system-ui, "Noto Sans KR", sans-serif';
-    context.fillText(`M ${node.price}`, 256, 148, 420);
+    context.fillStyle = "#536a80";
+    context.font = '800 38px system-ui, "Noto Sans KR", sans-serif';
+    context.fillText(`M ${node.price}`, 384, 210, 620);
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -563,7 +566,7 @@ export function createClassicThreePrototypeRenderer({
         break;
     }
 
-    group.scale.setScalar(0.78);
+    group.scale.setScalar(0.88);
     return group;
   }
 
@@ -602,7 +605,7 @@ export function createClassicThreePrototypeRenderer({
         break;
     }
 
-    group.scale.setScalar(0.78);
+    group.scale.setScalar(0.88);
     return group;
   }
 
@@ -640,7 +643,7 @@ export function createClassicThreePrototypeRenderer({
       }));
     }
 
-    group.scale.setScalar(0.72);
+    group.scale.setScalar(0.78);
     return group;
   }
 
@@ -678,54 +681,52 @@ export function createClassicThreePrototypeRenderer({
     const center = new THREE.Group();
 
     center.add(mesh(
-      new THREE.CylinderGeometry(5.55, 5.55, 0.18, 56),
+      new THREE.CylinderGeometry(4.55, 4.55, 0.18, 56),
       CLASSIC_VISUAL_PROFILE.palette.innerWater,
       { y: 0.55 },
     ));
     center.add(mesh(
-      new THREE.CylinderGeometry(4.52, 4.7, 0.3, 56),
+      new THREE.CylinderGeometry(3.72, 3.88, 0.3, 56),
       CLASSIC_VISUAL_PROFILE.palette.plaza,
       { y: 0.75 },
     ));
     center.add(mesh(
-      new THREE.TorusGeometry(3.38, 0.18, 8, 64),
+      new THREE.TorusGeometry(2.78, 0.16, 8, 64),
       CLASSIC_VISUAL_PROFILE.palette.road,
       { y: 0.94, rotationX: Math.PI / 2 },
     ));
     center.add(mesh(
-      new THREE.CylinderGeometry(2.42, 2.42, 0.16, 40),
+      new THREE.CylinderGeometry(1.9, 1.9, 0.16, 40),
       CLASSIC_VISUAL_PROFILE.palette.grass,
       { y: 0.98 },
     ));
 
-    center.add(mesh(new THREE.CylinderGeometry(0.46, 0.62, 0.7, 16), 0xffffff, { y: 1.38 }));
-    centerGlobe = mesh(new THREE.SphereGeometry(1.02, 24, 16), 0x55bdf0, { y: 2.35 });
+    center.add(mesh(new THREE.CylinderGeometry(0.4, 0.54, 0.62, 16), 0xffffff, { y: 1.3 }));
+    centerGlobe = mesh(new THREE.SphereGeometry(0.86, 24, 16), 0x55bdf0, { y: 2.08 });
     center.add(centerGlobe);
 
     [
-      [-1.5, -1.0, 0.55, 1.1, 0xff8d8d],
-      [-0.9, 1.25, 0.5, 1.7, 0x8fd3ff],
-      [1.25, -1.2, 0.62, 1.4, 0x7edca2],
-      [1.55, 0.9, 0.5, 1.9, 0xffb969],
+      [-1.25, -0.86, 0.48, 0.92, 0xff8d8d],
+      [-0.72, 1.0, 0.44, 1.35, 0x8fd3ff],
+      [1.0, -0.96, 0.52, 1.1, 0x7edca2],
+      [1.22, 0.74, 0.44, 1.45, 0xffb969],
     ].forEach(([x, z, width, height, color]) => {
-      center.add(mesh(new THREE.BoxGeometry(width, height, width), color, { x, y: 1.05 + height / 2, z }));
+      center.add(mesh(new THREE.BoxGeometry(width, height, width), color, { x, y: 1.0 + height / 2, z }));
     });
 
     [
-      [-3.2, -0.8],
-      [-2.7, 2.0],
-      [2.8, -1.8],
-      [3.0, 1.55],
-      [0.2, 3.15],
-      [-0.4, -3.15],
-    ].forEach(([x, z]) => addTree(center, x, z, 0.9));
+      [-2.55, -0.65],
+      [-2.1, 1.55],
+      [2.2, -1.4],
+      [2.45, 1.15],
+    ].forEach(([x, z]) => addTree(center, x, z, 0.82));
 
     boardRoot.add(center);
 
     [
-      [-8.2, 4.8, 1.0],
-      [6.8, -6.1, 0.82],
-      [7.8, 5.4, 0.72],
+      [-7.3, 4.2, 0.9],
+      [6.0, -5.2, 0.74],
+      [6.9, 4.8, 0.66],
     ].forEach(([x, z, scale], index) => {
       const cloud = new THREE.Group();
       [-0.35, 0, 0.38].forEach((offset, partIndex) => {
@@ -734,7 +735,7 @@ export function createClassicThreePrototypeRenderer({
           0xffffff,
           {
             x: offset * scale,
-            y: 5.8 + partIndex * 0.08,
+            y: 5.4 + partIndex * 0.08,
             z,
             castShadow: false,
             receiveShadow: false,
@@ -773,7 +774,7 @@ export function createClassicThreePrototypeRenderer({
       { y: 0.48 },
     ));
     boardRoot.add(mesh(
-      new THREE.BoxGeometry(18.65, 0.18, 18.65),
+      new THREE.BoxGeometry(CLASSIC_VISUAL_PROFILE.centerInsetSize, 0.18, CLASSIC_VISUAL_PROFILE.centerInsetSize),
       0xc8efff,
       { y: 0.8 },
     ));
@@ -792,7 +793,8 @@ export function createClassicThreePrototypeRenderer({
       tileRoot.userData.baseScaleY = 1;
       boardRoot.add(tileRoot);
 
-      const tile = mesh(new THREE.BoxGeometry(entry.tileLength, 0.5, 1.48), visual.color);
+      const depth = CLASSIC_VISUAL_PROFILE.tileDepth;
+      const tile = mesh(new THREE.BoxGeometry(entry.tileLength, 0.5, depth), visual.color);
       tile.material.emissive = new THREE.Color(0x000000);
       tile.userData.nodeId = node.id;
       tile.userData.tileRoot = tileRoot;
@@ -800,24 +802,24 @@ export function createClassicThreePrototypeRenderer({
       tileMeshes.set(node.id, tile);
 
       tileRoot.add(mesh(
-        new THREE.BoxGeometry(entry.tileLength * 0.91, 0.11, 1.28),
+        new THREE.BoxGeometry(entry.tileLength * 0.91, 0.11, depth * 0.9),
         0xffffff,
         { y: 0.3 },
       ));
       tileRoot.add(mesh(
-        new THREE.BoxGeometry(entry.tileLength * 0.82, 0.08, 0.24),
+        new THREE.BoxGeometry(entry.tileLength * 0.82, 0.08, 0.3),
         visual.accent,
-        { y: 0.38, z: -0.49 },
+        { y: 0.38, z: -(depth * 0.34) },
       ));
 
       const propRoot = new THREE.Group();
-      propRoot.position.set(0, 0.38, -0.03);
+      propRoot.position.set(0, 0.38, -(depth * 0.1));
       if (node.type === "PROPERTY") propRoot.add(createLandmark(visual.landmark, visual));
       else propRoot.add(createSpecialProp(visual.landmark, visual));
       tileRoot.add(propRoot);
 
       const buildingRoot = new THREE.Group();
-      buildingRoot.position.set(0, 0.38, 0);
+      buildingRoot.position.set(0, 0.38, depth * 0.12);
       tileRoot.add(buildingRoot);
       buildingRoots.set(node.id, buildingRoot);
 
@@ -827,8 +829,9 @@ export function createClassicThreePrototypeRenderer({
         transparent: true,
         depthTest: false,
       }));
-      label.scale.set(Math.min(2.55, entry.tileLength * 1.2), 0.98, 1);
-      label.position.set(0, 2.15, 0);
+      const [labelWidth, labelHeight] = CLASSIC_VISUAL_PROFILE.labelScale;
+      label.scale.set(Math.min(labelWidth, entry.tileLength * 1.55), labelHeight, 1);
+      label.position.set(0, 2.32, depth * 0.16);
       label.renderOrder = 6;
       tileRoot.add(label);
     }
@@ -933,7 +936,7 @@ export function createClassicThreePrototypeRenderer({
       webglRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
       webglRenderer.outputColorSpace = THREE.SRGBColorSpace;
       webglRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-      webglRenderer.toneMappingExposure = 1.18;
+      webglRenderer.toneMappingExposure = 1.08;
       webglRenderer.domElement.className = "classic-three-canvas";
       webglRenderer.domElement.style.cursor = "pointer";
       webglRenderer.domElement.style.touchAction = "pan-y";
@@ -943,8 +946,8 @@ export function createClassicThreePrototypeRenderer({
       );
       target.replaceChildren(webglRenderer.domElement);
 
-      scene.add(new THREE.HemisphereLight(0xffffff, 0x86acd0, 3.1));
-      const key = new THREE.DirectionalLight(0xfff8e9, 4.4);
+      scene.add(new THREE.HemisphereLight(0xffffff, 0x86acd0, 2.8));
+      const key = new THREE.DirectionalLight(0xfff8e9, 3.8);
       key.position.set(10, 22, 14);
       key.castShadow = true;
       key.shadow.mapSize.set(1536, 1536);
@@ -954,7 +957,7 @@ export function createClassicThreePrototypeRenderer({
       key.shadow.camera.bottom = -18;
       scene.add(key);
 
-      const fill = new THREE.DirectionalLight(0x8ccfff, 1.5);
+      const fill = new THREE.DirectionalLight(0x8ccfff, 1.2);
       fill.position.set(-12, 10, -8);
       scene.add(fill);
 
