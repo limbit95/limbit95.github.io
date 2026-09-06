@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createClassicTileInfo } from "../js/tileInfo.js";
+import { CLASSIC_RULES } from "../js/themes/classic/rules.js";
+import { formatThemeMoney } from "../js/themes/money.js";
 
 const state = {
   board: {
@@ -27,17 +29,24 @@ const state = {
   players: [{ id: "player-a", name: "플레이어 A" }],
 };
 
+test("Classic uses a theme-scoped gold currency profile", () => {
+  assert.equal(CLASSIC_RULES.currency.code, "gold");
+  assert.equal(CLASSIC_RULES.currency.label, "골드");
+  assert.equal(formatThemeMoney(1500, CLASSIC_RULES.currency), "1,500 골드");
+  assert.equal(formatThemeMoney(-120, CLASSIC_RULES.currency, { signed: true }), "-120 골드");
+});
+
 test("property tile info exposes price, owner, building level and current toll", () => {
   const info = createClassicTileInfo(state, "paris");
 
   assert.equal(info.title, "파리");
   assert.equal(info.typeLabel, "도시");
   assert.deepEqual(info.stats, [
-    { label: "구매가", value: "M 380" },
-    { label: "현재 통행료", value: "M 208" },
+    { label: "구매가", value: "380 골드" },
+    { label: "현재 통행료", value: "208 골드" },
     { label: "소유자", value: "플레이어 A" },
     { label: "건물", value: "2 / 3 단계" },
-    { label: "건설 비용", value: "M 190" },
+    { label: "건설 비용", value: "190 골드" },
   ]);
 });
 
@@ -45,10 +54,10 @@ test("special tile info explains direct effects", () => {
   const tax = createClassicTileInfo(state, "tax");
   const start = createClassicTileInfo(state, "start", { startSalary: 250 });
 
-  assert.equal(tax.stats[0].value, "- M 120");
+  assert.equal(tax.stats[0].value, "-120 골드");
   assert.match(tax.effect, /차감/);
-  assert.equal(start.stats[0].value, "+ M 250");
-  assert.match(start.summary, /M 250/);
+  assert.equal(start.stats[0].value, "+250 골드");
+  assert.match(start.summary, /250 골드/);
 });
 
 test("unknown node returns null", () => {
