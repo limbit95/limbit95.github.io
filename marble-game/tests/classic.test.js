@@ -23,10 +23,16 @@ test("dice helper produces two bounded dice", () => {
   assert.deepEqual(rollDice(() => values[index++]).dice, [1, 6]);
 });
 
+test("Classic board keeps the final-scale requirement of at least 30 tiles", () => {
+  const initial = createInitialGameState({ players: ["a", "b"] });
+  assert.equal(initial.board.nodes.length, 32);
+  assert.ok(initial.board.nodes.length >= 30);
+});
+
 test("Classic movement records a renderer-friendly path and salary when passing start", () => {
   const initial = createInitialGameState({ players: ["a", "b"] });
-  const movement = moveAlongBoard(initial.board, "vancouver", 3);
-  assert.deepEqual(movement.path, ["honolulu", "start", "tokyo"]);
+  const movement = moveAlongBoard(initial.board, "jeju", 3);
+  assert.deepEqual(movement.path, ["start", "tokyo", "event-east"]);
   assert.equal(movement.passedStartCount, 1);
 });
 

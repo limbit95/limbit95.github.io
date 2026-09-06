@@ -1,0 +1,91 @@
+.playtest-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+body[data-play-mode="window"] .marble-header,
+body[data-play-mode="window"] .theme-section,
+body[data-play-mode="window"] .theme-detail,
+body[data-play-mode="window"] .marble-footer {
+  display: none;
+}
+
+body[data-play-mode="window"] .playtest-section {
+  margin-top: 0;
+  scroll-margin-top: 0;
+}
+
+@media (min-width: 901px) {
+  body[data-play-mode="window"] {
+    overflow-x: hidden;
+  }
+
+  body[data-play-mode="window"] .marble-shell {
+    width: min(1680px, calc(100% - 24px));
+    min-height: 100vh;
+    padding: 12px 0;
+  }
+
+  body[data-play-mode="window"] .playtest-section {
+    min-height: calc(100vh - 24px);
+    padding: clamp(18px, 2vw, 28px);
+  }
+
+  body[data-play-mode="window"] .playtest-heading {
+    margin-bottom: 14px;
+  }
+
+  body[data-play-mode="window"] .playtest-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+    align-items: start;
+    gap: clamp(16px, 2vw, 28px);
+  }
+
+  body[data-play-mode="window"] .board-panel {
+    display: grid;
+    min-width: 0;
+    place-items: start center;
+  }
+
+  body[data-play-mode="window"] .three-prototype-shell {
+    width: min(100%, 1180px);
+  }
+
+  body[data-play-mode="window"] .classic-three-stage {
+    height: min(76vh, 800px);
+    min-height: 560px;
+  }
+
+  body[data-play-mode="window"] .classic-board {
+    width: min(100%, 1080px, calc(100vh - 118px));
+    min-height: 0;
+  }
+
+  body[data-play-mode="window"] .playtest-sidebar {
+    position: sticky;
+    top: 14px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+
+  body[data-play-mode="window"] .event-log {
+    max-height: min(32vh, 320px);
+  }
+}
+
+@media (max-width: 900px) {
+  body[data-play-mode="window"] .marble-shell {
+    padding-top: 12px;
+  }
+
+  body[data-play-mode="window"] .playtest-heading {
+    align-items: stretch;
+  }
+
+  body[data-play-mode="window"] .playtest-heading__actions {
+    justify-content: flex-start;
+  }
+}
