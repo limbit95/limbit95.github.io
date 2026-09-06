@@ -12,8 +12,10 @@ const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8"
 const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
+const exitSource = readFileSync(new URL("../js/onlineGameExit.js", import.meta.url), "utf8");
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
 const visibilityCss = readFileSync(new URL("../css/visibility-polish.css", import.meta.url), "utf8");
+const gameEndCss = readFileSync(new URL("../css/online-game-controls.css", import.meta.url), "utf8");
 const gameStartMigration = readFileSync(
   new URL("../../supabase/marble/20260906114753_marble_online_game_start.sql", import.meta.url),
   "utf8",
@@ -24,6 +26,10 @@ const turnActionsMigration = readFileSync(
 );
 const reconnectMigration = readFileSync(
   new URL("../../supabase/marble/20260906115151_marble_online_reconnect_hardening.sql", import.meta.url),
+  "utf8",
+);
+const gameEndMigration = readFileSync(
+  new URL("../../supabase/marble/20260906150500_marble_online_game_end.sql", import.meta.url),
   "utf8",
 );
 
@@ -66,6 +72,20 @@ test("online snapshot maps server state into the existing Classic renderer state
   assert.equal(isOnlineViewerTurn(state, "p1"), false);
 });
 
+test("abandoned online game maps to a finished client state", () => {
+  const abandoned = snapshot();
+  abandoned.game = {
+    ...abandoned.game,
+    status: "abandoned",
+    phase: "FINISHED",
+    lastEvents: [{ type: "GAME_ABANDONED", playerId: "p2" }],
+  };
+
+  const state = mapOnlineGameSnapshot(abandoned);
+  assert.equal(state.status, "FINISHED");
+  assert.equal(state.phase, "FINISHED");
+});
+
 test("online play route keeps Classic play mode and room identity", () => {
   const url = createOnlineClassicPlayUrl("https://example.com/marble-game/?room=ABC123", "room-uuid");
   assert.equal(url.searchParams.get("play"), "classic");
@@ -89,6 +109,25 @@ test("Phase 5B exposes host start and server-authoritative action RPCs", () => {
   assert.match(controllerSource, /getViewerPlayerId/);
   assert.match(controllerSource, /viewerCanAct/);
   assert.match(controllerSource, /createClassicTollNotice/);
+});
+
+test("online game can be explicitly ended and return every client to a fresh lobby", () => {
+  assert.match(indexHtml, /data-online-game-controls/);
+  assert.match(indexHtml, /data-end-online-game/);
+  assert.match(indexHtml, /data-game-end-modal/);
+  assert.match(indexHtml, /onlineGameExit\.js/);
+  assert.match(apiSource, /marble_end_game/);
+  assert.match(exitSource, /endOnlineGame/);
+  assert.match(exitSource, /GAME_ABANDONED/);
+  assert.match(exitSource, /GAME_SESSION_CLOSED/);
+  assert.match(exitSource, /url\.searchParams\.delete\("onlineRoom"\)/);
+  assert.match(exitSource, /새 방을 만들 수 있습니다/);
+  assert.match(gameEndCss, /\.game-end-button/);
+  assert.match(gameEndCss, /\.game-end-modal/);
+  assert.match(gameEndMigration, /create or replace function public\.marble_end_game/);
+  assert.match(gameEndMigration, /status = 'abandoned'/);
+  assert.match(gameEndMigration, /set status = 'closed'/);
+  assert.match(gameEndMigration, /grant execute on function public\.marble_end_game\(uuid,bigint\) to authenticated/);
 });
 
 test("online HUD anchors the viewer bottom-right and fills other corners in order", () => {

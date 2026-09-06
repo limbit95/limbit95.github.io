@@ -40,11 +40,12 @@ export function mapOnlineGameSnapshot(snapshot) {
   })));
   const currentPlayerIndex = players.findIndex((player) => player.seat === Number(snapshot.game.currentSeat));
   const status = String(snapshot.game.status ?? "").toUpperCase();
+  const finished = status === GAME_STATUS.FINISHED || status === "ABANDONED";
 
   return Object.freeze({
     themeId: "classic",
     rulesetVersion: Number(snapshot.game.rulesetVersion) || 1,
-    status: status === GAME_STATUS.FINISHED ? GAME_STATUS.FINISHED : GAME_STATUS.PLAYING,
+    status: finished ? GAME_STATUS.FINISHED : GAME_STATUS.PLAYING,
     phase: snapshot.game.phase,
     turn: Number(snapshot.game.turn) || 1,
     currentPlayerIndex: currentPlayerIndex >= 0 ? currentPlayerIndex : null,
