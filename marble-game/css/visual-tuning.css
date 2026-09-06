@@ -13,7 +13,7 @@
 
 .classic-three-canvas {
   cursor: pointer;
-  transform: scale(1.1);
+  transform: scale(1.34);
   transform-origin: 50% 50%;
   filter: brightness(0.91) saturate(0.86) contrast(0.98);
   transition: filter 160ms ease, transform 160ms ease;
@@ -30,12 +30,12 @@
 
 @media (max-width: 760px) {
   .classic-three-canvas {
-    transform: scale(1.07);
+    transform: scale(1.22);
   }
 }
 
 @media (max-width: 480px) {
   .classic-three-canvas {
-    transform: scale(1.04);
+    transform: scale(1.14);
   }
 }
