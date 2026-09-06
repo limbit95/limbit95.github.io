@@ -90,6 +90,24 @@ function hashSearchParams(url) {
   return new URLSearchParams(rawHash.slice(queryIndex + 1));
 }
 
+function kakaoLinkLocation(url) {
+  if (url.hostname.toLocaleLowerCase("en-US") !== "map.kakao.com") return null;
+
+  const decodedPath = decodeURIComponent(url.pathname);
+  const match = decodedPath.match(/^\/link\/(?:map|to)\/(.+),(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)\/?$/i);
+  if (!match) return null;
+
+  const latitude = Number(match[2]);
+  const longitude = Number(match[3]);
+  if (!validCoordinatePair(latitude, longitude)) return null;
+
+  return {
+    name: normalizedText(match[1]),
+    latitude,
+    longitude,
+  };
+}
+
 export function locationCoordinatesFromUrl(locationUrl) {
   const rawUrl = normalizedText(locationUrl);
   if (!rawUrl) return null;
@@ -104,6 +122,14 @@ export function locationCoordinatesFromUrl(locationUrl) {
     const hashParams = hashSearchParams(url);
     const hashCoordinates = hashParams ? parseCoordinatesFromSearchParams(hashParams) : null;
     if (hashCoordinates) return hashCoordinates;
+
+    const kakaoLocation = kakaoLinkLocation(url);
+    if (kakaoLocation) {
+      return {
+        latitude: kakaoLocation.latitude,
+        longitude: kakaoLocation.longitude,
+      };
+    }
 
     const decodedUrl = decodeURIComponent(url.href);
     const pathMatch = decodedUrl.match(/@(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)(?:[,/?#]|$)/);
@@ -131,6 +157,9 @@ function locationNamesFromUrl(locationUrl) {
     for (const param of LOCATION_QUERY_PARAMS) {
       appendUnique(names, url.searchParams.get(param));
     }
+
+    const kakaoLocation = kakaoLinkLocation(url);
+    appendUnique(names, kakaoLocation?.name);
 
     const segments = url.pathname
       .split("/")
