@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const visibilityCss = readFileSync(new URL("../css/visibility-polish.css", import.meta.url), "utf8");
 const diceStageSource = readFileSync(new URL("../js/diceStage.js", import.meta.url), "utf8");
-const ownershipOverlaySource = readFileSync(new URL("../js/ownershipOverlay.js", import.meta.url), "utf8");
+const ownershipVisualSource = readFileSync(new URL("../js/themes/classic/ownershipVisual.js", import.meta.url), "utf8");
 
 test("settled 3D dice survive the movement hide request", () => {
   assert.match(diceStageSource, /let preserveNextHide = false/);
@@ -21,12 +21,15 @@ test("dedicated play window uses substantially larger player and status HUDs", (
   assert.match(visibilityCss, /important-notice[\s\S]*font-size:\s*1\.18rem/);
 });
 
-test("ownership overlay exposes a player-colored P1-P4 marker on owned board tiles", () => {
-  assert.match(indexHtml, /visibility-polish\.css/);
-  assert.match(indexHtml, /ownershipOverlay\.js/);
-  assert.match(ownershipOverlaySource, /data-owner-seat/);
-  assert.match(ownershipOverlaySource, /createSquareRingLayout/);
-  assert.match(ownershipOverlaySource, /badge\.textContent = `P\$\{seat \+ 1\}`/);
-  assert.match(visibilityCss, /\.ownership-badge/);
-  assert.match(visibilityCss, /--owner-accent/);
+test("Classic owns its themed 3D ownership visual instead of a generic 2D badge", () => {
+  assert.match(indexHtml, /themes\/classic\/ownershipVisual\.js/);
+  assert.doesNotMatch(indexHtml, /ownershipOverlay\.js/);
+  assert.match(ownershipVisualSource, /CLASSIC_OWNERSHIP_VISUAL_PROFILE/);
+  assert.match(ownershipVisualSource, /style:\s*"flag-and-ownership-rail"/);
+  assert.match(ownershipVisualSource, /data-owner-seat/);
+  assert.match(ownershipVisualSource, /createClassicOwnershipMarker/);
+  assert.match(ownershipVisualSource, /CylinderGeometry/);
+  assert.match(ownershipVisualSource, /flagPanel/);
+  assert.match(visibilityCss, /\.classic-ownership-three-canvas/);
+  assert.doesNotMatch(visibilityCss, /\.ownership-badge/);
 });
