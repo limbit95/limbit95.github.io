@@ -100,14 +100,31 @@ function consumeRegistrationSharePrompt(eventId) {
 function openRegistrationSharePrompt(event) {
   const kakaoButton = createShareButton(event, { beforeShare: () => closeModal(true) });
   const copyButton = createCopyButton(event.id, { beforeCopy: () => closeModal(true) });
-  const content = el("div", { className: "page-stack" }, [
-    el("p", { text: "오픈채팅방이나 친구에게 새 활동을 바로 공유할 수 있어요." }),
-    el("div", { className: "button-row" }, [kakaoButton, copyButton]),
+  const content = el("div", { className: "activity-share-success" }, [
+    el("div", { className: "activity-share-success__intro" }, [
+      el("span", {
+        className: "activity-share-success__check",
+        text: "✓",
+        "aria-hidden": "true",
+      }),
+      el("div", { className: "activity-share-success__copy" }, [
+        el("strong", { text: "새 활동을 바로 알려보세요" }),
+        el("p", {
+          text: "오픈채팅방이나 친구에게 공유하면 참여자가 활동 정보를 바로 확인할 수 있어요.",
+        }),
+      ]),
+    ]),
+    el("div", { className: "activity-share-success__actions" }, [kakaoButton, copyButton]),
+    el("p", {
+      className: "activity-share-success__hint",
+      text: "공유하지 않아도 활동은 정상적으로 등록되어 있어요.",
+    }),
   ]);
   void contentDialog({
     title: "활동이 등록됐어요!",
     content,
     closeText: "나중에",
+    dialogClassName: "modal--activity-share-success",
   });
 }
 
