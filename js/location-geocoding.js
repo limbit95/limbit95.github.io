@@ -9,6 +9,13 @@ const URL_COORDINATE_PARAM_PAIRS = [
   ["latitude", "longitude"],
   ["y", "x"],
 ];
+const TRUSTED_MAP_HOSTS = new Set([
+  "map.naver.com",
+  "m.map.naver.com",
+  "map.kakao.com",
+  "place.map.kakao.com",
+]);
+const GOOGLE_MAP_DOMAINS = ["google.com", "google.co.kr"];
 const MERGEABLE_LOCATION_SUFFIXES = [
   "공원",
   "역",
@@ -46,6 +53,23 @@ function appendUnique(values, value) {
   values.push(normalized);
 }
 
+function isTrustedMapUrl(url) {
+  if (!url || !["http:", "https:"].includes(url.protocol)) return false;
+
+  const hostname = url.hostname.toLocaleLowerCase("en-US");
+  if (TRUSTED_MAP_HOSTS.has(hostname)) return true;
+
+  return GOOGLE_MAP_DOMAINS.some((domain) => {
+    const googleHost = hostname === domain
+      || hostname === `www.${domain}`
+      || hostname === `maps.${domain}`;
+    if (!googleHost) return false;
+    return hostname.startsWith("maps.")
+      || url.pathname === "/maps"
+      || url.pathname.startsWith("/maps/");
+  });
+}
+
 function parseCoordinatesFromSearchParams(searchParams) {
   for (const [latitudeParam, longitudeParam] of URL_COORDINATE_PARAM_PAIRS) {
     const rawLatitude = searchParams.get(latitudeParam);
@@ -72,6 +96,8 @@ export function locationCoordinatesFromUrl(locationUrl) {
 
   try {
     const url = new URL(rawUrl);
+    if (!isTrustedMapUrl(url)) return null;
+
     const queryCoordinates = parseCoordinatesFromSearchParams(url.searchParams);
     if (queryCoordinates) return queryCoordinates;
 
@@ -99,6 +125,8 @@ function locationNamesFromUrl(locationUrl) {
 
   try {
     const url = new URL(rawUrl);
+    if (!isTrustedMapUrl(url)) return [];
+
     const names = [];
     for (const param of LOCATION_QUERY_PARAMS) {
       appendUnique(names, url.searchParams.get(param));
