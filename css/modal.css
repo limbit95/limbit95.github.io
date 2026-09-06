@@ -76,7 +76,7 @@
   margin-top: 1.15rem;
 }
 
-.modal--activity-share-success {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) {
   width: min(100%, 560px);
   padding: 0;
   border-color: #d7e9ef;
@@ -86,7 +86,7 @@
   box-shadow: 0 20px 48px rgba(82, 128, 145, .16);
 }
 
-.modal--activity-share-success .modal__header {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) .modal__header {
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
@@ -97,40 +97,36 @@
   background: rgba(245, 250, 252, .78);
 }
 
-.modal--activity-share-success .modal__header::before {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) .modal__header::before {
   content: "";
   width: 44px;
   height: 44px;
 }
 
-.modal--activity-share-success .modal__title {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) .modal__title {
   text-align: center;
   line-height: 1.35;
 }
 
-.modal--activity-share-success .modal__header .icon-button {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) .modal__header .icon-button {
   grid-column: 3;
 }
 
-.activity-share-success {
-  display: grid;
-  gap: 1rem;
-  padding: 1.15rem 1.25rem 0;
-  text-align: center;
-}
-
-.activity-share-success__intro {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack {
   display: grid;
   justify-items: center;
-  gap: .7rem;
+  gap: .75rem;
+  margin: 1.15rem 1.25rem 0;
   padding: 1rem;
   border: 1px solid #e0edf1;
   border-radius: 18px;
   background: rgba(255, 255, 255, .72);
   box-shadow: 0 7px 20px rgba(78, 124, 143, .05);
+  text-align: center;
 }
 
-.activity-share-success__check {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack::before {
+  content: "✓";
   width: 46px;
   height: 46px;
   display: grid;
@@ -144,47 +140,29 @@
   box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .55);
 }
 
-.activity-share-success__copy {
-  display: grid;
-  gap: .35rem;
-  justify-items: center;
-}
-
-.activity-share-success__copy strong {
-  color: var(--forest-900);
-  font-size: 1.02rem;
-}
-
-.activity-share-success__copy p,
-.activity-share-success__hint {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack > p {
+  max-width: 390px;
   margin: 0;
   color: var(--muted);
+  font-size: .92rem;
   line-height: 1.65;
   word-break: keep-all;
 }
 
-.activity-share-success__copy p {
-  max-width: 390px;
-  font-size: .92rem;
-}
-
-.activity-share-success__actions {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack > .button-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .7rem;
+  width: 100%;
+  margin-top: .2rem;
 }
 
-.activity-share-success__actions .button {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack > .button-row .button {
   width: 100%;
   min-height: 48px;
 }
 
-.activity-share-success__hint {
-  padding-inline: .4rem;
-  font-size: .82rem;
-}
-
-.modal--activity-share-success .modal__actions {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .modal__actions {
   flex-direction: row;
   justify-content: center;
   margin: .9rem 1.25rem 1.15rem;
@@ -192,7 +170,7 @@
   border-top: 1px solid #e6f0f3;
 }
 
-.modal--activity-share-success .modal__actions .button {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .modal__actions .button {
   min-height: 38px;
   padding: .45rem .9rem;
   border-color: transparent;
@@ -201,26 +179,26 @@
   box-shadow: none;
 }
 
-.modal--activity-share-success .modal__actions .button:hover {
+.modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .modal__actions .button:hover {
   background: rgba(230, 243, 247, .7);
   color: var(--forest-900);
   transform: none;
 }
 
 @media (max-width: 520px) {
-  .modal--activity-share-success .modal__header {
+  .modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) .modal__header {
     padding-inline: .85rem;
   }
 
-  .activity-share-success {
-    padding-inline: 1rem;
+  .modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack {
+    margin-inline: 1rem;
   }
 
-  .activity-share-success__actions {
+  .modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .page-stack > .button-row {
     grid-template-columns: 1fr;
   }
 
-  .modal--activity-share-success .modal__actions {
+  .modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .modal__actions {
     margin-inline: 1rem;
   }
 }
@@ -231,7 +209,7 @@
     justify-content: flex-end;
   }
 
-  .modal--activity-share-success .modal__actions {
+  .modal:has(> .page-stack > .button-row > .button--yellow):has(> .page-stack > .button-row > .button--secondary) > .modal__actions {
     justify-content: center;
   }
 }
