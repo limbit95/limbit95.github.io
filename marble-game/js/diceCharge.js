@@ -113,13 +113,15 @@ export function createDiceChargeControl({ button, dock, gauge, gaugeFill, gaugeV
   });
 }
 
-const button = document.querySelector("[data-primary-action]");
-const dock = document.querySelector("[data-board-action-dock]");
-const gauge = document.querySelector("[data-dice-charge]");
-const gaugeFill = document.querySelector("[data-dice-charge-fill]");
-const gaugeValue = document.querySelector("[data-dice-charge-value]");
-const diceStageElement = document.querySelector("[data-dice-stage]");
+if (typeof document !== "undefined") {
+  const button = document.querySelector("[data-primary-action]");
+  const dock = document.querySelector("[data-board-action-dock]");
+  const gauge = document.querySelector("[data-dice-charge]");
+  const gaugeFill = document.querySelector("[data-dice-charge-fill]");
+  const gaugeValue = document.querySelector("[data-dice-charge-value]");
+  const diceStageElement = document.querySelector("[data-dice-stage]");
 
-if (button && dock && gauge && gaugeFill && gaugeValue && diceStageElement) {
-  createDiceChargeControl({ button, dock, gauge, gaugeFill, gaugeValue, diceStageElement });
+  if (button && dock && gauge && gaugeFill && gaugeValue && diceStageElement) {
+    createDiceChargeControl({ button, dock, gauge, gaugeFill, gaugeValue, diceStageElement });
+  }
 }
