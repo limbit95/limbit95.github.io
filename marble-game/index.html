@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/play-window.css">
     <link rel="stylesheet" href="./css/visual-tuning.css">
+    <link rel="stylesheet" href="./css/visibility-polish.css">
     <script type="importmap">
       {
         "imports": {
@@ -73,7 +74,17 @@
 
               <div class="important-notice" data-important-notice hidden role="status" aria-live="assertive"></div>
 
-              <div class="board-action-dock">
+              <div class="board-action-dock" data-board-action-dock data-roll-ready="false">
+                <div class="dice-charge" data-dice-charge hidden aria-label="주사위 굴림 강도">
+                  <div class="dice-charge__label">
+                    <span>ROLL POWER</span>
+                    <strong data-dice-charge-value>55%</strong>
+                  </div>
+                  <div class="dice-charge__track" aria-hidden="true">
+                    <span data-dice-charge-fill></span>
+                  </div>
+                  <small>버튼을 누르고 있다가 원하는 강도에서 놓으세요</small>
+                </div>
                 <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
                 <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
                 <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
@@ -127,10 +138,27 @@
         </div>
       </dialog>
 
+      <dialog class="toll-notice-modal" data-toll-notice-modal aria-labelledby="toll-notice-title">
+        <div class="toll-notice-modal__eyebrow">TOLL NOTICE</div>
+        <h2 id="toll-notice-title"><span data-toll-city>도시</span> 통행료</h2>
+        <div class="toll-notice-modal__owner">
+          <span class="toll-notice-modal__owner-token" data-toll-owner-seat>P1</span>
+          <div><span>소유자</span><strong data-toll-owner>플레이어</strong></div>
+        </div>
+        <div class="toll-notice-modal__amount">
+          <span>지불 통행료</span>
+          <strong data-toll-amount>0 골드</strong>
+        </div>
+        <p class="toll-notice-modal__effect" data-toll-effect></p>
+        <button class="primary-button toll-notice-modal__confirm" type="button" data-toll-confirm>확인</button>
+      </dialog>
+
       <footer class="marble-footer"><p>Classic은 2~4인 기본 플레이를 기준으로 보드 자체를 화면의 중심에 두고, 플레이어 HUD·3D 주사위·상황별 모달을 게임 화면 안에 통합합니다.</p></footer>
     </main>
 
     <script type="module" src="./js/app.js"></script>
+    <script type="module" src="./js/diceCharge.js"></script>
     <script type="module" src="./js/playWindow.js"></script>
+    <script type="module" src="./js/themes/classic/ownershipVisual.js"></script>
   </body>
 </html>

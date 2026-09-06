@@ -1,8 +1,10 @@
+import { DICE_OVERLAY_VIEW, createDiceOverlayBounds } from "./diceOverlayView.js";
+
 export const DICE_STAGE_PROFILE = Object.freeze({
   durationMs: 920,
-  dieSize: 1.18,
-  settleHeight: 0.62,
-  cameraPosition: Object.freeze([0, 5.4, 8.2]),
+  dieSize: 0.59,
+  settleHeight: 0.31,
+  defaultStrength: 0.55,
 });
 
 export function normalizeDiceFace(value) {
@@ -11,6 +13,24 @@ export function normalizeDiceFace(value) {
     throw new RangeError(`Dice face must be an integer from 1 to 6: ${value}`);
   }
   return face;
+}
+
+export function normalizeRollStrength(value) {
+  const strength = Number(value);
+  if (!Number.isFinite(strength)) return DICE_STAGE_PROFILE.defaultStrength;
+  return Math.min(1, Math.max(0, strength));
+}
+
+export function rollAnimationProfile(value) {
+  const strength = normalizeRollStrength(value);
+  return Object.freeze({
+    strength,
+    durationMs: Math.round(720 + (strength * 520)),
+    throwHeight: 1.25 + (strength * 2.0),
+    horizontalSpread: 0.12 + (strength * 0.52),
+    bounceHeight: 0.12 + (strength * 0.38),
+    spinMultiplier: 0.68 + (strength * 1.05),
+  });
 }
 
 export function dieFaceNormal(value) {
@@ -117,7 +137,9 @@ export function createThreeDiceStage({
   let diceRoot = null;
   let dice = [];
   let resizeObserver = null;
+  let readyObserver = null;
   let disposed = false;
+  let preserveNextHide = false;
 
   function render() {
     if (!renderer || !scene || !camera) return;
@@ -128,7 +150,11 @@ export function createThreeDiceStage({
     if (!target || !renderer || !camera) return;
     const width = Math.max(1, target.clientWidth);
     const height = Math.max(1, target.clientHeight);
-    camera.aspect = width / height;
+    const bounds = createDiceOverlayBounds(width, height);
+    camera.left = bounds.left;
+    camera.right = bounds.right;
+    camera.top = bounds.top;
+    camera.bottom = bounds.bottom;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     render();
@@ -143,6 +169,13 @@ export function createThreeDiceStage({
     });
   }
 
+  function showReadyDice() {
+    if (!diceRoot || !renderer) return;
+    if (!diceRoot.visible) setSettled([1, 6]);
+    diceRoot.visible = true;
+    render();
+  }
+
   return Object.freeze({
     async mount(targetElement) {
       if (!targetElement || typeof targetElement.replaceChildren !== "function") {
@@ -150,14 +183,15 @@ export function createThreeDiceStage({
       }
       target = targetElement;
       disposed = false;
+      preserveNextHide = false;
       THREE = await import("three");
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
-      camera.position.set(...DICE_STAGE_PROFILE.cameraPosition);
-      camera.lookAt(0, 0.55, 0);
+      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+      camera.position.set(...DICE_OVERLAY_VIEW.position);
+      camera.lookAt(...DICE_OVERLAY_VIEW.target);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.setClearColor(0x000000, 0);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -190,24 +224,40 @@ export function createThreeDiceStage({
       resizeObserver = typeof ResizeObserver !== "undefined" ? new ResizeObserver(resize) : null;
       resizeObserver?.observe(target);
       window.addEventListener("resize", resize);
+      readyObserver = typeof MutationObserver !== "undefined" ? new MutationObserver(() => {
+        if (target?.dataset?.ready === "true") showReadyDice();
+      }) : null;
+      readyObserver?.observe(target, { attributes: true, attributeFilter: ["data-ready"] });
       resize();
+      if (target.dataset.ready === "true") showReadyDice();
     },
 
-    async playRoll(values) {
+    showReady() {
+      showReadyDice();
+    },
+
+    async playRoll(values, options = {}) {
       if (!diceRoot || !renderer) return;
       const faces = [normalizeDiceFace(values?.[0]), normalizeDiceFace(values?.[1])];
+      const strength = normalizeRollStrength(options.strength ?? target?.dataset?.rollStrength ?? DICE_STAGE_PROFILE.defaultStrength);
+      const motion = rollAnimationProfile(strength);
+      preserveNextHide = false;
+      if (!diceRoot.visible) showReadyDice();
       diceRoot.visible = true;
 
       if (reducedMotion) {
         setSettled(faces);
+        preserveNextHide = true;
         render();
         return;
       }
 
-      const starts = [
-        { x: -2.2, y: 3.4, z: -0.45, rotation: [0.5, 0.8, 0.35] },
-        { x: 2.15, y: 3.7, z: 0.4, rotation: [0.85, 0.35, 0.7] },
-      ];
+      const starts = dice.map((die) => ({
+        x: die.position.x,
+        y: die.position.y,
+        z: die.position.z,
+        rotation: [die.rotation.x, die.rotation.y, die.rotation.z],
+      }));
       const ends = [
         { x: -0.82, z: 0.04 },
         { x: 0.82, z: -0.08 },
@@ -220,30 +270,36 @@ export function createThreeDiceStage({
             resolve();
             return;
           }
-          const progress = Math.min(1, (now - startedAt) / DICE_STAGE_PROFILE.durationMs);
+          const progress = Math.min(1, (now - startedAt) / motion.durationMs);
           const eased = 1 - ((1 - progress) ** 3);
+          const jump = Math.sin(progress * Math.PI) * motion.throwHeight;
+          const landingProgress = Math.max(0, (progress - 0.72) / 0.28);
+          const landingBounce = landingProgress > 0
+            ? Math.abs(Math.sin(landingProgress * Math.PI * 2.4)) * motion.bounceHeight * (1 - landingProgress)
+            : 0;
 
           dice.forEach((die, index) => {
             const start = starts[index];
             const end = ends[index];
-            const bounce = Math.abs(Math.sin(progress * Math.PI * 3.4)) * 0.8 * (1 - progress);
-            die.position.x = start.x + ((end.x - start.x) * eased);
-            die.position.z = start.z + ((end.z - start.z) * eased);
-            die.position.y = DICE_STAGE_PROFILE.settleHeight
-              + ((start.y - DICE_STAGE_PROFILE.settleHeight) * (1 - eased))
-              + bounce;
+            const direction = index === 0 ? -1 : 1;
+            const outwardArc = Math.sin(progress * Math.PI) * motion.horizontalSpread * direction;
+            const depthArc = Math.sin(progress * Math.PI * 2) * motion.horizontalSpread * 0.22 * direction;
+            die.position.x = start.x + ((end.x - start.x) * eased) + outwardArc;
+            die.position.z = start.z + ((end.z - start.z) * eased) + depthArc;
+            die.position.y = DICE_STAGE_PROFILE.settleHeight + jump + landingBounce;
             die.rotation.set(
-              start.rotation[0] + progress * Math.PI * (6 + faces[index]),
-              start.rotation[1] + progress * Math.PI * (8 + index * 2),
-              start.rotation[2] + progress * Math.PI * (5 + faces[1 - index]),
+              start.rotation[0] + progress * Math.PI * (5.2 + faces[index]) * motion.spinMultiplier,
+              start.rotation[1] + progress * Math.PI * (7.2 + index * 1.6) * motion.spinMultiplier,
+              start.rotation[2] + progress * Math.PI * (4.6 + faces[1 - index]) * motion.spinMultiplier,
             );
-            const squash = 1 - Math.sin(progress * Math.PI) * 0.05;
+            const squash = 1 - Math.sin(progress * Math.PI) * (0.025 + (strength * 0.022));
             die.scale.set(1 / squash, squash, 1 / squash);
           });
           render();
 
           if (progress >= 1) {
             setSettled(faces);
+            preserveNextHide = true;
             render();
             resolve();
           } else {
@@ -256,13 +312,19 @@ export function createThreeDiceStage({
 
     hide() {
       if (!diceRoot) return;
+      if (preserveNextHide) {
+        preserveNextHide = false;
+        return;
+      }
       diceRoot.visible = false;
       render();
     },
 
     dispose() {
       disposed = true;
+      preserveNextHide = false;
       resizeObserver?.disconnect();
+      readyObserver?.disconnect();
       window.removeEventListener("resize", resize);
       if (scene) disposeObject(scene);
       renderer?.dispose?.();
