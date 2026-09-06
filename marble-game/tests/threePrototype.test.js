@@ -28,12 +28,25 @@ test("3D square-ring layout keeps all 32 Classic nodes on unique positions", () 
   );
 });
 
+test("Classic board uses four larger square corner tiles", () => {
+  const layout = createSquareRingLayout(nodes(32));
+  const corners = layout.filter((entry) => entry.isCorner);
+  const regular = layout.filter((entry) => !entry.isCorner);
+
+  assert.equal(corners.length, 4);
+  assert.deepEqual(corners.map((entry) => entry.index), [0, 8, 16, 24]);
+  assert.ok(corners.every((entry) => entry.tileLength === entry.tileDepth));
+  assert.ok(corners.every((entry) => entry.tileLength === CLASSIC_VISUAL_PROFILE.cornerTileSize));
+  assert.ok(regular.every((entry) => entry.tileDepth > entry.tileLength));
+});
+
 test("3D layout still fits a 40-tile future Classic board without overlap positions", () => {
   const layout = createSquareRingLayout(nodes(40));
   const positions = new Set(layout.map((entry) => `${entry.x.toFixed(4)}:${entry.z.toFixed(4)}`));
   assert.equal(layout.length, 40);
   assert.equal(positions.size, 40);
   assert.ok(layout.every((entry) => entry.tileLength >= 1.5));
+  assert.equal(layout.filter((entry) => entry.isCorner).length, 4);
 });
 
 test("Classic renderer keeps the fixed orthographic quarter-view camera", () => {
@@ -62,8 +75,9 @@ test("visual foundation defines a bright toy-city style and keeps 30+ tile inten
 });
 
 test("Classic board prioritizes large tile cards and surface-printed city names", () => {
-  assert.ok(CLASSIC_VISUAL_PROFILE.tileDepth >= 3);
-  assert.ok(CLASSIC_VISUAL_PROFILE.centerInsetSize <= 16);
+  assert.ok(CLASSIC_VISUAL_PROFILE.tileDepth >= 3.6);
+  assert.ok(CLASSIC_VISUAL_PROFILE.cornerTileSize >= CLASSIC_VISUAL_PROFILE.tileDepth);
+  assert.ok(CLASSIC_VISUAL_PROFILE.centerInsetSize <= 15);
   assert.equal(CLASSIC_VISUAL_PROFILE.labelPresentation, "surface");
 });
 
