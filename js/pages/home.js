@@ -1,7 +1,6 @@
 import { getAuthState } from "../auth.js";
 import {
   cancelEventParticipation,
-  getMyParticipationOverview,
   joinEvent,
   listEvents,
 } from "../api/activities.js";
@@ -87,14 +86,9 @@ export async function renderHome() {
   const auth = getAuthState();
   const today = seoulDateString();
   const dailyVersePromise = fetchDailyVerse(today).catch(() => null);
-  const [events, notices, participationOverview] = await Promise.all([
+  const [events, notices] = await Promise.all([
     listEvents({ fromDate: today, limit: 8 }),
     listPosts({ boardType: "notice", pageSize: 4 }),
-    getMyParticipationOverview({
-      upcomingLimit: 20,
-      historyLimit: 1,
-      historyOffset: 0,
-    }),
   ]);
 
   const root = pageContainer();
@@ -114,14 +108,6 @@ export async function renderHome() {
       heroActions,
     ]),
     dailyVerseCard,
-  ]);
-
-  const joinedUpcoming = participationOverview.upcoming ?? [];
-  const quick = el("section", { className: "quick-grid", "aria-label": "빠른 메뉴" }, [
-    quickCard("🙌", "내 참여", `${joinedUpcoming.length}개 예정`, "#/mypage"),
-    quickCard("🌿", "활동 찾기", `${events.length}개 모집`, "#/activities"),
-    quickCard("📣", "새 공지", `${notices.count}개 게시`, "#/notice"),
-    quickCard("🙏", "기도 제목", "서로를 위해 함께 기도해요", "#/prayer"),
   ]);
 
   const upcomingSection = el("section", { className: "page-stack", "aria-labelledby": "upcoming-title" }, [
@@ -148,7 +134,10 @@ export async function renderHome() {
   }
 
   const lowerGrid = el("section", { className: "content-grid content-grid--2" });
-  const noticeCard = el("div", { className: "card page-stack" }, [
+  const noticeCard = el("div", {
+    className: "card page-stack",
+    style: { alignContent: "start" },
+  }, [
     el("div", { className: "page-header" }, [
       el("h2", { className: "section-title", text: "📣 최근 공지" }),
       el("a", { href: "#/notice", className: "small", text: "더 보기 →" }),
@@ -164,27 +153,12 @@ export async function renderHome() {
       ]));
     });
   }
-  const myCard = el("div", { className: "card page-stack" }, [
-    el("div", { className: "page-header" }, [
-      el("h2", { className: "section-title", text: "🙌 내 다음 활동" }),
-      el("a", { href: "#/mypage", className: "small", text: "내 정보 →" }),
-    ]),
-  ]);
-  if (!joinedUpcoming.length) {
-    myCard.append(
-      el("p", { className: "subtle", text: "아직 예정된 참여 활동이 없어요." }),
-      el("a", { className: "button button--secondary", href: "#/activities", text: "함께할 활동 찾기" }),
-    );
-  } else {
-    joinedUpcoming.slice(0, 3).forEach((item) => {
-      myCard.append(el("a", { className: "post-row", href: `#/activities/${item.event.id}` }, [
-        el("strong", { text: item.event.title }),
-        el("span", { className: "small subtle", text: `${formatDate(item.event.event_date)} · ${item.status === "joined" ? "참여 확정" : "대기 중"}` }),
-      ]));
-    });
-  }
-  lowerGrid.append(noticeCard, myCard);
-  root.append(hero, quick, lowerGrid, upcomingSection);
+  const emptyCard = el("div", {
+    className: "card",
+    "aria-hidden": "true",
+  });
+  lowerGrid.append(noticeCard, emptyCard);
+  root.append(hero, lowerGrid, upcomingSection);
 
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
@@ -250,16 +224,6 @@ function dailyVerseIndex(dateKey) {
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) % DAILY_VERSES.length;
-}
-
-function quickCard(icon, title, detail, href) {
-  return el("a", { className: "quick-card", href }, [
-    el("span", { text: icon, "aria-hidden": "true" }),
-    el("span", {}, [
-      el("strong", { text: title }),
-      el("span", { className: "small subtle", text: detail, style: { display: "block" } }),
-    ]),
-  ]);
 }
 
 async function handleParticipation(root, event, action, button) {
