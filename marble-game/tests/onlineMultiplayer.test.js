@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { mapOnlineGameSnapshot, isOnlineViewerTurn } from "../js/onlineSession.js";
 import { createOnlineClassicPlayUrl, getOnlineRoomId } from "../js/onlinePlayRoute.js";
+
+globalThis.window = {};
+const { mapOnlineGameSnapshot, isOnlineViewerTurn } = await import("../js/onlineSession.js");
+delete globalThis.window;
 
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.meta.url), "utf8");
