@@ -8,7 +8,8 @@ import { createOnlineClassicPlayUrl, getOnlineRoomId } from "../js/onlinePlayRou
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
-const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
+const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
 
 function snapshot(overrides = {}) {
   return {
@@ -67,6 +68,9 @@ test("Phase 5B exposes host start and server-authoritative action RPCs", () => {
   assert.match(apiSource, /marble_build_property/);
   assert.match(apiSource, /marble_end_turn/);
   assert.match(apiSource, /table: "marble_games"/);
-  assert.match(appSource, /createOnlineClassicSession/);
-  assert.match(appSource, /getViewerPlayerId/);
+  assert.match(playWindowSource, /onlineGameController\.js/);
+  assert.match(controllerSource, /createOnlineClassicSession/);
+  assert.match(controllerSource, /getViewerPlayerId/);
+  assert.match(controllerSource, /viewerCanAct/);
+  assert.match(controllerSource, /createClassicTollNotice/);
 });
