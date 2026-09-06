@@ -147,11 +147,10 @@ function locationNamesFromUrl(locationUrl) {
   }
 }
 
-export function locationSearchCandidates(locationName, locationUrl = "") {
+function locationNameSearchCandidates(locationName) {
   const candidates = [];
   const exactName = normalizedText(locationName);
   appendUnique(candidates, exactName);
-  locationNamesFromUrl(locationUrl).forEach((candidate) => appendUnique(candidates, candidate));
 
   if (exactName) {
     const suffixPattern = new RegExp(`\\s+(${MERGEABLE_LOCATION_SUFFIXES.join("|")})$`);
@@ -159,6 +158,12 @@ export function locationSearchCandidates(locationName, locationUrl = "") {
     appendUnique(candidates, exactName.replace(/\s+/g, ""));
   }
 
+  return candidates;
+}
+
+export function locationSearchCandidates(locationName, locationUrl = "") {
+  const candidates = locationNameSearchCandidates(locationName);
+  locationNamesFromUrl(locationUrl).forEach((candidate) => appendUnique(candidates, candidate));
   return candidates.slice(0, 4);
 }
 
@@ -258,15 +263,22 @@ async function fetchFirstCandidateCoordinates(candidates) {
 }
 
 export function resolveLocationCoordinates(locationName, locationUrl = "") {
+  const nameCandidates = locationNameSearchCandidates(locationName);
+  const linkCandidates = locationNamesFromUrl(locationUrl)
+    .filter((candidate) => !nameCandidates.includes(candidate));
   const urlCoordinates = locationCoordinatesFromUrl(locationUrl);
-  if (urlCoordinates) return Promise.resolve(urlCoordinates);
+  const key = `${nameCandidates.join("|").toLocaleLowerCase("ko-KR")}|${linkCandidates.join("|").toLocaleLowerCase("ko-KR")}|${normalizedText(locationUrl)}`;
 
-  const candidates = locationSearchCandidates(locationName, locationUrl);
-  if (!candidates.length) return Promise.resolve(null);
-
-  const key = `${candidates.join("|").toLocaleLowerCase("ko-KR")}|${normalizedText(locationUrl)}`;
   if (!memoryCache.has(key)) {
-    memoryCache.set(key, fetchFirstCandidateCoordinates(candidates));
+    memoryCache.set(key, (async () => {
+      const nameCoordinates = await fetchFirstCandidateCoordinates(nameCandidates);
+      if (nameCoordinates) return nameCoordinates;
+
+      const linkCoordinates = await fetchFirstCandidateCoordinates(linkCandidates);
+      if (linkCoordinates) return linkCoordinates;
+
+      return urlCoordinates;
+    })());
   }
   return memoryCache.get(key);
 }
