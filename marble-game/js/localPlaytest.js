@@ -2,9 +2,11 @@ import { ACTION_TYPES, createAction } from "./core/actions.js";
 import { rollDice } from "./core/dice.js";
 import { createInitialGameState, reduceGameAction } from "./core/gameEngine.js";
 
-const DEFAULT_PLAYERS = Object.freeze([
+export const DEFAULT_PLAYERS = Object.freeze([
   Object.freeze({ id: "player-a", name: "플레이어 A" }),
   Object.freeze({ id: "player-b", name: "플레이어 B" }),
+  Object.freeze({ id: "player-c", name: "플레이어 C" }),
+  Object.freeze({ id: "player-d", name: "플레이어 D" }),
 ]);
 
 export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = Math.random } = {}) {

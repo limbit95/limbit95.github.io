@@ -19,66 +19,76 @@ body[data-play-mode="window"] .playtest-section {
 
 @media (min-width: 901px) {
   body[data-play-mode="window"] {
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
   body[data-play-mode="window"] .marble-shell {
-    width: min(1680px, calc(100% - 24px));
+    width: calc(100% - 8px);
+    max-width: none;
     min-height: 100vh;
-    padding: 12px 0;
+    padding: 4px 0;
   }
 
   body[data-play-mode="window"] .playtest-section {
-    min-height: calc(100vh - 24px);
-    padding: clamp(18px, 2vw, 28px);
+    position: relative;
+    min-height: calc(100vh - 8px);
+    padding: 0;
+    border: 0;
+    background: transparent;
   }
 
   body[data-play-mode="window"] .playtest-heading {
-    margin-bottom: 14px;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 30;
+    margin: 0;
+    pointer-events: none;
   }
 
-  body[data-play-mode="window"] .playtest-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
-    align-items: start;
-    gap: clamp(16px, 2vw, 28px);
+  body[data-play-mode="window"] .playtest-heading > div:first-child {
+    display: none;
   }
 
+  body[data-play-mode="window"] .playtest-heading__actions {
+    pointer-events: auto;
+  }
+
+  body[data-play-mode="window"] .playtest-layout,
   body[data-play-mode="window"] .board-panel {
-    display: grid;
+    display: block;
+    width: 100%;
+    height: calc(100vh - 8px);
     min-width: 0;
-    place-items: start center;
   }
 
   body[data-play-mode="window"] .three-prototype-shell {
-    width: min(100%, 1180px);
+    width: 100%;
+    height: 100%;
+    min-height: 720px;
+    border-radius: 16px;
   }
 
   body[data-play-mode="window"] .classic-three-stage {
-    height: min(86vh, 920px);
-    min-height: 640px;
-  }
-
-  body[data-play-mode="window"] .classic-board {
-    width: min(100%, 1080px, calc(100vh - 118px));
+    width: 100%;
+    height: 100%;
     min-height: 0;
   }
 
-  body[data-play-mode="window"] .playtest-sidebar {
-    position: sticky;
-    top: 14px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
-    padding-right: 2px;
+  body[data-play-mode="window"] .classic-three-canvas {
+    transform: scale(1.5);
   }
 
-  body[data-play-mode="window"] .event-log {
-    max-height: min(32vh, 320px);
+  body[data-play-mode="window"] .two-d-fallback,
+  body[data-play-mode="window"] .three-prototype-hud {
+    display: none;
   }
 }
 
 @media (max-width: 900px) {
   body[data-play-mode="window"] .marble-shell {
-    padding-top: 12px;
+    width: calc(100% - 16px);
+    padding-top: 8px;
   }
 
   body[data-play-mode="window"] .playtest-heading {

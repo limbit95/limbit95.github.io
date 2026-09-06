@@ -30,7 +30,7 @@
       <section class="theme-section" aria-labelledby="theme-list-title">
         <div class="section-heading">
           <div><p class="eyebrow">CHOOSE A WORLD</p><h2 id="theme-list-title">테마 선택</h2></div>
-          <span class="phase-chip">PHASE 4 · VISUAL FOUNDATION</span>
+          <span class="phase-chip">PHASE 4 · GAMEPLAY HUD</span>
         </div>
         <div class="theme-grid" data-theme-grid></div>
       </section>
@@ -51,7 +51,7 @@
 
       <section class="playtest-section" data-playtest-section hidden aria-labelledby="playtest-title">
         <div class="section-heading playtest-heading">
-          <div><p class="eyebrow">CLASSIC TOY-CITY 2.5D FOUNDATION</p><h2 id="playtest-title">미니어처 도시 플레이 테스트</h2></div>
+          <div><p class="eyebrow">CLASSIC · 4 PLAYER HUD FOUNDATION</p><h2 id="playtest-title">Classic 게임 플레이</h2></div>
           <div class="playtest-heading__actions">
             <button class="ghost-button" type="button" data-exit-play hidden>플레이 종료</button>
             <button class="ghost-button" type="button" data-reset-playtest>새 게임</button>
@@ -62,9 +62,33 @@
           <div class="board-panel">
             <div class="three-prototype-shell">
               <div class="classic-three-stage" data-three-stage aria-label="Classic 고정 쿼터뷰 2.5D 장난감 도시 테스트 보드"></div>
+              <div class="dice-three-stage" data-dice-stage aria-hidden="true"></div>
+
+              <div class="player-list player-hud-layer" data-player-list aria-label="플레이어 정보"></div>
+
+              <div class="game-status-hud" aria-live="polite">
+                <strong data-turn-label>플레이어 A · 1턴</strong>
+                <p data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+              </div>
+
+              <div class="important-notice" data-important-notice hidden role="status" aria-live="assertive"></div>
+
+              <div class="board-action-dock">
+                <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
+                <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
+                <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
+              </div>
+
+              <details class="game-history">
+                <summary>기록</summary>
+                <div class="game-history__panel">
+                  <div class="game-history__heading"><strong>최근 흐름</strong><span>최근 10개</span></div>
+                  <ol class="event-log" data-event-log></ol>
+                </div>
+              </details>
+
               <div class="three-prototype-hud">
-                <span class="prototype-badge">32 TILES · TOY CITY 2.5D</span>
-                <p>타일 클릭 또는 도착 시 상세 정보</p>
+                <span class="prototype-badge">32 TILES · CLASSIC 2.5D</span>
                 <p data-three-status hidden>3D 엔진 준비 중</p>
               </div>
             </div>
@@ -74,31 +98,17 @@
               <p>2.5D 표현과 실제 엔진 상태가 같은지 비교할 수 있는 보조 화면입니다.</p>
               <div class="classic-board" data-classic-board aria-label="Classic 2D 상태 보드">
                 <div class="board-center">
-                  <p class="eyebrow">CURRENT TURN</p>
-                  <strong data-turn-label>플레이어 A</strong>
-                  <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
-                  <p class="game-message" data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+                  <p class="eyebrow">ENGINE STATE</p>
+                  <strong>Classic 32 Tiles</strong>
+                  <p>동일한 엔진 상태를 2D로 확인하는 보조 화면입니다.</p>
                 </div>
               </div>
             </details>
           </div>
-
-          <aside class="playtest-sidebar">
-            <div class="player-list" data-player-list></div>
-            <div class="action-panel">
-              <p class="panel-label">ACTION</p>
-              <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
-              <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
-            </div>
-            <div class="event-panel">
-              <div class="event-panel__heading"><p class="panel-label">GAME LOG</p><span>최근 기록</span></div>
-              <ol class="event-log" data-event-log></ol>
-            </div>
-          </aside>
         </div>
       </section>
 
-      <dialog class="tile-info-modal" data-tile-info-modal aria-labelledby="tile-info-title">
+      <dialog class="tile-info-modal" data-tile-info-modal data-mode="inspect" aria-labelledby="tile-info-title">
         <div class="tile-info-modal__topline">
           <span class="tile-info-modal__type" data-tile-info-type>도시</span>
           <button class="tile-info-modal__close" type="button" data-tile-info-close aria-label="타일 정보 닫기">×</button>
@@ -110,10 +120,14 @@
           <span>효과</span>
           <p data-tile-info-effect></p>
         </div>
-        <button class="primary-button tile-info-modal__confirm" type="button" data-tile-info-confirm>확인</button>
+        <div class="tile-info-modal__actions">
+          <button class="secondary-button" type="button" data-tile-info-decline hidden>건너뛰기</button>
+          <button class="primary-button" type="button" data-tile-info-action hidden>구매하기</button>
+          <button class="primary-button tile-info-modal__confirm" type="button" data-tile-info-confirm>확인</button>
+        </div>
       </dialog>
 
-      <footer class="marble-footer"><p>Phase 4에서는 32칸 Classic 보드를 미니어처 도시처럼 보이게 만들고, 타일 표면 도시명·랜드마크·캐릭터 말·단계별 건물 표현을 정식 2.5D 비주얼 기반으로 다듬습니다.</p></footer>
+      <footer class="marble-footer"><p>Classic은 2~4인 기본 플레이를 기준으로 보드 자체를 화면의 중심에 두고, 플레이어 HUD·3D 주사위·상황별 모달을 게임 화면 안에 통합합니다.</p></footer>
     </main>
 
     <script type="module" src="./js/app.js"></script>
