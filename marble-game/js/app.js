@@ -4,6 +4,7 @@ import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
+import { formatThemeMoney } from "./themes/money.js";
 import { listThemes, requireTheme } from "./themes/themeRegistry.js";
 
 const themeGrid = document.querySelector("[data-theme-grid]");
@@ -44,6 +45,10 @@ let threeRenderer = null;
 let threeRendererReady = false;
 let threeRendererInit = null;
 let interactionLocked = false;
+
+function money(value, options = {}) {
+  return formatThemeMoney(value, CLASSIC_RULES.currency, options);
+}
 
 function statusLabel(theme) {
   if (theme.status === "core") return "3D PROTOTYPE";
@@ -127,14 +132,14 @@ function playerName(player) {
 function propertyMeta(state, node) {
   if (node.type !== "PROPERTY") return "";
   const propertyState = state.boardState.properties[node.id];
-  if (!propertyState.ownerId) return `M ${node.price}`;
+  if (!propertyState.ownerId) return money(node.price);
   const owner = state.players.find((player) => player.id === propertyState.ownerId);
   return `${playerName(owner)} · 건물 ${propertyState.buildingLevel}`;
 }
 
 function tileMeta(node) {
-  if (node.type === "BONUS") return `+ M ${node.amount}`;
-  if (node.type === "TAX") return `- M ${node.amount}`;
+  if (node.type === "BONUS") return money(node.amount, { signed: true });
+  if (node.type === "TAX") return money(-node.amount, { signed: true });
   if (node.type === "REST") return `${node.skipTurns}턴 휴식`;
   if (node.type === "EVENT") return "이벤트";
   if (node.type === "START") return "출발";
@@ -149,7 +154,7 @@ function closeTileInfo() {
 
 function openTileInfo(state, nodeId) {
   if (!tileInfoModal) return;
-  const info = createClassicTileInfo(state, nodeId, { startSalary: CLASSIC_RULES.startSalary });
+  const info = createClassicTileInfo(state, nodeId);
   if (!info) return;
 
   tileInfoType.textContent = info.typeLabel;
@@ -241,7 +246,7 @@ function renderPlayers(state) {
         <strong>${playerName(player)}</strong>
       </div>
       <dl>
-        <div><dt>자금</dt><dd>M ${player.money}</dd></div>
+        <div><dt>자금</dt><dd>${money(player.money)}</dd></div>
         <div><dt>현재 위치</dt><dd>${location}</dd></div>
         <div><dt>소유 도시</dt><dd>${properties}</dd></div>
       </dl>
@@ -259,12 +264,12 @@ function eventText(state, event) {
   switch (event.type) {
     case "GAME_STARTED": return "게임을 시작했습니다.";
     case "DICE_ROLLED": return `${playerLabel} · 주사위 ${event.dice.join(" + ")} = ${event.total}`;
-    case "START_PASSED": return `${playerLabel} · 출발 통과 보너스 M ${event.amount}`;
+    case "START_PASSED": return `${playerLabel} · 출발 통과 보너스 ${money(event.amount)}`;
     case "PLAYER_MOVED": return `${playerLabel} · ${findNode(state, event.fromNodeId)?.label ?? event.fromNodeId} → ${findNode(state, event.toNodeId)?.label ?? event.toNodeId}`;
-    case "PROPERTY_BOUGHT": return `${playerLabel} · ${node?.label ?? event.nodeId} 구매 M ${event.amount}`;
+    case "PROPERTY_BOUGHT": return `${playerLabel} · ${node?.label ?? event.nodeId} 구매 ${money(event.amount)}`;
     case "PROPERTY_BUILT": return `${playerLabel} · ${node?.label ?? event.nodeId} 건물 ${event.buildingLevel}단계`;
-    case "MONEY_PAID": return `${playerLabel} · ${event.reason === "TOLL" ? "통행료" : "지출"} M ${event.amount}`;
-    case "MONEY_RECEIVED": return `${playerLabel} · 보너스 M ${event.amount}`;
+    case "MONEY_PAID": return `${playerLabel} · ${event.reason === "TOLL" ? "통행료" : "지출"} ${money(event.amount)}`;
+    case "MONEY_RECEIVED": return `${playerLabel} · 보너스 ${money(event.amount)}`;
     case "EVENT_DRAWN": return `${playerLabel} · ${event.label}`;
     case "REST_ASSIGNED": return `${playerLabel} · 다음 ${event.skipTurns}턴 휴식`;
     case "TURN_SKIPPED": return `${playerLabel} · 휴식으로 턴 건너뜀`;
@@ -331,12 +336,12 @@ function renderActionControls(state) {
   if (state.phase === TURN_PHASES.WAITING_CHOICE) {
     const node = findNode(state, state.pendingChoice?.nodeId);
     if (state.pendingChoice?.type === "BUY_PROPERTY") {
-      gameMessage.textContent = `${node?.label ?? "도시"}을(를) M ${state.pendingChoice.price}에 구매할까요?`;
-      primaryActionButton.textContent = `구매하기 · M ${state.pendingChoice.price}`;
+      gameMessage.textContent = `${node?.label ?? "도시"}을(를) ${money(state.pendingChoice.price)}에 구매할까요?`;
+      primaryActionButton.textContent = `구매하기 · ${money(state.pendingChoice.price)}`;
       primaryActionButton.dataset.action = "buy";
     } else if (state.pendingChoice?.type === "BUILD_PROPERTY") {
-      gameMessage.textContent = `${node?.label ?? "도시"}에 건물을 M ${state.pendingChoice.cost}로 올릴까요?`;
-      primaryActionButton.textContent = `건설하기 · M ${state.pendingChoice.cost}`;
+      gameMessage.textContent = `${node?.label ?? "도시"}에 건물을 ${money(state.pendingChoice.cost)}로 올릴까요?`;
+      primaryActionButton.textContent = `건설하기 · ${money(state.pendingChoice.cost)}`;
       primaryActionButton.dataset.action = "build";
     }
     secondaryActionButton.hidden = false;
