@@ -40,6 +40,17 @@ body[data-play-mode="window"] .playtest-section {
   scroll-margin-top: 0;
 }
 
+body[data-play-mode="window"] .dice-three-stage {
+  position: absolute;
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: none;
+  pointer-events: none;
+}
+
 @media (min-width: 901px) {
   body[data-play-mode="window"] {
     overflow: hidden;
@@ -87,12 +98,6 @@ body[data-play-mode="window"] .playtest-section {
 
   body[data-play-mode="window"] .classic-three-canvas {
     transform: scale(1.5);
-  }
-
-  body[data-play-mode="window"] .dice-three-stage {
-    width: min(680px, 54vw);
-    height: min(520px, 44vw);
-    transform: translate(-50%, -54%);
   }
 
   body[data-play-mode="window"] .two-d-fallback,
