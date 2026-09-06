@@ -1,0 +1,41 @@
+.three-prototype-shell {
+  background:
+    radial-gradient(circle at 50% 34%, rgba(74, 105, 128, 0.18), transparent 48%),
+    #27445b;
+  box-shadow:
+    inset 0 0 54px rgba(20, 38, 52, 0.18),
+    0 20px 50px rgba(0, 0, 0, 0.16);
+}
+
+.classic-three-stage {
+  overflow: hidden;
+}
+
+.classic-three-canvas {
+  cursor: pointer;
+  transform: scale(1.1);
+  transform-origin: 50% 50%;
+  filter: brightness(0.91) saturate(0.86) contrast(0.98);
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.classic-three-canvas:active {
+  cursor: pointer;
+}
+
+.three-prototype-hud p,
+.prototype-badge {
+  background: rgba(20, 34, 47, 0.76);
+}
+
+@media (max-width: 760px) {
+  .classic-three-canvas {
+    transform: scale(1.07);
+  }
+}
+
+@media (max-width: 480px) {
+  .classic-three-canvas {
+    transform: scale(1.04);
+  }
+}
