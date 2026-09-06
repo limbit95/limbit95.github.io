@@ -61,6 +61,13 @@ test("visual foundation defines a bright toy-city style and keeps 30+ tile inten
   assert.ok(CLASSIC_VISUAL_PROFILE.palette.boardBase > 0);
 });
 
+test("Classic board gives tile cards more depth and limits unused center space", () => {
+  assert.ok(CLASSIC_VISUAL_PROFILE.tileDepth >= 3);
+  assert.ok(CLASSIC_VISUAL_PROFILE.centerInsetSize <= 16);
+  assert.ok(CLASSIC_VISUAL_PROFILE.labelScale[0] >= 3);
+  assert.ok(CLASSIC_VISUAL_PROFILE.labelScale[1] >= 1.2);
+});
+
 test("Classic property visuals vary by region and landmark archetype", () => {
   const tokyo = getClassicTileVisual({ id: "tokyo", type: "PROPERTY" }, 1);
   const paris = getClassicTileVisual({ id: "paris", type: "PROPERTY" }, 11);
