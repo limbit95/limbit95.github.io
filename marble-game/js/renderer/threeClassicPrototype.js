@@ -14,7 +14,7 @@ export const CLASSIC_VISUAL_PROFILE = Object.freeze({
   style: "bright-toy-city",
   boardMinimumTiles: 30,
   tileDepth: 3.2,
-  labelScale: Object.freeze([3.15, 1.22]),
+  labelPresentation: "surface",
   centerInsetSize: 15.4,
   palette: Object.freeze({
     sky: 0xbfe9ff,
@@ -179,40 +179,24 @@ export function getClassicTileVisual(node, index = 0) {
   });
 }
 
-function createLabelTexture(THREE, node, visual) {
+function createLabelTexture(THREE, node) {
   const canvas = document.createElement("canvas");
   canvas.width = 768;
-  canvas.height = 272;
+  canvas.height = 256;
   const context = canvas.getContext("2d");
   context.clearRect(0, 0, canvas.width, canvas.height);
 
-  context.shadowColor = "rgba(20, 52, 82, 0.18)";
-  context.shadowBlur = 18;
-  context.shadowOffsetY = 8;
-  context.fillStyle = "rgba(255, 255, 255, 0.97)";
-  context.beginPath();
-  context.roundRect(14, 14, 740, 244, 38);
-  context.fill();
-
-  context.shadowColor = "transparent";
-  context.fillStyle = `#${visual.color.toString(16).padStart(6, "0")}`;
-  context.beginPath();
-  context.roundRect(34, 32, 700, 32, 16);
-  context.fill();
-
-  context.fillStyle = "#17324d";
-  context.font = '900 68px system-ui, "Noto Sans KR", sans-serif';
-  context.textAlign = "center";
-  context.textBaseline = "middle";
   const label = String(node.label ?? node.id);
   const display = label.length > 12 ? `${label.slice(0, 11)}…` : label;
-  context.fillText(display, 384, 142, 680);
+  const fontSize = display.length >= 8 ? 56 : 68;
 
-  if (node.type === "PROPERTY" && Number.isFinite(node.price)) {
-    context.fillStyle = "#536a80";
-    context.font = '800 38px system-ui, "Noto Sans KR", sans-serif';
-    context.fillText(`M ${node.price}`, 384, 210, 620);
-  }
+  context.fillStyle = "#17324d";
+  context.font = `900 ${fontSize}px system-ui, "Noto Sans KR", sans-serif`;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.shadowColor = "rgba(255, 255, 255, 0.85)";
+  context.shadowBlur = 8;
+  context.fillText(display, 384, 128, 700);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -823,16 +807,21 @@ export function createClassicThreePrototypeRenderer({
       tileRoot.add(buildingRoot);
       buildingRoots.set(node.id, buildingRoot);
 
-      const labelTexture = createLabelTexture(THREE, node, visual);
-      const label = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: labelTexture,
-        transparent: true,
-        depthTest: false,
-      }));
-      const [labelWidth, labelHeight] = CLASSIC_VISUAL_PROFILE.labelScale;
-      label.scale.set(Math.min(labelWidth, entry.tileLength * 1.55), labelHeight, 1);
-      label.position.set(0, 2.32, depth * 0.16);
+      const labelTexture = createLabelTexture(THREE, node);
+      const label = new THREE.Mesh(
+        new THREE.PlaneGeometry(entry.tileLength * 0.9, Math.min(1.0, depth * 0.3)),
+        new THREE.MeshBasicMaterial({
+          map: labelTexture,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      label.position.set(0, 0.43, depth * 0.31);
+      label.rotation.x = -Math.PI / 2;
       label.renderOrder = 6;
+      label.castShadow = false;
+      label.receiveShadow = false;
       tileRoot.add(label);
     }
 
