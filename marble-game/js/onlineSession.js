@@ -85,11 +85,10 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
 
   async function refresh({ notify = true } = {}) {
     if (disposed) return state;
-    if (actionInFlight) {
+    if (actionInFlight || refreshing) {
       pendingRefresh = true;
       return state;
     }
-    if (refreshing) return state;
     refreshing = true;
     try {
       const nextSnapshot = await getOnlineGameSnapshot(roomId);
@@ -101,6 +100,10 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
       return nextState;
     } finally {
       refreshing = false;
+      if (pendingRefresh && !actionInFlight && !disposed) {
+        pendingRefresh = false;
+        void refresh({ notify });
+      }
     }
   }
 
