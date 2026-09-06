@@ -37,8 +37,12 @@ export function createDiceChargeControl({ button, dock, gauge, gaugeFill, gaugeV
   }
 
   function syncMode() {
+    const action = button.dataset.action;
     const rollReady = isRollReady();
+    const centered = !button.hidden && (action === "roll" || action === "endTurn");
     dock.dataset.rollReady = String(rollReady);
+    dock.dataset.centered = String(centered);
+    diceStageElement.dataset.ready = String(rollReady);
     gauge.hidden = !rollReady;
     if (!rollReady && charging) cancelCharge();
   }

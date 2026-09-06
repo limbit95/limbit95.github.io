@@ -1,8 +1,31 @@
 .playtest-heading__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+  display: none;
+}
+
+.board-action-dock .dice-summary {
+  display: none;
+}
+
+.board-action-dock[data-centered="true"] {
+  top: 50%;
+  bottom: auto;
+  min-width: min(290px, calc(100vw - 36px));
+  transform: translate(-50%, 74px);
+}
+
+.board-action-dock[data-centered="true"] .action-button[data-action="endTurn"] {
+  min-width: 230px;
+  min-height: 58px;
+  border: 1px solid rgba(181, 225, 255, 0.42);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #5fb6ef, #698ce9);
+  color: #f7fbff;
+  font-size: 1rem;
+  font-weight: 950;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 10px 26px rgba(13, 39, 68, 0.25),
+    0 0 0 4px rgba(95, 182, 239, 0.12);
 }
 
 body[data-play-mode="window"] .marble-header,
@@ -38,20 +61,7 @@ body[data-play-mode="window"] .playtest-section {
   }
 
   body[data-play-mode="window"] .playtest-heading {
-    position: absolute;
-    top: 92px;
-    right: 12px;
-    z-index: 30;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  body[data-play-mode="window"] .playtest-heading > div:first-child {
     display: none;
-  }
-
-  body[data-play-mode="window"] .playtest-heading__actions {
-    pointer-events: auto;
   }
 
   body[data-play-mode="window"] .playtest-layout,
@@ -79,6 +89,12 @@ body[data-play-mode="window"] .playtest-section {
     transform: scale(1.5);
   }
 
+  body[data-play-mode="window"] .dice-three-stage {
+    width: min(680px, 54vw);
+    height: min(520px, 44vw);
+    transform: translate(-50%, -54%);
+  }
+
   body[data-play-mode="window"] .two-d-fallback,
   body[data-play-mode="window"] .three-prototype-hud {
     display: none;
@@ -91,11 +107,7 @@ body[data-play-mode="window"] .playtest-section {
     padding-top: 8px;
   }
 
-  body[data-play-mode="window"] .playtest-heading {
-    align-items: stretch;
-  }
-
-  body[data-play-mode="window"] .playtest-heading__actions {
-    justify-content: flex-start;
+  .board-action-dock[data-centered="true"] {
+    transform: translate(-50%, 52px);
   }
 }
