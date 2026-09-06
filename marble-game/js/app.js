@@ -1,5 +1,6 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
+import { createThreeDiceStage } from "./diceStage.js";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -22,6 +23,7 @@ const boardElement = document.querySelector("[data-classic-board]");
 const boardCenter = boardElement.querySelector(".board-center");
 const threeStageElement = document.querySelector("[data-three-stage]");
 const threeStatus = document.querySelector("[data-three-status]");
+const diceStageElement = document.querySelector("[data-dice-stage]");
 const playerList = document.querySelector("[data-player-list]");
 const turnLabel = document.querySelector("[data-turn-label]");
 const diceSummary = document.querySelector("[data-dice-summary]");
@@ -29,6 +31,7 @@ const gameMessage = document.querySelector("[data-game-message]");
 const primaryActionButton = document.querySelector("[data-primary-action]");
 const secondaryActionButton = document.querySelector("[data-secondary-action]");
 const eventLog = document.querySelector("[data-event-log]");
+const importantNotice = document.querySelector("[data-important-notice]");
 const tileInfoModal = document.querySelector("[data-tile-info-modal]");
 const tileInfoType = document.querySelector("[data-tile-info-type]");
 const tileInfoTitle = document.querySelector("[data-tile-info-title]");
@@ -37,6 +40,8 @@ const tileInfoStats = document.querySelector("[data-tile-info-stats]");
 const tileInfoEffect = document.querySelector("[data-tile-info-effect]");
 const tileInfoCloseButton = document.querySelector("[data-tile-info-close]");
 const tileInfoConfirmButton = document.querySelector("[data-tile-info-confirm]");
+const tileInfoDeclineButton = document.querySelector("[data-tile-info-decline]");
+const tileInfoActionButton = document.querySelector("[data-tile-info-action]");
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -44,7 +49,12 @@ let eventHistory = [];
 let threeRenderer = null;
 let threeRendererReady = false;
 let threeRendererInit = null;
+let diceStage = null;
+let diceStageReady = false;
+let diceStageInit = null;
 let interactionLocked = false;
+let tileInfoChoiceAction = null;
+let importantNoticeTimer = null;
 
 function money(value, options = {}) {
   return formatThemeMoney(value, CLASSIC_RULES.currency, options);
@@ -92,10 +102,10 @@ function renderSelectedTheme() {
   }));
 
   if (theme.id === "classic" && theme.playable) {
-    foundationNote.textContent = "Classic 핵심 규칙과 32칸 보드를 같은 엔진 상태로 2.5D 보드에 연결했습니다.";
+    foundationNote.textContent = "Classic은 2~4인 HUD와 중앙 3D 주사위, 상황별 모달을 보드 화면 안에 통합하는 단계입니다.";
     startPlaytestButton.disabled = false;
     startPlaytestButton.textContent = "Classic 2.5D 테스트 플레이 시작";
-    playtestEntryNote.textContent = "도시명은 타일 표면에서 읽고, 가격·통행료·효과는 타일 선택 또는 도착 시 상세 정보로 확인합니다.";
+    playtestEntryNote.textContent = "보드를 화면 중심에 크게 배치하고 플레이어 정보와 게임 액션을 보드 위 HUD로 확인합니다.";
   } else {
     foundationNote.textContent = "테마 구조는 등록되어 있으며 Classic 2.5D 기반을 검증한 뒤 차례대로 구현합니다.";
     startPlaytestButton.disabled = true;
@@ -129,6 +139,10 @@ function playerName(player) {
   return player.name || player.id;
 }
 
+function playerMarker(player) {
+  return `P${(Number(player.seat) || 0) + 1}`;
+}
+
 function propertyMeta(state, node) {
   if (node.type !== "PROPERTY") return "";
   const propertyState = state.boardState.properties[node.id];
@@ -146,13 +160,49 @@ function tileMeta(node) {
   return "";
 }
 
-function closeTileInfo() {
-  if (!tileInfoModal) return;
-  if (typeof tileInfoModal.close === "function" && tileInfoModal.open) tileInfoModal.close();
-  else tileInfoModal.removeAttribute("open");
+function resetTileInfoActions() {
+  tileInfoChoiceAction = null;
+  tileInfoModal.dataset.mode = "inspect";
+  tileInfoConfirmButton.hidden = false;
+  tileInfoDeclineButton.hidden = true;
+  tileInfoActionButton.hidden = true;
+  tileInfoActionButton.dataset.action = "";
 }
 
-function openTileInfo(state, nodeId) {
+function closeTileInfo({ force = false } = {}) {
+  if (!tileInfoModal) return;
+  if (!force && tileInfoModal.dataset.mode === "choice") return;
+  if (typeof tileInfoModal.close === "function" && tileInfoModal.open) tileInfoModal.close();
+  else tileInfoModal.removeAttribute("open");
+  resetTileInfoActions();
+}
+
+function configureTileInfoChoice(state, nodeId, source) {
+  resetTileInfoActions();
+  if (source !== "landing") return;
+  if (state.phase !== TURN_PHASES.WAITING_CHOICE) return;
+  if (state.pendingChoice?.nodeId !== nodeId) return;
+
+  const pendingChoice = state.pendingChoice;
+  tileInfoModal.dataset.mode = "choice";
+  tileInfoConfirmButton.hidden = true;
+  tileInfoDeclineButton.hidden = false;
+  tileInfoActionButton.hidden = false;
+
+  if (pendingChoice.type === "BUY_PROPERTY") {
+    tileInfoChoiceAction = "buy";
+    tileInfoActionButton.dataset.action = "buy";
+    tileInfoActionButton.textContent = `구매하기 · ${money(pendingChoice.price)}`;
+  } else if (pendingChoice.type === "BUILD_PROPERTY") {
+    tileInfoChoiceAction = "build";
+    tileInfoActionButton.dataset.action = "build";
+    tileInfoActionButton.textContent = `건설하기 · ${money(pendingChoice.cost)}`;
+  } else {
+    resetTileInfoActions();
+  }
+}
+
+function openTileInfo(state, nodeId, { source = "inspect" } = {}) {
   if (!tileInfoModal) return;
   const info = createClassicTileInfo(state, nodeId);
   if (!info) return;
@@ -170,6 +220,8 @@ function openTileInfo(state, nodeId) {
     row.append(term, description);
     return row;
   }));
+
+  configureTileInfoChoice(state, nodeId, source);
 
   if (tileInfoModal.open) return;
   if (typeof tileInfoModal.showModal === "function") tileInfoModal.showModal();
@@ -220,7 +272,7 @@ function renderBoard(state) {
       const token = document.createElement("span");
       token.className = "player-token";
       token.dataset.seat = String(player.seat);
-      token.textContent = player.seat === 0 ? "A" : "B";
+      token.textContent = playerMarker(player);
       token.title = playerName(player);
       tokens.append(token);
     });
@@ -231,24 +283,32 @@ function renderBoard(state) {
 }
 
 function renderPlayers(state) {
-  playerList.replaceChildren(...state.players.map((player, index) => {
+  playerList.replaceChildren(...state.players.slice(0, 4).map((player, index) => {
     const card = document.createElement("article");
-    card.className = "player-card";
+    card.className = "player-card player-hud-card";
     card.dataset.seat = String(player.seat);
     if (state.currentPlayerIndex === index && state.status === GAME_STATUS.PLAYING) card.dataset.current = "true";
     if (player.bankrupt) card.dataset.bankrupt = "true";
 
-    const properties = Object.values(state.boardState.properties).filter((propertyState) => propertyState.ownerId === player.id).length;
-    const location = findNode(state, player.positionNodeId)?.label ?? "-";
+    const properties = Object.values(state.boardState.properties)
+      .filter((propertyState) => propertyState.ownerId === player.id).length;
+    const stateLabel = player.bankrupt
+      ? "파산"
+      : state.currentPlayerIndex === index && state.status === GAME_STATUS.PLAYING
+        ? "현재 차례"
+        : "대기";
+
     card.innerHTML = `
       <div class="player-card__title">
-        <span class="player-token" data-seat="${player.seat}">${player.seat === 0 ? "A" : "B"}</span>
-        <strong>${playerName(player)}</strong>
+        <span class="player-token" data-seat="${player.seat}">${playerMarker(player)}</span>
+        <div>
+          <strong>${playerName(player)}</strong>
+          <span class="player-card__state">${stateLabel}</span>
+        </div>
       </div>
       <dl>
-        <div><dt>자금</dt><dd>${money(player.money)}</dd></div>
-        <div><dt>현재 위치</dt><dd>${location}</dd></div>
-        <div><dt>소유 도시</dt><dd>${properties}</dd></div>
+        <div><dt>보유 골드</dt><dd>${money(player.money)}</dd></div>
+        <div><dt>소유 도시</dt><dd>${properties}곳</dd></div>
       </dl>
       ${player.bankrupt ? '<span class="bankrupt-label">파산</span>' : ""}
     `;
@@ -262,18 +322,18 @@ function eventText(state, event) {
   const node = event.nodeId ? findNode(state, event.nodeId) : null;
 
   switch (event.type) {
-    case "GAME_STARTED": return "게임을 시작했습니다.";
-    case "DICE_ROLLED": return `${playerLabel} · 주사위 ${event.dice.join(" + ")} = ${event.total}`;
-    case "START_PASSED": return `${playerLabel} · 출발 통과 보너스 ${money(event.amount)}`;
-    case "PLAYER_MOVED": return `${playerLabel} · ${findNode(state, event.fromNodeId)?.label ?? event.fromNodeId} → ${findNode(state, event.toNodeId)?.label ?? event.toNodeId}`;
+    case "GAME_STARTED": return "게임 시작";
+    case "DICE_ROLLED": return `${playerLabel} · ${event.dice.join(" + ")} = ${event.total}`;
+    case "START_PASSED": return `${playerLabel} · 출발 보너스 ${money(event.amount)}`;
+    case "PLAYER_MOVED": return `${playerLabel} · ${findNode(state, event.toNodeId)?.label ?? event.toNodeId} 이동`;
     case "PROPERTY_BOUGHT": return `${playerLabel} · ${node?.label ?? event.nodeId} 구매 ${money(event.amount)}`;
     case "PROPERTY_BUILT": return `${playerLabel} · ${node?.label ?? event.nodeId} 건물 ${event.buildingLevel}단계`;
     case "MONEY_PAID": return `${playerLabel} · ${event.reason === "TOLL" ? "통행료" : "지출"} ${money(event.amount)}`;
-    case "MONEY_RECEIVED": return `${playerLabel} · 보너스 ${money(event.amount)}`;
+    case "MONEY_RECEIVED": return `${playerLabel} · ${money(event.amount)} 획득`;
     case "EVENT_DRAWN": return `${playerLabel} · ${event.label}`;
-    case "REST_ASSIGNED": return `${playerLabel} · 다음 ${event.skipTurns}턴 휴식`;
+    case "REST_ASSIGNED": return `${playerLabel} · ${event.skipTurns}턴 휴식`;
     case "TURN_SKIPPED": return `${playerLabel} · 휴식으로 턴 건너뜀`;
-    case "CHOICE_DECLINED": return `${playerLabel} · 선택을 건너뜀`;
+    case "CHOICE_DECLINED": return `${playerLabel} · 선택 건너뜀`;
     case "PLAYER_BANKRUPT": return `${playerLabel} · 파산`;
     case "GAME_FINISHED": {
       const winner = state.players.find((candidate) => candidate.id === event.winnerPlayerId);
@@ -288,7 +348,7 @@ function appendEvents(state) {
   state.lastEvents.forEach((event) => {
     eventHistory.push(eventText(state, event));
   });
-  eventHistory = eventHistory.slice(-18);
+  eventHistory = eventHistory.slice(-10);
 }
 
 function renderEventLog() {
@@ -310,56 +370,46 @@ function renderActionControls(state) {
   secondaryActionButton.hidden = true;
   primaryActionButton.disabled = interactionLocked;
   primaryActionButton.dataset.action = "";
-  secondaryActionButton.dataset.action = "";
 
   if (state.status === GAME_STATUS.FINISHED) {
     const winner = state.players.find((player) => player.id === state.winnerPlayerId);
     turnLabel.textContent = winner ? `${playerName(winner)} 승리` : "게임 종료";
     gameMessage.textContent = winner ? `${playerName(winner)}이(가) 마지막까지 생존했습니다.` : "게임이 종료되었습니다.";
+    diceSummary.textContent = "게임 종료";
     primaryActionButton.textContent = "게임 종료";
     primaryActionButton.disabled = true;
     return;
   }
 
   turnLabel.textContent = current ? `${playerName(current)} · ${state.turn}턴` : "-";
-  diceSummary.textContent = state.lastRoll
-    ? `🎲 ${state.lastRoll.dice[0]} + ${state.lastRoll.dice[1]} = ${state.lastRoll.total}`
-    : "주사위를 굴려주세요";
+  const rolling = interactionLocked && state.lastEvents.some((event) => event.type === "DICE_ROLLED");
+  diceSummary.textContent = rolling
+    ? "주사위가 굴러가는 중…"
+    : state.lastRoll
+      ? `🎲 ${state.lastRoll.dice[0]} + ${state.lastRoll.dice[1]} = ${state.lastRoll.total}`
+      : "주사위를 굴려주세요";
 
   if (state.phase === TURN_PHASES.WAITING_ROLL) {
-    gameMessage.textContent = interactionLocked ? "2.5D 이동을 재생하고 있습니다." : `${playerName(current)}의 차례입니다.`;
+    gameMessage.textContent = interactionLocked ? "연출을 재생하고 있습니다." : `${playerName(current)}의 차례입니다.`;
     primaryActionButton.textContent = "주사위 굴리기";
     primaryActionButton.dataset.action = "roll";
     return;
   }
 
   if (state.phase === TURN_PHASES.WAITING_CHOICE) {
-    const node = findNode(state, state.pendingChoice?.nodeId);
-    if (state.pendingChoice?.type === "BUY_PROPERTY") {
-      gameMessage.textContent = `${node?.label ?? "도시"}을(를) ${money(state.pendingChoice.price)}에 구매할까요?`;
-      primaryActionButton.textContent = `구매하기 · ${money(state.pendingChoice.price)}`;
-      primaryActionButton.dataset.action = "buy";
-    } else if (state.pendingChoice?.type === "BUILD_PROPERTY") {
-      gameMessage.textContent = `${node?.label ?? "도시"}에 건물을 ${money(state.pendingChoice.cost)}로 올릴까요?`;
-      primaryActionButton.textContent = `건설하기 · ${money(state.pendingChoice.cost)}`;
-      primaryActionButton.dataset.action = "build";
-    }
-    secondaryActionButton.hidden = false;
-    secondaryActionButton.disabled = interactionLocked;
-    secondaryActionButton.textContent = "건너뛰기";
-    secondaryActionButton.dataset.action = "endTurn";
+    gameMessage.textContent = `${playerName(current)}의 선택을 기다리고 있습니다.`;
+    primaryActionButton.hidden = true;
     return;
   }
 
   if (state.phase === TURN_PHASES.TURN_END) {
-    gameMessage.textContent = interactionLocked ? "2.5D 이동을 재생하고 있습니다." : "이번 턴 처리가 끝났습니다.";
+    gameMessage.textContent = interactionLocked ? "연출을 재생하고 있습니다." : "이번 턴 처리가 끝났습니다.";
     primaryActionButton.textContent = "다음 턴";
     primaryActionButton.dataset.action = "endTurn";
     return;
   }
 
-  primaryActionButton.textContent = state.phase;
-  primaryActionButton.disabled = true;
+  primaryActionButton.hidden = true;
   gameMessage.textContent = "게임 상태를 처리하고 있습니다.";
 }
 
@@ -378,6 +428,36 @@ function setInteractionLocked(locked) {
   if (localSession) renderActionControls(localSession.getState());
 }
 
+function importantEventMessage(state) {
+  for (let index = state.lastEvents.length - 1; index >= 0; index -= 1) {
+    const event = state.lastEvents[index];
+    if (event.type === "GAME_FINISHED") {
+      const winner = state.players.find((player) => player.id === event.winnerPlayerId);
+      return winner ? `${playerName(winner)} 승리!` : "게임 종료";
+    }
+    if (event.type === "PLAYER_BANKRUPT") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"}이(가) 파산했습니다.`;
+    }
+    if (event.type === "EVENT_DRAWN") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"} · ${event.label}`;
+    }
+  }
+  return null;
+}
+
+function showImportantNotice(state) {
+  const message = importantEventMessage(state);
+  if (!message || !importantNotice) return;
+  window.clearTimeout(importantNoticeTimer);
+  importantNotice.textContent = message;
+  importantNotice.hidden = false;
+  importantNoticeTimer = window.setTimeout(() => {
+    importantNotice.hidden = true;
+  }, 2400);
+}
+
 async function ensureThreeRenderer() {
   if (threeRendererReady) return threeRenderer;
   if (threeRendererInit) return threeRendererInit;
@@ -388,7 +468,9 @@ async function ensureThreeRenderer() {
   threeRenderer = createClassicThreePrototypeRenderer({
     onTileSelect(nodeId) {
       if (!localSession) return;
-      openTileInfo(localSession.getState(), nodeId);
+      const state = localSession.getState();
+      if (state.phase === TURN_PHASES.WAITING_CHOICE) return;
+      openTileInfo(state, nodeId, { source: "inspect" });
     },
   });
 
@@ -412,29 +494,57 @@ async function ensureThreeRenderer() {
   return threeRendererInit;
 }
 
+async function ensureDiceStage() {
+  if (diceStageReady) return diceStage;
+  if (diceStageInit) return diceStageInit;
+
+  diceStage = createThreeDiceStage();
+  diceStageInit = diceStage.mount(diceStageElement)
+    .then(() => {
+      diceStageReady = true;
+      return diceStage;
+    })
+    .catch((error) => {
+      diceStageReady = false;
+      console.error("Marble 3D dice stage failed to initialize.", error);
+      return null;
+    });
+  return diceStageInit;
+}
+
+async function playStateEvents(state) {
+  for (const event of state.lastEvents) {
+    if (event.type === "DICE_ROLLED") {
+      const stage = await ensureDiceStage();
+      await stage?.playRoll(event.dice);
+    }
+    if (event.type === "PLAYER_MOVED") diceStage?.hide();
+    if (threeRendererReady) await threeRenderer.playEvent(event);
+  }
+  if (threeRendererReady) threeRenderer.renderState(state);
+}
+
 async function runSessionAction(actionName) {
-  if (!localSession || interactionLocked) return;
+  if (!localSession || interactionLocked || !actionName) return;
 
   try {
+    if (tileInfoModal?.dataset.mode === "choice") closeTileInfo({ force: true });
+
     if (actionName === "roll") localSession.roll();
     else if (actionName === "buy") localSession.buy();
     else if (actionName === "build") localSession.build();
     else if (actionName === "endTurn") localSession.endTurn();
+    else return;
 
     const state = localSession.getState();
     appendEvents(state);
+    setInteractionLocked(true);
     renderPlaytest({ renderThree: false });
-
-    if (threeRendererReady) {
-      setInteractionLocked(true);
-      for (const event of state.lastEvents) {
-        await threeRenderer.playEvent(event);
-      }
-      threeRenderer.renderState(state);
-    }
+    await playStateEvents(state);
+    showImportantNotice(state);
 
     const landedNodeId = latestLandedNodeId(state);
-    if (landedNodeId) openTileInfo(state, landedNodeId);
+    if (landedNodeId) openTileInfo(state, landedNodeId, { source: "landing" });
   } catch (error) {
     gameMessage.textContent = error instanceof Error ? error.message : "게임 액션 처리 중 오류가 발생했습니다.";
   } finally {
@@ -443,7 +553,8 @@ async function runSessionAction(actionName) {
 }
 
 function startLocalPlaytest() {
-  closeTileInfo();
+  closeTileInfo({ force: true });
+  diceStage?.hide();
   localSession = createLocalClassicSession();
   eventHistory = [];
   localSession.start();
@@ -451,6 +562,7 @@ function startLocalPlaytest() {
   playtestSection.hidden = false;
   renderPlaytest();
   void ensureThreeRenderer();
+  void ensureDiceStage();
   playtestSection.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -464,9 +576,20 @@ themeGrid.addEventListener("click", (event) => {
 startPlaytestButton.addEventListener("click", startLocalPlaytest);
 resetPlaytestButton.addEventListener("click", startLocalPlaytest);
 primaryActionButton.addEventListener("click", () => { void runSessionAction(primaryActionButton.dataset.action); });
-secondaryActionButton.addEventListener("click", () => { void runSessionAction(secondaryActionButton.dataset.action); });
-tileInfoCloseButton?.addEventListener("click", closeTileInfo);
-tileInfoConfirmButton?.addEventListener("click", closeTileInfo);
+tileInfoCloseButton?.addEventListener("click", () => closeTileInfo());
+tileInfoConfirmButton?.addEventListener("click", () => closeTileInfo());
+tileInfoDeclineButton?.addEventListener("click", () => {
+  closeTileInfo({ force: true });
+  void runSessionAction("endTurn");
+});
+tileInfoActionButton?.addEventListener("click", () => {
+  const action = tileInfoChoiceAction || tileInfoActionButton.dataset.action;
+  closeTileInfo({ force: true });
+  void runSessionAction(action);
+});
+tileInfoModal?.addEventListener("cancel", (event) => {
+  if (tileInfoModal.dataset.mode === "choice") event.preventDefault();
+});
 
 renderThemeCards();
 renderSelectedTheme();
