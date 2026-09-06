@@ -1,8 +1,9 @@
+import { DICE_OVERLAY_VIEW, createDiceOverlayBounds } from "./diceOverlayView.js";
+
 export const DICE_STAGE_PROFILE = Object.freeze({
   durationMs: 920,
   dieSize: 1.18,
   settleHeight: 0.62,
-  cameraPosition: Object.freeze([0, 5.4, 8.2]),
   defaultStrength: 0.55,
 });
 
@@ -149,7 +150,11 @@ export function createThreeDiceStage({
     if (!target || !renderer || !camera) return;
     const width = Math.max(1, target.clientWidth);
     const height = Math.max(1, target.clientHeight);
-    camera.aspect = width / height;
+    const bounds = createDiceOverlayBounds(width, height);
+    camera.left = bounds.left;
+    camera.right = bounds.right;
+    camera.top = bounds.top;
+    camera.bottom = bounds.bottom;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     render();
@@ -181,12 +186,12 @@ export function createThreeDiceStage({
       preserveNextHide = false;
       THREE = await import("three");
       scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
-      camera.position.set(...DICE_STAGE_PROFILE.cameraPosition);
-      camera.lookAt(0, 0.55, 0);
+      camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+      camera.position.set(...DICE_OVERLAY_VIEW.position);
+      camera.lookAt(...DICE_OVERLAY_VIEW.target);
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       renderer.setClearColor(0x000000, 0);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
