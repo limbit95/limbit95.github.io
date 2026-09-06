@@ -13,6 +13,18 @@ const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.met
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
+const gameStartMigration = readFileSync(
+  new URL("../../supabase/marble/20260906114753_marble_online_game_start.sql", import.meta.url),
+  "utf8",
+);
+const turnActionsMigration = readFileSync(
+  new URL("../../supabase/marble/20260906114947_marble_online_turn_actions.sql", import.meta.url),
+  "utf8",
+);
+const reconnectMigration = readFileSync(
+  new URL("../../supabase/marble/20260906115151_marble_online_reconnect_hardening.sql", import.meta.url),
+  "utf8",
+);
 
 function snapshot(overrides = {}) {
   return {
@@ -76,4 +88,18 @@ test("Phase 5B exposes host start and server-authoritative action RPCs", () => {
   assert.match(controllerSource, /getViewerPlayerId/);
   assert.match(controllerSource, /viewerCanAct/);
   assert.match(controllerSource, /createClassicTollNotice/);
+});
+
+test("authoritative server migrations keep dice and turn decisions on Supabase", () => {
+  assert.match(gameStartMigration, /create table public\.marble_games/);
+  assert.match(gameStartMigration, /create or replace function public\.marble_start_game/);
+  assert.match(gameStartMigration, /alter publication supabase_realtime add table public\.marble_games/);
+  assert.match(turnActionsMigration, /floor\(random\(\)\*6\)\+1/);
+  assert.match(turnActionsMigration, /NOT_YOUR_TURN/);
+  assert.match(turnActionsMigration, /marble_action_log/);
+  assert.match(turnActionsMigration, /marble_buy_property/);
+  assert.match(turnActionsMigration, /marble_build_property/);
+  assert.match(turnActionsMigration, /marble_end_turn/);
+  assert.match(reconnectMigration, /marble_get_my_active_game/);
+  assert.match(reconnectMigration, /GAME_IN_PROGRESS/);
 });
