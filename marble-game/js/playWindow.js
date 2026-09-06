@@ -1,11 +1,15 @@
+import { getOnlineRoomId } from "./onlinePlayRoute.js";
+
 const COMPACT_PLAY_WIDTH = 900;
 const PLAY_QUERY_KEY = "play";
+const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
 
 export function createClassicPlayUrl(href) {
   const url = new URL(href);
   url.searchParams.set(PLAY_QUERY_KEY, CLASSIC_PLAY_MODE);
+  url.searchParams.delete(ONLINE_ROOM_QUERY_KEY);
   return url;
 }
 
@@ -94,6 +98,7 @@ function leavePlayMode() {
 
   const lobbyUrl = new URL(window.location.href);
   lobbyUrl.searchParams.delete(PLAY_QUERY_KEY);
+  lobbyUrl.searchParams.delete(ONLINE_ROOM_QUERY_KEY);
   window.location.assign(lobbyUrl.href);
 }
 
@@ -110,13 +115,20 @@ function setupLobbyLauncher(startButton) {
 }
 
 function setupDedicatedPlayMode(startButton) {
+  const onlineRoomId = getOnlineRoomId(window.location.href);
   document.body.dataset.playMode = "window";
-  document.title = "Marble Classic · Play";
+  document.body.dataset.sessionMode = onlineRoomId ? "online" : "local";
+  document.title = onlineRoomId ? "Marble Classic · Online" : "Marble Classic · Play";
 
   const exitButton = document.querySelector("[data-exit-play]");
   if (exitButton) {
     exitButton.hidden = false;
     exitButton.addEventListener("click", leavePlayMode);
+  }
+
+  if (onlineRoomId) {
+    void import("./onlineGameController.js");
+    return;
   }
 
   window.setTimeout(() => {
