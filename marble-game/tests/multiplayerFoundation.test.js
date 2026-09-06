@@ -18,6 +18,10 @@ const permissionsMigration = readFileSync(
   new URL("../../supabase/marble/20260906113200_marble_multiplayer_rpc_permissions.sql", import.meta.url),
   "utf8",
 );
+const roomCodeGenerationFixMigration = readFileSync(
+  new URL("../../supabase/marble/20260906121500_marble_room_code_generation_fix.sql", import.meta.url),
+  "utf8",
+);
 
 test("Marble multiplayer input helpers normalize room codes and nicknames", () => {
   assert.equal(normalizeRoomCode(" ab12-ef "), "AB12EF");
@@ -81,4 +85,10 @@ test("Marble RPC permission migration keeps security-definer lobby functions awa
   assert.match(permissionsMigration, /revoke all on function public\.marble_create_room\(text, smallint\) from public, anon/);
   assert.match(permissionsMigration, /grant execute on function public\.marble_create_room\(text, smallint\) to authenticated/);
   assert.match(permissionsMigration, /revoke all on function public\.marble_join_room\(text, text\) from public, anon/);
+});
+
+test("Marble room code generation qualifies Supabase pgcrypto from the extensions schema", () => {
+  assert.match(roomCodeGenerationFixMigration, /extensions\.gen_random_bytes\(4\)/);
+  assert.match(roomCodeGenerationFixMigration, /revoke execute on function public\.marble_create_room\(text, smallint\) from anon/);
+  assert.match(roomCodeGenerationFixMigration, /grant execute on function public\.marble_create_room\(text, smallint\) to authenticated/);
 });
