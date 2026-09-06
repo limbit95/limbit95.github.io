@@ -118,6 +118,7 @@ export function createThreeDiceStage({
   let dice = [];
   let resizeObserver = null;
   let disposed = false;
+  let preserveNextHide = false;
 
   function render() {
     if (!renderer || !scene || !camera) return;
@@ -150,6 +151,7 @@ export function createThreeDiceStage({
       }
       target = targetElement;
       disposed = false;
+      preserveNextHide = false;
       THREE = await import("three");
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
@@ -196,10 +198,12 @@ export function createThreeDiceStage({
     async playRoll(values) {
       if (!diceRoot || !renderer) return;
       const faces = [normalizeDiceFace(values?.[0]), normalizeDiceFace(values?.[1])];
+      preserveNextHide = false;
       diceRoot.visible = true;
 
       if (reducedMotion) {
         setSettled(faces);
+        preserveNextHide = true;
         render();
         return;
       }
@@ -244,6 +248,7 @@ export function createThreeDiceStage({
 
           if (progress >= 1) {
             setSettled(faces);
+            preserveNextHide = true;
             render();
             resolve();
           } else {
@@ -256,12 +261,17 @@ export function createThreeDiceStage({
 
     hide() {
       if (!diceRoot) return;
+      if (preserveNextHide) {
+        preserveNextHide = false;
+        return;
+      }
       diceRoot.visible = false;
       render();
     },
 
     dispose() {
       disposed = true;
+      preserveNextHide = false;
       resizeObserver?.disconnect();
       window.removeEventListener("resize", resize);
       if (scene) disposeObject(scene);
