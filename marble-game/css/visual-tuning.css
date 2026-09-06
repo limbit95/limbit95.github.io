@@ -28,6 +28,131 @@
   background: rgba(20, 34, 47, 0.76);
 }
 
+.tile-info-modal {
+  width: min(420px, calc(100vw - 32px));
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  background: #172331;
+  color: #f5f7fa;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
+}
+
+.tile-info-modal::backdrop {
+  background: rgba(5, 10, 16, 0.58);
+  backdrop-filter: blur(5px);
+}
+
+.tile-info-modal__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tile-info-modal__type {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(141, 208, 181, 0.13);
+  color: #a9ddc8;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.tile-info-modal__close {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: #dce4ec;
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.tile-info-modal h2 {
+  margin: 16px 0 8px;
+  font-size: clamp(1.65rem, 5vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+.tile-info-modal__summary {
+  margin: 0 0 18px;
+  color: #b9c5d1;
+  line-height: 1.55;
+}
+
+.tile-info-modal__stats {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.tile-info-modal__stats > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tile-info-modal__stats dt,
+.tile-info-modal__stats dd {
+  margin: 0;
+}
+
+.tile-info-modal__stats dt {
+  color: #91a1b1;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.tile-info-modal__stats dd {
+  color: #f6f8fb;
+  font-size: 0.9rem;
+  font-weight: 900;
+  text-align: right;
+}
+
+.tile-info-modal__effect {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(141, 208, 181, 0.18);
+  border-radius: 14px;
+  background: rgba(141, 208, 181, 0.07);
+}
+
+.tile-info-modal__effect > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #a9ddc8;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.tile-info-modal__effect p {
+  margin: 0;
+  color: #d4dde6;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.tile-info-modal__confirm {
+  width: 100%;
+  margin-top: 18px;
+}
+
 @media (max-width: 760px) {
   .classic-three-canvas {
     transform: scale(1.22);
@@ -37,5 +162,10 @@
 @media (max-width: 480px) {
   .classic-three-canvas {
     transform: scale(1.14);
+  }
+
+  .tile-info-modal {
+    padding: 18px;
+    border-radius: 18px;
   }
 }
