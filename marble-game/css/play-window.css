@@ -54,8 +54,8 @@ body[data-play-mode="window"] .playtest-section {
   }
 
   body[data-play-mode="window"] .classic-three-stage {
-    height: min(76vh, 800px);
-    min-height: 560px;
+    height: min(86vh, 920px);
+    min-height: 640px;
   }
 
   body[data-play-mode="window"] .classic-board {
