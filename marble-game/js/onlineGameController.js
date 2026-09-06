@@ -25,6 +25,7 @@ if (onlineRoomId) {
   const secondaryActionButton = document.querySelector("[data-secondary-action]");
   const eventLog = document.querySelector("[data-event-log]");
   const importantNotice = document.querySelector("[data-important-notice]");
+  const moveCountPop = document.querySelector("[data-move-count-pop]");
   const tileInfoModal = document.querySelector("[data-tile-info-modal]");
   const tileInfoType = document.querySelector("[data-tile-info-type]");
   const tileInfoTitle = document.querySelector("[data-tile-info-title]");
@@ -40,10 +41,15 @@ if (onlineRoomId) {
   const tollOwner = document.querySelector("[data-toll-owner]");
   const tollOwnerSeat = document.querySelector("[data-toll-owner-seat]");
   const tollAmount = document.querySelector("[data-toll-amount]");
+  const tollBalanceBefore = document.querySelector("[data-toll-balance-before]");
+  const tollDeduction = document.querySelector("[data-toll-deduction]");
+  const tollBalanceAfter = document.querySelector("[data-toll-balance-after]");
   const tollEffect = document.querySelector("[data-toll-effect]");
   const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 
   const OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
+  const MOVE_COUNT_HOLD_MS = 1200;
+  const OTHER_HUD_SLOTS = Object.freeze(["top-left", "top-right", "bottom-left"]);
   let session = null;
   let threeRenderer = null;
   let threeRendererReady = false;
@@ -51,12 +57,17 @@ if (onlineRoomId) {
   let diceStageReady = false;
   let interactionLocked = false;
   let tileInfoChoiceAction = null;
+  let choiceDeclinedPending = false;
   let eventHistory = [];
   let importantNoticeTimer = null;
   let lastAnimatedVersion = 0;
 
   function money(value, options = {}) {
     return formatThemeMoney(value, CLASSIC_RULES.currency, options);
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   function playerName(player) {
@@ -69,6 +80,19 @@ if (onlineRoomId) {
 
   function viewerCanAct(state) {
     return Boolean(session && isOnlineViewerTurn(state, session.getViewerPlayerId()));
+  }
+
+  function hudSlots(state) {
+    const slots = new Map();
+    const viewerPlayerId = session?.getViewerPlayerId();
+    const viewer = state.players.find((player) => player.id === viewerPlayerId);
+    if (viewer) slots.set(viewer.id, "bottom-right");
+    state.players
+      .filter((player) => player.id !== viewerPlayerId)
+      .sort((a, b) => a.seat - b.seat)
+      .slice(0, OTHER_HUD_SLOTS.length)
+      .forEach((player, index) => slots.set(player.id, OTHER_HUD_SLOTS[index]));
+    return slots;
   }
 
   function boardGridMetrics(count) {
@@ -146,10 +170,12 @@ if (onlineRoomId) {
   function renderPlayers(state) {
     if (!playerList) return;
     const viewerPlayerId = session?.getViewerPlayerId();
+    const slots = hudSlots(state);
     playerList.replaceChildren(...state.players.slice(0, 4).map((player, index) => {
       const card = document.createElement("article");
       card.className = "player-card player-hud-card";
       card.dataset.seat = String(player.seat);
+      card.dataset.hudSlot = slots.get(player.id) ?? "top-left";
       if (state.currentPlayerIndex === index && state.status === GAME_STATUS.PLAYING) card.dataset.current = "true";
       if (player.id === viewerPlayerId) card.dataset.viewer = "true";
       if (player.bankrupt) card.dataset.bankrupt = "true";
@@ -204,6 +230,12 @@ if (onlineRoomId) {
       gameMessage.textContent = interactionLocked ? "서버 결과를 처리하고 있습니다." : "내 차례입니다.";
       primaryActionButton.textContent = "주사위 굴리기";
       primaryActionButton.dataset.action = "roll";
+      return;
+    }
+    if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
+      gameMessage.textContent = "건너뛰기를 선택했습니다. 다음 턴을 눌러 차례를 넘겨 주세요.";
+      primaryActionButton.textContent = "다음 턴";
+      primaryActionButton.dataset.action = "endTurn";
       return;
     }
     if (state.phase === TURN_PHASES.WAITING_CHOICE) {
@@ -266,6 +298,7 @@ if (onlineRoomId) {
     tileInfoConfirmButton.hidden = false;
     tileInfoDeclineButton.hidden = true;
     tileInfoActionButton.hidden = true;
+    tileInfoActionButton.disabled = false;
     tileInfoActionButton.dataset.action = "";
   }
 
@@ -303,18 +336,33 @@ if (onlineRoomId) {
     }));
     resetTileActions();
     if (source === "landing" && viewerCanAct(state) && state.phase === TURN_PHASES.WAITING_CHOICE && state.pendingChoice?.nodeId === nodeId) {
+      const actor = currentPlayer(state);
       tileInfoModal.dataset.mode = "choice";
       tileInfoConfirmButton.hidden = true;
       tileInfoDeclineButton.hidden = false;
       tileInfoActionButton.hidden = false;
       if (state.pendingChoice.type === "BUY_PROPERTY") {
+        const canAfford = Boolean(actor && actor.money >= state.pendingChoice.price);
         tileInfoChoiceAction = "buy";
         tileInfoActionButton.dataset.action = "buy";
-        tileInfoActionButton.textContent = `구매하기 · ${money(state.pendingChoice.price)}`;
+        tileInfoActionButton.disabled = !canAfford;
+        tileInfoActionButton.textContent = canAfford
+          ? `구매하기 · ${money(state.pendingChoice.price)}`
+          : `골드 부족 · ${money(state.pendingChoice.price)} 필요`;
+        if (!canAfford && actor) {
+          tileInfoEffect.textContent = `현재 보유 골드 ${money(actor.money)}로는 이 도시를 구매할 수 없습니다. 건너뛰기를 선택해 주세요.`;
+        }
       } else if (state.pendingChoice.type === "BUILD_PROPERTY") {
+        const canAfford = Boolean(actor && actor.money >= state.pendingChoice.cost);
         tileInfoChoiceAction = "build";
         tileInfoActionButton.dataset.action = "build";
-        tileInfoActionButton.textContent = `건설하기 · ${money(state.pendingChoice.cost)}`;
+        tileInfoActionButton.disabled = !canAfford;
+        tileInfoActionButton.textContent = canAfford
+          ? `건설하기 · ${money(state.pendingChoice.cost)}`
+          : `골드 부족 · ${money(state.pendingChoice.cost)} 필요`;
+        if (!canAfford && actor) {
+          tileInfoEffect.textContent = `현재 보유 골드 ${money(actor.money)}로는 건설 비용을 지불할 수 없습니다. 건너뛰기를 선택해 주세요.`;
+        }
       }
     }
     if (!tileInfoModal.open) {
@@ -331,6 +379,9 @@ if (onlineRoomId) {
     tollOwnerSeat.textContent = `P${notice.ownerSeat + 1}`;
     tollOwnerSeat.style.setProperty("--toll-owner", OWNER_COLORS[notice.ownerSeat] ?? OWNER_COLORS[0]);
     tollAmount.textContent = notice.amountLabel;
+    if (tollBalanceBefore) tollBalanceBefore.textContent = notice.balanceBeforeLabel;
+    if (tollDeduction) tollDeduction.textContent = notice.deductionLabel;
+    if (tollBalanceAfter) tollBalanceAfter.textContent = notice.balanceAfterLabel;
     tollEffect.textContent = notice.effect;
     if (!tollNoticeModal.open) {
       if (typeof tollNoticeModal.showModal === "function") tollNoticeModal.showModal();
@@ -346,7 +397,12 @@ if (onlineRoomId) {
       openTollNotice(toll);
       return;
     }
-    if (state.phase === TURN_PHASES.WAITING_CHOICE && viewerCanAct(state)) {
+    const landedNode = findNode(state, landing.nodeId);
+    if (landedNode?.type === "EVENT") {
+      openTileInfo(state, landing.nodeId, { source: "landing" });
+      return;
+    }
+    if (state.phase === TURN_PHASES.WAITING_CHOICE && viewerCanAct(state) && !choiceDeclinedPending) {
       openTileInfo(state, landing.nodeId, { source: "landing" });
     }
   }
@@ -379,6 +435,20 @@ if (onlineRoomId) {
     importantNoticeTimer = window.setTimeout(() => { importantNotice.hidden = true; }, 2400);
   }
 
+  async function showMoveCount(total) {
+    if (!moveCountPop || !Number.isFinite(Number(total))) {
+      await wait(MOVE_COUNT_HOLD_MS);
+      return;
+    }
+    moveCountPop.textContent = `${Number(total)}칸 이동!`;
+    moveCountPop.hidden = false;
+    moveCountPop.dataset.visible = "true";
+    await wait(MOVE_COUNT_HOLD_MS);
+    moveCountPop.dataset.visible = "false";
+    await wait(100);
+    moveCountPop.hidden = true;
+  }
+
   function renderUi(state, { renderThree = true } = {}) {
     renderStateBoard(state);
     renderPlayers(state);
@@ -392,7 +462,7 @@ if (onlineRoomId) {
       onTileSelect(nodeId) {
         if (!session) return;
         const state = session.getState();
-        if (state.phase === TURN_PHASES.WAITING_CHOICE && viewerCanAct(state)) return;
+        if (state.phase === TURN_PHASES.WAITING_CHOICE && viewerCanAct(state) && !choiceDeclinedPending) return;
         openTileInfo(state, nodeId, { source: "inspect" });
       },
     });
@@ -417,13 +487,19 @@ if (onlineRoomId) {
       return;
     }
     lastAnimatedVersion = state.version;
+    let pendingMoveTotal = null;
     for (const event of state.lastEvents) {
       if (event.type === "DICE_ROLLED") {
         const stage = await ensureDiceStage();
         if (remote) diceStageElement.dataset.rollStrength = "0.550";
         await stage?.playRoll(event.dice);
+        pendingMoveTotal = Number(event.total);
       }
-      if (event.type === "PLAYER_MOVED") diceStage?.hide();
+      if (event.type === "PLAYER_MOVED") {
+        await showMoveCount(Number.isFinite(pendingMoveTotal) ? pendingMoveTotal : state.lastRoll?.total);
+        diceStage?.hide();
+        pendingMoveTotal = null;
+      }
       if (threeRendererReady) await threeRenderer.playEvent(event);
     }
     threeRenderer?.renderState(state);
@@ -437,6 +513,7 @@ if (onlineRoomId) {
   }
 
   async function applyState(state, { animate = true, remote = false } = {}) {
+    if (state.phase !== TURN_PHASES.WAITING_CHOICE || !viewerCanAct(state)) choiceDeclinedPending = false;
     appendEvents(state);
     renderUi(state, { renderThree: !animate });
     if (animate) await animateState(state, { remote });
@@ -447,7 +524,8 @@ if (onlineRoomId) {
 
   async function runAction(actionName) {
     if (!session || interactionLocked || !viewerCanAct(session.getState())) return;
-    closeTileInfo({ force: true });
+    const isChoiceAction = actionName === "buy" || actionName === "build";
+    if (!isChoiceAction) closeTileInfo({ force: true });
     closeTollNotice();
     interactionLocked = true;
     renderActionControls(session.getState());
@@ -458,17 +536,27 @@ if (onlineRoomId) {
       else if (actionName === "build") state = await session.build();
       else if (actionName === "endTurn") state = await session.endTurn();
       else return;
+      if (isChoiceAction) closeTileInfo({ force: true });
+      if (actionName === "endTurn") choiceDeclinedPending = false;
       await applyState(state, { animate: true, remote: false });
     } catch (error) {
       const message = String(error?.message ?? error ?? "");
       if (message.includes("VERSION_CONFLICT")) {
+        choiceDeclinedPending = false;
         await session.refresh();
         renderUi(session.getState());
+        showLandingOutcome(session.getState());
         gameMessage.textContent = "다른 플레이어의 최신 상태를 반영했습니다. 다시 시도해 주세요.";
       } else if (message.includes("NOT_YOUR_TURN")) {
+        choiceDeclinedPending = false;
         await session.refresh();
         renderUi(session.getState());
         gameMessage.textContent = "현재 다른 플레이어의 차례입니다.";
+      } else if (message.includes("INSUFFICIENT_GOLD")) {
+        const state = session.getState();
+        const nodeId = state.pendingChoice?.nodeId;
+        if (nodeId) openTileInfo(state, nodeId, { source: "landing" });
+        gameMessage.textContent = "보유 골드가 부족합니다. 건너뛰기를 선택해 주세요.";
       } else {
         console.error("Marble online action failed", error);
         gameMessage.textContent = "온라인 게임 액션 처리 중 오류가 발생했습니다.";
@@ -486,12 +574,14 @@ if (onlineRoomId) {
   tileInfoCloseButton?.addEventListener("click", () => closeTileInfo());
   tileInfoConfirmButton?.addEventListener("click", () => closeTileInfo());
   tileInfoDeclineButton?.addEventListener("click", () => {
+    if (!session || !viewerCanAct(session.getState())) return;
+    choiceDeclinedPending = true;
     closeTileInfo({ force: true });
-    void runAction("endTurn");
+    renderActionControls(session.getState());
   });
   tileInfoActionButton?.addEventListener("click", () => {
+    if (tileInfoActionButton.disabled) return;
     const action = tileInfoChoiceAction || tileInfoActionButton.dataset.action;
-    closeTileInfo({ force: true });
     void runAction(action);
   });
   tollConfirmButton?.addEventListener("click", closeTollNotice);
@@ -523,6 +613,7 @@ if (onlineRoomId) {
         onConnectionStatus: connectionStatus,
       });
       eventHistory = [];
+      choiceDeclinedPending = false;
       const state = session.getState();
       lastAnimatedVersion = state.version;
       appendEvents(state);

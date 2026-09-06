@@ -33,6 +33,7 @@ const primaryActionButton = document.querySelector("[data-primary-action]");
 const secondaryActionButton = document.querySelector("[data-secondary-action]");
 const eventLog = document.querySelector("[data-event-log]");
 const importantNotice = document.querySelector("[data-important-notice]");
+const moveCountPop = document.querySelector("[data-move-count-pop]");
 const tileInfoModal = document.querySelector("[data-tile-info-modal]");
 const tileInfoType = document.querySelector("[data-tile-info-type]");
 const tileInfoTitle = document.querySelector("[data-tile-info-title]");
@@ -48,10 +49,14 @@ const tollCity = document.querySelector("[data-toll-city]");
 const tollOwner = document.querySelector("[data-toll-owner]");
 const tollOwnerSeat = document.querySelector("[data-toll-owner-seat]");
 const tollAmount = document.querySelector("[data-toll-amount]");
+const tollBalanceBefore = document.querySelector("[data-toll-balance-before]");
+const tollDeduction = document.querySelector("[data-toll-deduction]");
+const tollBalanceAfter = document.querySelector("[data-toll-balance-after]");
 const tollEffect = document.querySelector("[data-toll-effect]");
 const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 
 const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
+const MOVE_COUNT_HOLD_MS = 1200;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -64,10 +69,15 @@ let diceStageReady = false;
 let diceStageInit = null;
 let interactionLocked = false;
 let tileInfoChoiceAction = null;
+let choiceDeclinedPending = false;
 let importantNoticeTimer = null;
 
 function money(value, options = {}) {
   return formatThemeMoney(value, CLASSIC_RULES.currency, options);
+}
+
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function statusLabel(theme) {
@@ -176,6 +186,7 @@ function resetTileInfoActions() {
   tileInfoConfirmButton.hidden = false;
   tileInfoDeclineButton.hidden = true;
   tileInfoActionButton.hidden = true;
+  tileInfoActionButton.disabled = false;
   tileInfoActionButton.dataset.action = "";
 }
 
@@ -201,10 +212,17 @@ function openTollNotice(notice) {
   tollOwnerSeat.textContent = `P${notice.ownerSeat + 1}`;
   tollOwnerSeat.style.setProperty("--toll-owner", TOLL_OWNER_COLORS[notice.ownerSeat] ?? TOLL_OWNER_COLORS[0]);
   tollAmount.textContent = notice.amountLabel;
+  if (tollBalanceBefore) tollBalanceBefore.textContent = notice.balanceBeforeLabel;
+  if (tollDeduction) tollDeduction.textContent = notice.deductionLabel;
+  if (tollBalanceAfter) tollBalanceAfter.textContent = notice.balanceAfterLabel;
   tollEffect.textContent = notice.effect;
   if (tollNoticeModal.open) return;
   if (typeof tollNoticeModal.showModal === "function") tollNoticeModal.showModal();
   else tollNoticeModal.setAttribute("open", "");
+}
+
+function currentPlayer(state) {
+  return state.currentPlayerIndex === null ? null : state.players[state.currentPlayerIndex];
 }
 
 function configureTileInfoChoice(state, nodeId, source) {
@@ -214,19 +232,34 @@ function configureTileInfoChoice(state, nodeId, source) {
   if (state.pendingChoice?.nodeId !== nodeId) return;
 
   const pendingChoice = state.pendingChoice;
+  const actor = currentPlayer(state);
   tileInfoModal.dataset.mode = "choice";
   tileInfoConfirmButton.hidden = true;
   tileInfoDeclineButton.hidden = false;
   tileInfoActionButton.hidden = false;
 
   if (pendingChoice.type === "BUY_PROPERTY") {
+    const canAfford = Boolean(actor && actor.money >= pendingChoice.price);
     tileInfoChoiceAction = "buy";
     tileInfoActionButton.dataset.action = "buy";
-    tileInfoActionButton.textContent = `구매하기 · ${money(pendingChoice.price)}`;
+    tileInfoActionButton.disabled = !canAfford;
+    tileInfoActionButton.textContent = canAfford
+      ? `구매하기 · ${money(pendingChoice.price)}`
+      : `골드 부족 · ${money(pendingChoice.price)} 필요`;
+    if (!canAfford && actor) {
+      tileInfoEffect.textContent = `현재 보유 골드 ${money(actor.money)}로는 이 도시를 구매할 수 없습니다. 건너뛰기를 선택해 주세요.`;
+    }
   } else if (pendingChoice.type === "BUILD_PROPERTY") {
+    const canAfford = Boolean(actor && actor.money >= pendingChoice.cost);
     tileInfoChoiceAction = "build";
     tileInfoActionButton.dataset.action = "build";
-    tileInfoActionButton.textContent = `건설하기 · ${money(pendingChoice.cost)}`;
+    tileInfoActionButton.disabled = !canAfford;
+    tileInfoActionButton.textContent = canAfford
+      ? `건설하기 · ${money(pendingChoice.cost)}`
+      : `골드 부족 · ${money(pendingChoice.cost)} 필요`;
+    if (!canAfford && actor) {
+      tileInfoEffect.textContent = `현재 보유 골드 ${money(actor.money)}로는 건설 비용을 지불할 수 없습니다. 건너뛰기를 선택해 주세요.`;
+    }
   } else {
     resetTileInfoActions();
   }
@@ -391,10 +424,6 @@ function renderEventLog() {
   }));
 }
 
-function currentPlayer(state) {
-  return state.currentPlayerIndex === null ? null : state.players[state.currentPlayerIndex];
-}
-
 function renderActionControls(state) {
   const current = currentPlayer(state);
   primaryActionButton.hidden = false;
@@ -424,6 +453,13 @@ function renderActionControls(state) {
     gameMessage.textContent = interactionLocked ? "연출을 재생하고 있습니다." : `${playerName(current)}의 차례입니다.`;
     primaryActionButton.textContent = "주사위 굴리기";
     primaryActionButton.dataset.action = "roll";
+    return;
+  }
+
+  if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
+    gameMessage.textContent = "건너뛰기를 선택했습니다. 다음 턴을 눌러 차례를 넘겨 주세요.";
+    primaryActionButton.textContent = "다음 턴";
+    primaryActionButton.dataset.action = "endTurn";
     return;
   }
 
@@ -489,6 +525,20 @@ function showImportantNotice(state) {
   }, 2400);
 }
 
+async function showMoveCount(total) {
+  if (!moveCountPop || !Number.isFinite(Number(total))) {
+    await wait(MOVE_COUNT_HOLD_MS);
+    return;
+  }
+  moveCountPop.textContent = `${Number(total)}칸 이동!`;
+  moveCountPop.hidden = false;
+  moveCountPop.dataset.visible = "true";
+  await wait(MOVE_COUNT_HOLD_MS);
+  moveCountPop.dataset.visible = "false";
+  await wait(100);
+  moveCountPop.hidden = true;
+}
+
 async function ensureThreeRenderer() {
   if (threeRendererReady) return threeRenderer;
   if (threeRendererInit) return threeRendererInit;
@@ -500,7 +550,7 @@ async function ensureThreeRenderer() {
     onTileSelect(nodeId) {
       if (!localSession) return;
       const state = localSession.getState();
-      if (state.phase === TURN_PHASES.WAITING_CHOICE) return;
+      if (state.phase === TURN_PHASES.WAITING_CHOICE && !choiceDeclinedPending) return;
       openTileInfo(state, nodeId, { source: "inspect" });
     },
   });
@@ -544,12 +594,18 @@ async function ensureDiceStage() {
 }
 
 async function playStateEvents(state) {
+  let pendingMoveTotal = null;
   for (const event of state.lastEvents) {
     if (event.type === "DICE_ROLLED") {
       const stage = await ensureDiceStage();
       await stage?.playRoll(event.dice);
+      pendingMoveTotal = Number(event.total);
     }
-    if (event.type === "PLAYER_MOVED") diceStage?.hide();
+    if (event.type === "PLAYER_MOVED") {
+      await showMoveCount(Number.isFinite(pendingMoveTotal) ? pendingMoveTotal : state.lastRoll?.total);
+      diceStage?.hide();
+      pendingMoveTotal = null;
+    }
     if (threeRendererReady) await threeRenderer.playEvent(event);
   }
   if (threeRendererReady) threeRenderer.renderState(state);
@@ -557,9 +613,10 @@ async function playStateEvents(state) {
 
 async function runSessionAction(actionName) {
   if (!localSession || interactionLocked || !actionName) return;
+  const isChoiceAction = actionName === "buy" || actionName === "build";
 
   try {
-    if (tileInfoModal?.dataset.mode === "choice") closeTileInfo({ force: true });
+    if (!isChoiceAction && tileInfoModal?.dataset.mode === "choice") closeTileInfo({ force: true });
     closeTollNotice();
 
     if (actionName === "roll") localSession.roll();
@@ -568,6 +625,8 @@ async function runSessionAction(actionName) {
     else if (actionName === "endTurn") localSession.endTurn();
     else return;
 
+    if (isChoiceAction) closeTileInfo({ force: true });
+    if (actionName === "endTurn") choiceDeclinedPending = false;
     const state = localSession.getState();
     appendEvents(state);
     setInteractionLocked(true);
@@ -583,7 +642,15 @@ async function runSessionAction(actionName) {
       if (landedNodeId) openTileInfo(state, landedNodeId, { source: "landing" });
     }
   } catch (error) {
-    gameMessage.textContent = error instanceof Error ? error.message : "게임 액션 처리 중 오류가 발생했습니다.";
+    const message = error instanceof Error ? error.message : "게임 액션 처리 중 오류가 발생했습니다.";
+    if (/cannot afford/i.test(message)) {
+      const state = localSession.getState();
+      const nodeId = state.pendingChoice?.nodeId;
+      if (nodeId) openTileInfo(state, nodeId, { source: "landing" });
+      gameMessage.textContent = "보유 골드가 부족합니다. 건너뛰기를 선택해 주세요.";
+    } else {
+      gameMessage.textContent = message;
+    }
   } finally {
     setInteractionLocked(false);
   }
@@ -595,6 +662,7 @@ function startLocalPlaytest() {
   diceStage?.hide();
   localSession = createLocalClassicSession();
   eventHistory = [];
+  choiceDeclinedPending = false;
   localSession.start();
   appendEvents(localSession.getState());
   playtestSection.hidden = false;
@@ -617,12 +685,14 @@ primaryActionButton.addEventListener("click", () => { void runSessionAction(prim
 tileInfoCloseButton?.addEventListener("click", () => closeTileInfo());
 tileInfoConfirmButton?.addEventListener("click", () => closeTileInfo());
 tileInfoDeclineButton?.addEventListener("click", () => {
+  if (!localSession) return;
+  choiceDeclinedPending = true;
   closeTileInfo({ force: true });
-  void runSessionAction("endTurn");
+  renderActionControls(localSession.getState());
 });
 tileInfoActionButton?.addEventListener("click", () => {
+  if (tileInfoActionButton.disabled) return;
   const action = tileInfoChoiceAction || tileInfoActionButton.dataset.action;
-  closeTileInfo({ force: true });
   void runSessionAction(action);
 });
 tileInfoModal?.addEventListener("cancel", (event) => {

@@ -18,6 +18,7 @@ const state = {
         maxBuildingLevel: 3,
       },
       { id: "tax", type: "TAX", label: "공항 이용료", amount: 120 },
+      { id: "event-east", type: "EVENT", label: "여행 소식" },
       { id: "start", type: "START", label: "출발 · 서울" },
     ],
   },
@@ -27,6 +28,7 @@ const state = {
     },
   },
   players: [{ id: "player-a", name: "플레이어 A" }],
+  lastEvents: [],
 };
 
 test("Classic uses a theme-scoped gold currency profile", () => {
@@ -58,6 +60,26 @@ test("special tile info explains direct effects", () => {
   assert.match(tax.effect, /차감/);
   assert.equal(start.stats[0].value, "+250 골드");
   assert.match(start.summary, /250 골드/);
+});
+
+test("event landing info exposes the actual drawn event result", () => {
+  const eventState = {
+    ...state,
+    lastEvents: [
+      { type: "TILE_LANDED", playerId: "player-a", nodeId: "event-east" },
+      { type: "EVENT_DRAWN", playerId: "player-a", eventId: "travel-grant", label: "여행 지원금을 받았습니다." },
+      { type: "MONEY_RECEIVED", playerId: "player-a", amount: 120, reason: "EVENT" },
+    ],
+  };
+  const info = createClassicTileInfo(eventState, "event-east");
+
+  assert.equal(info.typeLabel, "이벤트");
+  assert.equal(info.summary, "여행 지원금을 받았습니다.");
+  assert.deepEqual(info.stats, [
+    { label: "이벤트", value: "여행 지원금을 받았습니다." },
+    { label: "골드 변화", value: "+120 골드" },
+  ]);
+  assert.match(info.effect, /즉시/);
 });
 
 test("unknown node returns null", () => {

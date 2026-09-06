@@ -128,6 +128,7 @@
               </div>
 
               <div class="important-notice" data-important-notice hidden role="status" aria-live="assertive"></div>
+              <div class="move-count-pop" data-move-count-pop hidden role="status" aria-live="polite">0칸 이동!</div>
 
               <div class="board-action-dock" data-board-action-dock data-roll-ready="false">
                 <div class="dice-charge" data-dice-charge hidden aria-label="주사위 굴림 강도">
@@ -203,6 +204,11 @@
         <div class="toll-notice-modal__amount">
           <span>지불 통행료</span>
           <strong data-toll-amount>0 골드</strong>
+        </div>
+        <div class="toll-notice-modal__balance" aria-label="통행료 차감 후 보유 골드">
+          <div><span>내 보유 골드</span><strong data-toll-balance-before>0 골드</strong></div>
+          <b data-toll-deduction>-0 골드</b>
+          <div><span>결제 후</span><strong data-toll-balance-after>0 골드</strong></div>
         </div>
         <p class="toll-notice-modal__effect" data-toll-effect></p>
         <button class="primary-button toll-notice-modal__confirm" type="button" data-toll-confirm>확인</button>

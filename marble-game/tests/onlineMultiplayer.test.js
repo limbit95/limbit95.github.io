@@ -13,6 +13,7 @@ const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.met
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
+const visibilityCss = readFileSync(new URL("../css/visibility-polish.css", import.meta.url), "utf8");
 const gameStartMigration = readFileSync(
   new URL("../../supabase/marble/20260906114753_marble_online_game_start.sql", import.meta.url),
   "utf8",
@@ -88,6 +89,40 @@ test("Phase 5B exposes host start and server-authoritative action RPCs", () => {
   assert.match(controllerSource, /getViewerPlayerId/);
   assert.match(controllerSource, /viewerCanAct/);
   assert.match(controllerSource, /createClassicTollNotice/);
+});
+
+test("online HUD anchors the viewer bottom-right and fills other corners in order", () => {
+  assert.match(controllerSource, /OTHER_HUD_SLOTS = Object\.freeze\(\["top-left", "top-right", "bottom-left"\]\)/);
+  assert.match(controllerSource, /slots\.set\(viewer\.id, "bottom-right"\)/);
+  assert.match(controllerSource, /card\.dataset\.hudSlot = slots\.get\(player\.id\)/);
+  assert.match(visibilityCss, /data-hud-slot="top-left"/);
+  assert.match(visibilityCss, /data-hud-slot="top-right"/);
+  assert.match(visibilityCss, /data-hud-slot="bottom-left"/);
+  assert.match(visibilityCss, /data-hud-slot="bottom-right"/);
+});
+
+test("online dice result gets a readable pause before authoritative movement", () => {
+  assert.match(indexHtml, /data-move-count-pop/);
+  assert.match(controllerSource, /MOVE_COUNT_HOLD_MS = 1200/);
+  assert.match(controllerSource, /await stage\?\.playRoll\(event\.dice\);/);
+  assert.match(controllerSource, /await showMoveCount\([\s\S]*state\.lastRoll\?\.total\)/);
+  assert.match(controllerSource, /`\$\{Number\(total\)\}칸 이동!`/);
+});
+
+test("online landing UX shows event results and stages skip before next turn", () => {
+  assert.match(controllerSource, /landedNode\?\.type === "EVENT"/);
+  assert.match(controllerSource, /openTileInfo\(state, landing\.nodeId, \{ source: "landing" \}\)/);
+  assert.match(controllerSource, /let choiceDeclinedPending = false/);
+  assert.match(controllerSource, /choiceDeclinedPending = true;\s*closeTileInfo\(\{ force: true \}\);\s*renderActionControls/);
+  assert.match(controllerSource, /건너뛰기를 선택했습니다\. 다음 턴을 눌러 차례를 넘겨 주세요/);
+});
+
+test("online choice modal prevents unaffordable buys from closing the game flow", () => {
+  assert.match(controllerSource, /actor\.money >= state\.pendingChoice\.price/);
+  assert.match(controllerSource, /tileInfoActionButton\.disabled = !canAfford/);
+  assert.match(controllerSource, /골드 부족 · \$\{money\(state\.pendingChoice\.price\)\} 필요/);
+  assert.match(controllerSource, /message\.includes\("INSUFFICIENT_GOLD"\)/);
+  assert.match(controllerSource, /if \(!isChoiceAction\) closeTileInfo/);
 });
 
 test("authoritative server migrations keep dice and turn decisions on Supabase", () => {

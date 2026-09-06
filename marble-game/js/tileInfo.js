@@ -9,6 +9,14 @@ function money(value, options = {}) {
   return formatThemeMoney(value, CLASSIC_RULES.currency, options);
 }
 
+function latestEvent(state, predicate) {
+  for (let index = state.lastEvents?.length - 1; index >= 0; index -= 1) {
+    const event = state.lastEvents[index];
+    if (predicate(event)) return event;
+  }
+  return null;
+}
+
 function propertyInfo(state, node) {
   const propertyState = state.boardState?.properties?.[node.id] ?? { ownerId: null, buildingLevel: 0 };
   const owner = propertyState.ownerId
@@ -37,6 +45,49 @@ function propertyInfo(state, node) {
     effect: owner
       ? "다른 플레이어가 도착하면 현재 건물 단계에 따른 통행료를 소유자에게 지불합니다."
       : "도착한 플레이어는 조건을 충족하면 이 도시를 구매할 수 있습니다.",
+    stats,
+  };
+}
+
+function eventInfo(state, node) {
+  const landed = latestEvent(state, (event) => event.type === "TILE_LANDED" && event.nodeId === node.id);
+  const drawn = landed
+    ? latestEvent(state, (event) => event.type === "EVENT_DRAWN" && event.playerId === landed.playerId)
+    : null;
+
+  if (!drawn) {
+    return {
+      title: node.label,
+      typeLabel: "이벤트",
+      summary: "도착하면 세계 여행 이벤트가 발생합니다.",
+      effect: "보너스 또는 비용 등 Classic 이벤트 중 하나가 적용됩니다.",
+      stats: [{ label: "효과", value: "랜덤 이벤트" }],
+    };
+  }
+
+  const moneyEvent = latestEvent(state, (event) => (
+    event.playerId === landed.playerId
+    && event.reason === "EVENT"
+    && ["MONEY_RECEIVED", "MONEY_PAID"].includes(event.type)
+  ));
+  const bankrupt = latestEvent(state, (event) => event.type === "PLAYER_BANKRUPT" && event.playerId === landed.playerId);
+  const stats = [{ label: "이벤트", value: drawn.label }];
+
+  if (moneyEvent?.type === "MONEY_RECEIVED") {
+    stats.push({ label: "골드 변화", value: money(moneyEvent.amount, { signed: true }) });
+  } else if (moneyEvent?.type === "MONEY_PAID") {
+    stats.push({ label: "골드 변화", value: money(-moneyEvent.amount, { signed: true }) });
+  } else if (bankrupt) {
+    stats.push({ label: "결과", value: "보유 골드 부족 · 파산" });
+  }
+
+  return {
+    title: node.label,
+    typeLabel: "이벤트",
+    summary: drawn.label,
+    effect: bankrupt
+      ? "이벤트 비용을 감당할 골드가 부족해 파산 처리되었습니다."
+      : "이번 이벤트 결과가 즉시 현재 플레이어에게 적용되었습니다.",
     stats,
   };
 }
@@ -78,15 +129,7 @@ export function createClassicTileInfo(state, nodeId, { startSalary = CLASSIC_RUL
     };
   }
 
-  if (node.type === "EVENT") {
-    return {
-      title: node.label,
-      typeLabel: "이벤트",
-      summary: "도착하면 세계 여행 이벤트가 발생합니다.",
-      effect: "보너스 또는 비용 등 Classic 이벤트 중 하나가 적용됩니다.",
-      stats: [{ label: "효과", value: "랜덤 이벤트" }],
-    };
-  }
+  if (node.type === "EVENT") return eventInfo(state, node);
 
   if (node.type === "START") {
     return {

@@ -6,7 +6,7 @@ import {
 } from "../../renderer/threeClassicPrototype.js";
 
 export const CLASSIC_OWNERSHIP_VISUAL_PROFILE = Object.freeze({
-  style: "outer-corner-flag-and-edge-trim",
+  style: "accent-strip-flag-and-edge-trim",
   ownerColors: Object.freeze([0x61b8ff, 0xff8c9f, 0xffd55a, 0x8bd48a]),
   flagHeight: 0.94,
   railDepth: 0.09,
@@ -88,9 +88,9 @@ function createClassicOwnershipMarker(entry, seat) {
   const dark = 0x31495f;
   const railWidth = Math.max(0.78, entry.tileLength * 0.7);
   const sideSign = seat % 2 === 0 ? 1 : -1;
-  const flagX = sideSign * Math.min(entry.tileLength * 0.43, 0.9);
+  const flagX = sideSign * Math.min(entry.tileLength * 0.32, 0.65);
   const outerEdgeZ = entry.tileDepth * 0.47;
-  const flagZ = entry.tileDepth * 0.43;
+  const accentStripZ = -(entry.tileDepth * 0.38);
 
   const rail = new THREE.Mesh(
     new THREE.BoxGeometry(railWidth, 0.055, CLASSIC_OWNERSHIP_VISUAL_PROFILE.railDepth),
@@ -112,7 +112,7 @@ function createClassicOwnershipMarker(entry, seat) {
     new THREE.CylinderGeometry(0.038, 0.048, CLASSIC_OWNERSHIP_VISUAL_PROFILE.flagHeight, 10),
     material(THREE, dark, { roughness: 0.42, metalness: 0.12 }),
   );
-  pole.position.set(flagX, 0.9, flagZ);
+  pole.position.set(flagX, 0.9, accentStripZ);
   pole.castShadow = true;
   group.add(pole);
 
@@ -120,7 +120,7 @@ function createClassicOwnershipMarker(entry, seat) {
     new THREE.CylinderGeometry(0.11, 0.145, 0.1, 12),
     material(THREE, gold, { roughness: 0.38, metalness: 0.22 }),
   );
-  pedestal.position.set(flagX, 0.46, flagZ);
+  pedestal.position.set(flagX, 0.47, accentStripZ);
   pedestal.castShadow = true;
   group.add(pedestal);
 
@@ -128,7 +128,7 @@ function createClassicOwnershipMarker(entry, seat) {
     new THREE.SphereGeometry(0.07, 12, 8),
     material(THREE, gold, { roughness: 0.32, metalness: 0.25 }),
   );
-  finial.position.set(flagX, 1.4, flagZ);
+  finial.position.set(flagX, 1.4, accentStripZ);
   finial.castShadow = true;
   group.add(finial);
 
@@ -140,7 +140,7 @@ function createClassicOwnershipMarker(entry, seat) {
       map: flagTexture,
     }),
   );
-  flagPanel.position.set(flagX - (sideSign * 0.25), 1.2, flagZ);
+  flagPanel.position.set(flagX - (sideSign * 0.25), 1.2, accentStripZ);
   flagPanel.castShadow = true;
   flagPanel.userData.phase = seat * 0.8;
   group.add(flagPanel);
