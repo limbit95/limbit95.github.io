@@ -77,7 +77,7 @@ async function withLocationCoordinates(payload) {
     };
   }
 
-  const coordinates = await resolveLocationCoordinates(locationName);
+  const coordinates = await resolveLocationCoordinates(locationName, payload.location_url);
   return {
     ...payload,
     location_latitude: coordinates?.latitude ?? null,
