@@ -3,6 +3,7 @@ export const DICE_STAGE_PROFILE = Object.freeze({
   dieSize: 1.18,
   settleHeight: 0.62,
   cameraPosition: Object.freeze([0, 5.4, 8.2]),
+  defaultStrength: 0.55,
 });
 
 export function normalizeDiceFace(value) {
@@ -11,6 +12,24 @@ export function normalizeDiceFace(value) {
     throw new RangeError(`Dice face must be an integer from 1 to 6: ${value}`);
   }
   return face;
+}
+
+export function normalizeRollStrength(value) {
+  const strength = Number(value);
+  if (!Number.isFinite(strength)) return DICE_STAGE_PROFILE.defaultStrength;
+  return Math.min(1, Math.max(0, strength));
+}
+
+export function rollAnimationProfile(value) {
+  const strength = normalizeRollStrength(value);
+  return Object.freeze({
+    strength,
+    durationMs: Math.round(720 + (strength * 620)),
+    throwHeight: 2.8 + (strength * 2.2),
+    horizontalSpread: 1.65 + (strength * 1.25),
+    bounceHeight: 0.42 + (strength * 0.78),
+    spinMultiplier: 0.72 + (strength * 0.95),
+  });
 }
 
 export function dieFaceNormal(value) {
@@ -195,9 +214,11 @@ export function createThreeDiceStage({
       resize();
     },
 
-    async playRoll(values) {
+    async playRoll(values, options = {}) {
       if (!diceRoot || !renderer) return;
       const faces = [normalizeDiceFace(values?.[0]), normalizeDiceFace(values?.[1])];
+      const strength = normalizeRollStrength(options.strength ?? target?.dataset?.rollStrength ?? DICE_STAGE_PROFILE.defaultStrength);
+      const motion = rollAnimationProfile(strength);
       preserveNextHide = false;
       diceRoot.visible = true;
 
@@ -209,8 +230,18 @@ export function createThreeDiceStage({
       }
 
       const starts = [
-        { x: -2.2, y: 3.4, z: -0.45, rotation: [0.5, 0.8, 0.35] },
-        { x: 2.15, y: 3.7, z: 0.4, rotation: [0.85, 0.35, 0.7] },
+        {
+          x: -(motion.horizontalSpread + 0.55),
+          y: motion.throwHeight,
+          z: -0.45,
+          rotation: [0.5, 0.8, 0.35],
+        },
+        {
+          x: motion.horizontalSpread + 0.5,
+          y: motion.throwHeight + 0.25,
+          z: 0.4,
+          rotation: [0.85, 0.35, 0.7],
+        },
       ];
       const ends = [
         { x: -0.82, z: 0.04 },
@@ -224,24 +255,26 @@ export function createThreeDiceStage({
             resolve();
             return;
           }
-          const progress = Math.min(1, (now - startedAt) / DICE_STAGE_PROFILE.durationMs);
+          const progress = Math.min(1, (now - startedAt) / motion.durationMs);
           const eased = 1 - ((1 - progress) ** 3);
 
           dice.forEach((die, index) => {
             const start = starts[index];
             const end = ends[index];
-            const bounce = Math.abs(Math.sin(progress * Math.PI * 3.4)) * 0.8 * (1 - progress);
+            const bounce = Math.abs(Math.sin(progress * Math.PI * (3.1 + strength)))
+              * motion.bounceHeight
+              * (1 - progress);
             die.position.x = start.x + ((end.x - start.x) * eased);
             die.position.z = start.z + ((end.z - start.z) * eased);
             die.position.y = DICE_STAGE_PROFILE.settleHeight
               + ((start.y - DICE_STAGE_PROFILE.settleHeight) * (1 - eased))
               + bounce;
             die.rotation.set(
-              start.rotation[0] + progress * Math.PI * (6 + faces[index]),
-              start.rotation[1] + progress * Math.PI * (8 + index * 2),
-              start.rotation[2] + progress * Math.PI * (5 + faces[1 - index]),
+              start.rotation[0] + progress * Math.PI * (6 + faces[index]) * motion.spinMultiplier,
+              start.rotation[1] + progress * Math.PI * (8 + index * 2) * motion.spinMultiplier,
+              start.rotation[2] + progress * Math.PI * (5 + faces[1 - index]) * motion.spinMultiplier,
             );
-            const squash = 1 - Math.sin(progress * Math.PI) * 0.05;
+            const squash = 1 - Math.sin(progress * Math.PI) * (0.035 + (strength * 0.03));
             die.scale.set(1 / squash, squash, 1 / squash);
           });
           render();

@@ -4,6 +4,7 @@ import { createThreeDiceStage } from "./diceStage.js";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
+import { createClassicTollNotice } from "./tollNotice.js";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 import { listThemes, requireTheme } from "./themes/themeRegistry.js";
@@ -42,6 +43,15 @@ const tileInfoCloseButton = document.querySelector("[data-tile-info-close]");
 const tileInfoConfirmButton = document.querySelector("[data-tile-info-confirm]");
 const tileInfoDeclineButton = document.querySelector("[data-tile-info-decline]");
 const tileInfoActionButton = document.querySelector("[data-tile-info-action]");
+const tollNoticeModal = document.querySelector("[data-toll-notice-modal]");
+const tollCity = document.querySelector("[data-toll-city]");
+const tollOwner = document.querySelector("[data-toll-owner]");
+const tollOwnerSeat = document.querySelector("[data-toll-owner-seat]");
+const tollAmount = document.querySelector("[data-toll-amount]");
+const tollEffect = document.querySelector("[data-toll-effect]");
+const tollConfirmButton = document.querySelector("[data-toll-confirm]");
+
+const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -177,6 +187,26 @@ function closeTileInfo({ force = false } = {}) {
   resetTileInfoActions();
 }
 
+function closeTollNotice() {
+  if (!tollNoticeModal) return;
+  if (typeof tollNoticeModal.close === "function" && tollNoticeModal.open) tollNoticeModal.close();
+  else tollNoticeModal.removeAttribute("open");
+}
+
+function openTollNotice(notice) {
+  if (!tollNoticeModal || !notice) return;
+  closeTileInfo({ force: true });
+  tollCity.textContent = notice.city;
+  tollOwner.textContent = notice.ownerName;
+  tollOwnerSeat.textContent = `P${notice.ownerSeat + 1}`;
+  tollOwnerSeat.style.setProperty("--toll-owner", TOLL_OWNER_COLORS[notice.ownerSeat] ?? TOLL_OWNER_COLORS[0]);
+  tollAmount.textContent = notice.amountLabel;
+  tollEffect.textContent = notice.effect;
+  if (tollNoticeModal.open) return;
+  if (typeof tollNoticeModal.showModal === "function") tollNoticeModal.showModal();
+  else tollNoticeModal.setAttribute("open", "");
+}
+
 function configureTileInfoChoice(state, nodeId, source) {
   resetTileInfoActions();
   if (source !== "landing") return;
@@ -207,6 +237,7 @@ function openTileInfo(state, nodeId, { source = "inspect" } = {}) {
   const info = createClassicTileInfo(state, nodeId);
   if (!info) return;
 
+  closeTollNotice();
   tileInfoType.textContent = info.typeLabel;
   tileInfoTitle.textContent = info.title;
   tileInfoSummary.textContent = info.summary;
@@ -529,6 +560,7 @@ async function runSessionAction(actionName) {
 
   try {
     if (tileInfoModal?.dataset.mode === "choice") closeTileInfo({ force: true });
+    closeTollNotice();
 
     if (actionName === "roll") localSession.roll();
     else if (actionName === "buy") localSession.buy();
@@ -543,8 +575,13 @@ async function runSessionAction(actionName) {
     await playStateEvents(state);
     showImportantNotice(state);
 
-    const landedNodeId = latestLandedNodeId(state);
-    if (landedNodeId) openTileInfo(state, landedNodeId, { source: "landing" });
+    const tollNotice = createClassicTollNotice(state);
+    if (tollNotice) {
+      openTollNotice(tollNotice);
+    } else {
+      const landedNodeId = latestLandedNodeId(state);
+      if (landedNodeId) openTileInfo(state, landedNodeId, { source: "landing" });
+    }
   } catch (error) {
     gameMessage.textContent = error instanceof Error ? error.message : "게임 액션 처리 중 오류가 발생했습니다.";
   } finally {
@@ -554,6 +591,7 @@ async function runSessionAction(actionName) {
 
 function startLocalPlaytest() {
   closeTileInfo({ force: true });
+  closeTollNotice();
   diceStage?.hide();
   localSession = createLocalClassicSession();
   eventHistory = [];
@@ -590,6 +628,8 @@ tileInfoActionButton?.addEventListener("click", () => {
 tileInfoModal?.addEventListener("cancel", (event) => {
   if (tileInfoModal.dataset.mode === "choice") event.preventDefault();
 });
+tollConfirmButton?.addEventListener("click", closeTollNotice);
+tollNoticeModal?.addEventListener("cancel", closeTollNotice);
 
 renderThemeCards();
 renderSelectedTheme();

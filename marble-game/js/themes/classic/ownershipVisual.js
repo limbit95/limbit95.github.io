@@ -6,10 +6,10 @@ import {
 } from "../../renderer/threeClassicPrototype.js";
 
 export const CLASSIC_OWNERSHIP_VISUAL_PROFILE = Object.freeze({
-  style: "flag-and-ownership-rail",
+  style: "outer-corner-flag-and-edge-trim",
   ownerColors: Object.freeze([0x61b8ff, 0xff8c9f, 0xffd55a, 0x8bd48a]),
-  flagHeight: 1.16,
-  railDepth: 0.3,
+  flagHeight: 0.94,
+  railDepth: 0.09,
 });
 
 function ownerSeatFromTile(tile) {
@@ -29,8 +29,8 @@ function ownerColor(seat) {
 
 function createFlagTexture(THREE_NS, seat) {
   const canvas = document.createElement("canvas");
-  canvas.width = 384;
-  canvas.height = 224;
+  canvas.width = 320;
+  canvas.height = 192;
   const context = canvas.getContext("2d");
   const color = new THREE_NS.Color(ownerColor(seat));
 
@@ -41,27 +41,27 @@ function createFlagTexture(THREE_NS, seat) {
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   context.strokeStyle = "rgba(255, 244, 196, 0.95)";
-  context.lineWidth = 18;
-  context.strokeRect(9, 9, canvas.width - 18, canvas.height - 18);
+  context.lineWidth = 14;
+  context.strokeRect(7, 7, canvas.width - 14, canvas.height - 14);
 
   context.beginPath();
-  context.arc(92, 112, 52, 0, Math.PI * 2);
+  context.arc(76, 96, 40, 0, Math.PI * 2);
   context.fillStyle = "rgba(255, 239, 177, 0.96)";
   context.fill();
   context.strokeStyle = "rgba(115, 81, 28, 0.42)";
-  context.lineWidth = 7;
+  context.lineWidth = 6;
   context.stroke();
 
   context.fillStyle = "#24384c";
-  context.font = "900 58px system-ui, sans-serif";
+  context.font = "900 46px system-ui, sans-serif";
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillText(String(seat + 1), 92, 113);
+  context.fillText(String(seat + 1), 76, 97);
 
   context.fillStyle = "rgba(255,255,255,0.96)";
-  context.font = "900 64px system-ui, sans-serif";
+  context.font = "900 52px system-ui, sans-serif";
   context.textAlign = "left";
-  context.fillText(`P${seat + 1}`, 166, 116);
+  context.fillText(`P${seat + 1}`, 138, 99);
 
   const texture = new THREE_NS.CanvasTexture(canvas);
   texture.colorSpace = THREE_NS.SRGBColorSpace;
@@ -86,59 +86,61 @@ function createClassicOwnershipMarker(entry, seat) {
   const color = ownerColor(seat);
   const gold = 0xf6d36b;
   const dark = 0x31495f;
-  const railWidth = Math.max(0.9, entry.tileLength * 0.82);
-  const flagX = Math.min(entry.tileLength * 0.31, 0.66);
-  const flagZ = -(entry.tileDepth * 0.31);
+  const railWidth = Math.max(0.78, entry.tileLength * 0.7);
+  const sideSign = seat % 2 === 0 ? 1 : -1;
+  const flagX = sideSign * Math.min(entry.tileLength * 0.43, 0.9);
+  const outerEdgeZ = entry.tileDepth * 0.47;
+  const flagZ = entry.tileDepth * 0.43;
 
   const rail = new THREE.Mesh(
-    new THREE.BoxGeometry(railWidth, 0.1, CLASSIC_OWNERSHIP_VISUAL_PROFILE.railDepth),
+    new THREE.BoxGeometry(railWidth, 0.055, CLASSIC_OWNERSHIP_VISUAL_PROFILE.railDepth),
     material(THREE, color, { roughness: 0.46 }),
   );
-  rail.position.set(0, 0.48, -(entry.tileDepth * 0.39));
-  rail.castShadow = true;
+  rail.position.set(0, 0.41, outerEdgeZ);
+  rail.castShadow = false;
   rail.receiveShadow = true;
   group.add(rail);
 
   const railCap = new THREE.Mesh(
-    new THREE.BoxGeometry(railWidth * 0.88, 0.045, 0.08),
+    new THREE.BoxGeometry(railWidth * 0.86, 0.028, 0.035),
     material(THREE, gold, { roughness: 0.4, metalness: 0.2 }),
   );
-  railCap.position.set(0, 0.55, -(entry.tileDepth * 0.39));
+  railCap.position.set(0, 0.445, outerEdgeZ);
   group.add(railCap);
 
   const pole = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.045, 0.055, CLASSIC_OWNERSHIP_VISUAL_PROFILE.flagHeight, 10),
+    new THREE.CylinderGeometry(0.038, 0.048, CLASSIC_OWNERSHIP_VISUAL_PROFILE.flagHeight, 10),
     material(THREE, dark, { roughness: 0.42, metalness: 0.12 }),
   );
-  pole.position.set(flagX, 1.04, flagZ);
+  pole.position.set(flagX, 0.9, flagZ);
   pole.castShadow = true;
   group.add(pole);
 
   const pedestal = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.13, 0.17, 0.12, 12),
+    new THREE.CylinderGeometry(0.11, 0.145, 0.1, 12),
     material(THREE, gold, { roughness: 0.38, metalness: 0.22 }),
   );
-  pedestal.position.set(flagX, 0.5, flagZ);
+  pedestal.position.set(flagX, 0.46, flagZ);
   pedestal.castShadow = true;
   group.add(pedestal);
 
   const finial = new THREE.Mesh(
-    new THREE.SphereGeometry(0.085, 12, 8),
+    new THREE.SphereGeometry(0.07, 12, 8),
     material(THREE, gold, { roughness: 0.32, metalness: 0.25 }),
   );
-  finial.position.set(flagX, 1.64, flagZ);
+  finial.position.set(flagX, 1.4, flagZ);
   finial.castShadow = true;
   group.add(finial);
 
   const flagTexture = createFlagTexture(THREE, seat);
   const flagPanel = new THREE.Mesh(
-    new THREE.BoxGeometry(0.74, 0.42, 0.055),
+    new THREE.BoxGeometry(0.56, 0.32, 0.045),
     material(THREE, 0xffffff, {
       roughness: 0.52,
       map: flagTexture,
     }),
   );
-  flagPanel.position.set(flagX - 0.34, 1.4, flagZ);
+  flagPanel.position.set(flagX - (sideSign * 0.25), 1.2, flagZ);
   flagPanel.castShadow = true;
   flagPanel.userData.phase = seat * 0.8;
   group.add(flagPanel);
@@ -245,7 +247,7 @@ export function createClassicOwnershipVisual({ stageElement, stateBoardElement }
     if (disposed) return;
     const time = now / 1000;
     markerPanels.forEach((panel) => {
-      panel.rotation.z = Math.sin((time * 1.8) + panel.userData.phase) * 0.018;
+      panel.rotation.z = Math.sin((time * 1.8) + panel.userData.phase) * 0.014;
     });
     renderScene();
     animationFrame = requestAnimationFrame(animate);
