@@ -100,13 +100,14 @@ export function contentDialog({
   content,
   closeText = "닫기",
   showCloseAction = true,
+  dialogClassName = "",
 }) {
   if (activeModal) closeModal(false);
   return new Promise((resolve) => {
     const previousFocus = document.activeElement;
     const backdrop = el("div", { className: "modal-backdrop" });
     const dialog = el("section", {
-      className: "modal",
+      className: `modal ${dialogClassName}`.trim(),
       role: "dialog",
       "aria-modal": "true",
       "aria-labelledby": "content-dialog-title",
