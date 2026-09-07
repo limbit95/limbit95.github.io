@@ -39,19 +39,30 @@ export async function getCurrentPushSubscription() {
   return currentRegistration.pushManager.getSubscription();
 }
 
-async function saveSubscription(subscription, userId) {
+async function saveSubscription(subscription) {
   const json = subscription.toJSON();
-  const { error } = await supabase.from("push_subscriptions").upsert({
-    user_id: userId,
-    endpoint: subscription.endpoint,
-    p256dh: json.keys?.p256dh,
-    auth: json.keys?.auth,
-    user_agent: navigator.userAgent || null,
-  }, { onConflict: "endpoint" });
+  const { error } = await supabase.rpc("claim_push_subscription", {
+    p_endpoint: subscription.endpoint,
+    p_p256dh: json.keys?.p256dh,
+    p_auth: json.keys?.auth,
+    p_user_agent: navigator.userAgent || null,
+  });
   if (error) throw error;
 }
 
-export async function enablePushNotifications(userId) {
+export async function getPushNotificationState() {
+  const subscription = await getCurrentPushSubscription();
+  if (!subscription) return { subscription: null, owned: false };
+  const { data, error } = await supabase
+    .from("push_subscriptions")
+    .select("endpoint")
+    .eq("endpoint", subscription.endpoint)
+    .maybeSingle();
+  if (error) throw error;
+  return { subscription, owned: data?.endpoint === subscription.endpoint };
+}
+
+export async function enablePushNotifications() {
   const capability = getPushCapability();
   if (!capability.supported) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
   if (capability.requiresIosInstall) throw new Error("iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.");
@@ -71,18 +82,18 @@ export async function enablePushNotifications(userId) {
     userVisibleOnly: true,
     applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
   });
-  await saveSubscription(subscription, userId);
+  await saveSubscription(subscription);
   return subscription;
 }
 
 export async function disablePushNotifications() {
   const subscription = await getCurrentPushSubscription();
   if (!subscription) return false;
-  const { error } = await supabase
-    .from("push_subscriptions")
-    .delete()
-    .eq("endpoint", subscription.endpoint);
+  const { data: removed, error } = await supabase.rpc("remove_own_push_subscription", {
+    p_endpoint: subscription.endpoint,
+  });
   if (error) throw error;
+  if (!removed) return false;
   await subscription.unsubscribe();
   return true;
 }
