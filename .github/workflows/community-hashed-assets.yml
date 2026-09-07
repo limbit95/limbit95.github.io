@@ -5,7 +5,6 @@ on:
     branches:
       - "feature/**"
       - "integration/activity-registration-ready"
-      - "fix/activity-page-consistency"
     paths:
       - "js/**"
       - "index.template.html"
@@ -31,84 +30,21 @@ jobs:
         with:
           node-version: 22
 
-      - name: Apply scoped activity page fixes
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          def replace_once(path, old, new):
-              file = Path(path)
-              text = file.read_text()
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f"{path}: expected one match, found {count}")
-              file.write_text(text.replace(old, new, 1))
-
-          replace_once(
-              "js/components/header.js",
-              "  actions.append(adminLink, notificationWrap, logoutButton);",
-              "  if (adminLink) actions.append(adminLink);\n  actions.append(notificationWrap, logoutButton);",
-          )
-
-          replace_once(
-              "js/pages/activityDetail.js",
-              '    event.preparation ? el("section", { className: "card page-stack activity-detail__content-card" }, [\n      el("h2", { className: "section-title", text: "🎒 준비물" }),\n      el("p", { className: "prose", text: event.preparation }),\n    ]) : null,\n    event.participant_notice ? el("section", { className: "notice-box notice-box--warning" }, [\n      el("strong", { text: "참여자 주의사항" }),\n      el("p", { className: "prose", text: event.participant_notice }),\n    ]) : null,',
-              '    el("section", { className: "card page-stack activity-detail__content-card" }, [\n      el("h2", { className: "section-title", text: "🎒 준비물" }),\n      el("p", { className: "prose", text: event.preparation ?? "" }),\n    ]),\n    el("section", { className: "notice-box notice-box--warning" }, [\n      el("strong", { text: "참여자 주의사항" }),\n      el("p", { className: "prose", text: event.participant_notice ?? "" }),\n    ]),',
-          )
-
-          replace_once(
-              "js/pages/activities/calendarView.js",
-              '    statuses: ["scheduled", "closed", "completed", "cancelled"],',
-              '    statuses: ["scheduled", "closed", "completed"],',
-          )
-
-          replace_once(
-              "css/pages.css",
-              '.activity-card__header { display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; padding-left: .35rem; }',
-              '.activity-card__header {\n  display: grid;\n  grid-template-columns: minmax(0, 1fr) auto;\n  gap: .45rem .8rem;\n  align-items: start;\n  padding-left: .35rem;\n}\n.activity-card__header > :first-child { display: contents; }\n.activity-card__header .eyebrow { grid-column: 1; grid-row: 1; min-width: 0; }\n.activity-card__title-link { grid-column: 1 / -1; grid-row: 2; min-width: 0; width: 100%; }\n.activity-card__header .status-badge { grid-column: 2; grid-row: 1; justify-self: end; white-space: nowrap; }',
-          )
-
-          replace_once(
-              "css/activity-detail.css",
-              '.activity-detail__content-card {\n  min-width: 0;\n  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));\n}',
-              '.activity-detail__content-card {\n  min-width: 0;\n  align-content: start;\n  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));\n}',
-          )
-
-          replace_once(
-              "css/activity-detail.css",
-              '  border: 1px solid rgba(116, 157, 173, .15);\n  border-top: 8px solid var(--category-color, rgba(116, 157, 173, .2));\n  border-radius: var(--radius-md);\n  background: var(--surface);\n  color: var(--ink);',
-              '  border: 1px solid #eadcaf;\n  border-top: 8px solid var(--yellow-600);\n  border-radius: var(--radius-md);\n  background: var(--yellow-100);\n  color: #654a08;',
-          )
-
-          replace_once(
-              "css/activity-detail.css",
-              '.activity-detail__body > .notice-box--warning > strong {\n  color: var(--forest-900);',
-              '.activity-detail__body > .notice-box--warning > strong {\n  color: #654a08;',
-          )
-          PY
-
       - name: Install build dependencies
         run: npm install --no-audit --no-fund
 
       - name: Build content-hashed community assets
         run: npm run build:assets
 
-      - name: Check modified JavaScript syntax
-        run: |
-          node --check js/components/header.js
-          node --check js/pages/activityDetail.js
-          node --check js/pages/activities/calendarView.js
-
       - name: Commit generated deployment assets
         shell: bash
         run: |
-          git add js/components/header.js js/pages/activityDetail.js js/pages/activities/calendarView.js css/pages.css css/activity-detail.css package-lock.json index.html assets/build
+          git add package-lock.json index.html assets/build
           if git diff --cached --quiet; then
-            echo "Activity page fixes and hashed assets are already current."
+            echo "Hashed assets are already current."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix: 활동 화면 표시와 취소 동작 일관성 개선"
+          git commit -m "Build content-hashed community assets"
           git push origin HEAD:${GITHUB_REF_NAME}
