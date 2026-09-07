@@ -5,6 +5,7 @@ on:
     branches:
       - "feature/**"
       - "integration/activity-registration-ready"
+      - "refactor/naver-map-only-location"
     paths:
       - "js/**"
       - "index.template.html"
