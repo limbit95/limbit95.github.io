@@ -31,7 +31,7 @@ function validKoreaCoordinates(latitude: number, longitude: number) {
 }
 
 function trustedNaverMapUrl(url: URL) {
-  if (url.protocol !== "https:") return false;
+  if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
 
   const hostname = url.hostname.toLocaleLowerCase("en-US");
   return hostname === NAVER_SHORT_HOST
@@ -42,11 +42,8 @@ function trustedNaverMapUrl(url: URL) {
 }
 
 function validShortUrl(url: URL) {
-  return url.protocol === "https:"
+  return trustedNaverMapUrl(url)
     && url.hostname.toLocaleLowerCase("en-US") === NAVER_SHORT_HOST
-    && !url.username
-    && !url.password
-    && !url.port
     && /^\/[A-Za-z0-9_-]+\/?$/.test(url.pathname);
 }
 
@@ -134,6 +131,13 @@ function coordinatesFromHtml(html: string) {
   return null;
 }
 
+function placeIdFromUrl(url: URL) {
+  const pathname = decodeURIComponent(url.pathname);
+  const match = pathname.match(/\/(?:entry\/)?place\/(\d+)(?:\/|$)/i)
+    ?? pathname.match(/\/(?:restaurant|cafe|hairshop|hospital|accommodation|attraction)\/(\d+)(?:\/|$)/i);
+  return match?.[1] ?? null;
+}
+
 async function fetchResolvedNaverUrl(initialUrl: URL) {
   let currentUrl = initialUrl;
 
@@ -163,6 +167,22 @@ async function fetchResolvedNaverUrl(initialUrl: URL) {
   }
 
   throw new Error("TOO_MANY_REDIRECTS");
+}
+
+async function coordinatesFromResponse(response: Response, resolvedUrl: URL) {
+  const urlCoordinates = coordinatesFromUrl(resolvedUrl);
+  if (urlCoordinates) return urlCoordinates;
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("text/html") && !contentType.includes("application/json")) return null;
+  return coordinatesFromHtml(await response.text());
+}
+
+async function coordinatesFromPlaceId(placeId: string) {
+  const placeUrl = new URL(`https://m.place.naver.com/place/${placeId}/home`);
+  const { response, resolvedUrl } = await fetchResolvedNaverUrl(placeUrl);
+  if (!response.ok) return null;
+  return coordinatesFromResponse(response, resolvedUrl);
 }
 
 Deno.serve(async (req: Request) => {
@@ -195,13 +215,10 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "NAVER_REQUEST_FAILED", status: response.status }, 502);
     }
 
-    let coordinates = coordinatesFromUrl(resolvedUrl);
+    let coordinates = await coordinatesFromResponse(response, resolvedUrl);
     if (!coordinates) {
-      const contentType = response.headers.get("content-type") ?? "";
-      if (contentType.includes("text/html")) {
-        const html = await response.text();
-        coordinates = coordinatesFromHtml(html);
-      }
+      const placeId = placeIdFromUrl(resolvedUrl);
+      if (placeId) coordinates = await coordinatesFromPlaceId(placeId);
     }
 
     return jsonResponse({
