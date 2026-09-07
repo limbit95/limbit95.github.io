@@ -26,5 +26,11 @@ export const KAKAO_JAVASCRIPT_KEY = "YOUR_KAKAO_JAVASCRIPT_KEY";
  */
 export const KAKAO_SHARE_TEMPLATE_ID = null;
 
+/**
+ * Web Push VAPID 공개키입니다. 공개키만 브라우저에 두고 Private Key는
+ * Supabase Edge Function Secret으로만 관리하세요.
+ */
+export const WEB_PUSH_VAPID_PUBLIC_KEY = "YOUR_VAPID_PUBLIC_KEY";
+
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-01";
