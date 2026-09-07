@@ -79,11 +79,14 @@ function coordinatesFromUrl(url: URL) {
   return coordinatePair(pathMatch[1], pathMatch[2]);
 }
 
-function coordinatesFromHtml(html: string) {
-  const normalized = html
+function normalizedHtml(html: string) {
+  return html
     .replaceAll("&quot;", '"')
     .replaceAll("\\\"", '"');
+}
 
+function coordinatesFromHtml(html: string) {
+  const normalized = normalizedHtml(html);
   const patterns = [
     {
       regex: /"latitude"\s*:\s*"?(-?\d+(?:\.\d+)?)"?[\s\S]{0,180}?"longitude"\s*:\s*"?(-?\d+(?:\.\d+)?)"?/i,
@@ -131,6 +134,15 @@ function coordinatesFromHtml(html: string) {
   return null;
 }
 
+function addressFromHtml(html: string) {
+  const normalized = normalizedHtml(html);
+  const roadAddress = normalized.match(/"roadAddress"\s*:\s*"([^"\\]{4,160})"/i)?.[1];
+  if (roadAddress) return roadAddress.trim();
+
+  const address = normalized.match(/"address"\s*:\s*"([^"\\]{4,160})"/i)?.[1];
+  return address?.trim() || null;
+}
+
 function placeIdFromUrl(url: URL) {
   const pathname = decodeURIComponent(url.pathname);
   const match = pathname.match(/\/(?:entry\/)?place\/(\d+)(?:\/|$)/i)
@@ -169,20 +181,27 @@ async function fetchResolvedNaverUrl(initialUrl: URL) {
   throw new Error("TOO_MANY_REDIRECTS");
 }
 
-async function coordinatesFromResponse(response: Response, resolvedUrl: URL) {
+async function placeDataFromResponse(response: Response, resolvedUrl: URL) {
   const urlCoordinates = coordinatesFromUrl(resolvedUrl);
-  if (urlCoordinates) return urlCoordinates;
+  if (urlCoordinates) return { coordinates: urlCoordinates, address: null };
 
   const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("text/html") && !contentType.includes("application/json")) return null;
-  return coordinatesFromHtml(await response.text());
+  if (!contentType.includes("text/html") && !contentType.includes("application/json")) {
+    return { coordinates: null, address: null };
+  }
+
+  const html = await response.text();
+  return {
+    coordinates: coordinatesFromHtml(html),
+    address: addressFromHtml(html),
+  };
 }
 
-async function coordinatesFromPlaceId(placeId: string) {
+async function placeDataFromPlaceId(placeId: string) {
   const placeUrl = new URL(`https://m.place.naver.com/place/${placeId}/home`);
   const { response, resolvedUrl } = await fetchResolvedNaverUrl(placeUrl);
-  if (!response.ok) return null;
-  return coordinatesFromResponse(response, resolvedUrl);
+  if (!response.ok) return { coordinates: null, address: null };
+  return placeDataFromResponse(response, resolvedUrl);
 }
 
 Deno.serve(async (req: Request) => {
@@ -215,16 +234,23 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "NAVER_REQUEST_FAILED", status: response.status }, 502);
     }
 
-    let coordinates = await coordinatesFromResponse(response, resolvedUrl);
-    if (!coordinates) {
+    let placeData = await placeDataFromResponse(response, resolvedUrl);
+    if (!placeData.coordinates) {
       const placeId = placeIdFromUrl(resolvedUrl);
-      if (placeId) coordinates = await coordinatesFromPlaceId(placeId);
+      if (placeId) {
+        const fallbackData = await placeDataFromPlaceId(placeId);
+        placeData = {
+          coordinates: fallbackData.coordinates ?? placeData.coordinates,
+          address: fallbackData.address ?? placeData.address,
+        };
+      }
     }
 
     return jsonResponse({
       resolved_url: resolvedUrl.toString(),
-      latitude: coordinates?.latitude ?? null,
-      longitude: coordinates?.longitude ?? null,
+      latitude: placeData.coordinates?.latitude ?? null,
+      longitude: placeData.coordinates?.longitude ?? null,
+      address: placeData.address,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
