@@ -41,10 +41,12 @@ function trustedNaverMapUrl(url: URL) {
     || hostname.endsWith(".place.naver.com");
 }
 
-function validShortUrl(url: URL) {
-  return trustedNaverMapUrl(url)
-    && url.hostname.toLocaleLowerCase("en-US") === NAVER_SHORT_HOST
-    && /^\/[A-Za-z0-9_-]+\/?$/.test(url.pathname);
+function validResolverUrl(url: URL) {
+  if (!trustedNaverMapUrl(url)) return false;
+
+  const hostname = url.hostname.toLocaleLowerCase("en-US");
+  if (hostname !== NAVER_SHORT_HOST) return true;
+  return /^\/[A-Za-z0-9_-]+\/?$/.test(url.pathname);
 }
 
 function coordinatePair(latitudeValue: string | null, longitudeValue: string | null) {
@@ -218,18 +220,18 @@ Deno.serve(async (req: Request) => {
     const rawUrl = String(payload?.url ?? "").trim();
     if (!rawUrl) return jsonResponse({ error: "URL_REQUIRED" }, 400);
 
-    let shortUrl: URL;
+    let mapUrl: URL;
     try {
-      shortUrl = new URL(rawUrl);
+      mapUrl = new URL(rawUrl);
     } catch {
       return jsonResponse({ error: "INVALID_URL" }, 400);
     }
 
-    if (!validShortUrl(shortUrl)) {
+    if (!validResolverUrl(mapUrl)) {
       return jsonResponse({ error: "UNSUPPORTED_URL" }, 400);
     }
 
-    const { response, resolvedUrl } = await fetchResolvedNaverUrl(shortUrl);
+    const { response, resolvedUrl } = await fetchResolvedNaverUrl(mapUrl);
     if (!response.ok) {
       return jsonResponse({ error: "NAVER_REQUEST_FAILED", status: response.status }, 502);
     }

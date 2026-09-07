@@ -3,20 +3,29 @@ import { resolveLocationCoordinates } from "./location-geocoding.js";
 import { supabase } from "./supabaseClient.js";
 
 const NAVER_SHORT_HOST = "naver.me";
-const shortLinkCache = new Map();
+const NAVER_MAP_HOSTS = new Set([
+  "map.naver.com",
+  "m.map.naver.com",
+  "place.naver.com",
+]);
+const naverLinkCache = new Map();
 
 function normalizedText(value) {
   return String(value ?? "").trim();
 }
 
-function isNaverShortMapUrl(value) {
+function isNaverMapUrl(value) {
   const rawUrl = normalizedText(value);
   if (!rawUrl) return false;
 
   try {
     const url = new URL(rawUrl);
-    return url.protocol === "https:"
-      && url.hostname.toLocaleLowerCase("en-US") === NAVER_SHORT_HOST;
+    if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
+
+    const hostname = url.hostname.toLocaleLowerCase("en-US");
+    return hostname === NAVER_SHORT_HOST
+      || NAVER_MAP_HOSTS.has(hostname)
+      || hostname.endsWith(".place.naver.com");
   } catch {
     return false;
   }
@@ -37,12 +46,12 @@ function validCoordinatePair(latitude, longitude) {
     && longitude <= 180;
 }
 
-async function resolveNaverShortMapLink(locationUrl) {
+async function resolveNaverMapLink(locationUrl) {
   const rawUrl = normalizedText(locationUrl);
-  if (!isNaverShortMapUrl(rawUrl) || !supabase?.functions?.invoke) return null;
+  if (!isNaverMapUrl(rawUrl) || !supabase?.functions?.invoke) return null;
 
-  if (!shortLinkCache.has(rawUrl)) {
-    shortLinkCache.set(rawUrl, (async () => {
+  if (!naverLinkCache.has(rawUrl)) {
+    naverLinkCache.set(rawUrl, (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("resolve-map-link", {
           body: { url: rawUrl },
@@ -65,7 +74,7 @@ async function resolveNaverShortMapLink(locationUrl) {
     })());
   }
 
-  return shortLinkCache.get(rawUrl);
+  return naverLinkCache.get(rawUrl);
 }
 
 export async function resolveActivityLocationCoordinates(locationName, locationUrl = "") {
@@ -75,7 +84,7 @@ export async function resolveActivityLocationCoordinates(locationName, locationU
   const linkCoordinates = await resolveLocationCoordinates("", locationUrl);
   if (linkCoordinates) return linkCoordinates;
 
-  const resolvedLink = await resolveNaverShortMapLink(locationUrl);
+  const resolvedLink = await resolveNaverMapLink(locationUrl);
   if (resolvedLink) {
     const resolvedUrlCoordinates = resolvedLink.url
       ? await resolveLocationCoordinates("", resolvedLink.url)
