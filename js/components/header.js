@@ -313,7 +313,8 @@ export function createHeader({ auth, currentPath, onLogout }) {
     text: "로그아웃",
     onClick: onLogout,
   });
-  actions.append(adminLink, notificationWrap, logoutButton);
+  if (adminLink) actions.append(adminLink);
+  actions.append(notificationWrap, logoutButton);
   inner.append(brand, nav, actions);
   header.append(inner);
   return header;

@@ -16,7 +16,7 @@ export async function renderActivityCalendar(route, categoryId, search) {
     search,
     fromDate: localDateString(gridStart),
     toDate: localDateString(gridEnd),
-    statuses: ["scheduled", "closed", "completed", "cancelled"],
+    statuses: ["scheduled", "closed", "completed"],
   });
   const byDate = new Map();
   events.forEach((event) => {
