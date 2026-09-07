@@ -53,6 +53,7 @@ async function resolveNaverShortMapLink(locationUrl) {
         const longitude = coordinateValue(data.longitude);
         return {
           url: resolvedUrl || rawUrl,
+          address: normalizedText(data.address),
           coordinates: validCoordinatePair(latitude, longitude)
             ? { latitude, longitude }
             : null,
@@ -76,6 +77,11 @@ export async function resolveActivityLocationCoordinates(locationName, locationU
   const resolvedUrlCoordinates = resolvedLink.url
     ? await resolveLocationCoordinates("", resolvedLink.url)
     : null;
+  if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
 
-  return resolvedUrlCoordinates ?? resolvedLink.coordinates;
+  const addressCoordinates = resolvedLink.address
+    ? await resolveLocationCoordinates(resolvedLink.address, resolvedLink.url)
+    : null;
+
+  return addressCoordinates ?? resolvedLink.coordinates;
 }
