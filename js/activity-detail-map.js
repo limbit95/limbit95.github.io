@@ -1,8 +1,8 @@
+import { resolveActivityLocationCoordinates } from "./activity-location-resolution.js";
 import { NAVER_MAPS_CLIENT_ID } from "./config.js";
 import {
   locationCoordinates,
   locationSearchCandidates,
-  resolveLocationCoordinates,
 } from "./location-geocoding.js";
 
 const DETAIL_BODY_SELECTOR = ".activity-detail__body";
@@ -96,7 +96,7 @@ async function geocodeWithNaver(naver, locationName, locationUrl = "") {
 async function resolveMapCoordinates(naver, locationName, event = null) {
   const locationUrl = event?.location_url ?? "";
   return locationCoordinates(event ?? {})
-    ?? await resolveLocationCoordinates(locationName, locationUrl)
+    ?? await resolveActivityLocationCoordinates(locationName, locationUrl)
     ?? await geocodeWithNaver(naver, locationName, locationUrl);
 }
 
