@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const migrationPath = "supabase/site/migrations/20260907090000_add_web_push_notifications.sql";
-const ownershipMigrationPath = "supabase/site/migrations/20260907120000_secure_push_subscription_ownership.sql";
+const migrationPath = "supabase/site/migrations/20260907213921_add_web_push_notifications.sql";
+const ownershipMigrationPath = "supabase/site/migrations/20260907213932_secure_push_subscription_ownership.sql";
 
 test("participation RPCs create only the three owner notification types", async () => {
   const sql = await readFile(migrationPath, "utf8");
