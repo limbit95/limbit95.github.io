@@ -12,8 +12,8 @@ export const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_XlcGQYXgXwTBJ5U3qwZKSA_y
 export const NAVER_MAPS_CLIENT_ID = "id0qqnxuzt";
 
 /**
- * Kakao Developers > 앱 > 플랫폼 키에서 발급한 JavaScript 키를 입력하세요.
- * JavaScript SDK 도메인과 제품 링크 웹 도메인에는 실제 배포 도메인을 등록해야 합니다.
+ * 카카오톡 활동 공유 기능 전용 JavaScript 키입니다.
+ * 지도 및 장소 검색에는 사용하지 않습니다.
  */
 export const KAKAO_JAVASCRIPT_KEY = "aa3cd4565d7eb703f952207b09b5ca19";
 
