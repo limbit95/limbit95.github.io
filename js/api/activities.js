@@ -1,4 +1,4 @@
-import { resolveLocationCoordinates } from "../location-geocoding.js";
+import { resolveActivityLocationCoordinates } from "../activity-location-resolution.js";
 import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
@@ -77,7 +77,7 @@ async function withLocationCoordinates(payload) {
     };
   }
 
-  const coordinates = await resolveLocationCoordinates(locationName, payload.location_url);
+  const coordinates = await resolveActivityLocationCoordinates(locationName, payload.location_url);
   return {
     ...payload,
     location_latitude: coordinates?.latitude ?? null,
@@ -179,9 +179,16 @@ export async function createEvent(payload) {
 
 export async function createRecurringEvent(seriesPayload, occurrencePayloads) {
   const locationSeriesPayload = await withLocationCoordinates(seriesPayload);
+  const locationCoordinates = {
+    location_latitude: locationSeriesPayload.location_latitude ?? null,
+    location_longitude: locationSeriesPayload.location_longitude ?? null,
+  };
   return unwrap(await supabase.rpc("create_recurring_event", {
     p_series: compact(locationSeriesPayload),
-    p_occurrences: (occurrencePayloads ?? []).map(compact),
+    p_occurrences: (occurrencePayloads ?? []).map((occurrence) => compact({
+      ...occurrence,
+      ...locationCoordinates,
+    })),
   }));
 }
 
