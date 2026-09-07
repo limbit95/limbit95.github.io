@@ -21,6 +21,12 @@ function isNaverShortMapUrl(value) {
   }
 }
 
+function coordinateValue(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
 function validCoordinatePair(latitude, longitude) {
   return Number.isFinite(latitude)
     && Number.isFinite(longitude)
@@ -43,8 +49,8 @@ async function resolveNaverShortMapLink(locationUrl) {
         if (error || !data) return null;
 
         const resolvedUrl = normalizedText(data.resolved_url);
-        const latitude = Number(data.latitude);
-        const longitude = Number(data.longitude);
+        const latitude = coordinateValue(data.latitude);
+        const longitude = coordinateValue(data.longitude);
         return {
           url: resolvedUrl || rawUrl,
           coordinates: validCoordinatePair(latitude, longitude)
