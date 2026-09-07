@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "integration/activity-registration-ready"
     paths:
       - "js/**"
       - "index.template.html"
