@@ -18,7 +18,7 @@ export async function renderActivityList(categoryId, search, auth) {
       search ? el("a", { className: "button button--secondary", href: "#/activities?view=list", text: "검색 초기화" }) : null,
     );
   }
-  const grid = el("section", { className: "activity-grid", "aria-label": "활동 목록" });
+  const grid = el("section", { className: "activity-grid activity-grid--list", "aria-label": "활동 목록" });
   const refresh = async () => {
     const updated = await renderActivityList(categoryId, search, auth);
     grid.replaceWith(updated);

@@ -49,6 +49,11 @@
   box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
 }
 .activity-grid--home .activity-card::before { display: none; }
+.activity-grid--list .activity-card {
+  border-top: 5px solid #cfe4ea;
+  box-shadow: 0 7px 20px rgba(82, 128, 145, .045);
+}
+.activity-grid--list .activity-card::before { display: none; }
 .activity-grid--home .activity-card__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
