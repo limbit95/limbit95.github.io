@@ -30,7 +30,7 @@ import { clearFieldErrors, setFieldError, validateBirthYear, valueInRange } from
 import {
   disablePushNotifications,
   enablePushNotifications,
-  getCurrentPushSubscription,
+  getPushNotificationState,
   getPushCapability,
 } from "../web-push.js";
 
@@ -87,9 +87,9 @@ export async function renderMyPage() {
     ]),
   );
   const pushCapability = getPushCapability();
-  let pushSubscription = null;
+  let pushState = { subscription: null, owned: false };
   if (pushCapability.supported && !pushCapability.requiresIosInstall) {
-    pushSubscription = await getCurrentPushSubscription().catch(() => null);
+    pushState = await getPushNotificationState().catch(() => pushState);
   }
   const pushDescription = el("p", { className: "subtle" });
   const pushButton = el("button", { className: "button button--secondary", type: "button" });
@@ -117,21 +117,21 @@ export async function renderMyPage() {
       return;
     }
     pushButton.hidden = false;
-    pushButton.textContent = pushSubscription ? "푸시 알림 끄기" : "푸시 알림 받기";
-    pushDescription.textContent = pushSubscription
+    pushButton.textContent = pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
+    pushDescription.textContent = pushState.owned
       ? "이 기기에서 푸시 알림을 받고 있습니다."
       : "내가 등록한 활동의 참여 및 취소 소식을 휴대폰이나 PC에서 바로 받을 수 있습니다.";
   }
 
   pushButton.addEventListener("click", async () => {
-    setBusy(pushButton, true, pushSubscription ? "끄는 중…" : "설정 중…");
+    setBusy(pushButton, true, pushState.owned ? "끄는 중…" : "설정 중…");
     try {
-      if (pushSubscription) {
+      if (pushState.owned) {
         await disablePushNotifications();
-        pushSubscription = null;
+        pushState = { subscription: null, owned: false };
         showToast("이 기기의 푸시 알림을 껐습니다.", "success");
       } else {
-        pushSubscription = await enablePushNotifications(auth.user.id);
+        pushState = { subscription: await enablePushNotifications(), owned: true };
         showToast("이 기기의 푸시 알림을 켰습니다.", "success");
       }
     } catch (error) {

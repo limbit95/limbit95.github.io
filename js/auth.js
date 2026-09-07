@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { PROFILE_STATUS } from "./constants.js";
+import { disablePushNotifications } from "./web-push.js";
 
 const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 
@@ -227,6 +228,11 @@ export async function updatePassword(password) {
 }
 
 export async function signOut() {
+  try {
+    await disablePushNotifications();
+  } catch (error) {
+    console.warn("Push subscription cleanup failed during sign-out.", error);
+  }
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
   if (state.user || state.session) clearAuthContext();
