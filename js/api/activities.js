@@ -1,4 +1,4 @@
-import { resolveLocationCoordinates } from "../location-geocoding.js";
+import { resolveActivityLocationCoordinates } from "../activity-location-resolution.js";
 import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
@@ -77,7 +77,7 @@ async function withLocationCoordinates(payload) {
     };
   }
 
-  const coordinates = await resolveLocationCoordinates(locationName, payload.location_url);
+  const coordinates = await resolveActivityLocationCoordinates(locationName, payload.location_url);
   return {
     ...payload,
     location_latitude: coordinates?.latitude ?? null,
