@@ -5,6 +5,7 @@ on:
     branches:
       - "feature/**"
       - "integration/activity-registration-ready"
+      - "fix/**"
     paths:
       - "js/**"
       - "index.template.html"
