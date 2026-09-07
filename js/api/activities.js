@@ -1,4 +1,5 @@
 import { resolveActivityLocationCoordinates } from "../activity-location-resolution.js";
+import { isNaverMapUrl } from "../location-geocoding.js";
 import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
@@ -69,17 +70,23 @@ async function withLocationCoordinates(payload) {
   if (!payload || !Object.prototype.hasOwnProperty.call(payload, "location_name")) return payload;
 
   const locationName = String(payload.location_name ?? "").trim();
+  const locationUrl = String(payload.location_url ?? "").trim();
+  if (locationUrl && !isNaverMapUrl(locationUrl)) {
+    throw new Error("지도 링크는 네이버 지도 링크만 사용할 수 있습니다.");
+  }
   if (!locationName) {
     return {
       ...payload,
+      location_url: locationUrl || null,
       location_latitude: null,
       location_longitude: null,
     };
   }
 
-  const coordinates = await resolveActivityLocationCoordinates(locationName, payload.location_url);
+  const coordinates = await resolveActivityLocationCoordinates(locationName, locationUrl);
   return {
     ...payload,
+    location_url: locationUrl || null,
     location_latitude: coordinates?.latitude ?? null,
     location_longitude: coordinates?.longitude ?? null,
   };
