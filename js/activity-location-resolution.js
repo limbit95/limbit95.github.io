@@ -1,3 +1,4 @@
+import { resolveKakaoPlaceCoordinates } from "./kakao-place-geocoding.js";
 import { resolveLocationCoordinates } from "./location-geocoding.js";
 import { supabase } from "./supabaseClient.js";
 
@@ -68,20 +69,27 @@ async function resolveNaverShortMapLink(locationUrl) {
 }
 
 export async function resolveActivityLocationCoordinates(locationName, locationUrl = "") {
-  const directCoordinates = await resolveLocationCoordinates(locationName, locationUrl);
-  if (directCoordinates) return directCoordinates;
+  const nameCoordinates = await resolveLocationCoordinates(locationName, "");
+  if (nameCoordinates) return nameCoordinates;
+
+  const linkCoordinates = await resolveLocationCoordinates("", locationUrl);
+  if (linkCoordinates) return linkCoordinates;
 
   const resolvedLink = await resolveNaverShortMapLink(locationUrl);
-  if (!resolvedLink) return null;
+  if (resolvedLink) {
+    const resolvedUrlCoordinates = resolvedLink.url
+      ? await resolveLocationCoordinates("", resolvedLink.url)
+      : null;
+    if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
 
-  const resolvedUrlCoordinates = resolvedLink.url
-    ? await resolveLocationCoordinates("", resolvedLink.url)
-    : null;
-  if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
+    if (resolvedLink.coordinates) return resolvedLink.coordinates;
 
-  const addressCoordinates = resolvedLink.address
-    ? await resolveLocationCoordinates(resolvedLink.address, resolvedLink.url)
-    : null;
+    if (resolvedLink.address) {
+      const addressCoordinates = await resolveLocationCoordinates(resolvedLink.address, "")
+        ?? await resolveKakaoPlaceCoordinates(resolvedLink.address);
+      if (addressCoordinates) return addressCoordinates;
+    }
+  }
 
-  return addressCoordinates ?? resolvedLink.coordinates;
+  return resolveKakaoPlaceCoordinates(locationName);
 }

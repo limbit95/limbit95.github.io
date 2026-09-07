@@ -183,7 +183,7 @@ function createMapCard(locationName, registeredMapUrl, event = null) {
 
   const attribution = document.createElement("span");
   attribution.className = "small subtle activity-detail__map-attribution";
-  attribution.textContent = "장소 좌표 검색 © OpenStreetMap contributors";
+  attribution.textContent = "장소 좌표 검색 · © OpenStreetMap contributors / Kakao Maps";
 
   card.append(heading, frame, attribution);
 
