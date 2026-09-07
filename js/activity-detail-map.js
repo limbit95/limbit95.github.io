@@ -27,7 +27,7 @@ function locationNameFromLink(link) {
 
 function loadNaverMapsSdk() {
   if (!NAVER_MAPS_CLIENT_ID) return Promise.resolve(null);
-  if (window.naver?.maps?.Service) return Promise.resolve(window.naver);
+  if (window.naver?.maps) return Promise.resolve(window.naver);
   if (naverMapsSdkPromise) return naverMapsSdkPromise;
 
   naverMapsSdkPromise = new Promise((resolve) => {
@@ -40,7 +40,7 @@ function loadNaverMapsSdk() {
       resolve(value);
     };
 
-    window[callbackName] = () => finish(window.naver?.maps?.Service ? window.naver : null);
+    window[callbackName] = () => finish(window.naver?.maps ? window.naver : null);
 
     const script = document.createElement("script");
     script.async = true;
@@ -49,7 +49,7 @@ function loadNaverMapsSdk() {
     script.addEventListener("error", () => finish(null), { once: true });
     document.head.append(script);
 
-    window.setTimeout(() => finish(window.naver?.maps?.Service ? window.naver : null), 8000);
+    window.setTimeout(() => finish(window.naver?.maps ? window.naver : null), 8000);
   });
 
   return naverMapsSdkPromise;
@@ -91,7 +91,7 @@ async function resolveMapCoordinates(naver, locationName, event = null) {
 
 async function hydrateNaverMap(canvas, fallback, locationName, event = null) {
   const naver = await loadNaverMapsSdk();
-  if (!naver?.maps?.Service || !canvas.isConnected) {
+  if (!naver?.maps || !canvas.isConnected) {
     if (NAVER_MAPS_CLIENT_ID) {
       setFallbackMessage(fallback, "지도 미리보기를 불러오지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
     }
