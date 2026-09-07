@@ -26,7 +26,7 @@ export const KAKAO_JAVASCRIPT_KEY = "aa3cd4565d7eb703f952207b09b5ca19";
 export const KAKAO_SHARE_TEMPLATE_ID = 136832;
 
 // VAPID 공개키만 입력하세요. Private Key는 Supabase Edge Function Secret으로 관리합니다.
-export const WEB_PUSH_VAPID_PUBLIC_KEY = "YOUR_VAPID_PUBLIC_KEY";
+export const WEB_PUSH_VAPID_PUBLIC_KEY = "BPBm_DDiExCk05X4avHensNm07R13_P6pvoiCAZkjjrJNGxyqGIqQ6NTBWVKyLS-EocMVh-KwNtieDiYbGwJQw8";
 
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
