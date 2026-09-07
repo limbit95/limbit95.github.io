@@ -1,6 +1,6 @@
 import { resolveActivityLocationCoordinates } from "./activity-location-resolution.js";
 import { NAVER_MAPS_CLIENT_ID } from "./config.js";
-import { locationCoordinates } from "./location-geocoding.js";
+import { isNaverMapUrl, locationCoordinates } from "./location-geocoding.js";
 
 const DETAIL_BODY_SELECTOR = ".activity-detail__body";
 const LOCATION_LABEL = "장소";
@@ -21,8 +21,24 @@ function findLocationMeta(page) {
   ));
 }
 
-function locationNameFromLink(link) {
-  return link.textContent.replace(/\s*↗\s*$/, "").trim();
+function locationNameFromMeta(meta) {
+  return meta?.querySelector(".activity-detail__meta-value")?.textContent
+    ?.replace(/\s*↗\s*$/, "")
+    .trim() ?? "";
+}
+
+function naverSearchUrl(locationName) {
+  return `https://map.naver.com/p/search/${encodeURIComponent(locationName)}`;
+}
+
+function registeredNaverMapUrl(locationName, event, locationLink) {
+  const eventUrl = String(event?.location_url ?? "").trim();
+  if (isNaverMapUrl(eventUrl)) return eventUrl;
+
+  const linkUrl = locationLink instanceof HTMLAnchorElement ? locationLink.href : "";
+  if (isNaverMapUrl(linkUrl)) return linkUrl;
+
+  return naverSearchUrl(locationName);
 }
 
 function loadNaverMapsSdk() {
@@ -85,22 +101,22 @@ function geocodeWithNaver(naver, locationName) {
 async function resolveMapCoordinates(naver, locationName, event = null) {
   const locationUrl = event?.location_url ?? "";
   return locationCoordinates(event ?? {})
-    ?? await geocodeWithNaver(naver, locationName)
-    ?? await resolveActivityLocationCoordinates(locationName, locationUrl);
+    ?? await resolveActivityLocationCoordinates(locationName, locationUrl)
+    ?? await geocodeWithNaver(naver, locationName);
 }
 
 async function hydrateNaverMap(canvas, fallback, locationName, event = null) {
   const naver = await loadNaverMapsSdk();
   if (!naver?.maps || !canvas.isConnected) {
     if (NAVER_MAPS_CLIENT_ID) {
-      setFallbackMessage(fallback, "지도 미리보기를 불러오지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
+      setFallbackMessage(fallback, "네이버 지도 미리보기를 불러오지 못했어요. 눌러서 네이버 지도를 확인해 주세요.");
     }
     return;
   }
 
   const coordinates = await resolveMapCoordinates(naver, locationName, event);
   if (!coordinates || !canvas.isConnected) {
-    setFallbackMessage(fallback, "위치를 지도에서 찾지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
+    setFallbackMessage(fallback, "위치를 네이버 지도에서 찾지 못했어요. 눌러서 네이버 지도를 확인해 주세요.");
     return;
   }
 
@@ -134,7 +150,7 @@ function createMapCard(locationName, registeredMapUrl, event = null) {
   external.href = registeredMapUrl;
   external.target = "_blank";
   external.rel = "noopener noreferrer";
-  external.textContent = "등록된 지도 열기 ↗";
+  external.textContent = "네이버 지도 열기 ↗";
 
   heading.append(title, external);
 
@@ -144,14 +160,14 @@ function createMapCard(locationName, registeredMapUrl, event = null) {
   const canvas = document.createElement("div");
   canvas.className = "activity-detail__map-canvas";
   canvas.hidden = true;
-  canvas.setAttribute("aria-label", `${locationName} 지도`);
+  canvas.setAttribute("aria-label", `${locationName} 네이버 지도`);
 
   const fallback = document.createElement("a");
   fallback.className = "activity-detail__map-fallback";
   fallback.href = registeredMapUrl;
   fallback.target = "_blank";
   fallback.rel = "noopener noreferrer";
-  fallback.setAttribute("aria-label", `${locationName} 등록된 지도에서 보기`);
+  fallback.setAttribute("aria-label", `${locationName} 네이버 지도에서 보기`);
 
   const pin = document.createElement("span");
   pin.className = "activity-detail__map-fallback-icon";
@@ -164,15 +180,15 @@ function createMapCard(locationName, registeredMapUrl, event = null) {
   const copy = document.createElement("span");
   copy.className = "activity-detail__map-fallback-copy";
   copy.textContent = NAVER_MAPS_CLIENT_ID
-    ? "지도 미리보기를 불러오는 중이에요."
-    : "등록된 지도에서 위치를 확인해 주세요.";
+    ? "네이버 지도 미리보기를 불러오는 중이에요."
+    : "네이버 지도에서 위치를 확인해 주세요.";
 
   fallback.append(pin, name, copy);
   frame.append(canvas, fallback);
 
   const attribution = document.createElement("span");
   attribution.className = "small subtle activity-detail__map-attribution";
-  attribution.textContent = "장소 좌표 검색 · © OpenStreetMap contributors / Kakao Maps";
+  attribution.textContent = "지도 및 장소 검색 · NAVER Maps";
 
   card.append(heading, frame, attribution);
 
@@ -218,23 +234,21 @@ function enhanceActivityDetailBody(body, event = null) {
   const page = body.parentElement;
   const locationMeta = page ? findLocationMeta(page) : null;
   const locationLink = locationMeta?.querySelector("a.activity-detail__meta-value");
-  if (!(locationLink instanceof HTMLAnchorElement)) {
-    body.dataset.locationMapEnhanced = "true";
-    return;
-  }
-
-  const locationName = event?.location_name?.trim() || locationNameFromLink(locationLink);
-  if (!locationName || !locationLink.href) {
+  const locationName = String(event?.location_name ?? "").trim() || locationNameFromMeta(locationMeta);
+  if (!locationName) {
     body.dataset.locationMapEnhanced = "true";
     return;
   }
 
   ensureDetailMapStyles();
-  locationLink.classList.add("activity-detail__location-link");
-  locationLink.title = `${locationName} 지도 열기`;
-  locationLink.setAttribute("aria-label", `${locationName} 등록된 지도 열기`);
+  if (locationLink instanceof HTMLAnchorElement) {
+    locationLink.classList.add("activity-detail__location-link");
+    locationLink.title = `${locationName} 네이버 지도 열기`;
+    locationLink.setAttribute("aria-label", `${locationName} 네이버 지도 열기`);
+  }
 
-  const mapCard = createMapCard(locationName, locationLink.href, event);
+  const mapUrl = registeredNaverMapUrl(locationName, event, locationLink);
+  const mapCard = createMapCard(locationName, mapUrl, event);
   const insertionPoint = body.querySelector(":scope > .notice-box--warning, :scope > .activity-detail__management");
   if (insertionPoint) body.insertBefore(mapCard, insertionPoint);
   else body.append(mapCard);
