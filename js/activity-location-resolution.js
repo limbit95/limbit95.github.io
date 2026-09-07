@@ -72,25 +72,24 @@ export async function resolveActivityLocationCoordinates(locationName, locationU
   const nameCoordinates = await resolveLocationCoordinates(locationName, "");
   if (nameCoordinates) return nameCoordinates;
 
-  const placeCoordinates = await resolveKakaoPlaceCoordinates(locationName);
-  if (placeCoordinates) return placeCoordinates;
-
   const linkCoordinates = await resolveLocationCoordinates("", locationUrl);
   if (linkCoordinates) return linkCoordinates;
 
   const resolvedLink = await resolveNaverShortMapLink(locationUrl);
-  if (!resolvedLink) return null;
+  if (resolvedLink) {
+    const resolvedUrlCoordinates = resolvedLink.url
+      ? await resolveLocationCoordinates("", resolvedLink.url)
+      : null;
+    if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
 
-  const resolvedUrlCoordinates = resolvedLink.url
-    ? await resolveLocationCoordinates("", resolvedLink.url)
-    : null;
-  if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
+    if (resolvedLink.coordinates) return resolvedLink.coordinates;
 
-  if (resolvedLink.address) {
-    const addressCoordinates = await resolveLocationCoordinates(resolvedLink.address, "")
-      ?? await resolveKakaoPlaceCoordinates(resolvedLink.address);
-    if (addressCoordinates) return addressCoordinates;
+    if (resolvedLink.address) {
+      const addressCoordinates = await resolveLocationCoordinates(resolvedLink.address, "")
+        ?? await resolveKakaoPlaceCoordinates(resolvedLink.address);
+      if (addressCoordinates) return addressCoordinates;
+    }
   }
 
-  return resolvedLink.coordinates;
+  return resolveKakaoPlaceCoordinates(locationName);
 }
