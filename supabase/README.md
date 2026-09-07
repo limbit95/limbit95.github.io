@@ -80,3 +80,16 @@
 - 게임 전용 SQL 및 게임 전용 문서
 
 공통 DB 변경이 게임에 영향을 줄 가능성이 있으면 변경 전에 영향도를 별도로 확인합니다.
+
+## 7. 활동 장소 검색 Edge Function 설정
+
+활동 장소와 지도 링크의 좌표 해석은 `resolve-map-link` Edge Function에서 NAVER API HUB 지역 검색을 사용합니다.
+
+운영 환경에는 다음 두 값을 **Supabase Edge Function Secret**으로 등록합니다.
+
+- `NAVER_API_HUB_CLIENT_ID`
+- `NAVER_API_HUB_CLIENT_SECRET`
+
+이 값들은 서버 전용 인증 정보이므로 `js/config.js`나 다른 브라우저 소스에 넣지 않습니다. Secret을 변경하면 Edge Function을 다시 배포하지 않아도 런타임에서 새 값이 사용됩니다.
+
+지도 렌더링은 NAVER Cloud Maps Web Dynamic Map Client ID를 계속 사용하며, 카카오 JavaScript 키는 카카오톡 활동 공유 기능에서만 사용합니다.

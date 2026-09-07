@@ -1,34 +1,13 @@
-import { resolveKakaoPlaceCoordinates } from "./kakao-place-geocoding.js";
-import { resolveLocationCoordinates } from "./location-geocoding.js";
+import {
+  isNaverMapUrl,
+  locationCoordinatesFromUrl,
+} from "./location-geocoding.js";
 import { supabase } from "./supabaseClient.js";
 
-const NAVER_SHORT_HOST = "naver.me";
-const NAVER_MAP_HOSTS = new Set([
-  "map.naver.com",
-  "m.map.naver.com",
-  "place.naver.com",
-]);
-const naverLinkCache = new Map();
+const locationResolutionCache = new Map();
 
 function normalizedText(value) {
   return String(value ?? "").trim();
-}
-
-function isNaverMapUrl(value) {
-  const rawUrl = normalizedText(value);
-  if (!rawUrl) return false;
-
-  try {
-    const url = new URL(rawUrl);
-    if (url.protocol !== "https:" || url.username || url.password || url.port) return false;
-
-    const hostname = url.hostname.toLocaleLowerCase("en-US");
-    return hostname === NAVER_SHORT_HOST
-      || NAVER_MAP_HOSTS.has(hostname)
-      || hostname.endsWith(".place.naver.com");
-  } catch {
-    return false;
-  }
 }
 
 function coordinateValue(value) {
@@ -46,59 +25,43 @@ function validCoordinatePair(latitude, longitude) {
     && longitude <= 180;
 }
 
-async function resolveNaverMapLink(locationUrl) {
-  const rawUrl = normalizedText(locationUrl);
-  if (!isNaverMapUrl(rawUrl) || !supabase?.functions?.invoke) return null;
+async function resolveWithNaver(locationName, locationUrl) {
+  if (!supabase?.functions?.invoke) return null;
 
-  if (!naverLinkCache.has(rawUrl)) {
-    naverLinkCache.set(rawUrl, (async () => {
+  const name = normalizedText(locationName);
+  const rawUrl = normalizedText(locationUrl);
+  const trustedUrl = isNaverMapUrl(rawUrl) ? rawUrl : "";
+  if (!name && !trustedUrl) return null;
+
+  const cacheKey = `${name.toLocaleLowerCase("ko-KR")}|${trustedUrl}`;
+  if (!locationResolutionCache.has(cacheKey)) {
+    locationResolutionCache.set(cacheKey, (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("resolve-map-link", {
-          body: { url: rawUrl },
+          body: {
+            location_name: name,
+            url: trustedUrl,
+          },
         });
         if (error || !data) return null;
 
-        const resolvedUrl = normalizedText(data.resolved_url);
         const latitude = coordinateValue(data.latitude);
         const longitude = coordinateValue(data.longitude);
-        return {
-          url: resolvedUrl || rawUrl,
-          address: normalizedText(data.address),
-          coordinates: validCoordinatePair(latitude, longitude)
-            ? { latitude, longitude }
-            : null,
-        };
+        return validCoordinatePair(latitude, longitude)
+          ? { latitude, longitude }
+          : null;
       } catch {
         return null;
       }
     })());
   }
 
-  return naverLinkCache.get(rawUrl);
+  return locationResolutionCache.get(cacheKey);
 }
 
 export async function resolveActivityLocationCoordinates(locationName, locationUrl = "") {
-  const nameCoordinates = await resolveLocationCoordinates(locationName, "");
-  if (nameCoordinates) return nameCoordinates;
+  const naverCoordinates = await resolveWithNaver(locationName, locationUrl);
+  if (naverCoordinates) return naverCoordinates;
 
-  const linkCoordinates = await resolveLocationCoordinates("", locationUrl);
-  if (linkCoordinates) return linkCoordinates;
-
-  const resolvedLink = await resolveNaverMapLink(locationUrl);
-  if (resolvedLink) {
-    const resolvedUrlCoordinates = resolvedLink.url
-      ? await resolveLocationCoordinates("", resolvedLink.url)
-      : null;
-    if (resolvedUrlCoordinates) return resolvedUrlCoordinates;
-
-    if (resolvedLink.coordinates) return resolvedLink.coordinates;
-
-    if (resolvedLink.address) {
-      const addressCoordinates = await resolveLocationCoordinates(resolvedLink.address, "")
-        ?? await resolveKakaoPlaceCoordinates(resolvedLink.address);
-      if (addressCoordinates) return addressCoordinates;
-    }
-  }
-
-  return resolveKakaoPlaceCoordinates(locationName);
+  return locationCoordinatesFromUrl(locationUrl);
 }
