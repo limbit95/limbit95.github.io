@@ -1,9 +1,6 @@
 import { resolveActivityLocationCoordinates } from "./activity-location-resolution.js";
 import { NAVER_MAPS_CLIENT_ID } from "./config.js";
-import {
-  locationCoordinates,
-  locationSearchCandidates,
-} from "./location-geocoding.js";
+import { locationCoordinates } from "./location-geocoding.js";
 
 const DETAIL_BODY_SELECTOR = ".activity-detail__body";
 const LOCATION_LABEL = "장소";
@@ -30,7 +27,7 @@ function locationNameFromLink(link) {
 
 function loadNaverMapsSdk() {
   if (!NAVER_MAPS_CLIENT_ID) return Promise.resolve(null);
-  if (window.naver?.maps) return Promise.resolve(window.naver);
+  if (window.naver?.maps?.Service) return Promise.resolve(window.naver);
   if (naverMapsSdkPromise) return naverMapsSdkPromise;
 
   naverMapsSdkPromise = new Promise((resolve) => {
@@ -43,7 +40,7 @@ function loadNaverMapsSdk() {
       resolve(value);
     };
 
-    window[callbackName] = () => finish(window.naver?.maps ? window.naver : null);
+    window[callbackName] = () => finish(window.naver?.maps?.Service ? window.naver : null);
 
     const script = document.createElement("script");
     script.async = true;
@@ -52,7 +49,7 @@ function loadNaverMapsSdk() {
     script.addEventListener("error", () => finish(null), { once: true });
     document.head.append(script);
 
-    window.setTimeout(() => finish(window.naver?.maps ? window.naver : null), 8000);
+    window.setTimeout(() => finish(window.naver?.maps?.Service ? window.naver : null), 8000);
   });
 
   return naverMapsSdkPromise;
@@ -63,9 +60,11 @@ function setFallbackMessage(fallback, message) {
   if (copy) copy.textContent = message;
 }
 
-function geocodeCandidateWithNaver(naver, query) {
+function geocodeWithNaver(naver, locationName) {
+  if (!naver?.maps?.Service) return Promise.resolve(null);
+
   return new Promise((resolve) => {
-    naver.maps.Service.geocode({ query }, (status, response) => {
+    naver.maps.Service.geocode({ query: locationName }, (status, response) => {
       if (status !== naver.maps.Service.Status.OK) {
         resolve(null);
         return;
@@ -83,26 +82,16 @@ function geocodeCandidateWithNaver(naver, query) {
   });
 }
 
-async function geocodeWithNaver(naver, locationName, locationUrl = "") {
-  if (!naver?.maps?.Service) return null;
-
-  for (const candidate of locationSearchCandidates(locationName, locationUrl)) {
-    const coordinates = await geocodeCandidateWithNaver(naver, candidate);
-    if (coordinates) return coordinates;
-  }
-  return null;
-}
-
 async function resolveMapCoordinates(naver, locationName, event = null) {
   const locationUrl = event?.location_url ?? "";
   return locationCoordinates(event ?? {})
-    ?? await resolveActivityLocationCoordinates(locationName, locationUrl)
-    ?? await geocodeWithNaver(naver, locationName, locationUrl);
+    ?? await geocodeWithNaver(naver, locationName)
+    ?? await resolveActivityLocationCoordinates(locationName, locationUrl);
 }
 
 async function hydrateNaverMap(canvas, fallback, locationName, event = null) {
   const naver = await loadNaverMapsSdk();
-  if (!naver?.maps || !canvas.isConnected) {
+  if (!naver?.maps?.Service || !canvas.isConnected) {
     if (NAVER_MAPS_CLIENT_ID) {
       setFallbackMessage(fallback, "지도 미리보기를 불러오지 못했어요. 눌러서 등록된 지도를 확인해 주세요.");
     }
