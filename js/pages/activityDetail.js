@@ -78,14 +78,14 @@ export async function renderActivityDetail(route) {
       el("h2", { className: "section-title", text: "활동 소개" }),
       el("p", { className: "prose", text: event.description }),
     ]),
-    event.preparation ? el("section", { className: "card page-stack activity-detail__content-card" }, [
+    el("section", { className: "card page-stack activity-detail__content-card" }, [
       el("h2", { className: "section-title", text: "🎒 준비물" }),
-      el("p", { className: "prose", text: event.preparation }),
-    ]) : null,
-    event.participant_notice ? el("section", { className: "notice-box notice-box--warning" }, [
+      el("p", { className: "prose", text: event.preparation ?? "" }),
+    ]),
+    el("section", { className: "notice-box notice-box--warning" }, [
       el("strong", { text: "참여자 주의사항" }),
-      el("p", { className: "prose", text: event.participant_notice }),
-    ]) : null,
+      el("p", { className: "prose", text: event.participant_notice ?? "" }),
+    ]),
     canManage && event.status !== "cancelled"
       ? managementSection(event, root)
       : null,
