@@ -9,6 +9,7 @@ const corsHeaders = {
 const MAX_REDIRECTS = 5;
 const FETCH_TIMEOUT_MS = 8000;
 const LOCAL_SEARCH_TIMEOUT_MS = 6000;
+const SUPABASE_AUTH_TIMEOUT_MS = 4000;
 const NAVER_SHORT_HOST = "naver.me";
 const NAVER_API_HUB_LOCAL_SEARCH_URL = "https://naverapihub.apigw.ntruss.com/search/v1/local";
 
@@ -234,6 +235,56 @@ function naverApiHubCredentials() {
   return clientId && clientSecret ? { clientId, clientSecret } : null;
 }
 
+function supabasePublicKey() {
+  const legacyAnonKey = normalizedText(Deno.env.get("SUPABASE_ANON_KEY"));
+  if (legacyAnonKey) return legacyAnonKey;
+
+  try {
+    const publishableKeys = JSON.parse(Deno.env.get("SUPABASE_PUBLISHABLE_KEYS") ?? "{}");
+    return normalizedText(publishableKeys?.default);
+  } catch {
+    return "";
+  }
+}
+
+async function approvedCaller(req: Request) {
+  const authorization = normalizedText(req.headers.get("authorization"));
+  const supabaseUrl = normalizedText(Deno.env.get("SUPABASE_URL"));
+  const apiKey = supabasePublicKey();
+  if (!authorization || !supabaseUrl || !apiKey) return false;
+
+  const authResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      Authorization: authorization,
+      apikey: apiKey,
+    },
+    signal: AbortSignal.timeout(SUPABASE_AUTH_TIMEOUT_MS),
+  });
+  if (!authResponse.ok) return false;
+
+  const user = await authResponse.json();
+  const userId = normalizedText(user?.id);
+  if (!userId) return false;
+
+  const profileUrl = new URL(`${supabaseUrl}/rest/v1/profiles`);
+  profileUrl.searchParams.set("select", "status");
+  profileUrl.searchParams.set("id", `eq.${userId}`);
+  profileUrl.searchParams.set("limit", "1");
+
+  const profileResponse = await fetch(profileUrl, {
+    headers: {
+      Authorization: authorization,
+      apikey: apiKey,
+      Accept: "application/json",
+    },
+    signal: AbortSignal.timeout(SUPABASE_AUTH_TIMEOUT_MS),
+  });
+  if (!profileResponse.ok) return false;
+
+  const profiles = await profileResponse.json();
+  return Array.isArray(profiles) && profiles[0]?.status === "approved";
+}
+
 function compactPlaceName(value: unknown) {
   return decodeHtmlText(value)
     .toLocaleLowerCase("ko-KR")
@@ -326,6 +377,10 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return jsonResponse({ error: "METHOD_NOT_ALLOWED" }, 405);
 
   try {
+    if (!await approvedCaller(req)) {
+      return jsonResponse({ error: "APPROVED_MEMBER_REQUIRED" }, 403);
+    }
+
     const payload = await req.json();
     const locationName = normalizedText(payload?.location_name);
     const rawUrl = normalizedText(payload?.url);
@@ -342,13 +397,83 @@ Deno.serve(async (req: Request) => {
     }
 
     const credentials = naverApiHubCredentials();
-    const candidates: Array<{ query: string; allowFirst: boolean }> = [];
-    appendCandidate(candidates, locationName);
+    let resolvedUrl = mapUrl;
+    let metadata = { name: null as string | null, address: null as string | null };
 
-    const nameResult = await resolveByLocalSearch(candidates, credentials);
+    if (mapUrl) {
+      const directCoordinates = coordinatesFromUrl(mapUrl);
+      if (directCoordinates) {
+        return jsonResponse({
+          resolved_url: mapUrl.toString(),
+          place_name: null,
+          address: null,
+          ...directCoordinates,
+          source: "naver_url_coordinates",
+          local_search_configured: Boolean(credentials),
+        });
+      }
+
+      try {
+        const resolved = await fetchResolvedNaverUrl(mapUrl);
+        resolvedUrl = resolved.resolvedUrl;
+
+        if (resolved.response.ok) {
+          const resolvedCoordinates = coordinatesFromUrl(resolvedUrl);
+          if (resolvedCoordinates) {
+            return jsonResponse({
+              resolved_url: resolvedUrl.toString(),
+              place_name: null,
+              address: null,
+              ...resolvedCoordinates,
+              source: "naver_resolved_url_coordinates",
+              local_search_configured: Boolean(credentials),
+            });
+          }
+
+          const linkCandidates: Array<{ query: string; allowFirst: boolean }> = [];
+          locationCandidatesFromUrl(mapUrl).forEach((candidate) => appendCandidate(linkCandidates, candidate.query));
+          locationCandidatesFromUrl(resolvedUrl).forEach((candidate) => appendCandidate(linkCandidates, candidate.query));
+
+          metadata = await metadataFromResponse(resolved.response);
+          const placeId = placeIdFromUrl(resolvedUrl);
+          if (placeId) {
+            const placeMetadata = await metadataFromPlaceId(placeId);
+            metadata = {
+              name: placeMetadata.name ?? metadata.name,
+              address: placeMetadata.address ?? metadata.address,
+            };
+          }
+
+          appendCandidate(linkCandidates, metadata.name);
+          appendCandidate(linkCandidates, metadata.address, true);
+
+          const linkResult = await resolveByLocalSearch(linkCandidates, credentials);
+          if (linkResult) {
+            return jsonResponse({
+              resolved_url: resolvedUrl.toString(),
+              place_name: linkResult.placeName,
+              address: linkResult.address ?? metadata.address,
+              latitude: linkResult.latitude,
+              longitude: linkResult.longitude,
+              source: "naver_local_search_from_link",
+              local_search_configured: true,
+            });
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+        if (message === "UNTRUSTED_NAVER_REDIRECT") {
+          return jsonResponse({ error: message }, 422);
+        }
+      }
+    }
+
+    const nameCandidates: Array<{ query: string; allowFirst: boolean }> = [];
+    appendCandidate(nameCandidates, locationName);
+    const nameResult = await resolveByLocalSearch(nameCandidates, credentials);
     if (nameResult) {
       return jsonResponse({
-        resolved_url: mapUrl?.toString() ?? null,
+        resolved_url: resolvedUrl?.toString() ?? null,
         place_name: nameResult.placeName,
         address: nameResult.address,
         latitude: nameResult.latitude,
@@ -358,79 +483,8 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (!mapUrl) {
-      return jsonResponse({
-        resolved_url: null,
-        place_name: null,
-        address: null,
-        latitude: null,
-        longitude: null,
-        source: null,
-        local_search_configured: Boolean(credentials),
-        error: credentials ? "NAVER_LOCATION_NOT_FOUND" : "NAVER_LOCAL_SEARCH_NOT_CONFIGURED",
-      });
-    }
-
-    const directCoordinates = coordinatesFromUrl(mapUrl);
-    if (directCoordinates) {
-      return jsonResponse({
-        resolved_url: mapUrl.toString(),
-        place_name: null,
-        address: null,
-        ...directCoordinates,
-        source: "naver_url_coordinates",
-        local_search_configured: Boolean(credentials),
-      });
-    }
-
-    const { response, resolvedUrl } = await fetchResolvedNaverUrl(mapUrl);
-    if (!response.ok) {
-      return jsonResponse({ error: "NAVER_REQUEST_FAILED", status: response.status }, 502);
-    }
-
-    const resolvedCoordinates = coordinatesFromUrl(resolvedUrl);
-    if (resolvedCoordinates) {
-      return jsonResponse({
-        resolved_url: resolvedUrl.toString(),
-        place_name: null,
-        address: null,
-        ...resolvedCoordinates,
-        source: "naver_resolved_url_coordinates",
-        local_search_configured: Boolean(credentials),
-      });
-    }
-
-    locationCandidatesFromUrl(mapUrl).forEach((candidate) => appendCandidate(candidates, candidate.query));
-    locationCandidatesFromUrl(resolvedUrl).forEach((candidate) => appendCandidate(candidates, candidate.query));
-
-    let metadata = await metadataFromResponse(response);
-    const placeId = placeIdFromUrl(resolvedUrl);
-    if (placeId) {
-      const placeMetadata = await metadataFromPlaceId(placeId);
-      metadata = {
-        name: placeMetadata.name ?? metadata.name,
-        address: placeMetadata.address ?? metadata.address,
-      };
-    }
-
-    appendCandidate(candidates, metadata.name);
-    appendCandidate(candidates, metadata.address, true);
-
-    const linkResult = await resolveByLocalSearch(candidates, credentials);
-    if (linkResult) {
-      return jsonResponse({
-        resolved_url: resolvedUrl.toString(),
-        place_name: linkResult.placeName,
-        address: linkResult.address ?? metadata.address,
-        latitude: linkResult.latitude,
-        longitude: linkResult.longitude,
-        source: "naver_local_search_from_link",
-        local_search_configured: true,
-      });
-    }
-
     return jsonResponse({
-      resolved_url: resolvedUrl.toString(),
+      resolved_url: resolvedUrl?.toString() ?? null,
       place_name: metadata.name,
       address: metadata.address,
       latitude: null,
@@ -441,7 +495,6 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
-    const status = message === "UNTRUSTED_NAVER_REDIRECT" ? 422 : 502;
-    return jsonResponse({ error: message }, status);
+    return jsonResponse({ error: message }, 502);
   }
 });
