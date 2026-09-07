@@ -1,5 +1,9 @@
+import { resolveActivityLocationCoordinates } from "./activity-location-resolution.js";
 import { NAVER_MAPS_CLIENT_ID } from "./config.js";
-import { locationCoordinates, resolveLocationCoordinates } from "./location-geocoding.js";
+import {
+  locationCoordinates,
+  locationSearchCandidates,
+} from "./location-geocoding.js";
 
 const DETAIL_BODY_SELECTOR = ".activity-detail__body";
 const LOCATION_LABEL = "장소";
@@ -59,11 +63,9 @@ function setFallbackMessage(fallback, message) {
   if (copy) copy.textContent = message;
 }
 
-function geocodeWithNaver(naver, locationName) {
-  if (!naver?.maps?.Service) return Promise.resolve(null);
-
+function geocodeCandidateWithNaver(naver, query) {
   return new Promise((resolve) => {
-    naver.maps.Service.geocode({ query: locationName }, (status, response) => {
+    naver.maps.Service.geocode({ query }, (status, response) => {
       if (status !== naver.maps.Service.Status.OK) {
         resolve(null);
         return;
@@ -81,10 +83,21 @@ function geocodeWithNaver(naver, locationName) {
   });
 }
 
+async function geocodeWithNaver(naver, locationName, locationUrl = "") {
+  if (!naver?.maps?.Service) return null;
+
+  for (const candidate of locationSearchCandidates(locationName, locationUrl)) {
+    const coordinates = await geocodeCandidateWithNaver(naver, candidate);
+    if (coordinates) return coordinates;
+  }
+  return null;
+}
+
 async function resolveMapCoordinates(naver, locationName, event = null) {
+  const locationUrl = event?.location_url ?? "";
   return locationCoordinates(event ?? {})
-    ?? await resolveLocationCoordinates(locationName)
-    ?? await geocodeWithNaver(naver, locationName);
+    ?? await resolveActivityLocationCoordinates(locationName, locationUrl)
+    ?? await geocodeWithNaver(naver, locationName, locationUrl);
 }
 
 async function hydrateNaverMap(canvas, fallback, locationName, event = null) {
