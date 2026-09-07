@@ -41,7 +41,14 @@ function statusBadge(event) {
       ? "status-badge status-badge--muted"
       : "status-badge";
   const icon = event.status === "scheduled" ? "●" : event.status === "cancelled" ? "✕" : "■";
-  return el("span", { className, text: `${icon} ${EVENT_STATUS_LABEL[event.status] ?? event.status}` });
+  return el("span", { className }, [
+    el("span", {
+      className: event.status === "scheduled" ? "status-badge__icon--recruiting" : "",
+      text: icon,
+      "aria-hidden": "true",
+    }),
+    el("span", { text: EVENT_STATUS_LABEL[event.status] ?? event.status }),
+  ]);
 }
 
 export function createActivityCard(event, {
