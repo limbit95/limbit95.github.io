@@ -1,0 +1,17 @@
+{
+  "name": "청파 같이",
+  "short_name": "청파 같이",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#9fcfdf",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "./assets/images/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

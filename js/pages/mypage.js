@@ -27,6 +27,12 @@ import {
   setBusy,
 } from "../ui.js";
 import { clearFieldErrors, setFieldError, validateBirthYear, valueInRange } from "../validators.js";
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getCurrentPushSubscription,
+  getPushCapability,
+} from "../web-push.js";
 
 const HISTORY_PAGE_SIZE = 10;
 const UPCOMING_DISPLAY_LIMIT = 20;
@@ -80,6 +86,63 @@ export async function renderMyPage() {
         : el("p", { className: "subtle", text: "선택한 관심 활동이 없습니다." }),
     ]),
   );
+  const pushCapability = getPushCapability();
+  let pushSubscription = null;
+  if (pushCapability.supported && !pushCapability.requiresIosInstall) {
+    pushSubscription = await getCurrentPushSubscription().catch(() => null);
+  }
+  const pushDescription = el("p", { className: "subtle" });
+  const pushButton = el("button", { className: "button button--secondary", type: "button" });
+  const pushSection = el("section", { className: "card page-stack" }, [
+    el("h2", { className: "section-title", text: "푸시 알림" }),
+    pushDescription,
+    pushButton,
+  ]);
+
+  function renderPushState() {
+    const capability = getPushCapability();
+    if (!capability.supported) {
+      pushDescription.textContent = "이 브라우저에서는 푸시 알림을 사용할 수 없습니다.";
+      pushButton.hidden = true;
+      return;
+    }
+    if (capability.requiresIosInstall) {
+      pushDescription.textContent = "iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.";
+      pushButton.hidden = true;
+      return;
+    }
+    if (capability.permission === "denied") {
+      pushDescription.textContent = "브라우저 설정에서 청파 같이의 알림 권한을 허용해 주세요.";
+      pushButton.hidden = true;
+      return;
+    }
+    pushButton.hidden = false;
+    pushButton.textContent = pushSubscription ? "푸시 알림 끄기" : "푸시 알림 받기";
+    pushDescription.textContent = pushSubscription
+      ? "이 기기에서 푸시 알림을 받고 있습니다."
+      : "내가 등록한 활동의 참여 및 취소 소식을 휴대폰이나 PC에서 바로 받을 수 있습니다.";
+  }
+
+  pushButton.addEventListener("click", async () => {
+    setBusy(pushButton, true, pushSubscription ? "끄는 중…" : "설정 중…");
+    try {
+      if (pushSubscription) {
+        await disablePushNotifications();
+        pushSubscription = null;
+        showToast("이 기기의 푸시 알림을 껐습니다.", "success");
+      } else {
+        pushSubscription = await enablePushNotifications(auth.user.id);
+        showToast("이 기기의 푸시 알림을 켰습니다.", "success");
+      }
+    } catch (error) {
+      showToast(getErrorMessage(error, "푸시 알림 설정을 변경하지 못했습니다."), "error");
+    } finally {
+      setBusy(pushButton, false);
+      renderPushState();
+    }
+  });
+  renderPushState();
+  root.append(pushSection);
   const participationSection = el("section", { className: "page-stack" }, [
     el("div", { className: "page-header" }, [
       el("h2", { className: "section-title", text: "내 참여 활동" }),

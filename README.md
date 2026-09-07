@@ -238,6 +238,36 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 - 알림은 자신의 row만 조회/수정합니다.
 - 쪽지는 발신자 또는 수신자만 조회합니다.
 - 공개 프로필 RPC는 승인 회원 여부를 서버에서 검사합니다.
+
+## 8. Web Push 운영 설정
+
+Web Push는 `notifications`를 원본으로 사용하며 참여 확정, 대기 신청, 참여 취소 알림만
+`send-web-push` Edge Function으로 전달합니다. 브라우저에는 VAPID 공개키만 두고 다음 값은
+Supabase Edge Function Secret으로 등록합니다.
+
+```bash
+supabase secrets set \
+  VAPID_SUBJECT=mailto:ADMIN_EMAIL \
+  VAPID_PUBLIC_KEY=PUBLIC_KEY \
+  VAPID_PRIVATE_KEY=PRIVATE_KEY \
+  WEB_PUSH_WEBHOOK_SECRET=LONG_RANDOM_SECRET
+supabase functions deploy send-web-push --no-verify-jwt
+```
+
+`SUPABASE_URL`과 `SUPABASE_SERVICE_ROLE_KEY`는 Supabase hosted Edge Function의 기본 Secret을
+사용합니다. `VAPID_PUBLIC_KEY`와 동일한 공개키를 `js/config.js`의
+`WEB_PUSH_VAPID_PUBLIC_KEY`에 설정하며 Private Key와 service role key는 저장소에 넣지 않습니다.
+
+Supabase Dashboard의 **Database Webhooks**에서 아래 Webhook을 추가합니다.
+
+- Table: `public.notifications`
+- Event: `INSERT`만 선택
+- Method/URL: `POST`, `https://<project-ref>.supabase.co/functions/v1/send-web-push`
+- Header: `x-webhook-secret: <WEB_PUSH_WEBHOOK_SECRET과 같은 값>`
+
+Webhook은 DB transaction과 분리되어 Push 네트워크 실패가 참여 RPC를 되돌리지 않습니다.
+Function은 전달된 수신자를 신뢰하지 않고 service role로 notification을 다시 조회하며,
+대상이 아닌 알림은 건너뜁니다. 만료 응답(404/410)을 받은 Subscription은 삭제합니다.
 - 프로필 이미지는 private Storage bucket의 signed URL로 표시합니다.
 
 ## 8. UI / 구조
