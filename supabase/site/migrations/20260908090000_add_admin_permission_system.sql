@@ -56,6 +56,37 @@ revoke all on function private.has_admin_permission(text) from public, anon, aut
 grant execute on function private.is_system_admin() to authenticated;
 grant execute on function private.has_admin_permission(text) to authenticated;
 
+-- Invite creators retain ownership, while cross-user revocation belongs to OPERATIONS.
+-- has_admin_permission also grants this area implicitly to the SYSTEM_ADMIN.
+create or replace function public.site_invite_revoke(p_token text)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_updated integer;
+begin
+  if auth.uid() is null or not private.is_approved_member() then
+    raise exception 'AUTH_REQUIRED';
+  end if;
+
+  update private.site_invites
+  set revoked_at = coalesce(revoked_at, now())
+  where token = p_token
+    and (
+      created_by = auth.uid()
+      or private.has_admin_permission('operations')
+    );
+  get diagnostics v_updated = row_count;
+
+  if v_updated = 0 then
+    raise exception 'INVITE_NOT_FOUND_OR_FORBIDDEN';
+  end if;
+  return true;
+end;
+$$;
+
 create policy admin_permissions_select_self
 on public.admin_permissions for select to authenticated
 using (user_id = (select auth.uid()) or private.is_system_admin());
