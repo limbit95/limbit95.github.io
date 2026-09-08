@@ -179,10 +179,18 @@ end; $$;
 
 create or replace function private.protect_creator_identity()
 returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_required_permission text;
 begin
+  v_required_permission := case tg_table_name
+    when 'events' then 'community'
+    when 'event_series' then 'community'
+    when 'date_polls' then 'operations'
+    else null
+  end;
+
   if auth.uid() is not null
-     and not private.has_admin_permission('community')
-     and not private.has_admin_permission('operations')
+     and (v_required_permission is null or not private.has_admin_permission(v_required_permission))
   then
     if new.created_by is distinct from old.created_by
        or new.created_at is distinct from old.created_at

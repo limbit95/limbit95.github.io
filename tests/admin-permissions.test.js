@@ -61,3 +61,27 @@ test("invite revocation keeps creator access and requires operations for cross-u
   assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set([ADMIN_PERMISSION.MEMBERS]) }, ADMIN_PERMISSION.OPERATIONS), false);
   assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set() }, ADMIN_PERMISSION.OPERATIONS), false);
 });
+
+test("creator identity protection keeps community and operations boundaries separate", () => {
+  const migration = readFileSync(new URL("../supabase/site/migrations/20260908090000_add_admin_permission_system.sql", import.meta.url), "utf8");
+  const creatorProtection = migration.match(
+    /create or replace function private\.protect_creator_identity\(\)[\s\S]*?end; \$\$;/,
+  )?.[0];
+  const permissionHelper = migration.match(
+    /create or replace function private\.has_admin_permission\(p_permission text\)[\s\S]*?\n\$\$;/,
+  )?.[0];
+
+  assert.ok(creatorProtection, "creator identity trigger function must exist");
+  assert.match(creatorProtection, /when 'events' then 'community'/);
+  assert.match(creatorProtection, /when 'event_series' then 'community'/);
+  assert.match(creatorProtection, /when 'date_polls' then 'operations'/);
+  assert.match(creatorProtection, /not private\.has_admin_permission\(v_required_permission\)/);
+  assert.doesNotMatch(creatorProtection, /private\.is_category_manager/);
+  assert.doesNotMatch(
+    creatorProtection,
+    /not private\.has_admin_permission\('community'\)[\s\S]*and not private\.has_admin_permission\('operations'\)/,
+  );
+
+  assert.ok(permissionHelper, "permission helper must exist");
+  assert.match(permissionHelper, /select private\.is_system_admin\(\) or/);
+});
