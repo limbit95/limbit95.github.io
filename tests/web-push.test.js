@@ -121,16 +121,19 @@ test("sign-out bounds push cleanup so a stalled cleanup cannot block auth sign-o
   const helper = source.match(/async function cleanupPushBeforeSignOut[\s\S]*?\n}/)?.[0];
   assert.ok(helper);
   assert.match(source, /PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000/);
-  assert.match(helper, /cleanupPushSubscriptionForSignOut\(userId\)/);
+  assert.match(helper, /cleanupPushSubscriptionForSignOut\(userId, \{ accessToken, isActive \}\)/);
+  assert.match(helper, /cleanupActive = true/);
   assert.match(helper, /Promise\.race/);
   assert.match(helper, /window\.setTimeout\(\(\) => resolve\(false\), timeoutMs\)/);
+  assert.match(helper, /if \(!completed\) cleanupActive = false/);
   assert.match(helper, /\.catch\(\(error\) =>/);
   const signOut = source.match(/export async function signOut[\s\S]*?\n}/)?.[0];
   assert.ok(signOut);
+  assert.match(signOut, /const accessToken = state\.session\?\.access_token \?\? null/);
   assert.match(signOut, /await waitForPushRestoreClaims\(userId\)/);
-  assert.match(signOut, /await cleanupPushBeforeSignOut\(userId\)/);
+  assert.match(signOut, /await cleanupPushBeforeSignOut\(userId, accessToken\)/);
   assert.match(signOut, /Timed out cleaning up Push subscription during sign-out/);
-  assert.ok(signOut.indexOf("await cleanupPushBeforeSignOut(userId)") < signOut.indexOf("await supabase.auth.signOut()"));
+  assert.ok(signOut.indexOf("await cleanupPushBeforeSignOut(userId, accessToken)") < signOut.indexOf("await supabase.auth.signOut()"));
 });
 
 test("sign-out cleanup preserves preference and unsubscribes even after database failure", async () => {
@@ -141,6 +144,66 @@ test("sign-out cleanup preserves preference and unsubscribes even after database
   assert.match(cleanup, /removalError = error/);
   assert.match(cleanup, /await subscription\.unsubscribe\(\)/);
   assert.ok(cleanup.indexOf("removalError = error") < cleanup.indexOf("await subscription.unsubscribe()"));
+});
+
+test("sign-out cleanup removes ownership with the captured account token", async () => {
+  let rpcCalls = 0;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "logout-a",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async () => { rpcCalls += 1; return { error: null }; },
+    fetch: async (_url, options) => {
+      removals += 1;
+      assert.equal(options.headers.Authorization, "Bearer token-a");
+      assert.deepEqual(JSON.parse(options.body), { p_endpoint: "logout-a" });
+      return { ok: true, status: 204 };
+    },
+  });
+
+  assert.equal(await webPush.cleanupPushSubscriptionForSignOut("a", {
+    accessToken: "token-a",
+    isActive: () => true,
+  }), true);
+  assert.equal(removals, 1);
+  assert.equal(rpcCalls, 0);
+  assert.equal(unsubscribes, 1);
+});
+
+test("a timed-out sign-out cleanup stops before late endpoint side effects", async () => {
+  const gate = deferred();
+  let active = true;
+  let rpcCalls = 0;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "late-a",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => { await gate.promise; return subscription; },
+    subscribe: async () => subscription,
+    rpc: async () => { rpcCalls += 1; return { error: null }; },
+    fetch: async () => { removals += 1; return { ok: true, status: 204 }; },
+  });
+  const cleanup = webPush.cleanupPushSubscriptionForSignOut("a", {
+    accessToken: "token-a",
+    isActive: () => active,
+  });
+  active = false;
+  gate.resolve();
+
+  assert.equal(await cleanup, false);
+  assert.equal(removals, 0);
+  assert.equal(rpcCalls, 0);
+  assert.equal(unsubscribes, 0);
 });
 
 test("automatic restore is approved-only, prompt-free, idempotent, and preference-gated", async () => {

@@ -180,28 +180,41 @@ export async function disablePushNotifications(userId) {
   return Boolean(subscription);
 }
 
-export async function cleanupPushSubscriptionForSignOut(userId) {
+export async function cleanupPushSubscriptionForSignOut(userId, {
+  accessToken = null,
+  isActive = () => true,
+} = {}) {
   restoredUserIds.delete(userId);
   const subscription = await getCurrentPushSubscription();
-  if (!subscription) return false;
+  if (!subscription || !isActive()) return false;
 
   if (getPushPreference(userId) === null) {
     try {
       const state = await getPushNotificationState();
-      if (state.owned) setPushPreference(userId, "on");
+      if (isActive() && state.owned) setPushPreference(userId, "on");
     } catch (error) {
       console.warn("Legacy push preference could not be migrated during sign-out.", error);
     }
   }
+  if (!isActive()) return false;
 
   let removalError = null;
   try {
-    const { error } = await supabase.rpc("remove_own_push_subscription", {
-      p_endpoint: subscription.endpoint,
-    });
-    if (error) throw error;
+    if (accessToken) {
+      await removeSubscriptionWithAccessToken(subscription, accessToken);
+    } else {
+      const { error } = await supabase.rpc("remove_own_push_subscription", {
+        p_endpoint: subscription.endpoint,
+      });
+      if (error) throw error;
+    }
   } catch (error) {
     removalError = error;
+  }
+
+  if (!isActive()) {
+    if (removalError) throw removalError;
+    return true;
   }
 
   let unsubscribeError = null;

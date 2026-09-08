@@ -247,9 +247,11 @@ export async function updatePassword(password) {
   return data;
 }
 
-async function cleanupPushBeforeSignOut(userId, timeoutMs = PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS) {
+async function cleanupPushBeforeSignOut(userId, accessToken, timeoutMs = PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS) {
   let timeoutId = null;
-  const cleanupPromise = cleanupPushSubscriptionForSignOut(userId)
+  let cleanupActive = true;
+  const isActive = () => cleanupActive && (!state.user?.id || state.user.id === userId);
+  const cleanupPromise = cleanupPushSubscriptionForSignOut(userId, { accessToken, isActive })
     .then(() => true)
     .catch((error) => {
       console.warn("Push subscription cleanup failed during sign-out.", error);
@@ -262,17 +264,19 @@ async function cleanupPushBeforeSignOut(userId, timeoutMs = PUSH_SIGN_OUT_CLEANU
     }),
   ]);
   if (timeoutId !== null) window.clearTimeout(timeoutId);
+  if (!completed) cleanupActive = false;
   return completed;
 }
 
 export async function signOut() {
   const userId = state.user?.id;
+  const accessToken = state.session?.access_token ?? null;
   lifecycleEpoch += 1;
   const claimsCompleted = await waitForPushRestoreClaims(userId);
   if (!claimsCompleted) {
     console.warn("Timed out waiting for Push subscription restore during sign-out.");
   }
-  const cleanupCompleted = await cleanupPushBeforeSignOut(userId);
+  const cleanupCompleted = await cleanupPushBeforeSignOut(userId, accessToken);
   if (!cleanupCompleted) {
     console.warn("Timed out cleaning up Push subscription during sign-out.");
   }
