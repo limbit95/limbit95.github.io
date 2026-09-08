@@ -11,10 +11,12 @@ function deferred() {
   return { promise, resolve };
 }
 
-async function loadWebPush({ getSubscription, subscribe, rpc }) {
+async function loadWebPush({ getSubscription, subscribe, rpc, fetch = async () => ({ ok: true, status: 204 }) }) {
   let source = await readFile("js/web-push.js", "utf8");
   source = source
-    .replace('import { WEB_PUSH_VAPID_PUBLIC_KEY } from "./config.js";', 'const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";')
+    .replace(/import \{[\s\S]*?\} from "\.\/config\.js";/, `const SUPABASE_PUBLISHABLE_KEY = "key";
+const SUPABASE_URL = "https://example.supabase.co";
+const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
     .replace('import { supabase } from "./supabaseClient.js";', "const supabase = globalThis.__webPushSupabase;");
   const subscriptionManager = { getSubscription, subscribe };
   globalThis.window = {
@@ -32,6 +34,7 @@ async function loadWebPush({ getSubscription, subscribe, rpc }) {
     serviceWorker: { register: async () => ({ pushManager: subscriptionManager }) },
   };
   globalThis.__webPushSupabase = { rpc };
+  globalThis.fetch = fetch;
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
 
@@ -140,7 +143,7 @@ test("automatic restore is approved-only, prompt-free, idempotent, and preferenc
   assert.match(restore, /capability\.permission !== "granted"/);
   assert.doesNotMatch(restore, /requestPermission/);
   assert.match(restore, /subscription = await currentRegistration\.pushManager\.subscribe/);
-  assert.match(restore, /await saveSubscription\(subscription\)/);
+  assert.match(restore, /const claimPromise = saveSubscription\(subscription\)[\s\S]*await claimPromise/);
   assert.match(source, /restorePromises\.get\(userId\)/);
   assert.match(source, /restoredUserIds\.has\(userId\)/);
 });
@@ -254,6 +257,126 @@ test("a stale same-user promise does not suppress restore after relogin", async 
   firstGate.resolve();
   await staleRestore;
   assert.equal(claims, 1);
+});
+
+test("a newly-created subscription claimed in flight is compensated after logout", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  let currentUserId = "a";
+  let current = true;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "new-a",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => null,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      assert.equal(name, "claim_push_subscription");
+      claimStarted.resolve();
+      await claimGate.promise;
+      return { error: null };
+    },
+    fetch: async (_url, options) => {
+      removals += 1;
+      assert.equal(options.headers.Authorization, "Bearer token-a");
+      assert.deepEqual(JSON.parse(options.body), { p_endpoint: "new-a" });
+      return { ok: true, status: 204 };
+    },
+  });
+  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
+  const restore = webPush.restorePushNotificationsForAuth(auth, {
+    isCurrent: () => current,
+    getCurrentUserId: () => currentUserId,
+  });
+  await claimStarted.promise;
+  current = false;
+  currentUserId = null;
+  let coordinationFinished = false;
+  const coordination = webPush.waitForPushRestoreClaims("a", 1000).then((completed) => {
+    coordinationFinished = true;
+    return completed;
+  });
+  await Promise.resolve();
+  assert.equal(coordinationFinished, false);
+  claimGate.resolve();
+
+  assert.equal(await coordination, true);
+  assert.equal(await restore, null);
+  assert.equal(removals, 1);
+  assert.equal(unsubscribes, 1);
+});
+
+test("a stale in-flight claim uses A credentials without disturbing B subscription", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  let currentUserId = "a";
+  let current = true;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "shared",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => subscription,
+    subscribe: async () => { throw new Error("unexpected subscribe"); },
+    rpc: async () => { claimStarted.resolve(); await claimGate.promise; return { error: null }; },
+    fetch: async (_url, options) => {
+      removals += 1;
+      assert.equal(options.headers.Authorization, "Bearer token-a");
+      return { ok: true, status: 204 };
+    },
+  });
+  const restore = webPush.restorePushNotificationsForAuth(
+    { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } },
+    { isCurrent: () => current, getCurrentUserId: () => currentUserId },
+  );
+  await claimStarted.promise;
+  current = false;
+  currentUserId = "b";
+  claimGate.resolve();
+
+  assert.equal(await restore, null);
+  assert.equal(removals, 1);
+  assert.equal(unsubscribes, 0);
+});
+
+test("A can restore again after an in-flight stale claim is compensated", async () => {
+  const firstClaimGate = deferred();
+  const firstClaimStarted = deferred();
+  let generation = 1;
+  let claims = 0;
+  let removals = 0;
+  const subscription = { endpoint: "a", toJSON: () => ({ keys: {} }), unsubscribe: async () => {} };
+  const webPush = await loadWebPush({
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async () => {
+      claims += 1;
+      if (claims === 1) {
+        firstClaimStarted.resolve();
+        await firstClaimGate.promise;
+      }
+      return { error: null };
+    },
+    fetch: async () => { removals += 1; return { ok: true, status: 204 }; },
+  });
+  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
+  const staleRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 1 });
+  await firstClaimStarted.promise;
+  generation = 2;
+  firstClaimGate.resolve();
+  assert.equal(await staleRestore, null);
+
+  const currentRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 2 });
+  assert.equal(await currentRestore, subscription);
+  assert.equal(claims, 2);
+  assert.equal(removals, 1);
 });
 
 test("edge function re-reads the notification and limits push delivery", async () => {

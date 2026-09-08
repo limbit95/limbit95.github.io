@@ -3,6 +3,7 @@ import { PROFILE_STATUS } from "./constants.js";
 import {
   cleanupPushSubscriptionForSignOut,
   restorePushNotificationsForAuth,
+  waitForPushRestoreClaims,
 } from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
 
@@ -248,6 +249,10 @@ export async function updatePassword(password) {
 export async function signOut() {
   const userId = state.user?.id;
   lifecycleEpoch += 1;
+  const claimsCompleted = await waitForPushRestoreClaims(userId);
+  if (!claimsCompleted) {
+    console.warn("Timed out waiting for Push subscription restore during sign-out.");
+  }
   try {
     await cleanupPushSubscriptionForSignOut(userId);
   } catch (error) {

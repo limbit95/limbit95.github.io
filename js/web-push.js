@@ -1,4 +1,8 @@
-import { WEB_PUSH_VAPID_PUBLIC_KEY } from "./config.js";
+import {
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+  WEB_PUSH_VAPID_PUBLIC_KEY,
+} from "./config.js";
 import { supabase } from "./supabaseClient.js";
 
 const SERVICE_WORKER_PATH = "./push-service-worker.js";
@@ -6,6 +10,7 @@ const SERVICE_WORKER_SCOPE = "./";
 const PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:";
 const restorePromises = new Map();
 const restoredUserIds = new Set();
+const inFlightRestoreClaims = new Map();
 
 function preferenceKey(userId) {
   return `${PUSH_PREFERENCE_PREFIX}${userId}`;
@@ -77,6 +82,44 @@ async function saveSubscription(subscription) {
     p_user_agent: navigator.userAgent || null,
   });
   if (error) throw error;
+}
+
+async function removeSubscriptionWithAccessToken(subscription, accessToken) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/remove_own_push_subscription`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_endpoint: subscription.endpoint }),
+  });
+  if (!response.ok) throw new Error(`Push subscription cleanup failed (${response.status}).`);
+}
+
+function trackRestoreClaim(userId, claimPromise) {
+  const claims = inFlightRestoreClaims.get(userId) ?? new Set();
+  claims.add(claimPromise);
+  inFlightRestoreClaims.set(userId, claims);
+  const untrack = () => {
+    claims.delete(claimPromise);
+    if (!claims.size) inFlightRestoreClaims.delete(userId);
+  };
+  claimPromise.then(untrack, untrack);
+}
+
+export async function waitForPushRestoreClaims(userId, timeoutMs = 3000) {
+  const claims = inFlightRestoreClaims.get(userId);
+  if (!claims?.size) return true;
+  let timeoutId;
+  const completed = await Promise.race([
+    Promise.allSettled([...claims]).then(() => true),
+    new Promise((resolve) => {
+      timeoutId = setTimeout(() => resolve(false), timeoutMs);
+    }),
+  ]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return completed;
 }
 
 export async function getPushNotificationState() {
@@ -225,8 +268,18 @@ async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
     await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
     return null;
   }
-  await saveSubscription(subscription);
-  if (!isCurrent()) return null;
+  const claimPromise = saveSubscription(subscription);
+  trackRestoreClaim(userId, claimPromise);
+  await claimPromise;
+  if (!isCurrent()) {
+    try {
+      await removeSubscriptionWithAccessToken(subscription, auth.session?.access_token);
+    } catch (error) {
+      console.warn("Stale push subscription ownership cleanup failed.", error);
+    }
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    return null;
+  }
   restoredUserIds.add(userId);
   return subscription;
 }
