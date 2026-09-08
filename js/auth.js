@@ -115,11 +115,13 @@ async function loadAuthContext(session, { force, epoch }) {
   state.managerCategoryIds = managerCategoryIds;
   state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
   emit();
-  try {
-    await restorePushNotificationsForAuth(getAuthState());
-  } catch (error) {
+  const restoreEpoch = lifecycleEpoch;
+  void restorePushNotificationsForAuth(getAuthState(), {
+    isCurrent: () => restoreEpoch === lifecycleEpoch && state.user?.id === user.id,
+    getCurrentUserId: () => state.user?.id ?? null,
+  }).catch((error) => {
     console.warn("Push subscription restore failed after authentication.", error);
-  }
+  });
   return getAuthState();
 }
 
@@ -244,8 +246,10 @@ export async function updatePassword(password) {
 }
 
 export async function signOut() {
+  const userId = state.user?.id;
+  lifecycleEpoch += 1;
   try {
-    await cleanupPushSubscriptionForSignOut(state.user?.id);
+    await cleanupPushSubscriptionForSignOut(userId);
   } catch (error) {
     console.warn("Push subscription cleanup failed during sign-out.", error);
   }

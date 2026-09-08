@@ -5,6 +5,36 @@ import test from "node:test";
 const migrationPath = "supabase/site/migrations/20260907213921_add_web_push_notifications.sql";
 const ownershipMigrationPath = "supabase/site/migrations/20260907213932_secure_push_subscription_ownership.sql";
 
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+async function loadWebPush({ getSubscription, subscribe, rpc }) {
+  let source = await readFile("js/web-push.js", "utf8");
+  source = source
+    .replace('import { WEB_PUSH_VAPID_PUBLIC_KEY } from "./config.js";', 'const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";')
+    .replace('import { supabase } from "./supabaseClient.js";', "const supabase = globalThis.__webPushSupabase;");
+  const subscriptionManager = { getSubscription, subscribe };
+  globalThis.window = {
+    localStorage: {
+      getItem: () => "on",
+      setItem: () => {},
+    },
+    PushManager: function PushManager() {},
+    Notification: function Notification() {},
+    matchMedia: () => ({ matches: true }),
+  };
+  globalThis.Notification = { permission: "granted" };
+  globalThis.navigator = {
+    userAgent: "test",
+    serviceWorker: { register: async () => ({ pushManager: subscriptionManager }) },
+  };
+  globalThis.__webPushSupabase = { rpc };
+  return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
+}
+
 test("participation RPCs create only the three owner notification types", async () => {
   const sql = await readFile(migrationPath, "utf8");
   for (const type of [
@@ -85,7 +115,7 @@ test("explicit push choices persist an account-scoped preference only after comp
 
 test("explicit sign-out attempts push cleanup without allowing failure to block sign-out", async () => {
   const source = await readFile("js/auth.js", "utf8");
-  const cleanup = source.indexOf("await cleanupPushSubscriptionForSignOut(state.user?.id)");
+  const cleanup = source.indexOf("await cleanupPushSubscriptionForSignOut(userId)");
   const warning = source.indexOf("console.warn(", cleanup);
   const signOut = source.indexOf("await supabase.auth.signOut()", cleanup);
   assert.ok(cleanup >= 0 && warning > cleanup && signOut > warning);
@@ -103,36 +133,127 @@ test("sign-out cleanup preserves preference and unsubscribes even after database
 
 test("automatic restore is approved-only, prompt-free, idempotent, and preference-gated", async () => {
   const source = await readFile("js/web-push.js", "utf8");
-  const restore = source.match(/async function restorePushNotifications\(auth\)[\s\S]*?\n}/)?.[0];
+  const restore = source.match(/async function restorePushNotifications\(auth, \{ isCurrent, getCurrentUserId \}\)[\s\S]*?\n}/)?.[0];
   assert.match(restore, /auth\.profile\?\.status !== "approved"/);
   assert.match(restore, /capability\.requiresIosInstall/);
   assert.match(restore, /preference !== "on"/);
   assert.match(restore, /capability\.permission !== "granted"/);
   assert.doesNotMatch(restore, /requestPermission/);
-  assert.match(restore, /existing \?\? await currentRegistration\.pushManager\.subscribe/);
+  assert.match(restore, /subscription = await currentRegistration\.pushManager\.subscribe/);
   assert.match(restore, /await saveSubscription\(subscription\)/);
-  assert.match(source, /restorePromises\.has\(userId\)/);
+  assert.match(source, /restorePromises\.get\(userId\)/);
   assert.match(source, /restoredUserIds\.has\(userId\)/);
 });
 
 test("legacy ownership is the only missing-preference path promoted to on", async () => {
   const source = await readFile("js/web-push.js", "utf8");
-  const restore = source.match(/async function restorePushNotifications\(auth\)[\s\S]*?\n}/)?.[0];
+  const restore = source.match(/async function restorePushNotifications\(auth, \{ isCurrent, getCurrentUserId \}\)[\s\S]*?\n}/)?.[0];
   assert.match(restore, /preference === null[\s\S]*getPushNotificationState\(\)/);
-  assert.match(restore, /if \(!legacyState\.owned\) return null/);
+  assert.match(restore, /if \(!isCurrent\(\) \|\| !legacyState\.owned\) return null/);
   assert.match(restore, /setPushPreference\(userId, "on"\)/);
   assert.doesNotMatch(restore, /permission === "granted"[\s\S]*setPushPreference\(userId, "on"\)/);
 });
 
-test("restore runs only after the complete auth context is assigned", async () => {
+test("restore starts after complete auth assignment without blocking auth", async () => {
   const source = await readFile("js/auth.js", "utf8");
   const permissions = source.indexOf("state.adminPermissions = new Set");
   const emit = source.indexOf("emit();", permissions);
-  const restore = source.indexOf("await restorePushNotificationsForAuth(getAuthState())", emit);
+  const restore = source.indexOf("void restorePushNotificationsForAuth(getAuthState()", emit);
+  const authReturn = source.indexOf("return getAuthState();", restore);
   assert.ok(permissions >= 0 && emit > permissions && restore > emit);
+  assert.ok(authReturn > restore);
+  assert.doesNotMatch(source.slice(emit, authReturn), /await restorePushNotificationsForAuth/);
+  assert.match(source.slice(restore, authReturn), /\.catch\(\(error\) =>/);
   assert.match(source, /Push subscription restore failed after authentication/);
+  assert.match(source, /restoreEpoch === lifecycleEpoch && state\.user\?\.id === user\.id/);
   assert.match(source, /if \(event === "TOKEN_REFRESHED"\)/);
   assert.match(source, /if \(event === "SIGNED_OUT"\)/);
+});
+
+test("stale existing-subscription restore neither claims nor unsubscribes", async () => {
+  const gate = deferred();
+  let claims = 0;
+  let unsubscribes = 0;
+  let currentUserId = "a";
+  let epoch = 1;
+  const subscription = {
+    endpoint: "existing",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => { await gate.promise; return subscription; },
+    subscribe: async () => { throw new Error("unexpected subscribe"); },
+    rpc: async () => { claims += 1; return { error: null }; },
+  });
+  const restore = webPush.restorePushNotificationsForAuth(
+    { user: { id: "a" }, profile: { status: "approved" } },
+    { isCurrent: () => epoch === 1 && currentUserId === "a", getCurrentUserId: () => currentUserId },
+  );
+  epoch = 2;
+  currentUserId = "b";
+  gate.resolve();
+  assert.equal(await restore, null);
+  assert.equal(claims, 0);
+  assert.equal(unsubscribes, 0);
+});
+
+test("a newly-created subscription is cleaned up if restore becomes stale before claim", async () => {
+  const gate = deferred();
+  const started = deferred();
+  let claims = 0;
+  let unsubscribes = 0;
+  let current = true;
+  const subscription = {
+    endpoint: "new",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => null,
+    subscribe: async () => { started.resolve(); await gate.promise; return subscription; },
+    rpc: async () => { claims += 1; return { error: null }; },
+  });
+  const restore = webPush.restorePushNotificationsForAuth(
+    { user: { id: "a" }, profile: { status: "approved" } },
+    { isCurrent: () => current, getCurrentUserId: () => current ? "a" : null },
+  );
+  await started.promise;
+  current = false;
+  gate.resolve();
+  assert.equal(await restore, null);
+  assert.equal(claims, 0);
+  assert.equal(unsubscribes, 1);
+});
+
+test("a stale same-user promise does not suppress restore after relogin", async () => {
+  const firstGate = deferred();
+  const firstStarted = deferred();
+  let generation = 1;
+  let calls = 0;
+  let claims = 0;
+  const subscription = { endpoint: "endpoint", toJSON: () => ({ keys: {} }), unsubscribe: async () => {} };
+  const webPush = await loadWebPush({
+    getSubscription: async () => {
+      calls += 1;
+      if (calls === 1) {
+        firstStarted.resolve();
+        await firstGate.promise;
+      }
+      return subscription;
+    },
+    subscribe: async () => subscription,
+    rpc: async () => { claims += 1; return { error: null }; },
+  });
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
+  const staleRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 1 });
+  await firstStarted.promise;
+  generation = 2;
+  const currentRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 2 });
+  await currentRestore;
+  firstGate.resolve();
+  await staleRestore;
+  assert.equal(claims, 1);
 });
 
 test("edge function re-reads the notification and limits push delivery", async () => {

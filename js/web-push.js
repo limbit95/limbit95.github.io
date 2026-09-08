@@ -172,9 +172,19 @@ export async function cleanupPushSubscriptionForSignOut(userId) {
   return true;
 }
 
-async function restorePushNotifications(auth) {
+async function cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId) {
+  const currentUserId = getCurrentUserId?.();
+  if (!createdByRestore || (currentUserId && currentUserId !== userId)) return;
+  try {
+    await subscription.unsubscribe();
+  } catch (error) {
+    console.warn("Stale push subscription cleanup failed.", error);
+  }
+}
+
+async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
   const userId = auth?.user?.id;
-  if (!userId || auth.profile?.status !== "approved") return null;
+  if (!userId || auth.profile?.status !== "approved" || !isCurrent()) return null;
 
   const capability = getPushCapability();
   if (!capability.supported || capability.requiresIosInstall) return null;
@@ -183,9 +193,10 @@ async function restorePushNotifications(auth) {
     || WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_")) return null;
 
   let preference = getPushPreference(userId);
+  if (!isCurrent()) return null;
   if (preference === null) {
     const legacyState = await getPushNotificationState();
-    if (!legacyState.owned) return null;
+    if (!isCurrent() || !legacyState.owned) return null;
     setPushPreference(userId, "on");
     restoredUserIds.add(userId);
     return legacyState.subscription;
@@ -193,23 +204,46 @@ async function restorePushNotifications(auth) {
   if (preference !== "on") return null;
 
   const currentRegistration = await registration();
+  if (!isCurrent()) return null;
   const existing = await currentRegistration.pushManager.getSubscription();
-  const subscription = existing ?? await currentRegistration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
-  });
+  if (!isCurrent()) return null;
+  let createdByRestore = false;
+  let subscription = existing;
+  if (!subscription) {
+    if (!isCurrent()) return null;
+    subscription = await currentRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+    });
+    createdByRestore = true;
+    if (!isCurrent()) {
+      await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+      return null;
+    }
+  }
+  if (!isCurrent()) {
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    return null;
+  }
   await saveSubscription(subscription);
+  if (!isCurrent()) return null;
   restoredUserIds.add(userId);
   return subscription;
 }
 
-export function restorePushNotificationsForAuth(auth) {
+export function restorePushNotificationsForAuth(auth, {
+  isCurrent = () => true,
+  getCurrentUserId = () => auth?.user?.id,
+} = {}) {
   const userId = auth?.user?.id;
-  if (!userId || restoredUserIds.has(userId)) return Promise.resolve(null);
-  if (restorePromises.has(userId)) return restorePromises.get(userId);
+  if (!userId || !isCurrent() || restoredUserIds.has(userId)) return Promise.resolve(null);
+  const pendingRestore = restorePromises.get(userId);
+  if (pendingRestore?.isCurrent()) return pendingRestore.promise;
 
-  const restorePromise = restorePushNotifications(auth)
-    .finally(() => restorePromises.delete(userId));
-  restorePromises.set(userId, restorePromise);
+  const restorePromise = restorePushNotifications(auth, { isCurrent, getCurrentUserId })
+    .finally(() => {
+      if (restorePromises.get(userId)?.promise === restorePromise) restorePromises.delete(userId);
+    });
+  restorePromises.set(userId, { promise: restorePromise, isCurrent });
   return restorePromise;
 }
