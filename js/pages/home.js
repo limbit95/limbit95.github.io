@@ -238,8 +238,10 @@ function createHomeGamesCard(dateKey) {
 }
 
 function homeGameIndex(dateKey) {
-  const numericDate = Number(String(dateKey).replace(/-/g, ""));
-  return Number.isFinite(numericDate) ? numericDate % HOME_GAMES.length : 0;
+  const [year, month, day] = String(dateKey).split("-").map(Number);
+  if (![year, month, day].every(Number.isFinite)) return 0;
+  const dayNumber = Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+  return dayNumber % HOME_GAMES.length;
 }
 
 function createDailyVerseLoadingCard() {
