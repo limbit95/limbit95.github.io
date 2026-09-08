@@ -1,6 +1,9 @@
 import { supabase } from "./supabaseClient.js";
 import { PROFILE_STATUS } from "./constants.js";
-import { disablePushNotifications } from "./web-push.js";
+import {
+  cleanupPushSubscriptionForSignOut,
+  restorePushNotificationsForAuth,
+} from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
@@ -112,6 +115,11 @@ async function loadAuthContext(session, { force, epoch }) {
   state.managerCategoryIds = managerCategoryIds;
   state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
   emit();
+  try {
+    await restorePushNotificationsForAuth(getAuthState());
+  } catch (error) {
+    console.warn("Push subscription restore failed after authentication.", error);
+  }
   return getAuthState();
 }
 
@@ -237,7 +245,7 @@ export async function updatePassword(password) {
 
 export async function signOut() {
   try {
-    await disablePushNotifications();
+    await cleanupPushSubscriptionForSignOut(state.user?.id);
   } catch (error) {
     console.warn("Push subscription cleanup failed during sign-out.", error);
   }

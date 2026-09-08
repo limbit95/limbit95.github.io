@@ -45,7 +45,8 @@ test("client considers a browser subscription enabled only when the current user
   assert.match(source, /owned: data\?\.endpoint === subscription\.endpoint/);
   const myPage = await readFile("js/pages/mypage.js", "utf8");
   assert.match(myPage, /pushState\.owned \? "푸시 알림 끄기" : "푸시 알림 받기"/);
-  assert.doesNotMatch(myPage, /enablePushNotifications\(auth\.user\.id\)/);
+  assert.match(myPage, /enablePushNotifications\(auth\.user\.id\)/);
+  assert.match(myPage, /disablePushNotifications\(auth\.user\.id\)/);
 });
 
 test("secure RPC claims an endpoint for auth.uid without accepting a user id", async () => {
@@ -61,27 +62,77 @@ test("secure RPC claims an endpoint for auth.uid without accepting a user id", a
   assert.match(sql, /grant execute on function public\.claim_push_subscription\(text, text, text, text\) to authenticated/);
 });
 
-test("push removal is scoped to auth.uid and precedes browser unsubscribe", async () => {
+test("explicit push choices persist an account-scoped preference only after completion", async () => {
   const sql = await readFile(ownershipMigrationPath, "utf8");
   assert.match(sql, /delete from public\.push_subscriptions\s*where user_id = v_user_id and endpoint = p_endpoint/);
   assert.match(sql, /revoke insert, update, delete on table public\.push_subscriptions from authenticated/);
 
   const source = await readFile("js/web-push.js", "utf8");
+  assert.match(source, /PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:"/);
+  assert.match(source, /window\.localStorage\.getItem\(preferenceKey\(userId\)\)/);
+  assert.match(source, /window\.localStorage\.setItem\(preferenceKey\(userId\), value\)/);
+  assert.match(source, /return value === "on" \|\| value === "off" \? value : null/);
   assert.match(source, /Notification\.requestPermission\(\)/);
   assert.match(source, /pushManager\.subscribe/);
   assert.match(source, /rpc\("claim_push_subscription"/);
   assert.match(source, /rpc\("remove_own_push_subscription"/);
-  assert.match(source, /if \(!removed\) return false/);
   assert.match(source, /await subscription\.unsubscribe\(\)/);
-  assert.ok(source.indexOf('rpc("remove_own_push_subscription"') < source.indexOf("await subscription.unsubscribe()"));
+  const enable = source.match(/export async function enablePushNotifications[\s\S]*?\n}/)?.[0];
+  const disable = source.match(/export async function disablePushNotifications[\s\S]*?\n}/)?.[0];
+  assert.ok(enable.indexOf("await saveSubscription(subscription)") < enable.indexOf('setPushPreference(userId, "on")'));
+  assert.ok(disable.indexOf("await subscription.unsubscribe()") < disable.indexOf('setPushPreference(userId, "off")'));
 });
 
 test("explicit sign-out attempts push cleanup without allowing failure to block sign-out", async () => {
   const source = await readFile("js/auth.js", "utf8");
-  const cleanup = source.indexOf("await disablePushNotifications()");
+  const cleanup = source.indexOf("await cleanupPushSubscriptionForSignOut(state.user?.id)");
   const warning = source.indexOf("console.warn(", cleanup);
   const signOut = source.indexOf("await supabase.auth.signOut()", cleanup);
   assert.ok(cleanup >= 0 && warning > cleanup && signOut > warning);
+});
+
+test("sign-out cleanup preserves preference and unsubscribes even after database failure", async () => {
+  const source = await readFile("js/web-push.js", "utf8");
+  const cleanup = source.match(/export async function cleanupPushSubscriptionForSignOut[\s\S]*?\n}/)?.[0];
+  assert.ok(cleanup);
+  assert.doesNotMatch(cleanup, /setPushPreference\(userId, "off"\)/);
+  assert.match(cleanup, /removalError = error/);
+  assert.match(cleanup, /await subscription\.unsubscribe\(\)/);
+  assert.ok(cleanup.indexOf("removalError = error") < cleanup.indexOf("await subscription.unsubscribe()"));
+});
+
+test("automatic restore is approved-only, prompt-free, idempotent, and preference-gated", async () => {
+  const source = await readFile("js/web-push.js", "utf8");
+  const restore = source.match(/async function restorePushNotifications\(auth\)[\s\S]*?\n}/)?.[0];
+  assert.match(restore, /auth\.profile\?\.status !== "approved"/);
+  assert.match(restore, /capability\.requiresIosInstall/);
+  assert.match(restore, /preference !== "on"/);
+  assert.match(restore, /capability\.permission !== "granted"/);
+  assert.doesNotMatch(restore, /requestPermission/);
+  assert.match(restore, /existing \?\? await currentRegistration\.pushManager\.subscribe/);
+  assert.match(restore, /await saveSubscription\(subscription\)/);
+  assert.match(source, /restorePromises\.has\(userId\)/);
+  assert.match(source, /restoredUserIds\.has\(userId\)/);
+});
+
+test("legacy ownership is the only missing-preference path promoted to on", async () => {
+  const source = await readFile("js/web-push.js", "utf8");
+  const restore = source.match(/async function restorePushNotifications\(auth\)[\s\S]*?\n}/)?.[0];
+  assert.match(restore, /preference === null[\s\S]*getPushNotificationState\(\)/);
+  assert.match(restore, /if \(!legacyState\.owned\) return null/);
+  assert.match(restore, /setPushPreference\(userId, "on"\)/);
+  assert.doesNotMatch(restore, /permission === "granted"[\s\S]*setPushPreference\(userId, "on"\)/);
+});
+
+test("restore runs only after the complete auth context is assigned", async () => {
+  const source = await readFile("js/auth.js", "utf8");
+  const permissions = source.indexOf("state.adminPermissions = new Set");
+  const emit = source.indexOf("emit();", permissions);
+  const restore = source.indexOf("await restorePushNotificationsForAuth(getAuthState())", emit);
+  assert.ok(permissions >= 0 && emit > permissions && restore > emit);
+  assert.match(source, /Push subscription restore failed after authentication/);
+  assert.match(source, /if \(event === "TOKEN_REFRESHED"\)/);
+  assert.match(source, /if \(event === "SIGNED_OUT"\)/);
 });
 
 test("edge function re-reads the notification and limits push delivery", async () => {
