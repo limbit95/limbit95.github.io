@@ -32,4 +32,14 @@ test("database migration enforces request-level and singleton boundaries", () =>
   assert.match(migration, /profiles_single_system_admin_idx/);
   assert.match(migration, /if not private\.is_system_admin\(\)/);
   assert.match(migration, /revoke all on function public\.bootstrap_system_admin\(uuid\) from public, anon, authenticated/);
+  assert.match(migration, /event_series_community_admin_all/);
+  assert.match(migration, /private\.has_admin_permission\('community'\) or private\.is_category_manager/);
+  assert.match(migration, /events_community_admin_all/);
+  assert.match(migration, /client_error_logs_select_operations_admin/);
+  assert.match(migration, /app\.allow_member_admin_update/);
+  assert.match(migration, /function private\.protect_comment_identity\(\)/);
+  assert.match(migration, /function private\.protect_creator_identity\(\)/);
+  assert.match(migration, /delete from public\.admin_permissions where user_id = p_user_id/);
+  assert.doesNotMatch(migration, /마지막 관리자의 권한은 회수할 수 없습니다/);
+  assert.doesNotMatch(migration, /마지막 관리자는 이용 정지할 수 없습니다/);
 });

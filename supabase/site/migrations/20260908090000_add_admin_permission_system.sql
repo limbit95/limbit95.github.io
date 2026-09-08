@@ -75,10 +75,10 @@ create policy category_managers_operations_admin_insert on public.category_manag
 with check (private.has_admin_permission('operations') and created_by = (select auth.uid()));
 create policy category_managers_operations_admin_delete on public.category_managers for delete to authenticated
 using (private.has_admin_permission('operations'));
-create policy event_series_operations_admin_all on public.event_series for all to authenticated
-using (private.has_admin_permission('operations')) with check (private.has_admin_permission('operations'));
-create policy events_operations_admin_all on public.events for all to authenticated
-using (private.has_admin_permission('operations')) with check (private.has_admin_permission('operations'));
+create policy event_series_community_admin_all on public.event_series for all to authenticated
+using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
+create policy events_community_admin_all on public.events for all to authenticated
+using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
 create policy date_polls_operations_admin_all on public.date_polls for all to authenticated
 using (private.has_admin_permission('operations')) with check (private.has_admin_permission('operations'));
 create policy date_poll_options_operations_admin_all on public.date_poll_options for all to authenticated
@@ -87,6 +87,80 @@ create policy posts_community_admin_all on public.posts for all to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
 create policy comments_community_admin_all on public.comments for all to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
+drop policy client_error_logs_select_admin on public.client_error_logs;
+create policy client_error_logs_select_operations_admin on public.client_error_logs for select to authenticated
+using (private.has_admin_permission('operations'));
+
+-- Only management RPCs may use MEMBERS authority to change protected profile columns.
+-- This keeps direct self-updates from escalating role or approval state.
+create or replace function private.protect_profile_privileged_columns()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not private.is_system_admin() then
+    if new.role is distinct from old.role
+       or new.status is distinct from old.status
+       or new.approved_at is distinct from old.approved_at
+       or new.approved_by is distinct from old.approved_by
+       or new.created_at is distinct from old.created_at
+    then
+      if not private.has_admin_permission('members')
+         or coalesce(current_setting('app.allow_member_admin_update', true), 'false') <> 'true'
+      then
+        raise exception '권한 또는 승인 상태 컬럼은 변경할 수 없습니다.' using errcode = '42501';
+      end if;
+    end if;
+  end if;
+  return new;
+end; $$;
+
+create or replace function private.protect_post_privileged_columns()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not private.has_admin_permission('community') then
+    if new.board_type is distinct from old.board_type
+       or new.author_id is distinct from old.author_id
+       or new.is_pinned is distinct from old.is_pinned
+       or new.is_important is distinct from old.is_important
+       or (new.view_count is distinct from old.view_count
+           and coalesce(current_setting('app.allow_post_view_update', true), 'false') <> 'true')
+       or new.created_at is distinct from old.created_at
+    then
+      raise exception '게시글의 관리 전용 컬럼은 변경할 수 없습니다.' using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end; $$;
+
+create or replace function private.protect_comment_identity()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null and not private.has_admin_permission('community') then
+    if new.target_type is distinct from old.target_type
+       or new.target_id is distinct from old.target_id
+       or new.author_id is distinct from old.author_id
+       or new.created_at is distinct from old.created_at
+    then
+      raise exception '댓글의 작성자 또는 대상은 변경할 수 없습니다.' using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end; $$;
+
+create or replace function private.protect_creator_identity()
+returns trigger language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is not null
+     and not private.has_admin_permission('community')
+     and not private.has_admin_permission('operations')
+  then
+    if new.created_by is distinct from old.created_by
+       or new.created_at is distinct from old.created_at
+    then
+      raise exception '작성자와 생성일은 변경할 수 없습니다.' using errcode = '42501';
+    end if;
+  end if;
+  return new;
+end; $$;
 
 create or replace function public.get_my_admin_access()
 returns table(role text, permissions text[])
@@ -170,6 +244,8 @@ begin
             using errcode = '42501';
     end if;
 
+    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);
+
     select jr.status
     into v_request_status
     from public.join_requests as jr
@@ -219,6 +295,8 @@ begin
         raise exception '관리자만 가입 신청을 검토할 수 있습니다.'
             using errcode = '42501';
     end if;
+
+    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);
 
     if p_decision is null or p_decision not in ('rejected', 'held') then
         raise exception '처리 상태는 rejected 또는 held만 가능합니다.'
@@ -271,12 +349,13 @@ as $$
 declare
     v_current_role text;
     v_current_status text;
-    v_admin_count integer;
 begin
     if not private.has_admin_permission('permissions') then
         raise exception '관리자만 역할을 변경할 수 있습니다.'
             using errcode = '42501';
     end if;
+
+    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);
 
     if p_role is null or p_role not in ('member', 'admin') then
         raise exception '지원하지 않는 역할입니다.'
@@ -308,22 +387,13 @@ begin
             using errcode = '23514';
     end if;
 
-    if v_current_role = 'admin' and p_role = 'member' then
-        select count(*)::integer
-        into v_admin_count
-        from public.profiles as p
-        where p.role = 'admin'
-          and p.status = 'approved';
-
-        if v_admin_count <= 1 then
-            raise exception '마지막 관리자의 권한은 회수할 수 없습니다.'
-                using errcode = '23514';
-        end if;
-    end if;
-
     update public.profiles
     set role = p_role
     where id = p_user_id;
+
+    if v_current_role = 'admin' and p_role = 'member' then
+        delete from public.admin_permissions where user_id = p_user_id;
+    end if;
 end;
 $$;
 
@@ -339,12 +409,13 @@ as $$
 declare
     v_role text;
     v_current_status text;
-    v_admin_count integer;
 begin
     if not private.has_admin_permission('members') then
         raise exception '관리자만 회원 상태를 변경할 수 있습니다.'
             using errcode = '42501';
     end if;
+
+    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);
 
     if p_status is null or p_status not in ('approved', 'suspended') then
         raise exception '회원 상태는 approved 또는 suspended만 가능합니다.'
@@ -377,22 +448,6 @@ begin
     if v_current_status not in ('approved', 'suspended') then
         raise exception '가입 승인 전 상태는 가입 신청 관리 RPC로 처리해야 합니다.'
             using errcode = '23514';
-    end if;
-
-    if v_role = 'admin'
-       and v_current_status = 'approved'
-       and p_status = 'suspended'
-    then
-        select count(*)::integer
-        into v_admin_count
-        from public.profiles as p
-        where p.role = 'admin'
-          and p.status = 'approved';
-
-        if v_admin_count <= 1 then
-            raise exception '마지막 관리자는 이용 정지할 수 없습니다.'
-                using errcode = '23514';
-        end if;
     end if;
 
     update public.profiles
@@ -481,5 +536,179 @@ begin
  where v_search is null or strpos(lower(p.display_name),v_search)>0 or strpos(lower(coalesce(j.real_name,'')),v_search)>0 or strpos(lower(coalesce(j.email,'')),v_search)>0
  order by p.created_at desc,p.id desc limit v_limit offset v_offset;
 end; $$;
+
+-- The latest recurring-activity RPC also follows the COMMUNITY content boundary.
+create or replace function public.create_recurring_event(p_series jsonb, p_occurrences jsonb)
+returns jsonb
+language plpgsql
+set search_path to ''
+as $function$
+declare
+  v_user_id uuid := auth.uid();
+  v_category_id bigint;
+  v_start_date date;
+  v_end_date date;
+  v_series public.event_series%rowtype;
+  v_events jsonb;
+begin
+  if v_user_id is null or not private.is_approved_member() then
+    raise exception '승인된 회원만 반복 활동을 등록할 수 있습니다.'
+      using errcode = '42501';
+  end if;
+
+  if p_series is null or jsonb_typeof(p_series) <> 'object' then
+    raise exception '반복 활동 정보를 확인해 주세요.'
+      using errcode = '22023';
+  end if;
+
+  if p_occurrences is null
+     or jsonb_typeof(p_occurrences) <> 'array'
+     or jsonb_array_length(p_occurrences) < 1
+     or jsonb_array_length(p_occurrences) > 60 then
+    raise exception '반복 활동 일정은 1개 이상 60개 이하로 등록해 주세요.'
+      using errcode = '22023';
+  end if;
+
+  v_category_id := nullif(p_series ->> 'category_id', '')::bigint;
+  v_start_date := nullif(p_series ->> 'start_date', '')::date;
+  v_end_date := nullif(p_series ->> 'end_date', '')::date;
+
+  if v_category_id is null or v_start_date is null or v_end_date is null then
+    raise exception '카테고리와 반복 시작일/종료일을 확인해 주세요.'
+      using errcode = '22023';
+  end if;
+
+  if not (private.has_admin_permission('community') or private.is_category_manager(v_category_id)) then
+    raise exception '이 카테고리의 반복 활동을 등록할 권한이 없습니다.'
+      using errcode = '42501';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_occurrences) as occurrence(value)
+    where nullif(occurrence.value ->> 'event_date', '')::date < v_start_date
+       or nullif(occurrence.value ->> 'event_date', '')::date > v_end_date
+  ) then
+    raise exception '반복 활동 날짜가 반복 기간을 벗어났습니다.'
+      using errcode = '23514';
+  end if;
+
+  if not exists (
+    select 1
+    from jsonb_array_elements(p_occurrences) as occurrence(value)
+    where nullif(occurrence.value ->> 'event_date', '')::date = v_start_date
+  ) then
+    raise exception '첫 활동 날짜가 반복 일정에 포함되어야 합니다.'
+      using errcode = '23514';
+  end if;
+
+  insert into public.event_series (
+    category_id,
+    title,
+    description,
+    start_date,
+    end_date,
+    start_time,
+    end_time,
+    timezone,
+    recurrence_rule,
+    location_name,
+    location_url,
+    location_latitude,
+    location_longitude,
+    capacity,
+    fee_text,
+    difficulty,
+    preparation,
+    beginner_friendly,
+    participant_notice,
+    status,
+    created_by
+  ) values (
+    v_category_id,
+    p_series ->> 'title',
+    p_series ->> 'description',
+    v_start_date,
+    v_end_date,
+    nullif(p_series ->> 'start_time', '')::time,
+    nullif(p_series ->> 'end_time', '')::time,
+    'Asia/Seoul',
+    p_series ->> 'recurrence_rule',
+    p_series ->> 'location_name',
+    nullif(p_series ->> 'location_url', ''),
+    nullif(p_series ->> 'location_latitude', '')::double precision,
+    nullif(p_series ->> 'location_longitude', '')::double precision,
+    nullif(p_series ->> 'capacity', '')::integer,
+    coalesce(nullif(p_series ->> 'fee_text', ''), '무료'),
+    nullif(p_series ->> 'difficulty', ''),
+    coalesce(p_series ->> 'preparation', ''),
+    coalesce(nullif(p_series ->> 'beginner_friendly', '')::boolean, true),
+    coalesce(p_series ->> 'participant_notice', ''),
+    'active',
+    v_user_id
+  )
+  returning * into v_series;
+
+  with inserted as (
+    insert into public.events (
+      series_id,
+      category_id,
+      title,
+      description,
+      event_date,
+      start_time,
+      end_time,
+      location_name,
+      location_url,
+      location_latitude,
+      location_longitude,
+      capacity,
+      fee_text,
+      difficulty,
+      preparation,
+      beginner_friendly,
+      participant_notice,
+      registration_deadline,
+      status,
+      created_by
+    )
+    select
+      v_series.id,
+      v_series.category_id,
+      v_series.title,
+      v_series.description,
+      nullif(occurrence.value ->> 'event_date', '')::date,
+      v_series.start_time,
+      v_series.end_time,
+      v_series.location_name,
+      v_series.location_url,
+      v_series.location_latitude,
+      v_series.location_longitude,
+      v_series.capacity,
+      v_series.fee_text,
+      v_series.difficulty,
+      v_series.preparation,
+      v_series.beginner_friendly,
+      v_series.participant_notice,
+      nullif(occurrence.value ->> 'registration_deadline', '')::timestamptz,
+      'scheduled',
+      v_user_id
+    from jsonb_array_elements(p_occurrences) with ordinality as occurrence(value, position)
+    order by occurrence.position
+    returning *
+  )
+  select coalesce(
+    jsonb_agg(to_jsonb(inserted) order by event_date, start_time, id),
+    '[]'::jsonb
+  )
+  into v_events
+  from inserted;
+
+  return jsonb_build_object(
+    'series', to_jsonb(v_series),
+    'events', v_events
+  );
+end;
+$function$;
 
 commit;
