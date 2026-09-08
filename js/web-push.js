@@ -1,8 +1,42 @@
-import { WEB_PUSH_VAPID_PUBLIC_KEY } from "./config.js";
+import {
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+  WEB_PUSH_VAPID_PUBLIC_KEY,
+} from "./config.js";
 import { supabase } from "./supabaseClient.js";
 
 const SERVICE_WORKER_PATH = "./push-service-worker.js";
 const SERVICE_WORKER_SCOPE = "./";
+const PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:";
+const restorePromises = new Map();
+const restoredUserIds = new Set();
+const inFlightRestoreClaims = new Map();
+
+function preferenceKey(userId) {
+  return `${PUSH_PREFERENCE_PREFIX}${userId}`;
+}
+
+export function getPushPreference(userId) {
+  if (!userId) return null;
+  try {
+    const value = window.localStorage.getItem(preferenceKey(userId));
+    return value === "on" || value === "off" ? value : null;
+  } catch (error) {
+    console.warn("Push preference could not be read.", error);
+    return null;
+  }
+}
+
+function setPushPreference(userId, value) {
+  if (!userId) return false;
+  try {
+    window.localStorage.setItem(preferenceKey(userId), value);
+    return true;
+  } catch (error) {
+    console.warn("Push preference could not be saved.", error);
+    return false;
+  }
+}
 
 function applicationServerKey(value) {
   const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -50,6 +84,44 @@ async function saveSubscription(subscription) {
   if (error) throw error;
 }
 
+async function removeSubscriptionWithAccessToken(subscription, accessToken) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/remove_own_push_subscription`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ p_endpoint: subscription.endpoint }),
+  });
+  if (!response.ok) throw new Error(`Push subscription cleanup failed (${response.status}).`);
+}
+
+function trackRestoreClaim(userId, claimPromise) {
+  const claims = inFlightRestoreClaims.get(userId) ?? new Set();
+  claims.add(claimPromise);
+  inFlightRestoreClaims.set(userId, claims);
+  const untrack = () => {
+    claims.delete(claimPromise);
+    if (!claims.size) inFlightRestoreClaims.delete(userId);
+  };
+  claimPromise.then(untrack, untrack);
+}
+
+export async function waitForPushRestoreClaims(userId, timeoutMs = 3000) {
+  const claims = inFlightRestoreClaims.get(userId);
+  if (!claims?.size) return true;
+  let timeoutId;
+  const completed = await Promise.race([
+    Promise.allSettled([...claims]).then(() => true),
+    new Promise((resolve) => {
+      timeoutId = setTimeout(() => resolve(false), timeoutMs);
+    }),
+  ]);
+  if (timeoutId) clearTimeout(timeoutId);
+  return completed;
+}
+
 export async function getPushNotificationState() {
   const subscription = await getCurrentPushSubscription();
   if (!subscription) return { subscription: null, owned: false };
@@ -62,7 +134,7 @@ export async function getPushNotificationState() {
   return { subscription, owned: data?.endpoint === subscription.endpoint };
 }
 
-export async function enablePushNotifications() {
+export async function enablePushNotifications(userId) {
   const capability = getPushCapability();
   if (!capability.supported) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
   if (capability.requiresIosInstall) throw new Error("iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.");
@@ -83,17 +155,148 @@ export async function enablePushNotifications() {
     applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
   });
   await saveSubscription(subscription);
+  setPushPreference(userId, "on");
+  restoredUserIds.add(userId);
   return subscription;
 }
 
-export async function disablePushNotifications() {
+export async function disablePushNotifications(userId) {
+  const subscription = await getCurrentPushSubscription();
+  if (subscription) {
+    let removalError = null;
+    try {
+      const { error } = await supabase.rpc("remove_own_push_subscription", {
+        p_endpoint: subscription.endpoint,
+      });
+      if (error) throw error;
+    } catch (error) {
+      removalError = error;
+    }
+    await subscription.unsubscribe();
+    if (removalError) throw removalError;
+  }
+  setPushPreference(userId, "off");
+  restoredUserIds.delete(userId);
+  return Boolean(subscription);
+}
+
+export async function cleanupPushSubscriptionForSignOut(userId) {
+  restoredUserIds.delete(userId);
   const subscription = await getCurrentPushSubscription();
   if (!subscription) return false;
-  const { data: removed, error } = await supabase.rpc("remove_own_push_subscription", {
-    p_endpoint: subscription.endpoint,
-  });
-  if (error) throw error;
-  if (!removed) return false;
-  await subscription.unsubscribe();
+
+  if (getPushPreference(userId) === null) {
+    try {
+      const state = await getPushNotificationState();
+      if (state.owned) setPushPreference(userId, "on");
+    } catch (error) {
+      console.warn("Legacy push preference could not be migrated during sign-out.", error);
+    }
+  }
+
+  let removalError = null;
+  try {
+    const { error } = await supabase.rpc("remove_own_push_subscription", {
+      p_endpoint: subscription.endpoint,
+    });
+    if (error) throw error;
+  } catch (error) {
+    removalError = error;
+  }
+
+  let unsubscribeError = null;
+  try {
+    await subscription.unsubscribe();
+  } catch (error) {
+    unsubscribeError = error;
+  }
+  if (removalError) throw removalError;
+  if (unsubscribeError) throw unsubscribeError;
   return true;
+}
+
+async function cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId) {
+  const currentUserId = getCurrentUserId?.();
+  if (!createdByRestore || (currentUserId && currentUserId !== userId)) return;
+  try {
+    await subscription.unsubscribe();
+  } catch (error) {
+    console.warn("Stale push subscription cleanup failed.", error);
+  }
+}
+
+async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
+  const userId = auth?.user?.id;
+  if (!userId || auth.profile?.status !== "approved" || !isCurrent()) return null;
+
+  const capability = getPushCapability();
+  if (!capability.supported || capability.requiresIosInstall) return null;
+  if (capability.permission !== "granted"
+    || !WEB_PUSH_VAPID_PUBLIC_KEY
+    || WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_")) return null;
+
+  let preference = getPushPreference(userId);
+  if (!isCurrent()) return null;
+  if (preference === null) {
+    const legacyState = await getPushNotificationState();
+    if (!isCurrent() || !legacyState.owned) return null;
+    setPushPreference(userId, "on");
+    restoredUserIds.add(userId);
+    return legacyState.subscription;
+  }
+  if (preference !== "on") return null;
+
+  const currentRegistration = await registration();
+  if (!isCurrent()) return null;
+  const existing = await currentRegistration.pushManager.getSubscription();
+  if (!isCurrent()) return null;
+  let createdByRestore = false;
+  let subscription = existing;
+  if (!subscription) {
+    if (!isCurrent()) return null;
+    subscription = await currentRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+    });
+    createdByRestore = true;
+    if (!isCurrent()) {
+      await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+      return null;
+    }
+  }
+  if (!isCurrent()) {
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    return null;
+  }
+  const claimPromise = saveSubscription(subscription);
+  trackRestoreClaim(userId, claimPromise);
+  await claimPromise;
+  if (!isCurrent()) {
+    try {
+      await removeSubscriptionWithAccessToken(subscription, auth.session?.access_token);
+    } catch (error) {
+      console.warn("Stale push subscription ownership cleanup failed.", error);
+    }
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    return null;
+  }
+  restoredUserIds.add(userId);
+  return subscription;
+}
+
+export function restorePushNotificationsForAuth(auth, {
+  isCurrent = () => true,
+  getCurrentUserId = () => auth?.user?.id,
+} = {}) {
+  const userId = auth?.user?.id;
+  if (!userId || !isCurrent() || restoredUserIds.has(userId)) return Promise.resolve(null);
+  const pendingRestore = restorePromises.get(userId);
+  if (pendingRestore?.isCurrent()) return pendingRestore.promise;
+
+  const restorePromise = restorePushNotifications(auth, { isCurrent, getCurrentUserId })
+    .finally(() => {
+      if (restorePromises.get(userId)?.promise === restorePromise) restorePromises.delete(userId);
+    });
+  restorePromises.set(userId, { promise: restorePromise, isCurrent });
+  return restorePromise;
 }

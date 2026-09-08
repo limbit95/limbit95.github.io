@@ -1,9 +1,14 @@
 import { supabase } from "./supabaseClient.js";
 import { PROFILE_STATUS } from "./constants.js";
-import { disablePushNotifications } from "./web-push.js";
+import {
+  cleanupPushSubscriptionForSignOut,
+  restorePushNotificationsForAuth,
+  waitForPushRestoreClaims,
+} from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
 
 const state = {
   session: null,
@@ -112,6 +117,13 @@ async function loadAuthContext(session, { force, epoch }) {
   state.managerCategoryIds = managerCategoryIds;
   state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
   emit();
+  const restoreEpoch = lifecycleEpoch;
+  void restorePushNotificationsForAuth(getAuthState(), {
+    isCurrent: () => restoreEpoch === lifecycleEpoch && state.user?.id === user.id,
+    getCurrentUserId: () => state.user?.id ?? null,
+  }).catch((error) => {
+    console.warn("Push subscription restore failed after authentication.", error);
+  });
   return getAuthState();
 }
 
@@ -235,11 +247,34 @@ export async function updatePassword(password) {
   return data;
 }
 
+async function cleanupPushBeforeSignOut(userId, timeoutMs = PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS) {
+  let timeoutId = null;
+  const cleanupPromise = cleanupPushSubscriptionForSignOut(userId)
+    .then(() => true)
+    .catch((error) => {
+      console.warn("Push subscription cleanup failed during sign-out.", error);
+      return true;
+    });
+  const completed = await Promise.race([
+    cleanupPromise,
+    new Promise((resolve) => {
+      timeoutId = window.setTimeout(() => resolve(false), timeoutMs);
+    }),
+  ]);
+  if (timeoutId !== null) window.clearTimeout(timeoutId);
+  return completed;
+}
+
 export async function signOut() {
-  try {
-    await disablePushNotifications();
-  } catch (error) {
-    console.warn("Push subscription cleanup failed during sign-out.", error);
+  const userId = state.user?.id;
+  lifecycleEpoch += 1;
+  const claimsCompleted = await waitForPushRestoreClaims(userId);
+  if (!claimsCompleted) {
+    console.warn("Timed out waiting for Push subscription restore during sign-out.");
+  }
+  const cleanupCompleted = await cleanupPushBeforeSignOut(userId);
+  if (!cleanupCompleted) {
+    console.warn("Timed out cleaning up Push subscription during sign-out.");
   }
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
