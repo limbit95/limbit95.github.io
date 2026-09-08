@@ -43,3 +43,21 @@ test("database migration enforces request-level and singleton boundaries", () =>
   assert.doesNotMatch(migration, /마지막 관리자의 권한은 회수할 수 없습니다/);
   assert.doesNotMatch(migration, /마지막 관리자는 이용 정지할 수 없습니다/);
 });
+
+test("invite revocation keeps creator access and requires operations for cross-user access", () => {
+  const migration = readFileSync(new URL("../supabase/site/migrations/20260908090000_add_admin_permission_system.sql", import.meta.url), "utf8");
+  const revokeFunction = migration.match(
+    /create or replace function public\.site_invite_revoke\(p_token text\)[\s\S]*?\n\$\$;/,
+  )?.[0];
+
+  assert.ok(revokeFunction, "site_invite_revoke must be redefined by the permission migration");
+  assert.match(revokeFunction, /created_by = auth\.uid\(\)/);
+  assert.match(revokeFunction, /or private\.has_admin_permission\('operations'\)/);
+  assert.doesNotMatch(revokeFunction, /private\.is_admin\(\)/);
+
+  assert.equal(hasAdminPermission({ isSystemAdmin: true, adminPermissions: new Set() }, ADMIN_PERMISSION.OPERATIONS), true);
+  assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set([ADMIN_PERMISSION.OPERATIONS]) }, ADMIN_PERMISSION.OPERATIONS), true);
+  assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set([ADMIN_PERMISSION.COMMUNITY]) }, ADMIN_PERMISSION.OPERATIONS), false);
+  assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set([ADMIN_PERMISSION.MEMBERS]) }, ADMIN_PERMISSION.OPERATIONS), false);
+  assert.equal(hasAdminPermission({ isSystemAdmin: false, adminPermissions: new Set() }, ADMIN_PERMISSION.OPERATIONS), false);
+});
