@@ -106,18 +106,49 @@ create policy category_managers_operations_admin_insert on public.category_manag
 with check (private.has_admin_permission('operations') and created_by = (select auth.uid()));
 create policy category_managers_operations_admin_delete on public.category_managers for delete to authenticated
 using (private.has_admin_permission('operations'));
-create policy event_series_community_admin_all on public.event_series for all to authenticated
+create policy event_series_community_admin_insert on public.event_series for insert to authenticated
+with check (private.is_approved_member() and created_by = (select auth.uid()) and private.has_admin_permission('community'));
+create policy event_series_community_admin_update on public.event_series for update to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
-create policy events_community_admin_all on public.events for all to authenticated
+create policy event_series_community_admin_delete on public.event_series for delete to authenticated
+using (private.has_admin_permission('community'));
+create policy events_community_admin_insert on public.events for insert to authenticated
+with check (private.is_approved_member() and created_by = (select auth.uid()) and private.has_admin_permission('community'));
+create policy events_community_admin_update on public.events for update to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
-create policy date_polls_operations_admin_all on public.date_polls for all to authenticated
+create policy events_community_admin_delete on public.events for delete to authenticated
+using (private.has_admin_permission('community'));
+create policy date_polls_operations_admin_insert on public.date_polls for insert to authenticated
+with check (private.is_approved_member() and created_by = (select auth.uid()) and private.has_admin_permission('operations'));
+create policy date_polls_operations_admin_update on public.date_polls for update to authenticated
 using (private.has_admin_permission('operations')) with check (private.has_admin_permission('operations'));
+create policy date_polls_operations_admin_delete on public.date_polls for delete to authenticated
+using (private.has_admin_permission('operations'));
 create policy date_poll_options_operations_admin_all on public.date_poll_options for all to authenticated
 using (private.has_admin_permission('operations')) with check (private.has_admin_permission('operations'));
-create policy posts_community_admin_all on public.posts for all to authenticated
+create policy posts_community_admin_insert on public.posts for insert to authenticated
+with check (
+  private.is_approved_member()
+  and author_id = (select auth.uid())
+  and status = 'published'
+  and private.has_admin_permission('community')
+  and board_type in ('free', 'notice')
+);
+create policy posts_community_admin_update on public.posts for update to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
-create policy comments_community_admin_all on public.comments for all to authenticated
+create policy posts_community_admin_delete on public.posts for delete to authenticated
+using (private.has_admin_permission('community'));
+create policy comments_community_admin_insert on public.comments for insert to authenticated
+with check (
+  private.is_approved_member()
+  and author_id = (select auth.uid())
+  and status = 'published'
+  and private.has_admin_permission('community')
+);
+create policy comments_community_admin_update on public.comments for update to authenticated
 using (private.has_admin_permission('community')) with check (private.has_admin_permission('community'));
+create policy comments_community_admin_delete on public.comments for delete to authenticated
+using (private.has_admin_permission('community'));
 drop policy client_error_logs_select_admin on public.client_error_logs;
 create policy client_error_logs_select_operations_admin on public.client_error_logs for select to authenticated
 using (private.has_admin_permission('operations'));
