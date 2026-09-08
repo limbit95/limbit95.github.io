@@ -18,27 +18,6 @@ import {
   setBusy,
 } from "../ui.js";
 
-const HOME_GAMES = Object.freeze([
-  {
-    icon: "🎭",
-    title: "라이어 게임",
-    description: "제시어를 모르는 라이어를 찾아내는 추리 게임이에요.",
-    href: "./liar-game/",
-  },
-  {
-    icon: "🔢",
-    title: "더 게임",
-    description: "네 더미를 함께 관리하며 모든 숫자 카드를 내려놓는 협력 카드 게임이에요.",
-    href: "./the-game/",
-  },
-  {
-    icon: "🌍",
-    title: "마블 월드",
-    description: "서로 다른 세계와 규칙을 선택해 함께 즐기는 테마형 마블 게임이에요.",
-    href: "./marble-game/",
-  },
-]);
-
 const DAILY_VERSES = Object.freeze([
   ["gn", "창세기", 12, 2],
   ["dt", "신명기", 31, 8],
@@ -173,7 +152,7 @@ export async function renderHome() {
       ]));
     });
   }
-  const gameCard = createHomeGamesCard(today);
+  const gameCard = createHomeGamesCard();
   lowerGrid.append(noticeCard, gameCard);
   root.append(hero, lowerGrid, upcomingSection);
 
@@ -184,64 +163,27 @@ export async function renderHome() {
   return root;
 }
 
-function createHomeGamesCard(dateKey) {
-  const recommendedIndex = homeGameIndex(dateKey);
-  const recommended = HOME_GAMES[recommendedIndex];
-  const otherGames = HOME_GAMES.filter((_game, index) => index !== recommendedIndex);
-
+function createHomeGamesCard() {
   return el("section", {
     className: "card home-games-card",
     "aria-labelledby": "home-games-title",
   }, [
-    el("div", { className: "page-header home-games-card__header" }, [
-      el("h2", { id: "home-games-title", className: "section-title", text: "🎮 같이 놀기" }),
-      el("a", { href: "#/games", className: "small", text: "전체 보기 →" }),
+    el("div", {
+      className: "home-games-card__icon",
+      text: "🎮",
+      "aria-hidden": "true",
+    }),
+    el("div", { className: "home-games-card__content" }, [
+      el("p", { className: "eyebrow", text: "PLAY TOGETHER" }),
+      el("h2", { id: "home-games-title", className: "section-title", text: "같이 놀기" }),
+      el("p", { className: "subtle", text: "친구들과 함께 즐길 게임을 만나보세요." }),
     ]),
-    el("div", { className: "home-games-card__lead" }, [
-      el("strong", { text: "오늘은 뭐 할까요?" }),
-      el("span", { className: "small subtle", text: "오늘의 추천 게임으로 가볍게 한 판 시작해보세요." }),
-    ]),
-    el("div", { className: "home-games-featured" }, [
-      el("div", {
-        className: "home-games-featured__icon",
-        text: recommended.icon,
-        "aria-hidden": "true",
-      }),
-      el("div", { className: "home-games-featured__body" }, [
-        el("span", { className: "eyebrow", text: "오늘의 추천" }),
-        el("h3", { className: "home-games-featured__title", text: recommended.title }),
-        el("p", {
-          className: "small subtle home-games-featured__description",
-          text: recommended.description,
-        }),
-      ]),
-      el("a", {
-        className: "button button--coral home-games-featured__action",
-        href: recommended.href,
-        text: "바로 시작 →",
-      }),
-    ]),
-    el("div", { className: "home-games-other" }, [
-      el("span", { className: "small subtle home-games-other__label", text: "다른 게임" }),
-      el("div", { className: "home-games-links" }, otherGames.map((game) => el("a", {
-        className: "home-games-link",
-        href: game.href,
-      }, [
-        el("span", { text: game.icon, "aria-hidden": "true" }),
-        el("span", { text: game.title }),
-      ]))),
-    ]),
-    el("div", { className: "home-games-footer" }, [
-      el("span", { className: "small subtle", text: `게임 ${HOME_GAMES.length}개 · 계속 추가 중` }),
-    ]),
+    el("a", {
+      className: "button button--coral home-games-card__action",
+      href: "#/games",
+      text: "게임 둘러보기 →",
+    }),
   ]);
-}
-
-function homeGameIndex(dateKey) {
-  const [year, month, day] = String(dateKey).split("-").map(Number);
-  if (![year, month, day].every(Number.isFinite)) return 0;
-  const dayNumber = Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-  return dayNumber % HOME_GAMES.length;
 }
 
 function createDailyVerseLoadingCard() {
