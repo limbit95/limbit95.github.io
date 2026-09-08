@@ -248,7 +248,7 @@ export async function signOut() {
 
 export function canManageCategory(categoryId) {
   const auth = getAuthState();
-  return hasAdminPermission(auth, "operations") || auth.managerCategoryIds.has(Number(categoryId));
+  return hasAdminPermission(auth, "community") || auth.managerCategoryIds.has(Number(categoryId));
 }
 
 export function destroyAuth() {

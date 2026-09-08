@@ -18,14 +18,13 @@ export async function renderAdminDashboard() {
   const canMembers = hasAdminPermission(auth, ADMIN_PERMISSION.MEMBERS);
   const canOperations = hasAdminPermission(auth, ADMIN_PERMISSION.OPERATIONS);
   const canContent = hasAdminPermission(auth, ADMIN_PERMISSION.CONTENT);
-  const canSystem = hasAdminPermission(auth, ADMIN_PERMISSION.SYSTEM);
   const [requests, memberRows, events, categoryRows, managerRows, recentErrors] = await Promise.all([
     canMembers ? listJoinRequests("all") : [],
     canMembers ? listAllMembers() : [],
     canOperations ? listEvents({ fromDate: today, statuses: [], limit: 500 }) : [],
     canContent ? listCategories() : [],
     canOperations ? listCategoryManagers() : [],
-    canSystem ? countRecentClientErrors(24).catch(() => null) : null,
+    canOperations ? countRecentClientErrors(24).catch(() => null) : null,
   ]);
   const pending = requests.filter((item) => ["pending", "held"].includes(item.status)).length;
   const approved = memberRows.filter((item) => item.status === "approved").length;
@@ -47,7 +46,7 @@ export async function renderAdminDashboard() {
       canOperations ? adminMenu("🧭", "활동 담당자 관리", `${managerRows.length}명 지정`, "#/admin/managers") : null,
       canContent ? adminMenu("🌈", "활동 카테고리 관리", `${categoryRows.filter((item) => item.is_active).length}개 활성`, "#/admin/categories") : null,
       auth.isSystemAdmin ? adminMenu("🔐", "관리자 권한 설정", "영역별 접근 관리", "#/admin/permissions") : null,
-      canSystem ? adminMenu("🛠️", "오류 로그", recentErrors == null ? "조회 준비 중" : `최근 24시간 ${recentErrors}건`, "#/admin/errors") : null,
+      canOperations ? adminMenu("🛠️", "오류 로그", recentErrors == null ? "조회 준비 중" : `최근 24시간 ${recentErrors}건`, "#/admin/errors") : null,
     ]),
     el("section", { className: "card page-stack" }, [
       el("h2", { className: "section-title", text: "운영 현황" }),

@@ -21,7 +21,7 @@ export async function renderActivities(route) {
       el("h1", { className: "page-title", text: "같이 즐길 활동" }),
       el("p", { className: "page-description", text: "문화생활부터 야외 활동까지, 가볍게 참여해 보세요." }),
     ]),
-    hasAdminPermission(auth, ADMIN_PERMISSION.OPERATIONS) || auth.managerCategoryIds.size
+    hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY) || auth.managerCategoryIds.size
       ? el("a", { className: "button button--coral", href: "#/activities/new", text: "＋ 활동 등록" })
       : null,
   ]);

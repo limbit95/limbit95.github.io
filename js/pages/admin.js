@@ -10,7 +10,7 @@ export async function renderAdmin(route) {
     members: ADMIN_PERMISSION.MEMBERS,
     managers: ADMIN_PERMISSION.OPERATIONS,
     categories: ADMIN_PERMISSION.CONTENT,
-    errors: ADMIN_PERMISSION.SYSTEM,
+    errors: ADMIN_PERMISSION.OPERATIONS,
     permissions: ADMIN_PERMISSION.PERMISSIONS,
   }[section];
   if (requiredPermission && !hasAdminPermission(auth, requiredPermission)) {
