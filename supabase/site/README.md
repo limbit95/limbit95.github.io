@@ -50,9 +50,9 @@ baseline 실행 후 seed를 실행합니다.
 
 ## 운영 migration
 
-`migrations/` 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다.
+운영 적용이 완료된 `migrations/` 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다. 아래에 운영 적용 전으로 표시한 migration은 예외입니다.
 
-이 migration들은 이미 운영 프로젝트에 적용되어 있습니다. 운영 DB에 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
+`20260908090000_add_admin_permission_system`을 제외한 기존 migration들은 이미 운영 프로젝트에 적용되어 있습니다. 운영 DB에 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
 
 현재 확인된 흐름은 다음과 같습니다.
 
@@ -63,6 +63,25 @@ baseline 실행 후 seed를 실행합니다.
 5. `20260825041451_index_notification_message_target`
 6. `20260825090540_add_date_poll_fk_covering_indexes`
 7. `20260825103805_add_public_member_profiles_by_ids`
+8. `20260908090000_add_admin_permission_system` (현재 PR에서 준비 중, 운영 적용 전)
+
+### 관리자 역할 및 영역 권한
+
+`20260908090000_add_admin_permission_system`은 기존 `profiles.role`을 유지하면서
+`member`(USER), `admin`(ADMIN), `system_admin`(SYSTEM_ADMIN) 3단계 역할과
+`admin_permissions`의 영역별 권한을 추가합니다. 기존 승인 관리자는 서비스 중단을
+막기 위해 일반 관리자 역할과 5개 운영 영역 권한을 그대로 받지만 최고 관리자로
+자동 승격되지는 않습니다.
+
+권한 migration을 운영 DB에 적용한 후, 배포 담당자는 실제 소유자 UUID를 확인한 뒤 서버 권한으로 아래 초기화를 정확히 한 번
+실행해야 합니다. 부분 unique index가 최고 관리자 2명 생성을 차단합니다.
+
+```sql
+select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
+```
+
+브라우저에서는 이 초기화 RPC를 실행할 수 없습니다. 이후 일반 관리자 지정/해제와
+영역 권한 관리는 최고 관리자 UI 및 서버에서 재검증되는 RPC만 사용합니다.
 
 ### 날짜투표 FK 인덱스
 

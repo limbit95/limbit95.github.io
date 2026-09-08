@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient.js";
 import { PROFILE_STATUS } from "./constants.js";
 import { disablePushNotifications } from "./web-push.js";
+import { ROLE, hasAdminPermission } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 
@@ -9,6 +10,7 @@ const state = {
   user: null,
   profile: null,
   managerCategoryIds: new Set(),
+  adminPermissions: new Set(),
   initialized: false,
 };
 
@@ -26,9 +28,11 @@ export function getAuthState() {
   return {
     ...state,
     managerCategoryIds: new Set(state.managerCategoryIds),
+    adminPermissions: new Set(state.adminPermissions),
     isAuthenticated: Boolean(state.user),
     isApproved: state.profile?.status === PROFILE_STATUS.APPROVED,
-    isAdmin: state.profile?.role === "admin" && state.profile?.status === PROFILE_STATUS.APPROVED,
+    isAdmin: [ROLE.ADMIN, ROLE.SYSTEM_ADMIN].includes(state.profile?.role) && state.profile?.status === PROFILE_STATUS.APPROVED,
+    isSystemAdmin: state.profile?.role === ROLE.SYSTEM_ADMIN && state.profile?.status === PROFILE_STATUS.APPROVED,
   };
 }
 
@@ -43,6 +47,7 @@ function clearAuthContext({ notify = true } = {}) {
   state.user = null;
   state.profile = null;
   state.managerCategoryIds = new Set();
+  state.adminPermissions = new Set();
   if (notify) emit();
 }
 
@@ -64,7 +69,7 @@ async function loadAuthContext(session, { force, epoch }) {
     return getAuthState();
   }
 
-  const [profileResult, managersResult] = await Promise.all([
+  const [profileResult, managersResult, accessResult] = await Promise.all([
     supabase
       .from("profiles")
       .select(PROFILE_COLUMNS)
@@ -74,10 +79,12 @@ async function loadAuthContext(session, { force, epoch }) {
       .from("category_managers")
       .select("category_id")
       .eq("user_id", user.id),
+    supabase.rpc("get_my_admin_access"),
   ]);
 
   if (profileResult.error && profileResult.error.code !== "PGRST116") throw profileResult.error;
   if (managersResult.error) throw managersResult.error;
+  if (accessResult.error && accessResult.error.code !== "PGRST202") throw accessResult.error;
 
   const profile = profileResult.data ?? null;
   let managerCategoryIds = new Set();
@@ -103,6 +110,7 @@ async function loadAuthContext(session, { force, epoch }) {
   state.user = user;
   state.profile = profile;
   state.managerCategoryIds = managerCategoryIds;
+  state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
   emit();
   return getAuthState();
 }
@@ -240,7 +248,7 @@ export async function signOut() {
 
 export function canManageCategory(categoryId) {
   const auth = getAuthState();
-  return auth.isAdmin || auth.managerCategoryIds.has(Number(categoryId));
+  return hasAdminPermission(auth, "community") || auth.managerCategoryIds.has(Number(categoryId));
 }
 
 export function destroyAuth() {

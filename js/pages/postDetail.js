@@ -1,4 +1,5 @@
 import { getAuthState } from "../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
 import {
   createComment,
@@ -59,7 +60,7 @@ export async function renderPostDetail(route, boardType) {
     ]),
     el("div", { className: "prose", text: post.content }),
     isPrayer ? createPrayerReaction(post, reactionSummary, auth) : null,
-    (auth.isAdmin || (mine && isPrayer))
+    (hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY) || (mine && isPrayer))
       ? el("div", { className: "button-row" }, [
           el("a", { className: "button button--secondary", href: `#/${base}/${post.id}/edit`, text: "수정" }),
           el("button", {
@@ -306,7 +307,7 @@ function renderCommentList(list, comments, auth, isPrayer, onDeleted = null) {
 }
 
 function commentNode(comment, auth, isPrayer = false, onDeleted = null) {
-  const canEdit = auth.isAdmin || comment.author_id === auth.user.id;
+  const canEdit = hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY) || comment.author_id === auth.user.id;
   const authorName = comment.author?.display_name ?? "회원";
   const authorAvatar = comment.author
     ? createProfileAvatarTrigger(comment.author, {

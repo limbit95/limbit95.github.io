@@ -1,4 +1,5 @@
 import { canManageCategory, getAuthState } from "../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 import {
   createEvent,
   createRecurringEvent,
@@ -29,7 +30,7 @@ export async function renderActivityForm(route, mode) {
   if (editing && !canManageCategory(event.category_id)) {
     return pageContainer(accessDeniedState("이 활동 카테고리의 관리자만 수정할 수 있습니다."));
   }
-  const availableCategories = auth.isAdmin
+  const availableCategories = hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY)
     ? categories
     : categories.filter((category) => auth.managerCategoryIds.has(Number(category.id)));
   if (!availableCategories.length) {
@@ -252,7 +253,7 @@ async function handleSubmit(submitEvent, context) {
     setFieldError(form, "registration_deadline", "신청 마감은 활동 시작 전이어야 합니다.");
     valid = false;
   }
-  if (!context.auth.isAdmin && !context.auth.managerCategoryIds.has(Number(form.category_id.value))) {
+  if (!hasAdminPermission(context.auth, ADMIN_PERMISSION.COMMUNITY) && !context.auth.managerCategoryIds.has(Number(form.category_id.value))) {
     setFieldError(form, "category_id", "담당자로 지정된 카테고리만 선택할 수 있습니다.");
     valid = false;
   }

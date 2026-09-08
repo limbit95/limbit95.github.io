@@ -132,3 +132,14 @@ export async function setMemberStatus(userId, status) {
     p_status: status,
   }));
 }
+
+export async function listAdministrators() {
+  return unwrap(await supabase.rpc("admin_list_administrators")) ?? [];
+}
+
+export async function setAdministratorPermissions(userId, permissions) {
+  return unwrap(await supabase.rpc("system_admin_set_permissions", {
+    p_user_id: userId,
+    p_permissions: permissions,
+  }));
+}

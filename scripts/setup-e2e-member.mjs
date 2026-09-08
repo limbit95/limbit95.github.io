@@ -7,6 +7,10 @@ const email = process.env.E2E_MEMBER_EMAIL ?? "member.e2e@example.com";
 const password = process.env.E2E_MEMBER_PASSWORD ?? "Cheongpa-E2E-2026!";
 const role = process.env.E2E_MEMBER_ROLE ?? "member";
 const outputEnvKey = process.env.E2E_OUTPUT_ENV_KEY ?? "";
+const adminPermissions = (process.env.E2E_ADMIN_PERMISSIONS ?? "")
+  .split(",")
+  .map((permission) => permission.trim())
+  .filter(Boolean);
 
 if (!url || !serviceRoleKey) {
   throw new Error("Local Supabase URL and service-role key are required for E2E member setup.");
@@ -73,6 +77,17 @@ await request(`/rest/v1/join_requests?user_id=eq.${encodeURIComponent(user.id)}`
   headers: { Prefer: "return=minimal" },
   body: JSON.stringify({ status: "approved" }),
 });
+
+if (role === "admin" && adminPermissions.length) {
+  await request("/rest/v1/admin_permissions", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify(adminPermissions.map((permission) => ({
+      user_id: user.id,
+      permission,
+    }))),
+  });
+}
 
 if (outputEnvKey && process.env.GITHUB_ENV) {
   await appendFile(process.env.GITHUB_ENV, `${outputEnvKey}=${user.id}\n`, "utf8");

@@ -1,4 +1,5 @@
 import { getAuthState } from "../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 import {
   createPost,
   getPost,
@@ -14,11 +15,12 @@ export async function renderPostForm(route, boardType, mode) {
   const isNotice = boardType === "notice";
   const isPrayer = boardType === "free";
   const post = editing ? await getPost(route.params.id) : null;
+  const canManageCommunity = hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY);
   if (post && post.board_type !== boardType) throw new Error("게시글을 찾을 수 없습니다.");
-  if (editing && !auth.isAdmin && post.author_id !== auth.user.id) {
+  if (editing && !canManageCommunity && post.author_id !== auth.user.id) {
     return pageContainer(accessDeniedState("본인이 작성한 게시글만 수정할 수 있습니다."));
   }
-  if (isNotice && !auth.isAdmin) {
+  if (isNotice && !canManageCommunity) {
     return pageContainer(accessDeniedState("공지사항은 관리자만 작성할 수 있습니다."));
   }
   const base = isNotice ? "notice" : "prayer";
@@ -55,7 +57,7 @@ export async function renderPostForm(route, boardType, mode) {
       }),
       el("p", { className: "field-error", dataset: { errorFor: "content" }, "aria-live": "polite" }),
     ]),
-    auth.isAdmin ? el("div", { className: "chip-list" }, [
+    canManageCommunity ? el("div", { className: "chip-list" }, [
       el("label", { className: "checkbox chip" }, [
         el("input", { type: "checkbox", name: "is_pinned", checked: post?.is_pinned ?? false }),
         el("span", { text: "📌 상단 고정" }),
@@ -92,8 +94,8 @@ export async function renderPostForm(route, boardType, mode) {
       const payload = {
         title: form.title.value.trim(),
         content: form.content.value.trim(),
-        is_pinned: auth.isAdmin ? form.is_pinned.checked : false,
-        is_important: auth.isAdmin ? form.is_important.checked : false,
+        is_pinned: canManageCommunity ? form.is_pinned.checked : false,
+        is_important: canManageCommunity ? form.is_important.checked : false,
       };
       const saved = editing
         ? await updatePost(post.id, payload)

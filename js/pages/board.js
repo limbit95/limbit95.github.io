@@ -1,4 +1,5 @@
 import { getAuthState } from "../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 import { listPosts } from "../api/boards.js";
 import { PAGE_SIZE } from "../constants.js";
 import { el, emptyState, formatDate, pageContainer } from "../ui.js";
@@ -23,7 +24,7 @@ export async function renderBoard(route, boardType) {
           : "서로의 기도 제목을 나누고, 함께 기도하며 응원해 주세요.",
       }),
     ]),
-    (isNotice ? auth.isAdmin : true)
+    (isNotice ? hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY) : true)
       ? el("a", {
           className: "button button--coral",
           href: `#/${base}/new`,

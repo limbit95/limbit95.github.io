@@ -9,16 +9,22 @@ import {
 } from "../../api/admin.js";
 import { countRecentClientErrors } from "../../api/observability.js";
 import { el, seoulDateString } from "../../ui.js";
+import { getAuthState } from "../../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../../permissions.js";
 
 export async function renderAdminDashboard() {
   const today = seoulDateString();
+  const auth = getAuthState();
+  const canMembers = hasAdminPermission(auth, ADMIN_PERMISSION.MEMBERS);
+  const canOperations = hasAdminPermission(auth, ADMIN_PERMISSION.OPERATIONS);
+  const canContent = hasAdminPermission(auth, ADMIN_PERMISSION.CONTENT);
   const [requests, memberRows, events, categoryRows, managerRows, recentErrors] = await Promise.all([
-    listJoinRequests("all"),
-    listAllMembers(),
-    listEvents({ fromDate: today, statuses: [], limit: 500 }),
-    listCategories(),
-    listCategoryManagers(),
-    countRecentClientErrors(24).catch(() => null),
+    canMembers ? listJoinRequests("all") : [],
+    canMembers ? listAllMembers() : [],
+    canOperations ? listEvents({ fromDate: today, statuses: [], limit: 500 }) : [],
+    canContent ? listCategories() : [],
+    canOperations ? listCategoryManagers() : [],
+    canOperations ? countRecentClientErrors(24).catch(() => null) : null,
   ]);
   const pending = requests.filter((item) => ["pending", "held"].includes(item.status)).length;
   const approved = memberRows.filter((item) => item.status === "approved").length;
@@ -35,11 +41,12 @@ export async function renderAdminDashboard() {
       el("a", { href: "#/admin/approvals", text: " 지금 확인하기 →", style: { fontWeight: "800" } }),
     ]) : null,
     el("section", { className: "admin-grid", "aria-label": "관리 메뉴" }, [
-      adminMenu("👋", "가입 신청 관리", `${pending}건 확인 필요`, "#/admin/approvals"),
-      adminMenu("👥", "회원 관리", `승인 ${approved}명`, "#/admin/members"),
-      adminMenu("🧭", "활동 담당자 관리", `${managerRows.length}명 지정`, "#/admin/managers"),
-      adminMenu("🌈", "활동 카테고리 관리", `${categoryRows.filter((item) => item.is_active).length}개 활성`, "#/admin/categories"),
-      adminMenu("🛠️", "오류 로그", recentErrors == null ? "조회 준비 중" : `최근 24시간 ${recentErrors}건`, "#/admin/errors"),
+      canMembers ? adminMenu("👋", "가입 신청 관리", `${pending}건 확인 필요`, "#/admin/approvals") : null,
+      canMembers ? adminMenu("👥", "회원 관리", `승인 ${approved}명`, "#/admin/members") : null,
+      canOperations ? adminMenu("🧭", "활동 담당자 관리", `${managerRows.length}명 지정`, "#/admin/managers") : null,
+      canContent ? adminMenu("🌈", "활동 카테고리 관리", `${categoryRows.filter((item) => item.is_active).length}개 활성`, "#/admin/categories") : null,
+      auth.isSystemAdmin ? adminMenu("🔐", "관리자 권한 설정", "영역별 접근 관리", "#/admin/permissions") : null,
+      canOperations ? adminMenu("🛠️", "오류 로그", recentErrors == null ? "조회 준비 중" : `최근 24시간 ${recentErrors}건`, "#/admin/errors") : null,
     ]),
     el("section", { className: "card page-stack" }, [
       el("h2", { className: "section-title", text: "운영 현황" }),
