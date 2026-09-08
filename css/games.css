@@ -41,6 +41,7 @@
 }
 
 .home-games-card {
+  display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   grid-template-areas:
     "icon content"
