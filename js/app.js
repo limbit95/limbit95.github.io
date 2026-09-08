@@ -242,6 +242,7 @@ route("/admin/members", "회원 관리", "admin", renderAdmin);
 route("/admin/managers", "활동 담당자 관리", "admin", renderAdmin);
 route("/admin/categories", "활동 카테고리 관리", "admin", renderAdmin);
 route("/admin/errors", "오류 로그", "admin", renderAdmin);
+route("/admin/permissions", "관리자 권한 설정", "admin", renderAdmin);
 
 setBeforeRoute(async (routeInfo) => {
   const auth = getAuthState();

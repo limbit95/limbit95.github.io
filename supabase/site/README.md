@@ -63,6 +63,25 @@ baseline 실행 후 seed를 실행합니다.
 5. `20260825041451_index_notification_message_target`
 6. `20260825090540_add_date_poll_fk_covering_indexes`
 7. `20260825103805_add_public_member_profiles_by_ids`
+8. `20260908090000_add_admin_permission_system`
+
+### 관리자 역할 및 영역 권한
+
+`20260908090000_add_admin_permission_system`은 기존 `profiles.role`을 유지하면서
+`member`(USER), `admin`(ADMIN), `system_admin`(SYSTEM_ADMIN) 3단계 역할과
+`admin_permissions`의 영역별 권한을 추가합니다. 기존 승인 관리자는 서비스 중단을
+막기 위해 일반 관리자 역할과 5개 운영 영역 권한을 그대로 받지만 최고 관리자로
+자동 승격되지는 않습니다.
+
+배포 담당자는 실제 소유자 UUID를 확인한 뒤 서버 권한으로 아래 초기화를 정확히 한 번
+실행해야 합니다. 부분 unique index가 최고 관리자 2명 생성을 차단합니다.
+
+```sql
+select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
+```
+
+브라우저에서는 이 초기화 RPC를 실행할 수 없습니다. 이후 일반 관리자 지정/해제와
+영역 권한 관리는 최고 관리자 UI 및 서버에서 재검증되는 RPC만 사용합니다.
 
 ### 날짜투표 FK 인덱스
 

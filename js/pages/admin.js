@@ -1,7 +1,25 @@
 import { el, pageContainer } from "../ui.js";
+import { getAuthState } from "../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 
 export async function renderAdmin(route) {
   const section = route.path.split("/")[2] || "dashboard";
+  const auth = getAuthState();
+  const requiredPermission = {
+    approvals: ADMIN_PERMISSION.MEMBERS,
+    members: ADMIN_PERMISSION.MEMBERS,
+    managers: ADMIN_PERMISSION.OPERATIONS,
+    categories: ADMIN_PERMISSION.CONTENT,
+    errors: ADMIN_PERMISSION.SYSTEM,
+    permissions: ADMIN_PERMISSION.PERMISSIONS,
+  }[section];
+  if (requiredPermission && !hasAdminPermission(auth, requiredPermission)) {
+    return pageContainer(el("div", { className: "state-box" }, [
+      el("h1", { text: "접근 권한이 없습니다." }),
+      el("p", { className: "subtle", text: "이 관리자 영역에 필요한 권한이 부여되지 않았습니다." }),
+      el("a", { className: "button", href: "#/admin", text: "관리자 대시보드" }),
+    ]));
+  }
   const root = pageContainer(
     el("div", { className: "page-header" }, [
       el("div", {}, [
@@ -31,6 +49,9 @@ export async function renderAdmin(route) {
   } else if (section === "errors") {
     const { renderErrors } = await import("./admin/errors.js");
     root.append(await renderErrors());
+  } else if (section === "permissions") {
+    const { renderPermissions } = await import("./admin/permissions.js");
+    root.append(await renderPermissions());
   }
   return root;
 }
@@ -43,5 +64,6 @@ function adminTitle(section) {
     managers: "활동 담당자 관리",
     categories: "활동 카테고리 관리",
     errors: "오류 로그",
+    permissions: "관리자 권한 설정",
   }[section] ?? "관리자";
 }

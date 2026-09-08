@@ -121,8 +121,10 @@ function memberRow(member, auth, refresh) {
   const roleSelect = el("select", { "aria-label": `${member.display_name} 권한` }, [
     el("option", { value: "member", text: "일반 회원", selected: member.role === "member" }),
     el("option", { value: "admin", text: "관리자", selected: member.role === "admin" }),
+    member.role === "system_admin" ? el("option", { value: "system_admin", text: "최고 관리자", selected: true }) : null,
   ]);
   if (member.status !== "approved") roleSelect.disabled = true;
+  if (!auth.isSystemAdmin || member.role === "system_admin") roleSelect.disabled = true;
   roleSelect.addEventListener("change", async () => {
     const nextRole = roleSelect.value;
     const confirmed = await confirmDialog({
@@ -144,7 +146,7 @@ function memberRow(member, auth, refresh) {
       roleSelect.value = member.role;
       showToast(getErrorMessage(error), "error");
     } finally {
-      roleSelect.disabled = member.status !== "approved";
+      roleSelect.disabled = !auth.isSystemAdmin || member.status !== "approved" || member.role === "system_admin";
     }
   });
   const action = member.status === "approved"

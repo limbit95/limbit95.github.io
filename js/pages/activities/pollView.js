@@ -1,4 +1,5 @@
 import { canManageCategory } from "../../auth.js";
+import { ADMIN_PERMISSION, hasAdminPermission } from "../../permissions.js";
 import {
   cancelDatePoll,
   closeDatePoll,
@@ -19,7 +20,7 @@ import {
 
 export async function renderPollView(categories, selectedCategory, auth) {
   const wrapper = el("div", { className: "page-stack" });
-  const availableForCreate = auth.isAdmin
+  const availableForCreate = hasAdminPermission(auth, ADMIN_PERMISSION.OPERATIONS)
     ? categories
     : categories.filter((category) => auth.managerCategoryIds.has(Number(category.id)));
   if (availableForCreate.length) wrapper.append(createPollForm(availableForCreate, auth));
