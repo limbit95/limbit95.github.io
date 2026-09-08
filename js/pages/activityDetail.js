@@ -124,19 +124,23 @@ function statusBadge(status, registrationDeadline = null) {
   const registrationClosed = status === "scheduled"
     && registrationDeadline
     && new Date(registrationDeadline) < new Date();
+  if (registrationClosed) {
+    return el("span", {
+      className: "status-badge status-badge--muted",
+      text: "■ 신청 마감",
+    });
+  }
   const variant = status === "cancelled"
     ? "status-badge--danger"
-    : registrationClosed || status !== "scheduled"
+    : status !== "scheduled"
       ? "status-badge--muted"
       : "";
   const dotColor = status === "cancelled"
     ? "var(--danger)"
-    : registrationClosed
-      ? "var(--coral-500)"
-      : status === "scheduled"
-        ? "var(--success)"
-        : "#8d9892";
-  const label = registrationClosed ? "신청 마감" : EVENT_STATUS_LABEL[status] ?? status;
+    : status === "scheduled"
+      ? "var(--success)"
+      : "#8d9892";
+  const label = EVENT_STATUS_LABEL[status] ?? status;
 
   return el("span", { className: `status-badge ${variant}`.trim() }, [
     el("span", {
