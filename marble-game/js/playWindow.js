@@ -1,11 +1,12 @@
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
-import { showOnlineModuleLoadError } from "./onlineStartup.js";
 
 const COMPACT_PLAY_WIDTH = 900;
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
+const ONLINE_BOOT_REVISION = "20260910-r6";
+const ONLINE_BOOT_TIMEOUT_MS = 8000;
 
 export function createClassicPlayUrl(href) {
   const url = new URL(href);
@@ -115,6 +116,80 @@ function setupLobbyLauncher(startButton) {
   queueMicrotask(updateEntryNote);
 }
 
+function onlineBootMessage(text, tone = "neutral") {
+  const playtestSection = document.querySelector("[data-playtest-section]");
+  const gameMessage = document.querySelector("[data-game-message]");
+  const primaryActionButton = document.querySelector("[data-primary-action]");
+  if (playtestSection) playtestSection.hidden = false;
+  if (gameMessage) {
+    gameMessage.textContent = text;
+    gameMessage.dataset.tone = tone;
+  }
+  if (primaryActionButton) primaryActionButton.disabled = true;
+}
+
+function withBootTimeout(promise, label) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = window.setTimeout(() => reject(new Error(`${label}_TIMEOUT`)), ONLINE_BOOT_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer !== null) window.clearTimeout(timer);
+  });
+}
+
+function versionedModuleUrl(relativePath) {
+  const url = new URL(relativePath, import.meta.url);
+  url.searchParams.set("v", ONLINE_BOOT_REVISION);
+  return url.href;
+}
+
+async function bootstrapOnlineGame(onlineRoomId) {
+  document.body.dataset.onlineBootRevision = ONLINE_BOOT_REVISION;
+  onlineBootMessage(`온라인 연결 확인 중 · ${ONLINE_BOOT_REVISION}`);
+
+  try {
+    const apiModule = await withBootTimeout(
+      import(versionedModuleUrl("./onlineGameApi.js")),
+      "ONLINE_API_MODULE",
+    );
+    onlineBootMessage(`서버 게임 상태 확인 중 · ${ONLINE_BOOT_REVISION}`);
+
+    const snapshot = await withBootTimeout(
+      apiModule.getOnlineGameSnapshot(onlineRoomId),
+      "ONLINE_SNAPSHOT",
+    );
+    if (!snapshot?.room?.id || !snapshot?.game?.id) throw new Error("GAME_SNAPSHOT_INVALID");
+
+    document.body.dataset.onlineBootStage = "snapshot-ready";
+    document.body.dataset.onlineGameVersion = String(snapshot.game.version ?? "");
+    onlineBootMessage(`게임 상태 확인 완료 · 화면 연결 중 · ${ONLINE_BOOT_REVISION}`);
+
+    await withBootTimeout(
+      import(versionedModuleUrl("./onlineGameController.js")),
+      "ONLINE_CONTROLLER_MODULE",
+    );
+    document.body.dataset.onlineBootStage = "controller-ready";
+  } catch (error) {
+    console.error("Marble online boot failed", error);
+    document.body.dataset.onlineBootStage = "failed";
+    const message = String(error?.message ?? error ?? "");
+    if (message.includes("ONLINE_API_MODULE_TIMEOUT")) {
+      onlineBootMessage(`온라인 모듈 연결이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else if (message.includes("ONLINE_SNAPSHOT_TIMEOUT")) {
+      onlineBootMessage(`서버 게임 상태 응답이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else if (message.includes("ONLINE_CONTROLLER_MODULE_TIMEOUT")) {
+      onlineBootMessage(`게임 화면 모듈 연결이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else if (message.includes("AUTH_REQUIRED") || message.includes("Auth session missing")) {
+      onlineBootMessage(`로그인 세션을 확인할 수 없습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else if (message.includes("NOT_ROOM_MEMBER")) {
+      onlineBootMessage(`현재 계정이 이 게임의 참가자로 확인되지 않습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else {
+      onlineBootMessage(`온라인 게임 초기화 오류 · ${ONLINE_BOOT_REVISION}`, "error");
+    }
+  }
+}
+
 function setupDedicatedPlayMode(startButton) {
   const onlineRoomId = getOnlineRoomId(window.location.href);
   document.body.dataset.playMode = "window";
@@ -128,9 +203,7 @@ function setupDedicatedPlayMode(startButton) {
   }
 
   if (onlineRoomId) {
-    void import("./onlineGameController.js").catch((error) => {
-      showOnlineModuleLoadError(error);
-    });
+    void bootstrapOnlineGame(onlineRoomId);
     return;
   }
 
