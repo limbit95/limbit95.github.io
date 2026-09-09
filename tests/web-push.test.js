@@ -1122,3 +1122,287 @@ test("edge function re-reads notification, filters push types, and removes inval
   assert.match(source, /Promise\.allSettled/);
   assert.doesNotMatch(source, /PUSH_TYPES[\s\S]*direct_message/);
 });
+
+test("stale late completion keeps a follow-up while latest reconcile is running", async () => {
+  const oldUnsubscribeGate = deferred();
+  const oldUnsubscribeStarted = deferred();
+  const latestClaimGate = deferred();
+  const latestClaimStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "off"]]);
+  let subscription = null;
+  let owner = null;
+  let claimCalls = 0;
+
+  const oldSubscription = {
+    endpoint: "old-endpoint",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      oldUnsubscribeStarted.resolve();
+      await oldUnsubscribeGate.promise;
+      if (subscription === oldSubscription) subscription = null;
+      return true;
+    },
+  };
+  const freshSubscription = {
+    endpoint: "fresh-endpoint",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      if (subscription === freshSubscription) subscription = null;
+      return true;
+    },
+  };
+  subscription = oldSubscription;
+
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    retryBaseMs: 100,
+    getSubscription: async () => subscription,
+    subscribe: async () => {
+      subscription = freshSubscription;
+      return freshSubscription;
+    },
+    rpc: async (name, args) => {
+      if (name === "remove_own_push_subscription") {
+        owner = null;
+        return { error: null };
+      }
+      if (name === "claim_push_subscription") {
+        claimCalls += 1;
+        if (claimCalls === 1) {
+          latestClaimStarted.resolve();
+          await latestClaimGate.promise;
+        }
+        owner = args.p_endpoint;
+      }
+      return { error: null };
+    },
+  });
+
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await oldUnsubscribeStarted.promise;
+  await delay(20);
+
+  storage.set("cheongpa:web-push-preference:a", "on");
+  webPush.setPushAuthContextVersion("a", 1);
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await latestClaimStarted.promise;
+
+  oldUnsubscribeGate.resolve();
+  await delay(5);
+  latestClaimGate.resolve();
+
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(snapshot.desiredState.preference, "on");
+    assert.equal(subscription, freshSubscription);
+    assert.equal(owner, "fresh-endpoint");
+    assert.equal(snapshot.reconcileFollowUp, null);
+    assert.ok(claimCalls >= 2, "a follow-up reconcile must recreate and reclaim the endpoint");
+  }, 1000);
+});
+
+test("renewed same-account cleanup advances watermark over newer claims", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "off"]]);
+  let subscription = null;
+  let owner = null;
+  let cleanupCalls = 0;
+
+  const subscriptionObject = {
+    endpoint: "renewed-watermark",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      subscription = null;
+      return true;
+    },
+  };
+  subscription = subscriptionObject;
+
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    getSubscription: async () => subscription,
+    subscribe: async () => {
+      subscription = subscriptionObject;
+      return subscriptionObject;
+    },
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimStarted.resolve();
+        await claimGate.promise;
+        owner = "a";
+      }
+      return { error: null };
+    },
+    fetch: async () => {
+      cleanupCalls += 1;
+      if (cleanupCalls === 1) return { ok: false, status: 503 };
+      owner = null;
+      return { ok: true, status: 204 };
+    },
+  });
+
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await assert.rejects(
+    webPush.cleanupPushSubscriptionForSignOut("a", { accessToken: "old-token" }),
+    /cleanup failed/,
+  );
+  const firstWatermark = webPush.getPushCoordinatorSnapshot().cleanupObligations[0].claimWatermark;
+
+  storage.set("cheongpa:web-push-preference:a", "on");
+  webPush.setPushAuthContextVersion("a", 2);
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await claimStarted.promise;
+  const pendingClaim = webPush.getPushCoordinatorSnapshot().inFlightOwnershipClaims[0];
+  assert.ok(pendingClaim.sequence > firstWatermark);
+
+  const secondCleanup = webPush.cleanupPushSubscriptionForSignOut("a", { accessToken: "new-token" });
+  await eventually(() => {
+    const obligation = webPush.getPushCoordinatorSnapshot().cleanupObligations[0];
+    assert.equal(obligation.claimWatermark, pendingClaim.sequence);
+  });
+
+  await secondCleanup;
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+  claimGate.resolve();
+  await eventually(() => {
+    assert.equal(owner, null);
+    assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+  });
+});
+
+test("cleanup started with stale claim requires post-settlement removal", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  const cleanupResponseGate = deferred();
+  const cleanupStarted = deferred();
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+  ]);
+  let owner = null;
+  let cleanupCalls = 0;
+  let subscriptionExists = true;
+  const subscription = {
+    endpoint: "cleanup-race",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      subscriptionExists = false;
+      return true;
+    },
+  };
+
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    retryBaseMs: 100,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimStarted.resolve();
+        await claimGate.promise;
+        owner = "a";
+      }
+      return { error: null };
+    },
+    fetch: async () => {
+      cleanupCalls += 1;
+      owner = null;
+      if (cleanupCalls === 1) {
+        cleanupStarted.resolve();
+        await cleanupResponseGate.promise;
+      }
+      return { ok: true, status: 204 };
+    },
+  });
+
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await claimStarted.promise;
+  webPush.setPushDesiredAuthContext(
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { previousAccessToken: "token-a" },
+  );
+  await cleanupStarted.promise;
+
+  claimGate.resolve();
+  await eventually(() => assert.equal(owner, "a"));
+  cleanupResponseGate.resolve();
+
+  await eventually(() => {
+    assert.ok(cleanupCalls >= 2, "a second authenticated cleanup must run after stale claim settles");
+    assert.equal(owner, null);
+    assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+  }, 1000);
+});
+
+test("late explicit mutation uses captured revision after latest retry exhaustion", async () => {
+  const oldRemoveGate = deferred();
+  const oldRemoveStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let owner = "a";
+  let claimAttempts = 0;
+  let removalCalls = 0;
+  let subscriptionExists = true;
+  const subscription = {
+    endpoint: "captured-revision",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      subscriptionExists = false;
+      return true;
+    },
+  };
+
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    retryBaseMs: 1,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimAttempts += 1;
+        if (claimAttempts === 1) {
+          owner = "a";
+          return { error: null };
+        }
+        if (claimAttempts <= 4) return { error: new Error("transient claim failure") };
+        owner = "a";
+        return { error: null };
+      }
+      if (name === "remove_own_push_subscription") {
+        removalCalls += 1;
+        if (removalCalls === 1) {
+          oldRemoveStarted.resolve();
+          await oldRemoveGate.promise;
+        }
+        owner = null;
+      }
+      return { error: null };
+    },
+  });
+
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await eventually(() => assert.equal(claimAttempts, 1));
+
+  const disabling = webPush.disablePushNotifications("a");
+  await oldRemoveStarted.promise;
+  await assert.rejects(disabling, /timed out/);
+
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(snapshot.desiredState.preference, "on");
+    assert.equal(snapshot.reconcileRetryCount, 2);
+    assert.equal(claimAttempts, 4);
+  });
+
+  oldRemoveGate.resolve();
+  await eventually(() => {
+    assert.equal(owner, "a");
+    assert.ok(claimAttempts >= 5, "stale late completion must trigger latest-state repair");
+    assert.equal(subscriptionExists, true);
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+  }, 1000);
+});
