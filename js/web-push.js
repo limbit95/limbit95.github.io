@@ -301,6 +301,29 @@ function isDesired(snapshot) {
     && desiredPushState.preference === snapshot.preference;
 }
 
+function captureExplicitPushAuthBoundary(userId) {
+  if (currentPushAuthContext.userId && currentPushAuthContext.userId !== userId) {
+    throw new Error("로그인 상태가 변경되어 푸시 알림 설정을 다시 시도해 주세요.");
+  }
+  if (currentPushAuthContext.userId !== userId) return null;
+  return {
+    userId,
+    contextVersion: currentPushAuthContext.contextVersion,
+  };
+}
+
+function isExplicitPushAuthBoundaryCurrent(boundary) {
+  if (!boundary) return true;
+  return currentPushAuthContext.userId === boundary.userId
+    && currentPushAuthContext.contextVersion === boundary.contextVersion
+    && (authContextVersions.get(boundary.userId) ?? null) === boundary.contextVersion;
+}
+
+function assertExplicitPushAuthBoundary(boundary) {
+  if (isExplicitPushAuthBoundaryCurrent(boundary)) return;
+  throw new Error("로그인 상태가 변경되어 푸시 알림 설정을 다시 시도해 주세요.");
+}
+
 function beginExplicitPushIntent(userId, preference) {
   explicitPushIntent = {
     userId,
@@ -486,6 +509,7 @@ export async function getPushNotificationState() {
 }
 
 export async function enablePushNotifications(userId) {
+  const authBoundary = captureExplicitPushAuthBoundary(userId);
   const capability = getPushCapability();
   if (!capability.supported) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
   if (capability.requiresIosInstall) throw new Error("iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.");
@@ -498,6 +522,7 @@ export async function enablePushNotifications(userId) {
     ? "granted"
     : await Notification.requestPermission();
   if (permission !== "granted") throw new Error("알림 권한이 허용되지 않았습니다.");
+  assertExplicitPushAuthBoundary(authBoundary);
 
   // Permission may have transitioned from default since the auth snapshot was
   // resolved. Refresh capability before creating the ON intent so it receives
@@ -516,13 +541,16 @@ export async function enablePushNotifications(userId) {
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return null;
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return null;
     const currentRegistration = await registration();
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return null;
     const existing = await currentRegistration.pushManager.getSubscription();
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return null;
     const subscription = existing ?? await currentRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
     });
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return null;
     await claimSubscription(userId, desired.contextVersion, subscription);
     if (isDesired(desired)) {
       setPushPreference(userId, "on");
@@ -540,12 +568,14 @@ export async function enablePushNotifications(userId) {
 }
 
 export async function disablePushNotifications(userId) {
+  const authBoundary = captureExplicitPushAuthBoundary(userId);
   const desired = beginExplicitPushIntent(userId, "off");
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return false;
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return false;
     const subscription = await getCurrentPushSubscription();
+    if (!isDesired(desired) || !isExplicitPushAuthBoundaryCurrent(authBoundary)) return false;
     if (subscription) {
       const { error } = await supabase.rpc("remove_own_push_subscription", {
         p_endpoint: subscription.endpoint,
