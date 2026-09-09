@@ -54,6 +54,15 @@ export function renderSignup() {
       ]),
       el("p", { className: "field-error", dataset: { errorFor: "privacy_consent" }, "aria-live": "polite" }),
     ]),
+    el("div", { className: "field field--full" }, [
+      el("label", { className: "checkbox" }, [
+        el("input", { type: "checkbox" }),
+        el("span", {}, [
+          el("strong", { text: "푸시 알림 받기" }),
+          el("span", { className: "small subtle", text: " 활동과 커뮤니티 소식을 푸시 알림으로 받을 수 있어요." }),
+        ]),
+      ]),
+    ]),
     el("div", { className: "form-actions field--full" }, [
       el("a", { className: "button button--ghost", href: "#/login", text: "로그인으로" }),
       el("button", { className: "button button--coral", type: "submit", text: "가입 신청" }),
