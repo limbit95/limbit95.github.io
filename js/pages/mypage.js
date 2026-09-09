@@ -33,7 +33,6 @@ import {
   getPushNotificationState,
   getPushCapability,
   getPushPreference,
-  restorePushNotificationsForAuth,
 } from "../web-push.js";
 
 const HISTORY_PAGE_SIZE = 10;
@@ -106,7 +105,13 @@ export async function renderMyPage() {
     return pushPreference === "on" || (pushPreference === null && pushState.owned);
   }
 
-  function getPushButtonLabel(enabled) {
+  function needsPushReauthorization() {
+    const capability = getPushCapability();
+    return pushPreference === "on" && capability.permission === "default";
+  }
+
+  function getPushButtonLabel(enabled, needsReauthorization) {
+    if (needsReauthorization) return "알림 권한 다시 허용하기";
     // Legacy accounts without a saved preference still fall back to endpoint ownership.
     if (pushPreference === null) {
       return pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
@@ -132,8 +137,13 @@ export async function renderMyPage() {
       return;
     }
     const enabled = isPushEnabled();
+    const needsReauthorization = needsPushReauthorization();
     pushButton.hidden = false;
-    pushButton.textContent = getPushButtonLabel(enabled);
+    pushButton.textContent = getPushButtonLabel(enabled, needsReauthorization);
+    if (needsReauthorization) {
+      pushDescription.textContent = "저장된 푸시 알림 설정은 켜져 있지만 브라우저 알림 권한을 다시 허용해야 합니다.";
+      return;
+    }
     pushDescription.textContent = enabled
       ? (pushState.owned
           ? "이 기기에서 푸시 알림을 받고 있습니다."
@@ -143,9 +153,10 @@ export async function renderMyPage() {
 
   pushButton.addEventListener("click", async () => {
     const enabled = isPushEnabled();
-    setBusy(pushButton, true, enabled ? "끄는 중…" : "설정 중…");
+    const needsReauthorization = needsPushReauthorization();
+    setBusy(pushButton, true, needsReauthorization ? "권한 확인 중…" : (enabled ? "끄는 중…" : "설정 중…"));
     try {
-      if (enabled) {
+      if (enabled && !needsReauthorization) {
         await disablePushNotifications(auth.user.id);
         pushPreference = "off";
         pushState = { subscription: null, owned: false };
@@ -165,13 +176,10 @@ export async function renderMyPage() {
   renderPushState();
   root.append(pushSection);
 
-  if (pushPreference === "on" && !pushState.owned) {
-    void restorePushNotificationsForAuth(auth, {
-      isCurrent: () => getAuthState().user?.id === auth.user.id,
-      getCurrentUserId: () => getAuthState().user?.id ?? null,
-    }).then(async () => {
+  if (pushPreference === "on" && !pushState.owned && getPushCapability().permission === "granted") {
+    void enablePushNotifications(auth.user.id).then((subscription) => {
       if (!pushSection.isConnected || getAuthState().user?.id !== auth.user.id) return;
-      pushState = await getPushNotificationState().catch(() => pushState);
+      pushState = { subscription, owned: true };
       renderPushState();
     }).catch(() => {});
   }
