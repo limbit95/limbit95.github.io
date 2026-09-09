@@ -5,6 +5,8 @@ import test from "node:test";
 const signup = readFileSync(new URL("../js/pages/signup.js", import.meta.url), "utf8");
 const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
 const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+const ui = readFileSync(new URL("../js/ui.js", import.meta.url), "utf8");
+const componentsCss = readFileSync(new URL("../css/components.css", import.meta.url), "utf8");
 const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909062324_multistep_signup_verification.sql", import.meta.url), "utf8");
 const transition = readFileSync(new URL("../supabase/site/migrations/20260909094910_native_auth_otp_signup.sql", import.meta.url), "utf8");
 const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909124500_enforce_native_auth_otp_signup.sql", import.meta.url), "utf8");
@@ -61,6 +63,14 @@ test("signup OTP request only requires email and password is set after verificat
   assert.match(signup, /if \(!validatePassword\(fields\.password\.input\.value\)\)/);
 });
 
+test("verified auth-only signup sessions resume at account step after reload", () => {
+  assert.match(signup, /const existingVerifiedEmail = existingAuth\.user && !existingAuth\.profile/);
+  assert.match(signup, /let step = existingVerifiedEmail \? 2 : 1/);
+  assert.match(signup, /if \(existingVerifiedEmail\) \{[\s\S]*fields\.email\.input\.value = existingVerifiedEmail/);
+  assert.match(signup, /fields\.privacy_consent\.input\.checked = true/);
+  assert.match(signup, /fields\.rules_consent\.input\.checked = true/);
+});
+
 test("signup account renderer keeps nullable nodes out and aligns action with email input", () => {
   assert.match(signup, /el\("div", \{ className: "signup-email-row" \}, \[fields\.email\.input, emailButton\]\)/);
   assert.match(signup, /panel\.replaceChildren\(\.\.\.accountChildren\.filter\(Boolean\)\)/);
@@ -75,6 +85,17 @@ test("signup UI keeps six-digit verification, five-minute display and resend coo
   assert.match(signup, /verifySignupEmailCode\(email, input\.value\)/);
   assert.match(signup, /resendSignupEmailCode\(email\)/);
   assert.match(signup, /\["비밀번호", "설정됨"\]/);
+});
+
+test("busy actions block the app with a full-screen processing overlay", () => {
+  assert.match(ui, /const busyRequests = new Map\(\)/);
+  assert.match(ui, /className: "global-loading"/);
+  assert.match(ui, /formOrButton\.querySelectorAll\("button"\)/);
+  assert.match(ui, /document\.getElementById\("app"\)\?\.setAttribute\("inert", ""\)/);
+  assert.match(ui, /document\.getElementById\("app"\)\?\.removeAttribute\("inert"\)/);
+  assert.match(componentsCss, /\.global-loading \{[\s\S]*position: fixed;[\s\S]*inset: 0;[\s\S]*z-index: 3000/);
+  assert.match(signup, /인증번호를 보내고 있어요…/);
+  assert.match(signup, /인증번호를 확인하고 있어요…/);
 });
 
 test("native Auth users do not create profiles or join requests until final application", () => {
