@@ -12,6 +12,7 @@ const setupE2E = readFileSync(new URL("../scripts/setup-e2e-member.mjs", import.
 const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", import.meta.url), "utf8");
 
 const signupSubmitBlock = signup.match(/form\.addEventListener\("submit"[\s\S]*?\n  \}\);/)?.[0] ?? "";
+const sendCodeBlock = signup.match(/async function sendCode\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
 
 test("signup remains a four-step flow and only final submit creates the community application", () => {
   assert.match(signup, /const STEP_LABELS = \["약관 동의", "기본 정보", "회원 정보", "최종 확인"\]/);
@@ -21,13 +22,31 @@ test("signup remains a four-step flow and only final submit creates the communit
   assert.match(signupSubmitBlock, /submitSignupApplication\(\{/);
 });
 
-test("email verification uses native Supabase Auth signup OTP and resend APIs", () => {
-  assert.match(auth, /supabase\.auth\.signUp\(\{/);
+test("email verification uses native passwordless Supabase OTP with signup metadata", () => {
+  assert.match(auth, /supabase\.auth\.signInWithOtp\(\{/);
+  assert.match(auth, /shouldCreateUser: true/);
   assert.match(auth, /data: \{ signup_flow: "auth_otp" \}/);
-  assert.match(auth, /supabase\.auth\.resend\(\{[\s\S]*type: "signup"[\s\S]*email/);
+  assert.match(auth, /export function requestSignupEmailCode\(email\)[\s\S]*sendSignupEmailCode\(email\)/);
+  assert.match(auth, /export function resendSignupEmailCode\(email\)[\s\S]*sendSignupEmailCode\(email\)/);
   assert.match(auth, /supabase\.auth\.verifyOtp\(\{[\s\S]*email,[\s\S]*token: code,[\s\S]*type: "email"/);
   assert.doesNotMatch(auth, /functions\.invoke\("signup-verification"|invokeSignupVerification/);
   assert.doesNotMatch(auth, /RESEND_API_KEY|SIGNUP_VERIFICATION_PEPPER|SIGNUP_EMAIL_FROM/);
+});
+
+test("signup OTP request only requires email and password is set after verification", () => {
+  assert.match(sendCodeBlock, /requestSignupEmailCode\(email\)/);
+  assert.match(sendCodeBlock, /resendSignupEmailCode\(email\)/);
+  assert.doesNotMatch(sendCodeBlock, /validatePassword|fields\.password\.input\.value/);
+  assert.match(signup, /fields\.password\.input\.disabled = !isVerified/);
+  assert.match(signup, /if \(isVerified\) \{[\s\S]*fields\.password\.root/);
+  assert.match(signup, /await updatePassword\(fields\.password\.input\.value\)/);
+  assert.match(signup, /if \(!validatePassword\(fields\.password\.input\.value\)\)/);
+});
+
+test("signup account renderer keeps nullable nodes out and aligns action with email input", () => {
+  assert.match(signup, /el\("div", \{ className: "signup-email-row" \}, \[fields\.email\.input, emailButton\]\)/);
+  assert.match(signup, /panel\.replaceChildren\(\.\.\.accountChildren\.filter\(Boolean\)\)/);
+  assert.doesNotMatch(signup, /panel\.replaceChildren\(\s*emailRow,[\s\S]*\?[^:]+:\s*null/);
 });
 
 test("signup UI keeps six-digit verification, five-minute display and resend cooldown", () => {
