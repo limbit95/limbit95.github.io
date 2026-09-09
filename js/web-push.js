@@ -27,11 +27,16 @@ let currentPushAuthContext = {
 let explicitPushIntent = null;
 const pendingOwnershipCleanups = new Map();
 const reconcileRetries = new Map();
+const reconcileRetryRuns = new Map();
+let ownershipClaimSequence = 0;
+let reconcileRunning = null;
+let reconcileFollowUp = null;
 let desiredPushState = { revision: 0, userId: null, contextVersion: null, preference: "off" };
 
 // Device state is shared by every account.  All subscription/ownership writes
 // therefore pass through this queue; a rejected operation must not poison it.
 function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevision = null } = {}) {
+  const authorityRevision = reconcileRevision ?? desiredPushState.revision;
   const run = async () => {
     let timeoutId;
     let timedOut = false;
@@ -41,13 +46,12 @@ function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevisio
     // so convergence is scheduled again from the latest authoritative intent.
     work.finally(() => {
       if (!timedOut || !reconcileLate) return;
-      const completedRevision = reconcileRevision ?? desiredPushState.revision;
-      if (completedRevision === desiredPushState.revision) {
-        schedulePushReconcile(completedRevision, true);
+      if (authorityRevision === desiredPushState.revision) {
+        schedulePushReconcile(authorityRevision, true, { preserveAfterRunning: true });
       } else {
         // Do not retry stale authority. Its late side effects must instead get
         // one unbudgeted pass under the latest authority revision.
-        schedulePushReconcile(desiredPushState.revision, false);
+        schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
       }
     }).catch(() => {});
     return Promise.race([
@@ -78,6 +82,7 @@ function updateDesiredPushState(userId, preference) {
     preference,
   };
   reconcileRetries.clear();
+  reconcileRetryRuns.clear();
   return desiredPushState;
 }
 
@@ -94,30 +99,48 @@ function resolveDesiredPushState() {
 
 function addCleanupObligation(userId, accessToken) {
   if (!userId || !accessToken) return;
+  const existing = pendingOwnershipCleanups.get(userId);
   pendingOwnershipCleanups.set(userId, {
     userId,
     accessToken,
     contextVersion: authContextVersions.get(userId) ?? null,
+    // Claims issued through this sequence predate the cleanup authority and
+    // may recreate ownership after the first removal has completed.
+    claimWatermark: Math.max(existing?.claimWatermark ?? 0, ownershipClaimSequence),
   });
 }
 
 async function reconcilePendingOwnershipCleanups(subscription) {
-  if (!subscription) return;
+  if (!subscription) return [];
   const errors = [];
+  const completed = [];
   for (const [userId, cleanup] of [...pendingOwnershipCleanups]) {
+    const staleClaimsAtStart = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
     try {
       await removeSubscriptionWithAccessToken(subscription, cleanup.accessToken);
     } catch (error) {
       errors.push(error);
       continue;
     }
-    // Any already-issued claim can still recreate ownership.
-    // Keep the captured credential until that claim settles and a later pass
-    // has removed any ownership it created.
-    if (inFlightOwnershipClaims.get(userId)?.size) continue;
-    if (pendingOwnershipCleanups.get(userId) === cleanup) pendingOwnershipCleanups.delete(userId);
+    const staleClaimsStillPending = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
+    // If a stale claim existed when removal started, it may have recreated
+    // ownership while the cleanup request was in flight. Keep the credential
+    // until a later pass succeeds after every stale claim has settled.
+    if (!staleClaimsAtStart && !staleClaimsStillPending) completed.push(cleanup);
   }
   if (errors.length) throw errors[0];
+  return completed;
+}
+
+function finishOwnershipCleanups(cleanups) {
+  for (const cleanup of cleanups) {
+    const current = pendingOwnershipCleanups.get(cleanup.userId);
+    const staleClaims = [...(inFlightOwnershipClaims.get(cleanup.userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
+    if (current === cleanup && !staleClaims) pendingOwnershipCleanups.delete(cleanup.userId);
+  }
 }
 
 async function reconcileDesiredPushState() {
@@ -126,8 +149,9 @@ async function reconcileDesiredPushState() {
   if (!isDesired(desired)) return false;
 
   let cleanupError = null;
+  let completedCleanups = [];
   try {
-    await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+    completedCleanups = await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
   } catch (error) {
     cleanupError = error;
   }
@@ -138,6 +162,7 @@ async function reconcileDesiredPushState() {
   // the ownership lookup performed by automatic restore.
   if (desired.preference === "unknown") {
     if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
     return true;
   }
 
@@ -152,11 +177,16 @@ async function reconcileDesiredPushState() {
     setPushPreference(desired.userId, "on");
     restoredUserIds.add(desired.userId);
     if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
     return true;
   }
 
   const cleanupSubscription = subscription ?? lastKnownPushSubscription;
-  if (!cleanupSubscription) return true;
+  if (!cleanupSubscription) {
+    if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
+    return true;
+  }
   let removalError = null;
   try {
     const { error } = await supabase.rpc("remove_own_push_subscription", {
@@ -177,24 +207,56 @@ async function reconcileDesiredPushState() {
   if (cleanupError) throw cleanupError;
   if (removalError) throw removalError;
   if (unsubscribeError) throw unsubscribeError;
+  finishOwnershipCleanups(completedCleanups);
   return isDesired(desired);
 }
 
-function schedulePushReconcile(revision = desiredPushState.revision, isRetry = false) {
+function schedulePushReconcile(
+  revision = desiredPushState.revision,
+  isRetry = false,
+  { preserveAfterRunning = false } = {},
+) {
   if (revision !== desiredPushState.revision) return;
+  // A scheduled pass already represents this revision. Coalesce before
+  // charging retry budget. If a potentially mutating late completion arrives
+  // while a pass is already running, preserve one follow-up pass instead of
+  // dropping the convergence signal.
+  if (reconcileScheduled?.revision === revision) return;
+  if (reconcileRunning?.revision === revision) {
+    if (preserveAfterRunning) {
+      if (reconcileFollowUp?.revision !== revision) {
+        reconcileFollowUp = { revision, isRetry };
+      } else if (!isRetry) {
+        // An unbudgeted latest-authority repair is stronger than a retry.
+        reconcileFollowUp.isRetry = false;
+      }
+    }
+    return;
+  }
   const retryCount = reconcileRetries.get(revision) ?? 0;
   if (isRetry && retryCount >= PUSH_RECONCILE_MAX_RETRIES) return;
   if (isRetry) reconcileRetries.set(revision, retryCount + 1);
-  if (reconcileScheduled?.revision === revision) return;
   if (reconcileScheduled) clearTimeout(reconcileScheduled.timeoutId);
   const delayMs = isRetry ? PUSH_RECONCILE_RETRY_BASE_MS * (2 ** retryCount) : 0;
   const scheduled = { revision, timeoutId: null };
   scheduled.timeoutId = setTimeout(() => {
     if (reconcileScheduled === scheduled) reconcileScheduled = null;
     if (revision !== desiredPushState.revision) return;
+    const running = { revision, isRetry };
+    reconcileRunning = running;
+    if (isRetry) reconcileRetryRuns.set(revision, (reconcileRetryRuns.get(revision) ?? 0) + 1);
     enqueuePushMutation(reconcileDesiredPushState, {
       reconcileLate: true,
       reconcileRevision: revision,
+    }).finally(() => {
+      if (reconcileRunning === running) reconcileRunning = null;
+      const followUp = reconcileFollowUp;
+      if (followUp?.revision === desiredPushState.revision) {
+        reconcileFollowUp = null;
+        schedulePushReconcile(followUp.revision, followUp.isRetry);
+      } else if (followUp && followUp.revision !== desiredPushState.revision) {
+        reconcileFollowUp = null;
+      }
     }).catch((error) => {
       if (error?.message !== "Push mutation timed out.") {
         console.warn("Push state reconciliation failed.", error);
@@ -301,9 +363,17 @@ export function getPushCoordinatorSnapshot() {
     desiredState: { ...desiredPushState },
     pendingCleanupUserIds: [...pendingOwnershipCleanups.keys()],
     inFlightOwnershipClaims: [...inFlightOwnershipClaims.entries()].flatMap(([userId, claims]) => (
-      [...claims].map((claim) => ({ userId, contextVersion: claim.contextVersion, endpoint: claim.endpoint }))
+      [...claims].map((claim) => ({
+        userId, contextVersion: claim.contextVersion, endpoint: claim.endpoint, sequence: claim.sequence,
+      }))
     )),
+    cleanupObligations: [...pendingOwnershipCleanups.values()].map(({ userId, contextVersion, claimWatermark }) => ({
+      userId, contextVersion, claimWatermark,
+    })),
+    ownershipClaimSequence,
     reconcileRetryCount: reconcileRetries.get(desiredPushState.revision) ?? 0,
+    reconcileRetryRunCount: reconcileRetryRuns.get(desiredPushState.revision) ?? 0,
+    reconcileFollowUp: reconcileFollowUp ? { ...reconcileFollowUp } : null,
   };
 }
 
@@ -358,14 +428,19 @@ async function saveSubscription(subscription) {
 
 function claimSubscription(userId, contextVersion, subscription) {
   const promise = saveSubscription(subscription);
-  const claim = { userId, contextVersion, endpoint: subscription.endpoint, promise };
+  const claim = {
+    userId, contextVersion, endpoint: subscription.endpoint, promise, sequence: ++ownershipClaimSequence,
+  };
   const claims = inFlightOwnershipClaims.get(userId) ?? new Set();
   claims.add(claim);
   inFlightOwnershipClaims.set(userId, claims);
   const untrack = () => {
     claims.delete(claim);
     if (!claims.size) inFlightOwnershipClaims.delete(userId);
-    if (pendingOwnershipCleanups.has(userId)) schedulePushReconcile(desiredPushState.revision, false);
+    const cleanup = pendingOwnershipCleanups.get(userId);
+    if (cleanup && claim.sequence <= cleanup.claimWatermark) {
+      schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
+    }
   };
   promise.then(untrack, untrack);
   return promise;
@@ -499,6 +574,10 @@ export async function cleanupPushSubscriptionForSignOut(userId, {
   accessToken = null,
   isActive = () => true,
 } = {}) {
+  // Capture the previous account's cleanup authority before publishing the
+  // logged-out desired state. The auth flow may stop waiting for this work,
+  // but later reconciliation must retain the credential and obligation.
+  addCleanupObligation(userId, accessToken);
   currentPushAuthContext = {
     userId: null, contextVersion: null, approved: false, eligible: false, preference: "off",
   };
@@ -546,6 +625,8 @@ export async function cleanupPushSubscriptionForSignOut(userId, {
     }
     if (removalError) throw removalError;
     if (unsubscribeError) throw unsubscribeError;
+    const cleanup = pendingOwnershipCleanups.get(userId);
+    if (cleanup) finishOwnershipCleanups([cleanup]);
     return true;
   });
 }
