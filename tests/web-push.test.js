@@ -50,6 +50,8 @@ async function loadWebPush({
   }),
   permission = "granted",
   requestPermission = null,
+  mutationTimeoutMs = 30,
+  retryBaseMs = 1,
 }) {
   let source = await readFile("js/web-push.js", "utf8");
   source = source
@@ -77,8 +79,8 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
   });
   defineGlobal("__webPushSupabase", { rpc, from });
   defineGlobal("fetch", fetch);
-  defineGlobal("__WEB_PUSH_MUTATION_TIMEOUT_MS", 30);
-  defineGlobal("__WEB_PUSH_RECONCILE_RETRY_BASE_MS", 1);
+  defineGlobal("__WEB_PUSH_MUTATION_TIMEOUT_MS", mutationTimeoutMs);
+  defineGlobal("__WEB_PUSH_RECONCILE_RETRY_BASE_MS", retryBaseMs);
 
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
@@ -917,6 +919,199 @@ test("reconcile late-completion retries are bounded per revision and reset for a
   webPush.setPushDesiredAuthContext(null);
   await delay(50);
   assert.ok(calls > firstRevisionCalls, "a new revision receives a fresh retry budget");
+});
+
+test("a late settlement coalesces with an already scheduled retry without spending its budget", async () => {
+  const firstClaim = deferred();
+  const firstStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let claims = 0;
+  const subscription = { endpoint: "retry-coalesce", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    retryBaseMs: 30,
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name !== "claim_push_subscription") return { error: null };
+      claims += 1;
+      if (claims === 1) { firstStarted.resolve(); await firstClaim.promise; }
+      if (claims === 2) return { error: new Error("retry one failed") };
+      return { error: null };
+    },
+  });
+
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await firstStarted.promise;
+  await eventually(() => assert.equal(webPush.getPushCoordinatorSnapshot().reconcileRetryCount, 1));
+  firstClaim.resolve();
+  await delay(5); // late completion requests the same retry during its backoff
+  assert.equal(webPush.getPushCoordinatorSnapshot().reconcileRetryCount, 1);
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(claims, 3);
+    assert.equal(snapshot.reconcileRetryCount, 2);
+    assert.equal(snapshot.reconcileRetryRunCount, 2);
+  }, 1000);
+});
+
+test("current claims after a cleanup watermark cannot bypass bounded cleanup retries", async () => {
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+  ]);
+  let cleanupAttempts = 0;
+  let currentClaims = 0;
+  const subscription = { endpoint: "watermark", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    fetch: async () => { cleanupAttempts += 1; return { ok: false, status: 401 }; },
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") currentClaims += 1;
+      return { error: null };
+    },
+  });
+  const approved = (id) => ({ user: { id }, profile: { status: "approved" } });
+  webPush.setPushDesiredAuthContext(approved("a"));
+  webPush.setPushDesiredAuthContext(approved("b"), { previousAccessToken: "token-a" });
+  webPush.setPushDesiredAuthContext(approved("a"), { previousAccessToken: "token-b" });
+
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(snapshot.reconcileRetryCount, 2);
+    assert.equal(snapshot.reconcileRetryRunCount, 2);
+    assert.equal(cleanupAttempts, 6);
+    assert.equal(currentClaims, 3);
+    assert.deepEqual(snapshot.pendingCleanupUserIds, ["a", "b"]);
+    assert.ok(snapshot.cleanupObligations.every((cleanup) => cleanup.claimWatermark < snapshot.ownershipClaimSequence));
+  });
+  await delay(30);
+  assert.equal(cleanupAttempts, 6, "current claim settlement must not create an unbudgeted loop");
+});
+
+test("sign-out timeout retains the captured cleanup obligation for later convergence", async () => {
+  const removalGate = deferred();
+  const removalStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let active = true;
+  let owner = "a";
+  let subscriptionExists = true;
+  let removals = 0;
+  const subscription = {
+    endpoint: "logout-obligation",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { subscriptionExists = false; },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+    fetch: async () => {
+      removals += 1;
+      if (removals === 1) { removalStarted.resolve(); await removalGate.promise; }
+      owner = null;
+      return { ok: true, status: 204 };
+    },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  const cleanup = webPush.cleanupPushSubscriptionForSignOut("a", {
+    accessToken: "token-a",
+    isActive: () => active,
+  });
+  await removalStarted.promise;
+  await assert.rejects(cleanup, /timed out/);
+  active = false; // auth sign-out has continued and cleared its lifecycle
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+
+  removalGate.resolve();
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(owner, null);
+    assert.equal(subscriptionExists, false);
+    assert.deepEqual(snapshot.pendingCleanupUserIds, []);
+    assert.equal(snapshot.authContext.userId, null);
+  });
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+});
+
+test("a pre-sign-out claim that succeeds late is removed with the retained token", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let owner = null;
+  let removalAttempts = 0;
+  const subscription = { endpoint: "logout-late-claim", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({
+    storage,
+    mutationTimeoutMs: 15,
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimStarted.resolve();
+        await claimGate.promise;
+        owner = "a";
+      }
+      return { error: null };
+    },
+    fetch: async () => { removalAttempts += 1; owner = null; return { ok: true, status: 204 }; },
+  });
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
+  webPush.setPushDesiredAuthContext(auth);
+  await claimStarted.promise;
+  const cleanup = webPush.cleanupPushSubscriptionForSignOut("a", { accessToken: "token-a" });
+  await cleanup;
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+
+  claimGate.resolve();
+  await eventually(() => {
+    assert.equal(owner, null);
+    assert.ok(removalAttempts >= 2, "late claim requires a post-settlement cleanup pass");
+    assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+  });
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+});
+
+test("sign-out still unsubscribes after immediate DB failure and retries the obligation", async () => {
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let attempts = 0;
+  let subscriptionExists = true;
+  const subscription = {
+    endpoint: "logout-remove-retry",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { subscriptionExists = false; },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+    fetch: async () => {
+      attempts += 1;
+      return attempts === 1 ? { ok: false, status: 503 } : { ok: true, status: 204 };
+    },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await assert.rejects(
+    webPush.cleanupPushSubscriptionForSignOut("a", { accessToken: "token-a" }),
+    /cleanup failed/,
+  );
+  assert.equal(subscriptionExists, false);
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+
+  // The auth publication remains non-blocking and supplies a future convergence pass.
+  webPush.setPushDesiredAuthContext(null, { previousAccessToken: "token-a" });
+  await eventually(() => {
+    assert.equal(attempts, 2);
+    assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+  });
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
 });
 
 test("edge function re-reads notification, filters push types, and removes invalid subscriptions", async () => {
