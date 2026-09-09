@@ -107,8 +107,9 @@ export function renderSignup() {
   function renderAccount() {
     const normalized = fields.email.input.value.trim().toLowerCase();
     const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
-    fields.email.input.disabled = isVerified;
-    fields.password.input.disabled = isVerified;
+    const isAwaitingCode = codeRequested && !isVerified;
+    fields.email.input.disabled = isVerified || isAwaitingCode;
+    fields.password.input.disabled = isVerified || isAwaitingCode;
     const emailRow = el("div", { className: "signup-email-row" }, [
       fields.email.root,
       el("button", {
@@ -125,6 +126,7 @@ export function renderSignup() {
       el("label", { className: "required", for: "signup-code", text: "인증번호" }),
       el("div", { className: "signup-code-row" }, [codeInput, el("button", { className: "button button--coral", type: "button", text: "인증확인", onclick: () => verifyCode(codeInput) })]),
       timer,
+      el("p", { className: "field-help", text: "인증을 완료하기 전에는 이메일과 비밀번호를 변경할 수 없습니다." }),
       errorLine("verification_code"),
     ]) : null;
     panel.replaceChildren(
