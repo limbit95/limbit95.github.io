@@ -230,12 +230,12 @@ function signupRedirect() {
   return `${window.location.origin}${window.location.pathname}`;
 }
 
-export async function requestSignupEmailCode(email, password) {
-  const { data, error } = await supabase.auth.signUp({
+async function sendSignupEmailCode(email) {
+  const { data, error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
       emailRedirectTo: signupRedirect(),
+      shouldCreateUser: true,
       data: { signup_flow: "auth_otp" },
     },
   });
@@ -244,14 +244,12 @@ export async function requestSignupEmailCode(email, password) {
   return data;
 }
 
-export async function resendSignupEmailCode(email) {
-  const { data, error } = await supabase.auth.resend({
-    type: "signup",
-    email,
-    options: { emailRedirectTo: signupRedirect() },
-  });
-  if (error) throw error;
-  return data;
+export function requestSignupEmailCode(email) {
+  return sendSignupEmailCode(email);
+}
+
+export function resendSignupEmailCode(email) {
+  return sendSignupEmailCode(email);
 }
 
 export async function verifySignupEmailCode(email, code) {
