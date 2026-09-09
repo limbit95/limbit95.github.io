@@ -53,6 +53,9 @@ jobs:
       - name: Test Web Push lifecycle
         run: npm run test:web-push
 
+      - name: Test signup flow
+        run: npm run test:signup
+
       - name: Test admin permissions
         run: npm run test:admin-permissions
 

@@ -9,7 +9,7 @@ import {
 } from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
 
-const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
 
 const state = {
@@ -223,6 +223,65 @@ export async function signUp({ email, password, metadata }) {
   });
   if (error) throw error;
   if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+function signupRedirect() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+export async function requestSignupEmailCode(email, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: signupRedirect(),
+      data: { signup_flow: "auth_otp" },
+    },
+  });
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function resendSignupEmailCode(email) {
+  const { data, error } = await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: { emailRedirectTo: signupRedirect() },
+  });
+  if (error) throw error;
+  return data;
+}
+
+export async function verifySignupEmailCode(email, code) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: "email",
+  });
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function submitSignupApplication(metadata) {
+  const { data, error } = await supabase.rpc("submit_join_request", {
+    p_display_name: metadata.display_name,
+    p_real_name: metadata.real_name,
+    p_birth_year: metadata.birth_year,
+    p_age_visibility: metadata.age_visibility,
+    p_church_group: metadata.church_group,
+    p_request_message: metadata.request_message,
+    p_privacy_consent: metadata.privacy_consent,
+    p_privacy_policy_version: metadata.privacy_policy_version,
+    p_rules_consent: metadata.rules_consent,
+    p_community_rules_version: metadata.community_rules_version,
+  });
+  if (error) throw error;
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (sessionData.session) await refreshAuthContext(sessionData.session, { force: true });
   return data;
 }
 

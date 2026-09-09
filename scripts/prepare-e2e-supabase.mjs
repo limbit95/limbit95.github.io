@@ -45,8 +45,8 @@ for (const filename of operatingMigrations) {
   );
 }
 
-// Test-only bootstrap permissions. These grants exist only inside the disposable
-// local Supabase stack. The browser never receives service_role; Node setup
+// Test-only bootstrap permissions. These objects exist only inside the disposable
+// local Supabase stack. Browser tests never receive service_role; Node setup
 // scripts use it only to create deterministic fixtures and verify DB state.
 await writeFile(
   path.join(migrationsRoot, "20990101000000_e2e_bootstrap_privileges.sql"),

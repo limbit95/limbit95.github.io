@@ -249,6 +249,11 @@ async function openPublicProfile(userId) {
         }),
         el("div", {}, [
           el("strong", { className: "profile-modal__name", text: profile.display_name ?? "회원" }),
+          profile.real_name ? el("span", {
+            className: "small subtle",
+            text: `실명 ${profile.real_name}`,
+            style: { display: "block" },
+          }) : null,
           el("span", {
             className: "small subtle",
             text: getPublicAgeText(profile),
