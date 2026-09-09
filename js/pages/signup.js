@@ -223,7 +223,7 @@ export function renderSignup() {
     if (![1, 2, 3].every(validateStep)) { showToast("필수 정보를 다시 확인해 주세요.", "error"); return; }
     setBusy(form, true, "가입 신청 중…");
     try {
-      await completeVerifiedSignup({
+      const result = await completeVerifiedSignup({
         email: fields.email.input.value.trim().toLowerCase(), password: fields.password.input.value,
         verificationToken,
         metadata: {
@@ -234,6 +234,11 @@ export function renderSignup() {
           rules_consent: true, community_rules_version: COMMUNITY_RULES_VERSION,
         },
       });
+      if (result.sign_in_required === true) {
+        showToast("가입 신청은 정상적으로 완료되었습니다. 로그인 후 관리자 승인 상태를 확인해 주세요.", "success", 6000);
+        window.location.hash = "#/login";
+        return;
+      }
       showToast("가입 신청이 완료되었습니다. 관리자의 승인을 기다려 주세요.", "success", 6000);
       window.location.hash = "#/pending";
     } catch (error) { showToast(getErrorMessage(error), "error"); }

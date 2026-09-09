@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const signup = readFileSync(new URL("../js/pages/signup.js", import.meta.url), "utf8");
+const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
 const edge = readFileSync(new URL("../supabase/functions/signup-verification/index.ts", import.meta.url), "utf8");
 const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909120000_multistep_signup_verification.sql", import.meta.url), "utf8");
 const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909123000_enforce_verified_signup.sql", import.meta.url), "utf8");
@@ -56,6 +57,13 @@ test("verification is consumed once and retry recovers a completed account", () 
   assert.match(edge, /existingSession[\s\S]*recovered: true/);
   assert.match(edge, /sign_in_required: true/);
   assert.match(edge, /email_confirm: true/);
+});
+
+test("completed signup routes according to whether sign-in is required", () => {
+  assert.match(signup, /const result = await completeVerifiedSignup\(/);
+  assert.match(signup, /if \(result\.sign_in_required === true\)[\s\S]*가입 신청은 정상적으로 완료되었습니다[\s\S]*#\/login/);
+  assert.match(signup, /가입 신청이 완료되었습니다\. 관리자의 승인을 기다려 주세요\.[\s\S]*#\/pending/);
+  assert.match(auth, /if \(data\?\.session\?\.access_token && data\?\.session\?\.refresh_token\) \{[\s\S]*supabase\.auth\.setSession\(data\.session\)[\s\S]*refreshAuthContext\(sessionData\.session/);
 });
 
 test("signup persists profiles, real names and consent but no push preference", () => {
