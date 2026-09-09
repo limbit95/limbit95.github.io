@@ -112,7 +112,7 @@ function addCleanupObligation(userId, accessToken) {
 }
 
 async function reconcilePendingOwnershipCleanups(subscription) {
-  if (!subscription) return [];
+  if (!subscription) return { completed: [], error: null };
   const errors = [];
   const completed = [];
   for (const [userId, cleanup] of [...pendingOwnershipCleanups]) {
@@ -131,8 +131,7 @@ async function reconcilePendingOwnershipCleanups(subscription) {
     // until a later pass succeeds after every stale claim has settled.
     if (!staleClaimsAtStart && !staleClaimsStillPending) completed.push(cleanup);
   }
-  if (errors.length) throw errors[0];
-  return completed;
+  return { completed, error: errors[0] ?? null };
 }
 
 function finishOwnershipCleanups(cleanups) {
@@ -156,10 +155,13 @@ async function reconcileDesiredPushState() {
   let cleanupError = null;
   let completedCleanups = [];
   try {
-    completedCleanups = await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+    const cleanupResult = await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+    completedCleanups = cleanupResult.completed;
+    cleanupError = cleanupResult.error;
   } catch (error) {
     cleanupError = error;
   }
+  finishOwnershipCleanups(completedCleanups);
   if (!isDesired(desired)) return false;
 
   // A missing legacy preference is unresolved, not an OFF decision. Account
@@ -167,7 +169,6 @@ async function reconcileDesiredPushState() {
   // the ownership lookup performed by automatic restore.
   if (desired.preference === "unknown") {
     if (cleanupError) throw cleanupError;
-    finishOwnershipCleanups(completedCleanups);
     return true;
   }
 
@@ -191,14 +192,12 @@ async function reconcileDesiredPushState() {
     setPushPreference(desired.userId, "on");
     restoredUserIds.add(desired.userId);
     if (cleanupError) throw cleanupError;
-    finishOwnershipCleanups(completedCleanups);
     return true;
   }
 
   const cleanupSubscription = subscription ?? lastKnownPushSubscription;
   if (!cleanupSubscription) {
     if (cleanupError) throw cleanupError;
-    finishOwnershipCleanups(completedCleanups);
     return true;
   }
   let removalError = null;
@@ -221,7 +220,6 @@ async function reconcileDesiredPushState() {
   if (cleanupError) throw cleanupError;
   if (removalError) throw removalError;
   if (unsubscribeError) throw unsubscribeError;
-  finishOwnershipCleanups(completedCleanups);
   return isDesired(desired);
 }
 
