@@ -1,4 +1,5 @@
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
+import { showOnlineModuleLoadError } from "./onlineStartup.js";
 
 const COMPACT_PLAY_WIDTH = 900;
 const PLAY_QUERY_KEY = "play";
@@ -127,7 +128,9 @@ function setupDedicatedPlayMode(startButton) {
   }
 
   if (onlineRoomId) {
-    void import("./onlineGameController.js");
+    void import("./onlineGameController.js").catch((error) => {
+      showOnlineModuleLoadError(error);
+    });
     return;
   }
 
