@@ -123,3 +123,15 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 - 이미 적용된 migration을 운영 DB에 재실행하지 않습니다.
 - Advisor의 SECURITY DEFINER 경고는 실제 호출 주체와 함수 내부 권한 검사를 확인한 뒤 판단합니다.
 - `liar_*`, `splendor_*` 객체와 게임 전용 SQL은 별도 관리하며 이 디렉터리에서 수정하지 않습니다.
+
+### 다단계 회원가입 이메일 인증 배포
+
+`20260909120000_multistep_signup_verification.sql`은 가입 신청과 분리된 5분 이메일
+challenge, 이용수칙 동의 이력, 공개 프로필의 실명 필드를 추가합니다. challenge
+테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했으므로
+`signup-verification` Edge Function의 service role만 접근합니다.
+
+함수 배포 시 `SIGNUP_VERIFICATION_PEPPER`, `RESEND_API_KEY`, `SIGNUP_EMAIL_FROM` secret을
+설정하고, 로그인 전 호출이 필요한 함수이므로 `supabase functions deploy
+signup-verification --no-verify-jwt`로 배포합니다. 함수는 요청 횟수와 코드 검증 횟수를
+직접 제한하며, service role key와 pepper는 브라우저에 전달하지 않습니다.

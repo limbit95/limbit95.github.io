@@ -138,3 +138,35 @@
 .prayer-comment-edit { padding: 1rem; background: #ffffff; }
 .prayer-comment-edit .button-row { justify-content: flex-end; }
 .prayer-comment-empty { padding: 1.15rem; border: 1px dashed #d9e8ed; border-radius: 14px; text-align: center; background: #f8fbfc; }
+.signup-flow { display: grid; gap: 1.5rem; }
+.signup-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.signup-progress li { display: grid; justify-items: center; gap: .35rem; color: var(--muted); font-size: .78rem; text-align: center; }
+.signup-progress li::before { content: ""; position: relative; top: 1rem; z-index: 0; width: calc(100% + .5rem); height: 2px; background: var(--line); transform: translateX(50%); }
+.signup-progress li:last-child::before { visibility: hidden; }
+.signup-progress li span { z-index: 1; display: grid; width: 2rem; height: 2rem; place-items: center; border: 2px solid var(--line); border-radius: 50%; background: var(--surface); }
+.signup-progress li.is-current, .signup-progress li.is-complete { color: var(--ink); }
+.signup-progress li.is-current span, .signup-progress li.is-complete span { border-color: var(--coral-700); background: var(--coral-700); color: white; }
+.signup-step { display: grid; gap: 1.25rem; }
+.agreement-list, .agreement-item, .signup-optional { display: grid; gap: .75rem; }
+.agreement-item, .signup-optional, .signup-review { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.agreement-item details { padding-left: 1.75rem; font-size: .875rem; color: var(--muted); }
+.agreement-item summary { cursor: pointer; color: var(--coral-700); font-weight: 700; }
+.agreement-item li + li { margin-top: .4rem; }
+.signup-email-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
+.signup-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; }
+.signup-verified { margin: 0; color: var(--success); font-weight: 700; }
+.signup-actions { justify-content: space-between; }
+.signup-review { display: grid; gap: .75rem; }
+.signup-review__head { display: flex; align-items: center; justify-content: space-between; }
+.signup-review__head h3 { margin: 0; }
+.signup-review dl { display: grid; grid-template-columns: minmax(7rem, .35fr) 1fr; gap: .5rem 1rem; margin: 0; }
+.signup-review dt { color: var(--muted); }
+.signup-review dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  .signup-progress li strong { font-size: .7rem; }
+  .signup-email-row { grid-template-columns: 1fr; }
+  .signup-email-row > .button { justify-self: stretch; }
+  .signup-review dl { grid-template-columns: 1fr; gap: .2rem; }
+  .signup-review dd + dt { margin-top: .55rem; }
+}
