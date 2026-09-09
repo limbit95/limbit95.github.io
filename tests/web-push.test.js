@@ -11,6 +11,17 @@ function deferred() {
   return { promise, resolve };
 }
 
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+async function eventually(assertion, timeoutMs = 500) {
+  const deadline = Date.now() + timeoutMs;
+  while (true) {
+    try { assertion(); return; } catch (error) {
+      if (Date.now() >= deadline) throw error;
+      await delay(5);
+    }
+  }
+}
+
 function section(source, startMarker, endMarker) {
   const start = source.indexOf(startMarker);
   assert.ok(start >= 0, `Missing source marker: ${startMarker}`);
@@ -62,6 +73,7 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
   });
   defineGlobal("__webPushSupabase", { rpc, from });
   defineGlobal("fetch", fetch);
+  defineGlobal("__WEB_PUSH_MUTATION_TIMEOUT_MS", 30);
 
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
@@ -407,6 +419,114 @@ test("account switching and logout cleanup converge on the current account", asy
   assert.equal(owner, "b");
   assert.equal(subscriptionExists, true);
   assert.equal(storage.get("cheongpa:web-push-preference:b"), "on");
+});
+
+test("auth lifecycle makes OFF and ineligible account switches authoritative after a late claim", async () => {
+  for (const nextAuth of [
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { user: { id: "b" }, profile: { status: "pending" } },
+    null,
+  ]) {
+    const claimGate = deferred();
+    const claimStarted = deferred();
+    const storage = new Map([
+      ["cheongpa:web-push-preference:a", "on"],
+      ["cheongpa:web-push-preference:b", "off"],
+    ]);
+    let currentUser = "a";
+    let owner = null;
+    let subscriptionExists = true;
+    const subscription = { endpoint: "shared", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+    const webPush = await loadWebPush({
+      storage,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => { subscriptionExists = true; return subscription; },
+      rpc: async (name) => {
+        if (name === "claim_push_subscription") { claimStarted.resolve(); await claimGate.promise; owner = "a"; }
+        else owner = null;
+        return { error: null };
+      },
+      fetch: async () => { owner = null; return { ok: true, status: 204 }; },
+    });
+    const oldRestore = webPush.restorePushNotificationsForAuth(
+      { user: { id: "a" }, profile: { status: "approved" } },
+      { isCurrent: () => currentUser === "a" },
+    ).catch(() => null);
+    await claimStarted.promise;
+    currentUser = nextAuth?.user?.id ?? null;
+    webPush.setPushDesiredAuthContext(nextAuth, { previousAccessToken: "token-a" });
+    await delay(45);
+    claimGate.resolve();
+    await oldRestore;
+    await eventually(() => {
+      assert.equal(owner, null);
+      assert.equal(subscriptionExists, false);
+    });
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+    if (nextAuth) assert.equal(storage.get("cheongpa:web-push-preference:b"), "off");
+  }
+});
+
+test("a hanging restore lease cannot permanently block later OFF or ON intents", async () => {
+  for (const finalIntent of ["off", "on"]) {
+    const started = deferred();
+    const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+    let owner = null;
+    let subscriptionExists = true;
+    let claims = 0;
+    const subscription = { endpoint: "hang", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+    const webPush = await loadWebPush({ storage,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => { subscriptionExists = true; return subscription; },
+      rpc: async (name) => {
+        if (name === "claim_push_subscription" && ++claims === 1) { started.resolve(); return new Promise(() => {}); }
+        owner = name === "claim_push_subscription" ? "a" : null;
+        return { error: null };
+      },
+    });
+    void webPush.restorePushNotificationsForAuth({ user: { id: "a" }, profile: { status: "approved" } }).catch(() => {});
+    await started.promise;
+    if (finalIntent === "off") await webPush.disablePushNotifications("a");
+    else await webPush.enablePushNotifications("a");
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), finalIntent);
+    assert.equal(subscriptionExists, finalIntent === "on");
+    assert.equal(owner, finalIntent === "on" ? "a" : null);
+  }
+});
+
+test("late timed-out remove and unsubscribe are repaired from the latest ON intent", async () => {
+  for (const hangingStep of ["remove", "unsubscribe"]) {
+    const gate = deferred();
+    const started = deferred();
+    const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+    let owner = "a";
+    let subscriptionExists = true;
+    const makeSubscription = () => ({ endpoint: "late", toJSON: () => ({ keys: {} }), unsubscribe: async () => {
+      if (hangingStep === "unsubscribe") { started.resolve(); await gate.promise; }
+      subscriptionExists = false;
+    } });
+    const webPush = await loadWebPush({ storage,
+      getSubscription: async () => subscriptionExists ? makeSubscription() : null,
+      subscribe: async () => { subscriptionExists = true; return makeSubscription(); },
+      rpc: async (name) => {
+        if (name === "remove_own_push_subscription") {
+          if (hangingStep === "remove") { started.resolve(); await gate.promise; }
+          owner = null;
+        } else owner = "a";
+        return { error: null };
+      },
+    });
+    void webPush.disablePushNotifications("a").catch(() => {});
+    await started.promise;
+    await delay(40);
+    await webPush.enablePushNotifications("a");
+    gate.resolve();
+    await eventually(() => {
+      assert.equal(owner, "a");
+      assert.equal(subscriptionExists, true);
+    });
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+  }
 });
 
 test("legacy lookup cannot override explicit OFF or OFF then ON", async () => {

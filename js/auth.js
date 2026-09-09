@@ -3,6 +3,7 @@ import { PROFILE_STATUS } from "./constants.js";
 import {
   cleanupPushSubscriptionForSignOut,
   restorePushNotificationsForAuth,
+  setPushDesiredAuthContext,
   setPushAuthContextVersion,
   waitForPushRestoreClaims,
 } from "./web-push.js";
@@ -49,6 +50,7 @@ export function subscribeAuth(listener) {
 
 function clearAuthContext({ notify = true } = {}) {
   const previousUserId = state.user?.id;
+  const previousAccessToken = state.session?.access_token ?? null;
   lifecycleEpoch += 1;
   state.session = null;
   state.user = null;
@@ -56,6 +58,7 @@ function clearAuthContext({ notify = true } = {}) {
   state.managerCategoryIds = new Set();
   state.adminPermissions = new Set();
   if (previousUserId) setPushAuthContextVersion(previousUserId, null);
+  setPushDesiredAuthContext(null, { previousAccessToken });
   if (notify) emit();
 }
 
@@ -115,6 +118,7 @@ async function loadAuthContext(session, { force, epoch }) {
 
   if (epoch !== lifecycleEpoch) return getAuthState();
   const previousUserId = state.user?.id;
+  const previousAccessToken = state.session?.access_token ?? null;
   if (previousUserId && previousUserId !== user.id) {
     setPushAuthContextVersion(previousUserId, null);
   }
@@ -124,6 +128,9 @@ async function loadAuthContext(session, { force, epoch }) {
   state.managerCategoryIds = managerCategoryIds;
   state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
   setPushAuthContextVersion(user.id, epoch);
+  setPushDesiredAuthContext(getAuthState(), {
+    previousAccessToken: previousUserId !== user.id ? previousAccessToken : null,
+  });
   emit();
   const restoreEpoch = lifecycleEpoch;
   void restorePushNotificationsForAuth(getAuthState(), {

@@ -55,6 +55,7 @@ async function loadAuthForSignOut({
     .replace(/import \{[\s\S]*?\} from "\.\/web-push\.js";/, `const {
   cleanupPushSubscriptionForSignOut,
   restorePushNotificationsForAuth,
+  setPushDesiredAuthContext,
   setPushAuthContextVersion,
   waitForPushRestoreClaims,
 } = globalThis.__authPushMocks;`)
@@ -73,6 +74,7 @@ const hasAdminPermission = () => false;`)
   defineGlobal("__authPushMocks", {
     cleanupPushSubscriptionForSignOut,
     restorePushNotificationsForAuth: async () => null,
+    setPushDesiredAuthContext: () => {},
     setPushAuthContextVersion: () => {},
     waitForPushRestoreClaims,
   });
