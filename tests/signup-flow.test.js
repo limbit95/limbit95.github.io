@@ -91,6 +91,14 @@ test("historical phase-one migration remains preserved for real-name backfill", 
   assert.match(infrastructure, /community_rules_version/);
 });
 
+test("native OTP transition retires the temporary custom challenge infrastructure", () => {
+  assert.match(transition, /drop function if exists public\.claim_signup_email_challenge\(uuid, uuid\)/);
+  assert.match(transition, /drop function if exists public\.verify_signup_email_challenge\(uuid, text, text\)/);
+  assert.match(transition, /drop function if exists public\.record_signup_email_failure\(uuid\)/);
+  assert.match(transition, /drop function if exists public\.create_signup_email_challenge\(text, text, text, timestamptz\)/);
+  assert.match(transition, /drop table if exists public\.signup_email_challenges/);
+});
+
 test("E2E fixtures no longer synthesize custom signup challenges", () => {
   assert.doesNotMatch(setupE2E, /signup_email_challenges|challengeId|verification_token_hash/);
   assert.doesNotMatch(prepareE2E, /e2e_prepare_pending_signup_fixture|signup_email_challenges/);
