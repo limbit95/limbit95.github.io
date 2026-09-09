@@ -7,6 +7,7 @@ const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
 const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909062324_multistep_signup_verification.sql", import.meta.url), "utf8");
 const transition = readFileSync(new URL("../supabase/site/migrations/20260909123000_native_auth_otp_signup.sql", import.meta.url), "utf8");
+const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909124500_enforce_native_auth_otp_signup.sql", import.meta.url), "utf8");
 const setupE2E = readFileSync(new URL("../scripts/setup-e2e-member.mjs", import.meta.url), "utf8");
 const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", import.meta.url), "utf8");
 
@@ -89,6 +90,18 @@ test("historical phase-one migration remains preserved for real-name backfill", 
   assert.match(infrastructure, /p\.id = j\.user_id[\s\S]*p\.real_name is null/);
   assert.match(infrastructure, /rules_consent_at/);
   assert.match(infrastructure, /community_rules_version/);
+});
+
+
+
+test("final enforcement blocks the legacy unverified signup bypass", () => {
+  assert.match(transition, /Legacy frontend compatibility during the staged rollout/);
+  assert.match(enforcement, /Final native Auth OTP enforcement/);
+  assert.match(enforcement, /if v_signup_flow = 'auth_otp' then[\s\S]*return new;/);
+  assert.match(enforcement, /if new\.email_confirmed_at is null then[\s\S]*이메일 인증 후 가입 신청을 완료해 주세요/);
+  assert.match(enforcement, /insert into public\.profiles/);
+  assert.match(enforcement, /insert into public\.join_requests/);
+  assert.match(setupE2E, /email_confirm: true/);
 });
 
 test("E2E fixtures no longer synthesize custom signup challenges", () => {

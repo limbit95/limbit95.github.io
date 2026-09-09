@@ -66,6 +66,7 @@ baseline 실행 후 seed를 실행합니다.
 8. `20260908090000_add_admin_permission_system` (운영 적용 완료)
 9. `20260909062324_multistep_signup_verification` (운영 적용 완료, 회원가입 Phase 1 이력)
 10. `20260909123000_native_auth_otp_signup` (운영 적용 전)
+11. `20260909124500_enforce_native_auth_otp_signup` (운영 적용 전)
 
 ### 관리자 역할 및 영역 권한
 
@@ -137,7 +138,8 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 3. `20260909123000_native_auth_otp_signup.sql`을 적용합니다. `signup_flow = 'auth_otp'` Auth 사용자는 `auth.users`만 먼저 생성하고, `profiles`/`join_requests` 생성은 이메일 인증 이후 `submit_join_request` RPC까지 미룹니다. 기존 운영 프론트의 full-metadata 가입 경로는 새 프론트 배포 전까지 계속 허용합니다.
 4. 새 회원가입 프론트엔드를 배포합니다. 최초 인증번호 요청은 `supabase.auth.signUp()`, 재전송은 `supabase.auth.resend({ type: 'signup' })`, 코드 검증은 `supabase.auth.verifyOtp({ type: 'email' })`를 사용합니다.
 5. 최종 `가입 신청`은 인증된 세션에서 `submit_join_request` RPC를 호출합니다. RPC는 `auth.uid()`와 `auth.users.email/email_confirmed_at`을 서버에서 확인하고 `profiles`와 `join_requests`를 한 트랜잭션으로 생성합니다.
-6. 정상 가입, 잘못된/만료 OTP, 재전송, 가입 도중 이탈 후 복귀, 관리자 승인 대기 흐름을 검증한 뒤 기존 `signup_email_challenges`와 challenge RPC, 미사용 `signup-verification` Edge Function을 별도 cleanup합니다.
+6. 새 프론트의 OTP 가입 흐름이 정상 동작하는 것을 확인한 뒤 `20260909124500_enforce_native_auth_otp_signup.sql`을 적용합니다. 이 단계부터 미인증 legacy `auth.signUp()` metadata 우회는 차단하고, `signup_flow = 'auth_otp'` 및 이미 이메일이 확인된 관리자/운영 생성 계정만 Auth trigger가 허용합니다.
+7. 정상 가입, 잘못된/만료 OTP, 재전송, 가입 도중 이탈 후 복귀, 관리자 승인 대기 흐름을 검증한 뒤 기존 `signup_email_challenges`와 challenge RPC, 미사용 `signup-verification` Edge Function을 별도 cleanup합니다.
 
 `submit_join_request`에는 사용자 ID나 이메일을 클라이언트 입력으로 받지 않습니다. 동일 사용자의 최종 신청은 transaction advisory lock으로 직렬화하고 이미 양쪽 신청 데이터가 존재하면 idempotent 성공으로 처리합니다. 한쪽 데이터만 존재하는 비정상 상태는 오류로 차단합니다.
 
