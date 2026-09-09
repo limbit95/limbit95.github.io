@@ -40,6 +40,13 @@ test("signup UI keeps six-digit verification, five-minute display and resend coo
   assert.match(signup, /\["비밀번호", "설정됨"\]/);
 });
 
+test("pending signup OTP keeps the requested email and password stable", () => {
+  assert.match(signup, /const isAwaitingCode = codeRequested && !isVerified/);
+  assert.match(signup, /fields\.email\.input\.disabled = isVerified \|\| isAwaitingCode/);
+  assert.match(signup, /fields\.password\.input\.disabled = isVerified \|\| isAwaitingCode/);
+  assert.match(signup, /인증을 완료하기 전에는 이메일과 비밀번호를 변경할 수 없습니다/);
+});
+
 test("native Auth users do not create profiles or join requests until final application", () => {
   assert.match(transition, /v_signup_flow text := nullif\(btrim\(v_metadata ->> 'signup_flow'\), ''\)/);
   assert.match(transition, /if v_signup_flow = 'auth_otp' then[\s\S]*return new;/);
