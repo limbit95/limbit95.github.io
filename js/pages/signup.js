@@ -33,7 +33,7 @@ export function renderSignup() {
   const existingVerifiedEmail = existingAuth.user && !existingAuth.profile
     ? String(existingAuth.user.email ?? "").trim().toLowerCase()
     : "";
-  let step = 1;
+  let step = existingVerifiedEmail ? 2 : 1;
   let verifiedEmail = existingVerifiedEmail;
   let existingAccountEmail = "";
   let codeRequested = false;
@@ -61,7 +61,13 @@ export function renderSignup() {
     request_message: textareaField("request_message", "가입 신청 내용", "관리자가 가입자를 확인할 수 있도록 간단한 소개나 가입 관련 내용을 작성해 주세요."),
   };
 
-  if (existingVerifiedEmail) fields.email.input.value = existingVerifiedEmail;
+  if (existingVerifiedEmail) {
+    fields.email.input.value = existingVerifiedEmail;
+    // The supported OTP signup path can only reach verification after step 1 consent validation.
+    // Restore those required checks so a persisted Auth session can resume at step 2 after reload.
+    fields.privacy_consent.input.checked = true;
+    fields.rules_consent.input.checked = true;
+  }
   fields.email.input.addEventListener("input", () => {
     const normalized = fields.email.input.value.trim().toLowerCase();
     if (existingAccountEmail && normalized !== existingAccountEmail) {
@@ -181,7 +187,7 @@ export function renderSignup() {
     const email = fields.email.input.value.trim().toLowerCase();
     if (!validateEmail(email)) return setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요.");
     if (Date.now() < resendAt) return setFieldError(form, "email", "잠시 후 다시 요청해 주세요.");
-    setBusy(form, true, "발송 중…");
+    setBusy(form, true, "인증번호를 보내고 있어요…");
     try {
       if (codeRequested) await resendSignupEmailCode(email);
       else await requestSignupEmailCode(email);
@@ -207,7 +213,7 @@ export function renderSignup() {
   async function verifyCode(input) {
     clearFieldErrors(form);
     if (!/^\d{6}$/.test(input.value)) return setFieldError(form, "verification_code", "6자리 숫자를 입력해 주세요.");
-    setBusy(form, true, "확인 중…");
+    setBusy(form, true, "인증번호를 확인하고 있어요…");
     try {
       const email = fields.email.input.value.trim().toLowerCase();
       await verifySignupEmailCode(email, input.value);
@@ -274,7 +280,7 @@ export function renderSignup() {
   async function nextStep() {
     if (!validateStep(step)) return;
     if (step === 2) {
-      setBusy(form, true, "비밀번호 설정 중…");
+      setBusy(form, true, "비밀번호를 설정하고 있어요…");
       try {
         await updatePassword(fields.password.input.value);
         goTo(step + 1);
@@ -299,7 +305,7 @@ export function renderSignup() {
         return;
       }
     }
-    setBusy(form, true, "가입 신청 중…");
+    setBusy(form, true, "가입 신청을 처리하고 있어요…");
     try {
       await submitSignupApplication({
         display_name: fields.display_name.input.value.trim(),
