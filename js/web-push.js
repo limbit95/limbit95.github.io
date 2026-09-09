@@ -8,9 +8,10 @@ import { supabase } from "./supabaseClient.js";
 const SERVICE_WORKER_PATH = "./push-service-worker.js";
 const SERVICE_WORKER_SCOPE = "./";
 const PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:";
+const PUSH_AUTH_CHANGED_MESSAGE = "로그인 상태가 변경되었습니다. 다시 시도해 주세요.";
 const restorePromises = new Map();
 const restoredUserIds = new Set();
-const inFlightRestoreClaims = new Map();
+const inFlightOwnershipClaims = new Map();
 const authContextVersions = new Map();
 let pushMutationQueue = Promise.resolve();
 const PUSH_MUTATION_TIMEOUT_MS = globalThis.__WEB_PUSH_MUTATION_TIMEOUT_MS ?? 15000;
@@ -21,15 +22,22 @@ let lastKnownPushSubscription = null;
 // Authority order: current auth lifecycle, latest explicit intent, persisted
 // preference, then observed browser/DB state. Observed state never becomes the
 // desired state except for the guarded one-time legacy migration.
-let currentPushAuthContext = { userId: null, contextVersion: null, eligible: false, preference: "off" };
+let currentPushAuthContext = {
+  userId: null, contextVersion: null, approved: false, eligible: false, preference: "off",
+};
 let explicitPushIntent = null;
 const pendingOwnershipCleanups = new Map();
 const reconcileRetries = new Map();
+const reconcileRetryRuns = new Map();
+let ownershipClaimSequence = 0;
+let reconcileRunning = null;
+let reconcileFollowUp = null;
 let desiredPushState = { revision: 0, userId: null, contextVersion: null, preference: "off" };
 
-// Device state is shared by every account.  All subscription/ownership writes
+// Device state is shared by every account. All subscription/ownership writes
 // therefore pass through this queue; a rejected operation must not poison it.
 function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevision = null } = {}) {
+  const authorityRevision = reconcileRevision ?? desiredPushState.revision;
   const run = async () => {
     let timeoutId;
     let timedOut = false;
@@ -38,7 +46,14 @@ function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevisio
     // When that operation eventually settles it may have changed device state,
     // so convergence is scheduled again from the latest authoritative intent.
     work.finally(() => {
-      if (timedOut && reconcileLate) schedulePushReconcile(reconcileRevision ?? desiredPushState.revision, true);
+      if (!timedOut || !reconcileLate) return;
+      if (authorityRevision === desiredPushState.revision) {
+        schedulePushReconcile(authorityRevision, true, { preserveAfterRunning: true });
+      } else {
+        // Do not retry stale authority. Its late side effects must instead get
+        // one unbudgeted pass under the latest authority revision.
+        schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
+      }
     }).catch(() => {});
     return Promise.race([
       work,
@@ -68,6 +83,7 @@ function updateDesiredPushState(userId, preference) {
     preference,
   };
   reconcileRetries.clear();
+  reconcileRetryRuns.clear();
   return desiredPushState;
 }
 
@@ -84,23 +100,52 @@ function resolveDesiredPushState() {
 
 function addCleanupObligation(userId, accessToken) {
   if (!userId || !accessToken) return;
+  const existing = pendingOwnershipCleanups.get(userId);
   pendingOwnershipCleanups.set(userId, {
     userId,
     accessToken,
     contextVersion: authContextVersions.get(userId) ?? null,
+    // Claims issued through this sequence predate the cleanup authority and
+    // may recreate ownership after the first removal has completed.
+    claimWatermark: Math.max(existing?.claimWatermark ?? 0, ownershipClaimSequence),
   });
 }
 
 async function reconcilePendingOwnershipCleanups(subscription) {
-  if (!subscription) return;
+  if (!subscription) return [];
+  const errors = [];
+  const completed = [];
   for (const [userId, cleanup] of [...pendingOwnershipCleanups]) {
-    await removeSubscriptionWithAccessToken(subscription, cleanup.accessToken);
-    // A restore claim which was already issued can still recreate ownership.
-    // Keep the captured credential until that claim settles and a later pass
-    // has removed any ownership it created.
-    if (inFlightRestoreClaims.get(userId)?.size) continue;
-    if (pendingOwnershipCleanups.get(userId) === cleanup) pendingOwnershipCleanups.delete(userId);
+    const staleClaimsAtStart = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
+    try {
+      await removeSubscriptionWithAccessToken(subscription, cleanup.accessToken);
+    } catch (error) {
+      errors.push(error);
+      continue;
+    }
+    const staleClaimsStillPending = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
+    // If a stale claim existed when removal started, it may have recreated
+    // ownership while the cleanup request was in flight. Keep the credential
+    // until a later pass succeeds after every stale claim has settled.
+    if (!staleClaimsAtStart && !staleClaimsStillPending) completed.push(cleanup);
   }
+  if (errors.length) throw errors[0];
+  return completed;
+}
+
+function finishOwnershipCleanups(cleanups) {
+  for (const cleanup of cleanups) {
+    const current = pendingOwnershipCleanups.get(cleanup.userId);
+    const staleClaims = [...(inFlightOwnershipClaims.get(cleanup.userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
+    if (current === cleanup && !staleClaims) pendingOwnershipCleanups.delete(cleanup.userId);
+  }
+}
+
+function scheduleLatestPushReconcile() {
+  schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
 }
 
 async function reconcileDesiredPushState() {
@@ -108,58 +153,129 @@ async function reconcileDesiredPushState() {
   const subscription = await getCurrentPushSubscription();
   if (!isDesired(desired)) return false;
 
-  await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+  let cleanupError = null;
+  let completedCleanups = [];
+  try {
+    completedCleanups = await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+  } catch (error) {
+    cleanupError = error;
+  }
   if (!isDesired(desired)) return false;
 
   // A missing legacy preference is unresolved, not an OFF decision. Account
   // cleanup is safe above, but browser subscription destruction must wait for
   // the ownership lookup performed by automatic restore.
-  if (desired.preference === "unknown") return true;
+  if (desired.preference === "unknown") {
+    if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
+    return true;
+  }
 
   if (desired.preference === "on" && desired.userId) {
     const currentRegistration = await registration();
-    const current = subscription ?? await currentRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
-    });
-    await saveSubscription(current);
+    if (!isDesired(desired)) return false;
+    let current = subscription;
+    if (!current) {
+      current = await currentRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+      });
+      if (!isDesired(desired)) {
+        scheduleLatestPushReconcile();
+        return false;
+      }
+    }
+    if (!isDesired(desired)) return false;
+    await claimSubscription(desired.userId, desired.contextVersion, current);
     if (!isDesired(desired)) return false;
     setPushPreference(desired.userId, "on");
     restoredUserIds.add(desired.userId);
+    if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
     return true;
   }
 
   const cleanupSubscription = subscription ?? lastKnownPushSubscription;
-  if (!cleanupSubscription) return true;
-  {
+  if (!cleanupSubscription) {
+    if (cleanupError) throw cleanupError;
+    finishOwnershipCleanups(completedCleanups);
+    return true;
+  }
+  let removalError = null;
+  try {
     const { error } = await supabase.rpc("remove_own_push_subscription", {
       p_endpoint: cleanupSubscription.endpoint,
     });
     if (error) throw error;
+  } catch (error) {
+    removalError = error;
   }
-  if (subscription && isDesired(desired)) await subscription.unsubscribe();
+  let unsubscribeError = null;
+  if (subscription && isDesired(desired)) {
+    try {
+      await subscription.unsubscribe();
+    } catch (error) {
+      unsubscribeError = error;
+    }
+  }
+  if (cleanupError) throw cleanupError;
+  if (removalError) throw removalError;
+  if (unsubscribeError) throw unsubscribeError;
+  finishOwnershipCleanups(completedCleanups);
   return isDesired(desired);
 }
 
-function schedulePushReconcile(revision = desiredPushState.revision, isRetry = false) {
+function schedulePushReconcile(
+  revision = desiredPushState.revision,
+  isRetry = false,
+  { preserveAfterRunning = false } = {},
+) {
   if (revision !== desiredPushState.revision) return;
+  // A scheduled pass already represents this revision. Coalesce before
+  // charging retry budget. If a potentially mutating late completion arrives
+  // while a pass is already running, preserve one follow-up pass instead of
+  // dropping the convergence signal.
+  if (reconcileScheduled?.revision === revision) return;
+  if (reconcileRunning?.revision === revision) {
+    if (preserveAfterRunning) {
+      if (reconcileFollowUp?.revision !== revision) {
+        reconcileFollowUp = { revision, isRetry };
+      } else if (!isRetry) {
+        // An unbudgeted latest-authority repair is stronger than a retry.
+        reconcileFollowUp.isRetry = false;
+      }
+    }
+    return;
+  }
   const retryCount = reconcileRetries.get(revision) ?? 0;
   if (isRetry && retryCount >= PUSH_RECONCILE_MAX_RETRIES) return;
   if (isRetry) reconcileRetries.set(revision, retryCount + 1);
-  if (reconcileScheduled?.revision === revision) return;
   if (reconcileScheduled) clearTimeout(reconcileScheduled.timeoutId);
   const delayMs = isRetry ? PUSH_RECONCILE_RETRY_BASE_MS * (2 ** retryCount) : 0;
   const scheduled = { revision, timeoutId: null };
   scheduled.timeoutId = setTimeout(() => {
     if (reconcileScheduled === scheduled) reconcileScheduled = null;
     if (revision !== desiredPushState.revision) return;
+    const running = { revision, isRetry };
+    reconcileRunning = running;
+    if (isRetry) reconcileRetryRuns.set(revision, (reconcileRetryRuns.get(revision) ?? 0) + 1);
     enqueuePushMutation(reconcileDesiredPushState, {
       reconcileLate: true,
       reconcileRevision: revision,
+    }).finally(() => {
+      if (reconcileRunning === running) reconcileRunning = null;
+      const followUp = reconcileFollowUp;
+      if (followUp?.revision === desiredPushState.revision) {
+        reconcileFollowUp = null;
+        schedulePushReconcile(followUp.revision, followUp.isRetry);
+      } else if (followUp && followUp.revision !== desiredPushState.revision) {
+        reconcileFollowUp = null;
+      }
     }).catch((error) => {
       if (error?.message !== "Push mutation timed out.") {
         console.warn("Push state reconciliation failed.", error);
       }
+      schedulePushReconcile(revision, true);
     });
   }, delayMs);
   reconcileScheduled = scheduled;
@@ -183,6 +299,7 @@ export function setPushDesiredAuthContext(auth, { previousAccessToken = null } =
   currentPushAuthContext = {
     userId,
     contextVersion: userId ? authContextVersions.get(userId) ?? null : null,
+    approved: auth?.profile?.status === "approved",
     eligible,
     preference: userId ? (getPushPreference(userId) ?? "unknown") : "off",
   };
@@ -196,6 +313,27 @@ function isDesired(snapshot) {
     && desiredPushState.userId === snapshot.userId
     && desiredPushState.contextVersion === snapshot.contextVersion
     && desiredPushState.preference === snapshot.preference;
+}
+
+function captureExplicitAuthContext(userId) {
+  if (!userId || currentPushAuthContext.userId !== userId) {
+    throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+  }
+  return {
+    userId,
+    contextVersion: currentPushAuthContext.contextVersion,
+  };
+}
+
+function isExplicitAuthContextCurrent(snapshot) {
+  return Boolean(snapshot
+    && currentPushAuthContext.userId === snapshot.userId
+    && currentPushAuthContext.contextVersion === snapshot.contextVersion
+    && (authContextVersions.get(snapshot.userId) ?? null) === snapshot.contextVersion);
+}
+
+function assertExplicitAuthContextCurrent(snapshot) {
+  if (!isExplicitAuthContextCurrent(snapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
 }
 
 function beginExplicitPushIntent(userId, preference) {
@@ -259,7 +397,18 @@ export function getPushCoordinatorSnapshot() {
     explicitIntent: explicitPushIntent ? { ...explicitPushIntent } : null,
     desiredState: { ...desiredPushState },
     pendingCleanupUserIds: [...pendingOwnershipCleanups.keys()],
+    inFlightOwnershipClaims: [...inFlightOwnershipClaims.entries()].flatMap(([userId, claims]) => (
+      [...claims].map((claim) => ({
+        userId, contextVersion: claim.contextVersion, endpoint: claim.endpoint, sequence: claim.sequence,
+      }))
+    )),
+    cleanupObligations: [...pendingOwnershipCleanups.values()].map(({ userId, contextVersion, claimWatermark }) => ({
+      userId, contextVersion, claimWatermark,
+    })),
+    ownershipClaimSequence,
     reconcileRetryCount: reconcileRetries.get(desiredPushState.revision) ?? 0,
+    reconcileRetryRunCount: reconcileRetryRuns.get(desiredPushState.revision) ?? 0,
+    reconcileFollowUp: reconcileFollowUp ? { ...reconcileFollowUp } : null,
   };
 }
 
@@ -312,6 +461,26 @@ async function saveSubscription(subscription) {
   if (error) throw error;
 }
 
+function claimSubscription(userId, contextVersion, subscription) {
+  const promise = saveSubscription(subscription);
+  const claim = {
+    userId, contextVersion, endpoint: subscription.endpoint, promise, sequence: ++ownershipClaimSequence,
+  };
+  const claims = inFlightOwnershipClaims.get(userId) ?? new Set();
+  claims.add(claim);
+  inFlightOwnershipClaims.set(userId, claims);
+  const untrack = () => {
+    claims.delete(claim);
+    if (!claims.size) inFlightOwnershipClaims.delete(userId);
+    const cleanup = pendingOwnershipCleanups.get(userId);
+    if (cleanup && claim.sequence <= cleanup.claimWatermark) {
+      schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
+    }
+  };
+  promise.then(untrack, untrack);
+  return promise;
+}
+
 async function removeSubscriptionWithAccessToken(subscription, accessToken) {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/remove_own_push_subscription`, {
     method: "POST",
@@ -325,23 +494,12 @@ async function removeSubscriptionWithAccessToken(subscription, accessToken) {
   if (!response.ok) throw new Error(`Push subscription cleanup failed (${response.status}).`);
 }
 
-function trackRestoreClaim(userId, claimPromise) {
-  const claims = inFlightRestoreClaims.get(userId) ?? new Set();
-  claims.add(claimPromise);
-  inFlightRestoreClaims.set(userId, claims);
-  const untrack = () => {
-    claims.delete(claimPromise);
-    if (!claims.size) inFlightRestoreClaims.delete(userId);
-  };
-  claimPromise.then(untrack, untrack);
-}
-
 export async function waitForPushRestoreClaims(userId, timeoutMs = 3000) {
-  const claims = inFlightRestoreClaims.get(userId);
+  const claims = inFlightOwnershipClaims.get(userId);
   if (!claims?.size) return true;
   let timeoutId;
   const completed = await Promise.race([
-    Promise.allSettled([...claims]).then(() => true),
+    Promise.allSettled([...claims].map((claim) => claim.promise)).then(() => true),
     new Promise((resolve) => {
       timeoutId = setTimeout(() => resolve(false), timeoutMs);
     }),
@@ -363,6 +521,7 @@ export async function getPushNotificationState() {
 }
 
 export async function enablePushNotifications(userId) {
+  const authSnapshot = captureExplicitAuthContext(userId);
   const capability = getPushCapability();
   if (!capability.supported) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
   if (capability.requiresIosInstall) throw new Error("iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.");
@@ -375,24 +534,65 @@ export async function enablePushNotifications(userId) {
     ? "granted"
     : await Notification.requestPermission();
   if (permission !== "granted") throw new Error("알림 권한이 허용되지 않았습니다.");
+  assertExplicitAuthContextCurrent(authSnapshot);
+
+  // Permission may have transitioned from default since the auth snapshot was
+  // resolved. Refresh capability before creating the ON intent so it receives
+  // a distinct, authoritative ON revision.
+  const refreshedCapability = getPushCapability();
+  currentPushAuthContext.eligible = Boolean(currentPushAuthContext.approved
+    && refreshedCapability.supported
+    && !refreshedCapability.requiresIosInstall
+    && refreshedCapability.permission === "granted"
+    && WEB_PUSH_VAPID_PUBLIC_KEY
+    && !WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_"));
 
   const desired = beginExplicitPushIntent(userId, "on");
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return null;
-    const currentRegistration = await registration();
-    const existing = await currentRegistration.pushManager.getSubscription();
-    const subscription = existing ?? await currentRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
-    });
-    await saveSubscription(subscription);
-    if (isDesired(desired)) {
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return null;
+
+      const currentRegistration = await registration();
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return null;
+
+      const existing = await currentRegistration.pushManager.getSubscription();
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return null;
+
+      let subscription = existing;
+      if (!subscription) {
+        subscription = await currentRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+        });
+        if (!isExplicitAuthContextCurrent(authSnapshot)) {
+          scheduleLatestPushReconcile();
+          throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+        }
+        if (!isDesired(desired)) {
+          scheduleLatestPushReconcile();
+          return null;
+        }
+      }
+
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return null;
+      await claimSubscription(userId, desired.contextVersion, subscription);
+      if (!isExplicitAuthContextCurrent(authSnapshot)) {
+        scheduleLatestPushReconcile();
+        throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      }
+      if (!isDesired(desired)) {
+        scheduleLatestPushReconcile();
+        return null;
+      }
+
       setPushPreference(userId, "on");
       restoredUserIds.add(userId);
-    }
-      return isDesired(desired) ? subscription : null;
+      return subscription;
     });
     finishExplicitPushIntent(intent, true);
     return result;
@@ -404,26 +604,47 @@ export async function enablePushNotifications(userId) {
 }
 
 export async function disablePushNotifications(userId) {
+  const authSnapshot = captureExplicitAuthContext(userId);
   const desired = beginExplicitPushIntent(userId, "off");
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return false;
-    const subscription = await getCurrentPushSubscription();
-    if (subscription) {
-      const { error } = await supabase.rpc("remove_own_push_subscription", {
-        p_endpoint: subscription.endpoint,
-      });
-      if (error) throw error;
-      // A newer ON waits behind this operation.  Do not unsubscribe the shared
-      // device endpoint when that is now the authoritative desired state.
-      if (isDesired(desired)) await subscription.unsubscribe();
-    }
-    if (isDesired(desired)) {
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return false;
+
+      const subscription = await getCurrentPushSubscription();
+      if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+      if (!isDesired(desired)) return false;
+
+      if (subscription) {
+        if (!isExplicitAuthContextCurrent(authSnapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+        const { error } = await supabase.rpc("remove_own_push_subscription", {
+          p_endpoint: subscription.endpoint,
+        });
+        if (error) throw error;
+        if (!isExplicitAuthContextCurrent(authSnapshot)) {
+          scheduleLatestPushReconcile();
+          throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+        }
+        if (!isDesired(desired)) {
+          scheduleLatestPushReconcile();
+          return false;
+        }
+
+        await subscription.unsubscribe();
+        if (!isExplicitAuthContextCurrent(authSnapshot)) {
+          scheduleLatestPushReconcile();
+          throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+        }
+        if (!isDesired(desired)) {
+          scheduleLatestPushReconcile();
+          return false;
+        }
+      }
+
       setPushPreference(userId, "off");
       restoredUserIds.delete(userId);
-    }
-      return Boolean(subscription) && isDesired(desired);
+      return Boolean(subscription);
     });
     finishExplicitPushIntent(intent, true);
     return result;
@@ -438,7 +659,13 @@ export async function cleanupPushSubscriptionForSignOut(userId, {
   accessToken = null,
   isActive = () => true,
 } = {}) {
-  currentPushAuthContext = { userId: null, contextVersion: null, eligible: false, preference: "off" };
+  // Capture the previous account's cleanup authority before publishing the
+  // logged-out desired state. The auth flow may stop waiting for this work,
+  // but later reconciliation must retain the credential and obligation.
+  addCleanupObligation(userId, accessToken);
+  currentPushAuthContext = {
+    userId: null, contextVersion: null, approved: false, eligible: false, preference: "off",
+  };
   explicitPushIntent = null;
   const desired = resolveDesiredPushState();
   restoredUserIds.delete(userId);
@@ -483,6 +710,8 @@ export async function cleanupPushSubscriptionForSignOut(userId, {
     }
     if (removalError) throw removalError;
     if (unsubscribeError) throw unsubscribeError;
+    const cleanup = pendingOwnershipCleanups.get(userId);
+    if (cleanup) finishOwnershipCleanups([cleanup]);
     return true;
   });
 }
@@ -525,14 +754,22 @@ async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
   return enqueuePushMutation(async () => {
     if (!isCurrent() || !isDesired(desired)) return null;
     const currentRegistration = await registration();
+    if (!isCurrent() || !isDesired(desired)) return null;
     const existing = await currentRegistration.pushManager.getSubscription();
-    const subscription = existing ?? await currentRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
-    });
-    const claimPromise = saveSubscription(subscription);
-    trackRestoreClaim(userId, claimPromise);
-    await claimPromise;
+    if (!isCurrent() || !isDesired(desired)) return null;
+    let subscription = existing;
+    if (!subscription) {
+      subscription = await currentRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+      });
+      if (!isCurrent() || !isDesired(desired)) {
+        scheduleLatestPushReconcile();
+        return null;
+      }
+    }
+    if (!isCurrent() || !isDesired(desired)) return null;
+    await claimSubscription(userId, desired.contextVersion, subscription);
     // Stale work never compensates destructively. A queued newer intent is the
     // only operation allowed to decide the endpoint's eventual state.
     if (!isCurrent() || !isDesired(desired)) return null;

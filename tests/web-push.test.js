@@ -48,6 +48,8 @@ async function loadWebPush({
   from = () => ({
     select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
   }),
+  permission = "granted",
+  requestPermission = null,
 }) {
   let source = await readFile("js/web-push.js", "utf8");
   source = source
@@ -66,7 +68,9 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
     Notification: function Notification() {},
     matchMedia: () => ({ matches: true }),
   });
-  defineGlobal("Notification", { permission: "granted" });
+  const notification = { permission };
+  notification.requestPermission = requestPermission ?? (async () => notification.permission);
+  defineGlobal("Notification", notification);
   defineGlobal("navigator", {
     userAgent: "test",
     serviceWorker: { register: async () => ({ pushManager: subscriptionManager }) },
@@ -146,7 +150,7 @@ test("explicit push choices persist preference only after successful subscriptio
     "export async function disablePushNotifications",
     "\nexport async function cleanupPushSubscriptionForSignOut",
   );
-  assert.ok(enable.indexOf("await saveSubscription(subscription)") < enable.indexOf('setPushPreference(userId, "on")'));
+  assert.ok(enable.indexOf("await claimSubscription(userId, desired.contextVersion, subscription)") < enable.indexOf('setPushPreference(userId, "on")'));
   assert.ok(disable.indexOf("await subscription.unsubscribe()") < disable.indexOf('setPushPreference(userId, "off")'));
 });
 
@@ -246,7 +250,7 @@ test("automatic restore is approved-only, prompt-free, and preference-gated", as
   assert.match(restore, /capability\.permission !== "granted"/);
   assert.match(restore, /preference !== "on"/);
   assert.doesNotMatch(restore, /requestPermission/);
-  assert.match(restore, /trackRestoreClaim\(userId, claimPromise\)/);
+  assert.match(restore, /claimSubscription\(userId, desired\.contextVersion, subscription\)/);
 });
 
 test("legacy ownership is the only missing-preference path promoted to on", async () => {
@@ -369,6 +373,7 @@ test("pending OFF cleanup cannot erase a newer explicit ON", async () => {
       return { error: null };
     },
   });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
   const off = webPush.disablePushNotifications("a");
   await removeStarted.promise;
   const on = webPush.enablePushNotifications("a");
@@ -518,6 +523,7 @@ test("late timed-out remove and unsubscribe are repaired from the latest ON inte
         return { error: null };
       },
     });
+    webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
     void webPush.disablePushNotifications("a").catch(() => {});
     await started.promise;
     await delay(40);
@@ -562,18 +568,22 @@ test("legacy lookup cannot override explicit OFF or OFF then ON", async () => {
 });
 
 test("failed explicit mutations do not commit successful preferences", async () => {
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
   const onStorage = new Map();
   const subscription = { endpoint: "failure", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
   const on = await loadWebPush({ storage: onStorage, preference: null, getSubscription: async () => subscription, subscribe: async () => subscription,
     rpc: async () => ({ error: new Error("claim failed") }) });
+  on.setPushDesiredAuthContext(auth);
   await assert.rejects(on.enablePushNotifications("a"), /claim failed/);
   assert.equal(onStorage.has("cheongpa:web-push-preference:a"), false);
 
   const offStorage = new Map([["cheongpa:web-push-preference:a", "on"]]);
   const off = await loadWebPush({ storage: offStorage, getSubscription: async () => subscription, subscribe: async () => subscription,
-    rpc: async () => ({ error: new Error("remove failed") }) });
+    rpc: async (name) => ({ error: name === "remove_own_push_subscription" ? new Error("remove failed") : null }) });
+  off.setPushDesiredAuthContext(auth);
   await assert.rejects(off.disablePushNotifications("a"), /remove failed/);
   assert.equal(offStorage.get("cheongpa:web-push-preference:a"), "on");
+  await delay(20); // allow the bounded reconciliation budgets to drain
 });
 
 test("legacy null auth publication waits for ownership before choosing ON or OFF", async () => {
@@ -644,6 +654,203 @@ test("same-user auth refresh cannot replace a pending explicit choice", async ()
     assert.equal(owner, intent === "on" ? "a" : null);
     assert.equal(subscriptionExists, intent === "on");
   }
+});
+
+test("permission grant refreshes eligibility before explicit ON is resolved", async () => {
+  const storage = new Map();
+  let subscription = null;
+  let owner = null;
+  const created = {
+    endpoint: "permission-grant",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { subscription = null; },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    permission: "default",
+    requestPermission: async () => {
+      Notification.permission = "granted";
+      return "granted";
+    },
+    getSubscription: async () => subscription,
+    subscribe: async () => { subscription = created; return created; },
+    rpc: async (name) => {
+      owner = name === "claim_push_subscription" ? "a" : null;
+      return { error: null };
+    },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  const offRevision = webPush.getPushCoordinatorSnapshot().desiredState.revision;
+
+  assert.equal(await webPush.enablePushNotifications("a"), created);
+  await eventually(() => assert.equal(owner, "a"));
+  const snapshot = webPush.getPushCoordinatorSnapshot();
+  assert.equal(snapshot.authContext.eligible, true);
+  assert.equal(snapshot.desiredState.preference, "on");
+  assert.ok(snapshot.desiredState.revision > offRevision);
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+  assert.equal(subscription, created);
+  assert.equal(snapshot.explicitIntent, null);
+});
+
+test("a timed-out explicit claim keeps old-account cleanup until its late settlement", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+  ]);
+  let owner = null;
+  let subscriptionExists = true;
+  const subscription = {
+    endpoint: "explicit-late-claim",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { subscriptionExists = false; },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimStarted.resolve();
+        await claimGate.promise;
+        owner = "a";
+      } else owner = null;
+      return { error: null };
+    },
+    fetch: async () => { owner = null; return { ok: true, status: 204 }; },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  const enabling = webPush.enablePushNotifications("a");
+  await claimStarted.promise;
+  await assert.rejects(enabling, /timed out/);
+  webPush.setPushDesiredAuthContext(
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { previousAccessToken: "token-a" },
+  );
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+  assert.equal(webPush.getPushCoordinatorSnapshot().inFlightOwnershipClaims.length, 1);
+
+  claimGate.resolve();
+  await eventually(() => {
+    const snapshot = webPush.getPushCoordinatorSnapshot();
+    assert.equal(owner, null);
+    assert.deepEqual(snapshot.pendingCleanupUserIds, []);
+    assert.deepEqual(snapshot.inFlightOwnershipClaims, []);
+    assert.equal(snapshot.desiredState.userId, "b");
+    assert.equal(snapshot.desiredState.preference, "off");
+    assert.equal(subscriptionExists, false);
+  });
+});
+
+test("previous-account cleanup retries immediate REST failure with bounded backoff", async () => {
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+  ]);
+  let attempts = 0;
+  let owner = "a";
+  let subscriptionExists = true;
+  const subscription = {
+    endpoint: "cleanup-retry",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { subscriptionExists = false; },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+    fetch: async () => {
+      attempts += 1;
+      if (attempts === 1) return { ok: false, status: 503 };
+      owner = null;
+      return { ok: true, status: 204 };
+    },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  webPush.setPushDesiredAuthContext(
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { previousAccessToken: "token-a" },
+  );
+
+  await eventually(() => {
+    assert.equal(attempts, 2);
+    assert.equal(owner, null);
+    assert.equal(subscriptionExists, false, "safe browser cleanup must continue after DB failure");
+    assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+  });
+  assert.ok(webPush.getPushCoordinatorSnapshot().reconcileRetryCount <= 2);
+});
+
+test("exhausted cleanup keeps its obligation and a new revision gets a fresh retry budget", async () => {
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+  ]);
+  let attempts = 0;
+  const subscription = {
+    endpoint: "cleanup-exhausted",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => true,
+  };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+    fetch: async () => { attempts += 1; return { ok: false, status: 503 }; },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  webPush.setPushDesiredAuthContext(
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { previousAccessToken: "token-a" },
+  );
+  await eventually(() => {
+    assert.equal(webPush.getPushCoordinatorSnapshot().reconcileRetryCount, 2);
+    assert.equal(attempts, 3);
+  });
+  const exhaustedAttempts = attempts;
+  await delay(20);
+  assert.equal(attempts, exhaustedAttempts, "exhausted revision must not spin");
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+
+  webPush.setPushAuthContextVersion("b", 2);
+  webPush.setPushDesiredAuthContext({ user: { id: "b" }, profile: { status: "approved" } });
+  await eventually(() => {
+    assert.equal(webPush.getPushCoordinatorSnapshot().reconcileRetryCount, 2);
+    assert.equal(attempts, exhaustedAttempts + 3);
+  });
+  assert.ok(attempts > exhaustedAttempts, "new authority revision must receive a fresh budget");
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+});
+
+test("an immediate unsubscribe failure is retried to OFF convergence", async () => {
+  const storage = new Map([["cheongpa:web-push-preference:a", "off"]]);
+  let subscriptionExists = true;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "unsubscribe-retry",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {
+      unsubscribes += 1;
+      if (unsubscribes === 1) throw new Error("unsubscribe failed");
+      subscriptionExists = false;
+    },
+  };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  await eventually(() => {
+    assert.equal(unsubscribes, 2);
+    assert.equal(subscriptionExists, false);
+    assert.equal(webPush.getPushCoordinatorSnapshot().desiredState.preference, "off");
+  });
 });
 
 test("an auth refresh preserves old-account cleanup until a late claim is repaired", async () => {
