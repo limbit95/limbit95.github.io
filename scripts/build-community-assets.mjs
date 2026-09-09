@@ -9,6 +9,7 @@ const templatePath = path.join(root, "index.template.html");
 const indexPath = path.join(root, "index.html");
 const configPath = path.join(root, "js", "config.js");
 
+// Deployment bundles are committed so main-targeted PRs can verify source and assets stay in sync.
 await rm(outdir, { recursive: true, force: true });
 await mkdir(outdir, { recursive: true });
 
