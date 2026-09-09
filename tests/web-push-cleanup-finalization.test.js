@@ -40,7 +40,7 @@ async function loadWebPush({ getSubscription, subscribe, rpc, fetch, storage }) 
     Notification: function Notification() {},
     matchMedia: () => ({ matches: true }),
   });
-  defineGlobal("Notification", { permission: "granted" });
+  defineGlobal("Notification", { permission: "default" });
   defineGlobal("navigator", {
     userAgent: "test",
     serviceWorker: {
@@ -57,7 +57,7 @@ async function loadWebPush({ getSubscription, subscribe, rpc, fetch, storage }) 
 
 test("successful previous-account cleanup finalizes even when another cleanup fails", async () => {
   const storage = new Map([
-    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:a", "off"],
     ["cheongpa:web-push-preference:b", "off"],
     ["cheongpa:web-push-preference:c", "off"],
   ]);
