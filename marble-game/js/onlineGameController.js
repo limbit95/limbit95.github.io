@@ -3,6 +3,7 @@ import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
 import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
+import { withOnlineStartupTimeout } from "./onlineStartup.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
 import { createClassicTollNotice } from "./tollNotice.js";
@@ -53,8 +54,10 @@ if (onlineRoomId) {
   let session = null;
   let threeRenderer = null;
   let threeRendererReady = false;
+  let threeRendererInit = null;
   let diceStage = null;
   let diceStageReady = false;
+  let diceStageInit = null;
   let interactionLocked = false;
   let tileInfoChoiceAction = null;
   let choiceDeclinedPending = false;
@@ -458,6 +461,8 @@ if (onlineRoomId) {
 
   async function ensureRenderer() {
     if (threeRendererReady) return threeRenderer;
+    if (threeRendererInit) return threeRendererInit;
+
     threeRenderer = createClassicThreePrototypeRenderer({
       onTileSelect(nodeId) {
         if (!session) return;
@@ -467,18 +472,42 @@ if (onlineRoomId) {
       },
     });
     threeStatus.textContent = "온라인 2.5D 보드를 불러오는 중입니다…";
-    await threeRenderer.mount(threeStageElement);
-    threeRendererReady = true;
-    threeStatus.textContent = "온라인 동기화 · 고정 쿼터뷰";
-    return threeRenderer;
+    threeStageElement.dataset.loading = "true";
+    threeRendererInit = threeRenderer.mount(threeStageElement)
+      .then(() => {
+        threeRendererReady = true;
+        threeStageElement.dataset.loading = "false";
+        threeStatus.textContent = "온라인 동기화 · 고정 쿼터뷰";
+        if (session) threeRenderer.renderState(session.getState());
+        return threeRenderer;
+      })
+      .catch((error) => {
+        threeRendererReady = false;
+        threeStageElement.dataset.loading = "false";
+        threeStageElement.dataset.error = "true";
+        threeStatus.textContent = "2.5D 보드를 불러오지 못했습니다. 게임 상태 연결은 유지됩니다.";
+        console.error("Marble online 2.5D board failed to initialize", error);
+        return null;
+      });
+    return threeRendererInit;
   }
 
   async function ensureDiceStage() {
     if (diceStageReady) return diceStage;
+    if (diceStageInit) return diceStageInit;
+
     diceStage = createThreeDiceStage();
-    await diceStage.mount(diceStageElement);
-    diceStageReady = true;
-    return diceStage;
+    diceStageInit = diceStage.mount(diceStageElement)
+      .then(() => {
+        diceStageReady = true;
+        return diceStage;
+      })
+      .catch((error) => {
+        diceStageReady = false;
+        console.error("Marble online 3D dice stage failed to initialize", error);
+        return null;
+      });
+    return diceStageInit;
   }
 
   async function animateState(state, { remote = false } = {}) {
@@ -593,9 +622,7 @@ if (onlineRoomId) {
     gameMessage.textContent = "온라인 게임 상태를 불러오는 중입니다.";
     interactionLocked = true;
     try {
-      await ensureRenderer();
-      await ensureDiceStage();
-      session = await createOnlineClassicSession({
+      session = await withOnlineStartupTimeout(createOnlineClassicSession({
         roomId: onlineRoomId,
         onRemoteState: async (state) => {
           if (interactionLocked) {
@@ -611,18 +638,22 @@ if (onlineRoomId) {
           }
         },
         onConnectionStatus: connectionStatus,
-      });
+      }));
       eventHistory = [];
       choiceDeclinedPending = false;
       const state = session.getState();
       lastAnimatedVersion = state.version;
       appendEvents(state);
-      renderUi(state);
+      renderUi(state, { renderThree: false });
       if (state.phase === TURN_PHASES.WAITING_CHOICE) showLandingOutcome(state);
       playtestSection.scrollIntoView({ block: "start" });
+      void ensureRenderer();
+      void ensureDiceStage();
     } catch (error) {
       console.error("Marble online game failed to initialize", error);
-      gameMessage.textContent = "온라인 게임을 불러오지 못했습니다. 대기실에서 다시 접속해 주세요.";
+      gameMessage.textContent = String(error?.message ?? "").includes("ONLINE_GAME_LOAD_TIMEOUT")
+        ? "온라인 게임 연결이 지연되고 있습니다. 네트워크를 확인한 뒤 새로고침해 주세요."
+        : "온라인 게임을 불러오지 못했습니다. 대기실에서 다시 접속해 주세요.";
       primaryActionButton.hidden = true;
     } finally {
       interactionLocked = false;
