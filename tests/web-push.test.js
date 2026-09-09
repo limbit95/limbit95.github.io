@@ -33,6 +33,7 @@ async function loadWebPush({
   rpc,
   fetch = async () => ({ ok: true, status: 204 }),
   preference = "on",
+  owned = true,
 }) {
   let source = await readFile("js/web-push.js", "utf8");
   source = source
@@ -42,10 +43,11 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
     .replace('import { supabase } from "./supabaseClient.js";', "const supabase = globalThis.__webPushSupabase;");
 
   const subscriptionManager = { getSubscription, subscribe };
+  let storedPreference = preference;
   defineGlobal("window", {
     localStorage: {
-      getItem: () => preference,
-      setItem: () => {},
+      getItem: () => storedPreference,
+      setItem: (_key, value) => { storedPreference = value; },
     },
     PushManager: function PushManager() {},
     Notification: function Notification() {},
@@ -56,11 +58,137 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
     userAgent: "test",
     serviceWorker: { register: async () => ({ pushManager: subscriptionManager }) },
   });
-  defineGlobal("__webPushSupabase", { rpc });
+  defineGlobal("__webPushSupabase", {
+    rpc,
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => ({ data: owned ? { endpoint: "legacy" } : null, error: null }) }),
+      }),
+    }),
+  });
   defineGlobal("fetch", fetch);
 
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
+
+test("legacy migration cannot promote preference after explicit off", async () => {
+  const legacyGate = deferred();
+  const legacyStarted = deferred();
+  let unsubscribes = 0;
+  let subscriptionReads = 0;
+  const subscription = {
+    endpoint: "legacy",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    preference: null,
+    getSubscription: async () => {
+      subscriptionReads += 1;
+      if (subscriptionReads === 1) {
+        legacyStarted.resolve();
+        await legacyGate.promise;
+      }
+      return subscription;
+    },
+    subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+  });
+  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
+  const restore = webPush.restorePushNotificationsForAuth(auth);
+  await legacyStarted.promise;
+  await webPush.disablePushNotifications("a");
+  legacyGate.resolve();
+
+  assert.equal(await restore, null);
+  assert.equal(webPush.getPushPreference("a"), "off");
+  assert.equal(unsubscribes, 1);
+});
+
+test("an in-flight automatic claim is compensated after explicit off", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  let claims = 0;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "explicit-off",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claims += 1;
+        claimStarted.resolve();
+        await claimGate.promise;
+      } else {
+        removals += 1;
+      }
+      return { error: null };
+    },
+    fetch: async (_url, options) => {
+      removals += 1;
+      assert.equal(options.headers.Authorization, "Bearer token-a");
+      return { ok: true, status: 204 };
+    },
+  });
+  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
+  const restore = webPush.restorePushNotificationsForAuth(auth);
+  await claimStarted.promise;
+  await webPush.disablePushNotifications("a");
+  claimGate.resolve();
+
+  assert.equal(await restore, null);
+  assert.equal(webPush.getPushPreference("a"), "off");
+  assert.equal(claims, 1);
+  assert.equal(removals, 2);
+  assert.equal(unsubscribes, 1);
+});
+
+test("old restore does not undo a newer off then on choice", async () => {
+  const oldClaimGate = deferred();
+  const oldClaimStarted = deferred();
+  let claimCalls = 0;
+  let removals = 0;
+  let unsubscribes = 0;
+  const subscription = {
+    endpoint: "current-on",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => { unsubscribes += 1; },
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => subscription,
+    subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        claimCalls += 1;
+        if (claimCalls === 1) {
+          oldClaimStarted.resolve();
+          await oldClaimGate.promise;
+        }
+      } else {
+        removals += 1;
+      }
+      return { error: null };
+    },
+    fetch: async () => { removals += 1; return { ok: true, status: 204 }; },
+  });
+  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
+  const oldRestore = webPush.restorePushNotificationsForAuth(auth);
+  await oldClaimStarted.promise;
+  await webPush.disablePushNotifications("a");
+  await webPush.enablePushNotifications("a");
+  oldClaimGate.resolve();
+
+  assert.equal(await oldRestore, null);
+  assert.equal(webPush.getPushPreference("a"), "on");
+  assert.equal(claimCalls, 2);
+  assert.equal(removals, 1);
+  assert.equal(unsubscribes, 1);
+});
 
 test("participation RPCs create only the three owner notification types", async () => {
   const sql = await readFile(migrationPath, "utf8");
@@ -240,7 +368,7 @@ test("legacy ownership is the only missing-preference path promoted to on", asyn
     "\nexport function restorePushNotificationsForAuth",
   );
   assert.match(restore, /preference === null[\s\S]*getPushNotificationState\(\)/);
-  assert.match(restore, /if \(!isCurrent\(\) \|\| !legacyState\.owned\) return null/);
+  assert.match(restore, /if \(!isRestoreCurrent\(\) \|\| !legacyState\.owned\) return null/);
   assert.match(restore, /setPushPreference\(userId, "on"\)/);
 });
 
