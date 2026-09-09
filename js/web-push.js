@@ -30,11 +30,13 @@ const reconcileRetries = new Map();
 const reconcileRetryRuns = new Map();
 let ownershipClaimSequence = 0;
 let reconcileRunning = null;
+let reconcileFollowUp = null;
 let desiredPushState = { revision: 0, userId: null, contextVersion: null, preference: "off" };
 
 // Device state is shared by every account.  All subscription/ownership writes
 // therefore pass through this queue; a rejected operation must not poison it.
 function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevision = null } = {}) {
+  const authorityRevision = reconcileRevision ?? desiredPushState.revision;
   const run = async () => {
     let timeoutId;
     let timedOut = false;
@@ -44,13 +46,12 @@ function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevisio
     // so convergence is scheduled again from the latest authoritative intent.
     work.finally(() => {
       if (!timedOut || !reconcileLate) return;
-      const completedRevision = reconcileRevision ?? desiredPushState.revision;
-      if (completedRevision === desiredPushState.revision) {
-        schedulePushReconcile(completedRevision, true);
+      if (authorityRevision === desiredPushState.revision) {
+        schedulePushReconcile(authorityRevision, true, { preserveAfterRunning: true });
       } else {
         // Do not retry stale authority. Its late side effects must instead get
         // one unbudgeted pass under the latest authority revision.
-        schedulePushReconcile(desiredPushState.revision, false);
+        schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
       }
     }).catch(() => {});
     return Promise.race([
@@ -105,7 +106,7 @@ function addCleanupObligation(userId, accessToken) {
     contextVersion: authContextVersions.get(userId) ?? null,
     // Claims issued through this sequence predate the cleanup authority and
     // may recreate ownership after the first removal has completed.
-    claimWatermark: existing?.claimWatermark ?? ownershipClaimSequence,
+    claimWatermark: Math.max(existing?.claimWatermark ?? 0, ownershipClaimSequence),
   });
 }
 
@@ -114,15 +115,20 @@ async function reconcilePendingOwnershipCleanups(subscription) {
   const errors = [];
   const completed = [];
   for (const [userId, cleanup] of [...pendingOwnershipCleanups]) {
+    const staleClaimsAtStart = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+      .some((claim) => claim.sequence <= cleanup.claimWatermark);
     try {
       await removeSubscriptionWithAccessToken(subscription, cleanup.accessToken);
     } catch (error) {
       errors.push(error);
       continue;
     }
-    const staleClaims = [...(inFlightOwnershipClaims.get(userId) ?? [])]
+    const staleClaimsStillPending = [...(inFlightOwnershipClaims.get(userId) ?? [])]
       .some((claim) => claim.sequence <= cleanup.claimWatermark);
-    if (!staleClaims) completed.push(cleanup);
+    // If a stale claim existed when removal started, it may have recreated
+    // ownership while the cleanup request was in flight. Keep the credential
+    // until a later pass succeeds after every stale claim has settled.
+    if (!staleClaimsAtStart && !staleClaimsStillPending) completed.push(cleanup);
   }
   if (errors.length) throw errors[0];
   return completed;
@@ -205,11 +211,28 @@ async function reconcileDesiredPushState() {
   return isDesired(desired);
 }
 
-function schedulePushReconcile(revision = desiredPushState.revision, isRetry = false) {
+function schedulePushReconcile(
+  revision = desiredPushState.revision,
+  isRetry = false,
+  { preserveAfterRunning = false } = {},
+) {
   if (revision !== desiredPushState.revision) return;
-  // Coalesce before charging the retry budget. A timeout rejection and the
-  // underlying operation's late settlement can request the same retry.
-  if (reconcileScheduled?.revision === revision || reconcileRunning?.revision === revision) return;
+  // A scheduled pass already represents this revision. Coalesce before
+  // charging retry budget. If a potentially mutating late completion arrives
+  // while a pass is already running, preserve one follow-up pass instead of
+  // dropping the convergence signal.
+  if (reconcileScheduled?.revision === revision) return;
+  if (reconcileRunning?.revision === revision) {
+    if (preserveAfterRunning) {
+      if (reconcileFollowUp?.revision !== revision) {
+        reconcileFollowUp = { revision, isRetry };
+      } else if (!isRetry) {
+        // An unbudgeted latest-authority repair is stronger than a retry.
+        reconcileFollowUp.isRetry = false;
+      }
+    }
+    return;
+  }
   const retryCount = reconcileRetries.get(revision) ?? 0;
   if (isRetry && retryCount >= PUSH_RECONCILE_MAX_RETRIES) return;
   if (isRetry) reconcileRetries.set(revision, retryCount + 1);
@@ -227,6 +250,13 @@ function schedulePushReconcile(revision = desiredPushState.revision, isRetry = f
       reconcileRevision: revision,
     }).finally(() => {
       if (reconcileRunning === running) reconcileRunning = null;
+      const followUp = reconcileFollowUp;
+      if (followUp?.revision === desiredPushState.revision) {
+        reconcileFollowUp = null;
+        schedulePushReconcile(followUp.revision, followUp.isRetry);
+      } else if (followUp && followUp.revision !== desiredPushState.revision) {
+        reconcileFollowUp = null;
+      }
     }).catch((error) => {
       if (error?.message !== "Push mutation timed out.") {
         console.warn("Push state reconciliation failed.", error);
@@ -343,6 +373,7 @@ export function getPushCoordinatorSnapshot() {
     ownershipClaimSequence,
     reconcileRetryCount: reconcileRetries.get(desiredPushState.revision) ?? 0,
     reconcileRetryRunCount: reconcileRetryRuns.get(desiredPushState.revision) ?? 0,
+    reconcileFollowUp: reconcileFollowUp ? { ...reconcileFollowUp } : null,
   };
 }
 
@@ -408,7 +439,7 @@ function claimSubscription(userId, contextVersion, subscription) {
     if (!claims.size) inFlightOwnershipClaims.delete(userId);
     const cleanup = pendingOwnershipCleanups.get(userId);
     if (cleanup && claim.sequence <= cleanup.claimWatermark) {
-      schedulePushReconcile(desiredPushState.revision, false);
+      schedulePushReconcile(desiredPushState.revision, false, { preserveAfterRunning: true });
     }
   };
   promise.then(untrack, untrack);
