@@ -192,10 +192,46 @@ async function createPendingMember(token) {
         request_message: "관리자 승인/정지/복구 자동화 검증",
         privacy_policy_version: "2026-08",
         privacy_consent: true,
+        community_rules_version: "2026-09",
+        rules_consent: true,
       },
     }),
   });
   if (!user?.id) throw new Error("Pending Auth user fixture was not created.");
+
+  // Native Auth OTP signup no longer creates community rows from the Auth INSERT trigger.
+  // Build the pending application fixture explicitly so this E2E follows the production contract.
+  const requestedAt = new Date().toISOString();
+  await serviceRoleRequest("/rest/v1/profiles", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      id: user.id,
+      display_name: realName,
+      real_name: realName,
+      birth_year: 1995,
+      age_visibility: "private",
+      status: "pending",
+      role: "member",
+    }),
+  });
+  await serviceRoleRequest("/rest/v1/join_requests", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      user_id: user.id,
+      email,
+      real_name: realName,
+      church_group: "E2E",
+      request_message: "관리자 승인/정지/복구 자동화 검증",
+      status: "pending",
+      privacy_consent_at: requestedAt,
+      privacy_policy_version: "2026-08",
+      rules_consent_at: requestedAt,
+      community_rules_version: "2026-09",
+    }),
+  });
+
   return { id: user.id, email, realName };
 }
 
