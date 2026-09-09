@@ -3,7 +3,7 @@ import { PROFILE_STATUS } from "./constants.js";
 import { disablePushNotifications } from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
 
-const PROFILE_COLUMNS = "id,display_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 
 const state = {
   session: null,
@@ -196,6 +196,43 @@ export async function signUp({ email, password, metadata }) {
   });
   if (error) throw error;
   if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+async function invokeSignupVerification(action, payload) {
+  const { data, error } = await supabase.functions.invoke("signup-verification", {
+    body: { action, ...payload },
+  });
+  if (error) {
+    const response = error.context;
+    const body = response && typeof response.json === "function"
+      ? await response.json().catch(() => null)
+      : null;
+    throw new Error(body?.message || body?.error || error.message);
+  }
+  return data;
+}
+
+export function requestSignupEmailCode(email) {
+  return invokeSignupVerification("request", { email });
+}
+
+export function verifySignupEmailCode(email, code) {
+  return invokeSignupVerification("verify", { email, code });
+}
+
+export async function completeVerifiedSignup({ email, password, verificationToken, metadata }) {
+  const data = await invokeSignupVerification("signup", {
+    email,
+    password,
+    verification_token: verificationToken,
+    metadata,
+  });
+  if (data?.session?.access_token && data?.session?.refresh_token) {
+    const { data: sessionData, error } = await supabase.auth.setSession(data.session);
+    if (error) throw error;
+    await refreshAuthContext(sessionData.session, { force: true });
+  }
   return data;
 }
 

@@ -30,3 +30,4 @@ export const WEB_PUSH_VAPID_PUBLIC_KEY = "BPBm_DDiExCk05X4avHensNm07R13_P6pvoiCA
 
 export const SITE_NAME = "청파 같이";
 export const PRIVACY_POLICY_VERSION = "2026-08";
+export const COMMUNITY_RULES_VERSION = "2026-09";
