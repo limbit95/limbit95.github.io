@@ -47,18 +47,17 @@ async function request(path, options = {}) {
 }
 
 const normalizedEmail = email.trim().toLowerCase();
+const displayName = role === "admin" ? "E2E 관리자" : "E2E 회원";
+const realName = role === "admin" ? "E2E 관리자 테스트" : "E2E 테스트";
 const user = await request("/auth/v1/admin/users", {
   method: "POST",
   body: JSON.stringify({
     email: normalizedEmail,
     password,
     email_confirm: true,
-    app_metadata: {
-      community_signup_source: "admin_create",
-    },
     user_metadata: {
-      display_name: role === "admin" ? "E2E 관리자" : "E2E 회원",
-      real_name: role === "admin" ? "E2E 관리자 테스트" : "E2E 테스트",
+      display_name: displayName,
+      real_name: realName,
       birth_year: "1990",
       age_visibility: "private",
       church_group: "E2E",
@@ -75,16 +74,39 @@ if (!user?.id) {
   throw new Error("Local Auth admin API did not return a user id.");
 }
 
+// Production signup no longer relies on the Auth INSERT trigger to create community
+// application rows. E2E bootstrap uses service_role to create deterministic approved
+// fixtures explicitly; browser tests never receive this key.
 const approvedAt = new Date().toISOString();
-await request(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}`, {
-  method: "PATCH",
-  headers: { Prefer: "return=minimal" },
-  body: JSON.stringify({ status: "approved", approved_at: approvedAt, role }),
+await request("/rest/v1/profiles?on_conflict=id", {
+  method: "POST",
+  headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  body: JSON.stringify({
+    id: user.id,
+    display_name: displayName,
+    real_name: realName,
+    birth_year: 1990,
+    age_visibility: "private",
+    status: "approved",
+    approved_at: approvedAt,
+    role,
+  }),
 });
-await request(`/rest/v1/join_requests?user_id=eq.${encodeURIComponent(user.id)}`, {
-  method: "PATCH",
-  headers: { Prefer: "return=minimal" },
-  body: JSON.stringify({ status: "approved" }),
+await request("/rest/v1/join_requests?on_conflict=user_id", {
+  method: "POST",
+  headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  body: JSON.stringify({
+    user_id: user.id,
+    email: normalizedEmail,
+    real_name: realName,
+    church_group: "E2E",
+    request_message: "자동화 테스트 계정",
+    status: "approved",
+    privacy_consent_at: approvedAt,
+    privacy_policy_version: "2026-08",
+    rules_consent_at: approvedAt,
+    community_rules_version: "2026-09",
+  }),
 });
 
 if (role === "admin" && adminPermissions.length) {

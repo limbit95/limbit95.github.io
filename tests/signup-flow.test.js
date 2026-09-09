@@ -92,22 +92,20 @@ test("historical phase-one migration remains preserved for real-name backfill", 
   assert.match(infrastructure, /community_rules_version/);
 });
 
-test("final enforcement blocks browser bypass but permits explicitly trusted admin-created fixtures", () => {
-  assert.match(transition, /Legacy frontend compatibility during the staged rollout/);
-  assert.match(enforcement, /Final native Auth OTP enforcement/);
-  assert.match(enforcement, /if v_signup_flow = 'auth_otp' then[\s\S]*return new;/);
-  assert.match(enforcement, /new\.raw_app_meta_data[\s\S]*community_signup_source/);
-  assert.match(enforcement, /new\.email_confirmed_at is null and coalesce\(v_trusted_signup_source, ''\) <> 'admin_create'/);
-  assert.doesNotMatch(enforcement, /v_metadata ->> 'community_signup_source'/);
-  assert.match(enforcement, /insert into public\.profiles/);
-  assert.match(enforcement, /insert into public\.join_requests/);
-  assert.match(setupE2E, /email_confirm: true/);
-  assert.match(setupE2E, /app_metadata: \{[\s\S]*community_signup_source: "admin_create"/);
+test("final enforcement makes submit_join_request the only community-application creation path", () => {
+  assert.match(enforcement, /create or replace function private\.handle_new_auth_user\(\)/);
+  assert.match(enforcement, /if new\.email is null then/);
+  assert.match(enforcement, /return new;/);
+  assert.doesNotMatch(enforcement, /raw_user_meta_data|raw_app_meta_data|signup_flow/);
+  assert.doesNotMatch(enforcement, /insert into public\.profiles|insert into public\.join_requests/);
+  assert.match(enforcement, /^begin;[\s\S]*commit;\s*$/);
 });
 
-test("E2E fixtures no longer synthesize custom signup challenges", () => {
+test("E2E fixtures create community rows explicitly after Auth user creation", () => {
   assert.doesNotMatch(setupE2E, /signup_email_challenges|challengeId|verification_token_hash/);
   assert.doesNotMatch(prepareE2E, /e2e_prepare_pending_signup_fixture|signup_email_challenges/);
+  assert.match(setupE2E, /\/rest\/v1\/profiles\?on_conflict=id/);
+  assert.match(setupE2E, /\/rest\/v1\/join_requests\?on_conflict=user_id/);
   assert.match(setupE2E, /community_rules_version: "2026-09"/);
-  assert.match(setupE2E, /rules_consent: true/);
+  assert.match(setupE2E, /rules_consent_at: approvedAt/);
 });
