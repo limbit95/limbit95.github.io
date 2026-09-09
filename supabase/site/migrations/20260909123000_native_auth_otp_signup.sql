@@ -154,4 +154,13 @@ $$;
 revoke all on function public.submit_join_request(text,text,integer,text,text,text,boolean,text,boolean,text) from public, anon;
 grant execute on function public.submit_join_request(text,text,integer,text,text,text,boolean,text,boolean,text) to authenticated;
 
+-- The Phase 1 custom challenge objects are no longer part of the active signup path.
+-- Keep their historical migration unchanged, but retire the live objects when this
+-- transition migration is applied so Resend/custom challenge code cannot be reused.
+drop function if exists public.claim_signup_email_challenge(uuid, uuid);
+drop function if exists public.verify_signup_email_challenge(uuid, text, text);
+drop function if exists public.record_signup_email_failure(uuid);
+drop function if exists public.create_signup_email_challenge(text, text, text, timestamptz);
+drop table if exists public.signup_email_challenges;
+
 commit;
