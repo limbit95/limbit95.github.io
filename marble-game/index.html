@@ -20,7 +20,7 @@
       }
     </script>
   </head>
-  <body data-theme="classic" data-marble-build="20260910-r6">
+  <body data-theme="classic" data-marble-build="20260910-r7">
     <main class="marble-shell">
       <header class="marble-header">
         <a class="back-link" href="../#/games">← 게임으로 돌아가기</a>
@@ -33,7 +33,7 @@
       <section class="theme-section" aria-labelledby="theme-list-title">
         <div class="section-heading">
           <div><p class="eyebrow">CHOOSE A WORLD</p><h2 id="theme-list-title">테마 선택</h2></div>
-          <span class="phase-chip">PHASE 5 · MULTIPLAYER FOUNDATION</span>
+          <span class="phase-chip">PHASE 6 · ONLINE STABILITY</span>
         </div>
         <div class="theme-grid" data-theme-grid></div>
       </section>
@@ -50,7 +50,7 @@
         <div class="multiplayer-entry" data-multiplayer-entry>
           <div class="multiplayer-entry__heading">
             <div>
-              <span class="multiplayer-entry__eyebrow">ONLINE CLASSIC · PHASE 5B</span>
+              <span class="multiplayer-entry__eyebrow">ONLINE CLASSIC · PHASE 6B</span>
               <strong>온라인 대기실</strong>
             </div>
             <span class="multiplayer-entry__status" data-multiplayer-status>연결 확인 중</span>
@@ -148,7 +148,7 @@
               </div>
 
               <div class="online-game-controls" data-online-game-controls hidden>
-                <button class="game-end-button" type="button" data-end-online-game>게임 종료</button>
+                <button class="game-end-button" type="button" data-end-online-game>게임 나가기</button>
               </div>
 
               <details class="game-history">
@@ -220,12 +220,12 @@
       </dialog>
 
       <dialog class="game-end-modal" data-game-end-modal aria-labelledby="game-end-title">
-        <div class="game-end-modal__eyebrow">END GAME</div>
-        <h2 id="game-end-title">현재 게임을 종료할까요?</h2>
-        <p>게임을 종료하면 현재 방이 닫히고 모든 플레이어의 이번 게임이 끝납니다. 로비로 돌아간 뒤 새로운 방을 바로 만들 수 있습니다.</p>
+        <div class="game-end-modal__eyebrow">LEAVE GAME</div>
+        <h2 id="game-end-title">현재 게임에서 나갈까요?</h2>
+        <p>진행 중인 게임에서 나가면 기권 처리되고 보유 도시가 반환됩니다. 남은 플레이어는 계속 진행하며 마지막 한 명이 남으면 자동으로 승리합니다.</p>
         <div class="game-end-modal__actions">
           <button class="secondary-button" type="button" data-game-end-cancel>계속 플레이</button>
-          <button class="primary-button game-end-modal__confirm" type="button" data-game-end-confirm>게임 종료</button>
+          <button class="primary-button game-end-modal__confirm" type="button" data-game-end-confirm>기권 후 나가기</button>
         </div>
       </dialog>
 
@@ -233,11 +233,11 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="./js/app.js?v=20260910-r6"></script>
-    <script type="module" src="./js/multiplayerLobby.js?v=20260910-r6"></script>
-    <script type="module" src="./js/diceCharge.js?v=20260910-r6"></script>
-    <script type="module" src="./js/playWindow.js?v=20260910-r6"></script>
-    <script type="module" src="./js/onlineGameExit.js?v=20260910-r6"></script>
-    <script type="module" src="./js/themes/classic/ownershipVisual.js?v=20260910-r6"></script>
+    <script type="module" src="./js/app.js?v=20260910-r7"></script>
+    <script type="module" src="./js/multiplayerLobby.js?v=20260910-r7"></script>
+    <script type="module" src="./js/diceCharge.js?v=20260910-r7"></script>
+    <script type="module" src="./js/playWindow.js?v=20260910-r7"></script>
+    <script type="module" src="./js/onlineGameExit.js?v=20260910-r7"></script>
+    <script type="module" src="./js/themes/classic/ownershipVisual.js?v=20260910-r7"></script>
   </body>
 </html>

@@ -38,13 +38,6 @@ export function getMyActiveOnlineGame() {
   return rpc("marble_get_my_active_game");
 }
 
-export function endOnlineGame({ roomId, expectedVersion }) {
-  return rpc("marble_end_game", {
-    p_room_id: roomId,
-    p_expected_version: Number(expectedVersion),
-  });
-}
-
 function gameAction(name, { roomId, expectedVersion }) {
   return rpc(name, {
     p_room_id: roomId,
@@ -67,6 +60,10 @@ export function buildOnlineProperty(options) {
 
 export function endOnlineTurn(options) {
   return gameAction("marble_end_turn", options);
+}
+
+export function forfeitOnlineGame(options) {
+  return gameAction("marble_forfeit_game", options);
 }
 
 export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope = "session" } = {}) {

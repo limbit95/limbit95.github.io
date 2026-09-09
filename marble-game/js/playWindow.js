@@ -5,7 +5,7 @@ const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
-const ONLINE_BOOT_REVISION = "20260910-r6";
+const ONLINE_BOOT_REVISION = "20260910-r7";
 const ONLINE_BOOT_TIMEOUT_MS = 8000;
 
 export function createClassicPlayUrl(href) {

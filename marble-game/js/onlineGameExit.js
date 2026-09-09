@@ -1,21 +1,26 @@
 import {
-  endOnlineGame,
+  forfeitOnlineGame,
   getOnlineGameSnapshot,
   subscribeOnlineGame,
 } from "./onlineGameApi.js";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
 
 const onlineRoomId = typeof window !== "undefined" ? getOnlineRoomId(window.location.href) : null;
-const END_EVENTS = new Set(["GAME_ABANDONED", "GAME_SESSION_CLOSED"]);
+const GLOBAL_END_EVENTS = new Set(["GAME_ABANDONED", "GAME_SESSION_CLOSED"]);
 const RETURN_DELAY_MS = 900;
 
 function errorText(error) {
   return String(error?.message ?? error ?? "");
 }
 
-function hasEndEvent(snapshot) {
+function hasEvent(snapshot, eventType) {
   return Array.isArray(snapshot?.game?.lastEvents)
-    && snapshot.game.lastEvents.some((event) => END_EVENTS.has(event?.type));
+    && snapshot.game.lastEvents.some((event) => event?.type === eventType);
+}
+
+function hasGlobalEndEvent(snapshot) {
+  return Array.isArray(snapshot?.game?.lastEvents)
+    && snapshot.game.lastEvents.some((event) => GLOBAL_END_EVENTS.has(event?.type));
 }
 
 function lobbyUrl(href) {
@@ -33,10 +38,12 @@ if (onlineRoomId) {
   const cancelButton = document.querySelector("[data-game-end-cancel]");
   const confirmButton = document.querySelector("[data-game-end-confirm]");
   const gameMessage = document.querySelector("[data-game-message]");
+  const playerList = document.querySelector("[data-player-list]");
 
   let busy = false;
   let redirectTimer = null;
   let unsubscribe = null;
+  let lastForfeitVersion = null;
 
   function setBusy(nextBusy) {
     busy = nextBusy;
@@ -44,7 +51,7 @@ if (onlineRoomId) {
     if (cancelButton) cancelButton.disabled = nextBusy;
     if (confirmButton) {
       confirmButton.disabled = nextBusy;
-      confirmButton.textContent = nextBusy ? "종료 중…" : "게임 종료";
+      confirmButton.textContent = nextBusy ? "처리 중…" : "기권 후 나가기";
     }
   }
 
@@ -72,51 +79,85 @@ if (onlineRoomId) {
     redirectTimer = window.setTimeout(returnToLobby, RETURN_DELAY_MS);
   }
 
+  function renderForfeitedPlayers(snapshot) {
+    if (!playerList) return;
+    (snapshot?.players ?? [])
+      .filter((player) => player?.forfeited === true)
+      .forEach((player) => {
+        const card = playerList.querySelector(`.player-card[data-seat="${Number(player.seat)}"]`);
+        if (!card) return;
+        card.dataset.forfeited = "true";
+        const stateLabel = card.querySelector(".player-card__state");
+        const bankruptLabel = card.querySelector(".bankrupt-label");
+        if (stateLabel) stateLabel.textContent = "기권";
+        if (bankruptLabel) bankruptLabel.textContent = "기권";
+      });
+  }
+
+  function showRemoteForfeit(snapshot) {
+    const event = [...(snapshot?.game?.lastEvents ?? [])]
+      .reverse()
+      .find((candidate) => candidate?.type === "PLAYER_FORFEITED");
+    const version = Number(snapshot?.game?.version) || 0;
+    if (!event || version === lastForfeitVersion) return;
+    lastForfeitVersion = version;
+    const player = (snapshot?.players ?? []).find((candidate) => candidate?.id === event.playerId);
+    if (gameMessage && player?.name) {
+      gameMessage.textContent = `${player.name}이(가) 기권했습니다. 남은 플레이어가 게임을 계속합니다.`;
+    }
+  }
+
   async function latestSnapshot() {
     return getOnlineGameSnapshot(onlineRoomId);
   }
 
-  async function checkRemoteEnd() {
+  async function syncLifecycleState() {
     try {
       const snapshot = await latestSnapshot();
-      if (hasEndEvent(snapshot)) {
-        scheduleLobbyReturn("게임이 종료되었습니다. 로비로 돌아갑니다.");
+      renderForfeitedPlayers(snapshot);
+      showRemoteForfeit(snapshot);
+      if (hasGlobalEndEvent(snapshot)) {
+        scheduleLobbyReturn("게임 세션이 종료되었습니다. 로비로 돌아갑니다.");
       }
     } catch (error) {
       const message = errorText(error);
       if (!message.includes("GAME_NOT_FOUND") && !message.includes("NOT_ROOM_MEMBER")) {
-        console.warn("Marble game end sync check failed", error);
+        console.warn("Marble game lifecycle sync check failed", error);
       }
     }
   }
 
-  async function requestGameEnd() {
+  async function requestGameExit() {
     if (busy) return;
     setBusy(true);
     try {
       let snapshot = await latestSnapshot();
-      if (!hasEndEvent(snapshot)) {
-        try {
-          snapshot = await endOnlineGame({
-            roomId: onlineRoomId,
-            expectedVersion: snapshot.game.version,
-          });
-        } catch (error) {
-          if (!errorText(error).includes("VERSION_CONFLICT")) throw error;
-          snapshot = await latestSnapshot();
-          if (!hasEndEvent(snapshot)) {
-            snapshot = await endOnlineGame({
-              roomId: onlineRoomId,
-              expectedVersion: snapshot.game.version,
-            });
-          }
-        }
+      try {
+        snapshot = await forfeitOnlineGame({
+          roomId: onlineRoomId,
+          expectedVersion: snapshot.game.version,
+        });
+      } catch (error) {
+        if (!errorText(error).includes("VERSION_CONFLICT")) throw error;
+        snapshot = await latestSnapshot();
+        snapshot = await forfeitOnlineGame({
+          roomId: onlineRoomId,
+          expectedVersion: snapshot.game.version,
+        });
       }
-      scheduleLobbyReturn("게임을 종료했습니다. 새 방을 만들 수 있습니다.");
+
+      scheduleLobbyReturn(hasEvent(snapshot, "PLAYER_FORFEITED")
+        ? "기권 처리되었습니다. 남은 플레이어는 게임을 계속합니다."
+        : "게임에서 나왔습니다. 로비로 돌아갑니다.");
     } catch (error) {
-      console.error("Marble online game end failed", error);
+      const message = errorText(error);
+      if (message.includes("NOT_ROOM_MEMBER")) {
+        scheduleLobbyReturn("이미 게임에서 나간 상태입니다. 로비로 돌아갑니다.");
+        return;
+      }
+      console.error("Marble online game exit failed", error);
       setBusy(false);
-      if (gameMessage) gameMessage.textContent = "게임 종료 처리 중 오류가 발생했습니다. 다시 시도해 주세요.";
+      if (gameMessage) gameMessage.textContent = "게임 나가기 처리 중 오류가 발생했습니다. 다시 시도해 주세요.";
     }
   }
 
@@ -124,7 +165,7 @@ if (onlineRoomId) {
     controls.hidden = false;
     endButton.addEventListener("click", openModal);
     cancelButton.addEventListener("click", closeModal);
-    confirmButton.addEventListener("click", () => { void requestGameEnd(); });
+    confirmButton.addEventListener("click", () => { void requestGameExit(); });
     modal.addEventListener("cancel", (event) => {
       if (busy) event.preventDefault();
       else closeModal();
@@ -133,10 +174,11 @@ if (onlineRoomId) {
     try {
       unsubscribe = subscribeOnlineGame(onlineRoomId, {
         channelScope: "exit",
-        onChange: () => { void checkRemoteEnd(); },
+        onChange: () => { void syncLifecycleState(); },
       });
+      void syncLifecycleState();
     } catch (error) {
-      console.warn("Marble game end realtime subscription failed", error);
+      console.warn("Marble game lifecycle realtime subscription failed", error);
     }
 
     window.addEventListener("beforeunload", () => unsubscribe?.(), { once: true });

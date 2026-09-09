@@ -6,9 +6,9 @@ const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8"
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260910-r6"/);
-  assert.match(indexHtml, /playWindow\.js\?v=20260910-r6/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r6"/);
+  assert.match(indexHtml, /data-marble-build="20260910-r7"/);
+  assert.match(indexHtml, /playWindow\.js\?v=20260910-r7/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r7"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);

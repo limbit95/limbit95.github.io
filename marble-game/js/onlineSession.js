@@ -38,6 +38,7 @@ export function mapOnlineGameSnapshot(snapshot) {
     positionNodeId: player.positionNodeId,
     money: Number(player.money),
     bankrupt: player.bankrupt === true,
+    forfeited: player.forfeited === true,
     skipTurns: Number(player.skipTurns) || 0,
   })));
   const currentPlayerIndex = players.findIndex((player) => player.seat === Number(snapshot.game.currentSeat));

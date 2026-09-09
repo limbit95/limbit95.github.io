@@ -28,8 +28,8 @@ const reconnectMigration = readFileSync(
   new URL("../../supabase/marble/20260906115151_marble_online_reconnect_hardening.sql", import.meta.url),
   "utf8",
 );
-const gameEndMigration = readFileSync(
-  new URL("../../supabase/marble/20260906150500_marble_online_game_end.sql", import.meta.url),
+const lifecycleMigration = readFileSync(
+  new URL("../../supabase/marble/20260910101500_marble_online_forfeit_lifecycle.sql", import.meta.url),
   "utf8",
 );
 
@@ -50,8 +50,8 @@ function snapshot(overrides = {}) {
       rulesetVersion: 1,
     },
     players: [
-      { id: "p1", userId: "u1", name: "A", seat: 0, positionNodeId: "start", money: 1500, bankrupt: false, skipTurns: 0 },
-      { id: "p2", userId: "u2", name: "B", seat: 1, positionNodeId: "tokyo", money: 1200, bankrupt: false, skipTurns: 0 },
+      { id: "p1", userId: "u1", name: "A", seat: 0, positionNodeId: "start", money: 1500, bankrupt: false, forfeited: false, skipTurns: 0 },
+      { id: "p2", userId: "u2", name: "B", seat: 1, positionNodeId: "tokyo", money: 1200, bankrupt: false, forfeited: false, skipTurns: 0 },
     ],
     properties: { tokyo: { ownerId: "p2", ownerSeat: 1, buildingLevel: 2 } },
     viewerUserId: "u2",
@@ -65,6 +65,7 @@ test("online snapshot maps server state into the existing Classic renderer state
   assert.equal(state.board.nodes.length, 32);
   assert.equal(state.currentPlayerIndex, 1);
   assert.equal(state.players[1].positionNodeId, "tokyo");
+  assert.equal(state.players[1].forfeited, false);
   assert.equal(state.boardState.properties.tokyo.ownerId, "p2");
   assert.equal(state.boardState.properties.tokyo.buildingLevel, 2);
   assert.equal(state.status, "PLAYING");
@@ -111,23 +112,27 @@ test("Phase 5B exposes host start and server-authoritative action RPCs", () => {
   assert.match(controllerSource, /createClassicTollNotice/);
 });
 
-test("online game can be explicitly ended and return every client to a fresh lobby", () => {
-  assert.match(indexHtml, /data-online-game-controls/);
-  assert.match(indexHtml, /data-end-online-game/);
+test("Phase 6B treats leaving an active game as an individual forfeit", () => {
+  assert.match(indexHtml, /게임 나가기/);
+  assert.match(indexHtml, /기권 처리/);
   assert.match(indexHtml, /data-game-end-modal/);
   assert.match(indexHtml, /onlineGameExit\.js/);
-  assert.match(apiSource, /marble_end_game/);
-  assert.match(exitSource, /endOnlineGame/);
-  assert.match(exitSource, /GAME_ABANDONED/);
-  assert.match(exitSource, /GAME_SESSION_CLOSED/);
-  assert.match(exitSource, /url\.searchParams\.delete\("onlineRoom"\)/);
-  assert.match(exitSource, /새 방을 만들 수 있습니다/);
+  assert.match(apiSource, /marble_forfeit_game/);
+  assert.match(exitSource, /forfeitOnlineGame/);
+  assert.match(exitSource, /PLAYER_FORFEITED/);
+  assert.doesNotMatch(exitSource, /endOnlineGame/);
+  assert.match(exitSource, /남은 플레이어는 게임을 계속합니다/);
   assert.match(gameEndCss, /\.game-end-button/);
   assert.match(gameEndCss, /\.game-end-modal/);
-  assert.match(gameEndMigration, /create or replace function public\.marble_end_game/);
-  assert.match(gameEndMigration, /status = 'abandoned'/);
-  assert.match(gameEndMigration, /set status = 'closed'/);
-  assert.match(gameEndMigration, /grant execute on function public\.marble_end_game\(uuid,bigint\) to authenticated/);
+  assert.match(lifecycleMigration, /add column if not exists forfeited boolean not null default false/);
+  assert.match(lifecycleMigration, /create or replace function public\.marble_forfeit_game/);
+  assert.match(lifecycleMigration, /bankrupt = true,[\s\S]*forfeited = true/);
+  assert.match(lifecycleMigration, /membership_status = 'left'/);
+  assert.match(lifecycleMigration, /'type', 'PLAYER_FORFEITED'/);
+  assert.match(lifecycleMigration, /'type', 'GAME_FINISHED'/);
+  assert.match(lifecycleMigration, /host_user_id = coalesce\(v_next_host, host_user_id\)/);
+  assert.match(lifecycleMigration, /revoke execute on function public\.marble_end_game\(uuid,bigint\) from authenticated/);
+  assert.match(lifecycleMigration, /grant execute on function public\.marble_forfeit_game\(uuid,bigint,uuid\) to authenticated/);
 });
 
 test("online HUD anchors the viewer bottom-right and fills other corners in order", () => {
