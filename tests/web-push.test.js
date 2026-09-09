@@ -33,6 +33,10 @@ async function loadWebPush({
   rpc,
   fetch = async () => ({ ok: true, status: 204 }),
   preference = "on",
+  storage = null,
+  from = () => ({
+    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+  }),
 }) {
   let source = await readFile("js/web-push.js", "utf8");
   source = source
@@ -44,8 +48,8 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
   const subscriptionManager = { getSubscription, subscribe };
   defineGlobal("window", {
     localStorage: {
-      getItem: () => preference,
-      setItem: () => {},
+      getItem: (key) => storage ? storage.get(key) ?? null : preference,
+      setItem: (key, value) => storage?.set(key, value),
     },
     PushManager: function PushManager() {},
     Notification: function Notification() {},
@@ -56,7 +60,7 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
     userAgent: "test",
     serviceWorker: { register: async () => ({ pushManager: subscriptionManager }) },
   });
-  defineGlobal("__webPushSupabase", { rpc });
+  defineGlobal("__webPushSupabase", { rpc, from });
   defineGlobal("fetch", fetch);
 
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
@@ -151,7 +155,7 @@ test("sign-out cleanup preserves preference and still attempts browser unsubscri
   const cleanup = section(
     source,
     "export async function cleanupPushSubscriptionForSignOut",
-    "\nasync function cleanupStaleSubscription",
+    "\nasync function restorePushNotifications",
   );
   assert.doesNotMatch(cleanup, /setPushPreference\(userId, "off"\)/);
   assert.match(cleanup, /removalError = error/);
@@ -240,8 +244,8 @@ test("legacy ownership is the only missing-preference path promoted to on", asyn
     "\nexport function restorePushNotificationsForAuth",
   );
   assert.match(restore, /preference === null[\s\S]*getPushNotificationState\(\)/);
-  assert.match(restore, /if \(!isCurrent\(\) \|\| !legacyState\.owned\) return null/);
-  assert.match(restore, /setPushPreference\(userId, "on"\)/);
+  assert.match(restore, /desiredPushState\.revision !== requestRevision \|\| !legacyState\.owned/);
+  assert.match(restore, /preference = "on"/);
 });
 
 test("restore starts after auth assignment without blocking authentication", async () => {
@@ -283,166 +287,171 @@ test("stale existing-subscription restore neither claims nor unsubscribes", asyn
   assert.equal(unsubscribes, 0);
 });
 
-test("newly-created subscription is removed if restore becomes stale before claim", async () => {
-  const gate = deferred();
-  const started = deferred();
-  let claims = 0;
-  let unsubscribes = 0;
-  let current = true;
-  const subscription = {
-    endpoint: "new",
-    toJSON: () => ({ keys: {} }),
-    unsubscribe: async () => { unsubscribes += 1; },
-  };
-  const webPush = await loadWebPush({
-    getSubscription: async () => null,
-    subscribe: async () => { started.resolve(); await gate.promise; return subscription; },
-    rpc: async () => { claims += 1; return { error: null }; },
-  });
-  const restore = webPush.restorePushNotificationsForAuth(
-    { user: { id: "a" }, profile: { status: "approved" } },
-    { isCurrent: () => current, getCurrentUserId: () => current ? "a" : null },
-  );
-  await started.promise;
-  current = false;
-  gate.resolve();
+test("device coordinator serializes restore/OFF/ON and latest intent wins", async () => {
+  for (const finalIntent of ["off", "on"]) {
+    const claimGate = deferred();
+    const claimStarted = deferred();
+    const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+    let subscriptionExists = true;
+    let owner = null;
+    let activeMutations = 0;
+    let maximumMutations = 0;
+    const subscription = {
+      endpoint: "shared",
+      toJSON: () => ({ keys: {} }),
+      unsubscribe: async () => { subscriptionExists = false; },
+    };
+    let claims = 0;
+    const webPush = await loadWebPush({
+      storage,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => { subscriptionExists = true; return subscription; },
+      rpc: async (name) => {
+        activeMutations += 1;
+        maximumMutations = Math.max(maximumMutations, activeMutations);
+        if (name === "claim_push_subscription") {
+          claims += 1;
+          if (claims === 1) { claimStarted.resolve(); await claimGate.promise; }
+          owner = "a";
+        } else owner = null;
+        activeMutations -= 1;
+        return { error: null };
+      },
+    });
+    const auth = { user: { id: "a" }, profile: { status: "approved" } };
+    const restore = webPush.restorePushNotificationsForAuth(auth);
+    await claimStarted.promise;
+    const off = webPush.disablePushNotifications("a");
+    const on = finalIntent === "on" ? webPush.enablePushNotifications("a") : null;
+    claimGate.resolve();
+    await Promise.all([restore, off, on]);
 
-  assert.equal(await restore, null);
-  assert.equal(claims, 0);
-  assert.equal(unsubscribes, 1);
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), finalIntent);
+    assert.equal(subscriptionExists, finalIntent === "on");
+    assert.equal(owner, finalIntent === "on" ? "a" : null);
+    assert.equal(maximumMutations, 1);
+  }
 });
 
-test("stale same-user promise does not suppress a newer restore", async () => {
-  const firstGate = deferred();
-  const firstStarted = deferred();
-  let generation = 1;
-  let calls = 0;
-  let claims = 0;
-  const subscription = { endpoint: "endpoint", toJSON: () => ({ keys: {} }), unsubscribe: async () => {} };
-  const webPush = await loadWebPush({
-    getSubscription: async () => {
-      calls += 1;
-      if (calls === 1) {
-        firstStarted.resolve();
-        await firstGate.promise;
-      }
-      return subscription;
-    },
-    subscribe: async () => subscription,
-    rpc: async () => { claims += 1; return { error: null }; },
-  });
-  const auth = { user: { id: "a" }, profile: { status: "approved" } };
-  const staleRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 1 });
-  await firstStarted.promise;
-  generation = 2;
-  await webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 2 });
-  firstGate.resolve();
-  await staleRestore;
-
-  assert.equal(claims, 1);
-});
-
-test("newly-created in-flight claim is compensated after logout", async () => {
-  const claimGate = deferred();
-  const claimStarted = deferred();
-  let currentUserId = "a";
-  let current = true;
-  let removals = 0;
-  let unsubscribes = 0;
-  const subscription = {
-    endpoint: "new-a",
-    toJSON: () => ({ keys: {} }),
-    unsubscribe: async () => { unsubscribes += 1; },
-  };
-  const webPush = await loadWebPush({
-    getSubscription: async () => null,
-    subscribe: async () => subscription,
-    rpc: async () => { claimStarted.resolve(); await claimGate.promise; return { error: null }; },
-    fetch: async (_url, options) => {
-      removals += 1;
-      assert.equal(options.headers.Authorization, "Bearer token-a");
-      return { ok: true, status: 204 };
-    },
-  });
-  const restore = webPush.restorePushNotificationsForAuth(
-    { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } },
-    { isCurrent: () => current, getCurrentUserId: () => currentUserId },
-  );
-  await claimStarted.promise;
-  current = false;
-  currentUserId = null;
-  claimGate.resolve();
-
-  assert.equal(await restore, null);
-  assert.equal(removals, 1);
-  assert.equal(unsubscribes, 1);
-});
-
-test("stale A claim uses A credentials without disturbing B browser subscription", async () => {
-  const claimGate = deferred();
-  const claimStarted = deferred();
-  let currentUserId = "a";
-  let current = true;
-  let removals = 0;
-  let unsubscribes = 0;
+test("pending OFF cleanup cannot erase a newer explicit ON", async () => {
+  const removeGate = deferred();
+  const removeStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let owner = "a";
+  let subscriptionExists = true;
   const subscription = {
     endpoint: "shared",
     toJSON: () => ({ keys: {} }),
-    unsubscribe: async () => { unsubscribes += 1; },
+    unsubscribe: async () => { subscriptionExists = false; },
   };
   const webPush = await loadWebPush({
-    getSubscription: async () => subscription,
-    subscribe: async () => subscription,
-    rpc: async () => { claimStarted.resolve(); await claimGate.promise; return { error: null }; },
-    fetch: async (_url, options) => {
-      removals += 1;
-      assert.equal(options.headers.Authorization, "Bearer token-a");
-      return { ok: true, status: 204 };
-    },
-  });
-  const restore = webPush.restorePushNotificationsForAuth(
-    { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } },
-    { isCurrent: () => current, getCurrentUserId: () => currentUserId },
-  );
-  await claimStarted.promise;
-  current = false;
-  currentUserId = "b";
-  claimGate.resolve();
-
-  assert.equal(await restore, null);
-  assert.equal(removals, 1);
-  assert.equal(unsubscribes, 0);
-});
-
-test("A can restore again after stale claim compensation", async () => {
-  const firstClaimGate = deferred();
-  const firstClaimStarted = deferred();
-  let generation = 1;
-  let claims = 0;
-  let removals = 0;
-  const subscription = { endpoint: "a", toJSON: () => ({ keys: {} }), unsubscribe: async () => {} };
-  const webPush = await loadWebPush({
-    getSubscription: async () => subscription,
-    subscribe: async () => subscription,
-    rpc: async () => {
-      claims += 1;
-      if (claims === 1) {
-        firstClaimStarted.resolve();
-        await firstClaimGate.promise;
-      }
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => { subscriptionExists = true; return subscription; },
+    rpc: async (name) => {
+      if (name === "remove_own_push_subscription") {
+        removeStarted.resolve(); await removeGate.promise; owner = null;
+      } else owner = "a";
       return { error: null };
     },
-    fetch: async () => { removals += 1; return { ok: true, status: 204 }; },
   });
-  const auth = { session: { access_token: "token-a" }, user: { id: "a" }, profile: { status: "approved" } };
-  const staleRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 1 });
-  await firstClaimStarted.promise;
-  generation = 2;
-  firstClaimGate.resolve();
-  assert.equal(await staleRestore, null);
-  assert.equal(await webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 2 }), subscription);
-  assert.equal(claims, 2);
-  assert.equal(removals, 1);
+  const off = webPush.disablePushNotifications("a");
+  await removeStarted.promise;
+  const on = webPush.enablePushNotifications("a");
+  removeGate.resolve();
+  await Promise.all([off, on]);
+
+  assert.equal(storage.get("cheongpa:web-push-preference:a"), "on");
+  assert.equal(subscriptionExists, true);
+  assert.equal(owner, "a");
+});
+
+test("account switching and logout cleanup converge on the current account", async () => {
+  const gate = deferred();
+  const started = deferred();
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "on"],
+  ]);
+  let currentUser = "a";
+  let owner = null;
+  let subscriptionExists = true;
+  let claims = 0;
+  const subscription = { endpoint: "shared", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+  const webPush = await loadWebPush({
+    storage,
+    getSubscription: async () => subscriptionExists ? subscription : null,
+    subscribe: async () => { subscriptionExists = true; return subscription; },
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") {
+        const claimUser = currentUser;
+        claims += 1;
+        if (claims === 1) { started.resolve(); await gate.promise; }
+        owner = claimUser;
+      } else owner = null;
+      return { error: null };
+    },
+  });
+  const restoreA = webPush.restorePushNotificationsForAuth(
+    { user: { id: "a" }, profile: { status: "approved" } },
+    { isCurrent: () => currentUser === "a", getCurrentUserId: () => currentUser },
+  );
+  await started.promise;
+  currentUser = "b";
+  const restoreB = webPush.restorePushNotificationsForAuth(
+    { user: { id: "b" }, profile: { status: "approved" } },
+    { isCurrent: () => currentUser === "b", getCurrentUserId: () => currentUser },
+  );
+  gate.resolve();
+  await Promise.all([restoreA, restoreB]);
+  assert.equal(owner, "b");
+  assert.equal(subscriptionExists, true);
+  assert.equal(storage.get("cheongpa:web-push-preference:b"), "on");
+});
+
+test("legacy lookup cannot override explicit OFF or OFF then ON", async () => {
+  for (const finalIntent of ["off", "on"]) {
+    const lookupGate = deferred();
+    const lookupStarted = deferred();
+    const storage = new Map();
+    let owner = "a";
+    let subscriptionExists = true;
+    const subscription = { endpoint: "legacy", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+    const webPush = await loadWebPush({
+      storage,
+      preference: null,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => { subscriptionExists = true; return subscription; },
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => {
+        lookupStarted.resolve(); await lookupGate.promise; return { data: { endpoint: "legacy" }, error: null };
+      } }) }) }),
+      rpc: async (name) => { owner = name === "claim_push_subscription" ? "a" : null; return { error: null }; },
+    });
+    const restore = webPush.restorePushNotificationsForAuth({ user: { id: "a" }, profile: { status: "approved" } });
+    await lookupStarted.promise;
+    const off = webPush.disablePushNotifications("a");
+    const on = finalIntent === "on" ? webPush.enablePushNotifications("a") : null;
+    lookupGate.resolve();
+    await Promise.all([restore, off, on]);
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), finalIntent);
+    assert.equal(subscriptionExists, finalIntent === "on");
+    assert.equal(owner, finalIntent === "on" ? "a" : null);
+  }
+});
+
+test("failed explicit mutations do not commit successful preferences", async () => {
+  const onStorage = new Map();
+  const subscription = { endpoint: "failure", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const on = await loadWebPush({ storage: onStorage, preference: null, getSubscription: async () => subscription, subscribe: async () => subscription,
+    rpc: async () => ({ error: new Error("claim failed") }) });
+  await assert.rejects(on.enablePushNotifications("a"), /claim failed/);
+  assert.equal(onStorage.has("cheongpa:web-push-preference:a"), false);
+
+  const offStorage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  const off = await loadWebPush({ storage: offStorage, getSubscription: async () => subscription, subscribe: async () => subscription,
+    rpc: async () => ({ error: new Error("remove failed") }) });
+  await assert.rejects(off.disablePushNotifications("a"), /remove failed/);
+  assert.equal(offStorage.get("cheongpa:web-push-preference:a"), "on");
 });
 
 test("edge function re-reads notification, filters push types, and removes invalid subscriptions", async () => {

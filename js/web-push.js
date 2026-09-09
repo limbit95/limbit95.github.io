@@ -12,6 +12,36 @@ const restorePromises = new Map();
 const restoredUserIds = new Set();
 const inFlightRestoreClaims = new Map();
 const authContextVersions = new Map();
+let pushMutationQueue = Promise.resolve();
+// Authority order: current auth lifecycle, latest explicit intent, persisted
+// preference, then observed browser/DB state. Observed state never becomes the
+// desired state except for the guarded one-time legacy migration.
+let desiredPushState = { revision: 0, userId: null, contextVersion: null, preference: "off" };
+
+// Device state is shared by every account.  All subscription/ownership writes
+// therefore pass through this queue; a rejected operation must not poison it.
+function enqueuePushMutation(operation) {
+  const result = pushMutationQueue.then(operation, operation);
+  pushMutationQueue = result.catch(() => {});
+  return result;
+}
+
+function updateDesiredPushState(userId, preference) {
+  desiredPushState = {
+    revision: desiredPushState.revision + 1,
+    userId: userId ?? null,
+    contextVersion: userId ? authContextVersions.get(userId) : null,
+    preference,
+  };
+  return desiredPushState;
+}
+
+function isDesired(snapshot) {
+  return desiredPushState.revision === snapshot.revision
+    && desiredPushState.userId === snapshot.userId
+    && desiredPushState.contextVersion === snapshot.contextVersion
+    && desiredPushState.preference === snapshot.preference;
+}
 
 function preferenceKey(userId) {
   return `${PUSH_PREFERENCE_PREFIX}${userId}`;
@@ -46,11 +76,6 @@ export function setPushAuthContextVersion(userId, version) {
     return;
   }
   authContextVersions.set(userId, version);
-}
-
-function hasNewerSameUserContext(userId, contextVersion, getCurrentUserId) {
-  return getCurrentUserId?.() === userId
-    && authContextVersions.get(userId) !== contextVersion;
 }
 
 function applicationServerKey(value) {
@@ -163,102 +188,100 @@ export async function enablePushNotifications(userId) {
     : await Notification.requestPermission();
   if (permission !== "granted") throw new Error("알림 권한이 허용되지 않았습니다.");
 
-  const currentRegistration = await registration();
-  const existing = await currentRegistration.pushManager.getSubscription();
-  const subscription = existing ?? await currentRegistration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+  const desired = updateDesiredPushState(userId, "on");
+  return enqueuePushMutation(async () => {
+    if (!isDesired(desired)) return null;
+    const currentRegistration = await registration();
+    const existing = await currentRegistration.pushManager.getSubscription();
+    const subscription = existing ?? await currentRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+    });
+    await saveSubscription(subscription);
+    if (isDesired(desired)) {
+      setPushPreference(userId, "on");
+      restoredUserIds.add(userId);
+    }
+    return isDesired(desired) ? subscription : null;
   });
-  await saveSubscription(subscription);
-  setPushPreference(userId, "on");
-  restoredUserIds.add(userId);
-  return subscription;
 }
 
 export async function disablePushNotifications(userId) {
-  const subscription = await getCurrentPushSubscription();
-  if (subscription) {
-    let removalError = null;
-    try {
+  const desired = updateDesiredPushState(userId, "off");
+  return enqueuePushMutation(async () => {
+    if (!isDesired(desired)) return false;
+    const subscription = await getCurrentPushSubscription();
+    if (subscription) {
       const { error } = await supabase.rpc("remove_own_push_subscription", {
         p_endpoint: subscription.endpoint,
       });
       if (error) throw error;
-    } catch (error) {
-      removalError = error;
+      // A newer ON waits behind this operation.  Do not unsubscribe the shared
+      // device endpoint when that is now the authoritative desired state.
+      if (isDesired(desired)) await subscription.unsubscribe();
     }
-    await subscription.unsubscribe();
-    if (removalError) throw removalError;
-  }
-  setPushPreference(userId, "off");
-  restoredUserIds.delete(userId);
-  return Boolean(subscription);
+    if (isDesired(desired)) {
+      setPushPreference(userId, "off");
+      restoredUserIds.delete(userId);
+    }
+    return Boolean(subscription) && isDesired(desired);
+  });
 }
 
 export async function cleanupPushSubscriptionForSignOut(userId, {
   accessToken = null,
   isActive = () => true,
 } = {}) {
+  const desired = updateDesiredPushState(null, "off");
   restoredUserIds.delete(userId);
-  const subscription = await getCurrentPushSubscription();
-  if (!subscription || !isActive()) return false;
+  return enqueuePushMutation(async () => {
+    const subscription = await getCurrentPushSubscription();
+    if (!subscription || !isActive()) return false;
 
-  if (getPushPreference(userId) === null) {
+    if (getPushPreference(userId) === null) {
+      try {
+        const state = await getPushNotificationState();
+        if (isActive() && state.owned) setPushPreference(userId, "on");
+      } catch (error) {
+        console.warn("Legacy push preference could not be migrated during sign-out.", error);
+      }
+    }
+    if (!isActive()) return false;
+
+    let removalError = null;
     try {
-      const state = await getPushNotificationState();
-      if (isActive() && state.owned) setPushPreference(userId, "on");
+      if (accessToken) {
+        await removeSubscriptionWithAccessToken(subscription, accessToken);
+      } else {
+        const { error } = await supabase.rpc("remove_own_push_subscription", {
+          p_endpoint: subscription.endpoint,
+        });
+        if (error) throw error;
+      }
     } catch (error) {
-      console.warn("Legacy push preference could not be migrated during sign-out.", error);
+      removalError = error;
     }
-  }
-  if (!isActive()) return false;
 
-  let removalError = null;
-  try {
-    if (accessToken) {
-      await removeSubscriptionWithAccessToken(subscription, accessToken);
-    } else {
-      const { error } = await supabase.rpc("remove_own_push_subscription", {
-        p_endpoint: subscription.endpoint,
-      });
-      if (error) throw error;
+    if (!isActive() || !isDesired(desired)) {
+      if (removalError) throw removalError;
+      return true;
     }
-  } catch (error) {
-    removalError = error;
-  }
 
-  if (!isActive()) {
+    let unsubscribeError = null;
+    try {
+      await subscription.unsubscribe();
+    } catch (error) {
+      unsubscribeError = error;
+    }
     if (removalError) throw removalError;
+    if (unsubscribeError) throw unsubscribeError;
     return true;
-  }
-
-  let unsubscribeError = null;
-  try {
-    await subscription.unsubscribe();
-  } catch (error) {
-    unsubscribeError = error;
-  }
-  if (removalError) throw removalError;
-  if (unsubscribeError) throw unsubscribeError;
-  return true;
-}
-
-async function cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion) {
-  const currentUserId = getCurrentUserId?.();
-  if (!createdByRestore
-    || (currentUserId && currentUserId !== userId)
-    || hasNewerSameUserContext(userId, contextVersion, getCurrentUserId)) return;
-  try {
-    await subscription.unsubscribe();
-  } catch (error) {
-    console.warn("Stale push subscription cleanup failed.", error);
-  }
+  });
 }
 
 async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
   const userId = auth?.user?.id;
   if (!userId || auth.profile?.status !== "approved" || !isCurrent()) return null;
-  const contextVersion = authContextVersions.get(userId);
 
   const capability = getPushCapability();
   if (!capability.supported || capability.requiresIosInstall) return null;
@@ -266,55 +289,34 @@ async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
     || !WEB_PUSH_VAPID_PUBLIC_KEY
     || WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_")) return null;
 
+  const requestRevision = desiredPushState.revision;
   let preference = getPushPreference(userId);
   if (!isCurrent()) return null;
   if (preference === null) {
     const legacyState = await getPushNotificationState();
-    if (!isCurrent() || !legacyState.owned) return null;
-    setPushPreference(userId, "on");
-    restoredUserIds.add(userId);
-    return legacyState.subscription;
+    if (!isCurrent() || desiredPushState.revision !== requestRevision || !legacyState.owned) return null;
+    preference = "on";
   }
   if (preference !== "on") return null;
-
-  const currentRegistration = await registration();
-  if (!isCurrent()) return null;
-  const existing = await currentRegistration.pushManager.getSubscription();
-  if (!isCurrent()) return null;
-  let createdByRestore = false;
-  let subscription = existing;
-  if (!subscription) {
-    if (!isCurrent()) return null;
-    subscription = await currentRegistration.pushManager.subscribe({
+  const desired = updateDesiredPushState(userId, "on");
+  return enqueuePushMutation(async () => {
+    if (!isCurrent() || !isDesired(desired)) return null;
+    const currentRegistration = await registration();
+    const existing = await currentRegistration.pushManager.getSubscription();
+    const subscription = existing ?? await currentRegistration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
     });
-    createdByRestore = true;
-    if (!isCurrent()) {
-      await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
-      return null;
-    }
-  }
-  if (!isCurrent()) {
-    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
-    return null;
-  }
-  const claimPromise = saveSubscription(subscription);
-  trackRestoreClaim(userId, claimPromise);
-  await claimPromise;
-  if (!isCurrent()) {
-    if (!hasNewerSameUserContext(userId, contextVersion, getCurrentUserId)) {
-      try {
-        await removeSubscriptionWithAccessToken(subscription, auth.session?.access_token);
-      } catch (error) {
-        console.warn("Stale push subscription ownership cleanup failed.", error);
-      }
-    }
-    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
-    return null;
-  }
-  restoredUserIds.add(userId);
-  return subscription;
+    const claimPromise = saveSubscription(subscription);
+    trackRestoreClaim(userId, claimPromise);
+    await claimPromise;
+    // Stale work never compensates destructively. A queued newer intent is the
+    // only operation allowed to decide the endpoint's eventual state.
+    if (!isCurrent() || !isDesired(desired)) return null;
+    setPushPreference(userId, "on");
+    restoredUserIds.add(userId);
+    return subscription;
+  });
 }
 
 export function restorePushNotificationsForAuth(auth, {

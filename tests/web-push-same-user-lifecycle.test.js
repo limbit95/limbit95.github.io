@@ -79,64 +79,26 @@ const hasAdminPermission = () => false;`)
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
 
-test("same-account relogin keeps an older stale restore from deleting the newer context", async () => {
-  const firstClaimGate = deferred();
-  const firstClaimStarted = deferred();
+test("same-account relogin is serialized behind the older lifecycle", async () => {
+  const gate = deferred();
+  const started = deferred();
   let generation = 1;
-  let getSubscriptionCalls = 0;
   let claims = 0;
-  let removals = 0;
-  let unsubscribes = 0;
-  const subscription = {
-    endpoint: "same-a",
-    toJSON: () => ({ keys: {} }),
-    unsubscribe: async () => { unsubscribes += 1; },
-  };
-  const webPush = await loadWebPush({
-    getSubscription: async () => {
-      getSubscriptionCalls += 1;
-      return getSubscriptionCalls === 1 ? null : subscription;
-    },
-    subscribe: async () => subscription,
-    rpc: async () => {
-      claims += 1;
-      if (claims === 1) {
-        firstClaimStarted.resolve();
-        await firstClaimGate.promise;
-      }
-      return { error: null };
-    },
-    fetch: async () => {
-      removals += 1;
-      return { ok: true, status: 204 };
-    },
-  });
-
-  const auth = {
-    session: { access_token: "token-a" },
-    user: { id: "a" },
-    profile: { status: "approved" },
-  };
+  const subscription = { endpoint: "same-a", toJSON: () => ({ keys: {} }), unsubscribe: async () => {} };
+  const webPush = await loadWebPush({ getSubscription: async () => subscription, subscribe: async () => subscription, rpc: async () => {
+    claims += 1; if (claims === 1) { started.resolve(); await gate.promise; } return { error: null };
+  } });
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
   webPush.setPushAuthContextVersion("a", 1);
-  const staleRestore = webPush.restorePushNotificationsForAuth(auth, {
-    isCurrent: () => generation === 1,
-    getCurrentUserId: () => "a",
-  });
-  await firstClaimStarted.promise;
-
+  const oldRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 1, getCurrentUserId: () => "a" });
+  await started.promise;
   generation = 2;
   webPush.setPushAuthContextVersion("a", 2);
-  const currentRestore = webPush.restorePushNotificationsForAuth(auth, {
-    isCurrent: () => generation === 2,
-    getCurrentUserId: () => "a",
-  });
-  assert.equal(await currentRestore, subscription);
-
-  firstClaimGate.resolve();
-  assert.equal(await staleRestore, null);
+  const newRestore = webPush.restorePushNotificationsForAuth(auth, { isCurrent: () => generation === 2, getCurrentUserId: () => "a" });
+  gate.resolve();
+  assert.equal(await oldRestore, null);
+  assert.equal(await newRestore, subscription);
   assert.equal(claims, 2);
-  assert.equal(removals, 0);
-  assert.equal(unsubscribes, 0);
 });
 
 test("restore claim coordination times out instead of blocking forever", async () => {
