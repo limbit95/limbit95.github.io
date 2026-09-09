@@ -8,7 +8,7 @@ const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909062324_multistep_signup_verification.sql", import.meta.url), "utf8");
 const transition = readFileSync(new URL("../supabase/site/migrations/20260909094910_native_auth_otp_signup.sql", import.meta.url), "utf8");
 const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909124500_enforce_native_auth_otp_signup.sql", import.meta.url), "utf8");
-const existingEmailGuard = readFileSync(new URL("../supabase/site/migrations/20260910064000_signup_existing_email_guard.sql", import.meta.url), "utf8");
+const existingEmailGuard = readFileSync(new URL("../supabase/site/migrations/20260909221237_signup_existing_email_guard.sql", import.meta.url), "utf8");
 const setupE2E = readFileSync(new URL("../scripts/setup-e2e-member.mjs", import.meta.url), "utf8");
 const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", import.meta.url), "utf8");
 
