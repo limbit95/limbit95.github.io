@@ -135,10 +135,10 @@ test("required privacy and community rules consents persist but push choice stay
   assert.doesNotMatch(auth, /push_opt_in/);
 });
 
-test("authenticated users without a profile stay in or return to signup completion", () => {
-  assert.match(app, /if \(!auth\.profile\) return "\/signup"/);
-  assert.match(app, /routeInfo\.path === "\/signup" && !auth\.profile/);
-  assert.match(app, /current === "\/signup" && auth\.user && !auth\.profile/);
+test("auth-only signup sessions can return to login while explicit signup still resumes", () => {
+  assert.match(app, /if \(!auth\.profile\) return "\/login"/);
+  assert.match(app, /if \(!auth\.profile && \["\/signup", "\/login"\]\.includes\(routeInfo\.path\)\) return true/);
+  assert.match(app, /if \(\["\/signup", "\/login"\]\.includes\(current\) && auth\.user && !auth\.profile\) return/);
   assert.match(signup, /existingAuth\.user && !existingAuth\.profile/);
 });
 
