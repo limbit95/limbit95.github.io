@@ -32,6 +32,7 @@ import {
   enablePushNotifications,
   getPushNotificationState,
   getPushCapability,
+  getPushPreference,
 } from "../web-push.js";
 
 const HISTORY_PAGE_SIZE = 10;
@@ -87,6 +88,7 @@ export async function renderMyPage() {
     ]),
   );
   const pushCapability = getPushCapability();
+  let pushPreference = getPushPreference(auth.user.id);
   let pushState = { subscription: null, owned: false };
   if (pushCapability.supported && !pushCapability.requiresIosInstall) {
     pushState = await getPushNotificationState().catch(() => pushState);
@@ -98,6 +100,24 @@ export async function renderMyPage() {
     pushDescription,
     pushButton,
   ]);
+
+  function isPushEnabled() {
+    return pushPreference === "on" || (pushPreference === null && pushState.owned);
+  }
+
+  function needsPushReauthorization() {
+    const capability = getPushCapability();
+    return pushPreference === "on" && capability.permission === "default";
+  }
+
+  function getPushButtonLabel(enabled, needsReauthorization) {
+    if (needsReauthorization) return "알림 권한 다시 허용하기";
+    // Legacy accounts without a saved preference still fall back to endpoint ownership.
+    if (pushPreference === null) {
+      return pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
+    }
+    return enabled ? "푸시 알림 끄기" : "푸시 알림 받기";
+  }
 
   function renderPushState() {
     const capability = getPushCapability();
@@ -116,22 +136,34 @@ export async function renderMyPage() {
       pushButton.hidden = true;
       return;
     }
+    const enabled = isPushEnabled();
+    const needsReauthorization = needsPushReauthorization();
     pushButton.hidden = false;
-    pushButton.textContent = pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
-    pushDescription.textContent = pushState.owned
-      ? "이 기기에서 푸시 알림을 받고 있습니다."
+    pushButton.textContent = getPushButtonLabel(enabled, needsReauthorization);
+    if (needsReauthorization) {
+      pushDescription.textContent = "저장된 푸시 알림 설정은 켜져 있지만 브라우저 알림 권한을 다시 허용해야 합니다.";
+      return;
+    }
+    pushDescription.textContent = enabled
+      ? (pushState.owned
+          ? "이 기기에서 푸시 알림을 받고 있습니다."
+          : "저장된 푸시 알림 설정을 이 기기에 다시 연결하고 있습니다.")
       : "내가 등록한 활동의 참여 및 취소 소식을 휴대폰이나 PC에서 바로 받을 수 있습니다.";
   }
 
   pushButton.addEventListener("click", async () => {
-    setBusy(pushButton, true, pushState.owned ? "끄는 중…" : "설정 중…");
+    const enabled = isPushEnabled();
+    const needsReauthorization = needsPushReauthorization();
+    setBusy(pushButton, true, needsReauthorization ? "권한 확인 중…" : (enabled ? "끄는 중…" : "설정 중…"));
     try {
-      if (pushState.owned) {
+      if (enabled && !needsReauthorization) {
         await disablePushNotifications(auth.user.id);
+        pushPreference = "off";
         pushState = { subscription: null, owned: false };
         showToast("이 기기의 푸시 알림을 껐습니다.", "success");
       } else {
         pushState = { subscription: await enablePushNotifications(auth.user.id), owned: true };
+        pushPreference = "on";
         showToast("이 기기의 푸시 알림을 켰습니다.", "success");
       }
     } catch (error) {
@@ -143,6 +175,15 @@ export async function renderMyPage() {
   });
   renderPushState();
   root.append(pushSection);
+
+  if (pushPreference === "on" && !pushState.owned && getPushCapability().permission === "granted") {
+    void enablePushNotifications(auth.user.id).then((subscription) => {
+      if (!pushSection.isConnected || getAuthState().user?.id !== auth.user.id) return;
+      pushState = { subscription, owned: true };
+      renderPushState();
+    }).catch(() => {});
+  }
+
   const participationSection = el("section", { className: "page-stack" }, [
     el("div", { className: "page-header" }, [
       el("h2", { className: "section-title", text: "내 참여 활동" }),
