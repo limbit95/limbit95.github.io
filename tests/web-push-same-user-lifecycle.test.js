@@ -127,14 +127,24 @@ test("persisted ON preference recreates the browser subscription after relogin",
   assert.equal(claims, 1);
 });
 
-test("mypage keeps persisted ON intent visible while relogin restore catches up", async () => {
+test("mypage keeps persisted ON intent visible while relogin repair catches up", async () => {
   const source = await readFile("js/pages/mypage.js", "utf8");
   assert.match(source, /getPushPreference\(auth\.user\.id\)/);
   assert.match(source, /return pushPreference === "on" \|\| \(pushPreference === null && pushState\.owned\)/);
-  assert.match(source, /restorePushNotificationsForAuth\(auth/);
+  assert.match(source, /pushPreference === "on" && !pushState\.owned && getPushCapability\(\)\.permission === "granted"/);
+  assert.match(source, /void enablePushNotifications\(auth\.user\.id\)/);
   assert.match(source, /저장된 푸시 알림 설정을 이 기기에 다시 연결하고 있습니다\./);
   assert.match(source, /pushPreference = "off"/);
   assert.match(source, /pushPreference = "on"/);
+});
+
+test("mypage offers direct reauthorization when persisted ON loses notification permission", async () => {
+  const source = await readFile("js/pages/mypage.js", "utf8");
+  assert.match(source, /return pushPreference === "on" && capability\.permission === "default"/);
+  assert.match(source, /알림 권한 다시 허용하기/);
+  assert.match(source, /enabled && !needsReauthorization/);
+  assert.match(source, /needsReauthorization \? "권한 확인 중…"/);
+  assert.match(source, /await enablePushNotifications\(auth\.user\.id\)/);
 });
 
 test("restore claim coordination times out instead of blocking forever", async () => {
