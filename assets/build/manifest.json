@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-I56XUK4K.js",
+  "entry": "assets/build/app-MIKREKKW.js",
   "outputs": [
-    "assets/build/app-I56XUK4K.js",
+    "assets/build/app-MIKREKKW.js",
     "assets/build/chunks/activities-ZMA3OFP6.js",
     "assets/build/chunks/activityDetail-UA4SSTIG.js",
     "assets/build/chunks/activityForm-J2M7M2RD.js",
@@ -40,6 +40,6 @@
     "assets/build/chunks/permissions-SGRETHX4.js",
     "assets/build/chunks/postDetail-N5FDUITO.js",
     "assets/build/chunks/postForm-M7XQBEHX.js",
-    "assets/build/chunks/signup-5WKPVUCL.js"
+    "assets/build/chunks/signup-7ZE7VQNA.js"
   ]
 }

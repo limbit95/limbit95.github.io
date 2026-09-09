@@ -50,20 +50,18 @@ async function requestCode(request: Request, body: Record<string, unknown>) {
   // 별도 cron 없이도 단기 challenge와 요청 IP hash가 오래 남지 않도록 정리한다.
   await client.from("signup_email_challenges").delete().lt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   if (await emailAlreadyRegistered(client, email)) return fail("EMAIL_EXISTS", "이미 가입했거나 가입 신청에 사용된 이메일입니다.", 409);
-  const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
   const ipHash = await digest(ip(request));
-  const [{ count: emailCount }, { count: ipCount }] = await Promise.all([
-    client.from("signup_email_challenges").select("id", { count: "exact", head: true }).eq("email", email).gte("created_at", since),
-    client.from("signup_email_challenges").select("id", { count: "exact", head: true }).eq("request_ip_hash", ipHash).gte("created_at", since),
-  ]);
-  if ((emailCount ?? 0) >= 3 || (ipCount ?? 0) >= 10) return fail("RATE_LIMITED", "인증 요청이 너무 많습니다. 15분 후 다시 시도해 주세요.", 429);
   const code = randomDigits();
   const expiresAt = new Date(Date.now() + CODE_TTL_MS).toISOString();
-  const { data: inserted, error } = await client.from("signup_email_challenges").insert({ email, code_hash: await digest(`${email}:${code}`), request_ip_hash: ipHash, expires_at: expiresAt }).select("id").single();
+  const { data: challengeId, error } = await client.rpc("create_signup_email_challenge", {
+    p_email: email, p_code_hash: await digest(`${email}:${code}`),
+    p_request_ip_hash: ipHash, p_expires_at: expiresAt,
+  });
+  if (error?.message.includes("SIGNUP_RATE_LIMITED")) return fail("RATE_LIMITED", "인증 요청이 너무 많습니다. 15분 후 다시 시도해 주세요.", 429);
   if (error) throw error;
   const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${env("RESEND_API_KEY")}`, "content-type": "application/json" }, body: JSON.stringify({ from: env("SIGNUP_EMAIL_FROM"), to: [email], subject: "[청파 같이] 이메일 인증번호", html: `<p>청파 같이 회원가입 인증번호입니다.</p><p style="font-size:28px;font-weight:700;letter-spacing:6px">${code}</p><p>인증번호는 5분 동안 유효합니다. 본인이 요청하지 않았다면 이 메일을 무시하세요.</p>` }) });
   if (!response.ok) {
-    await client.from("signup_email_challenges").delete().eq("id", inserted.id);
+    await client.from("signup_email_challenges").delete().eq("id", challengeId);
     throw new Error(`EMAIL_DELIVERY_${response.status}`);
   }
   return json({ expires_at: expiresAt, retry_after: 60 });
@@ -81,13 +79,19 @@ async function verifyCode(body: Record<string, unknown>) {
   if (challenge.verified_at) return fail("ALREADY_VERIFIED", "이미 인증이 완료되었습니다.", 409);
   if (Date.parse(challenge.expires_at) <= Date.now()) return fail("CODE_EXPIRED", "인증번호가 만료되었습니다. 재전송해 주세요.", 410);
   if (challenge.failed_attempts >= 5) return fail("TOO_MANY_ATTEMPTS", "인증 시도 횟수를 초과했습니다. 새 인증번호를 요청해 주세요.", 429);
-  if (await digest(`${email}:${code}`) !== challenge.code_hash) {
-    await client.from("signup_email_challenges").update({ failed_attempts: challenge.failed_attempts + 1 }).eq("id", challenge.id);
+  const submittedHash = await digest(`${email}:${code}`);
+  if (submittedHash !== challenge.code_hash) {
+    const { data: failedAttempts, error: failureError } = await client.rpc("record_signup_email_failure", { p_challenge_id: challenge.id });
+    if (failureError) throw failureError;
+    if (failedAttempts === null) return fail("TOO_MANY_ATTEMPTS", "인증 시도 횟수를 초과했습니다. 새 인증번호를 요청해 주세요.", 429);
     return fail("INVALID_CODE", "인증번호가 올바르지 않습니다.");
   }
   const token = randomToken();
-  const { error: updateError } = await client.from("signup_email_challenges").update({ verified_at: new Date().toISOString(), verification_token_hash: await digest(token) }).eq("id", challenge.id).is("verified_at", null);
+  const { data: verified, error: updateError } = await client.rpc("verify_signup_email_challenge", {
+    p_challenge_id: challenge.id, p_code_hash: submittedHash, p_token_hash: await digest(token),
+  });
   if (updateError) throw updateError;
+  if (!verified) return fail("TOO_MANY_ATTEMPTS", "인증번호가 만료되었거나 시도 횟수를 초과했습니다. 새 인증번호를 요청해 주세요.", 429);
   return json({ verification_token: token });
 }
 
@@ -100,24 +104,36 @@ async function completeSignup(body: Record<string, unknown>) {
   if (metadata.privacy_consent !== true || metadata.rules_consent !== true) return fail("CONSENT_REQUIRED", "필수 약관 동의가 필요합니다.");
   const required = ["display_name", "real_name", "birth_year", "age_visibility", "church_group", "request_message", "privacy_policy_version", "community_rules_version"];
   if (required.some((key) => !String(metadata[key] ?? "").trim())) return fail("INVALID_SIGNUP", "필수 가입 정보를 확인해 주세요.");
+  const userMetadata = Object.fromEntries(required.map((key) => [key, metadata[key]]));
+  Object.assign(userMetadata, { privacy_consent: true, rules_consent: true });
   const client = admin();
-  if (await emailAlreadyRegistered(client, email)) return fail("EMAIL_EXISTS", "이미 가입했거나 가입 신청에 사용된 이메일입니다.", 409);
   const tokenHash = await digest(token);
   const validSince = new Date(Date.now() - TOKEN_TTL_MS).toISOString();
-  const { data: rows, error } = await client.from("signup_email_challenges").select("id").eq("email", email).eq("verification_token_hash", tokenHash).not("verified_at", "is", null).gte("verified_at", validSince).is("consumed_at", null).limit(1);
+  const { data: rows, error } = await client.from("signup_email_challenges").select("id,consumed_at").eq("email", email).eq("verification_token_hash", tokenHash).not("verified_at", "is", null).gte("verified_at", validSince).limit(1);
   if (error) throw error;
   const challenge = rows?.[0];
   if (!challenge) return fail("EMAIL_NOT_VERIFIED", "이메일 인증이 유효하지 않습니다. 다시 인증해 주세요.", 403);
+  if (challenge.consumed_at) {
+    const { data: existingSession, error: retryError } = await client.auth.signInWithPassword({ email, password });
+    if (!retryError && existingSession.user) return json({ user: { id: existingSession.user.id, email: existingSession.user.email }, session: existingSession.session, recovered: true });
+    return fail("VERIFICATION_USED", "이미 사용된 이메일 인증입니다. 기존 계정으로 로그인해 주세요.", 409);
+  }
+  if (await emailAlreadyRegistered(client, email)) return fail("EMAIL_EXISTS", "이미 가입했거나 가입 신청에 사용된 이메일입니다.", 409);
   const consumedAt = new Date().toISOString();
   const { data: claimed } = await client.from("signup_email_challenges").update({ consumed_at: consumedAt }).eq("id", challenge.id).is("consumed_at", null).select("id").maybeSingle();
   if (!claimed) return fail("VERIFICATION_USED", "이미 사용된 이메일 인증입니다.", 409);
-  const { data, error: createError } = await client.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { ...metadata, signup_email_verified: true } });
+  const { data, error: createError } = await client.auth.admin.createUser({
+    email, password, email_confirm: true, user_metadata: userMetadata,
+    app_metadata: { signup_verification_challenge_id: challenge.id },
+  });
   if (createError) {
     await client.from("signup_email_challenges").update({ consumed_at: null }).eq("id", challenge.id).eq("consumed_at", consumedAt);
     throw createError;
   }
   const { data: session, error: sessionError } = await client.auth.signInWithPassword({ email, password });
-  if (sessionError) throw sessionError;
+  // Account creation (including its DB trigger) is already committed. A transient
+  // sign-in failure must not turn a successful signup into a destructive rollback.
+  if (sessionError) return json({ user: { id: data.user.id, email: data.user.email }, session: null, sign_in_required: true }, 201);
   return json({ user: { id: data.user.id, email: data.user.email }, session: session.session });
 }
 

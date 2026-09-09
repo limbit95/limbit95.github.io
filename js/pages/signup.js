@@ -40,7 +40,7 @@ export function renderSignup() {
   const fields = {
     privacy_consent: checkbox("privacy_consent", "개인정보 수집 및 이용 동의", true),
     rules_consent: checkbox("rules_consent", "청파 같이 커뮤니티 이용수칙 동의", true),
-    push_opt_in: checkbox("push_opt_in", "푸시 알림 받기", false, "선택 상태만 저장하며 브라우저 알림 권한은 요청하지 않아요."),
+    push_opt_in: checkbox("push_opt_in", "푸시 알림 받기", false, "선택 여부는 최종 확인에만 표시되며 아직 저장하거나 알림 권한을 요청하지 않아요."),
     email: field("email", "이메일", "email", { autocomplete: "email", placeholder: "name@example.com" }, "로그인에 사용하는 이메일입니다."),
     password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "8자 이상 입력해 주세요."),
     display_name: field("display_name", "닉네임", "text", { autocomplete: "nickname", maxlength: "50" }, "게시글과 활동 등에서 주로 표시되며 가입 후 변경할 수 있어요."),
@@ -232,7 +232,6 @@ export function renderSignup() {
           church_group: fields.church_group.input.value.trim(), request_message: fields.request_message.input.value.trim(),
           privacy_consent: true, privacy_policy_version: PRIVACY_POLICY_VERSION,
           rules_consent: true, community_rules_version: COMMUNITY_RULES_VERSION,
-          push_opt_in: fields.push_opt_in.input.checked,
         },
       });
       showToast("가입 신청이 완료되었습니다. 관리자의 승인을 기다려 주세요.", "success", 6000);
