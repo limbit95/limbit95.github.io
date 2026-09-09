@@ -1,15 +1,15 @@
 begin;
 
 -- Phase 4: apply only after signup-verification and the new frontend are deployed.
--- The marker is in raw_app_meta_data (admin-only) and names the consumed DB challenge;
--- caller-controlled raw_user_meta_data is never accepted as proof of email ownership.
+-- The Edge Function binds a server-chosen Auth user UUID to the consumed DB challenge
+-- before creating auth.users; caller-controlled raw_user_meta_data is never accepted
+-- as proof of email ownership.
 create or replace function private.handle_new_auth_user()
 returns trigger
 language plpgsql security definer set search_path = ''
 as $$
 declare
  v_metadata jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
- v_challenge_id uuid;
  v_display_name text := nullif(btrim(v_metadata ->> 'display_name'), '');
  v_real_name text := nullif(btrim(v_metadata ->> 'real_name'), '');
  v_church_group text := nullif(btrim(v_metadata ->> 'church_group'), '');
@@ -21,15 +21,10 @@ declare
  v_privacy_consent boolean := lower(coalesce(v_metadata ->> 'privacy_consent','false')) in ('true','1','yes');
  v_rules_consent boolean := lower(coalesce(v_metadata ->> 'rules_consent','false')) in ('true','1','yes');
 begin
- begin
-   v_challenge_id := nullif(new.raw_app_meta_data ->> 'signup_verification_challenge_id', '')::uuid;
- exception when invalid_text_representation then
-   v_challenge_id := null;
- end;
  if new.email is null then raise exception '이메일 가입만 지원합니다.' using errcode='23514'; end if;
- if v_challenge_id is null or not exists (
+ if not exists (
    select 1 from public.signup_email_challenges c
-    where c.id = v_challenge_id and c.email = lower(new.email)
+    where c.auth_user_id = new.id and c.email = lower(new.email)
       and c.verified_at is not null and c.consumed_at is not null
  ) then
    raise exception '서버에서 확인된 이메일 인증이 필요합니다.' using errcode='23514';
