@@ -8,6 +8,7 @@ import { supabase } from "./supabaseClient.js";
 const SERVICE_WORKER_PATH = "./push-service-worker.js";
 const SERVICE_WORKER_SCOPE = "./";
 const PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:";
+const PUSH_AUTH_CHANGED_MESSAGE = "로그인 상태가 변경되었습니다. 다시 시도해 주세요.";
 const restorePromises = new Map();
 const restoredUserIds = new Set();
 const inFlightOwnershipClaims = new Map();
@@ -301,6 +302,32 @@ function isDesired(snapshot) {
     && desiredPushState.preference === snapshot.preference;
 }
 
+function captureExplicitAuthContext(userId) {
+  const currentUserId = currentPushAuthContext.userId;
+  if (currentUserId && currentUserId !== userId) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+  return {
+    userId,
+    contextVersion: currentUserId === userId
+      ? currentPushAuthContext.contextVersion
+      : authContextVersions.get(userId) ?? null,
+    hadAuthContext: currentUserId === userId,
+  };
+}
+
+function isExplicitAuthContextCurrent(snapshot) {
+  if (!snapshot) return false;
+  if (!snapshot.hadAuthContext) {
+    return !currentPushAuthContext.userId || currentPushAuthContext.userId === snapshot.userId;
+  }
+  return currentPushAuthContext.userId === snapshot.userId
+    && currentPushAuthContext.contextVersion === snapshot.contextVersion
+    && (authContextVersions.get(snapshot.userId) ?? null) === snapshot.contextVersion;
+}
+
+function assertExplicitAuthContextCurrent(snapshot) {
+  if (!isExplicitAuthContextCurrent(snapshot)) throw new Error(PUSH_AUTH_CHANGED_MESSAGE);
+}
+
 function beginExplicitPushIntent(userId, preference) {
   explicitPushIntent = {
     userId,
@@ -486,6 +513,7 @@ export async function getPushNotificationState() {
 }
 
 export async function enablePushNotifications(userId) {
+  const authSnapshot = captureExplicitAuthContext(userId);
   const capability = getPushCapability();
   if (!capability.supported) throw new Error("이 브라우저는 푸시 알림을 지원하지 않습니다.");
   if (capability.requiresIosInstall) throw new Error("iPhone에서는 청파 같이를 홈 화면에 추가한 뒤 푸시 알림을 사용할 수 있습니다.");
@@ -498,6 +526,7 @@ export async function enablePushNotifications(userId) {
     ? "granted"
     : await Notification.requestPermission();
   if (permission !== "granted") throw new Error("알림 권한이 허용되지 않았습니다.");
+  assertExplicitAuthContextCurrent(authSnapshot);
 
   // Permission may have transitioned from default since the auth snapshot was
   // resolved. Refresh capability before creating the ON intent so it receives
@@ -516,18 +545,19 @@ export async function enablePushNotifications(userId) {
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return null;
-    const currentRegistration = await registration();
-    const existing = await currentRegistration.pushManager.getSubscription();
-    const subscription = existing ?? await currentRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
-    });
-    await claimSubscription(userId, desired.contextVersion, subscription);
-    if (isDesired(desired)) {
-      setPushPreference(userId, "on");
-      restoredUserIds.add(userId);
-    }
+      if (!isExplicitAuthContextCurrent(authSnapshot) || !isDesired(desired)) return null;
+      const currentRegistration = await registration();
+      const existing = await currentRegistration.pushManager.getSubscription();
+      const subscription = existing ?? await currentRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: applicationServerKey(WEB_PUSH_VAPID_PUBLIC_KEY),
+      });
+      if (!isExplicitAuthContextCurrent(authSnapshot) || !isDesired(desired)) return null;
+      await claimSubscription(userId, desired.contextVersion, subscription);
+      if (isDesired(desired)) {
+        setPushPreference(userId, "on");
+        restoredUserIds.add(userId);
+      }
       return isDesired(desired) ? subscription : null;
     });
     finishExplicitPushIntent(intent, true);
@@ -540,26 +570,28 @@ export async function enablePushNotifications(userId) {
 }
 
 export async function disablePushNotifications(userId) {
+  const authSnapshot = captureExplicitAuthContext(userId);
   const desired = beginExplicitPushIntent(userId, "off");
   const intent = explicitPushIntent;
   try {
     const result = await enqueuePushMutation(async () => {
-    if (!isDesired(desired)) return false;
-    const subscription = await getCurrentPushSubscription();
-    if (subscription) {
-      const { error } = await supabase.rpc("remove_own_push_subscription", {
-        p_endpoint: subscription.endpoint,
-      });
-      if (error) throw error;
-      // A newer ON waits behind this operation.  Do not unsubscribe the shared
-      // device endpoint when that is now the authoritative desired state.
-      if (isDesired(desired)) await subscription.unsubscribe();
-    }
-    if (isDesired(desired)) {
-      setPushPreference(userId, "off");
-      restoredUserIds.delete(userId);
-    }
-      return Boolean(subscription) && isDesired(desired);
+      if (!isExplicitAuthContextCurrent(authSnapshot) || !isDesired(desired)) return false;
+      const subscription = await getCurrentPushSubscription();
+      if (!isExplicitAuthContextCurrent(authSnapshot) || !isDesired(desired)) return false;
+      if (subscription) {
+        const { error } = await supabase.rpc("remove_own_push_subscription", {
+          p_endpoint: subscription.endpoint,
+        });
+        if (error) throw error;
+        // A newer ON waits behind this operation.  Do not unsubscribe the shared
+        // device endpoint when that is now the authoritative desired state.
+        if (isExplicitAuthContextCurrent(authSnapshot) && isDesired(desired)) await subscription.unsubscribe();
+      }
+      if (isExplicitAuthContextCurrent(authSnapshot) && isDesired(desired)) {
+        setPushPreference(userId, "off");
+        restoredUserIds.delete(userId);
+      }
+      return Boolean(subscription) && isExplicitAuthContextCurrent(authSnapshot) && isDesired(desired);
     });
     finishExplicitPushIntent(intent, true);
     return result;
