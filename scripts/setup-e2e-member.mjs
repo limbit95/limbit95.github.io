@@ -53,6 +53,9 @@ const user = await request("/auth/v1/admin/users", {
     email: normalizedEmail,
     password,
     email_confirm: true,
+    app_metadata: {
+      community_signup_source: "admin_create",
+    },
     user_metadata: {
       display_name: role === "admin" ? "E2E 관리자" : "E2E 회원",
       real_name: role === "admin" ? "E2E 관리자 테스트" : "E2E 테스트",
