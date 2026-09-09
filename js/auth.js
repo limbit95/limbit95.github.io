@@ -231,6 +231,7 @@ function signupRedirect() {
 }
 
 async function sendSignupEmailCode(email) {
+  // Verify ownership of the email first; the user chooses a password only after OTP verification.
   const { data, error } = await supabase.auth.signInWithOtp({
     email,
     options: {
