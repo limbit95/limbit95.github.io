@@ -45,14 +45,44 @@ for (const filename of operatingMigrations) {
   );
 }
 
-// Test-only bootstrap permissions. These grants exist only inside the disposable
-// local Supabase stack. The browser never receives service_role; Node setup
-// scripts use it only to create deterministic fixtures and verify DB state.
+// Test-only bootstrap permissions and fixture support. These objects exist only
+// inside the disposable local Supabase stack. The browser never receives
+// service_role; Node setup scripts use it only to create deterministic fixtures
+// and verify DB state. The pending-* helper still passes through the production
+// AFTER INSERT enforcement trigger; this BEFORE trigger only prepares the trusted
+// challenge row and newly-required rules metadata for that isolated fixture.
 await writeFile(
   path.join(migrationsRoot, "20990101000000_e2e_bootstrap_privileges.sql"),
   [
     "grant all privileges on all tables in schema public to service_role;",
     "grant usage, select on all sequences in schema public to service_role;",
+    "",
+    "create or replace function public.e2e_prepare_pending_signup_fixture()",
+    "returns trigger",
+    "language plpgsql security definer set search_path = ''",
+    "as $$",
+    "begin",
+    "  if lower(coalesce(new.email, '')) like 'pending-%@example.com' then",
+    "    new.raw_user_meta_data := coalesce(new.raw_user_meta_data, '{}'::jsonb)",
+    "      || jsonb_build_object('community_rules_version', 'e2e', 'rules_consent', true);",
+    "    if not exists (select 1 from public.signup_email_challenges where auth_user_id = new.id) then",
+    "      insert into public.signup_email_challenges(",
+    "        email, code_hash, request_ip_hash, expires_at, verified_at,",
+    "        verification_token_hash, auth_user_id, consumed_at",
+    "      ) values (",
+    "        lower(new.email), 'e2e-pending-code', 'e2e-pending-ip',",
+    "        pg_catalog.clock_timestamp() + interval '5 minutes',",
+    "        pg_catalog.clock_timestamp(), 'e2e-pending-token', new.id, pg_catalog.clock_timestamp()",
+    "      );",
+    "    end if;",
+    "  end if;",
+    "  return new;",
+    "end;",
+    "$$;",
+    "drop trigger if exists a_e2e_prepare_pending_signup_fixture on auth.users;",
+    "create trigger a_e2e_prepare_pending_signup_fixture",
+    "before insert on auth.users",
+    "for each row execute function public.e2e_prepare_pending_signup_fixture();",
     "",
   ].join("\n"),
   "utf8",
