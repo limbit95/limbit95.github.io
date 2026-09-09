@@ -96,6 +96,53 @@
   opacity: 0.6;
 }
 
+.player-card__connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  margin-top: 3px;
+  color: rgba(231, 242, 250, 0.78);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.player-card__connection::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #85dfa7;
+  box-shadow: 0 0 0 3px rgba(133, 223, 167, 0.13);
+  content: "";
+}
+
+.player-hud-card[data-connection="offline"] .player-card__connection {
+  color: #ffc0b5;
+}
+
+.player-hud-card[data-connection="offline"] .player-card__connection::before {
+  background: #ff927e;
+  box-shadow: 0 0 0 3px rgba(255, 146, 126, 0.13);
+}
+
+.player-hud-card[data-connection="checking"] .player-card__connection {
+  color: #d7dfeb;
+}
+
+.player-hud-card[data-connection="checking"] .player-card__connection::before {
+  background: #a9b7c9;
+  box-shadow: 0 0 0 3px rgba(169, 183, 201, 0.12);
+}
+
+body[data-online-connection="offline"] .board-action-dock,
+body[data-online-connection="reconnecting"] .board-action-dock,
+body[data-online-connection="channel_error"] .board-action-dock,
+body[data-online-connection="timed_out"] .board-action-dock {
+  pointer-events: none;
+  opacity: 0.68;
+}
+
 @media (max-width: 900px) {
   .online-game-controls {
     right: 8px;
@@ -107,5 +154,9 @@
     min-height: 34px;
     padding: 0 10px;
     font-size: 0.66rem;
+  }
+
+  .player-card__connection {
+    font-size: 0.61rem;
   }
 }
