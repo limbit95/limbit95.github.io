@@ -3,6 +3,7 @@ import {
   requestSignupEmailCode,
   resendSignupEmailCode,
   submitSignupApplication,
+  updatePassword,
   verifySignupEmailCode,
 } from "../auth.js";
 import { COMMUNITY_RULES_VERSION, PRIVACY_POLICY_VERSION } from "../config.js";
@@ -50,7 +51,7 @@ export function renderSignup() {
     rules_consent: checkbox("rules_consent", "청파 같이 커뮤니티 이용수칙 동의", true),
     push_opt_in: checkbox("push_opt_in", "푸시 알림 받기", false, "선택 여부는 최종 확인에만 표시되며 아직 저장하거나 알림 권한을 요청하지 않아요."),
     email: field("email", "이메일", "email", { autocomplete: "email", placeholder: "name@example.com" }, "로그인에 사용하는 이메일입니다."),
-    password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "인증번호를 처음 받을 때 설정되며 8자 이상 입력해 주세요."),
+    password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "이메일 인증 완료 후 사용할 비밀번호를 8자 이상 입력해 주세요."),
     display_name: field("display_name", "닉네임", "text", { autocomplete: "nickname", maxlength: "50" }, "게시글과 활동 등에서 주로 표시되며 가입 후 변경할 수 있어요."),
     real_name: field("real_name", "실명", "text", { autocomplete: "name", maxlength: "50" }, "실제 회원을 확인하기 위한 이름이며 청파 같이 구성원이 확인할 수 있습니다."),
     birth_year: field("birth_year", "출생연도", "number", { min: "1900", max: String(currentYear), inputmode: "numeric" }),
@@ -109,37 +110,42 @@ export function renderSignup() {
     const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
     const isAwaitingCode = codeRequested && !isVerified;
     fields.email.input.disabled = isVerified || isAwaitingCode;
-    fields.password.input.disabled = isVerified || isAwaitingCode;
-    const emailRow = el("div", { className: "signup-email-row" }, [
-      fields.email.root,
-      el("button", {
-        className: "button button--ghost",
-        type: "button",
-        text: isVerified ? "인증 완료" : codeRequested ? "재전송" : "인증번호 받기",
-        disabled: isVerified,
-        onclick: sendCode,
-      }),
+    fields.password.input.disabled = !isVerified;
+
+    const emailButton = el("button", {
+      className: "button button--ghost",
+      type: "button",
+      text: isVerified ? "인증 완료" : codeRequested ? "재전송" : "인증번호 받기",
+      disabled: isVerified,
+      onclick: sendCode,
+    });
+    const emailField = el("div", { className: "field" }, [
+      el("label", { className: "required", for: fields.email.input.id, text: "이메일" }),
+      el("div", { className: "signup-email-row" }, [fields.email.input, emailButton]),
+      el("p", { className: "field-help", text: "이메일만 입력하면 인증번호를 받을 수 있습니다." }),
+      errorLine("email"),
     ]);
+
     const codeInput = el("input", { id: "signup-code", name: "verification_code", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", pattern: "[0-9]{6}", placeholder: "6자리 인증번호" });
     const timer = el("p", { className: "field-help", "aria-live": "polite" });
     const codeArea = codeRequested && !isVerified ? el("div", { className: "field" }, [
       el("label", { className: "required", for: "signup-code", text: "인증번호" }),
       el("div", { className: "signup-code-row" }, [codeInput, el("button", { className: "button button--coral", type: "button", text: "인증확인", onclick: () => verifyCode(codeInput) })]),
       timer,
-      el("p", { className: "field-help", text: "인증을 완료하기 전에는 이메일과 비밀번호를 변경할 수 없습니다." }),
+      el("p", { className: "field-help", text: "인증을 완료하기 전에는 이메일을 변경할 수 없습니다." }),
       errorLine("verification_code"),
     ]) : null;
-    panel.replaceChildren(
-      emailRow,
-      codeArea,
-      isVerified ? el("p", { className: "signup-verified", text: "✓ 이메일 인증이 완료되었습니다." }) : null,
-      isVerified
-        ? el("div", { className: "field" }, [el("strong", { text: "비밀번호 설정됨" }), el("p", { className: "field-help", text: "비밀번호는 이메일 인증을 시작할 때 설정되었습니다." })])
-        : fields.password.root,
-      fields.display_name.root,
-      fields.real_name.root,
-      actionButtons(),
-    );
+
+    const accountChildren = [emailField, codeArea];
+    if (isVerified) {
+      accountChildren.push(
+        el("p", { className: "signup-verified", text: "✓ 이메일 인증이 완료되었습니다. 이제 비밀번호를 설정해 주세요." }),
+        fields.password.root,
+      );
+    }
+    accountChildren.push(fields.display_name.root, fields.real_name.root, actionButtons());
+    panel.replaceChildren(...accountChildren.filter(Boolean));
+
     if (codeArea) {
       const tick = () => {
         const left = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
@@ -157,13 +163,10 @@ export function renderSignup() {
     const email = fields.email.input.value.trim().toLowerCase();
     if (!validateEmail(email)) return setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요.");
     if (Date.now() < resendAt) return setFieldError(form, "email", "잠시 후 다시 요청해 주세요.");
-    if (!codeRequested && !validatePassword(fields.password.input.value)) {
-      return setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요.");
-    }
     setBusy(form, true, "발송 중…");
     try {
       if (codeRequested) await resendSignupEmailCode(email);
-      else await requestSignupEmailCode(email, fields.password.input.value);
+      else await requestSignupEmailCode(email);
       codeRequested = true;
       expiresAt = Date.now() + OTP_TTL_MS;
       resendAt = Date.now() + OTP_RESEND_MS;
@@ -228,7 +231,7 @@ export function renderSignup() {
       required(fields.real_name, "실명을 입력해 주세요.");
       if (!validateEmail(fields.email.input.value)) { setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요."); valid = false; }
       if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) { setFieldError(form, "email", "이메일 인증을 완료해 주세요."); valid = false; }
-      if (!verifiedEmail && !validatePassword(fields.password.input.value)) { setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요."); valid = false; }
+      if (!validatePassword(fields.password.input.value)) { setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요."); valid = false; }
       if (!valueInRange(fields.display_name.input.value, 1, 50)) { setFieldError(form, "display_name", "닉네임은 1~50자로 입력해 주세요."); valid = false; }
       if (!valueInRange(fields.real_name.input.value, 1, 50)) { setFieldError(form, "real_name", "실명은 1~50자로 입력해 주세요."); valid = false; }
     }
@@ -240,7 +243,23 @@ export function renderSignup() {
     return valid;
   }
 
-  function nextStep() { if (validateStep(step)) goTo(step + 1); }
+  async function nextStep() {
+    if (!validateStep(step)) return;
+    if (step === 2) {
+      setBusy(form, true, "비밀번호 설정 중…");
+      try {
+        await updatePassword(fields.password.input.value);
+        goTo(step + 1);
+      } catch (error) {
+        setFieldError(form, "password", getErrorMessage(error));
+      } finally {
+        setBusy(form, false);
+      }
+      return;
+    }
+    goTo(step + 1);
+  }
+
   function goTo(next) { step = next; renderStep(); heading.focus(); }
 
   form.addEventListener("submit", async (event) => {
