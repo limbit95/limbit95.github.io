@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { appendFile } from "node:fs/promises";
 import process from "node:process";
 
@@ -48,31 +47,9 @@ async function request(path, options = {}) {
 }
 
 const normalizedEmail = email.trim().toLowerCase();
-const authUserId = randomUUID();
-const challengeId = randomUUID();
-const verifiedAt = new Date().toISOString();
-const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-
-await request("/rest/v1/signup_email_challenges", {
-  method: "POST",
-  headers: { Prefer: "return=minimal" },
-  body: JSON.stringify({
-    id: challengeId,
-    email: normalizedEmail,
-    code_hash: "e2e-code-hash",
-    request_ip_hash: `e2e-${role}`,
-    expires_at: expiresAt,
-    verified_at: verifiedAt,
-    verification_token_hash: "e2e-token-hash",
-    auth_user_id: authUserId,
-    consumed_at: verifiedAt,
-  }),
-});
-
 const user = await request("/auth/v1/admin/users", {
   method: "POST",
   body: JSON.stringify({
-    id: authUserId,
     email: normalizedEmail,
     password,
     email_confirm: true,

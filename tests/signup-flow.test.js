@@ -4,112 +4,96 @@ import test from "node:test";
 
 const signup = readFileSync(new URL("../js/pages/signup.js", import.meta.url), "utf8");
 const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
-const edge = readFileSync(new URL("../supabase/functions/signup-verification/index.ts", import.meta.url), "utf8");
-const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909120000_multistep_signup_verification.sql", import.meta.url), "utf8");
-const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909123000_enforce_verified_signup.sql", import.meta.url), "utf8");
+const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
+const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909062324_multistep_signup_verification.sql", import.meta.url), "utf8");
+const transition = readFileSync(new URL("../supabase/site/migrations/20260909123000_native_auth_otp_signup.sql", import.meta.url), "utf8");
+const setupE2E = readFileSync(new URL("../scripts/setup-e2e-member.mjs", import.meta.url), "utf8");
+const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", import.meta.url), "utf8");
 
-const combinedMigration = `${infrastructure}\n${enforcement}`;
+const signupSubmitBlock = signup.match(/form\.addEventListener\("submit"[\s\S]*?\n  \}\);/)?.[0] ?? "";
 
-test("signup is a four-step flow and only the final submit completes signup", () => {
+test("signup remains a four-step flow and only final submit creates the community application", () => {
   assert.match(signup, /const STEP_LABELS = \["약관 동의", "기본 정보", "회원 정보", "최종 확인"\]/);
-  assert.equal((signup.match(/completeVerifiedSignup\(/g) ?? []).length, 1);
   assert.match(signup, /form\.addEventListener\("submit"/);
-  assert.match(signup, /\[1, 2, 3\]\.every\(validateStep\)/);
+  assert.equal((signup.match(/submitSignupApplication\(/g) ?? []).length, 1);
+  assert.doesNotMatch(signup, /completeVerifiedSignup|verificationToken/);
+  assert.match(signupSubmitBlock, /submitSignupApplication\(\{/);
 });
 
-test("required agreements and verified token gate final submission", () => {
-  assert.match(signup, /!fields\.privacy_consent\.input\.checked/);
-  assert.match(signup, /!fields\.rules_consent\.input\.checked/);
-  assert.match(signup, /!verificationToken \|\| verifiedEmail !== fields\.email\.input\.value/);
-  assert.match(edge, /\.eq\("verification_token_hash", tokenHash\)/);
-  assert.match(edge, /\.gte\("verified_at", validSince\)/);
-  assert.match(edge, /if \(!challenge\) return fail\("EMAIL_NOT_VERIFIED"/);
-  assert.match(edge, /if \(challenge\.consumed_at\)/);
+test("email verification uses native Supabase Auth signup OTP and resend APIs", () => {
+  assert.match(auth, /supabase\.auth\.signUp\(\{/);
+  assert.match(auth, /data: \{ signup_flow: "auth_otp" \}/);
+  assert.match(auth, /supabase\.auth\.resend\(\{[\s\S]*type: "signup"[\s\S]*email/);
+  assert.match(auth, /supabase\.auth\.verifyOtp\(\{[\s\S]*email,[\s\S]*token: code,[\s\S]*type: "email"/);
+  assert.doesNotMatch(auth, /functions\.invoke\("signup-verification"|invokeSignupVerification/);
+  assert.doesNotMatch(auth, /RESEND_API_KEY|SIGNUP_VERIFICATION_PEPPER|SIGNUP_EMAIL_FROM/);
 });
 
-test("caller-controlled metadata cannot bypass verified signup", () => {
-  assert.doesNotMatch(enforcement, /raw_user_meta_data[^\n]*signup_email_verified|v_metadata ->> 'signup_email_verified'/);
-  assert.doesNotMatch(enforcement, /raw_app_meta_data[^\n]*signup_verification_challenge_id/);
-  assert.match(infrastructure, /auth_user_id uuid unique/);
-  assert.match(enforcement, /c\.auth_user_id = new\.id and c\.email = lower\(new\.email\)/);
-  assert.match(enforcement, /c\.verified_at is not null and c\.consumed_at is not null/);
-  assert.match(edge, /const authUserId = crypto\.randomUUID\(\)/);
-  assert.match(edge, /rpc\("claim_signup_email_challenge"/);
-  assert.match(edge, /id: authUserId, email, password, email_confirm: true/);
-  assert.doesNotMatch(edge, /app_metadata:[^\n]*signup_verification_challenge_id/);
-  assert.doesNotMatch(edge, /signup_email_verified/);
+test("signup UI keeps six-digit verification, five-minute display and resend cooldown", () => {
+  assert.match(signup, /OTP_TTL_MS = 5 \* 60 \* 1000/);
+  assert.match(signup, /OTP_RESEND_MS = 60 \* 1000/);
+  assert.match(signup, /maxlength: "6"/);
+  assert.match(signup, /pattern: "\[0-9\]\{6\}"/);
+  assert.match(signup, /verifySignupEmailCode\(email, input\.value\)/);
+  assert.match(signup, /resendSignupEmailCode\(email\)/);
+  assert.match(signup, /\["비밀번호", "설정됨"\]/);
 });
 
-test("code failure and success transitions are atomic and capped at five", () => {
-  assert.match(infrastructure, /set failed_attempts = failed_attempts \+ 1/);
-  assert.match(infrastructure, /and failed_attempts < 5[\s\S]*returning failed_attempts into v_attempts/);
-  assert.match(infrastructure, /and code_hash = p_code_hash[\s\S]*and expires_at >[\s\S]*and failed_attempts < 5/);
-  assert.match(edge, /rpc\("record_signup_email_failure"/);
-  assert.match(edge, /rpc\("verify_signup_email_challenge"/);
-  assert.match(edge, /CODE_TTL_MS = 5 \* 60 \* 1000/);
+test("native Auth users do not create profiles or join requests until final application", () => {
+  assert.match(transition, /v_signup_flow text := nullif\(btrim\(v_metadata ->> 'signup_flow'\), ''\)/);
+  assert.match(transition, /if v_signup_flow = 'auth_otp' then[\s\S]*return new;/);
+  assert.match(transition, /Legacy frontend compatibility during the staged rollout/);
+  assert.match(transition, /insert into public\.profiles/);
+  assert.match(transition, /insert into public\.join_requests/);
 });
 
-test("challenge creation rate limits are serialized in the database", () => {
-  assert.match(infrastructure, /pg_advisory_xact_lock[\s\S]*signup-email:/);
-  assert.match(infrastructure, /pg_advisory_xact_lock[\s\S]*signup-ip:/);
-  assert.match(infrastructure, />= 3[\s\S]*>= 10[\s\S]*SIGNUP_RATE_LIMITED/);
-  assert.match(edge, /rpc\("create_signup_email_challenge"/);
+test("final application RPC derives identity and verified email on the server", () => {
+  assert.match(transition, /v_user_id uuid := auth\.uid\(\)/);
+  assert.match(transition, /from auth\.users u[\s\S]*where u\.id = v_user_id/);
+  assert.match(transition, /u\.email_confirmed_at/);
+  assert.match(transition, /if v_email_confirmed_at is null then/);
+  assert.doesNotMatch(transition, /submit_join_request\([^)]*p_user_id/);
+  assert.doesNotMatch(transition, /submit_join_request\([^)]*p_email/);
+  assert.match(transition, /values\(v_user_id,v_display_name,v_real_name/);
+  assert.match(transition, /v_user_id,v_email,v_real_name/);
 });
 
-test("verification is consumed once and retry recovers a completed account", () => {
-  assert.match(infrastructure, /set consumed_at = pg_catalog\.clock_timestamp\(\), auth_user_id = p_auth_user_id/);
-  assert.match(infrastructure, /and consumed_at is null and auth_user_id is null/);
-  assert.match(edge, /rpc\("claim_signup_email_challenge"/);
-  assert.match(edge, /existingSession[\s\S]*recovered: true/);
-  assert.match(edge, /sign_in_required: true/);
-  assert.match(edge, /email_confirm: true/);
-  assert.match(edge, /update\(\{ consumed_at: null, auth_user_id: null \}\)[\s\S]*eq\("auth_user_id", authUserId\)/);
+test("final application is transactional, serialized and idempotent", () => {
+  assert.match(transition, /pg_advisory_xact_lock[\s\S]*submit-join:/);
+  assert.match(transition, /if v_profile_exists and v_request_exists then[\s\S]*already_submitted', true/);
+  assert.match(transition, /if v_profile_exists <> v_request_exists then[\s\S]*가입 신청 데이터 상태가 일치하지 않습니다/);
+  assert.match(transition, /return jsonb_build_object\('submitted', true, 'already_submitted', false\)/);
+  assert.match(transition, /^begin;[\s\S]*commit;\s*$/);
 });
 
-test("completed signup routes according to whether sign-in is required", () => {
-  assert.match(signup, /const result = await completeVerifiedSignup\(/);
-  assert.match(signup, /if \(result\.sign_in_required === true\)[\s\S]*가입 신청은 정상적으로 완료되었습니다[\s\S]*#\/login/);
-  assert.match(signup, /가입 신청이 완료되었습니다\. 관리자의 승인을 기다려 주세요\.[\s\S]*#\/pending/);
-  assert.match(auth, /if \(data\?\.session\?\.access_token && data\?\.session\?\.refresh_token\) \{[\s\S]*supabase\.auth\.setSession\(data\.session\)[\s\S]*refreshAuthContext\(sessionData\.session/);
-});
-
-test("signup persists profiles, real names and consent but no push preference", () => {
-  assert.match(enforcement, /insert into public\.profiles\(id,display_name,real_name/);
-  assert.match(enforcement, /insert into public\.join_requests/);
-  assert.match(enforcement, /privacy_consent_at,privacy_policy_version,rules_consent_at,community_rules_version/);
-  assert.doesNotMatch(combinedMigration, /push_opt_in/);
-  assert.doesNotMatch(edge, /push_opt_in/);
-  assert.doesNotMatch(signup.match(/metadata: \{[\s\S]*?\n        \},/)?.[0] ?? "", /push_opt_in/);
+test("required privacy and community rules consents persist but push choice stays UI-only", () => {
+  assert.match(transition, /privacy_consent_at,privacy_policy_version,rules_consent_at,community_rules_version/);
+  assert.match(transition, /not coalesce\(p_privacy_consent, false\)/);
+  assert.match(transition, /not coalesce\(p_rules_consent, false\)/);
   assert.match(signup, /\["푸시 알림 받기", fields\.push_opt_in\.input\.checked/);
-  assert.doesNotMatch(signup, /Notification\.requestPermission|PushSubscription|push_subscriptions|web-push/);
+  assert.doesNotMatch(signupSubmitBlock, /push_opt_in/);
+  assert.doesNotMatch(transition, /push_opt_in/);
+  assert.doesNotMatch(auth, /push_opt_in/);
 });
 
-test("existing real names are backfilled without overwriting profiles", () => {
+test("authenticated users without a profile stay in or return to signup completion", () => {
+  assert.match(app, /if \(!auth\.profile\) return "\/signup"/);
+  assert.match(app, /routeInfo\.path === "\/signup" && !auth\.profile/);
+  assert.match(app, /current === "\/signup" && auth\.user && !auth\.profile/);
+  assert.match(signup, /existingAuth\.user && !existingAuth\.profile/);
+});
+
+test("historical phase-one migration remains preserved for real-name backfill", () => {
+  assert.match(infrastructure, /create table public\.signup_email_challenges/);
   assert.match(infrastructure, /set real_name = nullif\(btrim\(j\.real_name\), ''\)/);
   assert.match(infrastructure, /p\.id = j\.user_id[\s\S]*p\.real_name is null/);
-  assert.match(infrastructure, /p\.status='approved'/);
-  assert.match(infrastructure, /if not private\.is_approved_member\(\)/);
-  assert.doesNotMatch(infrastructure, /set (email|request_message|admin_note)\s*=/);
+  assert.match(infrastructure, /rules_consent_at/);
+  assert.match(infrastructure, /community_rules_version/);
 });
 
-test("challenge RPCs and table are service-role only", () => {
-  assert.match(infrastructure, /alter table public\.signup_email_challenges enable row level security/);
-  assert.match(infrastructure, /revoke all on table public\.signup_email_challenges from public, anon, authenticated/);
-  for (const signature of [
-    "create_signup_email_challenge\\(text,text,text,timestamptz\\)",
-    "record_signup_email_failure\\(uuid\\)",
-    "verify_signup_email_challenge\\(uuid,text,text\\)",
-    "claim_signup_email_challenge\\(uuid,uuid\\)",
-  ]) {
-    assert.match(infrastructure, new RegExp(`revoke all on function public\\.${signature} from public, anon, authenticated`));
-    assert.match(infrastructure, new RegExp(`grant execute on function public\\.${signature} to service_role`));
-  }
-});
-
-test("rollout keeps the old trigger until the final enforcement migration", () => {
-  assert.match(infrastructure, /Backward-compatible trigger for the rollout window/);
-  assert.doesNotMatch(infrastructure, /c\.auth_user_id = new\.id/);
-  assert.match(enforcement, /Phase 4: apply only after signup-verification and the new frontend are deployed/);
-  assert.match(enforcement, /create or replace function private\.handle_new_auth_user/);
-  assert.match(enforcement, /c\.auth_user_id = new\.id/);
+test("E2E fixtures no longer synthesize custom signup challenges", () => {
+  assert.doesNotMatch(setupE2E, /signup_email_challenges|challengeId|verification_token_hash/);
+  assert.doesNotMatch(prepareE2E, /e2e_prepare_pending_signup_fixture|signup_email_challenges/);
+  assert.match(setupE2E, /community_rules_version: "2026-09"/);
+  assert.match(setupE2E, /rules_consent: true/);
 });

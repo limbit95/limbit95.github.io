@@ -64,8 +64,8 @@ baseline 실행 후 seed를 실행합니다.
 6. `20260825090540_add_date_poll_fk_covering_indexes`
 7. `20260825103805_add_public_member_profiles_by_ids`
 8. `20260908090000_add_admin_permission_system` (운영 적용 완료)
-9. `20260909062324_multistep_signup_verification` (운영 적용 완료, 회원가입 Phase 1)
-10. `20260909123000_enforce_verified_signup` (운영 적용 전)
+9. `20260909062324_multistep_signup_verification` (운영 적용 완료, 회원가입 Phase 1 이력)
+10. `20260909123000_native_auth_otp_signup` (운영 적용 전)
 
 ### 관리자 역할 및 영역 권한
 
@@ -126,25 +126,19 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 - Advisor의 SECURITY DEFINER 경고는 실제 호출 주체와 함수 내부 권한 검사를 확인한 뒤 판단합니다.
 - `liar_*`, `splendor_*` 객체와 게임 전용 SQL은 별도 관리하며 이 디렉터리에서 수정하지 않습니다.
 
-### 다단계 회원가입 이메일 인증 배포
+### 다단계 회원가입 이메일 OTP 배포
 
-회원가입은 중간 배포 상태에서 기존 화면과 새 화면이 모두 동작하도록 아래 순서로 배포합니다.
+회원가입 이메일 인증은 별도 메일 API를 두지 않고 **Supabase Auth의 기본 가입 확인 이메일과 OTP 검증 기능**을 사용합니다. 운영에 이미 적용된 `20260909062324_multistep_signup_verification.sql`은 당시 custom challenge 구조를 준비했던 이력으로 그대로 보존하며, 최종 전환에서는 해당 challenge를 사용하지 않습니다.
 
-1. `20260909062324_multistep_signup_verification.sql` — **2026-09-09 운영 적용 완료**. challenge/RPC, 동의 컬럼,
-   실명 backfill을 추가하고 기존 가입 계약도 허용하는 하위 호환 Auth trigger를 배포합니다.
-2. `SIGNUP_VERIFICATION_PEPPER`, `RESEND_API_KEY`, `SIGNUP_EMAIL_FROM` secret을 설정하고
-   `supabase functions deploy signup-verification --no-verify-jwt`로 Edge Function을 배포합니다.
-3. 새 프론트엔드를 배포합니다.
-4. 마지막으로 `20260909123000_enforce_verified_signup.sql`을 적용해 구 Auth 가입 경로를
-   차단합니다. 이 단계 이후 Edge Function은 인증된 challenge를 서버가 생성한 Auth user UUID에
-   먼저 원자적으로 바인딩하고, Auth trigger는 `new.id`와 DB의 해당 바인딩·이메일·인증/소비 상태를
-   함께 확인합니다. 일반 클라이언트가 보내는 `raw_user_meta_data`나 생성 이후 갱신되는 custom
-   `app_metadata`를 이메일 소유권 증거로 사용하지 않습니다.
+배포 순서는 다음과 같습니다.
 
-Phase 1 적용 후 운영 DB에서 기존 17개 프로필의 실명 backfill이 모두 완료되고 `join_requests.real_name`과 불일치가 없음을 확인했습니다. `signup_email_challenges`는 RLS가 활성화되어 있고 `anon`/`authenticated` 테이블 권한과 challenge RPC 실행 권한은 제거되어 있으며 `service_role`만 접근할 수 있음을 확인했습니다.
+1. `20260909062324_multistep_signup_verification.sql` — **2026-09-09 운영 적용 완료**. `profiles.real_name`, 이용수칙 동의 컬럼과 실명 backfill은 계속 사용합니다. 이 migration에 포함된 custom challenge 테이블/RPC는 전환 완료 후 별도 cleanup 대상입니다.
+2. Supabase Dashboard의 **Auth > Email Templates > Confirm signup** 템플릿을 `{{ .ConfirmationURL }}` 링크 방식 대신 `{{ .Token }}` 6자리 코드가 표시되도록 변경합니다. Email OTP Expiration은 300초를 기준으로 맞춥니다.
+3. `20260909123000_native_auth_otp_signup.sql`을 적용합니다. `signup_flow = 'auth_otp'` Auth 사용자는 `auth.users`만 먼저 생성하고, `profiles`/`join_requests` 생성은 이메일 인증 이후 `submit_join_request` RPC까지 미룹니다. 기존 운영 프론트의 full-metadata 가입 경로는 새 프론트 배포 전까지 계속 허용합니다.
+4. 새 회원가입 프론트엔드를 배포합니다. 최초 인증번호 요청은 `supabase.auth.signUp()`, 재전송은 `supabase.auth.resend({ type: 'signup' })`, 코드 검증은 `supabase.auth.verifyOtp({ type: 'email' })`를 사용합니다.
+5. 최종 `가입 신청`은 인증된 세션에서 `submit_join_request` RPC를 호출합니다. RPC는 `auth.uid()`와 `auth.users.email/email_confirmed_at`을 서버에서 확인하고 `profiles`와 `join_requests`를 한 트랜잭션으로 생성합니다.
+6. 정상 가입, 잘못된/만료 OTP, 재전송, 가입 도중 이탈 후 복귀, 관리자 승인 대기 흐름을 검증한 뒤 기존 `signup_email_challenges`와 challenge RPC, 미사용 `signup-verification` Edge Function을 별도 cleanup합니다.
 
-challenge 테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했습니다. 생성,
-실패 횟수 증가, 성공 검증, Auth user UUID 바인딩 RPC도 service role에만 허용됩니다. 요청 rate
-limit은 DB advisory transaction lock 안에서 집계와 insert를 수행하고, 실패 횟수와 최종 challenge
-claim은 각각 조건부 단일 `UPDATE`로 처리합니다. service role key와 pepper는 브라우저에 전달하지
-않습니다.
+`submit_join_request`에는 사용자 ID나 이메일을 클라이언트 입력으로 받지 않습니다. 동일 사용자의 최종 신청은 transaction advisory lock으로 직렬화하고 이미 양쪽 신청 데이터가 존재하면 idempotent 성공으로 처리합니다. 한쪽 데이터만 존재하는 비정상 상태는 오류로 차단합니다.
+
+선택형 푸시 알림 체크는 이번 회원가입 변경에서도 UI에만 유지하며 Auth metadata, DB 또는 Push Subscription에 저장하지 않습니다.

@@ -1,6 +1,8 @@
 import {
-  completeVerifiedSignup,
+  getAuthState,
   requestSignupEmailCode,
+  resendSignupEmailCode,
+  submitSignupApplication,
   verifySignupEmailCode,
 } from "../auth.js";
 import { COMMUNITY_RULES_VERSION, PRIVACY_POLICY_VERSION } from "../config.js";
@@ -21,12 +23,18 @@ const AGE_LABELS = {
   age_group: "연령대만 공개 (예: 20대)",
   birth_year: "출생연도 공개 (예: 1995년생)",
 };
+const OTP_TTL_MS = 5 * 60 * 1000;
+const OTP_RESEND_MS = 60 * 1000;
 
 export function renderSignup() {
   const currentYear = new Date().getFullYear();
+  const existingAuth = getAuthState();
+  const existingVerifiedEmail = existingAuth.user && !existingAuth.profile
+    ? String(existingAuth.user.email ?? "").trim().toLowerCase()
+    : "";
   let step = 1;
-  let verifiedEmail = "";
-  let verificationToken = "";
+  let verifiedEmail = existingVerifiedEmail;
+  let codeRequested = false;
   let expiresAt = 0;
   let resendAt = 0;
   let timerId = null;
@@ -42,7 +50,7 @@ export function renderSignup() {
     rules_consent: checkbox("rules_consent", "청파 같이 커뮤니티 이용수칙 동의", true),
     push_opt_in: checkbox("push_opt_in", "푸시 알림 받기", false, "선택 여부는 최종 확인에만 표시되며 아직 저장하거나 알림 권한을 요청하지 않아요."),
     email: field("email", "이메일", "email", { autocomplete: "email", placeholder: "name@example.com" }, "로그인에 사용하는 이메일입니다."),
-    password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "8자 이상 입력해 주세요."),
+    password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "인증번호를 처음 받을 때 설정되며 8자 이상 입력해 주세요."),
     display_name: field("display_name", "닉네임", "text", { autocomplete: "nickname", maxlength: "50" }, "게시글과 활동 등에서 주로 표시되며 가입 후 변경할 수 있어요."),
     real_name: field("real_name", "실명", "text", { autocomplete: "name", maxlength: "50" }, "실제 회원을 확인하기 위한 이름이며 청파 같이 구성원이 확인할 수 있습니다."),
     birth_year: field("birth_year", "출생연도", "number", { min: "1900", max: String(currentYear), inputmode: "numeric" }),
@@ -51,17 +59,7 @@ export function renderSignup() {
     request_message: textareaField("request_message", "가입 신청 내용", "관리자가 가입자를 확인할 수 있도록 간단한 소개나 가입 관련 내용을 작성해 주세요."),
   };
 
-  fields.email.input.addEventListener("input", () => {
-    const normalized = fields.email.input.value.trim().toLowerCase();
-    if (verifiedEmail && normalized !== verifiedEmail) invalidateVerification();
-  });
-
-  function invalidateVerification() {
-    verifiedEmail = "";
-    verificationToken = "";
-    expiresAt = 0;
-    if (step === 2) renderStep();
-  }
+  if (existingVerifiedEmail) fields.email.input.value = existingVerifiedEmail;
 
   function updateProgress() {
     progress.replaceChildren(...STEP_LABELS.map((label, index) => el("li", {
@@ -108,26 +106,44 @@ export function renderSignup() {
 
   function renderAccount() {
     const normalized = fields.email.input.value.trim().toLowerCase();
-    const isVerified = Boolean(verificationToken && verifiedEmail === normalized);
+    const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
+    fields.email.input.disabled = isVerified;
+    fields.password.input.disabled = isVerified;
     const emailRow = el("div", { className: "signup-email-row" }, [
       fields.email.root,
-      el("button", { className: "button button--ghost", type: "button", text: isVerified ? "인증 완료" : expiresAt ? "재전송" : "인증하기", disabled: isVerified, onclick: sendCode }),
+      el("button", {
+        className: "button button--ghost",
+        type: "button",
+        text: isVerified ? "인증 완료" : codeRequested ? "재전송" : "인증번호 받기",
+        disabled: isVerified,
+        onclick: sendCode,
+      }),
     ]);
     const codeInput = el("input", { id: "signup-code", name: "verification_code", type: "text", inputmode: "numeric", autocomplete: "one-time-code", maxlength: "6", pattern: "[0-9]{6}", placeholder: "6자리 인증번호" });
     const timer = el("p", { className: "field-help", "aria-live": "polite" });
-    const codeArea = expiresAt && !isVerified ? el("div", { className: "field" }, [
+    const codeArea = codeRequested && !isVerified ? el("div", { className: "field" }, [
       el("label", { className: "required", for: "signup-code", text: "인증번호" }),
       el("div", { className: "signup-code-row" }, [codeInput, el("button", { className: "button button--coral", type: "button", text: "인증확인", onclick: () => verifyCode(codeInput) })]),
       timer,
       errorLine("verification_code"),
     ]) : null;
-    panel.replaceChildren(emailRow, codeArea,
+    panel.replaceChildren(
+      emailRow,
+      codeArea,
       isVerified ? el("p", { className: "signup-verified", text: "✓ 이메일 인증이 완료되었습니다." }) : null,
-      fields.password.root, fields.display_name.root, fields.real_name.root, actionButtons());
+      isVerified
+        ? el("div", { className: "field" }, [el("strong", { text: "비밀번호 설정됨" }), el("p", { className: "field-help", text: "비밀번호는 이메일 인증을 시작할 때 설정되었습니다." })])
+        : fields.password.root,
+      fields.display_name.root,
+      fields.real_name.root,
+      actionButtons(),
+    );
     if (codeArea) {
       const tick = () => {
         const left = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-        timer.textContent = left ? `남은 시간 ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}${Date.now() < resendAt ? " · 잠시 후 재전송할 수 있어요." : ""}` : "인증번호가 만료되었습니다. 재전송해 주세요.";
+        timer.textContent = left
+          ? `남은 시간 ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}${Date.now() < resendAt ? " · 잠시 후 재전송할 수 있어요." : ""}`
+          : "인증번호가 만료되었을 수 있습니다. 재전송해 주세요.";
       };
       tick();
       timerId = setInterval(tick, 1000);
@@ -139,12 +155,16 @@ export function renderSignup() {
     const email = fields.email.input.value.trim().toLowerCase();
     if (!validateEmail(email)) return setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요.");
     if (Date.now() < resendAt) return setFieldError(form, "email", "잠시 후 다시 요청해 주세요.");
+    if (!codeRequested && !validatePassword(fields.password.input.value)) {
+      return setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요.");
+    }
     setBusy(form, true, "발송 중…");
     try {
-      const result = await requestSignupEmailCode(email);
-      invalidateVerification();
-      expiresAt = Date.parse(result.expires_at);
-      resendAt = Date.now() + (result.retry_after ?? 60) * 1000;
+      if (codeRequested) await resendSignupEmailCode(email);
+      else await requestSignupEmailCode(email, fields.password.input.value);
+      codeRequested = true;
+      expiresAt = Date.now() + OTP_TTL_MS;
+      resendAt = Date.now() + OTP_RESEND_MS;
       showToast("인증번호를 이메일로 보냈습니다.", "success");
       renderStep();
     } catch (error) { showToast(getErrorMessage(error), "error"); }
@@ -157,9 +177,10 @@ export function renderSignup() {
     setBusy(form, true, "확인 중…");
     try {
       const email = fields.email.input.value.trim().toLowerCase();
-      const result = await verifySignupEmailCode(email, input.value);
+      await verifySignupEmailCode(email, input.value);
       verifiedEmail = email;
-      verificationToken = result.verification_token;
+      codeRequested = false;
+      expiresAt = 0;
       renderStep();
     } catch (error) { setFieldError(form, "verification_code", getErrorMessage(error)); }
     finally { setBusy(form, false); }
@@ -171,10 +192,10 @@ export function renderSignup() {
 
   function renderReview() {
     panel.replaceChildren(
-      el("p", { className: "page-description", text: "가입 정보를 확인해 주세요. 비밀번호는 안전을 위해 표시하지 않습니다." }),
+      el("p", { className: "page-description", text: "가입 정보를 확인해 주세요. 비밀번호 원문은 표시하지 않습니다." }),
       reviewSection("계정 정보", () => goTo(2), [
         ["이메일", fields.email.input.value], ["이메일 인증", verifiedEmail ? "인증 완료" : "미완료"],
-        ["닉네임", fields.display_name.input.value], ["실명", fields.real_name.input.value],
+        ["비밀번호", "설정됨"], ["닉네임", fields.display_name.input.value], ["실명", fields.real_name.input.value],
       ]),
       reviewSection("회원 정보", () => goTo(3), [
         ["출생연도", `${fields.birth_year.input.value}년`], ["나이 공개 범위", AGE_LABELS[fields.age_visibility.input.value]],
@@ -200,12 +221,14 @@ export function renderSignup() {
       if (!fields.rules_consent.input.checked) { setFieldError(form, "rules_consent", "커뮤니티 이용수칙 동의가 필요합니다."); valid = false; }
     }
     if (targetStep === 2) {
-      required(fields.email, "이메일을 입력해 주세요."); required(fields.password, "비밀번호를 입력해 주세요.");
-      required(fields.display_name, "닉네임을 입력해 주세요."); required(fields.real_name, "실명을 입력해 주세요.");
+      required(fields.email, "이메일을 입력해 주세요.");
+      required(fields.display_name, "닉네임을 입력해 주세요.");
+      required(fields.real_name, "실명을 입력해 주세요.");
       if (!validateEmail(fields.email.input.value)) { setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요."); valid = false; }
-      if (!verificationToken || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) { setFieldError(form, "email", "이메일 인증을 완료해 주세요."); valid = false; }
-      if (!validatePassword(fields.password.input.value)) { setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요."); valid = false; }
+      if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) { setFieldError(form, "email", "이메일 인증을 완료해 주세요."); valid = false; }
+      if (!verifiedEmail && !validatePassword(fields.password.input.value)) { setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요."); valid = false; }
       if (!valueInRange(fields.display_name.input.value, 1, 50)) { setFieldError(form, "display_name", "닉네임은 1~50자로 입력해 주세요."); valid = false; }
+      if (!valueInRange(fields.real_name.input.value, 1, 50)) { setFieldError(form, "real_name", "실명은 1~50자로 입력해 주세요."); valid = false; }
     }
     if (targetStep === 3) {
       required(fields.church_group, "소속 공동체·부서를 입력해 주세요."); required(fields.request_message, "가입 신청 내용을 입력해 주세요.");
@@ -220,25 +243,27 @@ export function renderSignup() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (![1, 2, 3].every(validateStep)) { showToast("필수 정보를 다시 확인해 주세요.", "error"); return; }
-    setBusy(form, true, "가입 신청 중…");
-    try {
-      const result = await completeVerifiedSignup({
-        email: fields.email.input.value.trim().toLowerCase(), password: fields.password.input.value,
-        verificationToken,
-        metadata: {
-          display_name: fields.display_name.input.value.trim(), real_name: fields.real_name.input.value.trim(),
-          birth_year: Number(fields.birth_year.input.value), age_visibility: fields.age_visibility.input.value,
-          church_group: fields.church_group.input.value.trim(), request_message: fields.request_message.input.value.trim(),
-          privacy_consent: true, privacy_policy_version: PRIVACY_POLICY_VERSION,
-          rules_consent: true, community_rules_version: COMMUNITY_RULES_VERSION,
-        },
-      });
-      if (result.sign_in_required === true) {
-        showToast("가입 신청은 정상적으로 완료되었습니다. 로그인 후 관리자 승인 상태를 확인해 주세요.", "success", 6000);
-        window.location.hash = "#/login";
+    for (const targetStep of [1, 2, 3]) {
+      if (!validateStep(targetStep)) {
+        goTo(targetStep);
+        showToast("필수 정보를 다시 확인해 주세요.", "error");
         return;
       }
+    }
+    setBusy(form, true, "가입 신청 중…");
+    try {
+      await submitSignupApplication({
+        display_name: fields.display_name.input.value.trim(),
+        real_name: fields.real_name.input.value.trim(),
+        birth_year: Number(fields.birth_year.input.value),
+        age_visibility: fields.age_visibility.input.value,
+        church_group: fields.church_group.input.value.trim(),
+        request_message: fields.request_message.input.value.trim(),
+        privacy_consent: true,
+        privacy_policy_version: PRIVACY_POLICY_VERSION,
+        rules_consent: true,
+        community_rules_version: COMMUNITY_RULES_VERSION,
+      });
       showToast("가입 신청이 완료되었습니다. 관리자의 승인을 기다려 주세요.", "success", 6000);
       window.location.hash = "#/pending";
     } catch (error) { showToast(getErrorMessage(error), "error"); }

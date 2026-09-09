@@ -199,40 +199,62 @@ export async function signUp({ email, password, metadata }) {
   return data;
 }
 
-async function invokeSignupVerification(action, payload) {
-  const { data, error } = await supabase.functions.invoke("signup-verification", {
-    body: { action, ...payload },
+function signupRedirect() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+export async function requestSignupEmailCode(email, password) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: signupRedirect(),
+      data: { signup_flow: "auth_otp" },
+    },
   });
-  if (error) {
-    const response = error.context;
-    const body = response && typeof response.json === "function"
-      ? await response.json().catch(() => null)
-      : null;
-    throw new Error(body?.message || body?.error || error.message);
-  }
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
   return data;
 }
 
-export function requestSignupEmailCode(email) {
-  return invokeSignupVerification("request", { email });
-}
-
-export function verifySignupEmailCode(email, code) {
-  return invokeSignupVerification("verify", { email, code });
-}
-
-export async function completeVerifiedSignup({ email, password, verificationToken, metadata }) {
-  const data = await invokeSignupVerification("signup", {
+export async function resendSignupEmailCode(email) {
+  const { data, error } = await supabase.auth.resend({
+    type: "signup",
     email,
-    password,
-    verification_token: verificationToken,
-    metadata,
+    options: { emailRedirectTo: signupRedirect() },
   });
-  if (data?.session?.access_token && data?.session?.refresh_token) {
-    const { data: sessionData, error } = await supabase.auth.setSession(data.session);
-    if (error) throw error;
-    await refreshAuthContext(sessionData.session, { force: true });
-  }
+  if (error) throw error;
+  return data;
+}
+
+export async function verifySignupEmailCode(email, code) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token: code,
+    type: "email",
+  });
+  if (error) throw error;
+  if (data.session) await refreshAuthContext(data.session, { force: true });
+  return data;
+}
+
+export async function submitSignupApplication(metadata) {
+  const { data, error } = await supabase.rpc("submit_join_request", {
+    p_display_name: metadata.display_name,
+    p_real_name: metadata.real_name,
+    p_birth_year: metadata.birth_year,
+    p_age_visibility: metadata.age_visibility,
+    p_church_group: metadata.church_group,
+    p_request_message: metadata.request_message,
+    p_privacy_consent: metadata.privacy_consent,
+    p_privacy_policy_version: metadata.privacy_policy_version,
+    p_rules_consent: metadata.rules_consent,
+    p_community_rules_version: metadata.community_rules_version,
+  });
+  if (error) throw error;
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  if (sessionData.session) await refreshAuthContext(sessionData.session, { force: true });
   return data;
 }
 
