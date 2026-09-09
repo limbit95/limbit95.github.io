@@ -74,6 +74,7 @@ const WEB_PUSH_VAPID_PUBLIC_KEY = "AQ";`)
   defineGlobal("__webPushSupabase", { rpc, from });
   defineGlobal("fetch", fetch);
   defineGlobal("__WEB_PUSH_MUTATION_TIMEOUT_MS", 30);
+  defineGlobal("__WEB_PUSH_RECONCILE_RETRY_BASE_MS", 1);
 
   return import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${Math.random()}`);
 }
@@ -256,7 +257,8 @@ test("legacy ownership is the only missing-preference path promoted to on", asyn
     "\nexport function restorePushNotificationsForAuth",
   );
   assert.match(restore, /preference === null[\s\S]*getPushNotificationState\(\)/);
-  assert.match(restore, /desiredPushState\.revision !== requestRevision \|\| !legacyState\.owned/);
+  assert.match(restore, /desiredPushState\.revision !== requestRevision/);
+  assert.match(restore, /if \(!legacyState\.owned\)/);
   assert.match(restore, /preference = "on"/);
 });
 
@@ -572,6 +574,147 @@ test("failed explicit mutations do not commit successful preferences", async () 
     rpc: async () => ({ error: new Error("remove failed") }) });
   await assert.rejects(off.disablePushNotifications("a"), /remove failed/);
   assert.equal(offStorage.get("cheongpa:web-push-preference:a"), "on");
+});
+
+test("legacy null auth publication waits for ownership before choosing ON or OFF", async () => {
+  for (const owned of [true, false]) {
+    const lookupGate = deferred();
+    const lookupStarted = deferred();
+    const storage = new Map();
+    let owner = owned ? "a" : null;
+    let subscriptionExists = true;
+    let removals = 0;
+    const subscription = { endpoint: "legacy-auth", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+    const webPush = await loadWebPush({ storage, preference: null,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => subscription,
+      from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => {
+        lookupStarted.resolve(); await lookupGate.promise;
+        return { data: owned ? { endpoint: "legacy-auth" } : null, error: null };
+      } }) }) }),
+      rpc: async (name) => {
+        if (name === "remove_own_push_subscription") { removals += 1; owner = null; }
+        else owner = "a";
+        return { error: null };
+      },
+    });
+    const auth = { user: { id: "a" }, profile: { status: "approved" } };
+    webPush.setPushDesiredAuthContext(auth);
+    const restore = webPush.restorePushNotificationsForAuth(auth);
+    await lookupStarted.promise;
+    await delay(10);
+    assert.equal(removals, 0, "unknown preference must not trigger destructive OFF");
+    lookupGate.resolve();
+    await restore;
+    await delay(10);
+    assert.equal(storage.get("cheongpa:web-push-preference:a") ?? null, owned ? "on" : null);
+    assert.equal(subscriptionExists, owned);
+    assert.equal(owner, owned ? "a" : null);
+    assert.equal(webPush.getPushCoordinatorSnapshot().explicitIntent, null);
+  }
+});
+
+test("same-user auth refresh cannot replace a pending explicit choice", async () => {
+  for (const intent of ["off", "on"]) {
+    const gate = deferred();
+    const started = deferred();
+    const storage = new Map([["cheongpa:web-push-preference:a", intent === "off" ? "on" : "off"]]);
+    let owner = intent === "off" ? "a" : null;
+    let subscriptionExists = true;
+    const subscription = { endpoint: "refresh", toJSON: () => ({ keys: {} }), unsubscribe: async () => { subscriptionExists = false; } };
+    const webPush = await loadWebPush({ storage,
+      getSubscription: async () => subscriptionExists ? subscription : null,
+      subscribe: async () => { subscriptionExists = true; return subscription; },
+      rpc: async (name) => {
+        started.resolve(); await gate.promise;
+        owner = name === "claim_push_subscription" ? "a" : null;
+        return { error: null };
+      },
+    });
+    const auth = { user: { id: "a" }, profile: { status: "approved" } };
+    webPush.setPushAuthContextVersion("a", 1);
+    webPush.setPushDesiredAuthContext(auth);
+    const mutation = intent === "off" ? webPush.disablePushNotifications("a") : webPush.enablePushNotifications("a");
+    await started.promise;
+    webPush.setPushDesiredAuthContext(auth);
+    assert.equal(webPush.getPushCoordinatorSnapshot().explicitIntent.preference, intent);
+    gate.resolve();
+    await mutation;
+    assert.equal(storage.get("cheongpa:web-push-preference:a"), intent);
+    assert.equal(owner, intent === "on" ? "a" : null);
+    assert.equal(subscriptionExists, intent === "on");
+  }
+});
+
+test("an auth refresh preserves old-account cleanup until a late claim is repaired", async () => {
+  const claimGate = deferred();
+  const claimStarted = deferred();
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"], ["cheongpa:web-push-preference:b", "off"]]);
+  let owner = null;
+  const subscription = { endpoint: "cleanup", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({ storage, getSubscription: async () => subscription, subscribe: async () => subscription,
+    rpc: async (name) => {
+      if (name === "claim_push_subscription") { claimStarted.resolve(); await claimGate.promise; owner = "a"; }
+      else owner = null;
+      return { error: null };
+    },
+    fetch: async () => { owner = null; return { ok: true, status: 204 }; },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  const restore = webPush.restorePushNotificationsForAuth({ user: { id: "a" }, profile: { status: "approved" } }).catch(() => null);
+  await claimStarted.promise;
+  const authB = { user: { id: "b" }, profile: { status: "approved" } };
+  webPush.setPushDesiredAuthContext(authB, { previousAccessToken: "token-a" });
+  webPush.setPushDesiredAuthContext(authB);
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a"]);
+  await delay(40);
+  claimGate.resolve();
+  await restore;
+  await eventually(() => assert.equal(owner, null));
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []);
+});
+
+test("rapid A to B to C switching retains both captured cleanup obligations", async () => {
+  const storage = new Map([
+    ["cheongpa:web-push-preference:a", "on"],
+    ["cheongpa:web-push-preference:b", "off"],
+    ["cheongpa:web-push-preference:c", "off"],
+  ]);
+  const removedTokens = [];
+  const subscription = { endpoint: "rapid-switch", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({ storage, getSubscription: async () => subscription, subscribe: async () => subscription,
+    rpc: async () => ({ error: null }),
+    fetch: async (_url, options) => {
+      removedTokens.push(options.headers.Authorization);
+      return { ok: true, status: 204 };
+    },
+  });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
+  webPush.setPushDesiredAuthContext({ user: { id: "b" }, profile: { status: "approved" } }, { previousAccessToken: "token-a" });
+  webPush.setPushDesiredAuthContext({ user: { id: "c" }, profile: { status: "approved" } }, { previousAccessToken: "token-b" });
+  assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, ["a", "b"]);
+  await eventually(() => assert.deepEqual(webPush.getPushCoordinatorSnapshot().pendingCleanupUserIds, []));
+  assert.deepEqual(removedTokens.sort(), ["Bearer token-a", "Bearer token-b"]);
+  assert.equal(webPush.getPushCoordinatorSnapshot().desiredState.userId, "c");
+  assert.equal(webPush.getPushCoordinatorSnapshot().desiredState.preference, "off");
+});
+
+test("reconcile late-completion retries are bounded per revision and reset for a new revision", async () => {
+  const storage = new Map([["cheongpa:web-push-preference:a", "on"]]);
+  let calls = 0;
+  const subscription = { endpoint: "slow", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
+  const webPush = await loadWebPush({ storage, getSubscription: async () => subscription, subscribe: async () => subscription,
+    rpc: async () => { calls += 1; await delay(40); return { error: null }; },
+  });
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
+  webPush.setPushDesiredAuthContext(auth);
+  await delay(180);
+  const firstRevisionCalls = calls;
+  assert.ok(firstRevisionCalls <= 3, `expected at most 3 attempts, got ${firstRevisionCalls}`);
+  assert.equal(webPush.getPushCoordinatorSnapshot().reconcileRetryCount, 2);
+  webPush.setPushDesiredAuthContext(null);
+  await delay(50);
+  assert.ok(calls > firstRevisionCalls, "a new revision receives a fresh retry budget");
 });
 
 test("edge function re-reads notification, filters push types, and removes invalid subscriptions", async () => {

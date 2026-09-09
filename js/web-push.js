@@ -14,16 +14,22 @@ const inFlightRestoreClaims = new Map();
 const authContextVersions = new Map();
 let pushMutationQueue = Promise.resolve();
 const PUSH_MUTATION_TIMEOUT_MS = globalThis.__WEB_PUSH_MUTATION_TIMEOUT_MS ?? 15000;
-let reconcileScheduled = false;
+const PUSH_RECONCILE_MAX_RETRIES = 2;
+const PUSH_RECONCILE_RETRY_BASE_MS = globalThis.__WEB_PUSH_RECONCILE_RETRY_BASE_MS ?? 25;
+let reconcileScheduled = null;
 let lastKnownPushSubscription = null;
 // Authority order: current auth lifecycle, latest explicit intent, persisted
 // preference, then observed browser/DB state. Observed state never becomes the
 // desired state except for the guarded one-time legacy migration.
+let currentPushAuthContext = { userId: null, contextVersion: null, eligible: false, preference: "off" };
+let explicitPushIntent = null;
+const pendingOwnershipCleanups = new Map();
+const reconcileRetries = new Map();
 let desiredPushState = { revision: 0, userId: null, contextVersion: null, preference: "off" };
 
 // Device state is shared by every account.  All subscription/ownership writes
 // therefore pass through this queue; a rejected operation must not poison it.
-function enqueuePushMutation(operation, { reconcileLate = true } = {}) {
+function enqueuePushMutation(operation, { reconcileLate = true, reconcileRevision = null } = {}) {
   const run = async () => {
     let timeoutId;
     let timedOut = false;
@@ -32,7 +38,7 @@ function enqueuePushMutation(operation, { reconcileLate = true } = {}) {
     // When that operation eventually settles it may have changed device state,
     // so convergence is scheduled again from the latest authoritative intent.
     work.finally(() => {
-      if (timedOut && reconcileLate) schedulePushReconcile();
+      if (timedOut && reconcileLate) schedulePushReconcile(reconcileRevision ?? desiredPushState.revision, true);
     }).catch(() => {});
     return Promise.race([
       work,
@@ -49,21 +55,66 @@ function enqueuePushMutation(operation, { reconcileLate = true } = {}) {
   return result;
 }
 
-function updateDesiredPushState(userId, preference, cleanupAccessToken = null) {
+function updateDesiredPushState(userId, preference) {
+  const normalizedUserId = userId ?? null;
+  const contextVersion = normalizedUserId ? authContextVersions.get(normalizedUserId) : null;
+  if (desiredPushState.userId === normalizedUserId
+    && desiredPushState.contextVersion === contextVersion
+    && desiredPushState.preference === preference) return desiredPushState;
   desiredPushState = {
     revision: desiredPushState.revision + 1,
-    userId: userId ?? null,
-    contextVersion: userId ? authContextVersions.get(userId) : null,
+    userId: normalizedUserId,
+    contextVersion,
     preference,
-    cleanupAccessToken,
   };
+  reconcileRetries.clear();
   return desiredPushState;
+}
+
+function resolveDesiredPushState() {
+  const auth = currentPushAuthContext;
+  let preference = "off";
+  if (auth.userId && auth.eligible) {
+    preference = explicitPushIntent?.userId === auth.userId
+      ? explicitPushIntent.preference
+      : auth.preference;
+  }
+  return updateDesiredPushState(auth.userId, preference);
+}
+
+function addCleanupObligation(userId, accessToken) {
+  if (!userId || !accessToken) return;
+  pendingOwnershipCleanups.set(userId, {
+    userId,
+    accessToken,
+    contextVersion: authContextVersions.get(userId) ?? null,
+  });
+}
+
+async function reconcilePendingOwnershipCleanups(subscription) {
+  if (!subscription) return;
+  for (const [userId, cleanup] of [...pendingOwnershipCleanups]) {
+    await removeSubscriptionWithAccessToken(subscription, cleanup.accessToken);
+    // A restore claim which was already issued can still recreate ownership.
+    // Keep the captured credential until that claim settles and a later pass
+    // has removed any ownership it created.
+    if (inFlightRestoreClaims.get(userId)?.size) continue;
+    if (pendingOwnershipCleanups.get(userId) === cleanup) pendingOwnershipCleanups.delete(userId);
+  }
 }
 
 async function reconcileDesiredPushState() {
   const desired = desiredPushState;
   const subscription = await getCurrentPushSubscription();
   if (!isDesired(desired)) return false;
+
+  await reconcilePendingOwnershipCleanups(subscription ?? lastKnownPushSubscription);
+  if (!isDesired(desired)) return false;
+
+  // A missing legacy preference is unresolved, not an OFF decision. Account
+  // cleanup is safe above, but browser subscription destruction must wait for
+  // the ownership lookup performed by automatic restore.
+  if (desired.preference === "unknown") return true;
 
   if (desired.preference === "on" && desired.userId) {
     const currentRegistration = await registration();
@@ -80,9 +131,7 @@ async function reconcileDesiredPushState() {
 
   const cleanupSubscription = subscription ?? lastKnownPushSubscription;
   if (!cleanupSubscription) return true;
-  if (desired.cleanupAccessToken) {
-    await removeSubscriptionWithAccessToken(cleanupSubscription, desired.cleanupAccessToken);
-  } else {
+  {
     const { error } = await supabase.rpc("remove_own_push_subscription", {
       p_endpoint: cleanupSubscription.endpoint,
     });
@@ -92,21 +141,37 @@ async function reconcileDesiredPushState() {
   return isDesired(desired);
 }
 
-function schedulePushReconcile() {
-  if (reconcileScheduled) return;
-  reconcileScheduled = true;
-  queueMicrotask(() => {
-    reconcileScheduled = false;
-    enqueuePushMutation(reconcileDesiredPushState, { reconcileLate: true }).catch((error) => {
+function schedulePushReconcile(revision = desiredPushState.revision, isRetry = false) {
+  if (revision !== desiredPushState.revision) return;
+  const retryCount = reconcileRetries.get(revision) ?? 0;
+  if (isRetry && retryCount >= PUSH_RECONCILE_MAX_RETRIES) return;
+  if (isRetry) reconcileRetries.set(revision, retryCount + 1);
+  if (reconcileScheduled?.revision === revision) return;
+  if (reconcileScheduled) clearTimeout(reconcileScheduled.timeoutId);
+  const delayMs = isRetry ? PUSH_RECONCILE_RETRY_BASE_MS * (2 ** retryCount) : 0;
+  const scheduled = { revision, timeoutId: null };
+  scheduled.timeoutId = setTimeout(() => {
+    if (reconcileScheduled === scheduled) reconcileScheduled = null;
+    if (revision !== desiredPushState.revision) return;
+    enqueuePushMutation(reconcileDesiredPushState, {
+      reconcileLate: true,
+      reconcileRevision: revision,
+    }).catch((error) => {
       if (error?.message !== "Push mutation timed out.") {
         console.warn("Push state reconciliation failed.", error);
       }
     });
-  });
+  }, delayMs);
+  reconcileScheduled = scheduled;
 }
 
 export function setPushDesiredAuthContext(auth, { previousAccessToken = null } = {}) {
   const userId = auth?.user?.id ?? null;
+  const previousUserId = currentPushAuthContext.userId;
+  if (previousUserId && previousUserId !== userId) {
+    addCleanupObligation(previousUserId, previousAccessToken);
+    if (explicitPushIntent?.userId === previousUserId) explicitPushIntent = null;
+  }
   const capability = getPushCapability();
   const eligible = Boolean(userId
     && auth?.profile?.status === "approved"
@@ -114,9 +179,14 @@ export function setPushDesiredAuthContext(auth, { previousAccessToken = null } =
     && !capability.requiresIosInstall
     && capability.permission === "granted"
     && WEB_PUSH_VAPID_PUBLIC_KEY
-    && !WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_")
-    && getPushPreference(userId) === "on");
-  const desired = updateDesiredPushState(userId, eligible ? "on" : "off", previousAccessToken);
+    && !WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_"));
+  currentPushAuthContext = {
+    userId,
+    contextVersion: userId ? authContextVersions.get(userId) ?? null : null,
+    eligible,
+    preference: userId ? (getPushPreference(userId) ?? "unknown") : "off",
+  };
+  const desired = resolveDesiredPushState();
   schedulePushReconcile();
   return desired;
 }
@@ -126,6 +196,26 @@ function isDesired(snapshot) {
     && desiredPushState.userId === snapshot.userId
     && desiredPushState.contextVersion === snapshot.contextVersion
     && desiredPushState.preference === snapshot.preference;
+}
+
+function beginExplicitPushIntent(userId, preference) {
+  explicitPushIntent = {
+    userId,
+    preference,
+    contextVersion: authContextVersions.get(userId) ?? null,
+  };
+  return resolveDesiredPushState();
+}
+
+function finishExplicitPushIntent(intent, succeeded) {
+  if (explicitPushIntent?.userId !== intent.userId
+    || explicitPushIntent?.contextVersion !== intent.contextVersion
+    || explicitPushIntent?.preference !== intent.preference) return;
+  if (succeeded && currentPushAuthContext.userId === intent.userId) {
+    currentPushAuthContext.preference = intent.preference;
+  }
+  explicitPushIntent = null;
+  resolveDesiredPushState();
 }
 
 function preferenceKey(userId) {
@@ -161,6 +251,16 @@ export function setPushAuthContextVersion(userId, version) {
     return;
   }
   authContextVersions.set(userId, version);
+}
+
+export function getPushCoordinatorSnapshot() {
+  return {
+    authContext: { ...currentPushAuthContext },
+    explicitIntent: explicitPushIntent ? { ...explicitPushIntent } : null,
+    desiredState: { ...desiredPushState },
+    pendingCleanupUserIds: [...pendingOwnershipCleanups.keys()],
+    reconcileRetryCount: reconcileRetries.get(desiredPushState.revision) ?? 0,
+  };
 }
 
 function applicationServerKey(value) {
@@ -276,8 +376,10 @@ export async function enablePushNotifications(userId) {
     : await Notification.requestPermission();
   if (permission !== "granted") throw new Error("알림 권한이 허용되지 않았습니다.");
 
-  const desired = updateDesiredPushState(userId, "on");
-  return enqueuePushMutation(async () => {
+  const desired = beginExplicitPushIntent(userId, "on");
+  const intent = explicitPushIntent;
+  try {
+    const result = await enqueuePushMutation(async () => {
     if (!isDesired(desired)) return null;
     const currentRegistration = await registration();
     const existing = await currentRegistration.pushManager.getSubscription();
@@ -290,13 +392,22 @@ export async function enablePushNotifications(userId) {
       setPushPreference(userId, "on");
       restoredUserIds.add(userId);
     }
-    return isDesired(desired) ? subscription : null;
-  });
+      return isDesired(desired) ? subscription : null;
+    });
+    finishExplicitPushIntent(intent, true);
+    return result;
+  } catch (error) {
+    finishExplicitPushIntent(intent, false);
+    schedulePushReconcile();
+    throw error;
+  }
 }
 
 export async function disablePushNotifications(userId) {
-  const desired = updateDesiredPushState(userId, "off");
-  return enqueuePushMutation(async () => {
+  const desired = beginExplicitPushIntent(userId, "off");
+  const intent = explicitPushIntent;
+  try {
+    const result = await enqueuePushMutation(async () => {
     if (!isDesired(desired)) return false;
     const subscription = await getCurrentPushSubscription();
     if (subscription) {
@@ -312,15 +423,24 @@ export async function disablePushNotifications(userId) {
       setPushPreference(userId, "off");
       restoredUserIds.delete(userId);
     }
-    return Boolean(subscription) && isDesired(desired);
-  });
+      return Boolean(subscription) && isDesired(desired);
+    });
+    finishExplicitPushIntent(intent, true);
+    return result;
+  } catch (error) {
+    finishExplicitPushIntent(intent, false);
+    schedulePushReconcile();
+    throw error;
+  }
 }
 
 export async function cleanupPushSubscriptionForSignOut(userId, {
   accessToken = null,
   isActive = () => true,
 } = {}) {
-  const desired = updateDesiredPushState(null, "off");
+  currentPushAuthContext = { userId: null, contextVersion: null, eligible: false, preference: "off" };
+  explicitPushIntent = null;
+  const desired = resolveDesiredPushState();
   restoredUserIds.delete(userId);
   return enqueuePushMutation(async () => {
     const subscription = await getCurrentPushSubscription();
@@ -378,16 +498,30 @@ async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
     || !WEB_PUSH_VAPID_PUBLIC_KEY
     || WEB_PUSH_VAPID_PUBLIC_KEY.startsWith("YOUR_")) return null;
 
+  if (currentPushAuthContext.userId !== userId) setPushDesiredAuthContext(auth);
   const requestRevision = desiredPushState.revision;
   let preference = getPushPreference(userId);
   if (!isCurrent()) return null;
   if (preference === null) {
     const legacyState = await getPushNotificationState();
-    if (!isCurrent() || desiredPushState.revision !== requestRevision || !legacyState.owned) return null;
+    if (!isCurrent() || desiredPushState.revision !== requestRevision || explicitPushIntent?.userId === userId) return null;
+    if (!legacyState.owned) {
+      if (currentPushAuthContext.userId === userId) currentPushAuthContext.preference = "off";
+      resolveDesiredPushState();
+      schedulePushReconcile();
+      return null;
+    }
     preference = "on";
+    setPushPreference(userId, "on");
+    if (currentPushAuthContext.userId === userId && !explicitPushIntent) {
+      currentPushAuthContext.preference = "on";
+    }
   }
   if (preference !== "on") return null;
-  const desired = updateDesiredPushState(userId, "on");
+  // The legacy lookup resolves the auth-derived unknown state. Explicit intent,
+  // when present, remains authoritative and prevents this result from winning.
+  if (explicitPushIntent?.userId === userId) return null;
+  const desired = resolveDesiredPushState();
   return enqueuePushMutation(async () => {
     if (!isCurrent() || !isDesired(desired)) return null;
     const currentRegistration = await registration();
