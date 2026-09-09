@@ -103,6 +103,40 @@ test("same-account relogin is serialized behind the older lifecycle", async () =
   assert.equal(claims, 2);
 });
 
+test("persisted ON preference recreates the browser subscription after relogin", async () => {
+  let subscribes = 0;
+  let claims = 0;
+  const subscription = {
+    endpoint: "restored-a",
+    toJSON: () => ({ keys: {} }),
+    unsubscribe: async () => {},
+  };
+  const webPush = await loadWebPush({
+    getSubscription: async () => null,
+    subscribe: async () => { subscribes += 1; return subscription; },
+    rpc: async () => { claims += 1; return { error: null }; },
+  });
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
+  webPush.setPushAuthContextVersion("a", 2);
+
+  assert.equal(await webPush.restorePushNotificationsForAuth(auth, {
+    isCurrent: () => true,
+    getCurrentUserId: () => "a",
+  }), subscription);
+  assert.equal(subscribes, 1);
+  assert.equal(claims, 1);
+});
+
+test("mypage keeps persisted ON intent visible while relogin restore catches up", async () => {
+  const source = await readFile("js/pages/mypage.js", "utf8");
+  assert.match(source, /getPushPreference\(auth\.user\.id\)/);
+  assert.match(source, /return pushPreference === "on" \|\| \(pushPreference === null && pushState\.owned\)/);
+  assert.match(source, /restorePushNotificationsForAuth\(auth/);
+  assert.match(source, /저장된 푸시 알림 설정을 이 기기에 다시 연결하고 있습니다\./);
+  assert.match(source, /pushPreference = "off"/);
+  assert.match(source, /pushPreference = "on"/);
+});
+
 test("restore claim coordination times out instead of blocking forever", async () => {
   const claimGate = deferred();
   const claimStarted = deferred();
