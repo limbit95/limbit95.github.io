@@ -126,12 +126,18 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 
 ### 다단계 회원가입 이메일 인증 배포
 
-`20260909120000_multistep_signup_verification.sql`은 가입 신청과 분리된 5분 이메일
-challenge, 이용수칙 동의 이력, 공개 프로필의 실명 필드를 추가합니다. challenge
-테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했으므로
-`signup-verification` Edge Function의 service role만 접근합니다.
+회원가입은 중간 배포 상태에서 기존 화면과 새 화면이 모두 동작하도록 아래 순서로 배포합니다.
 
-함수 배포 시 `SIGNUP_VERIFICATION_PEPPER`, `RESEND_API_KEY`, `SIGNUP_EMAIL_FROM` secret을
-설정하고, 로그인 전 호출이 필요한 함수이므로 `supabase functions deploy
-signup-verification --no-verify-jwt`로 배포합니다. 함수는 요청 횟수와 코드 검증 횟수를
-직접 제한하며, service role key와 pepper는 브라우저에 전달하지 않습니다.
+1. `20260909120000_multistep_signup_verification.sql`을 적용합니다. challenge/RPC, 동의 컬럼,
+   실명 backfill을 추가하고 기존 가입 계약도 허용하는 하위 호환 Auth trigger를 배포합니다.
+2. `SIGNUP_VERIFICATION_PEPPER`, `RESEND_API_KEY`, `SIGNUP_EMAIL_FROM` secret을 설정하고
+   `supabase functions deploy signup-verification --no-verify-jwt`로 Edge Function을 배포합니다.
+3. 새 프론트엔드를 배포합니다.
+4. 마지막으로 `20260909123000_enforce_verified_signup.sql`을 적용해 구 Auth 가입 경로를
+   차단합니다. 이 단계 이후 trigger는 사용자 metadata가 아니라 service role만 설정할 수
+   있는 `raw_app_meta_data`의 challenge ID와 DB의 consumed challenge를 함께 확인합니다.
+
+challenge 테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했습니다. 생성,
+실패 횟수 증가, 성공 검증 RPC도 service role에만 허용됩니다. 요청 rate limit은 DB advisory
+transaction lock 안에서 집계와 insert를 수행하고, 실패 횟수는 조건부 단일 `UPDATE`로
+증가합니다. service role key와 pepper는 브라우저에 전달하지 않습니다.
