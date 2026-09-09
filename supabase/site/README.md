@@ -50,11 +50,11 @@ baseline 실행 후 seed를 실행합니다.
 
 ## 운영 migration
 
-운영 적용이 완료된 `migrations/` 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다. 아래에 운영 적용 전으로 표시한 migration은 예외입니다.
+운영 적용이 완료된 `migrations/` 파일은 Supabase `supabase_migrations.schema_migrations`에 실제 기록된 버전과 이름을 그대로 사용합니다. 운영 적용 전으로 표시한 migration은 예외입니다.
 
-`20260908090000_add_admin_permission_system`을 제외한 기존 migration들은 이미 운영 프로젝트에 적용되어 있습니다. 운영 DB에 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
+운영 DB에 이미 적용된 migration은 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
 
-현재 확인된 흐름은 다음과 같습니다.
+현재 확인된 본 사이트 흐름은 다음과 같습니다.
 
 1. baseline + seed
 2. `20260825041209_expand_notifications_and_direct_messages`
@@ -63,7 +63,9 @@ baseline 실행 후 seed를 실행합니다.
 5. `20260825041451_index_notification_message_target`
 6. `20260825090540_add_date_poll_fk_covering_indexes`
 7. `20260825103805_add_public_member_profiles_by_ids`
-8. `20260908090000_add_admin_permission_system` (현재 PR에서 준비 중, 운영 적용 전)
+8. `20260908090000_add_admin_permission_system` (운영 적용 완료)
+9. `20260909062324_multistep_signup_verification` (운영 적용 완료, 회원가입 Phase 1)
+10. `20260909123000_enforce_verified_signup` (운영 적용 전)
 
 ### 관리자 역할 및 영역 권한
 
@@ -128,7 +130,7 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 
 회원가입은 중간 배포 상태에서 기존 화면과 새 화면이 모두 동작하도록 아래 순서로 배포합니다.
 
-1. `20260909120000_multistep_signup_verification.sql`을 적용합니다. challenge/RPC, 동의 컬럼,
+1. `20260909062324_multistep_signup_verification.sql` — **2026-09-09 운영 적용 완료**. challenge/RPC, 동의 컬럼,
    실명 backfill을 추가하고 기존 가입 계약도 허용하는 하위 호환 Auth trigger를 배포합니다.
 2. `SIGNUP_VERIFICATION_PEPPER`, `RESEND_API_KEY`, `SIGNUP_EMAIL_FROM` secret을 설정하고
    `supabase functions deploy signup-verification --no-verify-jwt`로 Edge Function을 배포합니다.
@@ -138,6 +140,8 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
    먼저 원자적으로 바인딩하고, Auth trigger는 `new.id`와 DB의 해당 바인딩·이메일·인증/소비 상태를
    함께 확인합니다. 일반 클라이언트가 보내는 `raw_user_meta_data`나 생성 이후 갱신되는 custom
    `app_metadata`를 이메일 소유권 증거로 사용하지 않습니다.
+
+Phase 1 적용 후 운영 DB에서 기존 17개 프로필의 실명 backfill이 모두 완료되고 `join_requests.real_name`과 불일치가 없음을 확인했습니다. `signup_email_challenges`는 RLS가 활성화되어 있고 `anon`/`authenticated` 테이블 권한과 challenge RPC 실행 권한은 제거되어 있으며 `service_role`만 접근할 수 있음을 확인했습니다.
 
 challenge 테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했습니다. 생성,
 실패 횟수 증가, 성공 검증, Auth user UUID 바인딩 RPC도 service role에만 허용됩니다. 요청 rate
