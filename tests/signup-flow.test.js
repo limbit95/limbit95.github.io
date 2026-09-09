@@ -7,6 +7,7 @@ const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
 const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const infrastructure = readFileSync(new URL("../supabase/site/migrations/20260909062324_multistep_signup_verification.sql", import.meta.url), "utf8");
 const transition = readFileSync(new URL("../supabase/site/migrations/20260909123000_native_auth_otp_signup.sql", import.meta.url), "utf8");
+const enforcement = readFileSync(new URL("../supabase/site/migrations/20260909170000_enforce_native_auth_otp_signup.sql", import.meta.url), "utf8");
 const setupE2E = readFileSync(new URL("../scripts/setup-e2e-member.mjs", import.meta.url), "utf8");
 const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", import.meta.url), "utf8");
 
@@ -99,9 +100,20 @@ test("native OTP transition retires the temporary custom challenge infrastructur
   assert.match(transition, /drop table if exists public\.signup_email_challenges/);
 });
 
-test("E2E fixtures no longer synthesize custom signup challenges", () => {
+test("final native OTP enforcement removes the legacy direct-signup application path", () => {
+  assert.match(enforcement, /create or replace function private\.handle_new_auth_user\(\)/);
+  assert.match(enforcement, /if new\.email is null then/);
+  assert.match(enforcement, /return new;/);
+  assert.doesNotMatch(enforcement, /raw_user_meta_data|signup_flow/);
+  assert.doesNotMatch(enforcement, /insert into public\.profiles|insert into public\.join_requests/);
+  assert.match(enforcement, /^begin;[\s\S]*commit;\s*$/);
+});
+
+test("E2E fixtures no longer synthesize custom signup challenges and create approved rows explicitly", () => {
   assert.doesNotMatch(setupE2E, /signup_email_challenges|challengeId|verification_token_hash/);
   assert.doesNotMatch(prepareE2E, /e2e_prepare_pending_signup_fixture|signup_email_challenges/);
+  assert.match(setupE2E, /\/rest\/v1\/profiles\?on_conflict=id/);
+  assert.match(setupE2E, /\/rest\/v1\/join_requests\?on_conflict=user_id/);
   assert.match(setupE2E, /community_rules_version: "2026-09"/);
-  assert.match(setupE2E, /rules_consent: true/);
+  assert.match(setupE2E, /rules_consent_at: approvedAt/);
 });
