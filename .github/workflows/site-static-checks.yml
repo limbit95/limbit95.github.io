@@ -50,6 +50,12 @@ jobs:
             node --check "$file"
           done < <(find js liar-game/js the-game/js marble-game/js -type f -name '*.js' -print0)
 
+      - name: Test Web Push lifecycle
+        run: npm run test:web-push
+
+      - name: Test admin permissions
+        run: npm run test:admin-permissions
+
       - name: Test The Game rules engine
         run: npm run test:the-game
 

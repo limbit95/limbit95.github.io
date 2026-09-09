@@ -127,11 +127,11 @@ export async function renderMyPage() {
     setBusy(pushButton, true, pushState.owned ? "끄는 중…" : "설정 중…");
     try {
       if (pushState.owned) {
-        await disablePushNotifications();
+        await disablePushNotifications(auth.user.id);
         pushState = { subscription: null, owned: false };
         showToast("이 기기의 푸시 알림을 껐습니다.", "success");
       } else {
-        pushState = { subscription: await enablePushNotifications(), owned: true };
+        pushState = { subscription: await enablePushNotifications(auth.user.id), owned: true };
         showToast("이 기기의 푸시 알림을 켰습니다.", "success");
       }
     } catch (error) {
