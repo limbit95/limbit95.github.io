@@ -150,7 +150,7 @@ test("explicit push choices persist preference only after successful subscriptio
     "export async function disablePushNotifications",
     "\nexport async function cleanupPushSubscriptionForSignOut",
   );
-  assert.ok(enable.indexOf("await saveSubscription(subscription)") < enable.indexOf('setPushPreference(userId, "on")'));
+  assert.ok(enable.indexOf("await claimSubscription(userId, desired.contextVersion, subscription)") < enable.indexOf('setPushPreference(userId, "on")'));
   assert.ok(disable.indexOf("await subscription.unsubscribe()") < disable.indexOf('setPushPreference(userId, "off")'));
 });
 
@@ -373,6 +373,7 @@ test("pending OFF cleanup cannot erase a newer explicit ON", async () => {
       return { error: null };
     },
   });
+  webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
   const off = webPush.disablePushNotifications("a");
   await removeStarted.promise;
   const on = webPush.enablePushNotifications("a");
@@ -522,6 +523,7 @@ test("late timed-out remove and unsubscribe are repaired from the latest ON inte
         return { error: null };
       },
     });
+    webPush.setPushDesiredAuthContext({ user: { id: "a" }, profile: { status: "approved" } });
     void webPush.disablePushNotifications("a").catch(() => {});
     await started.promise;
     await delay(40);
@@ -566,16 +568,19 @@ test("legacy lookup cannot override explicit OFF or OFF then ON", async () => {
 });
 
 test("failed explicit mutations do not commit successful preferences", async () => {
+  const auth = { user: { id: "a" }, profile: { status: "approved" } };
   const onStorage = new Map();
   const subscription = { endpoint: "failure", toJSON: () => ({ keys: {} }), unsubscribe: async () => true };
   const on = await loadWebPush({ storage: onStorage, preference: null, getSubscription: async () => subscription, subscribe: async () => subscription,
     rpc: async () => ({ error: new Error("claim failed") }) });
+  on.setPushDesiredAuthContext(auth);
   await assert.rejects(on.enablePushNotifications("a"), /claim failed/);
   assert.equal(onStorage.has("cheongpa:web-push-preference:a"), false);
 
   const offStorage = new Map([["cheongpa:web-push-preference:a", "on"]]);
   const off = await loadWebPush({ storage: offStorage, getSubscription: async () => subscription, subscribe: async () => subscription,
-    rpc: async () => ({ error: new Error("remove failed") }) });
+    rpc: async (name) => ({ error: name === "remove_own_push_subscription" ? new Error("remove failed") : null }) });
+  off.setPushDesiredAuthContext(auth);
   await assert.rejects(off.disablePushNotifications("a"), /remove failed/);
   assert.equal(offStorage.get("cheongpa:web-push-preference:a"), "on");
   await delay(20); // allow the bounded reconciliation budgets to drain
