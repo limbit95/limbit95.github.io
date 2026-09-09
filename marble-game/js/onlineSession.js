@@ -80,6 +80,7 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   let actionInFlight = false;
   let pendingRefresh = false;
   let recoveryTimer = null;
+  let realtimeHealthy = false;
 
   function accept(nextSnapshot) {
     snapshot = nextSnapshot;
@@ -136,16 +137,16 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   }
 
   function scheduleRecoveryRefresh() {
-    if (disposed || recoveryTimer !== null) return;
+    if (disposed || realtimeHealthy || recoveryTimer !== null) return;
     recoveryTimer = window.setTimeout(async () => {
       recoveryTimer = null;
-      if (disposed) return;
+      if (disposed || realtimeHealthy) return;
       try {
         await refresh();
       } catch (error) {
         onConnectionStatus?.("RECONNECTING", error);
       } finally {
-        if (!disposed) scheduleRecoveryRefresh();
+        if (!disposed && !realtimeHealthy) scheduleRecoveryRefresh();
       }
     }, RECOVERY_REFRESH_MS);
   }
@@ -153,11 +154,15 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   function handleRealtimeStatus(status, error) {
     onConnectionStatus?.(status, error);
     if (status === "SUBSCRIBED") {
+      realtimeHealthy = true;
       clearRecoveryTimer();
       void refresh().catch(() => {});
       return;
     }
-    if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) scheduleRecoveryRefresh();
+    if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+      realtimeHealthy = false;
+      scheduleRecoveryRefresh();
+    }
   }
 
   try {
@@ -167,18 +172,19 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
       onStatus: handleRealtimeStatus,
     });
   } catch (error) {
+    realtimeHealthy = false;
     onConnectionStatus?.("CHANNEL_ERROR", error);
     scheduleRecoveryRefresh();
   }
 
   const handleOnline = () => {
+    realtimeHealthy = false;
     onConnectionStatus?.("RECONNECTING");
     scheduleRecoveryRefresh();
-    void refresh()
-      .then(() => onConnectionStatus?.("SUBSCRIBED"))
-      .catch((error) => onConnectionStatus?.("RECONNECTING", error));
+    void refresh().catch((error) => onConnectionStatus?.("RECONNECTING", error));
   };
   const handleOffline = () => {
+    realtimeHealthy = false;
     onConnectionStatus?.("OFFLINE");
     scheduleRecoveryRefresh();
   };
@@ -209,6 +215,7 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     },
     dispose() {
       disposed = true;
+      realtimeHealthy = false;
       clearRecoveryTimer();
       unsubscribe?.();
       unsubscribe = null;

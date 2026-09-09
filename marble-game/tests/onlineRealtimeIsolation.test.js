@@ -15,5 +15,7 @@ test("online game realtime subscribers use isolated channel topics", () => {
 
 test("online game snapshot remains usable if realtime setup throws synchronously", () => {
   assert.match(sessionSource, /try \{\s*unsubscribe = subscribeOnlineGame/);
-  assert.match(sessionSource, /catch \(error\) \{\s*onConnectionStatus\?\.\("CHANNEL_ERROR", error\);\s*\}/);
+  assert.match(sessionSource, /catch \(error\) \{/);
+  assert.match(sessionSource, /onConnectionStatus\?\.\("CHANNEL_ERROR", error\)/);
+  assert.match(sessionSource, /scheduleRecoveryRefresh\(\)/);
 });
