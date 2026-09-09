@@ -3,6 +3,7 @@ import { PROFILE_STATUS } from "./constants.js";
 import {
   cleanupPushSubscriptionForSignOut,
   restorePushNotificationsForAuth,
+  setPushAuthContextVersion,
   waitForPushRestoreClaims,
 } from "./web-push.js";
 import { ROLE, hasAdminPermission } from "./permissions.js";
@@ -47,12 +48,14 @@ export function subscribeAuth(listener) {
 }
 
 function clearAuthContext({ notify = true } = {}) {
+  const previousUserId = state.user?.id;
   lifecycleEpoch += 1;
   state.session = null;
   state.user = null;
   state.profile = null;
   state.managerCategoryIds = new Set();
   state.adminPermissions = new Set();
+  if (previousUserId) setPushAuthContextVersion(previousUserId, null);
   if (notify) emit();
 }
 
@@ -111,11 +114,16 @@ async function loadAuthContext(session, { force, epoch }) {
   }
 
   if (epoch !== lifecycleEpoch) return getAuthState();
+  const previousUserId = state.user?.id;
+  if (previousUserId && previousUserId !== user.id) {
+    setPushAuthContextVersion(previousUserId, null);
+  }
   state.session = session;
   state.user = user;
   state.profile = profile;
   state.managerCategoryIds = managerCategoryIds;
   state.adminPermissions = new Set(accessResult.data?.[0]?.permissions ?? []);
+  setPushAuthContextVersion(user.id, epoch);
   emit();
   const restoreEpoch = lifecycleEpoch;
   void restorePushNotificationsForAuth(getAuthState(), {
@@ -250,7 +258,10 @@ export async function updatePassword(password) {
 async function cleanupPushBeforeSignOut(userId, accessToken, timeoutMs = PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS) {
   let timeoutId = null;
   let cleanupActive = true;
-  const isActive = () => cleanupActive && (!state.user?.id || state.user.id === userId);
+  const cleanupEpoch = lifecycleEpoch;
+  const isActive = () => cleanupActive
+    && cleanupEpoch === lifecycleEpoch
+    && (!state.user?.id || state.user.id === userId);
   const cleanupPromise = cleanupPushSubscriptionForSignOut(userId, { accessToken, isActive })
     .then(() => true)
     .catch((error) => {

@@ -11,6 +11,7 @@ const PUSH_PREFERENCE_PREFIX = "cheongpa:web-push-preference:";
 const restorePromises = new Map();
 const restoredUserIds = new Set();
 const inFlightRestoreClaims = new Map();
+const authContextVersions = new Map();
 
 function preferenceKey(userId) {
   return `${PUSH_PREFERENCE_PREFIX}${userId}`;
@@ -36,6 +37,20 @@ function setPushPreference(userId, value) {
     console.warn("Push preference could not be saved.", error);
     return false;
   }
+}
+
+export function setPushAuthContextVersion(userId, version) {
+  if (!userId) return;
+  if (version === null || version === undefined) {
+    authContextVersions.delete(userId);
+    return;
+  }
+  authContextVersions.set(userId, version);
+}
+
+function hasNewerSameUserContext(userId, contextVersion, getCurrentUserId) {
+  return getCurrentUserId?.() === userId
+    && authContextVersions.get(userId) !== contextVersion;
 }
 
 function applicationServerKey(value) {
@@ -228,9 +243,11 @@ export async function cleanupPushSubscriptionForSignOut(userId, {
   return true;
 }
 
-async function cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId) {
+async function cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion) {
   const currentUserId = getCurrentUserId?.();
-  if (!createdByRestore || (currentUserId && currentUserId !== userId)) return;
+  if (!createdByRestore
+    || (currentUserId && currentUserId !== userId)
+    || hasNewerSameUserContext(userId, contextVersion, getCurrentUserId)) return;
   try {
     await subscription.unsubscribe();
   } catch (error) {
@@ -241,6 +258,7 @@ async function cleanupStaleSubscription(subscription, createdByRestore, userId, 
 async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
   const userId = auth?.user?.id;
   if (!userId || auth.profile?.status !== "approved" || !isCurrent()) return null;
+  const contextVersion = authContextVersions.get(userId);
 
   const capability = getPushCapability();
   if (!capability.supported || capability.requiresIosInstall) return null;
@@ -273,24 +291,26 @@ async function restorePushNotifications(auth, { isCurrent, getCurrentUserId }) {
     });
     createdByRestore = true;
     if (!isCurrent()) {
-      await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+      await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
       return null;
     }
   }
   if (!isCurrent()) {
-    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
     return null;
   }
   const claimPromise = saveSubscription(subscription);
   trackRestoreClaim(userId, claimPromise);
   await claimPromise;
   if (!isCurrent()) {
-    try {
-      await removeSubscriptionWithAccessToken(subscription, auth.session?.access_token);
-    } catch (error) {
-      console.warn("Stale push subscription ownership cleanup failed.", error);
+    if (!hasNewerSameUserContext(userId, contextVersion, getCurrentUserId)) {
+      try {
+        await removeSubscriptionWithAccessToken(subscription, auth.session?.access_token);
+      } catch (error) {
+        console.warn("Stale push subscription ownership cleanup failed.", error);
+      }
     }
-    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId);
+    await cleanupStaleSubscription(subscription, createdByRestore, userId, getCurrentUserId, contextVersion);
     return null;
   }
   restoredUserIds.add(userId);
