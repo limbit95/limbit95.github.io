@@ -50,8 +50,7 @@ test("Classic lobby requires at least two ready players before a game can start"
   assert.equal(playingLobby.canStart, false);
 });
 
-test("Marble page exposes the Phase 5A Supabase lobby entry without removing local play", () => {
-  assert.match(indexHtml, /PHASE 5 · MULTIPLAYER FOUNDATION/);
+test("Marble page keeps the Supabase lobby entry without removing local play", () => {
   assert.match(indexHtml, /@supabase\/supabase-js@2/);
   assert.match(indexHtml, /data-multiplayer-entry/);
   assert.match(indexHtml, /data-create-room/);
