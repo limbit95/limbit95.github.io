@@ -124,8 +124,9 @@ test.describe("client error observability", () => {
     await page.goto("/#/admin/errors");
     await expect(page).toHaveTitle("오류 로그 | 청파 같이");
     await expect(page.getByRole("heading", { name: "오류 로그", exact: true })).toBeVisible();
-    await expect(page.getByText(marker, { exact: true })).toBeVisible();
-    await expect(page.getByText("E2E 회원", { exact: true })).toBeVisible();
+    const errorRow = page.locator("tbody tr").filter({ hasText: marker });
+    await expect(errorRow).toBeVisible();
+    await expect(errorRow.locator("td").nth(2)).toContainText("E2E 회원");
 
     await serviceRoleRequest(`/rest/v1/client_error_logs?id=eq.${rows[0].id}`, { method: "DELETE" });
   });
