@@ -14,12 +14,24 @@ import { showToast } from "../components/toast.js";
 
 export function renderSignup() {
   const currentYear = new Date().getFullYear();
-  const form = el("form", { className: "form-grid form-grid--2", novalidate: true });
+  const form = el("form", { className: "form-grid", novalidate: true });
   form.append(
     field("email", "이메일", "email", { autocomplete: "email", placeholder: "name@example.com" }),
     field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "8자 이상 입력해 주세요."),
-    field("display_name", "커뮤니티 표시 이름", "text", { autocomplete: "nickname", maxlength: "50" }),
-    field("real_name", "실명", "text", { autocomplete: "name", maxlength: "50" }),
+    field(
+      "display_name",
+      "닉네임",
+      "text",
+      { autocomplete: "nickname", maxlength: "50" },
+      "게시글과 활동 등 청파 같이에서 표시되는 이름입니다. 가입 후 언제든 변경할 수 있어요.",
+    ),
+    field(
+      "real_name",
+      "실명",
+      "text",
+      { autocomplete: "name", maxlength: "50" },
+      "가입 승인과 회원 확인에 사용하는 실제 이름입니다.",
+    ),
     field("birth_year", "출생연도", "number", { min: "1900", max: String(currentYear), inputmode: "numeric" }, "가입 시 네 자리 출생연도가 필요합니다."),
     selectField("age_visibility", "나이 공개 범위", [
       ["private", "비공개"],
@@ -61,7 +73,7 @@ export function renderSignup() {
       valid = false;
     }
     if (!valueInRange(form.display_name.value, 1, 50)) {
-      setFieldError(form, "display_name", "표시 이름은 1~50자로 입력해 주세요.");
+      setFieldError(form, "display_name", "닉네임은 1~50자로 입력해 주세요.");
       valid = false;
     }
     if (!valueInRange(form.request_message.value, 1, 1000)) {
@@ -111,7 +123,7 @@ export function renderSignup() {
   });
 
   return el("main", { id: "main-content", className: "auth-layout" }, [
-    el("section", { className: "auth-card" }, [
+    el("section", { className: "auth-card auth-card--signup" }, [
       el("a", { className: "auth-brand", href: "#/login" }, [
         el("img", { src: "./assets/images/logo.svg", alt: "", width: "68", height: "68" }),
       ]),
