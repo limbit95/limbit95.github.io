@@ -49,7 +49,7 @@ document.getElementById("skip-link")?.addEventListener("click", () => {
 
 function authDestination(auth = getAuthState()) {
   if (!auth.user) return "/login";
-  if (!auth.profile) return "/signup";
+  if (!auth.profile) return "/login";
   if (auth.profile?.status === "approved") return "/";
   if (auth.profile?.status === "suspended") return "/suspended";
   return "/pending";
@@ -250,7 +250,7 @@ setBeforeRoute(async (routeInfo) => {
   const requirement = routeInfo.meta?.auth;
   if (requirement === "guest") {
     if (auth.user) {
-      if (routeInfo.path === "/signup" && !auth.profile) return true;
+      if (!auth.profile && ["/signup", "/login"].includes(routeInfo.path)) return true;
       navigate(authDestination(auth), { replace: true });
       return false;
     }
@@ -304,7 +304,7 @@ window.addEventListener("app:auth-changed", (event) => {
   setObservabilityIdentity(auth);
   const current = window.location.hash.replace(/^#/, "").split("?")[0] || "/";
   if (["/auth/confirm", "/password/update", "/reset-password", "/update-password"].includes(current)) return;
-  if (current === "/signup" && auth.user && !auth.profile) return;
+  if (["/signup", "/login"].includes(current) && auth.user && !auth.profile) return;
   if (event.detail?.event === "SIGNED_IN" && event.detail.sameUser) return;
   if (current === "/login" || current === "/signup" || auth.profile?.status !== "approved") {
     const destination = authDestination(auth);
