@@ -132,6 +132,7 @@ if (onlineRoomId) {
 
     try {
       unsubscribe = subscribeOnlineGame(onlineRoomId, {
+        channelScope: "exit",
         onChange: () => { void checkRemoteEnd(); },
       });
     } catch (error) {

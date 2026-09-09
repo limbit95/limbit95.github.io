@@ -69,10 +69,10 @@ export function endOnlineTurn(options) {
   return gameAction("marble_end_turn", options);
 }
 
-export function subscribeOnlineGame(roomId, { onChange, onStatus } = {}) {
+export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const client = requireClient();
   const channel = client
-    .channel(`marble-game:${roomId}`)
+    .channel(`marble-game:${roomId}:${channelScope}:${actionId()}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "marble_games", filter: `room_id=eq.${roomId}` },

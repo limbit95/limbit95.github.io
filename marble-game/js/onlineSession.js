@@ -126,10 +126,15 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     }
   }
 
-  unsubscribe = subscribeOnlineGame(roomId, {
-    onChange: () => { void refresh(); },
-    onStatus: onConnectionStatus,
-  });
+  try {
+    unsubscribe = subscribeOnlineGame(roomId, {
+      channelScope: "session",
+      onChange: () => { void refresh(); },
+      onStatus: onConnectionStatus,
+    });
+  } catch (error) {
+    onConnectionStatus?.("CHANNEL_ERROR", error);
+  }
 
   const handleOnline = () => {
     onConnectionStatus?.("RECONNECTING");
