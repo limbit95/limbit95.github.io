@@ -22,12 +22,13 @@ test("dedicated play window uses substantially larger player and status HUDs", (
   assert.match(visibilityCss, /important-notice[\s\S]*font-size:\s*1\.18rem/);
 });
 
-test("Classic ownership markers stay at the outside tile edge instead of covering landmarks", () => {
+test("Classic ownership flag sits on the tile accent strip while edge trim stays outside", () => {
   assert.match(indexHtml, /themes\/classic\/ownershipVisual\.js/);
-  assert.match(ownershipVisualSource, /style:\s*"outer-corner-flag-and-edge-trim"/);
+  assert.match(ownershipVisualSource, /style:\s*"accent-strip-flag-and-edge-trim"/);
   assert.match(ownershipVisualSource, /outerEdgeZ = entry\.tileDepth \* 0\.47/);
-  assert.match(ownershipVisualSource, /flagZ = entry\.tileDepth \* 0\.43/);
-  assert.match(ownershipVisualSource, /createClassicOwnershipMarker/);
+  assert.match(ownershipVisualSource, /accentStripZ = -\(entry\.tileDepth \* 0\.38\)/);
+  assert.match(ownershipVisualSource, /pole\.position\.set\(flagX, 0\.9, accentStripZ\)/);
+  assert.match(ownershipVisualSource, /flagPanel\.position\.set\([\s\S]*accentStripZ\)/);
   assert.match(visibilityCss, /\.classic-ownership-three-canvas/);
 });
 
@@ -37,6 +38,25 @@ test("tile details and toll notices keep the board visible without a dim backdro
   assert.match(appSource, /if \(tollNotice\) \{\s*openTollNotice\(tollNotice\)/);
   assert.match(visibilityCss, /\.tile-info-modal::backdrop,[\s\S]*\.toll-notice-modal::backdrop[\s\S]*background:\s*transparent/);
   assert.match(visibilityCss, /\.tile-info-modal__stats[\s\S]*grid-template-columns:\s*repeat\(2/);
+});
+
+test("dice result pauses with a centered move-count pop before piece movement", () => {
+  assert.match(indexHtml, /data-move-count-pop/);
+  assert.match(appSource, /MOVE_COUNT_HOLD_MS = 1200/);
+  assert.match(appSource, /await showMoveCount\(/);
+  assert.match(appSource, /`\$\{Number\(total\)\}칸 이동!`/);
+  assert.match(visibilityCss, /\.move-count-pop/);
+  assert.match(visibilityCss, /@keyframes marble-move-count-pop/);
+});
+
+test("toll notice exposes balance before, deduction and balance after", () => {
+  assert.match(indexHtml, /data-toll-balance-before/);
+  assert.match(indexHtml, /data-toll-deduction/);
+  assert.match(indexHtml, /data-toll-balance-after/);
+  assert.match(appSource, /notice\.balanceBeforeLabel/);
+  assert.match(appSource, /notice\.deductionLabel/);
+  assert.match(appSource, /notice\.balanceAfterLabel/);
+  assert.match(visibilityCss, /\.toll-notice-modal__balance/);
 });
 
 test("roll action exposes a centered hold-to-charge control", () => {

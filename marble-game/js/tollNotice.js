@@ -5,8 +5,8 @@ function playerLabel(player) {
   return player?.name || player?.id || "플레이어";
 }
 
-function money(value) {
-  return formatThemeMoney(value, CLASSIC_RULES.currency);
+function money(value, options = {}) {
+  return formatThemeMoney(value, CLASSIC_RULES.currency, options);
 }
 
 function latestEvent(state, predicate) {
@@ -44,7 +44,20 @@ export function createClassicTollNotice(state) {
     && event.playerId === payer.id
     && event.creditorId === owner.id
   ));
+  const bankruptcyEvent = latestEvent(state, (event) => (
+    event.type === "PLAYER_BANKRUPT"
+    && event.playerId === payer.id
+    && event.creditorId === owner.id
+  ));
   const amount = Number.isFinite(paidEvent?.amount) ? paidEvent.amount : expectedToll;
+  const balanceAfter = Math.max(0, Number(payer.money) || 0);
+  const balanceBefore = Number.isFinite(paidEvent?.balanceBefore)
+    ? paidEvent.balanceBefore
+    : paidEvent
+      ? balanceAfter + amount
+      : Number.isFinite(bankruptcyEvent?.balanceBefore)
+        ? bankruptcyEvent.balanceBefore
+        : null;
 
   return Object.freeze({
     city: node.label,
@@ -53,6 +66,11 @@ export function createClassicTollNotice(state) {
     ownerSeat: Number(owner.seat) || 0,
     amount,
     amountLabel: money(amount),
+    deductionLabel: money(-amount, { signed: true }),
+    balanceBefore,
+    balanceBeforeLabel: balanceBefore === null ? "보유 골드 부족" : money(balanceBefore),
+    balanceAfter,
+    balanceAfterLabel: money(balanceAfter),
     effect: `현재 건물 ${level}단계 기준 통행료가 ${playerLabel(owner)}에게 적용됩니다.`,
     paid: Boolean(paidEvent),
   });

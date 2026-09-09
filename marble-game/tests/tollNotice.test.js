@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { createClassicTollNotice } from "../js/tollNotice.js";
 
-test("toll notice keeps only the information the payer needs", () => {
+test("toll notice shows payer balance before, deduction and remaining gold", () => {
   const state = {
     board: {
       nodes: [{
@@ -14,8 +14,8 @@ test("toll notice keeps only the information the payer needs", () => {
       }],
     },
     players: [
-      { id: "payer", name: "플레이어 A", seat: 0 },
-      { id: "owner", name: "플레이어 B", seat: 1 },
+      { id: "payer", name: "플레이어 A", seat: 0, money: 792 },
+      { id: "owner", name: "플레이어 B", seat: 1, money: 1708 },
     ],
     boardState: {
       properties: {
@@ -34,6 +34,11 @@ test("toll notice keeps only the information the payer needs", () => {
   assert.equal(notice.ownerSeat, 1);
   assert.equal(notice.amount, 208);
   assert.match(notice.amountLabel, /208/);
+  assert.equal(notice.balanceBefore, 1000);
+  assert.equal(notice.balanceAfter, 792);
+  assert.match(notice.balanceBeforeLabel, /1,000/);
+  assert.match(notice.deductionLabel, /-208/);
+  assert.match(notice.balanceAfterLabel, /792/);
   assert.match(notice.effect, /건물 2단계/);
   assert.equal(Object.hasOwn(notice, "purchasePrice"), false);
   assert.equal(Object.hasOwn(notice, "buildCost"), false);
