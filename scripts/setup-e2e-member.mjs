@@ -48,6 +48,7 @@ async function request(path, options = {}) {
 }
 
 const normalizedEmail = email.trim().toLowerCase();
+const authUserId = randomUUID();
 const challengeId = randomUUID();
 const verifiedAt = new Date().toISOString();
 const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -63,6 +64,7 @@ await request("/rest/v1/signup_email_challenges", {
     expires_at: expiresAt,
     verified_at: verifiedAt,
     verification_token_hash: "e2e-token-hash",
+    auth_user_id: authUserId,
     consumed_at: verifiedAt,
   }),
 });
@@ -70,12 +72,10 @@ await request("/rest/v1/signup_email_challenges", {
 const user = await request("/auth/v1/admin/users", {
   method: "POST",
   body: JSON.stringify({
+    id: authUserId,
     email: normalizedEmail,
     password,
     email_confirm: true,
-    app_metadata: {
-      signup_verification_challenge_id: challengeId,
-    },
     user_metadata: {
       display_name: role === "admin" ? "E2E 관리자" : "E2E 회원",
       real_name: role === "admin" ? "E2E 관리자 테스트" : "E2E 테스트",
