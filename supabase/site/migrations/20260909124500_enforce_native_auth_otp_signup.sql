@@ -11,6 +11,7 @@ as $$
 declare
  v_metadata jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb);
  v_signup_flow text := nullif(btrim(v_metadata ->> 'signup_flow'), '');
+ v_trusted_signup_source text := nullif(btrim(coalesce(new.raw_app_meta_data, '{}'::jsonb) ->> 'community_signup_source'), '');
  v_display_name text := nullif(btrim(v_metadata ->> 'display_name'), '');
  v_real_name text := nullif(btrim(v_metadata ->> 'real_name'), '');
  v_church_group text := nullif(btrim(v_metadata ->> 'church_group'), '');
@@ -32,9 +33,10 @@ begin
    return new;
  end if;
 
- -- Keep trusted/admin-created confirmed users compatible with existing fixture and
- -- operational creation paths, while blocking the old unverified browser signup path.
- if new.email_confirmed_at is null then
+ -- The Admin create-user API can run this INSERT trigger before email_confirmed_at is
+ -- populated even when email_confirm=true. Only a server-controlled app_metadata marker
+ -- may bypass that timing gap; ordinary browser signups cannot set raw_app_meta_data.
+ if new.email_confirmed_at is null and coalesce(v_trusted_signup_source, '') <> 'admin_create' then
    raise exception '이메일 인증 후 가입 신청을 완료해 주세요.' using errcode='23514';
  end if;
 

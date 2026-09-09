@@ -92,16 +92,17 @@ test("historical phase-one migration remains preserved for real-name backfill", 
   assert.match(infrastructure, /community_rules_version/);
 });
 
-
-
-test("final enforcement blocks the legacy unverified signup bypass", () => {
+test("final enforcement blocks browser bypass but permits explicitly trusted admin-created fixtures", () => {
   assert.match(transition, /Legacy frontend compatibility during the staged rollout/);
   assert.match(enforcement, /Final native Auth OTP enforcement/);
   assert.match(enforcement, /if v_signup_flow = 'auth_otp' then[\s\S]*return new;/);
-  assert.match(enforcement, /if new\.email_confirmed_at is null then[\s\S]*이메일 인증 후 가입 신청을 완료해 주세요/);
+  assert.match(enforcement, /new\.raw_app_meta_data[\s\S]*community_signup_source/);
+  assert.match(enforcement, /new\.email_confirmed_at is null and coalesce\(v_trusted_signup_source, ''\) <> 'admin_create'/);
+  assert.doesNotMatch(enforcement, /v_metadata ->> 'community_signup_source'/);
   assert.match(enforcement, /insert into public\.profiles/);
   assert.match(enforcement, /insert into public\.join_requests/);
   assert.match(setupE2E, /email_confirm: true/);
+  assert.match(setupE2E, /app_metadata: \{[\s\S]*community_signup_source: "admin_create"/);
 });
 
 test("E2E fixtures no longer synthesize custom signup challenges", () => {
