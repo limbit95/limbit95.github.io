@@ -119,15 +119,18 @@ async function completeSignup(body: Record<string, unknown>) {
     return fail("VERIFICATION_USED", "이미 사용된 이메일 인증입니다. 기존 계정으로 로그인해 주세요.", 409);
   }
   if (await emailAlreadyRegistered(client, email)) return fail("EMAIL_EXISTS", "이미 가입했거나 가입 신청에 사용된 이메일입니다.", 409);
-  const consumedAt = new Date().toISOString();
-  const { data: claimed } = await client.from("signup_email_challenges").update({ consumed_at: consumedAt }).eq("id", challenge.id).is("consumed_at", null).select("id").maybeSingle();
-  if (!claimed) return fail("VERIFICATION_USED", "이미 사용된 이메일 인증입니다.", 409);
+  const authUserId = crypto.randomUUID();
+  const { data: consumedAt, error: claimError } = await client.rpc("claim_signup_email_challenge", {
+    p_challenge_id: challenge.id,
+    p_auth_user_id: authUserId,
+  });
+  if (claimError) throw claimError;
+  if (!consumedAt) return fail("VERIFICATION_USED", "이미 사용된 이메일 인증입니다.", 409);
   const { data, error: createError } = await client.auth.admin.createUser({
-    email, password, email_confirm: true, user_metadata: userMetadata,
-    app_metadata: { signup_verification_challenge_id: challenge.id },
+    id: authUserId, email, password, email_confirm: true, user_metadata: userMetadata,
   });
   if (createError) {
-    await client.from("signup_email_challenges").update({ consumed_at: null }).eq("id", challenge.id).eq("consumed_at", consumedAt);
+    await client.from("signup_email_challenges").update({ consumed_at: null, auth_user_id: null }).eq("id", challenge.id).eq("auth_user_id", authUserId);
     throw createError;
   }
   const { data: session, error: sessionError } = await client.auth.signInWithPassword({ email, password });

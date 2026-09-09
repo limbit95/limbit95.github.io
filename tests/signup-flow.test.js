@@ -27,12 +27,16 @@ test("required agreements and verified token gate final submission", () => {
   assert.match(edge, /if \(challenge\.consumed_at\)/);
 });
 
-test("caller-controlled user metadata cannot bypass verified signup", () => {
+test("caller-controlled metadata cannot bypass verified signup", () => {
   assert.doesNotMatch(enforcement, /raw_user_meta_data[^\n]*signup_email_verified|v_metadata ->> 'signup_email_verified'/);
-  assert.match(enforcement, /new\.raw_app_meta_data ->> 'signup_verification_challenge_id'/);
-  assert.match(enforcement, /c\.id = v_challenge_id and c\.email = lower\(new\.email\)/);
+  assert.doesNotMatch(enforcement, /raw_app_meta_data[^\n]*signup_verification_challenge_id/);
+  assert.match(infrastructure, /auth_user_id uuid unique/);
+  assert.match(enforcement, /c\.auth_user_id = new\.id and c\.email = lower\(new\.email\)/);
   assert.match(enforcement, /c\.verified_at is not null and c\.consumed_at is not null/);
-  assert.match(edge, /app_metadata: \{ signup_verification_challenge_id: challenge\.id \}/);
+  assert.match(edge, /const authUserId = crypto\.randomUUID\(\)/);
+  assert.match(edge, /rpc\("claim_signup_email_challenge"/);
+  assert.match(edge, /id: authUserId, email, password, email_confirm: true/);
+  assert.doesNotMatch(edge, /app_metadata:[^\n]*signup_verification_challenge_id/);
   assert.doesNotMatch(edge, /signup_email_verified/);
 });
 
@@ -53,10 +57,13 @@ test("challenge creation rate limits are serialized in the database", () => {
 });
 
 test("verification is consumed once and retry recovers a completed account", () => {
-  assert.match(edge, /\.is\("consumed_at", null\)\.select\("id"\)\.maybeSingle/);
+  assert.match(infrastructure, /set consumed_at = pg_catalog\.clock_timestamp\(\), auth_user_id = p_auth_user_id/);
+  assert.match(infrastructure, /and consumed_at is null and auth_user_id is null/);
+  assert.match(edge, /rpc\("claim_signup_email_challenge"/);
   assert.match(edge, /existingSession[\s\S]*recovered: true/);
   assert.match(edge, /sign_in_required: true/);
   assert.match(edge, /email_confirm: true/);
+  assert.match(edge, /update\(\{ consumed_at: null, auth_user_id: null \}\)[\s\S]*eq\("auth_user_id", authUserId\)/);
 });
 
 test("completed signup routes according to whether sign-in is required", () => {
@@ -92,6 +99,7 @@ test("challenge RPCs and table are service-role only", () => {
     "create_signup_email_challenge\\(text,text,text,timestamptz\\)",
     "record_signup_email_failure\\(uuid\\)",
     "verify_signup_email_challenge\\(uuid,text,text\\)",
+    "claim_signup_email_challenge\\(uuid,uuid\\)",
   ]) {
     assert.match(infrastructure, new RegExp(`revoke all on function public\\.${signature} from public, anon, authenticated`));
     assert.match(infrastructure, new RegExp(`grant execute on function public\\.${signature} to service_role`));
@@ -100,7 +108,8 @@ test("challenge RPCs and table are service-role only", () => {
 
 test("rollout keeps the old trigger until the final enforcement migration", () => {
   assert.match(infrastructure, /Backward-compatible trigger for the rollout window/);
-  assert.doesNotMatch(infrastructure, /raw_app_meta_data ->> 'signup_verification_challenge_id'/);
+  assert.doesNotMatch(infrastructure, /c\.auth_user_id = new\.id/);
   assert.match(enforcement, /Phase 4: apply only after signup-verification and the new frontend are deployed/);
   assert.match(enforcement, /create or replace function private\.handle_new_auth_user/);
+  assert.match(enforcement, /c\.auth_user_id = new\.id/);
 });

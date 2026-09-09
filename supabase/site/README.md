@@ -134,10 +134,13 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
    `supabase functions deploy signup-verification --no-verify-jwt`로 Edge Function을 배포합니다.
 3. 새 프론트엔드를 배포합니다.
 4. 마지막으로 `20260909123000_enforce_verified_signup.sql`을 적용해 구 Auth 가입 경로를
-   차단합니다. 이 단계 이후 trigger는 사용자 metadata가 아니라 service role만 설정할 수
-   있는 `raw_app_meta_data`의 challenge ID와 DB의 consumed challenge를 함께 확인합니다.
+   차단합니다. 이 단계 이후 Edge Function은 인증된 challenge를 서버가 생성한 Auth user UUID에
+   먼저 원자적으로 바인딩하고, Auth trigger는 `new.id`와 DB의 해당 바인딩·이메일·인증/소비 상태를
+   함께 확인합니다. 일반 클라이언트가 보내는 `raw_user_meta_data`나 생성 이후 갱신되는 custom
+   `app_metadata`를 이메일 소유권 증거로 사용하지 않습니다.
 
 challenge 테이블은 RLS를 활성화하고 `anon`/`authenticated` 권한을 제거했습니다. 생성,
-실패 횟수 증가, 성공 검증 RPC도 service role에만 허용됩니다. 요청 rate limit은 DB advisory
-transaction lock 안에서 집계와 insert를 수행하고, 실패 횟수는 조건부 단일 `UPDATE`로
-증가합니다. service role key와 pepper는 브라우저에 전달하지 않습니다.
+실패 횟수 증가, 성공 검증, Auth user UUID 바인딩 RPC도 service role에만 허용됩니다. 요청 rate
+limit은 DB advisory transaction lock 안에서 집계와 insert를 수행하고, 실패 횟수와 최종 challenge
+claim은 각각 조건부 단일 `UPDATE`로 처리합니다. service role key와 pepper는 브라우저에 전달하지
+않습니다.

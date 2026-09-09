@@ -24,6 +24,7 @@ create table public.signup_email_challenges (
     expires_at timestamptz not null,
     verified_at timestamptz,
     verification_token_hash text,
+    auth_user_id uuid unique,
     consumed_at timestamptz,
     failed_attempts smallint not null default 0 check (failed_attempts between 0 and 5),
     created_at timestamptz not null default now()
@@ -148,6 +149,29 @@ end;
 $$;
 revoke all on function public.verify_signup_email_challenge(uuid,text,text) from public, anon, authenticated;
 grant execute on function public.verify_signup_email_challenge(uuid,text,text) to service_role;
+
+-- Bind one verified challenge to one server-chosen Auth user UUID before auth.users INSERT.
+-- The final Auth trigger validates new.id against this trusted server-side binding.
+create function public.claim_signup_email_challenge(p_challenge_id uuid, p_auth_user_id uuid)
+returns timestamptz
+language plpgsql security definer set search_path = ''
+as $$
+declare v_consumed_at timestamptz;
+begin
+    if auth.role() <> 'service_role' then
+        raise exception 'service_role only' using errcode = '42501';
+    end if;
+    update public.signup_email_challenges
+       set consumed_at = pg_catalog.clock_timestamp(), auth_user_id = p_auth_user_id
+     where id = p_challenge_id
+       and verified_at is not null and verification_token_hash is not null
+       and consumed_at is null and auth_user_id is null
+    returning consumed_at into v_consumed_at;
+    return v_consumed_at;
+end;
+$$;
+revoke all on function public.claim_signup_email_challenge(uuid,uuid) from public, anon, authenticated;
+grant execute on function public.claim_signup_email_challenge(uuid,uuid) to service_role;
 
 -- 승인 회원에게만 반환하는 공개 프로필 RPC의 기존 보안 경계를 유지하면서 실명을 추가한다.
 drop function if exists public.get_public_member_profiles(uuid);
