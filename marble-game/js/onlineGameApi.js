@@ -12,7 +12,7 @@ async function rpc(name, params = {}) {
   return data;
 }
 
-function actionId() {
+export function createOnlineActionId() {
   if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
   const bytes = new Uint8Array(16);
   if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
@@ -45,11 +45,11 @@ export function endOnlineGame({ roomId, expectedVersion }) {
   });
 }
 
-function gameAction(name, { roomId, expectedVersion }) {
+function gameAction(name, { roomId, expectedVersion, clientActionId } = {}) {
   return rpc(name, {
     p_room_id: roomId,
     p_expected_version: Number(expectedVersion),
-    p_client_action_id: actionId(),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
   });
 }
 
@@ -72,7 +72,7 @@ export function endOnlineTurn(options) {
 export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const client = requireClient();
   const channel = client
-    .channel(`marble-game:${roomId}:${channelScope}:${actionId()}`)
+    .channel(`marble-game:${roomId}:${channelScope}:${createOnlineActionId()}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "marble_games", filter: `room_id=eq.${roomId}` },
