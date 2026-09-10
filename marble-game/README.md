@@ -2,6 +2,10 @@
 
 Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5D 온라인 마블 보드게임 플랫폼을 목표로 합니다.
 
+## 설계 기록
+
+- [Animation & Presentation Design](./ANIMATION_DESIGN.md) — 돈의 이동, 도시 건설, 캐릭터 반응, 자동 카메라, VFX/Sound, Animation Director/Queue, 테마별 presentation 확장과 향후 개발 순서를 기록합니다.
+
 ## 현재 단계
 
 ### Phase 4 — Classic 2.5D Visual Foundation
@@ -85,5 +89,7 @@ Classic 플레이 창에서 다음을 확인할 수 있습니다.
 - 주사위, 구매, 건설, 이벤트 이펙트
 - 게임 상황에 따른 자동 카메라 연출
 - 모바일 성능/품질 단계
+
+세부 애니메이션/연출 구조와 단계별 개발 계획은 [Animation & Presentation Design](./ANIMATION_DESIGN.md)을 기준으로 합니다.
 
 모두의마블은 화면 구성과 캐주얼 2.5D 보드게임 감각의 참고점일 뿐이며, 실제 에셋·캐릭터·UI·랜드마크 디자인은 복제하지 않고 Marble Worlds만의 시각 언어로 제작합니다.
