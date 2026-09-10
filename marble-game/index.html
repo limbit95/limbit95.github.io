@@ -12,15 +12,19 @@
     <link rel="stylesheet" href="./css/visibility-polish.css">
     <link rel="stylesheet" href="./css/multiplayer.css">
     <link rel="stylesheet" href="./css/online-game-controls.css">
+    <link rel="stylesheet" href="./css/online-2d-isolation.css?v=20260910-r10">
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "./js/diceStage.js": "./js/diceStageOnlineLazy.js?v=20260910-r10",
+          "./js/onlineStartup.js?v=20260910-r8": "./js/onlineStartupVisualBoundary.js?v=20260910-r10",
+          "./js/renderer/threeClassicPrototype.js": "./js/renderer/threeClassicPrototypeDiagnostics.js?v=20260910-r10"
         }
       }
     </script>
   </head>
-  <body data-theme="classic">
+  <body data-theme="classic" data-marble-build="20260910-r10">
     <main class="marble-shell">
       <header class="marble-header">
         <a class="back-link" href="../#/games">← 게임으로 돌아가기</a>
@@ -233,11 +237,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="./js/app.js"></script>
-    <script type="module" src="./js/multiplayerLobby.js"></script>
-    <script type="module" src="./js/diceCharge.js"></script>
-    <script type="module" src="./js/playWindow.js"></script>
-    <script type="module" src="./js/onlineGameExit.js"></script>
-    <script type="module" src="./js/themes/classic/ownershipVisual.js"></script>
+    <script type="module" src="./js/marbleBootstrap.js?v=20260910-r10"></script>
   </body>
 </html>

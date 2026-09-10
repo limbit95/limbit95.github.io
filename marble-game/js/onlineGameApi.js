@@ -82,3 +82,27 @@ export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope =
 
   return () => client.removeChannel(channel);
 }
+
+export function subscribeOnlinePresence(roomId, { playerId, onSync, onStatus } = {}) {
+  if (!playerId) throw new Error("PLAYER_ID_REQUIRED");
+  const client = requireClient();
+  const channel = client
+    .channel(`marble-presence:${roomId}`, {
+      config: { presence: { key: String(playerId) } },
+    })
+    .on("presence", { event: "sync" }, () => onSync?.(channel.presenceState()))
+    .subscribe(async (status, error) => {
+      onStatus?.(status, error);
+      if (status !== "SUBSCRIBED") return;
+      try {
+        await channel.track({
+          playerId: String(playerId),
+          onlineAt: new Date().toISOString(),
+        });
+      } catch (trackError) {
+        onStatus?.("PRESENCE_ERROR", trackError);
+      }
+    });
+
+  return () => client.removeChannel(channel);
+}

@@ -9,6 +9,7 @@ const { mapOnlineGameSnapshot, isOnlineViewerTurn } = await import("../js/online
 delete globalThis.window;
 
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const bootstrapSource = readFileSync(new URL("../js/marbleBootstrap.js", import.meta.url), "utf8");
 const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.meta.url), "utf8");
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
@@ -115,7 +116,7 @@ test("online game can be explicitly ended and return every client to a fresh lob
   assert.match(indexHtml, /data-online-game-controls/);
   assert.match(indexHtml, /data-end-online-game/);
   assert.match(indexHtml, /data-game-end-modal/);
-  assert.match(indexHtml, /onlineGameExit\.js/);
+  assert.match(bootstrapSource, /onlineGameExit\.js/);
   assert.match(apiSource, /marble_end_game/);
   assert.match(exitSource, /endOnlineGame/);
   assert.match(exitSource, /GAME_ABANDONED/);

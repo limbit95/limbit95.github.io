@@ -7,9 +7,10 @@ import {
   getOnlineGameSnapshot,
   rollOnlineDice,
   subscribeOnlineGame,
-} from "./onlineGameApi.js";
+} from "./onlineGameApi.js?v=20260910-r8";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
+const RECOVERY_REFRESH_MS = 3000;
 
 function freezeProperties(properties = {}) {
   return Object.freeze(Object.fromEntries(
@@ -67,16 +68,28 @@ export function isOnlineViewerTurn(state, viewerPlayerId) {
   return state.players[state.currentPlayerIndex]?.id === viewerPlayerId;
 }
 
-export async function createOnlineClassicSession({ roomId, onRemoteState, onConnectionStatus } = {}) {
+export async function createOnlineClassicSession({
+  roomId,
+  initialSnapshot,
+  onRemoteState,
+  onConnectionStatus,
+  api = {},
+} = {}) {
   if (!roomId) throw new Error("ROOM_ID_REQUIRED");
 
-  let snapshot = await getOnlineGameSnapshot(roomId);
+  const getSnapshot = api.getSnapshot ?? getOnlineGameSnapshot;
+  const subscribeGame = api.subscribeGame ?? subscribeOnlineGame;
+
+  let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
   let unsubscribe = null;
   let disposed = false;
   let refreshing = false;
   let actionInFlight = false;
   let pendingRefresh = false;
+  let recoveryTimer = null;
+  let realtimeHealthy = false;
+  let subscriptionReconciled = false;
 
   function accept(nextSnapshot) {
     snapshot = nextSnapshot;
@@ -92,7 +105,7 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     }
     refreshing = true;
     try {
-      const nextSnapshot = await getOnlineGameSnapshot(roomId);
+      const nextSnapshot = await getSnapshot(roomId);
       const nextVersion = Number(nextSnapshot?.game?.version) || 0;
       const currentVersion = Number(snapshot?.game?.version) || 0;
       if (nextVersion <= currentVersion) return state;
@@ -126,21 +139,68 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     }
   }
 
+  function clearRecoveryTimer() {
+    if (recoveryTimer === null) return;
+    window.clearTimeout(recoveryTimer);
+    recoveryTimer = null;
+  }
+
+  function scheduleRecoveryRefresh() {
+    if (disposed || realtimeHealthy || recoveryTimer !== null) return;
+    recoveryTimer = window.setTimeout(async () => {
+      recoveryTimer = null;
+      if (disposed || realtimeHealthy) return;
+      try {
+        await refresh();
+      } catch (error) {
+        onConnectionStatus?.("RECONNECTING", error);
+      } finally {
+        if (!disposed && !realtimeHealthy) scheduleRecoveryRefresh();
+      }
+    }, RECOVERY_REFRESH_MS);
+  }
+
+  function handleRealtimeStatus(status, error) {
+    onConnectionStatus?.(status, error);
+    if (status === "SUBSCRIBED") {
+      realtimeHealthy = true;
+      clearRecoveryTimer();
+      if (!subscriptionReconciled) {
+        subscriptionReconciled = true;
+        void refresh().catch((refreshError) => onConnectionStatus?.("RECONNECTING", refreshError));
+      }
+      return;
+    }
+    if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+      realtimeHealthy = false;
+      subscriptionReconciled = false;
+      scheduleRecoveryRefresh();
+    }
+  }
+
   try {
-    unsubscribe = subscribeOnlineGame(roomId, {
+    unsubscribe = subscribeGame(roomId, {
       channelScope: "session",
       onChange: () => { void refresh(); },
-      onStatus: onConnectionStatus,
+      onStatus: handleRealtimeStatus,
     });
   } catch (error) {
+    realtimeHealthy = false;
     onConnectionStatus?.("CHANNEL_ERROR", error);
+    scheduleRecoveryRefresh();
   }
 
   const handleOnline = () => {
+    realtimeHealthy = false;
     onConnectionStatus?.("RECONNECTING");
-    void refresh().then(() => onConnectionStatus?.("SUBSCRIBED"));
+    scheduleRecoveryRefresh();
+    void refresh().catch((error) => onConnectionStatus?.("RECONNECTING", error));
   };
-  const handleOffline = () => onConnectionStatus?.("OFFLINE");
+  const handleOffline = () => {
+    realtimeHealthy = false;
+    onConnectionStatus?.("OFFLINE");
+    scheduleRecoveryRefresh();
+  };
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
 
@@ -168,6 +228,8 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     },
     dispose() {
       disposed = true;
+      realtimeHealthy = false;
+      clearRecoveryTimer();
       unsubscribe?.();
       unsubscribe = null;
       window.removeEventListener("online", handleOnline);

@@ -1,8 +1,10 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { setupOnlinePresenceHud } from "./onlinePresenceHud.js?v=20260910-r8";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
+import { runOptionalEnhancement, withOnlineStartupTimeout } from "./onlineStartup.js?v=20260910-r8";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
 import { createClassicTollNotice } from "./tollNotice.js";
@@ -10,6 +12,12 @@ import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
 const onlineRoomId = getOnlineRoomId(window.location.href);
+let startController = null;
+
+export async function startOnlineGameController(options = {}) {
+  if (!startController) throw new Error("ONLINE_CONTROLLER_UNAVAILABLE");
+  return startController(options);
+}
 
 if (onlineRoomId) {
   const playtestSection = document.querySelector("[data-playtest-section]");
@@ -53,14 +61,17 @@ if (onlineRoomId) {
   let session = null;
   let threeRenderer = null;
   let threeRendererReady = false;
+  let threeRendererInit = null;
   let diceStage = null;
   let diceStageReady = false;
+  let diceStageInit = null;
   let interactionLocked = false;
   let tileInfoChoiceAction = null;
   let choiceDeclinedPending = false;
   let eventHistory = [];
   let importantNoticeTimer = null;
   let lastAnimatedVersion = 0;
+  let disposePresence = null;
 
   function money(value, options = {}) {
     return formatThemeMoney(value, CLASSIC_RULES.currency, options);
@@ -458,6 +469,8 @@ if (onlineRoomId) {
 
   async function ensureRenderer() {
     if (threeRendererReady) return threeRenderer;
+    if (threeRendererInit) return threeRendererInit;
+
     threeRenderer = createClassicThreePrototypeRenderer({
       onTileSelect(nodeId) {
         if (!session) return;
@@ -467,18 +480,59 @@ if (onlineRoomId) {
       },
     });
     threeStatus.textContent = "온라인 2.5D 보드를 불러오는 중입니다…";
-    await threeRenderer.mount(threeStageElement);
-    threeRendererReady = true;
-    threeStatus.textContent = "온라인 동기화 · 고정 쿼터뷰";
-    return threeRenderer;
+    threeStageElement.dataset.loading = "true";
+    document.body.dataset.onlineRenderer = "loading";
+    threeRendererInit = runOptionalEnhancement(
+      () => threeRenderer.mount(threeStageElement),
+      {
+        timeoutCode: "ONLINE_RENDERER_TIMEOUT",
+        onReady() {
+          threeRendererReady = true;
+          threeStageElement.dataset.loading = "false";
+          document.body.dataset.onlineRenderer = "ready";
+          threeStatus.textContent = "온라인 동기화 · 고정 쿼터뷰";
+          if (session) threeRenderer.renderState(session.getState());
+        },
+        onFailed(error) {
+          threeRendererReady = false;
+          threeStageElement.dataset.loading = "false";
+          threeStageElement.dataset.error = "true";
+          document.body.dataset.onlineRenderer = "failed";
+          const fallback = document.querySelector(".two-d-fallback");
+          if (fallback) fallback.open = true;
+          threeStatus.textContent = "2.5D 보드를 불러오지 못했습니다. 2D 상태 보드로 플레이를 계속할 수 있습니다.";
+          console.error("Marble online 2.5D board failed to initialize", error);
+        },
+        onLateReady() {
+          threeRenderer?.dispose?.();
+        },
+      },
+    );
+    return threeRendererInit;
   }
 
   async function ensureDiceStage() {
     if (diceStageReady) return diceStage;
+    if (diceStageInit) return diceStageInit;
+
     diceStage = createThreeDiceStage();
-    await diceStage.mount(diceStageElement);
-    diceStageReady = true;
-    return diceStage;
+    diceStageInit = runOptionalEnhancement(
+      () => diceStage.mount(diceStageElement),
+      {
+        timeoutCode: "ONLINE_DICE_RENDERER_TIMEOUT",
+        onReady() {
+          diceStageReady = true;
+        },
+        onFailed(error) {
+          diceStageReady = false;
+          console.error("Marble online 3D dice stage failed to initialize", error);
+        },
+        onLateReady() {
+          diceStage?.dispose?.();
+        },
+      },
+    );
+    return diceStageInit;
   }
 
   async function animateState(state, { remote = false } = {}) {
@@ -586,17 +640,22 @@ if (onlineRoomId) {
   });
   tollConfirmButton?.addEventListener("click", closeTollNotice);
 
-  async function init() {
-    if (!playtestSection) return;
+  async function init({
+    roomId = onlineRoomId,
+    initialSnapshot,
+    createSession = createOnlineClassicSession,
+  } = {}) {
+    if (!playtestSection || !gameMessage || !primaryActionButton) {
+      throw new Error("ONLINE_REQUIRED_DOM_MISSING");
+    }
     playtestSection.hidden = false;
     document.body.dataset.sessionMode = "online";
     gameMessage.textContent = "온라인 게임 상태를 불러오는 중입니다.";
     interactionLocked = true;
     try {
-      await ensureRenderer();
-      await ensureDiceStage();
-      session = await createOnlineClassicSession({
-        roomId: onlineRoomId,
+      session = await withOnlineStartupTimeout(createSession({
+        roomId,
+        initialSnapshot,
         onRemoteState: async (state) => {
           if (interactionLocked) {
             renderUi(state);
@@ -611,25 +670,37 @@ if (onlineRoomId) {
           }
         },
         onConnectionStatus: connectionStatus,
-      });
+      }));
       eventHistory = [];
       choiceDeclinedPending = false;
       const state = session.getState();
       lastAnimatedVersion = state.version;
       appendEvents(state);
-      renderUi(state);
+      renderUi(state, { renderThree: false });
+      document.body.dataset.onlineBootStage = "ui-ready";
       if (state.phase === TURN_PHASES.WAITING_CHOICE) showLandingOutcome(state);
       playtestSection.scrollIntoView({ block: "start" });
+      void ensureRenderer();
+      void ensureDiceStage();
+      void setupOnlinePresenceHud({ roomId, initialSnapshot }).then((dispose) => {
+        disposePresence = dispose;
+      }).catch((error) => console.warn("Marble online presence HUD failed to initialize", error));
     } catch (error) {
       console.error("Marble online game failed to initialize", error);
-      gameMessage.textContent = "온라인 게임을 불러오지 못했습니다. 대기실에서 다시 접속해 주세요.";
+      gameMessage.textContent = String(error?.message ?? "").includes("ONLINE_GAME_LOAD_TIMEOUT")
+        ? "온라인 게임 연결이 지연되고 있습니다. 네트워크를 확인한 뒤 새로고침해 주세요."
+        : "온라인 게임을 불러오지 못했습니다. 대기실에서 다시 접속해 주세요.";
       primaryActionButton.hidden = true;
+      throw error;
     } finally {
       interactionLocked = false;
       if (session) renderActionControls(session.getState());
     }
   }
 
-  window.addEventListener("beforeunload", () => session?.dispose?.());
-  void init();
+  window.addEventListener("beforeunload", () => {
+    session?.dispose?.();
+    disposePresence?.();
+  });
+  startController = init;
 }

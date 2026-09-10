@@ -8,7 +8,11 @@ import {
   setReady,
   subscribeLobby,
 } from "./multiplayerApi.js";
-import { startOnlineGame } from "./onlineGameApi.js";
+import {
+  endOnlineGame,
+  getOnlineGameSnapshot,
+  startOnlineGame,
+} from "./onlineGameApi.js";
 import { enterOnlineClassicPlay, getOnlineRoomId } from "./onlinePlayRoute.js";
 import {
   findViewer,
@@ -44,6 +48,7 @@ if (root && !onlinePlayRoomId) {
   let unsubscribeLobby = null;
   let busy = false;
   let enteringGame = false;
+  let suppressPlayingAutoEnter = false;
 
   function setMessage(text, tone = "neutral") {
     message.textContent = text;
@@ -118,6 +123,7 @@ if (root && !onlinePlayRoomId) {
   }
 
   function enterStartedGameIfNeeded() {
+    if (suppressPlayingAutoEnter) return false;
     if (enteringGame || snapshot?.room?.status !== "playing" || !snapshot.room.currentGameId) return false;
     enteringGame = true;
     unsubscribeLobby?.();
@@ -174,6 +180,21 @@ if (root && !onlinePlayRoomId) {
     const readySummary = lobbyReadySummary(snapshot);
     roomMeta.textContent = `${readySummary.playerCount} / ${snapshot.room.maxPlayers}명 · Classic`;
     renderPlayers();
+
+    if (snapshot.room.status === "playing") {
+      startButton.hidden = false;
+      startButton.disabled = busy;
+      startButton.textContent = "게임 이어가기";
+      readyButton.hidden = true;
+      leaveButton.textContent = "진행 중 게임 종료";
+      startHint.textContent = "진행 중인 게임이 있습니다. 2D 진단 모드로 이어가거나 게임을 종료한 뒤 새 방을 만들 수 있습니다.";
+      setStatus("진행 중", "warning");
+      return;
+    }
+
+    startButton.textContent = "게임 시작";
+    leaveButton.textContent = "방 나가기";
+    suppressPlayingAutoEnter = false;
 
     const viewer = findViewer(snapshot);
     const host = isViewerHost(snapshot);
@@ -251,6 +272,23 @@ if (root && !onlinePlayRoomId) {
     }
   }
 
+  async function endCurrentGame() {
+    let gameSnapshot = await getOnlineGameSnapshot(snapshot.room.id);
+    try {
+      return await endOnlineGame({
+        roomId: snapshot.room.id,
+        expectedVersion: gameSnapshot.game.version,
+      });
+    } catch (error) {
+      if (errorCode(error) !== "VERSION_CONFLICT") throw error;
+      gameSnapshot = await getOnlineGameSnapshot(snapshot.room.id);
+      return endOnlineGame({
+        roomId: snapshot.room.id,
+        expectedVersion: gameSnapshot.game.version,
+      });
+    }
+  }
+
   roomCodeInput.addEventListener("input", () => {
     roomCodeInput.value = normalizeRoomCode(roomCodeInput.value);
   });
@@ -273,6 +311,15 @@ if (root && !onlinePlayRoomId) {
   }));
 
   startButton.addEventListener("click", () => run(async () => {
+    if (snapshot?.room?.status === "playing") {
+      suppressPlayingAutoEnter = false;
+      enteringGame = true;
+      unsubscribeLobby?.();
+      unsubscribeLobby = null;
+      enterOnlineClassicPlay(snapshot.room.id);
+      return;
+    }
+
     const gameSnapshot = await startOnlineGame({
       roomId: snapshot.room.id,
       expectedVersion: snapshot.room.version,
@@ -294,14 +341,31 @@ if (root && !onlinePlayRoomId) {
     await acceptSnapshot(nextSnapshot);
   }));
 
-  leaveButton.addEventListener("click", () => run(async () => {
-    await leaveRoom({ roomId: snapshot.room.id, expectedVersion: snapshot.room.version });
-    unsubscribeLobby?.();
-    unsubscribeLobby = null;
-    snapshot = null;
-    renderLobby();
-    setMessage("방에서 나왔어요.", "neutral");
-  }));
+  leaveButton.addEventListener("click", () => {
+    if (snapshot?.room?.status === "playing") {
+      const confirmed = window.confirm("진행 중인 Marble 게임을 종료할까요? 종료하면 현재 방이 닫히고 새 방을 만들 수 있습니다.");
+      if (!confirmed) return;
+      void run(async () => {
+        await endCurrentGame();
+        unsubscribeLobby?.();
+        unsubscribeLobby = null;
+        snapshot = null;
+        suppressPlayingAutoEnter = false;
+        renderLobby();
+        setMessage("진행 중이던 게임을 종료했습니다. 새 방을 만들 수 있어요.", "success");
+      });
+      return;
+    }
+
+    void run(async () => {
+      await leaveRoom({ roomId: snapshot.room.id, expectedVersion: snapshot.room.version });
+      unsubscribeLobby?.();
+      unsubscribeLobby = null;
+      snapshot = null;
+      renderLobby();
+      setMessage("방에서 나왔어요.", "neutral");
+    });
+  });
 
   copyButton.addEventListener("click", async () => {
     try {
@@ -337,8 +401,9 @@ if (root && !onlinePlayRoomId) {
 
       const activeRoom = await getMyActiveRoom();
       if (activeRoom) {
+        suppressPlayingAutoEnter = activeRoom.room.status === "playing";
         await acceptSnapshot(activeRoom, activeRoom.room.status === "playing"
-          ? null
+          ? "진행 중이던 Marble 게임이 있습니다. 이어가거나 종료할 수 있어요."
           : "참가 중이던 Marble 방에 다시 연결했어요.");
       } else {
         renderLobby();
