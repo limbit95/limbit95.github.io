@@ -362,6 +362,9 @@ test.describe("approved member flow", () => {
     const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const deadlineDate = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
 
+    await serviceRoleRequest(`/rest/v1/category_managers?user_id=eq.${encodeURIComponent(memberUserId)}`, {
+      method: "DELETE",
+    });
     await login(page, memberEmail, memberPassword);
     await page.goto("/#/activities/new");
     await assertHealthyPage(page, "활동 등록");
@@ -471,12 +474,19 @@ test.describe("approved member flow", () => {
     const preservedRows = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
     expect(preservedRows[0].status).toBe("cancelled");
 
+    const removableRows = await authenticatedRequest(accessToken, "/rest/v1/events?select=id", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E removable ${token}`)),
+    });
+    expect(removableRows.response.status).toBe(201);
+    const removableEventId = Number(removableRows.body[0].id);
     const removed = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
-      method: "POST", body: JSON.stringify({ p_event_id: ownedEventId }),
+      method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
     });
     expect(removed.response.status).toBe(200);
     expect(removed.body.action).toBe("deleted");
-    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${ownedEventId}&select=id`)).toEqual([]);
+    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);
 
     await serviceRoleRequest("/rest/v1/category_managers", {
       method: "POST",
@@ -498,6 +508,15 @@ test.describe("approved member flow", () => {
     });
     expect(communityUpdate.response.status).toBe(200);
     expect(communityUpdate.body).toHaveLength(1);
+
+    await serviceRoleRequest(
+      `/rest/v1/category_managers?category_id=eq.${fixtureCategoryId}&user_id=eq.${encodeURIComponent(memberUserId)}`,
+      { method: "DELETE" },
+    );
+    await serviceRoleRequest(
+      `/rest/v1/admin_permissions?user_id=eq.${encodeURIComponent(adminUserId)}&permission=eq.community`,
+      { method: "DELETE" },
+    );
   });
 
   test("creates, edits, comments on, and deletes a prayer post through the UI", async ({ page }, testInfo) => {
