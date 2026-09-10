@@ -1,6 +1,7 @@
 import { getOnlineGameSnapshot, subscribeOnlinePresence } from "./onlineGameApi.js?v=20260910-r8";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
 
+const PRESENCE_HUD_REVISION = "20260910-r11";
 const CONNECTION_LABELS = Object.freeze({
   online: "접속 중",
   offline: "연결 끊김",
@@ -42,6 +43,12 @@ export async function setupOnlinePresenceHud({
   const viewerPlayerId = snapshot?.viewerPlayerId ?? null;
   if (!viewerPlayerId) return () => {};
 
+  if (documentObject.body?.dataset) {
+    documentObject.body.dataset.onlinePresenceRevision = PRESENCE_HUD_REVISION;
+    documentObject.body.dataset.onlinePresenceHud = "loading";
+  }
+  console.info("[MarbleRender] presence-hud-start", { revision: PRESENCE_HUD_REVISION });
+
   let connectedIds = new Set();
   let presenceReady = false;
   let unsubscribe = null;
@@ -58,20 +65,23 @@ export async function setupOnlinePresenceHud({
         browserOnline: windowObject.navigator?.onLine !== false,
       });
       card.dataset.connection = connection;
+      const label = CONNECTION_LABELS[connection];
       let badge = card.querySelector("[data-player-connection]");
       if (!badge) {
         badge = documentObject.createElement("span");
         badge.className = "player-card__connection";
         badge.dataset.playerConnection = "";
+        badge.textContent = label;
         const title = card.querySelector(".player-card__title > div");
         (title ?? card).append(badge);
+      } else if (badge.textContent !== label) {
+        badge.textContent = label;
       }
-      badge.textContent = CONNECTION_LABELS[connection];
     });
   }
 
   const observer = new MutationObserver(render);
-  observer.observe(playerList, { childList: true, subtree: true });
+  observer.observe(playerList, { childList: true });
 
   function handleStatus(status) {
     if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED", "PRESENCE_ERROR"].includes(status)) {
@@ -99,11 +109,14 @@ export async function setupOnlinePresenceHud({
   windowObject.addEventListener("online", handleNetworkChange);
   windowObject.addEventListener("offline", handleNetworkChange);
   render();
+  if (documentObject.body?.dataset) documentObject.body.dataset.onlinePresenceHud = "ready";
+  console.info("[MarbleRender] presence-hud-ready", { revision: PRESENCE_HUD_REVISION });
 
   return () => {
     observer.disconnect();
     unsubscribe?.();
     windowObject.removeEventListener("online", handleNetworkChange);
     windowObject.removeEventListener("offline", handleNetworkChange);
+    if (documentObject.body?.dataset) documentObject.body.dataset.onlinePresenceHud = "disposed";
   };
 }
