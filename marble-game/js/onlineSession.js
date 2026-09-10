@@ -3,11 +3,12 @@ import { createClassicBoard } from "./themes/classic/board.js";
 import {
   buildOnlineProperty,
   buyOnlineProperty,
+  createOnlineActionId,
   endOnlineTurn,
   getOnlineGameSnapshot,
   rollOnlineDice,
   subscribeOnlineGame,
-} from "./onlineGameApi.js?v=20260910-r8";
+} from "./onlineGameApi.js?v=20260910-r9";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
@@ -68,6 +69,13 @@ export function isOnlineViewerTurn(state, viewerPlayerId) {
   return state.players[state.currentPlayerIndex]?.id === viewerPlayerId;
 }
 
+export function isRetryableOnlineActionError(error) {
+  const name = String(error?.name ?? "");
+  const message = String(error?.message ?? error ?? "");
+  if (name === "TypeError") return true;
+  return /(failed to fetch|fetch failed|network(?:error| request)?|load failed|timed? out|connection (?:closed|reset))/i.test(message);
+}
+
 export async function createOnlineClassicSession({
   roomId,
   initialSnapshot,
@@ -79,6 +87,11 @@ export async function createOnlineClassicSession({
 
   const getSnapshot = api.getSnapshot ?? getOnlineGameSnapshot;
   const subscribeGame = api.subscribeGame ?? subscribeOnlineGame;
+  const createActionId = api.createActionId ?? createOnlineActionId;
+  const rollAction = api.roll ?? rollOnlineDice;
+  const buyAction = api.buy ?? buyOnlineProperty;
+  const buildAction = api.build ?? buildOnlineProperty;
+  const endTurnAction = api.endTurn ?? endOnlineTurn;
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
@@ -92,8 +105,10 @@ export async function createOnlineClassicSession({
   let subscriptionReconciled = false;
 
   function accept(nextSnapshot) {
+    const nextState = mapOnlineGameSnapshot(nextSnapshot);
+    if (nextState.version < state.version) return state;
     snapshot = nextSnapshot;
-    state = mapOnlineGameSnapshot(nextSnapshot);
+    state = nextState;
     return state;
   }
 
@@ -121,15 +136,46 @@ export async function createOnlineClassicSession({
     }
   }
 
+  function markTransportRecovery(error) {
+    realtimeHealthy = false;
+    subscriptionReconciled = false;
+    onConnectionStatus?.("RECONNECTING", error);
+    scheduleRecoveryRefresh();
+  }
+
+  async function reconcileAmbiguousAction(expectedVersion) {
+    try {
+      const latestSnapshot = await getSnapshot(roomId);
+      const latestVersion = Number(latestSnapshot?.game?.version) || 0;
+      if (latestVersion > Number(expectedVersion)) return accept(latestSnapshot);
+    } catch {
+      // Keep the original action error as the user-facing failure and let recovery polling retry.
+    }
+    return null;
+  }
+
   async function run(action) {
     if (actionInFlight) throw new Error("ACTION_IN_PROGRESS");
     actionInFlight = true;
+    const expectedVersion = snapshot.game.version;
+    const clientActionId = createActionId();
+    const request = { roomId, expectedVersion, clientActionId };
     try {
-      const nextSnapshot = await action({
-        roomId,
-        expectedVersion: snapshot.game.version,
-      });
-      return accept(nextSnapshot);
+      try {
+        return accept(await action(request));
+      } catch (error) {
+        if (!isRetryableOnlineActionError(error)) throw error;
+      }
+
+      try {
+        return accept(await action(request));
+      } catch (retryError) {
+        if (!isRetryableOnlineActionError(retryError)) throw retryError;
+        const reconciledState = await reconcileAmbiguousAction(expectedVersion);
+        if (reconciledState) return reconciledState;
+        markTransportRecovery(retryError);
+        throw retryError;
+      }
     } finally {
       actionInFlight = false;
       if (pendingRefresh && !disposed) {
@@ -201,8 +247,16 @@ export async function createOnlineClassicSession({
     onConnectionStatus?.("OFFLINE");
     scheduleRecoveryRefresh();
   };
+  const visibilityDocument = globalThis.document;
+  const handleVisibilityChange = () => {
+    if (visibilityDocument?.visibilityState !== "visible") return;
+    void refresh().catch((error) => {
+      markTransportRecovery(error);
+    });
+  };
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
+  visibilityDocument?.addEventListener?.("visibilitychange", handleVisibilityChange);
 
   return Object.freeze({
     isOnline: true,
@@ -215,16 +269,16 @@ export async function createOnlineClassicSession({
     },
     refresh,
     roll() {
-      return run(rollOnlineDice);
+      return run(rollAction);
     },
     buy() {
-      return run(buyOnlineProperty);
+      return run(buyAction);
     },
     build() {
-      return run(buildOnlineProperty);
+      return run(buildAction);
     },
     endTurn() {
-      return run(endOnlineTurn);
+      return run(endTurnAction);
     },
     dispose() {
       disposed = true;
@@ -234,6 +288,7 @@ export async function createOnlineClassicSession({
       unsubscribe = null;
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      visibilityDocument?.removeEventListener?.("visibilitychange", handleVisibilityChange);
     },
   });
 }
