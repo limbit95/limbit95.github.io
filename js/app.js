@@ -49,6 +49,7 @@ document.getElementById("skip-link")?.addEventListener("click", () => {
 
 function authDestination(auth = getAuthState()) {
   if (!auth.user) return "/login";
+  if (!auth.profile && auth.user.user_metadata?.signup_flow === "auth_otp") return "/signup";
   if (!auth.profile) return "/login";
   if (auth.profile?.status === "approved") return "/";
   if (auth.profile?.status === "suspended") return "/suspended";
