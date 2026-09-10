@@ -1,6 +1,6 @@
--- Let every approved member own single activities while preserving category and
--- COMMUNITY management boundaries. Physical removal is only exposed via the
--- domain RPC below so participation history cannot be deleted accidentally.
+-- Let every approved member own standalone activities while preserving category and
+-- COMMUNITY management boundaries. Recurring occurrences remain manager-only, and
+-- physical removal is only exposed via the domain RPC below so history is preserved.
 
 begin;
 
@@ -22,8 +22,17 @@ with check (
   )
   and (
     series_id is null
-    or private.has_admin_permission('community')
-    or private.is_category_manager(category_id)
+    or (
+      (
+        private.has_admin_permission('community')
+        or private.is_category_manager(category_id)
+      )
+      and exists (
+        select 1 from public.event_series series
+        where series.id = series_id
+          and series.category_id = category_id
+      )
+    )
   )
 );
 
@@ -32,7 +41,7 @@ on public.events for update to authenticated
 using (
   private.is_approved_member()
   and (
-    created_by = (select auth.uid())
+    (series_id is null and created_by = (select auth.uid()))
     or private.has_admin_permission('community')
     or private.is_category_manager(category_id)
   )
@@ -40,7 +49,7 @@ using (
 with check (
   private.is_approved_member()
   and (
-    created_by = (select auth.uid())
+    (series_id is null and created_by = (select auth.uid()))
     or private.has_admin_permission('community')
     or private.is_category_manager(category_id)
   )
@@ -58,7 +67,6 @@ declare
   v_user_id uuid := auth.uid();
   v_is_owner boolean;
   v_is_community_manager boolean;
-  v_can_manage_recurring boolean;
 begin
   if v_user_id is null then
     return new;
@@ -69,6 +77,15 @@ begin
     raise exception '작성자와 생성일은 변경할 수 없습니다.' using errcode = '42501';
   end if;
 
+  if new.series_id is distinct from old.series_id then
+    raise exception '반복 활동 연결은 생성 후 변경할 수 없습니다.' using errcode = '42501';
+  end if;
+
+  if old.series_id is not null
+     and new.category_id is distinct from old.category_id then
+    raise exception '반복 활동 일정의 카테고리는 개별 변경할 수 없습니다.' using errcode = '42501';
+  end if;
+
   if new.category_id is distinct from old.category_id and not exists (
     select 1 from public.activity_categories category
     where category.id = new.category_id and category.is_active
@@ -76,20 +93,18 @@ begin
     raise exception '활성 카테고리만 선택할 수 있습니다.' using errcode = '42501';
   end if;
 
-  v_is_owner := old.created_by = v_user_id;
+  v_is_owner := old.series_id is null and old.created_by = v_user_id;
   v_is_community_manager := private.has_admin_permission('community');
-  v_can_manage_recurring := v_is_community_manager
-    or (
-      private.is_category_manager(old.category_id)
-      and private.is_category_manager(new.category_id)
-    );
-
-  if new.series_id is distinct from old.series_id and not v_can_manage_recurring then
-    raise exception '반복 활동 연결은 카테고리 담당자 또는 COMMUNITY 관리자만 변경할 수 있습니다.'
-      using errcode = '42501';
-  end if;
 
   if v_is_community_manager then
+    return new;
+  end if;
+
+  if old.series_id is not null then
+    if not private.is_category_manager(old.category_id) then
+      raise exception '반복 활동 일정은 해당 카테고리 담당자만 변경할 수 있습니다.'
+        using errcode = '42501';
+    end if;
     return new;
   end if;
 
@@ -118,6 +133,33 @@ create trigger events_enforce_management_boundary
 before update on public.events
 for each row execute function private.enforce_event_management_boundary();
 
+-- Series-wide category transfer is not a supported domain operation yet. Keeping
+-- the series category immutable prevents existing occurrences from drifting out
+-- of sync through a direct event_series UPDATE.
+create or replace function private.enforce_event_series_management_boundary()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is not null
+     and new.category_id is distinct from old.category_id then
+    raise exception '반복 활동 카테고리는 생성 후 변경할 수 없습니다.' using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+revoke all on function private.enforce_event_series_management_boundary()
+from public, anon, authenticated;
+
+drop trigger if exists event_series_enforce_management_boundary on public.event_series;
+create trigger event_series_enforce_management_boundary
+before update on public.event_series
+for each row execute function private.enforce_event_series_management_boundary();
+
 create or replace function public.remove_or_cancel_event(p_event_id bigint)
 returns jsonb
 language plpgsql
@@ -142,14 +184,17 @@ begin
   end if;
 
   if not (
-    v_event.created_by = v_user_id
-    or private.has_admin_permission('community')
+    private.has_admin_permission('community')
     or private.is_category_manager(v_event.category_id)
+    or (
+      v_event.series_id is null
+      and v_event.created_by = v_user_id
+    )
   ) then
     raise exception '이 활동을 관리할 권한이 없습니다.' using errcode = '42501';
   end if;
 
-  if exists (
+  if v_event.series_id is not null or exists (
     select 1 from public.event_participants participant
     where participant.event_id = p_event_id
   ) or exists (
