@@ -15,12 +15,15 @@
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js"
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "./js/diceStage.js": "./js/diceStageOnlineLazy.js?v=20260910-r9",
+          "./js/onlineStartup.js?v=20260910-r8": "./js/onlineStartupVisualBoundary.js?v=20260910-r9",
+          "./js/renderer/threeClassicPrototype.js": "./js/renderer/threeClassicPrototypeDiagnostics.js?v=20260910-r9"
         }
       }
     </script>
   </head>
-  <body data-theme="classic" data-marble-build="20260910-r8">
+  <body data-theme="classic" data-marble-build="20260910-r9">
     <main class="marble-shell">
       <header class="marble-header">
         <a class="back-link" href="../#/games">← 게임으로 돌아가기</a>
@@ -238,6 +241,6 @@
     <script type="module" src="./js/diceCharge.js?v=20260910-r7"></script>
     <script type="module" src="./js/playWindow.js?v=20260910-r8"></script>
     <script type="module" src="./js/onlineGameExit.js?v=20260910-r7"></script>
-    <script type="module" src="./js/themes/classic/ownershipVisual.js?v=20260910-r7"></script>
+    <script type="module" src="./js/ownershipVisualLoader.js?v=20260910-r9"></script>
   </body>
 </html>
