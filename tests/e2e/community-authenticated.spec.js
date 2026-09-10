@@ -135,6 +135,62 @@ async function serviceRoleRequest(pathname, options = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+async function memberSession(email = memberEmail, password = memberPassword) {
+  const response = await fetch(`${localSupabaseUrl}/auth/v1/token?grant_type=password`, {
+    method: "POST",
+    headers: { apikey: localSupabaseAnonKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.access_token) throw new Error(`Member login failed: ${JSON.stringify(payload)}`);
+  return payload.access_token;
+}
+
+async function authenticatedRequest(accessToken, pathname, options = {}) {
+  const response = await fetch(`${localSupabaseUrl}${pathname}`, {
+    ...options,
+    headers: {
+      apikey: localSupabaseAnonKey,
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+  });
+  const text = await response.text();
+  return { response, body: text ? JSON.parse(text) : null };
+}
+
+async function setHiddenFormValue(page, name, value) {
+  const input = page.locator(`[name="${name}"]`);
+  await input.evaluate((element, nextValue) => {
+    element.value = nextValue;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+}
+
+function activityPayload(categoryId, createdBy, title) {
+  const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return {
+    category_id: categoryId,
+    title,
+    description: "활동 권한 경계를 실제 데이터베이스에서 검증합니다.",
+    event_date: eventDate,
+    start_time: "19:00:00",
+    end_time: "20:00:00",
+    location_name: "E2E 테스트 장소",
+    capacity: 5,
+    fee_text: "무료",
+    difficulty: "초급",
+    preparation: "",
+    beginner_friendly: true,
+    participant_notice: "",
+    registration_deadline: `${eventDate}T08:00:00+09:00`,
+    status: "scheduled",
+    created_by: createdBy,
+  };
+}
+
 async function createFixturePost(authorId, token) {
   const rows = await serviceRoleRequest("/rest/v1/posts?select=id,title", {
     method: "POST",
@@ -306,6 +362,170 @@ test.describe("approved member flow", () => {
     await expect(page.getByRole("button", { name: "🙌 참여 신청하기" })).toBeVisible();
 
     expectNoPageErrors(pageErrors);
+  });
+
+  test("creates a single activity when the recurring control is not rendered", async ({ page }, testInfo) => {
+    test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
+    const pageErrors = collectPageErrors(page);
+    const title = `E2E 일반 회원 단일 활동 ${projectToken(testInfo)}`;
+    const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const deadlineDate = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+
+    await serviceRoleRequest(`/rest/v1/category_managers?user_id=eq.${encodeURIComponent(memberUserId)}`, {
+      method: "DELETE",
+    });
+    await login(page, memberEmail, memberPassword);
+    await page.goto("/#/activities/new");
+    await assertHealthyPage(page, "활동 등록");
+    await expect(page.locator('[name="recurring"]')).toHaveCount(0);
+    await page.locator('[name="title"]').fill(title);
+    await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
+    await setHiddenFormValue(page, "event_date", eventDate);
+    await setHiddenFormValue(page, "start_time", "19:00");
+    await setHiddenFormValue(page, "end_time", "20:00");
+    await setHiddenFormValue(page, "registration_deadline", deadlineDate);
+    await page.locator('[name="location_name"]').fill("청파동");
+    await page.getByRole("button", { name: "활동 등록", exact: true }).click();
+
+    await expect(page).toHaveURL(/#\/activities\/\d+$/);
+    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+    expectNoPageErrors(pageErrors);
+  });
+
+  test("enforces member activity transitions and conservative removal in the database", async ({}, testInfo) => {
+    test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
+    const token = projectToken(testInfo);
+    const accessToken = await memberSession();
+    const activeRows = await serviceRoleRequest("/rest/v1/activity_categories?select=id&is_active=eq.true&limit=1");
+    const activeCategoryId = Number(activeRows[0].id);
+    const fixtureEventRows = await serviceRoleRequest(`/rest/v1/events?id=eq.${activityId}&select=category_id`);
+    const fixtureCategoryId = Number(fixtureEventRows[0].category_id);
+    const inactiveRows = await serviceRoleRequest("/rest/v1/activity_categories?select=id", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ name: `E2E 비활성 ${token}`, icon: "🧪", color: "#777777", is_active: false }),
+    });
+    const inactiveCategoryId = Number(inactiveRows[0].id);
+
+    const otherUpdate = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${activityId}&select=id`, {
+      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ title: `forbidden ${token}` }),
+    });
+    expect(otherUpdate.response.status).toBe(200);
+    expect(otherUpdate.body).toEqual([]);
+
+    const created = await authenticatedRequest(accessToken, "/rest/v1/events?select=id,title", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E member ${token}`)),
+    });
+    expect(created.response.status).toBe(201);
+    const ownedEventId = Number(created.body[0].id);
+
+    const inactiveInsert = await authenticatedRequest(accessToken, "/rest/v1/events", {
+      method: "POST",
+      body: JSON.stringify(activityPayload(inactiveCategoryId, memberUserId, `E2E inactive insert ${token}`)),
+    });
+    expect(inactiveInsert.response.status).toBeGreaterThanOrEqual(400);
+
+    const seriesRows = await serviceRoleRequest("/rest/v1/event_series?select=id", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        category_id: activeCategoryId, title: `E2E series ${token}`, description: "series",
+        start_date: "2026-12-01", end_date: "2026-12-08", start_time: "19:00:00",
+        recurrence_rule: "FREQ=WEEKLY;INTERVAL=1", location_name: "E2E", created_by: adminUserId,
+      }),
+    });
+    const seriesPatch = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${ownedEventId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ series_id: Number(seriesRows[0].id) }),
+    });
+    expect(seriesPatch.response.status).toBeGreaterThanOrEqual(400);
+
+    const inactiveTransfer = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${ownedEventId}`, {
+      method: "PATCH", body: JSON.stringify({ category_id: inactiveCategoryId }),
+    });
+    expect(inactiveTransfer.response.status).toBeGreaterThanOrEqual(400);
+
+    await serviceRoleRequest(`/rest/v1/events?id=eq.${ownedEventId}`, {
+      method: "PATCH", body: JSON.stringify({ category_id: inactiveCategoryId }),
+    });
+    const inactiveEdit = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${ownedEventId}&select=id,title`, {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({ title: `E2E inactive edited ${token}` }),
+    });
+    expect(inactiveEdit.response.status).toBe(200);
+    expect(inactiveEdit.body).toHaveLength(1);
+
+    const forbiddenTransfer = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${ownedEventId}`, {
+      method: "PATCH", body: JSON.stringify({ category_id: inactiveCategoryId + 1000000 }),
+    });
+    expect(forbiddenTransfer.response.status).toBeGreaterThanOrEqual(400);
+
+    const historyEventRows = await serviceRoleRequest("/rest/v1/events?select=id", {
+      method: "POST", headers: { Prefer: "return=representation" },
+      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E history ${token}`)),
+    });
+    const historyEventId = Number(historyEventRows[0].id);
+    await serviceRoleRequest("/rest/v1/notifications", {
+      method: "POST",
+      body: JSON.stringify({
+        user_id: memberUserId, notification_type: "event_updated", kind: "event_updated",
+        title: "E2E 운영 이력", body: "삭제 시 보존되어야 합니다.", event_id: historyEventId,
+      }),
+    });
+    const preserved = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
+      method: "POST", body: JSON.stringify({ p_event_id: historyEventId }),
+    });
+    expect(preserved.response.status).toBe(200);
+    expect(preserved.body.action).toBe("cancelled");
+    const preservedRows = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
+    expect(preservedRows[0].status).toBe("cancelled");
+
+    const removableRows = await authenticatedRequest(accessToken, "/rest/v1/events?select=id", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E removable ${token}`)),
+    });
+    expect(removableRows.response.status).toBe(201);
+    const removableEventId = Number(removableRows.body[0].id);
+    const removed = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
+      method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
+    });
+    expect(removed.response.status).toBe(200);
+    expect(removed.body.action).toBe("deleted");
+    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);
+
+    await serviceRoleRequest("/rest/v1/category_managers", {
+      method: "POST",
+      body: JSON.stringify({ category_id: fixtureCategoryId, user_id: memberUserId, created_by: adminUserId }),
+    });
+    const managerUpdate = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${activityId}&select=id`, {
+      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `manager ${token}` }),
+    });
+    expect(managerUpdate.response.status).toBe(200);
+    expect(managerUpdate.body).toHaveLength(1);
+
+    await serviceRoleRequest("/rest/v1/admin_permissions", {
+      method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ user_id: adminUserId, permission: "community" }),
+    });
+    const adminToken = await memberSession(adminEmail, adminPassword);
+    const communityUpdate = await authenticatedRequest(adminToken, `/rest/v1/events?id=eq.${historyEventId}&select=id`, {
+      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `community ${token}` }),
+    });
+    expect(communityUpdate.response.status).toBe(200);
+    expect(communityUpdate.body).toHaveLength(1);
+
+    await serviceRoleRequest(
+      `/rest/v1/category_managers?category_id=eq.${fixtureCategoryId}&user_id=eq.${encodeURIComponent(memberUserId)}`,
+      { method: "DELETE" },
+    );
+    await serviceRoleRequest(
+      `/rest/v1/admin_permissions?user_id=eq.${encodeURIComponent(adminUserId)}&permission=eq.community`,
+      { method: "DELETE" },
+    );
   });
 
   test("creates, edits, comments on, and deletes a prayer post through the UI", async ({ page }, testInfo) => {

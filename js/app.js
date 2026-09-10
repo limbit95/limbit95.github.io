@@ -191,11 +191,11 @@ route("/suspended", "이용 정지 안내", "signed", renderSuspended, { shell: 
 route("/", "홈", "approved", renderHome);
 route("/games", "게임", "approved", renderGames);
 route("/activities", "활동", "approved", renderActivities);
-route("/activities/new", "활동 등록", "manager", async (currentRoute) => {
+route("/activities/new", "활동 등록", "approved", async (currentRoute) => {
   const { renderActivityForm } = await import("./pages/activityForm.js");
   return renderActivityForm(currentRoute, "create");
 });
-route("/activities/:id/edit", "활동 수정", "manager", async (currentRoute) => {
+route("/activities/:id/edit", "활동 수정", "approved", async (currentRoute) => {
   const { renderActivityForm } = await import("./pages/activityForm.js");
   return renderActivityForm(currentRoute, "edit");
 });

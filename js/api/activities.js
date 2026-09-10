@@ -209,6 +209,12 @@ export async function updateEvent(eventId, payload) {
     .single());
 }
 
+export async function removeEvent(eventId) {
+  return unwrap(await supabase.rpc("remove_or_cancel_event", {
+    p_event_id: Number(eventId),
+  }));
+}
+
 export async function joinEvent(eventId) {
   return unwrap(await supabase.rpc("join_event", {
     p_event_id: Number(eventId),
