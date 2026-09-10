@@ -7,6 +7,7 @@
     "test:e2e": "playwright test",
     "test:web-push": "node --test tests/web-push.test.js tests/web-push-same-user-lifecycle.test.js tests/web-push-pr74-review.test.js tests/web-push-cleanup-finalization.test.js",
     "test:admin-permissions": "node --test tests/admin-permissions.test.js",
+    "test:activity-permissions": "node --test tests/activity-permissions.test.js",
     "test:the-game": "node --test the-game/tests/*.test.js",
     "test:marble": "node --test marble-game/tests/*.test.js",
     "test:signup": "node --test tests/signup-flow.test.js tests/signup-otp-credential-lock.test.js tests/global-loading-lifecycle.test.js tests/signup-browser-session-reset.test.js"

@@ -1,5 +1,4 @@
 import { getAuthState } from "../auth.js";
-import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 import { listCategories } from "../api/activities.js";
 import { debounce, el, pageContainer } from "../ui.js";
 import { renderActivityCalendar } from "./activities/calendarView.js";
@@ -21,9 +20,7 @@ export async function renderActivities(route) {
       el("h1", { className: "page-title", text: "같이 즐길 활동" }),
       el("p", { className: "page-description", text: "문화생활부터 야외 활동까지, 가볍게 참여해 보세요." }),
     ]),
-    hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY) || auth.managerCategoryIds.size
-      ? el("a", { className: "button button--coral", href: "#/activities/new", text: "＋ 활동 등록" })
-      : null,
+    el("a", { className: "button button--coral", href: "#/activities/new", text: "＋ 활동 등록" }),
   ]);
   const tabs = el("div", { className: "tabs", role: "tablist", "aria-label": "활동 보기 방식" }, [
     tab("list", "☰ 목록", view, route.query),

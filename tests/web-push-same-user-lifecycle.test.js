@@ -59,8 +59,10 @@ async function loadAuthForSignOut({
   setPushAuthContextVersion,
   waitForPushRestoreClaims,
 } = globalThis.__authPushMocks;`)
-    .replace('import { ROLE, hasAdminPermission } from "./permissions.js";', `const ROLE = { ADMIN: "ADMIN", SYSTEM_ADMIN: "SYSTEM_ADMIN" };
+    .replace('import { ROLE, canManageActivityFor, hasAdminPermission } from "./permissions.js";', `const ROLE = { ADMIN: "ADMIN", SYSTEM_ADMIN: "SYSTEM_ADMIN" };
+const canManageActivityFor = () => false;
 const hasAdminPermission = () => false;`)
+    .replace('export { canManageActivityFor } from "./permissions.js";', "export { canManageActivityFor };")
     .replace("const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;", "const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 5;");
 
   defineGlobal("window", {
