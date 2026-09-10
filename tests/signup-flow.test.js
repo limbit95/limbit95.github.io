@@ -17,8 +17,8 @@ const prepareE2E = readFileSync(new URL("../scripts/prepare-e2e-supabase.mjs", i
 const signupSubmitBlock = signup.match(/form\.addEventListener\("submit"[\s\S]*?\n  \}\);/)?.[0] ?? "";
 const sendCodeBlock = signup.match(/async function sendCode\(\)[\s\S]*?\n  \}/)?.[0] ?? "";
 
-test("signup remains a four-step flow and only final submit creates the community application", () => {
-  assert.match(signup, /const STEP_LABELS = \["약관 동의", "기본 정보", "회원 정보", "최종 확인"\]/);
+test("signup uses the combined three-step flow and only final submit creates the community application", () => {
+  assert.match(signup, /const STEP_LABELS = \["약관 동의", "회원 정보", "최종 확인"\]/);
   assert.match(signup, /form\.addEventListener\("submit"/);
   assert.equal((signup.match(/submitSignupApplication\(/g) ?? []).length, 1);
   assert.doesNotMatch(signup, /completeVerifiedSignup|verificationToken/);
@@ -58,12 +58,15 @@ test("signup OTP request only requires email and password is set after verificat
   assert.match(sendCodeBlock, /resendSignupEmailCode\(email\)/);
   assert.doesNotMatch(sendCodeBlock, /validatePassword|fields\.password\.input\.value/);
   assert.match(signup, /fields\.password\.input\.disabled = !isVerified/);
-  assert.match(signup, /if \(isVerified\) \{[\s\S]*fields\.password\.root/);
-  assert.match(signup, /await updatePassword\(fields\.password\.input\.value\)/);
+  assert.match(signup, /fields\.password_confirm\.input\.disabled = !isVerified/);
+  assert.match(signup, /if \(isVerified\) \{[\s\S]*fields\.password\.root,[\s\S]*fields\.password_confirm\.root/);
+  assert.match(signup, /const password = fields\.password\.input\.value/);
+  assert.match(signup, /await updatePassword\(password\)/);
   assert.match(signup, /if \(!validatePassword\(fields\.password\.input\.value\)\)/);
+  assert.match(signup, /fields\.password\.input\.value !== fields\.password_confirm\.input\.value/);
 });
 
-test("verified auth-only signup sessions resume at account step after reload", () => {
+test("verified auth-only signup sessions resume at member-info step after reload", () => {
   assert.match(signup, /const existingVerifiedEmail = existingAuth\.user && !existingAuth\.profile/);
   assert.match(signup, /let step = existingVerifiedEmail \? 2 : 1/);
   assert.match(signup, /if \(existingVerifiedEmail\) \{[\s\S]*fields\.email\.input\.value = existingVerifiedEmail/);
@@ -71,9 +74,9 @@ test("verified auth-only signup sessions resume at account step after reload", (
   assert.match(signup, /fields\.rules_consent\.input\.checked = true/);
 });
 
-test("signup account renderer keeps nullable nodes out and aligns action with email input", () => {
+test("signup member-info renderer keeps nullable nodes out and aligns action with email input", () => {
   assert.match(signup, /el\("div", \{ className: "signup-email-row" \}, \[fields\.email\.input, emailButton\]\)/);
-  assert.match(signup, /panel\.replaceChildren\(\.\.\.accountChildren\.filter\(Boolean\)\)/);
+  assert.match(signup, /panel\.replaceChildren\(\.\.\.memberChildren\.filter\(Boolean\)\)/);
   assert.doesNotMatch(signup, /panel\.replaceChildren\(\s*emailRow,[\s\S]*\?[^:]+:\s*null/);
 });
 
@@ -106,7 +109,7 @@ test("native Auth users do not create profiles or join requests until final appl
   assert.match(transition, /insert into public\.join_requests/);
 });
 
-test("final application RPC derives identity and verified email on the server", () => {
+test("historical final application RPC derives identity and verified email on the server", () => {
   assert.match(transition, /v_user_id uuid := auth\.uid\(\)/);
   assert.match(transition, /from auth\.users u[\s\S]*where u\.id = v_user_id/);
   assert.match(transition, /u\.email_confirmed_at/);
@@ -117,7 +120,7 @@ test("final application RPC derives identity and verified email on the server", 
   assert.match(transition, /v_user_id,v_email,v_real_name/);
 });
 
-test("final application is transactional, serialized and idempotent", () => {
+test("historical final application remains transactional, serialized and idempotent", () => {
   assert.match(transition, /pg_advisory_xact_lock[\s\S]*submit-join:/);
   assert.match(transition, /if v_profile_exists and v_request_exists then[\s\S]*already_submitted', true/);
   assert.match(transition, /if v_profile_exists <> v_request_exists then[\s\S]*가입 신청 데이터 상태가 일치하지 않습니다/);

@@ -31,20 +31,20 @@ test("signup OTP resend cooldown survives a full browser restart without storing
 
   const verifyCodeBody = signup.slice(
     signup.indexOf("async function verifyCode"),
-    signup.indexOf("function renderMemberInfo"),
+    signup.indexOf("function renderReview"),
   );
   assert.doesNotMatch(verifyCodeBody, /clearStoredOtpResendAt/);
   assert.match(verifyCodeBody, /Keep the last-send cooldown persisted until its natural 60-second expiry/);
 });
 
 test("signup OTP countdown interval stops after the signup form leaves the DOM", () => {
-  const renderAccountBody = signup.slice(
-    signup.indexOf("function renderAccount"),
+  const renderMemberInfoBody = signup.slice(
+    signup.indexOf("function renderMemberInfo"),
     signup.indexOf("async function sendCode"),
   );
   // Keep the first tick synchronous, then require the recurring timer to self-clean after SPA route detachment.
-  assert.match(renderAccountBody, /refreshResendCooldown = tick;\n    tick\(\);\n    timerId = setInterval\(\(\) => \{/);
-  assert.match(renderAccountBody, /if \(!form\.isConnected\) \{/);
-  assert.match(renderAccountBody, /clearInterval\(timerId\);\n        timerId = null;\n        refreshResendCooldown = null;\n        return;/);
-  assert.doesNotMatch(renderAccountBody, /timerId = setInterval\(tick, 1000\)/);
+  assert.match(renderMemberInfoBody, /refreshResendCooldown = tick;\n    tick\(\);\n    timerId = setInterval\(\(\) => \{/);
+  assert.match(renderMemberInfoBody, /if \(!form\.isConnected\) \{/);
+  assert.match(renderMemberInfoBody, /clearInterval\(timerId\);\n        timerId = null;\n        refreshResendCooldown = null;\n        return;/);
+  assert.doesNotMatch(renderMemberInfoBody, /timerId = setInterval\(tick, 1000\)/);
 });

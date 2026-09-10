@@ -17,6 +17,17 @@ export function validateBirthYear(value) {
   return Number.isInteger(year) && year >= 1900 && year <= 2100;
 }
 
+export function validateBirthDate(value) {
+  const text = normalizeText(value);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+  const [year, month, day] = text.split("-").map(Number);
+  if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1) return false;
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day;
+}
+
 export function validateUrl(value) {
   const text = normalizeText(value);
   if (!text) return true;
