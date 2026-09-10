@@ -11,6 +11,9 @@ import { ROLE, hasAdminPermission } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
+const SIGNUP_VERIFICATION_SESSION_KEY = "cheongpa:signup-verification-session";
+const SIGNUP_VERIFICATION_CHANNEL_NAME = "cheongpa:signup-verification-channel";
+const SIGNUP_VERIFICATION_SYNC_TIMEOUT_MS = 200;
 
 const state = {
   session: null,
@@ -26,17 +29,122 @@ let authSubscription = null;
 let initializePromise = null;
 let refreshQueue = Promise.resolve();
 let lifecycleEpoch = 0;
+let signupVerificationChannel = null;
+
+function readSignupVerificationSessionUserId() {
+  try {
+    return window.sessionStorage?.getItem(SIGNUP_VERIFICATION_SESSION_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function hasSignupVerificationSession(userId) {
+  return Boolean(userId && readSignupVerificationSessionUserId() === userId);
+}
+
+function rememberSignupVerificationSession(userId) {
+  if (!userId) return;
+  try {
+    window.sessionStorage?.setItem(SIGNUP_VERIFICATION_SESSION_KEY, userId);
+  } catch {
+    // A restricted browser storage mode should not prevent email verification itself.
+  }
+}
+
+function clearSignupVerificationSession() {
+  try {
+    window.sessionStorage?.removeItem(SIGNUP_VERIFICATION_SESSION_KEY);
+  } catch {
+    // Ignore storage cleanup failures; the Auth session remains the source of truth.
+  }
+}
+
+function isPendingNativeSignupSession(session) {
+  return Boolean(
+    session?.user
+    && !state.profile
+    && session.user.user_metadata?.signup_flow === "auth_otp",
+  );
+}
+
+function getSignupVerificationChannel() {
+  if (signupVerificationChannel) return signupVerificationChannel;
+  if (typeof window.BroadcastChannel !== "function") return null;
+  try {
+    signupVerificationChannel = new window.BroadcastChannel(SIGNUP_VERIFICATION_CHANNEL_NAME);
+    signupVerificationChannel.addEventListener("message", (event) => {
+      const message = event.data;
+      if (message?.type !== "request" || !message.requestId || !message.userId) return;
+      if (state.user?.id !== message.userId) return;
+      if (!isPendingNativeSignupSession(state.session)) return;
+      if (!hasSignupVerificationSession(message.userId)) return;
+      signupVerificationChannel?.postMessage({
+        type: "response",
+        requestId: message.requestId,
+        userId: message.userId,
+      });
+    });
+    return signupVerificationChannel;
+  } catch {
+    signupVerificationChannel = null;
+    return null;
+  }
+}
+
+async function restoreSignupVerificationSessionFromActiveTab(userId) {
+  if (!userId) return false;
+  if (hasSignupVerificationSession(userId)) return true;
+  const channel = getSignupVerificationChannel();
+  if (!channel) return false;
+  const requestId = typeof window.crypto?.randomUUID === "function"
+    ? window.crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`;
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId = null;
+    const finish = (restored) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      channel.removeEventListener("message", onMessage);
+      if (restored) rememberSignupVerificationSession(userId);
+      resolve(restored);
+    };
+    const onMessage = (event) => {
+      const message = event.data;
+      if (
+        message?.type === "response"
+        && message.requestId === requestId
+        && message.userId === userId
+      ) finish(true);
+    };
+    channel.addEventListener("message", onMessage);
+    timeoutId = window.setTimeout(() => finish(false), SIGNUP_VERIFICATION_SYNC_TIMEOUT_MS);
+    try {
+      channel.postMessage({ type: "request", requestId, userId });
+    } catch {
+      finish(false);
+    }
+  });
+}
 
 function emit() {
   listeners.forEach((listener) => listener(getAuthState()));
 }
 
 export function getAuthState() {
+  const hidePendingSignupSession = isPendingNativeSignupSession(state.session)
+    && !hasSignupVerificationSession(state.user?.id);
+  const visibleSession = hidePendingSignupSession ? null : state.session;
+  const visibleUser = hidePendingSignupSession ? null : state.user;
   return {
     ...state,
+    session: visibleSession,
+    user: visibleUser,
     managerCategoryIds: new Set(state.managerCategoryIds),
     adminPermissions: new Set(state.adminPermissions),
-    isAuthenticated: Boolean(state.user),
+    isAuthenticated: Boolean(visibleUser),
     isApproved: state.profile?.status === PROFILE_STATUS.APPROVED,
     isAdmin: [ROLE.ADMIN, ROLE.SYSTEM_ADMIN].includes(state.profile?.role) && state.profile?.status === PROFILE_STATUS.APPROVED,
     isSystemAdmin: state.profile?.role === ROLE.SYSTEM_ADMIN && state.profile?.status === PROFILE_STATUS.APPROVED,
@@ -155,9 +263,18 @@ export async function initializeAuth() {
   if (initializePromise) return initializePromise;
   initializePromise = (async () => {
     if (!supabase) return getAuthState();
+    getSignupVerificationChannel();
     const { data, error } = await supabase.auth.getSession();
     if (error) throw error;
     await refreshAuthContext(data.session, { force: true });
+
+    if (
+      isPendingNativeSignupSession(data.session)
+      && !hasSignupVerificationSession(data.session.user.id)
+    ) {
+      clearSignupVerificationSession();
+      if (await restoreSignupVerificationSessionFromActiveTab(data.session.user.id)) emit();
+    }
 
     if (!authSubscription) {
       const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
@@ -173,6 +290,7 @@ export async function initializeAuth() {
           return;
         }
         if (event === "SIGNED_OUT") {
+          clearSignupVerificationSession();
           clearAuthContext();
           window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           return;
@@ -272,6 +390,7 @@ export async function verifySignupEmailCode(email, code) {
     type: "email",
   });
   if (error) throw error;
+  if (data.session?.user?.id) rememberSignupVerificationSession(data.session.user.id);
   if (data.session) await refreshAuthContext(data.session, { force: true });
   return data;
 }
@@ -290,6 +409,7 @@ export async function submitSignupApplication(metadata) {
     p_community_rules_version: metadata.community_rules_version,
   });
   if (error) throw error;
+  clearSignupVerificationSession();
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (sessionData.session) await refreshAuthContext(sessionData.session, { force: true });
@@ -370,6 +490,7 @@ export async function signOut() {
   }
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  clearSignupVerificationSession();
   if (state.user || state.session) clearAuthContext();
 }
 
@@ -381,5 +502,7 @@ export function canManageCategory(categoryId) {
 export function destroyAuth() {
   authSubscription?.unsubscribe();
   authSubscription = null;
+  signupVerificationChannel?.close();
+  signupVerificationChannel = null;
   state.initialized = false;
 }
