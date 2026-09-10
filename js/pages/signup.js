@@ -122,6 +122,16 @@ export function renderSignup() {
     request_message: textareaField("request_message", "가입 신청 내용", "관리자가 가입자를 확인할 수 있도록 간단한 소개나 가입 관련 내용을 작성해 주세요."),
   };
 
+  fields.password_confirm.input.addEventListener("input", () => {
+    setFieldError(
+      form,
+      "password_confirm",
+      fields.password.input.value === fields.password_confirm.input.value
+        ? ""
+        : "비밀번호가 일치하지 않습니다.",
+    );
+  });
+
   if (existingVerifiedEmail) {
     fields.email.input.value = existingVerifiedEmail;
     // The supported OTP signup path can only reach verification after step 1 consent validation.
