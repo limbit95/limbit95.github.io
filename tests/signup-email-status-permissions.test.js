@@ -7,7 +7,7 @@ const existingEmailGuard = readFileSync(
   "utf8",
 );
 const retainedSessionGrant = readFileSync(
-  new URL("../supabase/site/migrations/20260910124500_allow_authenticated_signup_email_status.sql", import.meta.url),
+  new URL("../supabase/site/migrations/20260910035158_allow_authenticated_signup_email_status.sql", import.meta.url),
   "utf8",
 );
 
