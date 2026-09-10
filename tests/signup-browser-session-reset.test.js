@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
+const app = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 
 const initializeAuthBlock = auth.match(/export async function initializeAuth\(\)[\s\S]*?\n}\n\nexport async function signIn/)?.[0] ?? "";
 const getAuthStateBlock = auth.match(/export function getAuthState\(\) \{[\s\S]*?\n}\n\nexport function subscribeAuth/)?.[0] ?? "";
@@ -11,6 +12,7 @@ const restoreBlock = auth.match(/async function restoreSignupVerificationSession
 const verifyOtpBlock = auth.match(/export async function verifySignupEmailCode\(email, code\)[\s\S]*?\n}\n\nexport async function submitSignupApplication/)?.[0] ?? "";
 const submitBlock = auth.match(/export async function submitSignupApplication\(metadata\)[\s\S]*?\n}\n\nexport async function verifyEmailToken/)?.[0] ?? "";
 const pendingSessionPredicateSource = auth.match(/function isPendingNativeSignupSession\(session\) \{[\s\S]*?\n}/)?.[0] ?? "";
+const authDestinationBlock = app.match(/function authDestination\(auth = getAuthState\(\)\) \{[\s\S]*?\n}/)?.[0] ?? "";
 
 function pendingSessionPredicate(profile) {
   assert.ok(pendingSessionPredicateSource, "pending signup session predicate should exist");
@@ -63,6 +65,14 @@ test("active signup tab shares only verification state with another tab", () => 
   assert.match(restoreBlock, /rememberSignupVerificationSession\(userId\)/);
   assert.doesNotMatch(channelBlock, /password|display_name|real_name|birth_year|request_message/);
   assert.doesNotMatch(restoreBlock, /password|display_name|real_name|birth_year|request_message/);
+});
+
+test("active signup verification resumes signup when a new tab opens the site root", () => {
+  assert.match(authDestinationBlock, /if \(!auth\.user\) return "\/login"/);
+  assert.match(
+    authDestinationBlock,
+    /!auth\.profile && auth\.user\.user_metadata\?\.signup_flow === "auth_otp"\) return "\/signup"/,
+  );
 });
 
 test("signup verification remains tab-scoped when no active tab responds", () => {
