@@ -11,6 +11,7 @@ import { ROLE, hasAdminPermission } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
+const SIGNUP_VERIFICATION_SESSION_KEY = "cheongpa:signup-verification-session";
 
 const state = {
   session: null,
@@ -26,6 +27,39 @@ let authSubscription = null;
 let initializePromise = null;
 let refreshQueue = Promise.resolve();
 let lifecycleEpoch = 0;
+
+function readSignupVerificationSessionUserId() {
+  try {
+    return window.sessionStorage?.getItem(SIGNUP_VERIFICATION_SESSION_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberSignupVerificationSession(userId) {
+  if (!userId) return;
+  try {
+    window.sessionStorage?.setItem(SIGNUP_VERIFICATION_SESSION_KEY, userId);
+  } catch {
+    // A restricted browser storage mode should not prevent email verification itself.
+  }
+}
+
+function clearSignupVerificationSession() {
+  try {
+    window.sessionStorage?.removeItem(SIGNUP_VERIFICATION_SESSION_KEY);
+  } catch {
+    // Ignore storage cleanup failures; the Auth session remains the source of truth.
+  }
+}
+
+function isPendingNativeSignupSession(session) {
+  return Boolean(
+    session?.user
+    && !state.profile
+    && session.user.user_metadata?.signup_flow === "auth_otp",
+  );
+}
 
 function emit() {
   listeners.forEach((listener) => listener(getAuthState()));
@@ -159,6 +193,16 @@ export async function initializeAuth() {
     if (error) throw error;
     await refreshAuthContext(data.session, { force: true });
 
+    if (
+      isPendingNativeSignupSession(data.session)
+      && readSignupVerificationSessionUserId() !== data.session.user.id
+    ) {
+      const { error: signOutError } = await supabase.auth.signOut({ scope: "local" });
+      if (signOutError) throw signOutError;
+      clearSignupVerificationSession();
+      clearAuthContext({ notify: false });
+    }
+
     if (!authSubscription) {
       const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === "TOKEN_REFRESHED") {
@@ -173,6 +217,7 @@ export async function initializeAuth() {
           return;
         }
         if (event === "SIGNED_OUT") {
+          clearSignupVerificationSession();
           clearAuthContext();
           window.dispatchEvent(new CustomEvent("app:auth-changed", { detail: { event } }));
           return;
@@ -272,6 +317,7 @@ export async function verifySignupEmailCode(email, code) {
     type: "email",
   });
   if (error) throw error;
+  if (data.session?.user?.id) rememberSignupVerificationSession(data.session.user.id);
   if (data.session) await refreshAuthContext(data.session, { force: true });
   return data;
 }
@@ -290,6 +336,7 @@ export async function submitSignupApplication(metadata) {
     p_community_rules_version: metadata.community_rules_version,
   });
   if (error) throw error;
+  clearSignupVerificationSession();
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) throw sessionError;
   if (sessionData.session) await refreshAuthContext(sessionData.session, { force: true });
@@ -370,6 +417,7 @@ export async function signOut() {
   }
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
+  clearSignupVerificationSession();
   if (state.user || state.session) clearAuthContext();
 }
 
