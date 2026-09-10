@@ -26,8 +26,9 @@ test("signup combines basic and member information into one member-info step", (
   assert.match(signup, /fields\.display_name\.root,[\s\S]*fields\.birth_date\.root,[\s\S]*fields\.church_group\.root/);
 });
 
-test("password confirmation is required and password updates are deferred until final submit", () => {
+test("password confirmation is required, validated on input, and password updates are deferred until final submit", () => {
   assert.match(signup, /password_confirm: field\("password_confirm", "비밀번호 확인", "password"/);
+  assert.match(signup, /fields\.password_confirm\.input\.addEventListener\("input", \(\) => \{[\s\S]*fields\.password\.input\.value === fields\.password_confirm\.input\.value[\s\S]*"비밀번호가 일치하지 않습니다\."/);
   assert.match(signup, /fields\.password\.input\.value !== fields\.password_confirm\.input\.value/);
   assert.match(signup, /비밀번호가 일치하지 않습니다/);
   assert.doesNotMatch(nextStepBody, /updatePassword/);
