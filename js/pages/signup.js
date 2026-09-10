@@ -182,7 +182,7 @@ export function renderSignup() {
         agreement(fields.rules_consent, "내용 보기", [
           "서로를 존중하고, 다른 구성원의 개인정보와 공동체 내부 내용을 허락 없이 외부에 공유하지 않습니다.",
           "운영을 방해하거나 타인에게 피해를 주는 활동은 관리자 검토 대상이 될 수 있습니다.",
-          `커뮤니티 이용수칙 버전 ${COMMUNITY_RULES_VERSION}`,
+          `커뮤니티 이용수칙 안내 버전 ${COMMUNITY_RULES_VERSION}`,
         ]),
       ]),
       el("div", { className: "signup-optional" }, [el("p", { className: "eyebrow", text: "선택" }), fields.push_opt_in.root]),
@@ -268,7 +268,15 @@ export function renderSignup() {
     };
     refreshResendCooldown = tick;
     tick();
-    timerId = setInterval(tick, 1000);
+    timerId = setInterval(() => {
+      if (!form.isConnected) {
+        clearInterval(timerId);
+        timerId = null;
+        refreshResendCooldown = null;
+        return;
+      }
+      tick();
+    }, 1000);
   }
 
   async function sendCode() {
