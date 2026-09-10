@@ -228,7 +228,8 @@ test("online startup timeout prevents an endless initial loading state", async (
 });
 
 test("play window surfaces versioned online controller loading failures", () => {
-  assert.match(playWindowSource, /versionedModuleUrl\("\.\/onlineGameController\.js"\)/);
+  assert.match(playWindowSource, /const controllerPath = getOnlineControllerPath\(window\.location\.href\)/);
+  assert.match(playWindowSource, /import\(versionedModuleUrl\(controllerPath\)\)/);
   assert.match(playWindowSource, /"ONLINE_CONTROLLER_MODULE"/);
   assert.match(playWindowSource, /게임 화면 모듈 연결이 지연되고 있습니다/);
   assert.match(playWindowSource, /document\.body\.dataset\.onlineBootStage = "failed"/);

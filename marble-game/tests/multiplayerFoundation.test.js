@@ -9,6 +9,7 @@ import {
 } from "../js/multiplayerModel.js";
 
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const bootstrapSource = readFileSync(new URL("../js/marbleBootstrap.js", import.meta.url), "utf8");
 const multiplayerApiSource = readFileSync(new URL("../js/multiplayerApi.js", import.meta.url), "utf8");
 const lobbyMigration = readFileSync(
   new URL("../../supabase/marble/20260906113000_marble_multiplayer_lobby_foundation.sql", import.meta.url),
@@ -57,7 +58,7 @@ test("Marble page exposes the Phase 5A Supabase lobby entry without removing loc
   assert.match(indexHtml, /data-create-room/);
   assert.match(indexHtml, /data-join-room/);
   assert.match(indexHtml, /data-room-ready/);
-  assert.match(indexHtml, /\.\/js\/multiplayerLobby\.js/);
+  assert.match(bootstrapSource, /\.\/multiplayerLobby\.js/);
   assert.match(indexHtml, /data-start-playtest/);
 });
 
