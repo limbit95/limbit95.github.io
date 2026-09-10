@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-3UVK2VBQ.js",
+  "entry": "assets/build/app-WXVDGTO5.js",
   "outputs": [
-    "assets/build/app-3UVK2VBQ.js",
+    "assets/build/app-WXVDGTO5.js",
     "assets/build/chunks/activities-QFBZXWLQ.js",
     "assets/build/chunks/activityDetail-DJHX4HEN.js",
     "assets/build/chunks/activityForm-ATMWNN5G.js",
@@ -40,6 +40,6 @@
     "assets/build/chunks/permissions-QOXOKLYE.js",
     "assets/build/chunks/postDetail-M5KM47TK.js",
     "assets/build/chunks/postForm-G3UXNXCM.js",
-    "assets/build/chunks/signup-OAMKVDCW.js"
+    "assets/build/chunks/signup-TP2KUVC6.js"
   ]
 }
