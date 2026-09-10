@@ -278,4 +278,7 @@ test("recurring occurrence ownership cannot bypass manager boundaries", async ()
   expect(cancelled.status).toBe("cancelled");
   expect(Number(cancelled.series_id)).toBe(recurringA.seriesId);
   expect(Number(cancelled.category_id)).toBe(categoryA);
+
+  await setCategoryManager(adminToken, categoryA, false);
+  await setCategoryManager(adminToken, categoryB, false);
 });
