@@ -370,7 +370,7 @@ test.describe("approved member flow", () => {
     await assertHealthyPage(page, "활동 등록");
     await expect(page.locator('[name="recurring"]')).toHaveCount(0);
     await page.locator('[name="title"]').fill(title);
-    await page.locator('[name="description"]').fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
+    await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
     await page.locator('[name="event_date"]').fill(eventDate);
     await page.locator('[name="start_time"]').fill("19:00");
     await page.locator('[name="end_time"]').fill("20:00");
