@@ -7,96 +7,236 @@
     <meta name="description" content="서로 다른 세계와 규칙을 선택해 즐기는 3D 온라인 마블 보드게임">
     <title>Marble Worlds</title>
     <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/play-window.css">
+    <link rel="stylesheet" href="./css/visual-tuning.css">
+    <link rel="stylesheet" href="./css/visibility-polish.css">
+    <link rel="stylesheet" href="./css/multiplayer.css">
+    <link rel="stylesheet" href="./css/online-game-controls.css">
+    <link rel="stylesheet" href="./css/online-2d-isolation.css?v=20260910-r10">
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+          "./js/diceStage.js": "./js/diceStageOnlineLazy.js?v=20260910-r10",
+          "./js/onlineStartup.js?v=20260910-r8": "./js/onlineStartupVisualBoundary.js?v=20260910-r10",
+          "./js/renderer/threeClassicPrototype.js": "./js/renderer/threeClassicPrototypeDiagnostics.js?v=20260910-r10"
+        }
+      }
+    </script>
   </head>
-  <body data-theme="classic">
+  <body data-theme="classic" data-marble-build="20260910-r10">
     <main class="marble-shell">
       <header class="marble-header">
         <a class="back-link" href="../#/games">← 게임으로 돌아가기</a>
         <div class="brand-mark" aria-hidden="true">M</div>
         <p class="eyebrow">MARBLE WORLDS</p>
         <h1>어떤 세계로 떠날까요?</h1>
-        <p class="intro-copy">
-          하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. Classic 핵심 규칙은 브라우저에서 직접 테스트할 수 있습니다.
-        </p>
+        <p class="intro-copy">하나의 마블 엔진 위에서 세계마다 다른 길과 규칙을 경험합니다. Classic은 밝은 장난감 도시와 고정 쿼터뷰를 결합한 2.5D 비주얼 기반을 개발 중입니다.</p>
       </header>
 
       <section class="theme-section" aria-labelledby="theme-list-title">
         <div class="section-heading">
-          <div>
-            <p class="eyebrow">CHOOSE A WORLD</p>
-            <h2 id="theme-list-title">테마 선택</h2>
-          </div>
-          <span class="phase-chip">PHASE 2.5 · PLAYTEST</span>
+          <div><p class="eyebrow">CHOOSE A WORLD</p><h2 id="theme-list-title">테마 선택</h2></div>
+          <span class="phase-chip">PHASE 5 · MULTIPLAYER FOUNDATION</span>
         </div>
         <div class="theme-grid" data-theme-grid></div>
       </section>
 
       <section class="theme-detail" aria-live="polite">
         <div class="theme-detail__heading">
-          <div>
-            <p class="eyebrow" data-theme-name>CLASSIC</p>
-            <h2 data-theme-title>세계일주</h2>
-          </div>
-          <span class="status-chip" data-theme-status>CORE READY</span>
+          <div><p class="eyebrow" data-theme-name>CLASSIC</p><h2 data-theme-title>세계일주</h2></div>
+          <span class="status-chip" data-theme-status>VISUAL FOUNDATION</span>
         </div>
         <p class="theme-detail__description" data-theme-description></p>
         <ul class="feature-list" data-theme-features></ul>
-        <div class="foundation-note">
-          <strong>현재 개발 단계</strong>
-          <p data-foundation-note></p>
+        <div class="foundation-note"><strong>현재 개발 단계</strong><p data-foundation-note></p></div>
+
+        <div class="multiplayer-entry" data-multiplayer-entry>
+          <div class="multiplayer-entry__heading">
+            <div>
+              <span class="multiplayer-entry__eyebrow">ONLINE CLASSIC · PHASE 5B</span>
+              <strong>온라인 대기실</strong>
+            </div>
+            <span class="multiplayer-entry__status" data-multiplayer-status>연결 확인 중</span>
+          </div>
+
+          <div class="multiplayer-entry__setup" data-multiplayer-setup>
+            <label>
+              플레이 닉네임
+              <input type="text" maxlength="20" autocomplete="nickname" data-multiplayer-nickname>
+            </label>
+            <div class="multiplayer-entry__actions">
+              <div class="multiplayer-entry__create-options">
+                <select data-multiplayer-max-players aria-label="방 최대 인원">
+                  <option value="2">2인 방</option>
+                  <option value="3">3인 방</option>
+                  <option value="4" selected>4인 방</option>
+                </select>
+                <button class="primary-button" type="button" data-create-room>온라인 방 만들기</button>
+              </div>
+              <div class="multiplayer-entry__join">
+                <input type="text" maxlength="6" inputmode="text" placeholder="방 코드" aria-label="Marble 방 코드" data-multiplayer-room-code-input>
+                <button class="secondary-button" type="button" data-join-room>코드로 참가</button>
+              </div>
+            </div>
+            <p class="multiplayer-entry__message" data-multiplayer-message>온라인 연결을 확인 중입니다.</p>
+          </div>
+
+          <div class="multiplayer-lobby" data-multiplayer-lobby hidden>
+            <div class="multiplayer-lobby__heading">
+              <div>
+                <span class="multiplayer-entry__eyebrow">WAITING ROOM</span>
+                <div class="multiplayer-lobby__code">
+                  <span>방 코드</span>
+                  <strong data-room-code>------</strong>
+                </div>
+              </div>
+              <span class="multiplayer-lobby__meta" data-room-meta>0 / 4명 · Classic</span>
+            </div>
+            <ol class="multiplayer-players" data-room-players></ol>
+            <p class="multiplayer-lobby__hint" data-room-start-hint>2명 이상 참가하고 준비하면 게임을 시작할 수 있어요.</p>
+            <div class="multiplayer-lobby__actions">
+              <button class="primary-button" type="button" data-room-start hidden>게임 시작</button>
+              <button class="primary-button" type="button" data-room-ready>준비 완료</button>
+              <button class="secondary-button" type="button" data-room-copy>초대 링크 복사</button>
+              <button class="ghost-button" type="button" data-room-leave>방 나가기</button>
+            </div>
+          </div>
         </div>
+
         <div class="playtest-entry">
-          <button class="primary-button" type="button" data-start-playtest>Classic 테스트 플레이 시작</button>
-          <p data-playtest-entry-note>브라우저 한 화면에서 2인 로컬 규칙 테스트를 진행합니다. 온라인 동기화는 아직 적용되지 않습니다.</p>
+          <button class="primary-button" type="button" data-start-playtest>Classic 플레이 창 열기</button>
+          <p data-playtest-entry-note>데스크톱에서는 넓은 별도 플레이 창으로 열립니다. 모바일 또는 팝업 차단 시 현재 탭에서 진행합니다.</p>
         </div>
       </section>
 
       <section class="playtest-section" data-playtest-section hidden aria-labelledby="playtest-title">
         <div class="section-heading playtest-heading">
-          <div>
-            <p class="eyebrow">CLASSIC MANUAL PLAYTEST</p>
-            <h2 id="playtest-title">직접 플레이 테스트</h2>
+          <div><p class="eyebrow">CLASSIC · 4 PLAYER HUD FOUNDATION</p><h2 id="playtest-title">Classic 게임 플레이</h2></div>
+          <div class="playtest-heading__actions">
+            <button class="ghost-button" type="button" data-exit-play hidden>플레이 종료</button>
+            <button class="ghost-button" type="button" data-reset-playtest>새 게임</button>
           </div>
-          <button class="ghost-button" type="button" data-reset-playtest>새 게임</button>
         </div>
 
         <div class="playtest-layout">
           <div class="board-panel">
-            <div class="classic-board" data-classic-board aria-label="Classic 2D 테스트 보드">
-              <div class="board-center">
-                <p class="eyebrow">CURRENT TURN</p>
-                <strong data-turn-label>플레이어 A</strong>
+            <div class="three-prototype-shell">
+              <div class="classic-three-stage" data-three-stage aria-label="Classic 고정 쿼터뷰 2.5D 장난감 도시 테스트 보드"></div>
+              <div class="dice-three-stage" data-dice-stage aria-hidden="true"></div>
+
+              <div class="player-list player-hud-layer" data-player-list aria-label="플레이어 정보"></div>
+
+              <div class="game-status-hud" aria-live="polite">
+                <strong data-turn-label>플레이어 A · 1턴</strong>
+                <p data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+              </div>
+
+              <div class="important-notice" data-important-notice hidden role="status" aria-live="assertive"></div>
+              <div class="move-count-pop" data-move-count-pop hidden role="status" aria-live="polite">0칸 이동!</div>
+
+              <div class="board-action-dock" data-board-action-dock data-roll-ready="false">
+                <div class="dice-charge" data-dice-charge hidden aria-label="주사위 굴림 강도">
+                  <div class="dice-charge__label">
+                    <span>ROLL POWER</span>
+                    <strong data-dice-charge-value>55%</strong>
+                  </div>
+                  <div class="dice-charge__track" aria-hidden="true">
+                    <span data-dice-charge-fill></span>
+                  </div>
+                  <small>버튼을 누르고 있다가 원하는 강도에서 놓으세요</small>
+                </div>
                 <p class="dice-summary" data-dice-summary>주사위를 굴려주세요</p>
-                <p class="game-message" data-game-message>Classic 테스트 게임을 시작했습니다.</p>
+                <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
+                <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
+              </div>
+
+              <div class="online-game-controls" data-online-game-controls hidden>
+                <button class="game-end-button" type="button" data-end-online-game>게임 종료</button>
+              </div>
+
+              <details class="game-history">
+                <summary>기록</summary>
+                <div class="game-history__panel">
+                  <div class="game-history__heading"><strong>최근 흐름</strong><span>최근 10개</span></div>
+                  <ol class="event-log" data-event-log></ol>
+                </div>
+              </details>
+
+              <div class="three-prototype-hud">
+                <span class="prototype-badge">32 TILES · CLASSIC 2.5D</span>
+                <p data-three-status hidden>3D 엔진 준비 중</p>
               </div>
             </div>
+
+            <details class="two-d-fallback">
+              <summary>2D 상태 보드 함께 보기</summary>
+              <p>2.5D 표현과 실제 엔진 상태가 같은지 비교할 수 있는 보조 화면입니다.</p>
+              <div class="classic-board" data-classic-board aria-label="Classic 2D 상태 보드">
+                <div class="board-center">
+                  <p class="eyebrow">ENGINE STATE</p>
+                  <strong>Classic 32 Tiles</strong>
+                  <p>동일한 엔진 상태를 2D로 확인하는 보조 화면입니다.</p>
+                </div>
+              </div>
+            </details>
           </div>
-
-          <aside class="playtest-sidebar">
-            <div class="player-list" data-player-list></div>
-
-            <div class="action-panel">
-              <p class="panel-label">ACTION</p>
-              <button class="primary-button action-button" type="button" data-primary-action>주사위 굴리기</button>
-              <button class="secondary-button action-button" type="button" data-secondary-action hidden>건너뛰기</button>
-            </div>
-
-            <div class="event-panel">
-              <div class="event-panel__heading">
-                <p class="panel-label">GAME LOG</p>
-                <span>최근 기록</span>
-              </div>
-              <ol class="event-log" data-event-log></ol>
-            </div>
-          </aside>
         </div>
       </section>
 
-      <footer class="marble-footer">
-        <p>현재 수동 테스트 화면은 Classic 규칙 확인용 2D UI입니다. 다음 단계에서 같은 엔진 상태와 이동 경로를 3D Renderer에 연결합니다.</p>
-      </footer>
+      <dialog class="tile-info-modal" data-tile-info-modal data-mode="inspect" aria-labelledby="tile-info-title">
+        <div class="tile-info-modal__topline">
+          <span class="tile-info-modal__type" data-tile-info-type>도시</span>
+          <button class="tile-info-modal__close" type="button" data-tile-info-close aria-label="타일 정보 닫기">×</button>
+        </div>
+        <h2 id="tile-info-title" data-tile-info-title>도시 정보</h2>
+        <p class="tile-info-modal__summary" data-tile-info-summary></p>
+        <dl class="tile-info-modal__stats" data-tile-info-stats></dl>
+        <div class="tile-info-modal__effect">
+          <span>효과</span>
+          <p data-tile-info-effect></p>
+        </div>
+        <div class="tile-info-modal__actions">
+          <button class="secondary-button" type="button" data-tile-info-decline hidden>건너뛰기</button>
+          <button class="primary-button" type="button" data-tile-info-action hidden>구매하기</button>
+          <button class="primary-button tile-info-modal__confirm" type="button" data-tile-info-confirm>확인</button>
+        </div>
+      </dialog>
+
+      <dialog class="toll-notice-modal" data-toll-notice-modal aria-labelledby="toll-notice-title">
+        <div class="toll-notice-modal__eyebrow">TOLL NOTICE</div>
+        <h2 id="toll-notice-title"><span data-toll-city>도시</span> 통행료</h2>
+        <div class="toll-notice-modal__owner">
+          <span class="toll-notice-modal__owner-token" data-toll-owner-seat>P1</span>
+          <div><span>소유자</span><strong data-toll-owner>플레이어</strong></div>
+        </div>
+        <div class="toll-notice-modal__amount">
+          <span>지불 통행료</span>
+          <strong data-toll-amount>0 골드</strong>
+        </div>
+        <div class="toll-notice-modal__balance" aria-label="통행료 차감 후 보유 골드">
+          <div><span>내 보유 골드</span><strong data-toll-balance-before>0 골드</strong></div>
+          <b data-toll-deduction>-0 골드</b>
+          <div><span>결제 후</span><strong data-toll-balance-after>0 골드</strong></div>
+        </div>
+        <p class="toll-notice-modal__effect" data-toll-effect></p>
+        <button class="primary-button toll-notice-modal__confirm" type="button" data-toll-confirm>확인</button>
+      </dialog>
+
+      <dialog class="game-end-modal" data-game-end-modal aria-labelledby="game-end-title">
+        <div class="game-end-modal__eyebrow">END GAME</div>
+        <h2 id="game-end-title">현재 게임을 종료할까요?</h2>
+        <p>게임을 종료하면 현재 방이 닫히고 모든 플레이어의 이번 게임이 끝납니다. 로비로 돌아간 뒤 새로운 방을 바로 만들 수 있습니다.</p>
+        <div class="game-end-modal__actions">
+          <button class="secondary-button" type="button" data-game-end-cancel>계속 플레이</button>
+          <button class="primary-button game-end-modal__confirm" type="button" data-game-end-confirm>게임 종료</button>
+        </div>
+      </dialog>
+
+      <footer class="marble-footer"><p>Classic은 2~4인 기본 플레이를 기준으로 보드 자체를 화면의 중심에 두고, 플레이어 HUD·3D 주사위·상황별 모달을 게임 화면 안에 통합합니다.</p></footer>
     </main>
 
-    <script type="module" src="./js/app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="./js/marbleBootstrap.js?v=20260910-r10"></script>
   </body>
 </html>
