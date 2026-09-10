@@ -5,7 +5,7 @@ import test from "node:test";
 import { canManageActivityFor } from "../js/permissions.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../supabase/site/migrations/20260910090000_member_owned_activity_management.sql");
+const migration = read("../supabase/site/migrations/20260910050634_member_owned_activity_management.sql");
 const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
