@@ -11,6 +11,8 @@ const channelBlock = auth.match(/function getSignupVerificationChannel\(\) \{[\s
 const restoreBlock = auth.match(/async function restoreSignupVerificationSessionFromActiveTab\(userId\) \{[\s\S]*?\n}\n\nfunction emit/)?.[0] ?? "";
 const verifyOtpBlock = auth.match(/export async function verifySignupEmailCode\(email, code\)[\s\S]*?\n}\n\nexport async function submitSignupApplication/)?.[0] ?? "";
 const submitBlock = auth.match(/export async function submitSignupApplication\(metadata\)[\s\S]*?\n}\n\nexport async function verifyEmailToken/)?.[0] ?? "";
+const signOutBlock = auth.match(/export async function signOut\(\) \{[\s\S]*?\n}\n\nexport function canManageCategory/)?.[0] ?? "";
+const destroyAuthBlock = auth.match(/export function destroyAuth\(\) \{[\s\S]*?\n}/)?.[0] ?? "";
 const pendingSessionPredicateSource = auth.match(/function isPendingNativeSignupSession\(session\) \{[\s\S]*?\n}/)?.[0] ?? "";
 const authDestinationBlock = app.match(/function authDestination\(auth = getAuthState\(\)\) \{[\s\S]*?\n}/)?.[0] ?? "";
 
@@ -84,4 +86,11 @@ test("signup verification remains tab-scoped when no active tab responds", () =>
   assert.match(initializeAuthBlock, /restoreSignupVerificationSessionFromActiveTab\(data\.session\.user\.id\)/);
   assert.match(verifyOtpBlock, /rememberSignupVerificationSession\(data\.session\.user\.id\)/);
   assert.match(submitBlock, /clearSignupVerificationSession\(\)/);
+});
+
+test("signup verification state is cleaned up with auth lifecycle", () => {
+  assert.match(initializeAuthBlock, /event === "SIGNED_OUT"[\s\S]*clearSignupVerificationSession\(\)/);
+  assert.match(signOutBlock, /await supabase\.auth\.signOut\(\);[\s\S]*clearSignupVerificationSession\(\)/);
+  assert.match(destroyAuthBlock, /signupVerificationChannel\?\.close\(\)/);
+  assert.match(destroyAuthBlock, /signupVerificationChannel = null/);
 });
