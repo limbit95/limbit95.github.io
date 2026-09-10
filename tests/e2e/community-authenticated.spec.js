@@ -160,6 +160,15 @@ async function authenticatedRequest(accessToken, pathname, options = {}) {
   return { response, body: text ? JSON.parse(text) : null };
 }
 
+async function setHiddenFormValue(page, name, value) {
+  const input = page.locator(`[name="${name}"]`);
+  await input.evaluate((element, nextValue) => {
+    element.value = nextValue;
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+}
+
 function activityPayload(categoryId, createdBy, title) {
   const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   return {
@@ -371,10 +380,10 @@ test.describe("approved member flow", () => {
     await expect(page.locator('[name="recurring"]')).toHaveCount(0);
     await page.locator('[name="title"]').fill(title);
     await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
-    await page.locator('[name="event_date"]').fill(eventDate);
-    await page.locator('[name="start_time"]').fill("19:00");
-    await page.locator('[name="end_time"]').fill("20:00");
-    await page.locator('[name="registration_deadline"]').fill(deadlineDate);
+    await setHiddenFormValue(page, "event_date", eventDate);
+    await setHiddenFormValue(page, "start_time", "19:00");
+    await setHiddenFormValue(page, "end_time", "20:00");
+    await setHiddenFormValue(page, "registration_deadline", deadlineDate);
     await page.locator('[name="location_name"]').fill("청파동");
     await page.getByRole("button", { name: "활동 등록", exact: true }).click();
 
