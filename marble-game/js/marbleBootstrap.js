@@ -32,6 +32,7 @@ export async function loadMarblePage({
     // Restore isolated gameplay enhancements one at a time after the renderer startup issue is stable.
     await importModule("./playWindow.js?v=20260910-r10");
     await importModule("./diceCharge.js?v=20260910-r12");
+    await importModule("./onlineGameExit.js?v=20260910-r13");
     return mode;
   }
 
