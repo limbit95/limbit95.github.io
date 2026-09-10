@@ -1,10 +1,10 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js";
-import { setupOnlinePresenceHud } from "./onlinePresenceHud.js";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { setupOnlinePresenceHud } from "./onlinePresenceHud.js?v=20260910-r8";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
-import { runOptionalEnhancement, withOnlineStartupTimeout } from "./onlineStartup.js";
+import { runOptionalEnhancement, withOnlineStartupTimeout } from "./onlineStartup.js?v=20260910-r8";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
 import { createClassicTollNotice } from "./tollNotice.js";
@@ -503,6 +503,9 @@ if (onlineRoomId) {
           threeStatus.textContent = "2.5D 보드를 불러오지 못했습니다. 2D 상태 보드로 플레이를 계속할 수 있습니다.";
           console.error("Marble online 2.5D board failed to initialize", error);
         },
+        onLateReady() {
+          threeRenderer?.dispose?.();
+        },
       },
     );
     return threeRendererInit;
@@ -523,6 +526,9 @@ if (onlineRoomId) {
         onFailed(error) {
           diceStageReady = false;
           console.error("Marble online 3D dice stage failed to initialize", error);
+        },
+        onLateReady() {
+          diceStage?.dispose?.();
         },
       },
     );
@@ -634,14 +640,20 @@ if (onlineRoomId) {
   });
   tollConfirmButton?.addEventListener("click", closeTollNotice);
 
-  async function init({ roomId = onlineRoomId, initialSnapshot } = {}) {
-    if (!playtestSection) return;
+  async function init({
+    roomId = onlineRoomId,
+    initialSnapshot,
+    createSession = createOnlineClassicSession,
+  } = {}) {
+    if (!playtestSection || !gameMessage || !primaryActionButton) {
+      throw new Error("ONLINE_REQUIRED_DOM_MISSING");
+    }
     playtestSection.hidden = false;
     document.body.dataset.sessionMode = "online";
     gameMessage.textContent = "온라인 게임 상태를 불러오는 중입니다.";
     interactionLocked = true;
     try {
-      session = await withOnlineStartupTimeout(createOnlineClassicSession({
+      session = await withOnlineStartupTimeout(createSession({
         roomId,
         initialSnapshot,
         onRemoteState: async (state) => {
@@ -679,6 +691,7 @@ if (onlineRoomId) {
         ? "온라인 게임 연결이 지연되고 있습니다. 네트워크를 확인한 뒤 새로고침해 주세요."
         : "온라인 게임을 불러오지 못했습니다. 대기실에서 다시 접속해 주세요.";
       primaryActionButton.hidden = true;
+      throw error;
     } finally {
       interactionLocked = false;
       if (session) renderActionControls(session.getState());

@@ -7,7 +7,7 @@ import {
   getOnlineGameSnapshot,
   rollOnlineDice,
   subscribeOnlineGame,
-} from "./onlineGameApi.js";
+} from "./onlineGameApi.js?v=20260910-r8";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
@@ -89,6 +89,7 @@ export async function createOnlineClassicSession({
   let pendingRefresh = false;
   let recoveryTimer = null;
   let realtimeHealthy = false;
+  let subscriptionReconciled = false;
 
   function accept(nextSnapshot) {
     snapshot = nextSnapshot;
@@ -164,6 +165,10 @@ export async function createOnlineClassicSession({
     if (status === "SUBSCRIBED") {
       realtimeHealthy = true;
       clearRecoveryTimer();
+      if (!subscriptionReconciled) {
+        subscriptionReconciled = true;
+        void refresh().catch((refreshError) => onConnectionStatus?.("RECONNECTING", refreshError));
+      }
       return;
     }
     if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {

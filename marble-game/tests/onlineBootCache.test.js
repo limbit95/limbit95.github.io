@@ -4,14 +4,26 @@ import { readFileSync } from "node:fs";
 
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
+const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
+const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
+const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260910-r7"/);
-  assert.match(indexHtml, /playWindow\.js\?v=20260910-r7/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r7"/);
+  assert.match(indexHtml, /data-marble-build="20260910-r8"/);
+  assert.match(indexHtml, /playWindow\.js\?v=20260910-r8/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r8"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
+});
+
+test("the online startup dependency graph uses one deployment revision", () => {
+  assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
+  assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
+  assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260910-r8/);
+  assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r8/g) ?? []).length, 1);
 });
 
 test("online Marble boot probes snapshot before loading the controller", () => {

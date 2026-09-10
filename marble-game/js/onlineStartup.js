@@ -20,13 +20,22 @@ export async function runOptionalEnhancement(task, {
   windowObject = globalThis.window,
   onReady,
   onFailed,
+  onLateReady,
 } = {}) {
   let timer = null;
+  let timedOut = false;
+  const taskPromise = Promise.resolve().then(task);
   const timeout = new Promise((_, reject) => {
-    timer = windowObject.setTimeout(() => reject(new Error(timeoutCode)), timeoutMs);
+    timer = windowObject.setTimeout(() => {
+      timedOut = true;
+      reject(new Error(timeoutCode));
+    }, timeoutMs);
   });
+  void taskPromise.then((value) => {
+    if (timedOut) onLateReady?.(value);
+  }, () => {});
   try {
-    const value = await Promise.race([Promise.resolve().then(task), timeout]);
+    const value = await Promise.race([taskPromise, timeout]);
     onReady?.(value);
     return value;
   } catch (error) {

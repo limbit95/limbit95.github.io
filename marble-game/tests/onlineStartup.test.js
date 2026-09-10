@@ -8,7 +8,7 @@ const controllerSource = readFileSync(new URL("../js/onlineGameController.js", i
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
 
 test("online game renders authoritative state before starting optional 3D visuals", () => {
-  const sessionIndex = controllerSource.indexOf("session = await withOnlineStartupTimeout(createOnlineClassicSession");
+  const sessionIndex = controllerSource.indexOf("session = await withOnlineStartupTimeout(createSession");
   const renderIndex = controllerSource.indexOf("renderUi(state, { renderThree: false })", sessionIndex);
   const rendererIndex = controllerSource.indexOf("void ensureRenderer();", renderIndex);
   const diceIndex = controllerSource.indexOf("void ensureDiceStage();", renderIndex);
@@ -74,6 +74,34 @@ test("optional renderer readiness is reported independently", async () => {
   assert.equal(timers.size, 0);
 });
 
+test("a renderer that completes after timeout is disposed without becoming ready", async () => {
+  let resolveMount;
+  let readyCalls = 0;
+  let lateDisposeCalls = 0;
+  let timeoutCallback;
+  const resultPromise = runOptionalEnhancement(
+    () => new Promise((resolve) => { resolveMount = resolve; }),
+    {
+      timeoutMs: 1,
+      timeoutCode: "RENDERER_TIMEOUT",
+      windowObject: {
+        setTimeout(callback) { timeoutCallback = callback; return 1; },
+        clearTimeout() {},
+      },
+      onReady() { readyCalls += 1; },
+      onLateReady(renderer) { renderer.dispose(); },
+    },
+  );
+  await Promise.resolve();
+  timeoutCallback();
+  assert.equal(await resultPromise, null);
+  resolveMount({ dispose() { lateDisposeCalls += 1; } });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(readyCalls, 0);
+  assert.equal(lateDisposeCalls, 1);
+});
+
 test("bootstrap snapshot creates a usable session without a duplicate snapshot RPC", async () => {
   const originalWindow = globalThis.window;
   const listeners = new Map();
@@ -104,13 +132,15 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
   };
 
   try {
+    let realtimeStatus;
+    const newerSnapshot = { ...snapshot, game: { ...snapshot.game, version: 4, turn: 2 } };
     const session = await createOnlineClassicSession({
       roomId: "room-1",
       initialSnapshot: snapshot,
       api: {
-        async getSnapshot() { snapshotCalls += 1; return snapshot; },
+        async getSnapshot() { snapshotCalls += 1; return newerSnapshot; },
         subscribeGame(_roomId, { onStatus }) {
-          onStatus("SUBSCRIBED");
+          realtimeStatus = onStatus;
           return () => {};
         },
       },
@@ -119,6 +149,13 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
     assert.equal(session.getState().players.length, 2);
     assert.equal(session.getState().version, 3);
     assert.equal(session.getViewerPlayerId(), "player-a");
+    realtimeStatus("SUBSCRIBED");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(snapshotCalls, 1);
+    assert.equal(session.getState().version, 4);
+    realtimeStatus("SUBSCRIBED");
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(snapshotCalls, 1);
     session.dispose();
 
     const degradedSession = await createOnlineClassicSession({
@@ -130,7 +167,7 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
       },
     });
     assert.equal(degradedSession.getState().version, 3);
-    assert.equal(snapshotCalls, 0);
+    assert.equal(snapshotCalls, 1);
     degradedSession.dispose();
   } finally {
     globalThis.window = originalWindow;
@@ -179,4 +216,21 @@ test("play window surfaces versioned online controller loading failures", () => 
   assert.match(playWindowSource, /"ONLINE_CONTROLLER_MODULE"/);
   assert.match(playWindowSource, /게임 화면 모듈 연결이 지연되고 있습니다/);
   assert.match(playWindowSource, /document\.body\.dataset\.onlineBootStage = "failed"/);
+});
+
+test("controller core failures propagate to the play-window bootstrap", () => {
+  const catchIndex = controllerSource.indexOf('console.error("Marble online game failed to initialize", error)');
+  const rethrowIndex = controllerSource.indexOf("throw error;", catchIndex);
+  assert.ok(catchIndex >= 0);
+  assert.ok(rethrowIndex > catchIndex);
+  assert.match(playWindowSource, /await controllerModule\.startOnlineGameController/);
+  assert.match(playWindowSource, /document\.body\.dataset\.onlineBootStage = "failed"/);
+});
+
+test("presence remains an optional post-UI enhancement", () => {
+  const uiReadyIndex = controllerSource.indexOf('document.body.dataset.onlineBootStage = "ui-ready"');
+  const presenceIndex = controllerSource.indexOf("void setupOnlinePresenceHud", uiReadyIndex);
+  assert.ok(uiReadyIndex >= 0);
+  assert.ok(presenceIndex > uiReadyIndex);
+  assert.match(controllerSource.slice(presenceIndex), /\.catch\(\(error\) => console\.warn/);
 });

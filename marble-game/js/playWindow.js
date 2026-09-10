@@ -5,7 +5,7 @@ const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
-const ONLINE_BOOT_REVISION = "20260910-r7";
+const ONLINE_BOOT_REVISION = "20260910-r8";
 const ONLINE_BOOT_TIMEOUT_MS = 8000;
 
 export function createClassicPlayUrl(href) {
@@ -169,6 +169,7 @@ async function bootstrapOnlineGame(onlineRoomId) {
       import(versionedModuleUrl("./onlineGameController.js")),
       "ONLINE_CONTROLLER_MODULE",
     );
+    document.body.dataset.onlineBootStage = "controller-start";
     await controllerModule.startOnlineGameController({
       roomId: onlineRoomId,
       initialSnapshot: snapshot,

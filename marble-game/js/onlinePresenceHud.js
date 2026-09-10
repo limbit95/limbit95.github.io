@@ -1,4 +1,4 @@
-import { getOnlineGameSnapshot, subscribeOnlinePresence } from "./onlineGameApi.js";
+import { getOnlineGameSnapshot, subscribeOnlinePresence } from "./onlineGameApi.js?v=20260910-r8";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
 
 const CONNECTION_LABELS = Object.freeze({
