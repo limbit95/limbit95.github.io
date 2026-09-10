@@ -315,7 +315,8 @@ export function renderSignup() {
       codeRequested = false;
       expiresAt = 0;
       resendAt = 0;
-      clearStoredOtpResendAt(email);
+      // Keep the last-send cooldown persisted until its natural 60-second expiry.
+      // If the browser closes immediately after verification, Supabase may still reject a new OTP request.
       renderStep();
     } catch (error) { setFieldError(form, "verification_code", getErrorMessage(error)); }
     finally { setBusy(form, false); }
