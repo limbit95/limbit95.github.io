@@ -25,3 +25,10 @@ export const ASSIGNABLE_ADMIN_PERMISSIONS = Object.freeze([
 export function hasAdminPermission(auth, permission) {
   return auth.isSystemAdmin || auth.adminPermissions?.has(permission) === true;
 }
+
+export function canManageActivityFor(auth, event) {
+  return Boolean(event)
+    && (event.created_by === auth.user?.id
+      || hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY)
+      || auth.managerCategoryIds?.has(Number(event.category_id)) === true);
+}

@@ -1,4 +1,4 @@
-import { canManageCategory, getAuthState } from "../auth.js";
+import { canManageActivity, getAuthState } from "../auth.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
 import { enhanceActivityDetails } from "../activity-detail-map.js";
 import { enhanceActivityShare } from "../activity-share-enhancements.js";
@@ -7,6 +7,7 @@ import {
   getEvent,
   joinEvent,
   listEventParticipants,
+  removeEvent,
   updateEvent,
 } from "../api/activities.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
@@ -31,7 +32,7 @@ export async function renderActivityDetail(route) {
   const participants = await listEventParticipants(event.id);
   const counts = participationCounts(event);
   const mine = getMyParticipation(event, auth.user.id);
-  const canManage = canManageCategory(event.category_id);
+  const canManage = canManageActivity(event);
   const root = pageContainer();
   const categoryColor = event.category?.color ?? "#2f6b4f";
 
@@ -324,7 +325,7 @@ async function participantDialogContent(participants, counts) {
 function managementSection(event, root) {
   return el("section", { className: "activity-detail__management" }, [
     el("div", { className: "activity-detail__management-copy" }, [
-      el("strong", { text: "관리자 작업" }),
+      el("strong", { text: "활동 관리" }),
       el("p", {
         className: "small subtle",
         text: "활동 자체를 진행하지 않게 된 경우에만 일정을 취소해 주세요.",
@@ -336,7 +337,37 @@ function managementSection(event, root) {
       text: "일정 취소",
       onClick: (clickEvent) => cancelSchedule(event, root, clickEvent.currentTarget),
     }),
+    el("button", {
+      className: "button button--danger",
+      type: "button",
+      text: "활동 삭제",
+      onClick: (clickEvent) => removeSchedule(event, root, clickEvent.currentTarget),
+    }),
   ]);
+}
+
+async function removeSchedule(event, root, button) {
+  const confirmed = await confirmDialog({
+    title: "활동을 삭제할까요?",
+    message: "참여 이력이 있으면 활동과 이력을 보존하고 일정 취소로 처리합니다.",
+    confirmText: "삭제 요청",
+    danger: true,
+  });
+  if (!confirmed) return;
+  setBusy(button, true, "처리 중…");
+  try {
+    const result = await removeEvent(event.id);
+    if (result?.action === "cancelled") {
+      showToast("참여 이력이 있어 활동을 취소하고 이력을 보존했습니다.", "success");
+      root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
+    } else {
+      showToast("활동을 삭제했습니다.", "success");
+      window.location.hash = "#/activities";
+    }
+  } catch (error) {
+    showToast(getErrorMessage(error), "error");
+    setBusy(button, false);
+  }
 }
 
 async function cancelSchedule(event, root, button) {

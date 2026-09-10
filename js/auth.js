@@ -7,7 +7,9 @@ import {
   setPushAuthContextVersion,
   waitForPushRestoreClaims,
 } from "./web-push.js";
-import { ROLE, hasAdminPermission } from "./permissions.js";
+import { ROLE, canManageActivityFor, hasAdminPermission } from "./permissions.js";
+
+export { canManageActivityFor } from "./permissions.js";
 
 const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
@@ -376,6 +378,10 @@ export async function signOut() {
 export function canManageCategory(categoryId) {
   const auth = getAuthState();
   return hasAdminPermission(auth, "community") || auth.managerCategoryIds.has(Number(categoryId));
+}
+
+export function canManageActivity(event) {
+  return canManageActivityFor(getAuthState(), event);
 }
 
 export function destroyAuth() {

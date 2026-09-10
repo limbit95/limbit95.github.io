@@ -54,7 +54,7 @@ export const ROUTE_META = Object.freeze({
   "/pending": { title: "가입 승인 대기", auth: "signed" },
   "/suspended": { title: "이용 정지 안내", auth: "signed" },
   "/activities": { title: "활동", auth: "approved" },
-  "/activities/new": { title: "활동 등록", auth: "manager" },
+  "/activities/new": { title: "활동 등록", auth: "approved" },
   "/notice": { title: "공지사항", auth: "approved" },
   "/community": { title: "자유게시판", auth: "approved" },
   "/mypage": { title: "마이페이지", auth: "approved" },
