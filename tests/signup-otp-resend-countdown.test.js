@@ -42,6 +42,7 @@ test("signup OTP countdown interval stops after the signup form leaves the DOM",
     signup.indexOf("function renderAccount"),
     signup.indexOf("async function sendCode"),
   );
+  // Keep the first tick synchronous, then require the recurring timer to self-clean after SPA route detachment.
   assert.match(renderAccountBody, /refreshResendCooldown = tick;\n    tick\(\);\n    timerId = setInterval\(\(\) => \{/);
   assert.match(renderAccountBody, /if \(!form\.isConnected\) \{/);
   assert.match(renderAccountBody, /clearInterval\(timerId\);\n        timerId = null;\n        refreshResendCooldown = null;\n        return;/);
