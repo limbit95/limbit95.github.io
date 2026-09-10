@@ -4,7 +4,7 @@ import {
   performanceNow,
   shouldStartOnlineMainRenderer,
   waitForBrowserPaint,
-} from "./onlineVisualPolicy.js?v=20260910-r9";
+} from "./onlineVisualPolicy.js?v=20260910-r10";
 
 export const ONLINE_INITIAL_LOAD_TIMEOUT_MS = 12000;
 

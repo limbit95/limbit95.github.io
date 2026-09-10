@@ -3,7 +3,7 @@ import {
   logMarbleRenderStep,
   markOnlineVisualRuntime,
   shouldStartOwnershipRenderer,
-} from "./onlineVisualPolicy.js?v=20260910-r9";
+} from "./onlineVisualPolicy.js?v=20260910-r10";
 
 const online = isOnlineMarbleSession();
 const mode = online ? markOnlineVisualRuntime() : "full";
@@ -50,7 +50,7 @@ async function startOwnershipVisual() {
 
   setOwnershipStatus("loading");
   try {
-    await import("./themes/classic/ownershipVisual.js?v=20260910-r9");
+    await import("./themes/classic/ownershipVisual.js?v=20260910-r10");
     setOwnershipStatus("ready");
     logMarbleRenderStep("ownership-ready", { details: { mode } });
   } catch (error) {

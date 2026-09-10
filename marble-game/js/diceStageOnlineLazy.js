@@ -12,7 +12,7 @@ import {
   performanceNow,
   shouldDeferOnlineDiceRenderer,
   shouldStartOnlineDiceRenderer,
-} from "./onlineVisualPolicy.js?v=20260910-r9";
+} from "./onlineVisualPolicy.js?v=20260910-r10";
 
 export {
   DICE_STAGE_PROFILE,
@@ -22,7 +22,9 @@ export {
   rollAnimationProfile,
 };
 
-export function createThreeDiceStage(options = {}) {
+export function createThreeDiceStage(options = {}, {
+  createBaseStage = createBaseThreeDiceStage,
+} = {}) {
   const {
     documentObject = globalThis.document,
     locationObject = globalThis.location,
@@ -30,7 +32,7 @@ export function createThreeDiceStage(options = {}) {
     consoleObject = globalThis.console,
     ...stageOptions
   } = options;
-  const baseStage = createBaseThreeDiceStage(stageOptions);
+  const baseStage = createBaseStage(stageOptions);
   if (!shouldDeferOnlineDiceRenderer({ documentObject, locationObject })) return baseStage;
 
   markOnlineVisualRuntime({ documentObject, locationObject });

@@ -12,7 +12,7 @@ import {
   logMarbleRenderStep,
   markOnlineVisualRuntime,
   performanceNow,
-} from "../onlineVisualPolicy.js?v=20260910-r9";
+} from "../onlineVisualPolicy.js?v=20260910-r10";
 
 export {
   CLASSIC_CAMERA_PROFILE,
@@ -30,9 +30,10 @@ export function createClassicThreePrototypeRenderer(options = {}, {
   performanceObject = globalThis.performance,
   consoleObject = globalThis.console,
   loadThree = () => import("three"),
+  createBaseRenderer = createBaseClassicThreePrototypeRenderer,
 } = {}) {
   const factoryStartedAt = performanceNow(performanceObject);
-  const renderer = createBaseClassicThreePrototypeRenderer(options);
+  const renderer = createBaseRenderer(options);
   const traceOnlineRenderer = isOnlineMarbleSession({ documentObject, locationObject });
   let initialRenderComplete = false;
 

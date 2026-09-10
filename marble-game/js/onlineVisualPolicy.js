@@ -1,4 +1,4 @@
-export const ONLINE_VISUAL_REVISION = "20260910-r9";
+export const ONLINE_VISUAL_REVISION = "20260910-r10";
 export const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
 export const ONLINE_VISUAL_MODES = Object.freeze({
   TWO_D: "2d",

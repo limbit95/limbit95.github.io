@@ -26,6 +26,7 @@ function quietConsole() {
 
 test("online visual modes isolate WebGL startup without changing local Classic defaults", () => {
   const onlineDefault = context();
+  const onlineMain = context("?onlineRoom=room-1&marbleVisuals=main");
   const online2d = context("?onlineRoom=room-1&marbleVisuals=2d");
   const onlineFull = context("?onlineRoom=room-1&marbleVisuals=full");
   const local = {
@@ -34,17 +35,22 @@ test("online visual modes isolate WebGL startup without changing local Classic d
   };
 
   assert.equal(resolveOnlineVisualMode(onlineDefault), ONLINE_VISUAL_MODES.MAIN);
+  assert.equal(resolveOnlineVisualMode(onlineMain), ONLINE_VISUAL_MODES.MAIN);
   assert.equal(resolveOnlineVisualMode(online2d), ONLINE_VISUAL_MODES.TWO_D);
   assert.equal(resolveOnlineVisualMode(onlineFull), ONLINE_VISUAL_MODES.FULL);
   assert.equal(resolveOnlineVisualMode(local), ONLINE_VISUAL_MODES.FULL);
 
+  assert.equal(shouldStartOnlineMainRenderer(onlineDefault), true);
   assert.equal(shouldStartOnlineMainRenderer(online2d), false);
+  assert.equal(shouldStartOnlineMainRenderer(onlineMain), true);
   assert.equal(shouldStartOwnershipRenderer(onlineDefault), false);
+  assert.equal(shouldStartOwnershipRenderer(onlineMain), false);
   assert.equal(shouldStartOwnershipRenderer(onlineFull), true);
   assert.equal(shouldStartOwnershipRenderer(local), true);
   assert.equal(shouldDeferOnlineDiceRenderer(onlineDefault), true);
-  assert.equal(shouldStartOnlineDiceRenderer(online2d), false);
   assert.equal(shouldStartOnlineDiceRenderer(onlineDefault), true);
+  assert.equal(shouldStartOnlineDiceRenderer(online2d), false);
+  assert.equal(shouldStartOnlineDiceRenderer(onlineMain), true);
 });
 
 test("online main renderer waits through two animation frames so the 2D state can paint first", async () => {
@@ -52,7 +58,7 @@ test("online main renderer waits through two animation frames so the 2D state ca
   const timers = new Map();
   let nextTimer = 1;
   let taskRan = false;
-  const { documentObject, locationObject } = context();
+  const { documentObject, locationObject } = context("?onlineRoom=room-1&marbleVisuals=main");
   const windowObject = {
     requestAnimationFrame(callback) {
       frames.push(callback);
@@ -129,8 +135,10 @@ test("2D diagnostic mode never invokes the main renderer task", async () => {
 });
 
 test("online dice mount is deferred until a real roll and is fully disabled in 2D mode", async () => {
-  const defaultContext = context();
+  const defaultContext = context("?onlineRoom=room-1&marbleVisuals=main");
   let replacementCalls = 0;
+  let baseMountCalls = 0;
+  let baseRollCalls = 0;
   const defaultTarget = {
     dataset: {},
     replaceChildren() { replacementCalls += 1; },
@@ -138,36 +146,62 @@ test("online dice mount is deferred until a real roll and is fully disabled in 2
   const defaultStage = createThreeDiceStage({
     ...defaultContext,
     consoleObject: quietConsole(),
+  }, {
+    createBaseStage() {
+      return {
+        async mount(target) {
+          baseMountCalls += 1;
+          target.replaceChildren({});
+        },
+        async playRoll() { baseRollCalls += 1; },
+        showReady() {},
+        hide() {},
+        dispose() {},
+      };
+    },
   });
 
   await defaultStage.mount(defaultTarget);
+  assert.equal(baseMountCalls, 0);
   assert.equal(replacementCalls, 0);
   assert.equal(defaultContext.documentObject.body.dataset.onlineDiceRenderer, "deferred");
   assert.equal(defaultTarget.dataset.rendererState, "deferred");
   await defaultStage.playRoll([1, 6]);
+  assert.equal(baseMountCalls, 1);
   assert.equal(replacementCalls, 1);
+  assert.equal(baseRollCalls, 1);
   assert.equal(defaultContext.documentObject.body.dataset.onlineDiceRenderer, "ready");
   defaultStage.dispose();
 
   const twoDContext = context("?onlineRoom=room-1&marbleVisuals=2d");
-  let twoDReplacementCalls = 0;
+  let twoDBaseMountCalls = 0;
   const twoDTarget = {
     dataset: {},
-    replaceChildren() { twoDReplacementCalls += 1; },
+    replaceChildren() {},
   };
   const twoDStage = createThreeDiceStage({
     ...twoDContext,
     consoleObject: quietConsole(),
+  }, {
+    createBaseStage() {
+      return {
+        async mount() { twoDBaseMountCalls += 1; },
+        async playRoll() {},
+        showReady() {},
+        hide() {},
+        dispose() {},
+      };
+    },
   });
   await twoDStage.mount(twoDTarget);
   await twoDStage.playRoll([2, 5]);
-  assert.equal(twoDReplacementCalls, 0);
+  assert.equal(twoDBaseMountCalls, 0);
   assert.equal(twoDContext.documentObject.body.dataset.onlineDiceRenderer, "disabled");
   twoDStage.dispose();
 });
 
 test("renderer diagnostics isolate Three import, WebGL mount, synchronous board build, and first paint", async () => {
-  const { documentObject, locationObject } = context();
+  const { documentObject, locationObject } = context("?onlineRoom=room-1&marbleVisuals=main");
   const frames = [];
   const logs = [];
   let now = 0;
@@ -187,6 +221,14 @@ test("renderer diagnostics isolate Three import, WebGL mount, synchronous board 
     performanceObject,
     consoleObject,
     async loadThree() { threeImports += 1; return {}; },
+    createBaseRenderer() {
+      return {
+        async mount(targetElement) { targetElement.dataset.baseMounted = "true"; },
+        renderState(state) { state.rendered = true; },
+        playEvent() {},
+        dispose() {},
+      };
+    },
   });
 
   await renderer.mount(target);

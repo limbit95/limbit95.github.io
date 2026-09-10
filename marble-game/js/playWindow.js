@@ -3,15 +3,17 @@ import { getOnlineRoomId } from "./onlinePlayRoute.js";
 const COMPACT_PLAY_WIDTH = 900;
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
+const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
-const ONLINE_BOOT_REVISION = "20260910-r8";
+const ONLINE_BOOT_REVISION = "20260910-r10";
 const ONLINE_BOOT_TIMEOUT_MS = 8000;
 
 export function createClassicPlayUrl(href) {
   const url = new URL(href);
   url.searchParams.set(PLAY_QUERY_KEY, CLASSIC_PLAY_MODE);
   url.searchParams.delete(ONLINE_ROOM_QUERY_KEY);
+  url.searchParams.delete(ONLINE_VISUAL_QUERY_KEY);
   return url;
 }
 
@@ -101,6 +103,7 @@ function leavePlayMode() {
   const lobbyUrl = new URL(window.location.href);
   lobbyUrl.searchParams.delete(PLAY_QUERY_KEY);
   lobbyUrl.searchParams.delete(ONLINE_ROOM_QUERY_KEY);
+  lobbyUrl.searchParams.delete(ONLINE_VISUAL_QUERY_KEY);
   window.location.assign(lobbyUrl.href);
 }
 
@@ -144,6 +147,13 @@ function versionedModuleUrl(relativePath) {
   return url.href;
 }
 
+export function getOnlineControllerPath(href) {
+  const url = new URL(href);
+  return url.searchParams.get(ONLINE_VISUAL_QUERY_KEY) === "2d"
+    ? "./onlineGameController2d.js"
+    : "./onlineGameController.js";
+}
+
 async function bootstrapOnlineGame(onlineRoomId) {
   document.body.dataset.onlineBootRevision = ONLINE_BOOT_REVISION;
   onlineBootMessage(`온라인 연결 확인 중 · ${ONLINE_BOOT_REVISION}`);
@@ -165,8 +175,10 @@ async function bootstrapOnlineGame(onlineRoomId) {
     document.body.dataset.onlineGameVersion = String(snapshot.game.version ?? "");
     onlineBootMessage(`게임 상태 확인 완료 · 화면 연결 중 · ${ONLINE_BOOT_REVISION}`);
 
+    const controllerPath = getOnlineControllerPath(window.location.href);
+    document.body.dataset.onlineController = controllerPath.includes("Controller2d") ? "2d" : "main";
     const controllerModule = await withBootTimeout(
-      import(versionedModuleUrl("./onlineGameController.js")),
+      import(versionedModuleUrl(controllerPath)),
       "ONLINE_CONTROLLER_MODULE",
     );
     document.body.dataset.onlineBootStage = "controller-start";
