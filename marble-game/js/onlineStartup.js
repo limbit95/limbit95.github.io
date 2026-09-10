@@ -14,6 +14,29 @@ export function withOnlineStartupTimeout(promise, timeoutMs = ONLINE_INITIAL_LOA
   });
 }
 
+export async function runOptionalEnhancement(task, {
+  timeoutMs = 5000,
+  timeoutCode = "OPTIONAL_ENHANCEMENT_TIMEOUT",
+  windowObject = globalThis.window,
+  onReady,
+  onFailed,
+} = {}) {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = windowObject.setTimeout(() => reject(new Error(timeoutCode)), timeoutMs);
+  });
+  try {
+    const value = await Promise.race([Promise.resolve().then(task), timeout]);
+    onReady?.(value);
+    return value;
+  } catch (error) {
+    onFailed?.(error);
+    return null;
+  } finally {
+    if (timer !== null) windowObject.clearTimeout(timer);
+  }
+}
+
 export function showOnlineModuleLoadError(error, {
   documentObject = globalThis.document,
 } = {}) {

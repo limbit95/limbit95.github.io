@@ -1,5 +1,4 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
-import "./onlinePresenceHud.js";
 import { createClassicBoard } from "./themes/classic/board.js";
 import {
   buildOnlineProperty,
@@ -69,10 +68,19 @@ export function isOnlineViewerTurn(state, viewerPlayerId) {
   return state.players[state.currentPlayerIndex]?.id === viewerPlayerId;
 }
 
-export async function createOnlineClassicSession({ roomId, onRemoteState, onConnectionStatus } = {}) {
+export async function createOnlineClassicSession({
+  roomId,
+  initialSnapshot,
+  onRemoteState,
+  onConnectionStatus,
+  api = {},
+} = {}) {
   if (!roomId) throw new Error("ROOM_ID_REQUIRED");
 
-  let snapshot = await getOnlineGameSnapshot(roomId);
+  const getSnapshot = api.getSnapshot ?? getOnlineGameSnapshot;
+  const subscribeGame = api.subscribeGame ?? subscribeOnlineGame;
+
+  let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
   let unsubscribe = null;
   let disposed = false;
@@ -96,7 +104,7 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     }
     refreshing = true;
     try {
-      const nextSnapshot = await getOnlineGameSnapshot(roomId);
+      const nextSnapshot = await getSnapshot(roomId);
       const nextVersion = Number(nextSnapshot?.game?.version) || 0;
       const currentVersion = Number(snapshot?.game?.version) || 0;
       if (nextVersion <= currentVersion) return state;
@@ -156,7 +164,6 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
     if (status === "SUBSCRIBED") {
       realtimeHealthy = true;
       clearRecoveryTimer();
-      void refresh().catch(() => {});
       return;
     }
     if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
@@ -166,7 +173,7 @@ export async function createOnlineClassicSession({ roomId, onRemoteState, onConn
   }
 
   try {
-    unsubscribe = subscribeOnlineGame(roomId, {
+    unsubscribe = subscribeGame(roomId, {
       channelScope: "session",
       onChange: () => { void refresh(); },
       onStatus: handleRealtimeStatus,

@@ -5,7 +5,7 @@ const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const CLASSIC_PLAY_MODE = "classic";
 const PLAY_WINDOW_NAME = "marbleClassicPlay";
-const ONLINE_BOOT_REVISION = "20260910-r6";
+const ONLINE_BOOT_REVISION = "20260910-r7";
 const ONLINE_BOOT_TIMEOUT_MS = 8000;
 
 export function createClassicPlayUrl(href) {
@@ -165,10 +165,14 @@ async function bootstrapOnlineGame(onlineRoomId) {
     document.body.dataset.onlineGameVersion = String(snapshot.game.version ?? "");
     onlineBootMessage(`게임 상태 확인 완료 · 화면 연결 중 · ${ONLINE_BOOT_REVISION}`);
 
-    await withBootTimeout(
+    const controllerModule = await withBootTimeout(
       import(versionedModuleUrl("./onlineGameController.js")),
       "ONLINE_CONTROLLER_MODULE",
     );
+    await controllerModule.startOnlineGameController({
+      roomId: onlineRoomId,
+      initialSnapshot: snapshot,
+    });
     document.body.dataset.onlineBootStage = "controller-ready";
   } catch (error) {
     console.error("Marble online boot failed", error);

@@ -28,14 +28,16 @@ export function playerConnectionState({ playerId, connectedIds, presenceReady, v
 export async function setupOnlinePresenceHud({
   windowObject = window,
   documentObject = document,
+  roomId: suppliedRoomId,
+  initialSnapshot,
 } = {}) {
-  const roomId = getOnlineRoomId(windowObject.location.href);
+  const roomId = suppliedRoomId ?? getOnlineRoomId(windowObject.location.href);
   if (!roomId) return () => {};
 
   const playerList = documentObject.querySelector("[data-player-list]");
   if (!playerList) return () => {};
 
-  const snapshot = await getOnlineGameSnapshot(roomId);
+  const snapshot = initialSnapshot ?? await getOnlineGameSnapshot(roomId);
   const players = Array.isArray(snapshot?.players) ? snapshot.players : [];
   const viewerPlayerId = snapshot?.viewerPlayerId ?? null;
   if (!viewerPlayerId) return () => {};
@@ -78,15 +80,20 @@ export async function setupOnlinePresenceHud({
     }
   }
 
-  unsubscribe = subscribeOnlinePresence(roomId, {
-    playerId: viewerPlayerId,
-    onSync(nextPresenceState) {
-      connectedIds = connectedPlayerIds(nextPresenceState);
-      presenceReady = true;
-      render();
-    },
-    onStatus: handleStatus,
-  });
+  try {
+    unsubscribe = subscribeOnlinePresence(roomId, {
+      playerId: viewerPlayerId,
+      onSync(nextPresenceState) {
+        connectedIds = connectedPlayerIds(nextPresenceState);
+        presenceReady = true;
+        render();
+      },
+      onStatus: handleStatus,
+    });
+  } catch (error) {
+    handleStatus("PRESENCE_ERROR");
+    console.warn("Marble online presence HUD failed to subscribe", error);
+  }
 
   const handleNetworkChange = () => render();
   windowObject.addEventListener("online", handleNetworkChange);
@@ -99,12 +106,4 @@ export async function setupOnlinePresenceHud({
     windowObject.removeEventListener("online", handleNetworkChange);
     windowObject.removeEventListener("offline", handleNetworkChange);
   };
-}
-
-if (typeof window !== "undefined" && typeof document !== "undefined") {
-  setupOnlinePresenceHud().then((dispose) => {
-    window.addEventListener("beforeunload", dispose, { once: true });
-  }).catch((error) => {
-    console.warn("Marble online presence HUD failed to initialize", error);
-  });
 }

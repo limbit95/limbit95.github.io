@@ -104,6 +104,21 @@ body[data-play-mode="window"] .dice-three-stage {
   body[data-play-mode="window"] .three-prototype-hud {
     display: none;
   }
+
+  body[data-play-mode="window"][data-online-renderer="failed"] .two-d-fallback {
+    display: block;
+    height: calc(100vh - 24px);
+    overflow: auto;
+  }
+
+  body[data-play-mode="window"][data-online-renderer="failed"] .three-prototype-shell {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  body[data-play-mode="window"][data-online-renderer="failed"] .classic-three-stage {
+    visibility: hidden;
+  }
 }
 
 @media (max-width: 900px) {
