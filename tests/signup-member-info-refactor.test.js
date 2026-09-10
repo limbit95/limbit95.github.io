@@ -9,7 +9,7 @@ const profiles = readFileSync(new URL("../js/api/profiles.js", import.meta.url),
 const mypage = readFileSync(new URL("../js/pages/mypage.js", import.meta.url), "utf8");
 const profilePopover = readFileSync(new URL("../js/components/profilePopover.js", import.meta.url), "utf8");
 const constants = readFileSync(new URL("../js/constants.js", import.meta.url), "utf8");
-const migration = readFileSync(new URL("../supabase/site/migrations/20260910123000_signup_member_info_birth_date.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../supabase/site/migrations/20260910132535_signup_member_info_birth_date.sql", import.meta.url), "utf8");
 
 const nextStepBody = signup.slice(
   signup.indexOf("function nextStep"),
