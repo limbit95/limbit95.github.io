@@ -200,6 +200,7 @@ begin
   ) or exists (
     select 1 from public.notifications notification
     where notification.event_id = p_event_id
+      and notification.notification_type <> 'new_activity'
   ) or exists (
     select 1 from public.date_polls poll
     where poll.result_event_id = p_event_id
