@@ -5,8 +5,12 @@ import {
   listEvents,
 } from "../api/activities.js";
 import { listPosts } from "../api/boards.js";
+import {
+  getAppInstallMode,
+  promptAppInstall,
+} from "../app-install.js";
 import { createActivityCard } from "../components/activityCard.js";
-import { confirmDialog } from "../components/modal.js";
+import { confirmDialog, contentDialog } from "../components/modal.js";
 import { showToast } from "../components/toast.js";
 import {
   el,
@@ -151,14 +155,119 @@ export async function renderHome() {
     });
   }
   const gameCard = createHomeGamesCard();
+  const installCard = createAppInstallCard();
   lowerGrid.append(noticeCard, gameCard);
-  root.append(hero, lowerGrid, upcomingSection);
+  root.append(hero);
+  if (installCard) root.append(installCard);
+  root.append(lowerGrid, upcomingSection);
 
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
   });
 
   return root;
+}
+
+function createAppInstallCard() {
+  const initialMode = getAppInstallMode();
+  if (!isInstallPromotionMode(initialMode)) return null;
+
+  const action = el("button", {
+    className: "button button--secondary",
+    type: "button",
+    text: installActionLabel(initialMode),
+  });
+  const card = el("section", {
+    className: "card page-stack",
+    "aria-labelledby": "app-install-title",
+  }, [
+    el("div", { className: "page-header" }, [
+      el("div", {}, [
+        el("p", { className: "eyebrow", text: "APP MODE" }),
+        el("h2", {
+          id: "app-install-title",
+          className: "section-title",
+          text: "청파 같이를 앱처럼 사용해보세요",
+        }),
+      ]),
+      action,
+    ]),
+    el("p", {
+      className: "subtle",
+      text: "홈 화면에 추가하면 주소를 다시 찾지 않고 바로 열 수 있어요.",
+    }),
+  ]);
+
+  const applyMode = (mode) => {
+    if (!isInstallPromotionMode(mode)) {
+      card.remove();
+      return;
+    }
+    action.textContent = installActionLabel(mode);
+  };
+
+  action.addEventListener("click", async () => {
+    const mode = getAppInstallMode();
+    if (mode === "prompt") {
+      setBusy(action, true, "설치창 여는 중…");
+      try {
+        const outcome = await promptAppInstall();
+        if (outcome === "accepted") showToast("청파 같이를 앱으로 추가했습니다.", "success");
+      } catch (error) {
+        showToast(getErrorMessage(error, "앱 설치 화면을 열지 못했습니다."), "error");
+      } finally {
+        setBusy(action, false);
+        applyMode(getAppInstallMode());
+      }
+      return;
+    }
+    if (mode === "ios-guide" || mode === "android-guide") {
+      showAppInstallGuide(mode);
+    }
+  });
+
+  return card;
+}
+
+function isInstallPromotionMode(mode) {
+  return mode === "prompt" || mode === "ios-guide" || mode === "android-guide";
+}
+
+function installActionLabel(mode) {
+  return mode === "prompt" ? "홈 화면에 추가" : "추가 방법 보기";
+}
+
+function showAppInstallGuide(mode) {
+  const ios = mode === "ios-guide";
+  const steps = ios
+    ? [
+        "브라우저의 공유 버튼을 눌러주세요.",
+        "메뉴에서 ‘홈 화면에 추가’를 선택해 주세요.",
+        "‘웹 앱으로 열기’를 켜주세요.",
+        "오른쪽 위 ‘추가’를 눌러 완료해 주세요.",
+      ]
+    : [
+        "브라우저 메뉴(⋮)를 열어주세요.",
+        "‘앱 설치’ 또는 ‘홈 화면에 추가’를 선택해 주세요.",
+        "화면 안내에 따라 추가를 완료해 주세요.",
+      ];
+  const content = el("div", { className: "page-stack" }, [
+    el("p", {
+      className: "subtle",
+      text: ios
+        ? "iPhone에서는 Safari 공유 메뉴에서 웹 앱으로 추가할 수 있어요."
+        : "설치 버튼이 바로 뜨지 않는 경우 브라우저 메뉴에서 직접 추가할 수 있어요.",
+    }),
+    ...steps.map((step, index) => el("p", { className: "prose" }, [
+      el("strong", { text: `${index + 1}. ` }),
+      el("span", { text: step }),
+    ])),
+  ]);
+  void contentDialog({
+    title: "홈 화면에 추가하기",
+    content,
+    closeText: "확인",
+  });
 }
 
 function createHomeGamesCard() {
