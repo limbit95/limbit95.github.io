@@ -22,10 +22,10 @@ test("strict online 2D bootstrap evaluates only the play-window entry", async ()
   assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260910-r10");
 });
 
-test("online main bootstrap restores dice charge and game exit while keeping ownership isolated", async () => {
+test("online gameplay bootstrap restores dice charge, game exit, and ownership loader", async () => {
   const imports = [];
   const mode = await loadMarblePage({
-    href: "https://example.test/marble-game/?play=classic&onlineRoom=room-1&marbleVisuals=main",
+    href: "https://example.test/marble-game/?play=classic&onlineRoom=room-1&marbleVisuals=full",
     documentObject: documentStub(),
     async importModule(specifier) { imports.push(specifier); return {}; },
   });
@@ -35,9 +35,9 @@ test("online main bootstrap restores dice charge and game exit while keeping own
     "./playWindow.js?v=20260910-r10",
     "./diceCharge.js?v=20260910-r12",
     "./onlineGameExit.js?v=20260910-r13",
+    "./ownershipVisualLoader.js?v=20260910-r10",
   ]);
   assert.equal(imports.some((specifier) => specifier.includes("app.js")), false);
-  assert.equal(imports.some((specifier) => specifier.includes("ownershipVisualLoader.js")), false);
 });
 
 test("lobby and local routes keep the existing full module graph", async () => {

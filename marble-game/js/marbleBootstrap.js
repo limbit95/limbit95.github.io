@@ -33,6 +33,7 @@ export async function loadMarblePage({
     await importModule("./playWindow.js?v=20260910-r10");
     await importModule("./diceCharge.js?v=20260910-r12");
     await importModule("./onlineGameExit.js?v=20260910-r13");
+    await importModule("./ownershipVisualLoader.js?v=20260910-r10");
     return mode;
   }
 
