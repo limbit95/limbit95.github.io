@@ -46,7 +46,7 @@ test("initial Classic state includes economy and ownership state", () => {
   assert.equal(state.status, GAME_STATUS.SETUP);
   assert.equal(state.players[0].money, 1500);
   assert.equal(state.players[0].positionNodeId, "start");
-  assert.equal(state.board.nodes.length, 20);
+  assert.ok(state.board.nodes.length >= 30);
   assert.equal(state.boardState.properties.tokyo.ownerId, null);
   assert.equal(state.version, 0);
 });

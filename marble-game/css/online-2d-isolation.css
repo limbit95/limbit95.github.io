@@ -1,0 +1,37 @@
+body[data-play-mode="window"][data-online-visual-mode="2d"] {
+  overflow: auto;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .board-panel {
+  height: auto;
+  min-height: calc(100vh - 8px);
+  overflow: auto;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .three-prototype-shell {
+  height: auto;
+  min-height: 210px;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .classic-three-stage,
+body[data-play-mode="window"][data-online-visual-mode="2d"] .dice-three-stage,
+body[data-play-mode="window"][data-online-visual-mode="2d"] .three-prototype-hud {
+  display: none !important;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .two-d-fallback {
+  display: block !important;
+  width: min(1180px, calc(100% - 24px));
+  height: auto;
+  min-height: calc(100vh - 250px);
+  margin: 12px auto 24px;
+  overflow: visible;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .two-d-fallback > summary {
+  cursor: default;
+}
+
+body[data-play-mode="window"][data-online-visual-mode="2d"] .classic-board {
+  min-height: 620px;
+}
