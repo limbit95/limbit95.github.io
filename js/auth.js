@@ -102,20 +102,9 @@ async function loadAuthContext(session, { force, epoch }) {
   const profile = profileResult.data ?? null;
   let managerCategoryIds = new Set();
   if (profile?.status === PROFILE_STATUS.APPROVED) {
-    const assignedIds = [...new Set(
+    managerCategoryIds = new Set(
       (managersResult.data ?? []).map((item) => Number(item.category_id)).filter(Number.isFinite),
-    )];
-    if (assignedIds.length) {
-      const { data: activeCategories, error: categoryError } = await supabase
-        .from("activity_categories")
-        .select("id")
-        .in("id", assignedIds)
-        .eq("is_active", true);
-      if (categoryError) throw categoryError;
-      managerCategoryIds = new Set(
-        (activeCategories ?? []).map((category) => Number(category.id)),
-      );
-    }
+    );
   }
 
   if (epoch !== lifecycleEpoch) return getAuthState();

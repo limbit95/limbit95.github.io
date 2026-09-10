@@ -32,9 +32,13 @@ export async function renderActivityForm(route, mode) {
   }
   const ownsEvent = event?.created_by === auth.user?.id;
   const communityManager = hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY);
-  const availableCategories = editing && !ownsEvent && !communityManager
+  let availableCategories = editing && !ownsEvent && !communityManager
     ? categories.filter((category) => auth.managerCategoryIds.has(Number(category.id)))
     : categories;
+  if (editing && event.category && !event.category.is_active
+      && !availableCategories.some((category) => Number(category.id) === Number(event.category_id))) {
+    availableCategories = [event.category, ...availableCategories];
+  }
   if (!availableCategories.length) {
     return pageContainer(accessDeniedState("선택할 수 있는 활성 카테고리가 없습니다."));
   }
@@ -72,7 +76,7 @@ function createForm(categories, recurringCategories, event, editing, permissions
   const form = el("form", { className: "card form-grid activity-form", novalidate: true });
   const category = el("select", { id: "event-category", name: "category_id", required: true }, categories.map((item) => el("option", {
     value: item.id,
-    text: `${item.icon} ${item.name}`,
+    text: categoryOptionLabel(item),
     selected: Number(item.id) === Number(event?.category_id),
   })));
   const recurring = el("input", { id: "event-recurring", name: "recurring", type: "checkbox", disabled: editing });
@@ -228,6 +232,7 @@ async function handleSubmit(submitEvent, context) {
   submitEvent.preventDefault();
   const form = submitEvent.currentTarget;
   clearFieldErrors(form);
+  const createsRecurring = form.recurring?.checked === true;
   let valid = validateRequiredFields(form, [
     "category_id",
     "title",
@@ -268,7 +273,7 @@ async function handleSubmit(submitEvent, context) {
     setFieldError(form, "category_id", "다른 회원의 활동은 담당 카테고리 안에서만 변경할 수 있습니다.");
     valid = false;
   }
-  if (form.recurring?.checked) {
+  if (createsRecurring) {
     const end = form.recurrence_end_date.value;
     if (!end || end < form.event_date.value) {
       setFieldError(form, "recurrence_end_date", "반복 종료일은 첫 활동 날짜 이후여야 합니다.");
@@ -301,7 +306,7 @@ async function handleSubmit(submitEvent, context) {
         ...payload,
         status: form.status?.value ?? context.event.status,
       });
-    } else if (form.recurring.checked) {
+    } else if (createsRecurring) {
       const dates = generateOccurrenceDates(
         form.event_date.value,
         form.recurrence_end_date.value,
@@ -360,9 +365,13 @@ async function handleSubmit(submitEvent, context) {
 function replaceCategoryOptions(select, categories, selectedId) {
   select.replaceChildren(...categories.map((item) => el("option", {
     value: item.id,
-    text: `${item.icon} ${item.name}`,
+    text: categoryOptionLabel(item),
     selected: Number(item.id) === Number(selectedId),
   })));
+}
+
+function categoryOptionLabel(category) {
+  return `${category.icon} ${category.name}${category.is_active === false ? " (비활성)" : ""}`;
 }
 
 function eventPayloadFromForm(form) {

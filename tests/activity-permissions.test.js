@@ -10,6 +10,7 @@ const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
 const app = read("../js/app.js");
+const authSource = read("../js/auth.js");
 
 function auth({ id = "member", categories = [], community = false, system = false } = {}) {
   return {
@@ -37,7 +38,9 @@ test("approved routes and activity UI expose ownership-aware single activity man
   assert.match(detail, /removeEvent\(event\.id\)/);
   assert.match(form, /event\?\.created_by === auth\.user\?\.id/);
   assert.match(form, /permissions\.canCreateRecurring \?/);
-  assert.match(form, /recurring\.checked \? recurringCategories : categories/);
+  assert.match(form, /form\.recurring\?\.checked === true/);
+  assert.match(form, /category\.is_active === false \? " \(비활성\)"/);
+  assert.doesNotMatch(authSource, /managerCategoryIds[\s\S]*\.eq\("is_active", true\)/);
 });
 
 test("member insert policy binds identity, active category, and single activity boundary", () => {
@@ -56,11 +59,15 @@ test("update trigger preserves identity and category transfer boundaries", () =>
   assert.match(migration, /new\.status is distinct from old\.status and new\.status <> 'cancelled'/);
   assert.match(migration, /private\.is_category_manager\(old\.category_id\)[\s\S]*private\.is_category_manager\(new\.category_id\)/);
   assert.match(migration, /private\.has_admin_permission\('community'\)/);
+  assert.match(migration, /new\.category_id is distinct from old\.category_id and not exists/);
+  assert.match(migration, /new\.series_id is distinct from old\.series_id and not v_can_manage_recurring/);
 });
 
 test("safe removal preserves activities with any participation history", () => {
   assert.match(migration, /create or replace function public\.remove_or_cancel_event/);
   assert.match(migration, /from public\.event_participants participant[\s\S]*participant\.event_id = p_event_id/);
+  assert.match(migration, /from public\.notifications notification[\s\S]*notification\.event_id = p_event_id/);
+  assert.match(migration, /from public\.date_polls poll[\s\S]*poll\.result_event_id = p_event_id/);
   assert.match(migration, /update public\.events set status = 'cancelled'/);
   assert.match(migration, /delete from public\.events where id = p_event_id/);
   assert.match(migration, /revoke all on function public\.remove_or_cancel_event\(bigint\) from public, anon, authenticated/);
