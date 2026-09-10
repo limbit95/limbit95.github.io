@@ -22,7 +22,7 @@ test("strict online 2D bootstrap evaluates only the play-window entry", async ()
   assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260910-r10");
 });
 
-test("normal online bootstrap skips the local playtest graph", async () => {
+test("main-renderer diagnostic bootstrap skips local, exit and ownership startup graphs", async () => {
   const imports = [];
   const mode = await loadMarblePage({
     href: "https://example.test/marble-game/?play=classic&onlineRoom=room-1&marbleVisuals=main",
@@ -31,13 +31,11 @@ test("normal online bootstrap skips the local playtest graph", async () => {
   });
 
   assert.equal(mode, "online");
-  assert.deepEqual(imports, [
-    "./playWindow.js?v=20260910-r10",
-    "./onlineGameExit.js?v=20260910-r10",
-    "./ownershipVisualLoader.js?v=20260910-r10",
-  ]);
+  assert.deepEqual(imports, ["./playWindow.js?v=20260910-r10"]);
   assert.equal(imports.some((specifier) => specifier.includes("app.js")), false);
   assert.equal(imports.some((specifier) => specifier.includes("diceCharge.js")), false);
+  assert.equal(imports.some((specifier) => specifier.includes("onlineGameExit.js")), false);
+  assert.equal(imports.some((specifier) => specifier.includes("ownershipVisualLoader.js")), false);
 });
 
 test("lobby and local routes keep the existing full module graph", async () => {

@@ -50,10 +50,37 @@ export async function runOptionalEnhancement(task, {
       }
 
       const paintStartedAt = performanceNow(performanceObject);
-      await waitForBrowserPaint({ windowObject });
-      if (documentObject?.body?.dataset) documentObject.body.dataset.onlinePaintReady = "true";
+      if (documentObject?.body?.dataset) {
+        documentObject.body.dataset.onlineRendererGate = "paint-wait";
+        documentObject.body.dataset.onlinePaintFrame = "0";
+      }
+      logMarbleRenderStep("paint-wait-start", {
+        performanceObject,
+        consoleObject,
+        details: { mode },
+      });
+      await waitForBrowserPaint({
+        windowObject,
+        onFrame(frame) {
+          if (documentObject?.body?.dataset) documentObject.body.dataset.onlinePaintFrame = String(frame);
+          logMarbleRenderStep(`paint-frame-${frame}`, {
+            performanceObject,
+            consoleObject,
+            details: { mode },
+          });
+        },
+      });
+      if (documentObject?.body?.dataset) {
+        documentObject.body.dataset.onlinePaintReady = "true";
+        documentObject.body.dataset.onlineRendererGate = "released";
+      }
       logMarbleRenderStep("2d-paint-ready", {
         startedAt: paintStartedAt,
+        performanceObject,
+        consoleObject,
+        details: { mode },
+      });
+      logMarbleRenderStep("renderer-task-dispatch", {
         performanceObject,
         consoleObject,
         details: { mode },

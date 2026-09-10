@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { createOnlineClassicPlayUrl, enterOnlineClassicPlay } from "../js/onlinePlayRoute.js";
 
-test("online lobby entry forces the strict 2D diagnostic route before the popup can hang", () => {
+test("online lobby entry advances from the proven 2D path to the main-renderer diagnostic route", () => {
   const url = createOnlineClassicPlayUrl(
     "https://example.test/marble-game/?room=ABC123",
     "room-uuid",
@@ -11,11 +11,11 @@ test("online lobby entry forces the strict 2D diagnostic route before the popup 
 
   assert.equal(url.searchParams.get("play"), "classic");
   assert.equal(url.searchParams.get("onlineRoom"), "room-uuid");
-  assert.equal(url.searchParams.get("marbleVisuals"), "2d");
+  assert.equal(url.searchParams.get("marbleVisuals"), "main");
   assert.equal(url.searchParams.has("room"), false);
 });
 
-test("enterOnlineClassicPlay navigates to 2D mode without requiring popup URL editing", () => {
+test("enterOnlineClassicPlay navigates to main-renderer diagnostics without popup URL editing", () => {
   let assignedHref = null;
   enterOnlineClassicPlay("room-uuid", {
     locationObject: {
@@ -25,5 +25,5 @@ test("enterOnlineClassicPlay navigates to 2D mode without requiring popup URL ed
   });
 
   const assignedUrl = new URL(assignedHref);
-  assert.equal(assignedUrl.searchParams.get("marbleVisuals"), "2d");
+  assert.equal(assignedUrl.searchParams.get("marbleVisuals"), "main");
 });

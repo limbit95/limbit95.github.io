@@ -76,11 +76,18 @@ export function logMarbleRenderStep(step, {
   return now;
 }
 
-export function waitForBrowserPaint({ windowObject = globalThis.window } = {}) {
+export function waitForBrowserPaint({
+  windowObject = globalThis.window,
+  onFrame,
+} = {}) {
   if (typeof windowObject?.requestAnimationFrame !== "function") return Promise.resolve();
   return new Promise((resolve) => {
     windowObject.requestAnimationFrame(() => {
-      windowObject.requestAnimationFrame(resolve);
+      onFrame?.(1);
+      windowObject.requestAnimationFrame(() => {
+        onFrame?.(2);
+        resolve();
+      });
     });
   });
 }

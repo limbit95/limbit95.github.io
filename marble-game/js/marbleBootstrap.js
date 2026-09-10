@@ -29,10 +29,9 @@ export async function loadMarblePage({
   }
 
   if (mode === "online") {
-    // Online gameplay owns its own state/UI. Avoid evaluating the local playtest entry graph.
+    // Main-renderer diagnostic path: keep only online gameplay entry active.
+    // Exit/ownership startup modules stay out so the next browser probe isolates the renderer gate.
     await importModule("./playWindow.js?v=20260910-r10");
-    await importModule("./onlineGameExit.js?v=20260910-r10");
-    await importModule("./ownershipVisualLoader.js?v=20260910-r10");
     return mode;
   }
 

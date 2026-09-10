@@ -2,7 +2,7 @@ const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
 const CLASSIC_PLAY_MODE = "classic";
-const ONLINE_DIAGNOSTIC_VISUAL_MODE = "2d";
+const ONLINE_DIAGNOSTIC_VISUAL_MODE = "main";
 
 export function createOnlineClassicPlayUrl(href, roomId) {
   const url = new URL(href);
