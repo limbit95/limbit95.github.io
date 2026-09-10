@@ -123,14 +123,17 @@ export function renderSignup() {
     const normalized = fields.email.input.value.trim().toLowerCase();
     const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
     const isAwaitingCode = codeRequested && !isVerified;
+    const resendSeconds = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
     fields.email.input.disabled = isVerified || isAwaitingCode;
     fields.password.input.disabled = !isVerified;
 
     const emailButton = el("button", {
       className: "button button--ghost",
       type: "button",
-      text: isVerified ? "인증 완료" : codeRequested ? "재전송" : "인증번호 받기",
-      disabled: isVerified,
+      text: isVerified ? "인증 완료" : codeRequested
+        ? resendSeconds > 0 ? `재전송 (${resendSeconds}초)` : "재전송"
+        : "인증번호 받기",
+      disabled: isVerified || (codeRequested && resendSeconds > 0),
       onclick: sendCode,
     });
     const emailField = el("div", { className: "field" }, [
@@ -173,8 +176,11 @@ export function renderSignup() {
     if (codeArea) {
       const tick = () => {
         const left = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+        const resendLeft = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+        emailButton.disabled = resendLeft > 0;
+        emailButton.textContent = resendLeft > 0 ? `재전송 (${resendLeft}초)` : "재전송";
         timer.textContent = left
-          ? `남은 시간 ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}${Date.now() < resendAt ? " · 잠시 후 재전송할 수 있어요." : ""}`
+          ? `남은 시간 ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}${resendLeft > 0 ? ` · 재전송까지 ${resendLeft}초 남음` : " · 재전송할 수 있어요."}`
           : "인증번호가 만료되었을 수 있습니다. 재전송해 주세요.";
       };
       tick();
@@ -186,7 +192,8 @@ export function renderSignup() {
     clearFieldErrors(form);
     const email = fields.email.input.value.trim().toLowerCase();
     if (!validateEmail(email)) return setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요.");
-    if (Date.now() < resendAt) return setFieldError(form, "email", "잠시 후 다시 요청해 주세요.");
+    const resendLeft = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+    if (resendLeft > 0) return setFieldError(form, "email", `재전송까지 ${resendLeft}초 남았습니다.`);
     setBusy(form, true, "인증번호를 보내고 있어요…");
     try {
       if (codeRequested) await resendSignupEmailCode(email);
