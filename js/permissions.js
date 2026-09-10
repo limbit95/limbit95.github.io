@@ -28,7 +28,7 @@ export function hasAdminPermission(auth, permission) {
 
 export function canManageActivityFor(auth, event) {
   return Boolean(event)
-    && (event.created_by === auth.user?.id
+    && ((event.series_id == null && event.created_by === auth.user?.id)
       || hasAdminPermission(auth, ADMIN_PERMISSION.COMMUNITY)
       || auth.managerCategoryIds?.has(Number(event.category_id)) === true);
 }

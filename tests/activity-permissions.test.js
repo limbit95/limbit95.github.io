@@ -21,13 +21,15 @@ function auth({ id = "member", categories = [], community = false, system = fals
   };
 }
 
-test("activity management combines ownership, resource responsibility, and administration", () => {
-  const event = { created_by: "owner", category_id: 7 };
-  assert.equal(canManageActivityFor(auth({ id: "owner" }), event), true);
-  assert.equal(canManageActivityFor(auth({ categories: [7] }), event), true);
-  assert.equal(canManageActivityFor(auth({ categories: [8] }), event), false);
-  assert.equal(canManageActivityFor(auth({ community: true }), event), true);
-  assert.equal(canManageActivityFor(auth({ system: true }), event), true);
+test("activity management combines standalone ownership, resource responsibility, and administration", () => {
+  const standalone = { series_id: null, created_by: "owner", category_id: 7 };
+  const recurring = { series_id: 13, created_by: "owner", category_id: 7 };
+  assert.equal(canManageActivityFor(auth({ id: "owner" }), standalone), true);
+  assert.equal(canManageActivityFor(auth({ id: "owner" }), recurring), false);
+  assert.equal(canManageActivityFor(auth({ categories: [7] }), recurring), true);
+  assert.equal(canManageActivityFor(auth({ categories: [8] }), standalone), false);
+  assert.equal(canManageActivityFor(auth({ community: true }), recurring), true);
+  assert.equal(canManageActivityFor(auth({ system: true }), recurring), true);
 });
 
 test("approved routes and activity UI expose ownership-aware single activity management", () => {
