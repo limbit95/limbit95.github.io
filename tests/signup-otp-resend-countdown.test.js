@@ -28,4 +28,11 @@ test("signup OTP resend cooldown survives a full browser restart without storing
   assert.match(signup, /`이전에 인증번호를 요청했습니다\. 재전송까지 \$\{resendLeft\}초 남음`/);
   assert.match(signup, /clearStoredOtpResendAt\(email\)/);
   assert.doesNotMatch(signup, /localStorage\.(?:setItem|getItem)\([^\n]*(?:password|verification_code|signup-code)/i);
+
+  const verifyCodeBody = signup.slice(
+    signup.indexOf("async function verifyCode"),
+    signup.indexOf("function renderMemberInfo"),
+  );
+  assert.doesNotMatch(verifyCodeBody, /clearStoredOtpResendAt/);
+  assert.match(verifyCodeBody, /Keep the last-send cooldown persisted until its natural 60-second expiry/);
 });
