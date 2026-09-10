@@ -13,6 +13,7 @@ const ERROR_MESSAGES = [
 
 const busyRequests = new Map();
 let busyOverlay = null;
+let busyObserver = null;
 
 export function el(tag, options = {}, children = []) {
   const node = document.createElement(tag);
@@ -149,6 +150,25 @@ function ensureBusyOverlay() {
   return busyOverlay;
 }
 
+function pruneDisconnectedBusyRequests() {
+  let changed = false;
+  for (const target of busyRequests.keys()) {
+    if (target?.isConnected !== false) continue;
+    busyRequests.delete(target);
+    changed = true;
+  }
+  return changed;
+}
+
+function ensureBusyObserver() {
+  if (busyObserver || typeof MutationObserver !== "function") return;
+  busyObserver = new MutationObserver(() => {
+    if (!busyRequests.size || !pruneDisconnectedBusyRequests()) return;
+    syncBusyOverlay();
+  });
+  busyObserver.observe(document.body, { childList: true, subtree: true });
+}
+
 function syncBusyOverlay() {
   if (busyRequests.size) {
     const overlay = ensureBusyOverlay();
@@ -162,6 +182,10 @@ function syncBusyOverlay() {
     return;
   }
 
+  if (busyObserver) {
+    busyObserver.disconnect();
+    busyObserver = null;
+  }
   if (busyOverlay) busyOverlay.hidden = true;
   document.body.classList.remove("is-global-busy");
   document.body.removeAttribute("aria-busy");
@@ -202,8 +226,12 @@ export function setBusy(formOrButton, busy, busyText = "처리 중…") {
     setButtonBusyState(button, busy, busyText, updateText);
   });
 
-  if (busy) busyRequests.set(formOrButton, busyText);
-  else busyRequests.delete(formOrButton);
+  if (busy) {
+    busyRequests.set(formOrButton, busyText);
+    ensureBusyObserver();
+  } else {
+    busyRequests.delete(formOrButton);
+  }
   syncBusyOverlay();
 }
 
