@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-AI5Z6P26.js",
+  "entry": "assets/build/app-XE6SXTAX.js",
   "outputs": [
-    "assets/build/app-AI5Z6P26.js",
+    "assets/build/app-XE6SXTAX.js",
     "assets/build/chunks/activities-FBSDVCFD.js",
     "assets/build/chunks/activityDetail-WW4YPAEF.js",
     "assets/build/chunks/activityForm-NIXB52EZ.js",
@@ -40,6 +40,6 @@
     "assets/build/chunks/permissions-AVAGHX4W.js",
     "assets/build/chunks/postDetail-6SOLBMUN.js",
     "assets/build/chunks/postForm-4J2SAW22.js",
-    "assets/build/chunks/signup-LKOU3W25.js"
+    "assets/build/chunks/signup-HSPX5Z65.js"
   ]
 }
