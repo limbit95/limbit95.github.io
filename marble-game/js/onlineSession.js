@@ -173,6 +173,7 @@ export async function createOnlineClassicSession({
     }
     if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
       realtimeHealthy = false;
+      subscriptionReconciled = false;
       scheduleRecoveryRefresh();
     }
   }

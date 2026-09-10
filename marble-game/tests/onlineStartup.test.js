@@ -133,7 +133,7 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
 
   try {
     let realtimeStatus;
-    const newerSnapshot = { ...snapshot, game: { ...snapshot.game, version: 4, turn: 2 } };
+    let newerSnapshot = { ...snapshot, game: { ...snapshot.game, version: 4, turn: 2 } };
     const session = await createOnlineClassicSession({
       roomId: "room-1",
       initialSnapshot: snapshot,
@@ -156,6 +156,22 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
     realtimeStatus("SUBSCRIBED");
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(snapshotCalls, 1);
+
+    for (const [status, version] of [
+      ["CHANNEL_ERROR", 5],
+      ["TIMED_OUT", 6],
+      ["CLOSED", 7],
+    ]) {
+      newerSnapshot = { ...snapshot, game: { ...snapshot.game, version, turn: version - 2 } };
+      realtimeStatus(status);
+      realtimeStatus("SUBSCRIBED");
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(snapshotCalls, version - 3);
+      assert.equal(session.getState().version, version);
+      realtimeStatus("SUBSCRIBED");
+      await new Promise((resolve) => setImmediate(resolve));
+      assert.equal(snapshotCalls, version - 3);
+    }
     session.dispose();
 
     const degradedSession = await createOnlineClassicSession({
@@ -167,7 +183,7 @@ test("bootstrap snapshot creates a usable session without a duplicate snapshot R
       },
     });
     assert.equal(degradedSession.getState().version, 3);
-    assert.equal(snapshotCalls, 1);
+    assert.equal(snapshotCalls, 4);
     degradedSession.dispose();
   } finally {
     globalThis.window = originalWindow;
