@@ -11,7 +11,7 @@ import { ROLE, canManageActivityFor, hasAdminPermission } from "./permissions.js
 
 export { canManageActivityFor } from "./permissions.js";
 
-const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const PROFILE_COLUMNS = "id,display_name,real_name,birth_date,birth_year,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const PUSH_SIGN_OUT_CLEANUP_TIMEOUT_MS = 3000;
 const SIGNUP_VERIFICATION_SESSION_KEY = "cheongpa:signup-verification-session";
 const SIGNUP_VERIFICATION_CHANNEL_NAME = "cheongpa:signup-verification-channel";
@@ -390,8 +390,7 @@ export async function submitSignupApplication(metadata) {
   const { data, error } = await supabase.rpc("submit_join_request", {
     p_display_name: metadata.display_name,
     p_real_name: metadata.real_name,
-    p_birth_year: metadata.birth_year,
-    p_age_visibility: metadata.age_visibility,
+    p_birth_date: metadata.birth_date,
     p_church_group: metadata.church_group,
     p_request_message: metadata.request_message,
     p_privacy_consent: metadata.privacy_consent,

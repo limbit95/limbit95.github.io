@@ -11,19 +11,14 @@ import { getErrorMessage, setBusy, el } from "../ui.js";
 import {
   clearFieldErrors,
   setFieldError,
-  validateBirthYear,
+  validateBirthDate,
   validateEmail,
   validatePassword,
   valueInRange,
 } from "../validators.js";
 import { showToast } from "../components/toast.js";
 
-const STEP_LABELS = ["약관 동의", "기본 정보", "회원 정보", "최종 확인"];
-const AGE_LABELS = {
-  private: "비공개 (다른 회원에게 나이를 표시하지 않아요.)",
-  age_group: "연령대만 공개 (예: 20대)",
-  birth_year: "출생연도 공개 (예: 1995년생)",
-};
+const STEP_LABELS = ["약관 동의", "회원 정보", "최종 확인"];
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 60 * 1000;
 const OTP_RESEND_STORAGE_KEY = "cheongpa:signup-otp-resend-cooldowns";
@@ -105,6 +100,7 @@ export function renderSignup() {
   let resendAt = 0;
   let timerId = null;
   let refreshResendCooldown = null;
+  let appliedPassword = "";
 
   const form = el("form", { className: "signup-flow", novalidate: true });
   const progress = el("ol", { className: "signup-progress", "aria-label": "회원가입 진행 단계" });
@@ -118,10 +114,10 @@ export function renderSignup() {
     push_opt_in: checkbox("push_opt_in", "푸시 알림 받기", false, "선택 여부는 최종 확인에만 표시되며 아직 저장하거나 알림 권한을 요청하지 않아요."),
     email: field("email", "이메일", "email", { autocomplete: "email", placeholder: "name@example.com" }, "로그인에 사용하는 이메일입니다."),
     password: field("password", "비밀번호", "password", { autocomplete: "new-password", minlength: "8" }, "이메일 인증 완료 후 사용할 비밀번호를 8자 이상 입력해 주세요."),
+    password_confirm: field("password_confirm", "비밀번호 확인", "password", { autocomplete: "new-password", minlength: "8" }, "위에서 입력한 비밀번호를 한 번 더 입력해 주세요."),
     display_name: field("display_name", "닉네임", "text", { autocomplete: "nickname", maxlength: "50" }, "게시글과 활동 등에서 주로 표시되며 가입 후 변경할 수 있어요."),
     real_name: field("real_name", "실명", "text", { autocomplete: "name", maxlength: "50" }, "실제 회원을 확인하기 위한 이름이며 청파 같이 구성원이 확인할 수 있습니다."),
-    birth_year: field("birth_year", "출생연도", "number", { min: "1900", max: String(currentYear), inputmode: "numeric" }),
-    age_visibility: selectField("age_visibility", "나이 공개 범위", Object.entries(AGE_LABELS)),
+    birth_date: birthDateField(currentYear),
     church_group: field("church_group", "소속 공동체·부서", "text", { maxlength: "200", placeholder: "예: 청년부 새가족" }, "관리자가 소속을 확인하기 위한 직접 입력 정보이며 권한 기준으로 사용하지 않아요."),
     request_message: textareaField("request_message", "가입 신청 내용", "관리자가 가입자를 확인할 수 있도록 간단한 소개나 가입 관련 내용을 작성해 주세요."),
   };
@@ -166,16 +162,15 @@ export function renderSignup() {
     updateProgress();
     heading.textContent = `STEP ${step}. ${STEP_LABELS[step - 1]}`;
     if (step === 1) renderAgreements();
-    if (step === 2) renderAccount();
-    if (step === 3) renderMemberInfo();
-    if (step === 4) renderReview();
+    if (step === 2) renderMemberInfo();
+    if (step === 3) renderReview();
   }
 
   function renderAgreements() {
     panel.replaceChildren(
       el("div", { className: "agreement-list" }, [
         agreement(fields.privacy_consent, "내용 보기", [
-          "수집 항목: 이메일, 닉네임, 실명, 출생연도, 소속, 가입 신청 내용",
+          "수집 항목: 이메일, 닉네임, 실명, 출생연월일, 소속, 가입 신청 내용",
           "이용 목적: 가입자 확인, 승인 및 커뮤니티 운영",
           `개인정보 처리 안내 버전 ${PRIVACY_POLICY_VERSION}`,
         ]),
@@ -190,7 +185,7 @@ export function renderSignup() {
     );
   }
 
-  function renderAccount() {
+  function renderMemberInfo() {
     const normalized = fields.email.input.value.trim().toLowerCase();
     const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
     const isAwaitingCode = codeRequested && !isVerified;
@@ -198,6 +193,7 @@ export function renderSignup() {
     const resendSeconds = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
     fields.email.input.disabled = isVerified || isAwaitingCode;
     fields.password.input.disabled = !isVerified;
+    fields.password_confirm.input.disabled = !isVerified;
 
     const emailButton = el("button", {
       className: "button button--ghost",
@@ -237,15 +233,23 @@ export function renderSignup() {
       errorLine("verification_code"),
     ]) : null;
 
-    const accountChildren = [emailField, existingAccountNotice, codeArea];
+    const memberChildren = [emailField, existingAccountNotice, codeArea];
     if (isVerified) {
-      accountChildren.push(
-        el("p", { className: "signup-verified", text: "✓ 이메일 인증이 완료되었습니다. 이제 비밀번호를 설정해 주세요." }),
+      memberChildren.push(
+        el("p", { className: "signup-verified", text: "✓ 이메일 인증이 완료되었습니다. 이제 비밀번호와 회원 정보를 입력해 주세요." }),
         fields.password.root,
+        fields.password_confirm.root,
       );
     }
-    accountChildren.push(fields.display_name.root, fields.real_name.root, actionButtons());
-    panel.replaceChildren(...accountChildren.filter(Boolean));
+    memberChildren.push(
+      fields.display_name.root,
+      fields.real_name.root,
+      fields.birth_date.root,
+      fields.church_group.root,
+      fields.request_message.root,
+      actionButtons(),
+    );
+    panel.replaceChildren(...memberChildren.filter(Boolean));
 
     const tick = () => {
       const currentEmail = fields.email.input.value.trim().toLowerCase();
@@ -330,22 +334,20 @@ export function renderSignup() {
     finally { setBusy(form, false); }
   }
 
-  function renderMemberInfo() {
-    panel.replaceChildren(fields.birth_year.root, fields.age_visibility.root, fields.church_group.root, fields.request_message.root, actionButtons());
-  }
-
   function renderReview() {
+    const birthDate = getBirthDateValue(fields.birth_date);
     panel.replaceChildren(
       el("p", { className: "page-description", text: "가입 정보를 확인해 주세요. 비밀번호 원문은 표시하지 않습니다." }),
-      reviewSection("계정 정보", () => goTo(2), [
-        ["이메일", fields.email.input.value], ["이메일 인증", verifiedEmail ? "인증 완료" : "미완료"],
-        ["비밀번호", "설정됨"], ["닉네임", fields.display_name.input.value], ["실명", fields.real_name.input.value],
-      ]),
-      reviewSection("회원 정보", () => goTo(3), [
-        ["출생연도", `${fields.birth_year.input.value}년`], ["나이 공개 범위", AGE_LABELS[fields.age_visibility.input.value]],
+      reviewSection("회원 정보", () => goTo(2), [
+        ["이메일", fields.email.input.value],
+        ["이메일 인증", verifiedEmail ? "인증 완료" : "미완료"],
+        ["비밀번호", "설정됨"],
+        ["닉네임", fields.display_name.input.value],
+        ["실명", fields.real_name.input.value],
+        ["출생연월일", formatBirthDate(birthDate)],
         ["소속 공동체·부서", fields.church_group.input.value],
       ]),
-      reviewSection("가입 신청", () => goTo(3), [["가입 신청 내용", fields.request_message.input.value]]),
+      reviewSection("가입 신청", () => goTo(2), [["가입 신청 내용", fields.request_message.input.value]]),
       reviewSection("동의", () => goTo(1), [
         ["개인정보 수집 및 이용", "동의"], ["커뮤니티 이용수칙", "동의"],
         ["푸시 알림 받기", fields.push_opt_in.input.checked ? "선택" : "선택 안 함"],
@@ -368,34 +370,27 @@ export function renderSignup() {
       required(fields.email, "이메일을 입력해 주세요.");
       required(fields.display_name, "닉네임을 입력해 주세요.");
       required(fields.real_name, "실명을 입력해 주세요.");
+      required(fields.church_group, "소속 공동체·부서를 입력해 주세요.");
+      required(fields.request_message, "가입 신청 내용을 입력해 주세요.");
       if (!validateEmail(fields.email.input.value)) { setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요."); valid = false; }
       if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) { setFieldError(form, "email", "이메일 인증을 완료해 주세요."); valid = false; }
       if (!validatePassword(fields.password.input.value)) { setFieldError(form, "password", "비밀번호는 8자 이상 입력해 주세요."); valid = false; }
+      if (fields.password.input.value !== fields.password_confirm.input.value) { setFieldError(form, "password_confirm", "비밀번호가 일치하지 않습니다."); valid = false; }
       if (!valueInRange(fields.display_name.input.value, 1, 50)) { setFieldError(form, "display_name", "닉네임은 1~50자로 입력해 주세요."); valid = false; }
       if (!valueInRange(fields.real_name.input.value, 1, 50)) { setFieldError(form, "real_name", "실명은 1~50자로 입력해 주세요."); valid = false; }
-    }
-    if (targetStep === 3) {
-      required(fields.church_group, "소속 공동체·부서를 입력해 주세요."); required(fields.request_message, "가입 신청 내용을 입력해 주세요.");
-      if (!validateBirthYear(fields.birth_year.input.value) || Number(fields.birth_year.input.value) > currentYear) { setFieldError(form, "birth_year", "올바른 출생연도를 입력해 주세요."); valid = false; }
+      const birthDate = getBirthDateValue(fields.birth_date);
+      const today = localDateText();
+      if (!birthDate || !validateBirthDate(birthDate) || birthDate > today) {
+        setBirthDateError(fields.birth_date, "올바른 출생연월일을 선택해 주세요.");
+        valid = false;
+      }
       if (!valueInRange(fields.request_message.input.value, 1, 1000)) { setFieldError(form, "request_message", "가입 신청 내용은 1~1,000자로 입력해 주세요."); valid = false; }
     }
     return valid;
   }
 
-  async function nextStep() {
+  function nextStep() {
     if (!validateStep(step)) return;
-    if (step === 2) {
-      setBusy(form, true, "비밀번호를 설정하고 있어요…");
-      try {
-        await updatePassword(fields.password.input.value);
-        goTo(step + 1);
-      } catch (error) {
-        setFieldError(form, "password", getErrorMessage(error));
-      } finally {
-        setBusy(form, false);
-      }
-      return;
-    }
     goTo(step + 1);
   }
 
@@ -403,20 +398,35 @@ export function renderSignup() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    for (const targetStep of [1, 2, 3]) {
+    for (const targetStep of [1, 2]) {
       if (!validateStep(targetStep)) {
         goTo(targetStep);
         showToast("필수 정보를 다시 확인해 주세요.", "error");
         return;
       }
     }
+
+    const password = fields.password.input.value;
+    if (password !== appliedPassword) {
+      setBusy(form, true, "비밀번호를 설정하고 있어요…");
+      try {
+        await updatePassword(password);
+        appliedPassword = password;
+      } catch (error) {
+        setBusy(form, false);
+        goTo(2);
+        setFieldError(form, "password", getErrorMessage(error));
+        return;
+      }
+      setBusy(form, false);
+    }
+
     setBusy(form, true, "가입 신청을 처리하고 있어요…");
     try {
       await submitSignupApplication({
         display_name: fields.display_name.input.value.trim(),
         real_name: fields.real_name.input.value.trim(),
-        birth_year: Number(fields.birth_year.input.value),
-        age_visibility: fields.age_visibility.input.value,
+        birth_date: getBirthDateValue(fields.birth_date),
         church_group: fields.church_group.input.value.trim(),
         request_message: fields.request_message.input.value.trim(),
         privacy_consent: true,
@@ -433,7 +443,7 @@ export function renderSignup() {
   renderStep();
   return el("main", { id: "main-content", className: "auth-layout" }, [el("section", { className: "auth-card auth-card--signup" }, [
     el("a", { className: "auth-brand", href: "#/login" }, [el("img", { src: "./assets/images/logo.svg", alt: "", width: "68", height: "68" })]),
-    el("div", { className: "page-stack" }, [el("div", {}, [el("p", { className: "eyebrow", text: "JOIN THE COMMUNITY" }), el("h1", { className: "page-title", text: "함께할 준비가 되었나요?" }), el("p", { className: "page-description", text: "이메일 인증과 가입 정보 확인 후 관리자 승인을 요청합니다." })]), form]),
+    el("div", { className: "page-stack" }, [el("div", {}, [el("p", { className: "eyebrow", text: "JOIN THE COMMUNITY" }), el("h1", { className: "page-title", text: "함께할 준비가 되었나요?" }), el("p", { className: "page-description", text: "이메일 인증과 회원 정보 확인 후 관리자 승인을 요청합니다." })]), form]),
   ])]);
 }
 
@@ -446,9 +456,54 @@ function textareaField(name, label, help) {
   const input = el("textarea", { id: `signup-${name}`, name, maxlength: "1000", required: true, placeholder: "간단한 소개와 가입 목적을 적어 주세요." });
   return { input, root: el("div", { className: "field" }, [el("label", { className: "required", for: input.id, text: label }), input, el("p", { className: "field-help", text: help }), errorLine(name)]) };
 }
-function selectField(name, label, options) {
-  const input = el("select", { id: `signup-${name}`, name, required: true }, options.map(([value, text]) => el("option", { value, text })));
-  return { input, root: el("div", { className: "field" }, [el("label", { className: "required", for: input.id, text: label }), input, errorLine(name)]) };
+function birthDateField(currentYear) {
+  const year = el("select", { id: "signup-birth-year", name: "birth_year", required: true, "aria-label": "출생연도" }, [
+    el("option", { value: "", text: "연도" }),
+    ...Array.from({ length: currentYear - 1899 }, (_, index) => {
+      const value = String(currentYear - index);
+      return el("option", { value, text: `${value}년` });
+    }),
+  ]);
+  const month = el("select", { id: "signup-birth-month", name: "birth_month", required: true, "aria-label": "출생월" }, [
+    el("option", { value: "", text: "월" }),
+    ...Array.from({ length: 12 }, (_, index) => el("option", { value: String(index + 1), text: `${index + 1}월` })),
+  ]);
+  const day = el("select", { id: "signup-birth-day", name: "birth_day", required: true, "aria-label": "출생일" }, [
+    el("option", { value: "", text: "일" }),
+    ...Array.from({ length: 31 }, (_, index) => el("option", { value: String(index + 1), text: `${index + 1}일` })),
+  ]);
+  const error = errorLine("birth_date");
+  return {
+    year,
+    month,
+    day,
+    error,
+    root: el("div", { className: "field" }, [
+      el("label", { className: "required", for: year.id, text: "출생연월일" }),
+      el("div", { className: "signup-birth-date-row", style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: ".5rem" } }, [year, month, day]),
+      error,
+    ]),
+  };
+}
+function getBirthDateValue(item) {
+  const year = item.year.value;
+  const month = item.month.value.padStart(2, "0");
+  const day = item.day.value.padStart(2, "0");
+  return year && item.month.value && item.day.value ? `${year}-${month}-${day}` : "";
+}
+function setBirthDateError(item, message = "") {
+  [item.year, item.month, item.day].forEach((input) => input.setAttribute("aria-invalid", message ? "true" : "false"));
+  item.error.textContent = message;
+  return !message;
+}
+function localDateText() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+function formatBirthDate(value) {
+  if (!value) return "-";
+  const [year, month, day] = value.split("-").map(Number);
+  return `${year}년 ${month}월 ${day}일`;
 }
 function checkbox(name, label, required, help = "") {
   const input = el("input", { type: "checkbox", name, value: "true", required });

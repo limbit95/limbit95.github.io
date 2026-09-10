@@ -1,7 +1,7 @@
 import { AVATAR_BUCKET } from "../constants.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
-const PROFILE_COLUMNS = "id,display_name,real_name,birth_year,age_visibility,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
+const PROFILE_COLUMNS = "id,display_name,real_name,birth_date,birth_year,bio,avatar_path,role,status,created_at,updated_at,approved_at,approved_by";
 const CATEGORY_COLUMNS = "id,name,icon,color,description,is_active,created_at,updated_at";
 const PROFILE_INTEREST_COLUMNS = `user_id,category_id,category:activity_categories(${CATEGORY_COLUMNS})`;
 

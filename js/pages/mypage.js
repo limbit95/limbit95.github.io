@@ -13,7 +13,6 @@ import {
 import { createActivityCard } from "../components/activityCard.js";
 import { showToast } from "../components/toast.js";
 import {
-  AGE_VISIBILITY_LABEL,
   ALLOWED_AVATAR_TYPES,
   MAX_AVATAR_BYTES,
   PARTICIPATION_STATUS_LABEL,
@@ -26,7 +25,7 @@ import {
   pageContainer,
   setBusy,
 } from "../ui.js";
-import { clearFieldErrors, setFieldError, validateBirthYear, valueInRange } from "../validators.js";
+import { clearFieldErrors, setFieldError, validateBirthDate, valueInRange } from "../validators.js";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -307,6 +306,7 @@ export async function renderProfileEdit() {
     type: "file",
     accept: "image/jpeg,image/png,image/webp",
   });
+  const birthDate = profileBirthDateField(auth.profile);
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
     if (!file) return;
@@ -325,15 +325,7 @@ export async function renderProfileEdit() {
       el("p", { className: "field-help", text: "JPG, PNG, WEBP · 최대 3MB" }),
     ]),
     inputField("display_name", "표시 이름", "text", auth.profile.display_name, { maxlength: "50", required: true }),
-    inputField("birth_year", "출생연도", "number", auth.profile.birth_year ?? "", { min: "1900", max: "2100" }),
-    el("div", { className: "field" }, [
-      el("label", { for: "profile-age_visibility", text: "나이 공개 범위" }),
-      el("select", { id: "profile-age_visibility", name: "age_visibility" }, Object.entries(AGE_VISIBILITY_LABEL).map(([value, label]) => el("option", {
-        value,
-        text: label,
-        selected: auth.profile.age_visibility === value,
-      }))),
-    ]),
+    birthDate.root,
     el("div", { className: "field field--full" }, [
       el("label", { for: "profile-bio", text: "소개" }),
       el("textarea", { id: "profile-bio", name: "bio", maxlength: "500", text: auth.profile.bio ?? "", placeholder: "좋아하는 활동이나 간단한 소개를 적어 주세요." }),
@@ -365,8 +357,16 @@ export async function renderProfileEdit() {
       setFieldError(form, "display_name", "표시 이름은 1~50자로 입력해 주세요.");
       valid = false;
     }
-    if (!validateBirthYear(form.birth_year.value)) {
-      setFieldError(form, "birth_year", "올바른 출생연도를 입력해 주세요.");
+    const birthDateValue = getProfileBirthDateValue(birthDate);
+    const selectedBirthParts = [birthDate.year.value, birthDate.month.value, birthDate.day.value].filter(Boolean).length;
+    if (selectedBirthParts > 0 && selectedBirthParts < 3) {
+      setProfileBirthDateError(birthDate, "출생연월일을 모두 선택해 주세요.");
+      valid = false;
+    } else if (selectedBirthParts === 3 && (!validateBirthDate(birthDateValue) || birthDateValue > localDateText())) {
+      setProfileBirthDateError(birthDate, "올바른 출생연월일을 선택해 주세요.");
+      valid = false;
+    } else if (selectedBirthParts === 0 && auth.profile.birth_date) {
+      setProfileBirthDateError(birthDate, "출생연월일을 선택해 주세요.");
       valid = false;
     }
     if (form.bio.value.length > 500) {
@@ -381,12 +381,15 @@ export async function renderProfileEdit() {
     if (!valid) return;
     setBusy(form, true, "저장 중…");
     try {
-      await updateProfile(auth.user.id, {
+      const profilePayload = {
         display_name: form.display_name.value.trim(),
-        birth_year: form.birth_year.value ? Number(form.birth_year.value) : null,
-        age_visibility: form.age_visibility.value,
         bio: form.bio.value.trim(),
-      });
+      };
+      if (birthDateValue) {
+        profilePayload.birth_date = birthDateValue;
+        profilePayload.birth_year = Number(birthDate.year.value);
+      }
+      await updateProfile(auth.user.id, profilePayload);
       const categoryIds = [...form.querySelectorAll('[name="interests"]:checked')].map((input) => Number(input.value));
       await replaceProfileInterests(auth.user.id, categoryIds);
       if (file) await uploadAvatar(auth.user.id, file, auth.profile.avatar_path);
@@ -423,4 +426,65 @@ function inputField(name, label, type, value, attributes = {}) {
     el("input", { id: `profile-${name}`, name, type, value, ...attributes }),
     el("p", { className: "field-error", dataset: { errorFor: name }, "aria-live": "polite" }),
   ]);
+}
+
+function profileBirthDateField(profile) {
+  const currentYear = new Date().getFullYear();
+  const exactDate = /^\d{4}-\d{2}-\d{2}$/.test(String(profile?.birth_date ?? "")) ? String(profile.birth_date) : "";
+  const [selectedYear = "", selectedMonth = "", selectedDay = ""] = exactDate.split("-");
+  const year = el("select", { id: "profile-birth-year", name: "birth_year", "aria-label": "출생연도" }, [
+    el("option", { value: "", text: "연도" }),
+    ...Array.from({ length: currentYear - 1899 }, (_, index) => {
+      const value = String(currentYear - index);
+      return el("option", { value, text: `${value}년`, selected: value === selectedYear });
+    }),
+  ]);
+  const month = el("select", { id: "profile-birth-month", name: "birth_month", "aria-label": "출생월" }, [
+    el("option", { value: "", text: "월" }),
+    ...Array.from({ length: 12 }, (_, index) => {
+      const value = String(index + 1);
+      return el("option", { value, text: `${value}월`, selected: value === String(Number(selectedMonth)) });
+    }),
+  ]);
+  const day = el("select", { id: "profile-birth-day", name: "birth_day", "aria-label": "출생일" }, [
+    el("option", { value: "", text: "일" }),
+    ...Array.from({ length: 31 }, (_, index) => {
+      const value = String(index + 1);
+      return el("option", { value, text: `${value}일`, selected: value === String(Number(selectedDay)) });
+    }),
+  ]);
+  const error = el("p", { className: "field-error", dataset: { errorFor: "birth_date" }, "aria-live": "polite" });
+  const legacyHelp = !exactDate && profile?.birth_year
+    ? `기존 출생연도 ${profile.birth_year}년은 보관 중입니다. 정확한 출생연월일을 선택하면 갱신됩니다.`
+    : "출생연월일은 다른 회원의 프로필에 공개되지 않습니다.";
+  return {
+    year,
+    month,
+    day,
+    error,
+    root: el("div", { className: "field field--full" }, [
+      el("label", { for: year.id, text: "출생연월일" }),
+      el("div", { className: "profile-birth-date-row", style: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: ".5rem" } }, [year, month, day]),
+      el("p", { className: "field-help", text: legacyHelp }),
+      error,
+    ]),
+  };
+}
+
+function getProfileBirthDateValue(item) {
+  const year = item.year.value;
+  const month = item.month.value.padStart(2, "0");
+  const day = item.day.value.padStart(2, "0");
+  return year && item.month.value && item.day.value ? `${year}-${month}-${day}` : "";
+}
+
+function setProfileBirthDateError(item, message = "") {
+  [item.year, item.month, item.day].forEach((input) => input.setAttribute("aria-invalid", message ? "true" : "false"));
+  item.error.textContent = message;
+  return !message;
+}
+
+function localDateText() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }

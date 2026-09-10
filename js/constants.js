@@ -38,12 +38,6 @@ export const POLL_STATUS_LABEL = Object.freeze({
   cancelled: "투표 취소",
 });
 
-export const AGE_VISIBILITY_LABEL = Object.freeze({
-  birth_year: "출생연도 공개",
-  age_group: "연령대만 공개",
-  private: "비공개",
-});
-
 export const ROUTE_META = Object.freeze({
   "/": { title: "홈", auth: "approved" },
   "/login": { title: "로그인", auth: "guest" },

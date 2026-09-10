@@ -29,5 +29,5 @@ export const KAKAO_SHARE_TEMPLATE_ID = 136832;
 export const WEB_PUSH_VAPID_PUBLIC_KEY = "BPBm_DDiExCk05X4avHensNm07R13_P6pvoiCAZkjjrJNGxyqGIqQ6NTBWVKyLS-EocMVh-KwNtieDiYbGwJQw8";
 
 export const SITE_NAME = "청파 같이";
-export const PRIVACY_POLICY_VERSION = "2026-08";
+export const PRIVACY_POLICY_VERSION = "2026-09";
 export const COMMUNITY_RULES_VERSION = "2026-09";
