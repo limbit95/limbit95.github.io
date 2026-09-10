@@ -11,6 +11,9 @@ const ERROR_MESSAGES = [
   [/capacity|정원/i, "모집 정원이 마감되었습니다."],
 ];
 
+const busyRequests = new Map();
+let busyOverlay = null;
+
 export function el(tag, options = {}, children = []) {
   const node = document.createElement(tag);
   Object.entries(options).forEach(([key, value]) => {
@@ -123,24 +126,85 @@ export function getErrorMessage(error, fallback = "요청을 처리하지 못했
   return korean || fallback;
 }
 
-export function setBusy(formOrButton, busy, busyText = "처리 중…") {
-  const buttons = formOrButton instanceof HTMLFormElement
-    ? formOrButton.querySelectorAll('button[type="submit"]')
-    : [formOrButton];
-  buttons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) return;
-    if (busy) {
-      button.dataset.originalText = button.textContent;
-      button.textContent = busyText;
-      button.disabled = true;
-      button.setAttribute("aria-busy", "true");
-    } else {
-      button.textContent = button.dataset.originalText || button.textContent;
-      button.disabled = false;
-      button.removeAttribute("aria-busy");
-      delete button.dataset.originalText;
+function ensureBusyOverlay() {
+  if (busyOverlay?.isConnected) return busyOverlay;
+  busyOverlay = el("div", {
+    className: "global-loading",
+    hidden: true,
+    role: "status",
+    "aria-live": "polite",
+    "aria-busy": "true",
+  }, [
+    el("div", { className: "global-loading__panel" }, [
+      el("div", { className: "spinner", "aria-hidden": "true" }),
+      el("strong", { className: "global-loading__title", text: "처리 중입니다" }),
+      el("p", {
+        className: "global-loading__message",
+        dataset: { loadingMessage: "true" },
+        text: "잠시만 기다려 주세요…",
+      }),
+    ]),
+  ]);
+  document.body.append(busyOverlay);
+  return busyOverlay;
+}
+
+function syncBusyOverlay() {
+  if (busyRequests.size) {
+    const overlay = ensureBusyOverlay();
+    const message = [...busyRequests.values()].at(-1) || "처리 중입니다. 잠시만 기다려 주세요…";
+    const messageNode = overlay.querySelector("[data-loading-message]");
+    if (messageNode) messageNode.textContent = message;
+    overlay.hidden = false;
+    document.body.classList.add("is-global-busy");
+    document.body.setAttribute("aria-busy", "true");
+    document.getElementById("app")?.setAttribute("inert", "");
+    return;
+  }
+
+  if (busyOverlay) busyOverlay.hidden = true;
+  document.body.classList.remove("is-global-busy");
+  document.body.removeAttribute("aria-busy");
+  document.getElementById("app")?.removeAttribute("inert");
+}
+
+function setButtonBusyState(button, busy, busyText, updateText) {
+  if (!(button instanceof HTMLButtonElement)) return;
+  if (busy) {
+    if (button.dataset.busyManaged !== "true") {
+      button.dataset.busyManaged = "true";
+      button.dataset.busyWasDisabled = button.disabled ? "true" : "false";
+      if (updateText) {
+        button.dataset.originalText = button.textContent;
+        button.textContent = busyText;
+      }
     }
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    return;
+  }
+
+  if (button.dataset.busyManaged !== "true") return;
+  if (button.dataset.originalText != null) button.textContent = button.dataset.originalText;
+  button.disabled = button.dataset.busyWasDisabled === "true";
+  button.removeAttribute("aria-busy");
+  delete button.dataset.originalText;
+  delete button.dataset.busyWasDisabled;
+  delete button.dataset.busyManaged;
+}
+
+export function setBusy(formOrButton, busy, busyText = "처리 중…") {
+  if (!formOrButton) return;
+  const isForm = formOrButton instanceof HTMLFormElement;
+  const buttons = isForm ? formOrButton.querySelectorAll("button") : [formOrButton];
+  buttons.forEach((button) => {
+    const updateText = !isForm || button.type === "submit";
+    setButtonBusyState(button, busy, busyText, updateText);
   });
+
+  if (busy) busyRequests.set(formOrButton, busyText);
+  else busyRequests.delete(formOrButton);
+  syncBusyOverlay();
 }
 
 export function loadingState(message = "불러오는 중…") {

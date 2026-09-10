@@ -230,12 +230,23 @@ function signupRedirect() {
   return `${window.location.origin}${window.location.pathname}`;
 }
 
-export async function requestSignupEmailCode(email, password) {
-  const { data, error } = await supabase.auth.signUp({
+async function assertSignupEmailAvailable(email) {
+  const { data, error } = await supabase.rpc("get_signup_email_status", { p_email: email });
+  if (error) throw error;
+  if (data === "registered") {
+    const registeredError = new Error("이미 가입되어 있는 이메일입니다.");
+    registeredError.code = "signup_email_registered";
+    throw registeredError;
+  }
+}
+
+async function sendSignupEmailCode(email) {
+  // Verify ownership of the email first; the user chooses a password only after OTP verification.
+  const { data, error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
       emailRedirectTo: signupRedirect(),
+      shouldCreateUser: true,
       data: { signup_flow: "auth_otp" },
     },
   });
@@ -244,14 +255,14 @@ export async function requestSignupEmailCode(email, password) {
   return data;
 }
 
+export async function requestSignupEmailCode(email) {
+  await assertSignupEmailAvailable(email);
+  return sendSignupEmailCode(email);
+}
+
 export async function resendSignupEmailCode(email) {
-  const { data, error } = await supabase.auth.resend({
-    type: "signup",
-    email,
-    options: { emailRedirectTo: signupRedirect() },
-  });
-  if (error) throw error;
-  return data;
+  await assertSignupEmailAvailable(email);
+  return sendSignupEmailCode(email);
 }
 
 export async function verifySignupEmailCode(email, code) {
