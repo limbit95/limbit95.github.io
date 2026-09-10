@@ -26,6 +26,70 @@ const AGE_LABELS = {
 };
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 60 * 1000;
+const OTP_RESEND_STORAGE_KEY = "cheongpa:signup-otp-resend-cooldowns";
+
+function getOtpResendStorageKey(email) {
+  let hash = 2166136261;
+  for (let index = 0; index < email.length; index += 1) {
+    hash ^= email.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function readOtpResendCooldowns(now = Date.now()) {
+  if (typeof window === "undefined") return {};
+  try {
+    const storage = window.localStorage;
+    const parsed = JSON.parse(storage.getItem(OTP_RESEND_STORAGE_KEY) || "{}");
+    const active = {};
+    for (const [key, value] of Object.entries(parsed ?? {})) {
+      const resendAt = Number(value);
+      if (Number.isFinite(resendAt) && resendAt > now && resendAt <= now + OTP_RESEND_MS) {
+        active[key] = resendAt;
+      }
+    }
+    if (Object.keys(active).length) storage.setItem(OTP_RESEND_STORAGE_KEY, JSON.stringify(active));
+    else storage.removeItem(OTP_RESEND_STORAGE_KEY);
+    return active;
+  } catch {
+    return {};
+  }
+}
+
+function getStoredOtpResendAt(email, now = Date.now()) {
+  const normalized = String(email ?? "").trim().toLowerCase();
+  if (!validateEmail(normalized)) return 0;
+  return Number(readOtpResendCooldowns(now)[getOtpResendStorageKey(normalized)] ?? 0);
+}
+
+function persistOtpResendAt(email, resendAt) {
+  if (typeof window === "undefined") return;
+  try {
+    const normalized = String(email ?? "").trim().toLowerCase();
+    if (!validateEmail(normalized)) return;
+    const storage = window.localStorage;
+    const active = readOtpResendCooldowns();
+    active[getOtpResendStorageKey(normalized)] = resendAt;
+    storage.setItem(OTP_RESEND_STORAGE_KEY, JSON.stringify(active));
+  } catch {
+    // Cooldown persistence is a UX aid; Auth rate limits remain authoritative.
+  }
+}
+
+function clearStoredOtpResendAt(email) {
+  if (typeof window === "undefined") return;
+  try {
+    const normalized = String(email ?? "").trim().toLowerCase();
+    const storage = window.localStorage;
+    const active = readOtpResendCooldowns();
+    delete active[getOtpResendStorageKey(normalized)];
+    if (Object.keys(active).length) storage.setItem(OTP_RESEND_STORAGE_KEY, JSON.stringify(active));
+    else storage.removeItem(OTP_RESEND_STORAGE_KEY);
+  } catch {
+    // Ignore unavailable localStorage and fall back to the server-side limit.
+  }
+}
 
 export function renderSignup() {
   const currentYear = new Date().getFullYear();
@@ -40,6 +104,7 @@ export function renderSignup() {
   let expiresAt = 0;
   let resendAt = 0;
   let timerId = null;
+  let refreshResendCooldown = null;
 
   const form = el("form", { className: "signup-flow", novalidate: true });
   const progress = el("ol", { className: "signup-progress", "aria-label": "회원가입 진행 단계" });
@@ -74,6 +139,10 @@ export function renderSignup() {
       existingAccountEmail = "";
       form.querySelector("[data-signup-existing-account]")?.remove();
     }
+    if (!codeRequested && !verifiedEmail) {
+      resendAt = getStoredOtpResendAt(normalized);
+      refreshResendCooldown?.();
+    }
   });
 
   function updateProgress() {
@@ -92,6 +161,8 @@ export function renderSignup() {
 
   function renderStep() {
     clearInterval(timerId);
+    timerId = null;
+    refreshResendCooldown = null;
     updateProgress();
     heading.textContent = `STEP ${step}. ${STEP_LABELS[step - 1]}`;
     if (step === 1) renderAgreements();
@@ -123,6 +194,7 @@ export function renderSignup() {
     const normalized = fields.email.input.value.trim().toLowerCase();
     const isVerified = Boolean(verifiedEmail && verifiedEmail === normalized);
     const isAwaitingCode = codeRequested && !isVerified;
+    if (!codeRequested && !isVerified) resendAt = getStoredOtpResendAt(normalized);
     const resendSeconds = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
     fields.email.input.disabled = isVerified || isAwaitingCode;
     fields.password.input.disabled = !isVerified;
@@ -132,14 +204,16 @@ export function renderSignup() {
       type: "button",
       text: isVerified ? "인증 완료" : codeRequested
         ? resendSeconds > 0 ? `재전송 (${resendSeconds}초)` : "재전송"
-        : "인증번호 받기",
-      disabled: isVerified || (codeRequested && resendSeconds > 0),
+        : resendSeconds > 0 ? `인증번호 받기 (${resendSeconds}초)` : "인증번호 받기",
+      disabled: isVerified || resendSeconds > 0,
       onclick: sendCode,
     });
+    const resendNotice = el("p", { className: "field-help", "aria-live": "polite" });
     const emailField = el("div", { className: "field" }, [
       el("label", { className: "required", for: fields.email.input.id, text: "이메일" }),
       el("div", { className: "signup-email-row" }, [fields.email.input, emailButton]),
       el("p", { className: "field-help", text: "이메일만 입력하면 인증번호를 받을 수 있습니다." }),
+      resendNotice,
       errorLine("email"),
     ]);
     const existingAccountNotice = existingAccountEmail && existingAccountEmail === normalized
@@ -173,25 +247,35 @@ export function renderSignup() {
     accountChildren.push(fields.display_name.root, fields.real_name.root, actionButtons());
     panel.replaceChildren(...accountChildren.filter(Boolean));
 
-    if (codeArea) {
-      const tick = () => {
+    const tick = () => {
+      const currentEmail = fields.email.input.value.trim().toLowerCase();
+      const currentVerified = Boolean(verifiedEmail && verifiedEmail === currentEmail);
+      if (!codeRequested && !currentVerified) resendAt = getStoredOtpResendAt(currentEmail);
+      const resendLeft = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
+      emailButton.disabled = currentVerified || resendLeft > 0;
+      emailButton.textContent = currentVerified ? "인증 완료" : codeRequested
+        ? resendLeft > 0 ? `재전송 (${resendLeft}초)` : "재전송"
+        : resendLeft > 0 ? `인증번호 받기 (${resendLeft}초)` : "인증번호 받기";
+      resendNotice.textContent = !codeRequested && !currentVerified && resendLeft > 0
+        ? `이전에 인증번호를 요청했습니다. 재전송까지 ${resendLeft}초 남음`
+        : "";
+      if (codeArea) {
         const left = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
-        const resendLeft = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
-        emailButton.disabled = resendLeft > 0;
-        emailButton.textContent = resendLeft > 0 ? `재전송 (${resendLeft}초)` : "재전송";
         timer.textContent = left
           ? `남은 시간 ${String(Math.floor(left / 60)).padStart(2, "0")}:${String(left % 60).padStart(2, "0")}${resendLeft > 0 ? ` · 재전송까지 ${resendLeft}초 남음` : " · 재전송할 수 있어요."}`
           : "인증번호가 만료되었을 수 있습니다. 재전송해 주세요.";
-      };
-      tick();
-      timerId = setInterval(tick, 1000);
-    }
+      }
+    };
+    refreshResendCooldown = tick;
+    tick();
+    timerId = setInterval(tick, 1000);
   }
 
   async function sendCode() {
     clearFieldErrors(form);
     const email = fields.email.input.value.trim().toLowerCase();
     if (!validateEmail(email)) return setFieldError(form, "email", "올바른 이메일 주소를 입력해 주세요.");
+    if (!codeRequested) resendAt = getStoredOtpResendAt(email);
     const resendLeft = Math.max(0, Math.ceil((resendAt - Date.now()) / 1000));
     if (resendLeft > 0) return setFieldError(form, "email", `재전송까지 ${resendLeft}초 남았습니다.`);
     setBusy(form, true, "인증번호를 보내고 있어요…");
@@ -200,8 +284,10 @@ export function renderSignup() {
       else await requestSignupEmailCode(email);
       existingAccountEmail = "";
       codeRequested = true;
-      expiresAt = Date.now() + OTP_TTL_MS;
-      resendAt = Date.now() + OTP_RESEND_MS;
+      const requestedAt = Date.now();
+      expiresAt = requestedAt + OTP_TTL_MS;
+      resendAt = requestedAt + OTP_RESEND_MS;
+      persistOtpResendAt(email, resendAt);
       showToast("인증번호를 이메일로 보냈습니다.", "success");
       renderStep();
     } catch (error) {
@@ -210,6 +296,7 @@ export function renderSignup() {
         codeRequested = false;
         expiresAt = 0;
         resendAt = 0;
+        clearStoredOtpResendAt(email);
         renderStep();
         return;
       }
@@ -227,6 +314,8 @@ export function renderSignup() {
       verifiedEmail = email;
       codeRequested = false;
       expiresAt = 0;
+      resendAt = 0;
+      clearStoredOtpResendAt(email);
       renderStep();
     } catch (error) { setFieldError(form, "verification_code", getErrorMessage(error)); }
     finally { setBusy(form, false); }
