@@ -29,9 +29,9 @@ export async function loadMarblePage({
   }
 
   if (mode === "online") {
-    // Main-renderer diagnostic path: keep only online gameplay entry active.
-    // Exit/ownership startup modules stay out so the next browser probe isolates the renderer gate.
+    // Restore isolated gameplay enhancements one at a time after the renderer startup issue is stable.
     await importModule("./playWindow.js?v=20260910-r10");
+    await importModule("./diceCharge.js?v=20260910-r12");
     return mode;
   }
 
