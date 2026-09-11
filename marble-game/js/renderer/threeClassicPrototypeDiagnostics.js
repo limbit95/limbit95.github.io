@@ -1,12 +1,14 @@
 import {
   CLASSIC_CAMERA_PROFILE,
+  CLASSIC_RENDER_PROFILE,
   CLASSIC_VISUAL_PROFILE,
   THREE_IMPORT_VERSION,
   createClassicThreePrototypeRenderer as createBaseClassicThreePrototypeRenderer,
   createOrthographicBounds,
   createSquareRingLayout,
   getClassicTileVisual,
-} from "./threeClassicPrototype.js?implementation=20260910-r8";
+  resolveClassicRendererPixelRatio,
+} from "./threeClassicPrototype.js?implementation=20260911-r9";
 import {
   isOnlineMarbleSession,
   logMarbleRenderStep,
@@ -14,14 +16,57 @@ import {
   performanceNow,
 } from "../onlineVisualPolicy.js?v=20260910-r10";
 
+const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
+
 export {
   CLASSIC_CAMERA_PROFILE,
+  CLASSIC_RENDER_PROFILE,
   CLASSIC_VISUAL_PROFILE,
   THREE_IMPORT_VERSION,
   createOrthographicBounds,
   createSquareRingLayout,
   getClassicTileVisual,
+  resolveClassicRendererPixelRatio,
 };
+
+export function installClassicShadowUpdatePolicy(threeModule) {
+  const prototype = threeModule?.WebGLRenderer?.prototype;
+  if (!prototype || typeof prototype.render !== "function") return false;
+  if (prototype[CLASSIC_SHADOW_POLICY]) return true;
+
+  const render = prototype.render;
+  Object.defineProperty(prototype, CLASSIC_SHADOW_POLICY, {
+    configurable: false,
+    enumerable: false,
+    value: true,
+    writable: false,
+  });
+
+  prototype.render = function renderClassicScene(...args) {
+    const canvas = this.domElement;
+    const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
+
+    if (classicCanvas && this.shadowMap) {
+      const refreshRequested = canvas?.dataset?.marbleShadowRefresh === "true";
+      if (this.shadowMap.autoUpdate !== false) {
+        this.shadowMap.autoUpdate = false;
+        this.shadowMap.needsUpdate = true;
+      } else if (refreshRequested) {
+        this.shadowMap.needsUpdate = true;
+      }
+      if (refreshRequested && canvas?.dataset) delete canvas.dataset.marbleShadowRefresh;
+    }
+
+    return render.apply(this, args);
+  };
+
+  return true;
+}
+
+function requestClassicShadowRefresh(targetElement) {
+  const canvas = targetElement?.querySelector?.(".classic-three-canvas");
+  if (canvas?.dataset) canvas.dataset.marbleShadowRefresh = "true";
+}
 
 export function createClassicThreePrototypeRenderer(options = {}, {
   documentObject = globalThis.document,
@@ -36,6 +81,7 @@ export function createClassicThreePrototypeRenderer(options = {}, {
   const renderer = createBaseRenderer(options);
   const traceOnlineRenderer = isOnlineMarbleSession({ documentObject, locationObject });
   let initialRenderComplete = false;
+  let mountedTarget = null;
 
   if (traceOnlineRenderer) {
     markOnlineVisualRuntime({ documentObject, locationObject });
@@ -48,13 +94,21 @@ export function createClassicThreePrototypeRenderer(options = {}, {
 
   return Object.freeze({
     async mount(targetElement) {
-      if (!traceOnlineRenderer) return renderer.mount(targetElement);
+      mountedTarget = targetElement;
+
+      if (!traceOnlineRenderer) {
+        installClassicShadowUpdatePolicy(await loadThree());
+        const value = await renderer.mount(targetElement);
+        requestClassicShadowRefresh(mountedTarget);
+        return value;
+      }
 
       const mountStartedAt = performanceNow(performanceObject);
       logMarbleRenderStep("mount-start", { performanceObject, consoleObject });
 
       const importStartedAt = performanceNow(performanceObject);
-      await loadThree();
+      const threeModule = await loadThree();
+      installClassicShadowUpdatePolicy(threeModule);
       logMarbleRenderStep("three-import-ready", {
         startedAt: importStartedAt,
         performanceObject,
@@ -64,6 +118,7 @@ export function createClassicThreePrototypeRenderer(options = {}, {
       try {
         const webglStartedAt = performanceNow(performanceObject);
         const value = await renderer.mount(targetElement);
+        requestClassicShadowRefresh(mountedTarget);
         logMarbleRenderStep("webgl-ready", {
           startedAt: webglStartedAt,
           performanceObject,
@@ -87,7 +142,11 @@ export function createClassicThreePrototypeRenderer(options = {}, {
     },
 
     renderState(state) {
-      if (!traceOnlineRenderer || initialRenderComplete) return renderer.renderState(state);
+      if (!traceOnlineRenderer || initialRenderComplete) {
+        const value = renderer.renderState(state);
+        requestClassicShadowRefresh(mountedTarget);
+        return value;
+      }
 
       const renderStartedAt = performanceNow(performanceObject);
       logMarbleRenderStep("render-state-start", {
@@ -103,6 +162,7 @@ export function createClassicThreePrototypeRenderer(options = {}, {
 
       try {
         const value = renderer.renderState(state);
+        requestClassicShadowRefresh(mountedTarget);
         const finishedAt = logMarbleRenderStep("build-board-ready", {
           startedAt: renderStartedAt,
           performanceObject,
@@ -141,7 +201,15 @@ export function createClassicThreePrototypeRenderer(options = {}, {
       }
     },
 
-    playEvent: renderer.playEvent.bind(renderer),
-    dispose: renderer.dispose.bind(renderer),
+    async playEvent(event) {
+      const value = await renderer.playEvent(event);
+      requestClassicShadowRefresh(mountedTarget);
+      return value;
+    },
+
+    dispose() {
+      mountedTarget = null;
+      renderer.dispose();
+    },
   });
 }
