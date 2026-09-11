@@ -11,7 +11,7 @@ import {
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260910050634_member_owned_activity_management.sql");
-const capabilityMigration = read("../supabase/site/migrations/20260911102000_member_activity_capability_boundaries.sql");
+const capabilityMigration = read("../supabase/site/migrations/20260911030321_member_activity_capability_boundaries.sql");
 const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
