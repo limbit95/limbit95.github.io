@@ -89,6 +89,23 @@ export function resolveMoneyTransferCoinCount(value) {
   return 3;
 }
 
+export function resolveMoneyTransferFlight(start, end, index, coinCount) {
+  const spread = (index - ((coinCount - 1) / 2)) * 6;
+  const startX = Number(start?.x) + spread;
+  const startY = Number(start?.y) + ((index % 2 === 0) ? -5 : 5);
+  const deltaX = Number(end?.x) - startX;
+  const deltaY = Number(end?.y) - startY;
+  return Object.freeze({
+    startX,
+    startY,
+    midX: deltaX * 0.5,
+    midY: (deltaY * 0.5) - 52 - (index * 3),
+    endX: deltaX,
+    endY: deltaY,
+    delayMs: index * 64,
+  });
+}
+
 export function formatClassicMoneyDelta(value) {
   const amount = Number(value) || 0;
   const sign = amount > 0 ? "+" : amount < 0 ? "−" : "";
@@ -187,30 +204,68 @@ async function animateBalanceElement(element, fromValue, toValue, {
 function cardCenter(card) {
   const rect = card?.getBoundingClientRect?.();
   if (!rect) return null;
+  const left = Number(rect.left);
+  const top = Number(rect.top);
+  const width = Number(rect.width);
+  const height = Number(rect.height);
+  if (![left, top, width, height].every(Number.isFinite)) return null;
   return {
-    x: Number(rect.left) + (Number(rect.width) / 2),
-    y: Number(rect.top) + (Number(rect.height) / 2),
+    x: left + (width / 2),
+    y: top + (height / 2),
   };
 }
 
-function createTransferCoin(documentObject, start, end, index, coinCount, durationMs) {
+function createTransferCoin(documentObject, flight) {
   const coin = documentObject.createElement("span");
   coin.className = "money-transfer-coin";
   coin.setAttribute("aria-hidden", "true");
-  const spread = (index - ((coinCount - 1) / 2)) * 4;
-  const startX = start.x + spread;
-  const startY = start.y + ((index % 2 === 0) ? -3 : 3);
-  const deltaX = end.x - startX;
-  const deltaY = end.y - startY;
-  coin.style.left = `${Math.round(startX)}px`;
-  coin.style.top = `${Math.round(startY)}px`;
-  coin.style.setProperty("--money-transfer-mid-x", `${Math.round(deltaX * 0.48)}px`);
-  coin.style.setProperty("--money-transfer-mid-y", `${Math.round((deltaY * 0.48) - 34 - (index * 2))}px`);
-  coin.style.setProperty("--money-transfer-end-x", `${Math.round(deltaX)}px`);
-  coin.style.setProperty("--money-transfer-end-y", `${Math.round(deltaY)}px`);
-  coin.style.setProperty("--money-transfer-duration", `${durationMs}ms`);
-  coin.style.setProperty("--money-transfer-delay", `${index * 48}ms`);
+  coin.style.left = `${Math.round(flight.startX)}px`;
+  coin.style.top = `${Math.round(flight.startY)}px`;
   return coin;
+}
+
+function transferFrames(flight) {
+  return [
+    {
+      opacity: 0,
+      transform: "translate(-50%, -50%) scale(0.68) rotate(0deg)",
+    },
+    {
+      offset: 0.12,
+      opacity: 1,
+      transform: "translate(-50%, -50%) scale(0.96) rotate(70deg)",
+    },
+    {
+      offset: 0.52,
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(flight.midX)}px), calc(-50% + ${Math.round(flight.midY)}px)) scale(1.16) rotate(250deg)`,
+    },
+    {
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(flight.endX)}px), calc(-50% + ${Math.round(flight.endY)}px)) scale(0.82) rotate(560deg)`,
+    },
+  ];
+}
+
+function startTransferCoinAnimation(coin, flight, durationMs) {
+  if (typeof coin?.animate === "function") {
+    const animation = coin.animate(transferFrames(flight), {
+      duration: durationMs,
+      delay: flight.delayMs,
+      easing: "cubic-bezier(0.18, 0.78, 0.22, 1)",
+      fill: "both",
+    });
+    return animation?.finished?.catch?.(() => undefined) ?? Promise.resolve();
+  }
+
+  coin.dataset.moneyTransferFallback = "true";
+  coin.style.setProperty("--money-transfer-mid-x", `${Math.round(flight.midX)}px`);
+  coin.style.setProperty("--money-transfer-mid-y", `${Math.round(flight.midY)}px`);
+  coin.style.setProperty("--money-transfer-end-x", `${Math.round(flight.endX)}px`);
+  coin.style.setProperty("--money-transfer-end-y", `${Math.round(flight.endY)}px`);
+  coin.style.setProperty("--money-transfer-duration", `${durationMs}ms`);
+  coin.style.setProperty("--money-transfer-delay", `${flight.delayMs}ms`);
+  return null;
 }
 
 export function createHudMoneyPresenter({
@@ -223,7 +278,7 @@ export function createHudMoneyPresenter({
     ? globalThis.requestAnimationFrame.bind(globalThis)
     : null,
   countDurationMs = 520,
-  transferDurationMs = 460,
+  transferDurationMs = 760,
 } = {}) {
   async function presentSteps(steps, holdMs = reducedMotion ? 220 : 760) {
     const active = [];
@@ -275,29 +330,50 @@ export function createHudMoneyPresenter({
     const toCard = findHudCard(documentObject, seatByPlayerId, phase.toPlayerId);
     if (!fromCard || !toCard) return;
 
+    fromCard.dataset.moneyTransferSource = "true";
     if (reducedMotion || !documentObject?.body?.append) {
       toCard.dataset.moneyTransferImpact = "true";
-      await wait(160);
+      await wait(180);
+      delete fromCard.dataset.moneyTransferSource;
       delete toCard.dataset.moneyTransferImpact;
       return;
     }
 
     const start = cardCenter(fromCard);
     const end = cardCenter(toCard);
-    if (!start || !end) return;
+    if (!start || !end) {
+      delete fromCard.dataset.moneyTransferSource;
+      return;
+    }
 
     const layer = documentObject.createElement("div");
     layer.className = "money-transfer-layer";
     layer.setAttribute("aria-hidden", "true");
-    const coinCount = resolveMoneyTransferCoinCount(phase.amount);
-    for (let index = 0; index < coinCount; index += 1) {
-      layer.append(createTransferCoin(documentObject, start, end, index, coinCount, transferDurationMs));
-    }
     documentObject.body.append(layer);
-    await wait(transferDurationMs + ((coinCount - 1) * 48) + 80);
+
+    const coinCount = resolveMoneyTransferCoinCount(phase.amount);
+    const animationPromises = [];
+    let usesFallback = false;
+    for (let index = 0; index < coinCount; index += 1) {
+      const flight = resolveMoneyTransferFlight(start, end, index, coinCount);
+      const coin = createTransferCoin(documentObject, flight);
+      layer.append(coin);
+      const animationPromise = startTransferCoinAnimation(coin, flight, transferDurationMs);
+      if (animationPromise) animationPromises.push(animationPromise);
+      else usesFallback = true;
+    }
+
+    const fallbackDuration = transferDurationMs + ((coinCount - 1) * 64) + 100;
+    if (usesFallback || animationPromises.length !== coinCount) {
+      await wait(fallbackDuration);
+    } else {
+      await Promise.all(animationPromises);
+    }
+
     layer.remove();
+    delete fromCard.dataset.moneyTransferSource;
     toCard.dataset.moneyTransferImpact = "true";
-    await wait(220);
+    await wait(260);
     delete toCard.dataset.moneyTransferImpact;
   }
 

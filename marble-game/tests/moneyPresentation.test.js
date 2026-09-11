@@ -9,9 +9,11 @@ import {
   formatClassicMoneyDelta,
   interpolateMoneyBalance,
   resolveMoneyTransferCoinCount,
+  resolveMoneyTransferFlight,
 } from "../js/presentation/moneyPresentation.js";
 
 const wrapperSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
+const moneySource = readFileSync(new URL("../js/presentation/moneyPresentation.js", import.meta.url), "utf8");
 const cssSource = readFileSync(new URL("../css/money-presentation.css", import.meta.url), "utf8");
 
 test("money presentation maps START and received money to player gains", () => {
@@ -117,6 +119,17 @@ test("transfer coin count stays intentionally bounded", () => {
   assert.equal(resolveMoneyTransferCoinCount(2000), 6);
 });
 
+test("transfer flight creates a visible arced route with staggered coins", () => {
+  const first = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 0, 4);
+  const last = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 3, 4);
+  assert.ok(first.endX > 700);
+  assert.ok(first.endY > 400);
+  assert.ok(first.midY < first.endY / 2);
+  assert.equal(first.delayMs, 0);
+  assert.equal(last.delayMs, 192);
+  assert.notEqual(first.startX, last.startX);
+});
+
 test("tax presentation stays a one-way loss", () => {
   assert.deepEqual(createMoneyPresentationPlan({
     type: "MONEY_PAID",
@@ -184,12 +197,18 @@ test("START reward is deferred until PLAYER_MOVED completes", () => {
   assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
 });
 
-test("money transfer VFX stays in presentation layer and keeps purchase/build coverage", () => {
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r17/);
+test("money transfer VFX uses runtime flight animation and keeps purchase/build coverage", () => {
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r18/);
   assert.match(wrapperSource, /PROPERTY_BOUGHT/);
   assert.match(wrapperSource, /PROPERTY_BUILT/);
+  assert.match(moneySource, /coin\.animate\(transferFrames\(flight\)/);
+  assert.match(moneySource, /transferDurationMs = 760/);
+  assert.match(moneySource, /moneyTransferSource/);
+  assert.match(moneySource, /moneyTransferFallback/);
   assert.match(cssSource, /\.money-transfer-layer/);
-  assert.match(cssSource, /\.money-transfer-coin/);
-  assert.match(cssSource, /marble-money-transfer-flight/);
+  assert.match(cssSource, /z-index: 2147483000/);
+  assert.match(cssSource, /width: 22px/);
+  assert.match(cssSource, /data-money-transfer-fallback="true"/);
+  assert.match(cssSource, /content: "G"/);
   assert.match(cssSource, /data-money-transfer-impact/);
 });

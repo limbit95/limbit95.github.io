@@ -84,51 +84,72 @@
 .money-transfer-layer {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 2147483000;
   overflow: hidden;
   pointer-events: none;
 }
 
 .money-transfer-coin {
   position: absolute;
-  width: 15px;
-  height: 15px;
-  border: 2px solid #f6c453;
+  width: 22px;
+  height: 22px;
+  border: 2px solid #fff0a1;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 30%, #fff2a5 0 16%, #ffd75f 17% 48%, #d99613 49% 100%);
-  box-shadow: 0 0 0 1px rgba(104, 64, 0, 0.18), 0 3px 9px rgba(90, 52, 0, 0.3);
+  background: radial-gradient(circle at 32% 28%, #fffbd0 0 12%, #ffe77b 13% 38%, #ffc83f 39% 66%, #c9860b 67% 100%);
+  box-shadow:
+    0 0 0 2px rgba(255, 213, 90, 0.2),
+    0 0 18px rgba(255, 206, 74, 0.72),
+    0 6px 14px rgba(71, 42, 0, 0.38);
+  color: #7f5000;
   transform: translate(-50%, -50%);
-  animation: marble-money-transfer-flight var(--money-transfer-duration, 460ms) cubic-bezier(0.2, 0.75, 0.2, 1) both;
-  animation-delay: var(--money-transfer-delay, 0ms);
+  will-change: transform, opacity;
 }
 
 .money-transfer-coin::after {
-  content: "";
   position: absolute;
-  inset: 3px;
-  border: 1px solid rgba(131, 78, 0, 0.36);
+  inset: 2px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(122, 73, 0, 0.3);
   border-radius: 50%;
+  content: "G";
+  font-size: 9px;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.money-transfer-coin[data-money-transfer-fallback="true"] {
+  animation: marble-money-transfer-flight var(--money-transfer-duration, 760ms) cubic-bezier(0.18, 0.78, 0.22, 1) both;
+  animation-delay: var(--money-transfer-delay, 0ms);
+}
+
+.player-hud-layer .player-card[data-money-transfer-source="true"] {
+  border-color: rgba(255, 210, 87, 0.64);
+  box-shadow:
+    0 0 0 3px rgba(255, 210, 87, 0.14),
+    0 14px 34px rgba(3, 12, 20, 0.28);
 }
 
 .player-hud-layer .player-card[data-money-transfer-impact="true"] {
-  animation: marble-money-transfer-impact 240ms ease-out both;
+  animation: marble-money-transfer-impact 260ms ease-out both;
 }
 
 @keyframes marble-money-transfer-flight {
   0% {
     opacity: 0;
-    transform: translate(-50%, -50%) scale(0.64) rotateY(0deg);
+    transform: translate(-50%, -50%) scale(0.68) rotate(0deg);
   }
   12% {
     opacity: 1;
+    transform: translate(-50%, -50%) scale(0.96) rotate(70deg);
   }
-  48% {
+  52% {
     opacity: 1;
-    transform: translate(calc(-50% + var(--money-transfer-mid-x)), calc(-50% + var(--money-transfer-mid-y))) scale(1.08) rotateY(220deg);
+    transform: translate(calc(-50% + var(--money-transfer-mid-x)), calc(-50% + var(--money-transfer-mid-y))) scale(1.16) rotate(250deg);
   }
   100% {
-    opacity: 0.96;
-    transform: translate(calc(-50% + var(--money-transfer-end-x)), calc(-50% + var(--money-transfer-end-y))) scale(0.72) rotateY(540deg);
+    opacity: 1;
+    transform: translate(calc(-50% + var(--money-transfer-end-x)), calc(-50% + var(--money-transfer-end-y))) scale(0.82) rotate(560deg);
   }
 }
 
@@ -138,8 +159,8 @@
     box-shadow: inherit;
   }
   45% {
-    transform: scale(1.045);
-    box-shadow: 0 0 0 3px rgba(255, 215, 95, 0.28), 0 10px 26px rgba(73, 47, 0, 0.2);
+    transform: scale(1.065);
+    box-shadow: 0 0 0 4px rgba(255, 215, 95, 0.36), 0 12px 30px rgba(73, 47, 0, 0.26);
   }
   100% {
     transform: scale(1);

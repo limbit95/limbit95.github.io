@@ -15,7 +15,7 @@ const moneyRendererSource = readFileSync(new URL("../js/renderer/threeClassicMon
 test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260910-r10"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /money-presentation\.css\?v=20260912-r17/);
+  assert.match(indexHtml, /money-presentation\.css\?v=20260912-r18/);
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
@@ -39,9 +39,9 @@ test("online recovery session bypasses stale modules while untouched core import
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r17/);
+  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r18/);
   assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
-  assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r17/);
+  assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r18/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
@@ -60,7 +60,7 @@ test("2D diagnostic boot uses a dedicated controller with no renderer, dice, own
   assert.match(bootstrapSource, /mode === "online-2d"/);
   assert.doesNotMatch(twoDControllerSource, /three/i);
   assert.doesNotMatch(twoDControllerSource, /diceStage/);
-  assert.doesNotMatch(twoDControllerSource, /ownershipVisual/);
+  assert.noesNotMatch(twoDControllerSource, /ownershipVisual/);
   assert.doesNotMatch(twoDControllerSource, /onlinePresenceHud/);
   assert.match(twoDControllerSource, /onlineRenderer = "disabled"/);
   assert.match(twoDControllerSource, /onlineDiceRenderer = "disabled"/);

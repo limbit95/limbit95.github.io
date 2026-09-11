@@ -17,7 +17,7 @@ import {
 import {
   createHudMoneyPresenter,
   syncHudMoneyBalances,
-} from "../presentation/moneyPresentation.js?v=20260912-r17";
+} from "../presentation/moneyPresentation.js?v=20260912-r18";
 
 export {
   CLASSIC_CAMERA_PROFILE,
