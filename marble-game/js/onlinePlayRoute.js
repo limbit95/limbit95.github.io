@@ -48,16 +48,23 @@ export function getOnlineRoomId(href) {
 }
 
 export function enterOnlineClassicPlay(roomId, {
-  windowObject = window,
-  locationObject = window.location,
-  screenObject = window.screen,
+  windowObject = globalThis.window,
+  locationObject = globalThis.location,
+  screenObject = globalThis.screen,
 } = {}) {
   if (!roomId) throw new Error("ROOM_ID_REQUIRED");
+  if (!locationObject?.href || typeof locationObject.assign !== "function") {
+    throw new Error("PLAY_LOCATION_REQUIRED");
+  }
 
   const url = createOnlineClassicPlayUrl(locationObject.href, roomId);
-  const coarsePointer = Boolean(windowObject.matchMedia?.("(pointer: coarse)")?.matches);
+  const coarsePointer = Boolean(windowObject?.matchMedia?.("(pointer: coarse)")?.matches);
+  const canOpenPopup = typeof windowObject?.open === "function";
 
-  if (shouldUseSameTab({ innerWidth: windowObject.innerWidth, coarsePointer })) {
+  if (!canOpenPopup || shouldUseSameTab({
+    innerWidth: windowObject?.innerWidth ?? 0,
+    coarsePointer,
+  })) {
     locationObject.assign(url.href);
     return "same-tab";
   }
@@ -65,7 +72,7 @@ export function enterOnlineClassicPlay(roomId, {
   const popup = windowObject.open(
     url.href,
     PLAY_WINDOW_NAME,
-    buildPopupFeatures(screenObject),
+    buildPopupFeatures(screenObject ?? undefined),
   );
 
   if (!popup) {
