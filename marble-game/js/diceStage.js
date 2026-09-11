@@ -1,7 +1,7 @@
 import { DICE_OVERLAY_VIEW, createDiceOverlayBounds } from "./diceOverlayView.js";
 
 export const DICE_STAGE_PROFILE = Object.freeze({
-  durationMs: 920,
+  durationMs: 1160,
   dieSize: 0.59,
   settleHeight: 0.31,
   defaultStrength: 0.55,
@@ -21,15 +21,25 @@ export function normalizeRollStrength(value) {
   return Math.min(1, Math.max(0, strength));
 }
 
+function clamp01(value) {
+  return Math.min(1, Math.max(0, Number(value) || 0));
+}
+
+function smoothstep01(value) {
+  const progress = clamp01(value);
+  return progress * progress * (3 - (2 * progress));
+}
+
 export function rollAnimationProfile(value) {
   const strength = normalizeRollStrength(value);
   return Object.freeze({
     strength,
-    durationMs: Math.round(720 + (strength * 520)),
-    throwHeight: 1.25 + (strength * 2.0),
-    horizontalSpread: 0.12 + (strength * 0.52),
-    bounceHeight: 0.12 + (strength * 0.38),
-    spinMultiplier: 0.68 + (strength * 1.05),
+    durationMs: Math.round(860 + (strength * 560)),
+    throwHeight: 1.15 + (strength * 1.8),
+    horizontalSpread: 0.14 + (strength * 0.48),
+    bounceHeight: 0.1 + (strength * 0.28),
+    spinMultiplier: 0.58 + (strength * 0.78),
+    flightRatio: 0.72,
   });
 }
 
@@ -262,6 +272,10 @@ export function createThreeDiceStage({
         { x: -0.82, z: 0.04 },
         { x: 0.82, z: -0.08 },
       ];
+      const finalRotations = [
+        finalQuaternion(THREE, faces[0], -0.22),
+        finalQuaternion(THREE, faces[1], 0.28),
+      ];
       const startedAt = performance.now();
 
       await new Promise((resolve) => {
@@ -271,29 +285,42 @@ export function createThreeDiceStage({
             return;
           }
           const progress = Math.min(1, (now - startedAt) / motion.durationMs);
-          const eased = 1 - ((1 - progress) ** 3);
-          const jump = Math.sin(progress * Math.PI) * motion.throwHeight;
-          const landingProgress = Math.max(0, (progress - 0.72) / 0.28);
+          const flightProgress = Math.min(1, progress / motion.flightRatio);
+          const landingProgress = progress <= motion.flightRatio
+            ? 0
+            : (progress - motion.flightRatio) / (1 - motion.flightRatio);
+          const travelProgress = smoothstep01(flightProgress);
+          const tumbleProgress = smoothstep01(flightProgress) + (smoothstep01(landingProgress) * 0.12);
+          const jump = Math.pow(Math.sin(flightProgress * Math.PI), 0.9) * motion.throwHeight;
           const landingBounce = landingProgress > 0
-            ? Math.abs(Math.sin(landingProgress * Math.PI * 2.4)) * motion.bounceHeight * (1 - landingProgress)
+            ? Math.abs(Math.sin(landingProgress * Math.PI * 2.25))
+              * motion.bounceHeight
+              * ((1 - landingProgress) ** 2)
             : 0;
+          const orientationBlend = smoothstep01(landingProgress);
 
           dice.forEach((die, index) => {
             const start = starts[index];
             const end = ends[index];
             const direction = index === 0 ? -1 : 1;
-            const outwardArc = Math.sin(progress * Math.PI) * motion.horizontalSpread * direction;
-            const depthArc = Math.sin(progress * Math.PI * 2) * motion.horizontalSpread * 0.22 * direction;
-            die.position.x = start.x + ((end.x - start.x) * eased) + outwardArc;
-            die.position.z = start.z + ((end.z - start.z) * eased) + depthArc;
+            const outwardArc = Math.sin(flightProgress * Math.PI) * motion.horizontalSpread * direction;
+            const depthArc = Math.sin(flightProgress * Math.PI * 2) * motion.horizontalSpread * 0.18 * direction;
+            die.position.x = start.x + ((end.x - start.x) * travelProgress) + outwardArc;
+            die.position.z = start.z + ((end.z - start.z) * travelProgress) + depthArc;
             die.position.y = DICE_STAGE_PROFILE.settleHeight + jump + landingBounce;
             die.rotation.set(
-              start.rotation[0] + progress * Math.PI * (5.2 + faces[index]) * motion.spinMultiplier,
-              start.rotation[1] + progress * Math.PI * (7.2 + index * 1.6) * motion.spinMultiplier,
-              start.rotation[2] + progress * Math.PI * (4.6 + faces[1 - index]) * motion.spinMultiplier,
+              start.rotation[0] + tumbleProgress * Math.PI * (4.4 + faces[index]) * motion.spinMultiplier,
+              start.rotation[1] + tumbleProgress * Math.PI * (6.1 + index * 1.25) * motion.spinMultiplier,
+              start.rotation[2] + tumbleProgress * Math.PI * (4.0 + faces[1 - index]) * motion.spinMultiplier,
             );
-            const squash = 1 - Math.sin(progress * Math.PI) * (0.025 + (strength * 0.022));
-            die.scale.set(1 / squash, squash, 1 / squash);
+            if (orientationBlend > 0) {
+              die.quaternion.slerp(finalRotations[index], orientationBlend);
+            }
+            const impactPulse = landingProgress > 0 && landingProgress < 0.5
+              ? Math.sin((landingProgress / 0.5) * Math.PI)
+              : 0;
+            const squash = impactPulse * (0.012 + (strength * 0.012));
+            die.scale.set(1 + squash, 1 - squash, 1 + squash);
           });
           render();
 
