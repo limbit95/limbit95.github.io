@@ -17,7 +17,7 @@ import {
 } from "../onlineVisualPolicy.js?v=20260910-r10";
 import {
   createAnimationDirector,
-  createAnimationQueue,
+  getSharedAnimationQueue,
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
 
 const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
@@ -86,14 +86,7 @@ export function createClassicThreePrototypeRenderer(options = {}, {
   const traceOnlineRenderer = isOnlineMarbleSession({ documentObject, locationObject });
   let initialRenderComplete = false;
   let mountedTarget = null;
-  const presentationQueue = createAnimationQueue({
-    onTaskError(error, metadata) {
-      consoleObject?.error?.("Marble presentation task failed", {
-        eventType: metadata?.eventType ?? null,
-        error,
-      });
-    },
-  });
+  const presentationQueue = getSharedAnimationQueue("classic-online");
   const presentationDirector = createAnimationDirector({
     presenters: {
       PLAYER_MOVED(event) {
@@ -101,6 +94,13 @@ export function createClassicThreePrototypeRenderer(options = {}, {
       },
     },
   });
+
+  function reportPresentationTaskError(error, metadata) {
+    consoleObject?.error?.("Marble presentation task failed", {
+      eventType: metadata?.eventType ?? null,
+      error,
+    });
+  }
 
   if (traceOnlineRenderer) {
     markOnlineVisualRuntime({ documentObject, locationObject });
@@ -232,7 +232,10 @@ export function createClassicThreePrototypeRenderer(options = {}, {
         const value = await task();
         requestClassicShadowRefresh(mountedTarget);
         return value;
-      }, { eventType: event.type });
+      }, {
+        eventType: event.type,
+        onTaskError: reportPresentationTaskError,
+      });
     },
 
     dispose() {

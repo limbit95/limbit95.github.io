@@ -14,6 +14,8 @@ function normalizePresenters(presenters) {
   return registry;
 }
 
+const sharedQueues = new Map();
+
 export function createAnimationDirector({ presenters = {} } = {}) {
   const registry = normalizePresenters(presenters);
 
@@ -45,7 +47,10 @@ export function createAnimationQueue({ onTaskError = null } = {}) {
         return await task();
       } catch (error) {
         try {
-          onTaskError?.(error, metadata);
+          const taskErrorHandler = typeof metadata?.onTaskError === "function"
+            ? metadata.onTaskError
+            : onTaskError;
+          taskErrorHandler?.(error, metadata);
         } catch {
           // Presentation diagnostics must never turn a visual failure into gameplay failure.
         }
@@ -71,4 +76,12 @@ export function createAnimationQueue({ onTaskError = null } = {}) {
       return pendingCount;
     },
   });
+}
+
+export function getSharedAnimationQueue(key = "default") {
+  const queueKey = String(key || "default");
+  if (!sharedQueues.has(queueKey)) {
+    sharedQueues.set(queueKey, createAnimationQueue());
+  }
+  return sharedQueues.get(queueKey);
 }
