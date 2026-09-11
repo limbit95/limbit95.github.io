@@ -20,13 +20,15 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
 });
 
-test("the online core dependency graph stays on r8 while visual isolation modules use r10", () => {
+test("online recovery session bypasses the stale r8 module while untouched core imports stay pinned", () => {
+  assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260910-r9"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
+  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
-  assert.match(sessionSource, /onlineGameApi\.js\?v=20260910-r8/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260910-r9/);
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
-  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r8/g) ?? []).length, 1);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r9/g) ?? []).length, 1);
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260910-r10/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
