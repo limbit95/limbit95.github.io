@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { canManageActivityFor } from "../js/permissions.js";
+import {
+  canCancelActivityFor,
+  canDeleteActivityFor,
+  canEditActivityFor,
+  canManageActivityFor,
+} from "../js/permissions.js";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260910050634_member_owned_activity_management.sql");
+const capabilityMigration = read("../supabase/site/migrations/20260911102000_member_activity_capability_boundaries.sql");
 const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
@@ -21,22 +27,66 @@ function auth({ id = "member", categories = [], community = false, system = fals
   };
 }
 
-test("activity management combines standalone ownership, resource responsibility, and administration", () => {
-  const standalone = { series_id: null, created_by: "owner", category_id: 7 };
-  const recurring = { series_id: 13, created_by: "owner", category_id: 7 };
-  assert.equal(canManageActivityFor(auth({ id: "owner" }), standalone), true);
-  assert.equal(canManageActivityFor(auth({ id: "owner" }), recurring), false);
-  assert.equal(canManageActivityFor(auth({ categories: [7] }), recurring), true);
-  assert.equal(canManageActivityFor(auth({ categories: [8] }), standalone), false);
-  assert.equal(canManageActivityFor(auth({ community: true }), recurring), true);
-  assert.equal(canManageActivityFor(auth({ system: true }), recurring), true);
+function activity({
+  seriesId = null,
+  creator = "owner",
+  categoryId = 7,
+  status = "scheduled",
+} = {}) {
+  return {
+    series_id: seriesId,
+    created_by: creator,
+    category_id: categoryId,
+    status,
+  };
+}
+
+test("activity capabilities separate member edit/cancel from operator deletion", () => {
+  const owner = auth({ id: "owner" });
+  const manager = auth({ categories: [7] });
+  const community = auth({ community: true });
+  const system = auth({ system: true });
+  const scheduled = activity();
+  const closed = activity({ status: "closed" });
+  const cancelled = activity({ status: "cancelled" });
+  const completed = activity({ status: "completed" });
+  const recurring = activity({ seriesId: 13 });
+
+  assert.equal(canEditActivityFor(owner, scheduled), true);
+  assert.equal(canEditActivityFor(owner, closed), true);
+  assert.equal(canEditActivityFor(owner, cancelled), false);
+  assert.equal(canEditActivityFor(owner, completed), false);
+  assert.equal(canEditActivityFor(owner, recurring), false);
+  assert.equal(canManageActivityFor(owner, scheduled), true);
+  assert.equal(canManageActivityFor(owner, cancelled), false);
+
+  assert.equal(canCancelActivityFor(owner, scheduled), true);
+  assert.equal(canCancelActivityFor(owner, closed), true);
+  assert.equal(canCancelActivityFor(owner, cancelled), false);
+  assert.equal(canCancelActivityFor(owner, completed), false);
+  assert.equal(canCancelActivityFor(owner, recurring), false);
+
+  assert.equal(canDeleteActivityFor(owner, scheduled), false);
+  assert.equal(canDeleteActivityFor(manager, scheduled), true);
+  assert.equal(canDeleteActivityFor(manager, recurring), false);
+  assert.equal(canDeleteActivityFor(community, scheduled), true);
+  assert.equal(canDeleteActivityFor(system, scheduled), true);
+
+  assert.equal(canEditActivityFor(manager, recurring), true);
+  assert.equal(canCancelActivityFor(manager, recurring), true);
+  assert.equal(canEditActivityFor(auth({ categories: [8] }), scheduled), false);
+  assert.equal(canEditActivityFor(community, recurring), true);
+  assert.equal(canEditActivityFor(system, recurring), true);
 });
 
 test("approved routes and activity UI expose ownership-aware single activity management", () => {
   assert.match(app, /route\("\/activities\/new", "활동 등록", "approved"/);
   assert.match(app, /route\("\/activities\/:id\/edit", "활동 수정", "approved"/);
   assert.match(activities, /href: "#\/activities\/new"/);
-  assert.match(detail, /canManageActivity\(event\)/);
+  assert.match(detail, /canEditActivityFor\(auth, event\)/);
+  assert.match(detail, /canCancelActivityFor\(auth, event\)/);
+  assert.match(detail, /canDeleteActivityFor\(auth, event\)/);
+  assert.match(detail, /permissions\.canDelete \? el\("button"/);
   assert.match(detail, /removeEvent\(event\.id\)/);
   assert.match(form, /event\?\.created_by === auth\.user\?\.id/);
   assert.match(form, /permissions\.canCreateRecurring \?/);
@@ -83,12 +133,33 @@ test("update boundary keeps ownership standalone and recurring occurrences manag
   );
 });
 
-test("safe removal preserves recurring occurrences and activities with operational history", () => {
-  assert.match(migration, /create or replace function public\.remove_or_cancel_event/);
+test("terminal member-owned activities are read-only unless the owner is also an operator", () => {
+  assert.match(capabilityMigration, /create or replace function private\.enforce_member_activity_terminal_read_only/);
+  assert.match(capabilityMigration, /old\.series_id is null/);
+  assert.match(capabilityMigration, /old\.created_by = v_user_id/);
+  assert.match(capabilityMigration, /old\.status in \('cancelled', 'completed'\)/);
+  assert.match(capabilityMigration, /not private\.has_admin_permission\('community'\)/);
+  assert.match(capabilityMigration, /not private\.is_category_manager\(old\.category_id\)/);
+});
+
+test("physical removal is reserved for category or community operators", () => {
+  assert.match(capabilityMigration, /create or replace function public\.remove_or_cancel_event/);
   assert.match(
-    migration,
+    capabilityMigration,
+    /if not \(\s*private\.has_admin_permission\('community'\)\s*or private\.is_category_manager\(v_event\.category_id\)\s*\) then/,
+  );
+  assert.doesNotMatch(
+    capabilityMigration,
     /v_event\.series_id is null[\s\S]*v_event\.created_by = v_user_id/,
   );
+  assert.match(capabilityMigration, /if v_event\.series_id is not null or exists/);
+  assert.match(capabilityMigration, /update public\.events set status = 'cancelled'/);
+  assert.match(capabilityMigration, /delete from public\.events where id = p_event_id/);
+  assert.match(capabilityMigration, /grant execute on function public\.remove_or_cancel_event\(bigint\) to authenticated/);
+});
+
+test("safe removal preserves recurring occurrences and activities with operational history", () => {
+  assert.match(migration, /create or replace function public\.remove_or_cancel_event/);
   assert.match(migration, /if v_event\.series_id is not null or exists/);
   assert.match(migration, /from public\.event_participants participant[\s\S]*participant\.event_id = p_event_id/);
   assert.match(migration, /from public\.notifications notification[\s\S]*notification\.event_id = p_event_id/);

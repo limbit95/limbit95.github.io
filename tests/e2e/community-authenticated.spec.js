@@ -364,7 +364,7 @@ test.describe("approved member flow", () => {
     expectNoPageErrors(pageErrors);
   });
 
-  test("creates a single activity when the recurring control is not rendered", async ({ page }, testInfo) => {
+  test("creates and cancels a single activity without exposing member deletion", async ({ page }, testInfo) => {
     test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
     const pageErrors = collectPageErrors(page);
     const title = `E2E 일반 회원 단일 활동 ${projectToken(testInfo)}`;
@@ -389,10 +389,19 @@ test.describe("approved member flow", () => {
 
     await expect(page).toHaveURL(/#\/activities\/\d+$/);
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "활동 삭제", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "일정 취소", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "일정 취소", exact: true }).click();
+    const cancelDialog = page.getByRole("alertdialog");
+    await expect(cancelDialog).toBeVisible();
+    await cancelDialog.getByRole("button", { name: "일정 취소", exact: true }).click();
+    await expect(page.getByRole("link", { name: "✏️ 활동 수정", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "일정 취소", exact: true })).toHaveCount(0);
     expectNoPageErrors(pageErrors);
   });
 
-  test("enforces member activity transitions and conservative removal in the database", async ({}, testInfo) => {
+  test("enforces member activity transitions and operator-only removal in the database", async ({}, testInfo) => {
     test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
     const token = projectToken(testInfo);
     const accessToken = await memberSession();
@@ -475,13 +484,12 @@ test.describe("approved member flow", () => {
         title: "E2E 운영 이력", body: "삭제 시 보존되어야 합니다.", event_id: historyEventId,
       }),
     });
-    const preserved = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
+    const ownerHistoryRemoval = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
       method: "POST", body: JSON.stringify({ p_event_id: historyEventId }),
     });
-    expect(preserved.response.status).toBe(200);
-    expect(preserved.body.action).toBe("cancelled");
-    const preservedRows = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
-    expect(preservedRows[0].status).toBe("cancelled");
+    expect(ownerHistoryRemoval.response.status).toBeGreaterThanOrEqual(400);
+    const historyBeforeOperator = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
+    expect(historyBeforeOperator[0].status).toBe("scheduled");
 
     const removableRows = await authenticatedRequest(accessToken, "/rest/v1/events?select=id", {
       method: "POST",
@@ -490,7 +498,37 @@ test.describe("approved member flow", () => {
     });
     expect(removableRows.response.status).toBe(201);
     const removableEventId = Number(removableRows.body[0].id);
-    const removed = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
+    const ownerCleanRemoval = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
+      method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
+    });
+    expect(ownerCleanRemoval.response.status).toBeGreaterThanOrEqual(400);
+    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toHaveLength(1);
+
+    await serviceRoleRequest("/rest/v1/admin_permissions", {
+      method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ user_id: adminUserId, permission: "community" }),
+    });
+    const adminToken = await memberSession(adminEmail, adminPassword);
+    const communityUpdate = await authenticatedRequest(adminToken, `/rest/v1/events?id=eq.${historyEventId}&select=id`, {
+      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `community ${token}` }),
+    });
+    expect(communityUpdate.response.status).toBe(200);
+    expect(communityUpdate.body).toHaveLength(1);
+
+    const preserved = await authenticatedRequest(adminToken, "/rest/v1/rpc/remove_or_cancel_event", {
+      method: "POST", body: JSON.stringify({ p_event_id: historyEventId }),
+    });
+    expect(preserved.response.status).toBe(200);
+    expect(preserved.body.action).toBe("cancelled");
+    const preservedRows = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
+    expect(preservedRows[0].status).toBe("cancelled");
+
+    const terminalOwnerEdit = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${historyEventId}`, {
+      method: "PATCH", body: JSON.stringify({ title: `terminal forbidden ${token}` }),
+    });
+    expect(terminalOwnerEdit.response.status).toBeGreaterThanOrEqual(400);
+
+    const removed = await authenticatedRequest(adminToken, "/rest/v1/rpc/remove_or_cancel_event", {
       method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
     });
     expect(removed.response.status).toBe(200);
@@ -506,17 +544,6 @@ test.describe("approved member flow", () => {
     });
     expect(managerUpdate.response.status).toBe(200);
     expect(managerUpdate.body).toHaveLength(1);
-
-    await serviceRoleRequest("/rest/v1/admin_permissions", {
-      method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
-      body: JSON.stringify({ user_id: adminUserId, permission: "community" }),
-    });
-    const adminToken = await memberSession(adminEmail, adminPassword);
-    const communityUpdate = await authenticatedRequest(adminToken, `/rest/v1/events?id=eq.${historyEventId}&select=id`, {
-      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `community ${token}` }),
-    });
-    expect(communityUpdate.response.status).toBe(200);
-    expect(communityUpdate.body).toHaveLength(1);
 
     await serviceRoleRequest(
       `/rest/v1/category_managers?category_id=eq.${fixtureCategoryId}&user_id=eq.${encodeURIComponent(memberUserId)}`,
