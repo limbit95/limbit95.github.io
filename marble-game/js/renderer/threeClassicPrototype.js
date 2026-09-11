@@ -10,6 +10,11 @@ export const CLASSIC_CAMERA_PROFILE = Object.freeze({
   target: Object.freeze([0, 1.25, 0]),
 });
 
+export const CLASSIC_RENDER_PROFILE = Object.freeze({
+  maxPixelRatio: 2,
+  maxRenderPixels: 2_400_000,
+});
+
 export const CLASSIC_VISUAL_PROFILE = Object.freeze({
   style: "bright-toy-city",
   boardMinimumTiles: 30,
@@ -92,6 +97,17 @@ export function createOrthographicBounds(width, height, baseViewSize = CLASSIC_C
     top: verticalSize / 2,
     bottom: -verticalSize / 2,
   });
+}
+
+export function resolveClassicRendererPixelRatio(width, height, devicePixelRatio = 1) {
+  const safeWidth = Math.max(1, Number(width) || 1);
+  const safeHeight = Math.max(1, Number(height) || 1);
+  const safeDevicePixelRatio = Math.max(1, Number(devicePixelRatio) || 1);
+  const requestedPixelRatio = Math.min(safeDevicePixelRatio, CLASSIC_RENDER_PROFILE.maxPixelRatio);
+  const pixelBudgetRatio = Math.sqrt(
+    CLASSIC_RENDER_PROFILE.maxRenderPixels / (safeWidth * safeHeight),
+  );
+  return Math.max(1, Math.min(requestedPixelRatio, pixelBudgetRatio));
 }
 
 function createFallbackLayout(normalized, halfExtent, elevation) {
@@ -369,6 +385,11 @@ export function createClassicThreePrototypeRenderer({
     camera.top = bounds.top;
     camera.bottom = bounds.bottom;
     camera.updateProjectionMatrix();
+    webglRenderer.setPixelRatio(resolveClassicRendererPixelRatio(
+      width,
+      height,
+      window.devicePixelRatio || 1,
+    ));
     webglRenderer.setSize(width, height, false);
   }
 
@@ -982,7 +1003,6 @@ export function createClassicThreePrototypeRenderer({
         alpha: false,
         powerPreference: "high-performance",
       });
-      webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       webglRenderer.shadowMap.enabled = true;
       webglRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
       webglRenderer.outputColorSpace = THREE.SRGBColorSpace;
