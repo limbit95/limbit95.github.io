@@ -1,0 +1,89 @@
+.player-hud-layer .player-card {
+  overflow: visible;
+}
+
+.player-money-feedback {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 8px;
+  z-index: 4;
+  display: grid;
+  min-width: 92px;
+  gap: 1px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 11px;
+  background: rgba(15, 27, 38, 0.92);
+  box-shadow: 0 10px 24px rgba(3, 12, 20, 0.24);
+  text-align: right;
+  pointer-events: none;
+  animation: marble-money-feedback-rise 760ms ease-out both;
+}
+
+.player-hud-layer .player-card[data-seat="2"] .player-money-feedback,
+.player-hud-layer .player-card[data-seat="3"] .player-money-feedback {
+  top: auto;
+  bottom: calc(100% + 7px);
+}
+
+.player-money-feedback span {
+  color: #b9c6d2;
+  font-size: 0.58rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.player-money-feedback strong {
+  font-size: 0.78rem;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.player-money-feedback[data-tone="gain"] {
+  border-color: rgba(117, 222, 161, 0.4);
+}
+
+.player-money-feedback[data-tone="gain"] strong {
+  color: #8be2ad;
+}
+
+.player-money-feedback[data-tone="loss"] {
+  border-color: rgba(255, 146, 126, 0.42);
+}
+
+.player-money-feedback[data-tone="loss"] strong {
+  color: #ffad9e;
+}
+
+.player-hud-layer .player-card[data-money-effect="gain"] {
+  border-color: rgba(117, 222, 161, 0.5);
+}
+
+.player-hud-layer .player-card[data-money-effect="loss"] {
+  border-color: rgba(255, 146, 126, 0.52);
+}
+
+@keyframes marble-money-feedback-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.96);
+  }
+  20% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-money-feedback {
+    animation: none;
+  }
+}

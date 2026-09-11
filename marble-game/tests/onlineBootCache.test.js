@@ -10,10 +10,12 @@ const controllerSource = readFileSync(new URL("../js/onlineGameController.js", i
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
 const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
 const diceStageLazySource = readFileSync(new URL("../js/diceStageOnlineLazy.js", import.meta.url), "utf8");
+const moneyRendererSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260910-r10"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /money-presentation\.css\?v=20260912-r15/);
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
@@ -25,7 +27,7 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(diceStageLazySource, /presentationFoundation\.js\?v=20260912-r13/);
 });
 
-test("online recovery session bypasses the stale r8 module while untouched core imports stay pinned", () => {
+test("online recovery session bypasses stale modules while untouched core imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260910-r9"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
@@ -37,7 +39,9 @@ test("online recovery session bypasses the stale r8 module while untouched core 
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
+  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r15/);
+  assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
+  assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r15/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
@@ -50,7 +54,6 @@ test("online Marble boot probes snapshot before loading the controller", () => {
   assert.match(playWindowSource, /서버 게임 상태 응답이 지연되고 있습니다/);
   assert.match(playWindowSource, /현재 계정이 이 게임의 참가자로 확인되지 않습니다/);
 });
-
 
 test("2D diagnostic boot uses a dedicated controller with no renderer, dice, ownership or presence imports", () => {
   assert.match(playWindowSource, /onlineGameController2d\.js/);
