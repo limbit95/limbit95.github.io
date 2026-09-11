@@ -392,6 +392,11 @@ test.describe("approved member flow", () => {
     await expect(page.getByRole("button", { name: "활동 삭제", exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "일정 취소", exact: true })).toBeVisible();
 
+    const shareDialog = page.getByRole("dialog", { name: "활동이 등록됐어요!" });
+    await expect(shareDialog).toBeVisible();
+    await shareDialog.getByRole("button", { name: "나중에", exact: true }).click();
+    await expect(shareDialog).toBeHidden();
+
     await page.getByRole("button", { name: "일정 취소", exact: true }).click();
     const cancelDialog = page.getByRole("alertdialog");
     await expect(cancelDialog).toBeVisible();
