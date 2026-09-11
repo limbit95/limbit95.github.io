@@ -65,56 +65,8 @@ jobs:
       - name: Test The Game rules engine
         run: npm run test:the-game
 
-      - name: Test Marble action recovery
-        run: node --test marble-game/tests/onlineActionRecovery.test.js
-
-      - name: Test Marble boot cache
-        run: node --test marble-game/tests/onlineBootCache.test.js
-
-      - name: Test Marble active game recovery
-        run: node --test marble-game/tests/activeGameRecovery.test.js
-
-      - name: Test Marble multiplayer foundation
-        run: node --test marble-game/tests/multiplayerFoundation.test.js
-
-      - name: Test Marble online multiplayer
-        run: node --test marble-game/tests/onlineMultiplayer.test.js
-
-      - name: Test Marble online play route diagnostic
-        run: node --test marble-game/tests/onlinePlayRouteDiagnostic.test.js
-
-      - name: Test Marble online realtime isolation
-        run: node --test marble-game/tests/onlineRealtimeIsolation.test.js
-
-      - name: Test Marble online render isolation
-        run: node --test marble-game/tests/onlineRenderIsolation.test.js
-
-      - name: Test Marble online stability
-        run: node --test marble-game/tests/onlineStability.test.js
-
-      - name: Test Marble online startup
-        run: node --test marble-game/tests/onlineStartup.test.js
-
-      - name: Test Marble play window
-        run: node --test marble-game/tests/playWindow.test.js
-
-      - name: Test Marble presence HUD mutation loop
-        run: node --test marble-game/tests/presenceHudMutationLoop.test.js
-
-      - name: Test Marble remaining foundation
-        run: |
-          node --test \
-            marble-game/tests/classic.test.js \
-            marble-game/tests/diceCharge.test.js \
-            marble-game/tests/diceInteractionFlow.test.js \
-            marble-game/tests/foundation.test.js \
-            marble-game/tests/gameplayHud.test.js \
-            marble-game/tests/localPlaytest.test.js \
-            marble-game/tests/marbleBootstrap.test.js \
-            marble-game/tests/threePrototype.test.js \
-            marble-game/tests/tileInfo.test.js \
-            marble-game/tests/tollNotice.test.js \
-            marble-game/tests/visibilityPolish.test.js
+      - name: Test Marble foundation
+        run: npm run test:marble
 
       - name: Guard removed reminder client API
         shell: bash
