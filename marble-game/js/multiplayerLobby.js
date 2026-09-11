@@ -13,7 +13,11 @@ import {
   getOnlineGameSnapshot,
   startOnlineGame,
 } from "./onlineGameApi.js";
-import { enterOnlineClassicPlay, getOnlineRoomId } from "./onlinePlayRoute.js";
+import {
+  enterOnlineClassicPlay,
+  getOnlineRoomId,
+  reserveOnlineClassicPlayWindow,
+} from "./onlinePlayRoute.js";
 import {
   findViewer,
   isViewerHost,
@@ -48,7 +52,6 @@ if (root && !onlinePlayRoomId) {
   let unsubscribeLobby = null;
   let busy = false;
   let enteringGame = false;
-  let suppressPlayingAutoEnter = false;
 
   function setMessage(text, tone = "neutral") {
     message.textContent = text;
@@ -99,7 +102,7 @@ if (root && !onlinePlayRoomId) {
       case "ROOM_NOT_FOUND": return "입장할 수 있는 방을 찾지 못했어요. 방 코드를 다시 확인해 주세요.";
       case "ROOM_FULL": return "이미 인원이 가득 찬 방이에요.";
       case "ROOM_NOT_WAITING": return "이미 게임이 시작됐거나 닫힌 방이에요.";
-      case "ROOM_ALREADY_STARTED": return "이미 시작된 게임이에요. 게임 화면으로 이동합니다.";
+      case "ROOM_ALREADY_STARTED": return "이미 시작된 게임이에요. 게임 플레이 창을 열어 이어갈 수 있어요.";
       case "PLAYERS_NOT_READY": return "모든 참가자가 준비 완료한 뒤 시작할 수 있어요.";
       case "HOST_REQUIRED": return "게임 시작은 방장만 할 수 있어요.";
       case "VERSION_CONFLICT": return "다른 플레이어의 변경사항을 먼저 반영했어요. 다시 시도해 주세요.";
@@ -120,17 +123,6 @@ if (root && !onlinePlayRoomId) {
     url.searchParams.delete("onlineRoom");
     url.searchParams.set("room", snapshot.room.roomCode);
     return url.href;
-  }
-
-  function enterStartedGameIfNeeded() {
-    if (suppressPlayingAutoEnter) return false;
-    if (enteringGame || snapshot?.room?.status !== "playing" || !snapshot.room.currentGameId) return false;
-    enteringGame = true;
-    unsubscribeLobby?.();
-    unsubscribeLobby = null;
-    setStatus("게임 입장 중", "online");
-    enterOnlineClassicPlay(snapshot.room.id);
-    return true;
   }
 
   function renderPlayers() {
@@ -165,8 +157,6 @@ if (root && !onlinePlayRoomId) {
   }
 
   function renderLobby() {
-    if (enterStartedGameIfNeeded()) return;
-
     const active = Boolean(snapshot?.room?.id);
     setup.hidden = active;
     lobby.hidden = !active;
@@ -184,17 +174,16 @@ if (root && !onlinePlayRoomId) {
     if (snapshot.room.status === "playing") {
       startButton.hidden = false;
       startButton.disabled = busy;
-      startButton.textContent = "게임 이어가기";
+      startButton.textContent = "게임 플레이 창 열기";
       readyButton.hidden = true;
       leaveButton.textContent = "진행 중 게임 종료";
-      startHint.textContent = "진행 중인 게임이 있습니다. 2D 진단 모드로 이어가거나 게임을 종료한 뒤 새 방을 만들 수 있습니다.";
-      setStatus("진행 중", "warning");
+      startHint.textContent = "게임이 시작됐습니다. 버튼을 눌러 새 플레이 창에서 이어가 주세요.";
+      setStatus("게임 시작됨", "online");
       return;
     }
 
     startButton.textContent = "게임 시작";
     leaveButton.textContent = "방 나가기";
-    suppressPlayingAutoEnter = false;
 
     const viewer = findViewer(snapshot);
     const host = isViewerHost(snapshot);
@@ -208,11 +197,11 @@ if (root && !onlinePlayRoomId) {
 
     if (host) {
       startHint.textContent = readySummary.canStart
-        ? "모두 준비됐어요. 게임을 시작하면 모든 참가자가 같은 온라인 보드로 이동합니다."
+        ? "모두 준비됐어요. 게임을 시작하면 새 플레이 창이 열리고 참가자에게도 입장 버튼이 표시됩니다."
         : "2명 이상 참가하고 모든 참가자가 준비하면 게임을 시작할 수 있어요.";
     } else {
       startHint.textContent = viewer?.isReady
-        ? "방장이 게임을 시작하면 자동으로 온라인 보드에 입장합니다."
+        ? "방장이 게임을 시작하면 이 대기실에 게임 플레이 창 열기 버튼이 표시됩니다."
         : "준비 완료 후 방장의 게임 시작을 기다려 주세요.";
     }
 
@@ -310,25 +299,36 @@ if (root && !onlinePlayRoomId) {
     await acceptSnapshot(nextSnapshot, "방에 참가했어요.");
   }));
 
-  startButton.addEventListener("click", () => run(async () => {
-    if (snapshot?.room?.status === "playing") {
-      suppressPlayingAutoEnter = false;
-      enteringGame = true;
-      unsubscribeLobby?.();
-      unsubscribeLobby = null;
-      enterOnlineClassicPlay(snapshot.room.id);
-      return;
-    }
+  startButton.addEventListener("click", () => {
+    const reservedPlayWindow = reserveOnlineClassicPlayWindow();
 
-    const gameSnapshot = await startOnlineGame({
-      roomId: snapshot.room.id,
-      expectedVersion: snapshot.room.version,
+    void run(async () => {
+      try {
+        let roomId = snapshot.room.id;
+        if (snapshot?.room?.status !== "playing") {
+          const gameSnapshot = await startOnlineGame({
+            roomId: snapshot.room.id,
+            expectedVersion: snapshot.room.version,
+          });
+          roomId = gameSnapshot.room.id;
+        }
+
+        const entryMode = enterOnlineClassicPlay(roomId, { popupWindow: reservedPlayWindow });
+        if (entryMode === "blocked") {
+          reservedPlayWindow?.close?.();
+          setMessage("팝업이 차단됐어요. 브라우저에서 이 사이트의 팝업을 허용한 뒤 게임 플레이 창 열기를 다시 눌러 주세요.", "warning");
+          return;
+        }
+
+        enteringGame = true;
+        unsubscribeLobby?.();
+        unsubscribeLobby = null;
+      } catch (error) {
+        reservedPlayWindow?.close?.();
+        throw error;
+      }
     });
-    enteringGame = true;
-    unsubscribeLobby?.();
-    unsubscribeLobby = null;
-    enterOnlineClassicPlay(gameSnapshot.room.id);
-  }));
+  });
 
   readyButton.addEventListener("click", () => run(async () => {
     const viewer = findViewer(snapshot);
@@ -350,7 +350,6 @@ if (root && !onlinePlayRoomId) {
         unsubscribeLobby?.();
         unsubscribeLobby = null;
         snapshot = null;
-        suppressPlayingAutoEnter = false;
         renderLobby();
         setMessage("진행 중이던 게임을 종료했습니다. 새 방을 만들 수 있어요.", "success");
       });
@@ -401,9 +400,8 @@ if (root && !onlinePlayRoomId) {
 
       const activeRoom = await getMyActiveRoom();
       if (activeRoom) {
-        suppressPlayingAutoEnter = activeRoom.room.status === "playing";
         await acceptSnapshot(activeRoom, activeRoom.room.status === "playing"
-          ? "진행 중이던 Marble 게임이 있습니다. 이어가거나 종료할 수 있어요."
+          ? "진행 중이던 Marble 게임이 있습니다. 게임 플레이 창을 열어 이어갈 수 있어요."
           : "참가 중이던 Marble 방에 다시 연결했어요.");
       } else {
         renderLobby();
