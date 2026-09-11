@@ -58,6 +58,37 @@ export function createMoneyPresentationPlan(event) {
   return steps;
 }
 
+export function createMoneyPresentationSequence(event) {
+  const steps = createMoneyPresentationPlan(event);
+  if (!steps.length) return [];
+  const amount = normalizeAmount(event?.amount);
+  const isTollTransfer = event?.type === "MONEY_PAID"
+    && event?.reason === "TOLL"
+    && event?.creditorId
+    && steps.length === 2
+    && amount;
+
+  if (!isTollTransfer) return [{ kind: "money", steps }];
+  return [
+    { kind: "money", steps: [steps[0]], holdMs: 520 },
+    {
+      kind: "transfer",
+      fromPlayerId: event.playerId,
+      toPlayerId: event.creditorId,
+      amount,
+    },
+    { kind: "money", steps: [steps[1]], holdMs: 520 },
+  ];
+}
+
+export function resolveMoneyTransferCoinCount(value) {
+  const amount = normalizeAmount(value) ?? 0;
+  if (amount >= 1000) return 6;
+  if (amount >= 500) return 5;
+  if (amount >= 200) return 4;
+  return 3;
+}
+
 export function formatClassicMoneyDelta(value) {
   const amount = Number(value) || 0;
   const sign = amount > 0 ? "+" : amount < 0 ? "−" : "";
@@ -153,6 +184,35 @@ async function animateBalanceElement(element, fromValue, toValue, {
   });
 }
 
+function cardCenter(card) {
+  const rect = card?.getBoundingClientRect?.();
+  if (!rect) return null;
+  return {
+    x: Number(rect.left) + (Number(rect.width) / 2),
+    y: Number(rect.top) + (Number(rect.height) / 2),
+  };
+}
+
+function createTransferCoin(documentObject, start, end, index, coinCount, durationMs) {
+  const coin = documentObject.createElement("span");
+  coin.className = "money-transfer-coin";
+  coin.setAttribute("aria-hidden", "true");
+  const spread = (index - ((coinCount - 1) / 2)) * 4;
+  const startX = start.x + spread;
+  const startY = start.y + ((index % 2 === 0) ? -3 : 3);
+  const deltaX = end.x - startX;
+  const deltaY = end.y - startY;
+  coin.style.left = `${Math.round(startX)}px`;
+  coin.style.top = `${Math.round(startY)}px`;
+  coin.style.setProperty("--money-transfer-mid-x", `${Math.round(deltaX * 0.48)}px`);
+  coin.style.setProperty("--money-transfer-mid-y", `${Math.round((deltaY * 0.48) - 34 - (index * 2))}px`);
+  coin.style.setProperty("--money-transfer-end-x", `${Math.round(deltaX)}px`);
+  coin.style.setProperty("--money-transfer-end-y", `${Math.round(deltaY)}px`);
+  coin.style.setProperty("--money-transfer-duration", `${durationMs}ms`);
+  coin.style.setProperty("--money-transfer-delay", `${index * 48}ms`);
+  return coin;
+}
+
 export function createHudMoneyPresenter({
   documentObject = globalThis.document,
   seatByPlayerId = new Map(),
@@ -163,14 +223,12 @@ export function createHudMoneyPresenter({
     ? globalThis.requestAnimationFrame.bind(globalThis)
     : null,
   countDurationMs = 520,
+  transferDurationMs = 460,
 } = {}) {
-  async function play(event) {
-    const plan = createMoneyPresentationPlan(event);
-    if (!plan.length || !documentObject?.createElement) return;
-
+  async function presentSteps(steps, holdMs = reducedMotion ? 220 : 760) {
     const active = [];
     const counters = [];
-    for (const step of plan) {
+    for (const step of steps) {
       const previousBalance = Number(balanceByPlayerId.get(step.playerId));
       const hasPreviousBalance = Number.isFinite(previousBalance);
       const nextBalance = hasPreviousBalance ? previousBalance + step.signedAmount : null;
@@ -204,14 +262,55 @@ export function createHudMoneyPresenter({
     }
     if (!active.length && !counters.length) return;
 
-    await Promise.all([
-      wait(reducedMotion ? 220 : 760),
-      ...counters,
-    ]);
+    await Promise.all([wait(holdMs), ...counters]);
     for (const { card, feedback, tone } of active) {
       feedback.remove();
       if (card.dataset.moneyEffect === tone) delete card.dataset.moneyEffect;
       if (card.dataset.moneyCounting === tone) delete card.dataset.moneyCounting;
+    }
+  }
+
+  async function presentTransfer(phase) {
+    const fromCard = findHudCard(documentObject, seatByPlayerId, phase.fromPlayerId);
+    const toCard = findHudCard(documentObject, seatByPlayerId, phase.toPlayerId);
+    if (!fromCard || !toCard) return;
+
+    if (reducedMotion || !documentObject?.body?.append) {
+      toCard.dataset.moneyTransferImpact = "true";
+      await wait(160);
+      delete toCard.dataset.moneyTransferImpact;
+      return;
+    }
+
+    const start = cardCenter(fromCard);
+    const end = cardCenter(toCard);
+    if (!start || !end) return;
+
+    const layer = documentObject.createElement("div");
+    layer.className = "money-transfer-layer";
+    layer.setAttribute("aria-hidden", "true");
+    const coinCount = resolveMoneyTransferCoinCount(phase.amount);
+    for (let index = 0; index < coinCount; index += 1) {
+      layer.append(createTransferCoin(documentObject, start, end, index, coinCount, transferDurationMs));
+    }
+    documentObject.body.append(layer);
+    await wait(transferDurationMs + ((coinCount - 1) * 48) + 80);
+    layer.remove();
+    toCard.dataset.moneyTransferImpact = "true";
+    await wait(220);
+    delete toCard.dataset.moneyTransferImpact;
+  }
+
+  async function play(event) {
+    const sequence = createMoneyPresentationSequence(event);
+    if (!sequence.length || !documentObject?.createElement) return;
+
+    for (const phase of sequence) {
+      if (phase.kind === "transfer") {
+        await presentTransfer(phase);
+        continue;
+      }
+      await presentSteps(phase.steps, reducedMotion ? 220 : (phase.holdMs ?? 760));
     }
   }
 

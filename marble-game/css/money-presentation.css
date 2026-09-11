@@ -81,6 +81,71 @@
   border-color: rgba(255, 146, 126, 0.52);
 }
 
+.money-transfer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.money-transfer-coin {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border: 2px solid #f6c453;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff2a5 0 16%, #ffd75f 17% 48%, #d99613 49% 100%);
+  box-shadow: 0 0 0 1px rgba(104, 64, 0, 0.18), 0 3px 9px rgba(90, 52, 0, 0.3);
+  transform: translate(-50%, -50%);
+  animation: marble-money-transfer-flight var(--money-transfer-duration, 460ms) cubic-bezier(0.2, 0.75, 0.2, 1) both;
+  animation-delay: var(--money-transfer-delay, 0ms);
+}
+
+.money-transfer-coin::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(131, 78, 0, 0.36);
+  border-radius: 50%;
+}
+
+.player-hud-layer .player-card[data-money-transfer-impact="true"] {
+  animation: marble-money-transfer-impact 240ms ease-out both;
+}
+
+@keyframes marble-money-transfer-flight {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.64) rotateY(0deg);
+  }
+  12% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--money-transfer-mid-x)), calc(-50% + var(--money-transfer-mid-y))) scale(1.08) rotateY(220deg);
+  }
+  100% {
+    opacity: 0.96;
+    transform: translate(calc(-50% + var(--money-transfer-end-x)), calc(-50% + var(--money-transfer-end-y))) scale(0.72) rotateY(540deg);
+  }
+}
+
+@keyframes marble-money-transfer-impact {
+  0% {
+    transform: scale(1);
+    box-shadow: inherit;
+  }
+  45% {
+    transform: scale(1.045);
+    box-shadow: 0 0 0 3px rgba(255, 215, 95, 0.28), 0 10px 26px rgba(73, 47, 0, 0.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 @keyframes marble-money-feedback-rise {
   0% {
     opacity: 0;
@@ -110,7 +175,9 @@
     text-shadow: none;
   }
 
-  .player-money-feedback {
+  .player-money-feedback,
+  .money-transfer-coin,
+  .player-hud-layer .player-card[data-money-transfer-impact="true"] {
     animation: none;
   }
 }
