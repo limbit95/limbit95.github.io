@@ -2,6 +2,7 @@ import { getAuthState, initializeAuth, signOut } from "./auth.js";
 import { isSupabaseClientReady, isSupabaseConfigured } from "./supabaseClient.js";
 import { registerRoute, setBeforeRoute, setNotFound, startRouter, navigate, resolveRoute } from "./router.js";
 import { SITE_NAME } from "./config.js";
+import "./app-install.js";
 import { accessDeniedState, el, getErrorMessage, loadingState } from "./ui.js";
 import { createHeader } from "./components/header.js";
 import { createBottomNav } from "./components/bottomNav.js";
