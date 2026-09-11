@@ -1,8 +1,36 @@
+const COMPACT_PLAY_WIDTH = 900;
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
 const CLASSIC_PLAY_MODE = "classic";
 const ONLINE_DEFAULT_VISUAL_MODE = "full";
+const PLAY_WINDOW_NAME = "marbleClassicPlay";
+
+function shouldUseSameTab({ innerWidth = 0, coarsePointer = false } = {}) {
+  return innerWidth <= COMPACT_PLAY_WIDTH || coarsePointer;
+}
+
+function buildPopupFeatures({
+  availWidth = 1440,
+  availHeight = 900,
+  availLeft = 0,
+  availTop = 0,
+} = {}) {
+  const width = Math.min(availWidth, Math.max(960, Math.round(availWidth * 0.94)));
+  const height = Math.min(availHeight, Math.max(720, Math.round(availHeight * 0.92)));
+  const left = availLeft + Math.max(0, Math.round((availWidth - width) / 2));
+  const top = availTop + Math.max(0, Math.round((availHeight - height) / 2));
+
+  return [
+    "popup=yes",
+    `width=${width}`,
+    `height=${height}`,
+    `left=${left}`,
+    `top=${top}`,
+    "resizable=yes",
+    "scrollbars=yes",
+  ].join(",");
+}
 
 export function createOnlineClassicPlayUrl(href, roomId) {
   const url = new URL(href);
@@ -19,8 +47,32 @@ export function getOnlineRoomId(href) {
   return url.searchParams.get(ONLINE_ROOM_QUERY_KEY) || null;
 }
 
-export function enterOnlineClassicPlay(roomId, { locationObject = window.location } = {}) {
+export function enterOnlineClassicPlay(roomId, {
+  windowObject = window,
+  locationObject = window.location,
+  screenObject = window.screen,
+} = {}) {
   if (!roomId) throw new Error("ROOM_ID_REQUIRED");
+
   const url = createOnlineClassicPlayUrl(locationObject.href, roomId);
-  locationObject.assign(url.href);
+  const coarsePointer = Boolean(windowObject.matchMedia?.("(pointer: coarse)")?.matches);
+
+  if (shouldUseSameTab({ innerWidth: windowObject.innerWidth, coarsePointer })) {
+    locationObject.assign(url.href);
+    return "same-tab";
+  }
+
+  const popup = windowObject.open(
+    url.href,
+    PLAY_WINDOW_NAME,
+    buildPopupFeatures(screenObject),
+  );
+
+  if (!popup) {
+    locationObject.assign(url.href);
+    return "same-tab";
+  }
+
+  popup.focus?.();
+  return "popup";
 }
