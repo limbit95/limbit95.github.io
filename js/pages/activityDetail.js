@@ -1,4 +1,4 @@
-import { canManageActivity, getAuthState } from "../auth.js";
+import { getAuthState } from "../auth.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
 import { enhanceActivityDetails } from "../activity-detail-map.js";
 import { enhanceActivityShare } from "../activity-share-enhancements.js";
@@ -16,6 +16,11 @@ import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";
 import { EVENT_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../constants.js";
 import {
+  canCancelActivityFor,
+  canDeleteActivityFor,
+  canEditActivityFor,
+} from "../permissions.js";
+import {
   downloadFile,
   el,
   formatDate,
@@ -32,7 +37,9 @@ export async function renderActivityDetail(route) {
   const participants = await listEventParticipants(event.id);
   const counts = participationCounts(event);
   const mine = getMyParticipation(event, auth.user.id);
-  const canManage = canManageActivity(event);
+  const canEdit = canEditActivityFor(auth, event);
+  const canCancel = canCancelActivityFor(auth, event);
+  const canDelete = canDeleteActivityFor(auth, event);
   const root = pageContainer();
   const categoryColor = event.category?.color ?? "#2f6b4f";
 
@@ -63,7 +70,7 @@ export async function renderActivityDetail(route) {
         text: "📅 내 캘린더에 저장",
         onClick: () => downloadCalendar(event),
       }),
-      canManage ? el("a", {
+      canEdit ? el("a", {
         className: "button button--secondary",
         href: `#/activities/${event.id}/edit`,
         text: "✏️ 활동 수정",
@@ -87,8 +94,8 @@ export async function renderActivityDetail(route) {
       el("strong", { text: "참여자 주의사항" }),
       el("p", { className: "prose", text: event.participant_notice ?? "" }),
     ]),
-    canManage && event.status !== "cancelled"
-      ? managementSection(event, root)
+    canCancel || canDelete
+      ? managementSection(event, root, { canCancel, canDelete })
       : null,
   ]);
 
@@ -322,27 +329,30 @@ async function participantDialogContent(participants, counts) {
   return content;
 }
 
-function managementSection(event, root) {
+function managementSection(event, root, permissions) {
+  const guidance = permissions.canDelete
+    ? "일정 취소와 운영상 필요한 단일 활동 정리를 구분해 진행해 주세요."
+    : "활동 자체를 진행하지 않게 된 경우에만 일정을 취소해 주세요.";
   return el("section", { className: "activity-detail__management" }, [
     el("div", { className: "activity-detail__management-copy" }, [
       el("strong", { text: "활동 관리" }),
       el("p", {
         className: "small subtle",
-        text: "활동 자체를 진행하지 않게 된 경우에만 일정을 취소해 주세요.",
+        text: guidance,
       }),
     ]),
-    el("button", {
+    permissions.canCancel ? el("button", {
       className: "button activity-detail__cancel-schedule",
       type: "button",
       text: "일정 취소",
       onClick: (clickEvent) => cancelSchedule(event, root, clickEvent.currentTarget),
-    }),
-    el("button", {
+    }) : null,
+    permissions.canDelete ? el("button", {
       className: "button button--danger",
       type: "button",
       text: "활동 삭제",
       onClick: (clickEvent) => removeSchedule(event, root, clickEvent.currentTarget),
-    }),
+    }) : null,
   ]);
 }
 
