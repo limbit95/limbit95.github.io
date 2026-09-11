@@ -15,6 +15,10 @@ import {
   markOnlineVisualRuntime,
   performanceNow,
 } from "../onlineVisualPolicy.js?v=20260910-r10";
+import {
+  createAnimationDirector,
+  createAnimationQueue,
+} from "../presentation/presentationFoundation.js?v=20260912-r13";
 
 const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
 
@@ -82,6 +86,21 @@ export function createClassicThreePrototypeRenderer(options = {}, {
   const traceOnlineRenderer = isOnlineMarbleSession({ documentObject, locationObject });
   let initialRenderComplete = false;
   let mountedTarget = null;
+  const presentationQueue = createAnimationQueue({
+    onTaskError(error, metadata) {
+      consoleObject?.error?.("Marble presentation task failed", {
+        eventType: metadata?.eventType ?? null,
+        error,
+      });
+    },
+  });
+  const presentationDirector = createAnimationDirector({
+    presenters: {
+      PLAYER_MOVED(event) {
+        return renderer.playEvent(event);
+      },
+    },
+  });
 
   if (traceOnlineRenderer) {
     markOnlineVisualRuntime({ documentObject, locationObject });
@@ -202,9 +221,18 @@ export function createClassicThreePrototypeRenderer(options = {}, {
     },
 
     async playEvent(event) {
-      const value = await renderer.playEvent(event);
-      requestClassicShadowRefresh(mountedTarget);
-      return value;
+      const task = presentationDirector.createTask(event);
+      if (!task) {
+        const value = await renderer.playEvent(event);
+        requestClassicShadowRefresh(mountedTarget);
+        return value;
+      }
+
+      return presentationQueue.enqueue(async () => {
+        const value = await task();
+        requestClassicShadowRefresh(mountedTarget);
+        return value;
+      }, { eventType: event.type });
     },
 
     dispose() {

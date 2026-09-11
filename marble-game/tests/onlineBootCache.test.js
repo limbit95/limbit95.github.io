@@ -36,7 +36,7 @@ test("online recovery session bypasses the stale r8 module while untouched core 
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260911-r12/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260911-r11/);
+  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
