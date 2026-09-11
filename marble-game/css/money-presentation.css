@@ -2,6 +2,24 @@
   overflow: visible;
 }
 
+.player-hud-layer .player-card dl div:first-child dd {
+  font-variant-numeric: tabular-nums;
+  transform-origin: right center;
+  transition: color 140ms ease, transform 140ms ease, text-shadow 140ms ease;
+}
+
+.player-hud-layer .player-card[data-money-counting="gain"] dl div:first-child dd {
+  color: #9be8ba;
+  transform: scale(1.07);
+  text-shadow: 0 0 14px rgba(117, 222, 161, 0.26);
+}
+
+.player-hud-layer .player-card[data-money-counting="loss"] dl div:first-child dd {
+  color: #ffb3a6;
+  transform: scale(1.07);
+  text-shadow: 0 0 14px rgba(255, 146, 126, 0.24);
+}
+
 .player-money-feedback {
   position: absolute;
   top: calc(100% + 7px);
@@ -83,6 +101,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .player-hud-layer .player-card dl div:first-child dd {
+    transition: none;
+  }
+
+  .player-hud-layer .player-card[data-money-counting] dl div:first-child dd {
+    transform: none;
+    text-shadow: none;
+  }
+
   .player-money-feedback {
     animation: none;
   }

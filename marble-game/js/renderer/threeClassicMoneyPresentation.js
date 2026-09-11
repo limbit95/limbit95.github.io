@@ -14,7 +14,10 @@ import {
   createAnimationDirector,
   getSharedAnimationQueue,
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
-import { createHudMoneyPresenter } from "../presentation/moneyPresentation.js?v=20260912-r15";
+import {
+  createHudMoneyPresenter,
+  syncHudMoneyBalances,
+} from "../presentation/moneyPresentation.js?v=20260912-r16";
 
 export {
   CLASSIC_CAMERA_PROFILE,
@@ -32,14 +35,24 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   const documentObject = runtime.documentObject ?? globalThis.document;
   const windowObject = runtime.windowObject ?? globalThis.window;
   const consoleObject = runtime.consoleObject ?? globalThis.console;
+  const MutationObserverObject = runtime.MutationObserverObject
+    ?? windowObject?.MutationObserver
+    ?? globalThis.MutationObserver;
   const renderer = createBaseClassicThreePrototypeRenderer(options, runtime);
   const playerSeatById = new Map();
+  const playerBalanceById = new Map();
   const pendingStartEvents = [];
   const presentationQueue = getSharedAnimationQueue("classic-online");
+  let playerListObserver = null;
   const moneyPresenter = createHudMoneyPresenter({
     documentObject,
     seatByPlayerId: playerSeatById,
+    balanceByPlayerId: playerBalanceById,
     reducedMotion: windowObject?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true,
+    wait: (ms) => new Promise((resolve) => (windowObject?.setTimeout ?? globalThis.setTimeout)(resolve, ms)),
+    requestFrame: typeof windowObject?.requestAnimationFrame === "function"
+      ? windowObject.requestAnimationFrame.bind(windowObject)
+      : null,
   });
   const moneyDirector = createAnimationDirector({
     presenters: {
@@ -52,13 +65,39 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       MONEY_RECEIVED(event) {
         return moneyPresenter.play(event);
       },
+      PROPERTY_BOUGHT(event) {
+        return moneyPresenter.play(event);
+      },
+      PROPERTY_BUILT(event) {
+        return moneyPresenter.play(event);
+      },
     },
   });
 
-  function syncPlayerSeats(state) {
+  function syncVisibleMoney() {
+    syncHudMoneyBalances({
+      documentObject,
+      seatByPlayerId: playerSeatById,
+      balanceByPlayerId: playerBalanceById,
+    });
+  }
+
+  function syncPlayerPresentationState(state) {
     for (const player of state?.players ?? []) {
       playerSeatById.set(player.id, Number(player.seat) || 0);
+      if (Number.isFinite(Number(player.money))) {
+        playerBalanceById.set(player.id, Number(player.money));
+      }
     }
+    syncVisibleMoney();
+  }
+
+  function installMoneyHudObserver() {
+    if (playerListObserver || typeof MutationObserverObject !== "function") return;
+    const playerList = documentObject?.querySelector?.("[data-player-list]");
+    if (!playerList) return;
+    playerListObserver = new MutationObserverObject(() => syncVisibleMoney());
+    playerListObserver.observe(playerList, { childList: true });
   }
 
   function reportMoneyPresentationError(error, metadata) {
@@ -78,12 +117,15 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   }
 
   return Object.freeze({
-    mount(targetElement) {
-      return renderer.mount(targetElement);
+    async mount(targetElement) {
+      const value = await renderer.mount(targetElement);
+      installMoneyHudObserver();
+      syncVisibleMoney();
+      return value;
     },
 
     renderState(state) {
-      syncPlayerSeats(state);
+      syncPlayerPresentationState(state);
       return renderer.renderState(state);
     },
 
@@ -92,8 +134,10 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         pendingStartEvents.push(event);
         return undefined;
       }
-      if (event?.type === "MONEY_PAID" || event?.type === "MONEY_RECEIVED") {
-        return enqueueMoney(event);
+      if (moneyDirector.handles(event?.type)) {
+        const value = await renderer.playEvent(event);
+        await enqueueMoney(event);
+        return value;
       }
 
       const value = await renderer.playEvent(event);
@@ -105,8 +149,11 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     },
 
     dispose() {
+      playerListObserver?.disconnect?.();
+      playerListObserver = null;
       pendingStartEvents.length = 0;
       playerSeatById.clear();
+      playerBalanceById.clear();
       renderer.dispose();
     },
   });

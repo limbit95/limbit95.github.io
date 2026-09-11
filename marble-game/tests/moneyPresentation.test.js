@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 
 import {
   createMoneyPresentationPlan,
+  formatClassicMoneyBalance,
   formatClassicMoneyDelta,
+  interpolateMoneyBalance,
 } from "../js/presentation/moneyPresentation.js";
 
 const wrapperSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
@@ -72,9 +74,46 @@ test("tax presentation stays a one-way loss", () => {
   }]);
 });
 
-test("money delta formatting is presentation-only and signed", () => {
+test("property purchase and building costs use the same loss presentation path", () => {
+  assert.deepEqual(createMoneyPresentationPlan({
+    type: "PROPERTY_BOUGHT",
+    playerId: "p1",
+    amount: 500,
+  }), [{
+    playerId: "p1",
+    tone: "loss",
+    signedAmount: -500,
+    label: "도시 구매",
+  }]);
+
+  assert.deepEqual(createMoneyPresentationPlan({
+    type: "PROPERTY_BUILT",
+    playerId: "p1",
+    amount: 300,
+  }), [{
+    playerId: "p1",
+    tone: "loss",
+    signedAmount: -300,
+    label: "건설 비용",
+  }]);
+});
+
+test("money formatting separates signed feedback from authoritative balance display", () => {
   assert.equal(formatClassicMoneyDelta(1200), "+1,200 골드");
   assert.equal(formatClassicMoneyDelta(-450), "−450 골드");
+  assert.equal(formatClassicMoneyBalance(1250), "1,250 골드");
+});
+
+test("money balance interpolation is monotonic and reaches the authoritative target", () => {
+  assert.equal(interpolateMoneyBalance(1000, 500, 0), 1000);
+  const halfway = interpolateMoneyBalance(1000, 500, 0.5);
+  assert.ok(halfway < 1000);
+  assert.ok(halfway > 500);
+  assert.equal(interpolateMoneyBalance(1000, 500, 1), 500);
+
+  assert.equal(interpolateMoneyBalance(500, 900, 0), 500);
+  assert.ok(interpolateMoneyBalance(500, 900, 0.5) > 500);
+  assert.equal(interpolateMoneyBalance(500, 900, 1), 900);
 });
 
 test("START reward is deferred until PLAYER_MOVED completes", () => {
@@ -85,7 +124,14 @@ test("START reward is deferred until PLAYER_MOVED completes", () => {
   assert.ok(moveAwaitIndex > startIndex);
   assert.ok(flushIndex > moveAwaitIndex);
   assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
-  assert.match(wrapperSource, /MONEY_PAID/);
-  assert.match(wrapperSource, /MONEY_RECEIVED/);
+});
+
+test("money wrapper keeps prior HUD balances during animation and covers purchase/build events", () => {
+  assert.match(wrapperSource, /playerBalanceById = new Map\(\)/);
+  assert.match(wrapperSource, /MutationObserverObject/);
+  assert.match(wrapperSource, /syncHudMoneyBalances/);
+  assert.match(wrapperSource, /PROPERTY_BOUGHT/);
+  assert.match(wrapperSource, /PROPERTY_BUILT/);
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r16/);
   assert.match(wrapperSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
 });
