@@ -4,11 +4,11 @@ import { readFileSync } from "node:fs";
 
 const lobbySource = readFileSync(new URL("../js/multiplayerLobby.js", import.meta.url), "utf8");
 
-test("restored playing room stays in lobby until the player chooses resume or end", () => {
-  assert.match(lobbySource, /let suppressPlayingAutoEnter = false/);
-  assert.match(lobbySource, /suppressPlayingAutoEnter = activeRoom\.room\.status === "playing"/);
-  assert.match(lobbySource, /if \(suppressPlayingAutoEnter\) return false/);
-  assert.match(lobbySource, /startButton\.textContent = "게임 이어가기"/);
+test("restored playing room stays in lobby until the player opens the play window or ends the game", () => {
+  assert.match(lobbySource, /if \(snapshot\.room\.status === "playing"\)/);
+  assert.match(lobbySource, /startButton\.textContent = "게임 플레이 창 열기"/);
+  assert.match(lobbySource, /게임이 시작됐습니다\. 버튼을 눌러 새 플레이 창에서 이어가 주세요/);
+  assert.match(lobbySource, /enterOnlineClassicPlay\(roomId, \{ popupWindow: reservedPlayWindow \}\)/);
   assert.match(lobbySource, /leaveButton\.textContent = "진행 중 게임 종료"/);
 });
 

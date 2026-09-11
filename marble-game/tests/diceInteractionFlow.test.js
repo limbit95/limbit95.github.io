@@ -21,12 +21,17 @@ test("roll and next-turn actions share the centered board control slot", () => {
   assert.match(playWindowCss, /action-button\[data-action="endTurn"\]/);
 });
 
-test("dice wait on the board and launch upward from their settled position", () => {
+test("dice wait on the board and use a staged throw, landing bounce, and orientation settle", () => {
   assert.match(diceChargeSource, /diceStageElement\.dataset\.ready = String\(rollReady\)/);
   assert.match(diceStageSource, /function showReadyDice\(\)/);
   assert.match(diceStageSource, /if \(target\.dataset\.ready === "true"\) showReadyDice\(\)/);
   assert.match(diceStageSource, /const starts = dice\.map/);
-  assert.match(diceStageSource, /const jump = Math\.sin\(progress \* Math\.PI\) \* motion\.throwHeight/);
+  assert.match(diceStageSource, /const flightProgress = Math\.min\(1, progress \/ motion\.flightRatio\)/);
+  assert.match(diceStageSource, /const travelProgress = smoothstep01\(flightProgress\)/);
+  assert.match(diceStageSource, /const landingBounce = landingProgress > 0/);
+  assert.match(diceStageSource, /const orientationBlend = smoothstep01\(landingProgress\)/);
+  assert.match(diceStageSource, /die\.quaternion\.slerp\(finalRotations\[index\], orientationBlend\)/);
+  assert.doesNotMatch(diceStageSource, /const eased = 1 - \(\(1 - progress\) \*\* 3\)/);
   assert.doesNotMatch(diceStageSource, /motion\.horizontalSpread \+ 0\.55/);
 });
 

@@ -9,15 +9,19 @@ const twoDControllerSource = readFileSync(new URL("../js/onlineGameController2d.
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
 const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
+const diceStageLazySource = readFileSync(new URL("../js/diceStageOnlineLazy.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260910-r10"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260911-r12"/);
+  assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
   assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r10"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
+  assert.match(diceStageLazySource, /diceStage\.js\?implementation=20260911-r12/);
 });
 
 test("online recovery session bypasses the stale r8 module while untouched core imports stay pinned", () => {
@@ -30,9 +34,9 @@ test("online recovery session bypasses the stale r8 module while untouched core 
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
   assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r9/g) ?? []).length, 1);
 
-  assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260911-r12/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260911-r11/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
