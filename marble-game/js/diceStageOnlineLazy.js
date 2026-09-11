@@ -5,7 +5,7 @@ import {
   normalizeDiceFace,
   normalizeRollStrength,
   rollAnimationProfile,
-} from "./diceStage.js?implementation=20260910-r8";
+} from "./diceStage.js?implementation=20260911-r12";
 import {
   logMarbleRenderStep,
   markOnlineVisualRuntime,
