@@ -8,7 +8,7 @@ const exitSource = readFileSync(new URL("../js/onlineGameExit.js", import.meta.u
 
 test("online game realtime subscribers use isolated channel topics", () => {
   assert.match(apiSource, /channelScope = "session"/);
-  assert.match(apiSource, /marble-game:\$\{roomId\}:\$\{channelScope\}:\$\{actionId\(\)\}/);
+  assert.match(apiSource, /marble-game:\$\{roomId\}:\$\{channelScope\}:\$\{createOnlineActionId\(\)\}/);
   assert.match(sessionSource, /channelScope: "session"/);
   assert.match(exitSource, /channelScope: "exit"/);
 });
