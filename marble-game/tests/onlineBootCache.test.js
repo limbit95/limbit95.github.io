@@ -13,6 +13,7 @@ const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import
 test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260910-r10"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
   assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r10"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
@@ -32,7 +33,7 @@ test("online recovery session bypasses the stale r8 module while untouched core 
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260910-r10/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260910-r10/);
+  assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260911-r11/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
