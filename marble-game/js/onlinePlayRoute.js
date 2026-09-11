@@ -32,6 +32,12 @@ function buildPopupFeatures({
   ].join(",");
 }
 
+function popupEligible(windowObject) {
+  const coarsePointer = Boolean(windowObject?.matchMedia?.("(pointer: coarse)")?.matches);
+  return typeof windowObject?.open === "function"
+    && !shouldUseSameTab({ innerWidth: windowObject?.innerWidth ?? 0, coarsePointer });
+}
+
 export function createOnlineClassicPlayUrl(href, roomId) {
   const url = new URL(href);
   url.searchParams.set(PLAY_QUERY_KEY, CLASSIC_PLAY_MODE);
@@ -47,10 +53,25 @@ export function getOnlineRoomId(href) {
   return url.searchParams.get(ONLINE_ROOM_QUERY_KEY) || null;
 }
 
+export function reserveOnlineClassicPlayWindow({
+  windowObject = globalThis.window,
+  screenObject = globalThis.screen,
+} = {}) {
+  if (!popupEligible(windowObject)) return null;
+  const popup = windowObject.open(
+    "about:blank",
+    PLAY_WINDOW_NAME,
+    buildPopupFeatures(screenObject ?? undefined),
+  );
+  popup?.focus?.();
+  return popup ?? null;
+}
+
 export function enterOnlineClassicPlay(roomId, {
   windowObject = globalThis.window,
   locationObject = globalThis.location,
   screenObject = globalThis.screen,
+  popupWindow = null,
 } = {}) {
   if (!roomId) throw new Error("ROOM_ID_REQUIRED");
   if (!locationObject?.href || typeof locationObject.assign !== "function") {
@@ -59,9 +80,8 @@ export function enterOnlineClassicPlay(roomId, {
 
   const url = createOnlineClassicPlayUrl(locationObject.href, roomId);
   const coarsePointer = Boolean(windowObject?.matchMedia?.("(pointer: coarse)")?.matches);
-  const canOpenPopup = typeof windowObject?.open === "function";
 
-  if (!canOpenPopup || shouldUseSameTab({
+  if (shouldUseSameTab({
     innerWidth: windowObject?.innerWidth ?? 0,
     coarsePointer,
   })) {
@@ -69,16 +89,20 @@ export function enterOnlineClassicPlay(roomId, {
     return "same-tab";
   }
 
-  const popup = windowObject.open(
+  if (popupWindow && popupWindow.closed !== true) {
+    if (typeof popupWindow.location?.replace === "function") popupWindow.location.replace(url.href);
+    else popupWindow.location.href = url.href;
+    popupWindow.focus?.();
+    return "popup";
+  }
+
+  const popup = windowObject?.open?.(
     url.href,
     PLAY_WINDOW_NAME,
     buildPopupFeatures(screenObject ?? undefined),
   );
 
-  if (!popup) {
-    locationObject.assign(url.href);
-    return "same-tab";
-  }
+  if (!popup) return "blocked";
 
   popup.focus?.();
   return "popup";
