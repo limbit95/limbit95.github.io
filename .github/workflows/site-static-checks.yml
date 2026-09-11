@@ -71,19 +71,35 @@ jobs:
       - name: Test Marble boot cache
         run: node --test marble-game/tests/onlineBootCache.test.js
 
-      - name: Test Marble online regression
-        run: |
-          node --test \
-            marble-game/tests/activeGameRecovery.test.js \
-            marble-game/tests/multiplayerFoundation.test.js \
-            marble-game/tests/onlineMultiplayer.test.js \
-            marble-game/tests/onlinePlayRouteDiagnostic.test.js \
-            marble-game/tests/onlineRealtimeIsolation.test.js \
-            marble-game/tests/onlineRenderIsolation.test.js \
-            marble-game/tests/onlineStability.test.js \
-            marble-game/tests/onlineStartup.test.js \
-            marble-game/tests/playWindow.test.js \
-            marble-game/tests/presenceHudMutationLoop.test.js
+      - name: Test Marble active game recovery
+        run: node --test marble-game/tests/activeGameRecovery.test.js
+
+      - name: Test Marble multiplayer foundation
+        run: node --test marble-game/tests/multiplayerFoundation.test.js
+
+      - name: Test Marble online multiplayer
+        run: node --test marble-game/tests/onlineMultiplayer.test.js
+
+      - name: Test Marble online play route diagnostic
+        run: node --test marble-game/tests/onlinePlayRouteDiagnostic.test.js
+
+      - name: Test Marble online realtime isolation
+        run: node --test marble-game/tests/onlineRealtimeIsolation.test.js
+
+      - name: Test Marble online render isolation
+        run: node --test marble-game/tests/onlineRenderIsolation.test.js
+
+      - name: Test Marble online stability
+        run: node --test marble-game/tests/onlineStability.test.js
+
+      - name: Test Marble online startup
+        run: node --test marble-game/tests/onlineStartup.test.js
+
+      - name: Test Marble play window
+        run: node --test marble-game/tests/playWindow.test.js
+
+      - name: Test Marble presence HUD mutation loop
+        run: node --test marble-game/tests/presenceHudMutationLoop.test.js
 
       - name: Test Marble remaining foundation
         run: |
