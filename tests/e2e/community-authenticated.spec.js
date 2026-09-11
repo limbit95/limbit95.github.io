@@ -504,16 +504,6 @@ test.describe("approved member flow", () => {
     expect(ownerCleanRemoval.response.status).toBeGreaterThanOrEqual(400);
     expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toHaveLength(1);
 
-    await serviceRoleRequest("/rest/v1/category_managers", {
-      method: "POST",
-      body: JSON.stringify({ category_id: fixtureCategoryId, user_id: memberUserId, created_by: adminUserId }),
-    });
-    const managerUpdate = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${activityId}&select=id`, {
-      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `manager ${token}` }),
-    });
-    expect(managerUpdate.response.status).toBe(200);
-    expect(managerUpdate.body).toHaveLength(1);
-
     await serviceRoleRequest("/rest/v1/admin_permissions", {
       method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
       body: JSON.stringify({ user_id: adminUserId, permission: "community" }),
@@ -544,6 +534,16 @@ test.describe("approved member flow", () => {
     expect(removed.response.status).toBe(200);
     expect(removed.body.action).toBe("deleted");
     expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);
+
+    await serviceRoleRequest("/rest/v1/category_managers", {
+      method: "POST",
+      body: JSON.stringify({ category_id: fixtureCategoryId, user_id: memberUserId, created_by: adminUserId }),
+    });
+    const managerUpdate = await authenticatedRequest(accessToken, `/rest/v1/events?id=eq.${activityId}&select=id`, {
+      method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ description: `manager ${token}` }),
+    });
+    expect(managerUpdate.response.status).toBe(200);
+    expect(managerUpdate.body).toHaveLength(1);
 
     await serviceRoleRequest(
       `/rest/v1/category_managers?category_id=eq.${fixtureCategoryId}&user_id=eq.${encodeURIComponent(memberUserId)}`,
