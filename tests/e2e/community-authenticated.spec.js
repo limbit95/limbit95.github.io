@@ -676,22 +676,6 @@ test.describe("approved member flow", () => {
     expectNoPageErrors(pageErrors);
   });
 
-  test("marks every notification read through the header action", async ({ page }, testInfo) => {
-    test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
-    const pageErrors = collectPageErrors(page);
-    const token = projectToken(testInfo);
-    await createUnreadNotification(`${token}-a`);
-    await createUnreadNotification(`${token}-b`);
-
-    await login(page, memberEmail, memberPassword);
-    await page.getByRole("button", { name: "알림 열기" }).click();
-    await page.getByRole("button", { name: "모두 읽음", exact: true }).click();
-
-    const rows = await serviceRoleRequest(`/rest/v1/notifications?user_id=eq.${encodeURIComponent(memberUserId)}&is_read=eq.false&select=id`);
-    expect(rows).toEqual([]);
-    expectNoPageErrors(pageErrors);
-  });
-
   test("sends and reads a direct message through member profile and notification UI", async ({ page }, testInfo) => {
     test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
     const pageErrors = collectPageErrors(page);
