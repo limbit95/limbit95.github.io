@@ -13,6 +13,17 @@ export {
   syncHudMoneyBalances,
 } from "./moneyPresentation.js?v=20260912-r23-impl";
 
+const PACED_MONEY_COUNT_DURATION_MS = 360;
+const PACED_MONEY_WAIT_MS = Object.freeze(new Map([
+  [420, 300],
+  [520, 400],
+]));
+
+export function resolvePacedMoneyWait(value) {
+  const duration = Number(value);
+  return PACED_MONEY_WAIT_MS.get(duration) ?? duration;
+}
+
 function createSparkles(documentObject, host) {
   for (let index = 0; index < 10; index += 1) {
     const sparkle = documentObject.createElement("span");
@@ -66,12 +77,17 @@ function createStartSalaryCelebrationElement(documentObject, event) {
 }
 
 export function createHudMoneyPresenter(options = {}) {
-  const basePresenter = createBaseHudMoneyPresenter(options);
+  const startPresenter = createBaseHudMoneyPresenter(options);
   const documentObject = options.documentObject ?? globalThis.document;
   const reducedMotion = options.reducedMotion
     ?? globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
   const wait = options.wait
     ?? ((ms) => new Promise((resolve) => globalThis.setTimeout(resolve, ms)));
+  const pacedPresenter = createBaseHudMoneyPresenter({
+    ...options,
+    wait: (ms) => wait(resolvePacedMoneyWait(ms)),
+    countDurationMs: options.countDurationMs ?? PACED_MONEY_COUNT_DURATION_MS,
+  });
 
   async function presentStartSalaryCelebration(event) {
     if (!documentObject?.createElement || !documentObject?.body?.append) return;
@@ -91,8 +107,10 @@ export function createHudMoneyPresenter(options = {}) {
   async function play(event) {
     if (event?.type === "START_PASSED") {
       await presentStartSalaryCelebration(event);
+      await startPresenter.play(event);
+      return;
     }
-    await basePresenter.play(event);
+    await pacedPresenter.play(event);
   }
 
   return Object.freeze({ play });
