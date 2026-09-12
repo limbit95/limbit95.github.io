@@ -27,6 +27,16 @@ function lossLabel(event) {
   return "지출";
 }
 
+function playerEndpoint(playerId) {
+  return Object.freeze({ kind: "player", playerId });
+}
+
+function tileEndpoint(nodeId) {
+  return Object.freeze({ kind: "tile", nodeId });
+}
+
+const BOARD_CENTER_ENDPOINT = Object.freeze({ kind: "board-center" });
+
 export function createMoneyPresentationPlan(event) {
   if (!MONEY_EVENT_TYPES.has(event?.type)) return [];
   const amount = normalizeAmount(event.amount);
@@ -56,6 +66,82 @@ export function createMoneyPresentationPlan(event) {
     });
   }
   return steps;
+}
+
+export function createMoneyPresentationSequence(event) {
+  const steps = createMoneyPresentationPlan(event);
+  if (!steps.length) return [];
+  const amount = normalizeAmount(event?.amount);
+  if (!amount) return [];
+
+  const isTollTransfer = event?.type === "MONEY_PAID"
+    && event?.reason === "TOLL"
+    && event?.creditorId
+    && steps.length === 2;
+
+  if (isTollTransfer) {
+    return [
+      { kind: "money", steps: [steps[0]], holdMs: 520 },
+      {
+        kind: "transfer",
+        from: playerEndpoint(event.playerId),
+        to: playerEndpoint(event.creditorId),
+        amount,
+      },
+      { kind: "money", steps: [steps[1]], holdMs: 520 },
+    ];
+  }
+
+  if ((event?.type === "PROPERTY_BOUGHT" || event?.type === "PROPERTY_BUILT") && event?.nodeId) {
+    return [
+      { kind: "money", steps, holdMs: 420 },
+      {
+        kind: "transfer",
+        from: playerEndpoint(event.playerId),
+        to: tileEndpoint(event.nodeId),
+        amount,
+      },
+    ];
+  }
+
+  if (event?.type === "START_PASSED" || event?.type === "MONEY_RECEIVED") {
+    return [
+      {
+        kind: "transfer",
+        from: BOARD_CENTER_ENDPOINT,
+        to: playerEndpoint(event.playerId),
+        amount,
+      },
+      { kind: "money", steps, holdMs: 520 },
+    ];
+  }
+
+  return [{ kind: "money", steps }];
+}
+
+export function resolveMoneyTransferCoinCount(value) {
+  const amount = normalizeAmount(value) ?? 0;
+  if (amount >= 1000) return 6;
+  if (amount >= 500) return 5;
+  if (amount >= 200) return 4;
+  return 3;
+}
+
+export function resolveMoneyTransferFlight(start, end, index, coinCount) {
+  const spread = (index - ((coinCount - 1) / 2)) * 8;
+  const startX = Number(start?.x) + spread;
+  const startY = Number(start?.y) + ((index % 2 === 0) ? -7 : 7);
+  const deltaX = Number(end?.x) - startX;
+  const deltaY = Number(end?.y) - startY;
+  return Object.freeze({
+    startX,
+    startY,
+    midX: deltaX * 0.5,
+    midY: (deltaY * 0.5) - 58 - (index * 4),
+    endX: deltaX,
+    endY: deltaY,
+    delayMs: index * 68,
+  });
 }
 
 export function formatClassicMoneyDelta(value) {
@@ -153,24 +239,116 @@ async function animateBalanceElement(element, fromValue, toValue, {
   });
 }
 
+function elementCenter(element) {
+  const rect = element?.getBoundingClientRect?.();
+  if (!rect) return null;
+  const left = Number(rect.left);
+  const top = Number(rect.top);
+  const width = Number(rect.width);
+  const height = Number(rect.height);
+  if (![left, top, width, height].every(Number.isFinite)) return null;
+  return {
+    x: left + (width / 2),
+    y: top + (height / 2),
+  };
+}
+
+function createTransferCoin(documentObject, flight) {
+  const coin = documentObject.createElement("span");
+  coin.className = "money-transfer-coin";
+  coin.setAttribute("aria-hidden", "true");
+  coin.style.left = `${Math.round(flight.startX)}px`;
+  coin.style.top = `${Math.round(flight.startY)}px`;
+  return coin;
+}
+
+function createBoardImpact(documentObject, point) {
+  const impact = documentObject.createElement("span");
+  impact.className = "money-transfer-board-impact";
+  impact.setAttribute("aria-hidden", "true");
+  impact.style.left = `${Math.round(point.x)}px`;
+  impact.style.top = `${Math.round(point.y)}px`;
+  return impact;
+}
+
+function transferFrames(flight) {
+  return [
+    {
+      opacity: 0,
+      transform: "translate(-50%, -50%) scale(0.68) rotate(0deg)",
+    },
+    {
+      offset: 0.12,
+      opacity: 1,
+      transform: "translate(-50%, -50%) scale(0.98) rotate(70deg)",
+    },
+    {
+      offset: 0.52,
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(flight.midX)}px), calc(-50% + ${Math.round(flight.midY)}px)) scale(1.18) rotate(250deg)`,
+    },
+    {
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(flight.endX)}px), calc(-50% + ${Math.round(flight.endY)}px)) scale(0.84) rotate(560deg)`,
+    },
+  ];
+}
+
+function startTransferCoinAnimation(coin, flight, durationMs) {
+  if (typeof coin?.animate === "function") {
+    const animation = coin.animate(transferFrames(flight), {
+      duration: durationMs,
+      delay: flight.delayMs,
+      easing: "cubic-bezier(0.18, 0.78, 0.22, 1)",
+      fill: "both",
+    });
+    return animation?.finished?.catch?.(() => undefined) ?? Promise.resolve();
+  }
+
+  coin.dataset.moneyTransferFallback = "true";
+  coin.style.setProperty("--money-transfer-mid-x", `${Math.round(flight.midX)}px`);
+  coin.style.setProperty("--money-transfer-mid-y", `${Math.round(flight.midY)}px`);
+  coin.style.setProperty("--money-transfer-end-x", `${Math.round(flight.endX)}px`);
+  coin.style.setProperty("--money-transfer-end-y", `${Math.round(flight.endY)}px`);
+  coin.style.setProperty("--money-transfer-duration", `${durationMs}ms`);
+  coin.style.setProperty("--money-transfer-delay", `${flight.delayMs}ms`);
+  return null;
+}
+
 export function createHudMoneyPresenter({
   documentObject = globalThis.document,
   seatByPlayerId = new Map(),
   balanceByPlayerId = new Map(),
+  resolveBoardPoint = () => null,
   reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true,
   wait = (ms) => new Promise((resolve) => globalThis.setTimeout(resolve, ms)),
   requestFrame = typeof globalThis.requestAnimationFrame === "function"
     ? globalThis.requestAnimationFrame.bind(globalThis)
     : null,
   countDurationMs = 520,
+  transferDurationMs = 780,
 } = {}) {
-  async function play(event) {
-    const plan = createMoneyPresentationPlan(event);
-    if (!plan.length || !documentObject?.createElement) return;
+  function resolveTransferEndpoint(endpoint) {
+    if (endpoint?.kind === "player") {
+      const card = findHudCard(documentObject, seatByPlayerId, endpoint.playerId);
+      return {
+        card,
+        point: elementCenter(card),
+      };
+    }
+    const point = resolveBoardPoint(endpoint);
+    return {
+      card: null,
+      point: point && Number.isFinite(Number(point.x)) && Number.isFinite(Number(point.y))
+        ? { x: Number(point.x), y: Number(point.y) }
+        : null,
+    };
+  }
 
+  async function presentSteps(steps, holdMs = reducedMotion ? 220 : 760) {
     const active = [];
     const counters = [];
-    for (const step of plan) {
+    for (const step of steps) {
       const previousBalance = Number(balanceByPlayerId.get(step.playerId));
       const hasPreviousBalance = Number.isFinite(previousBalance);
       const nextBalance = hasPreviousBalance ? previousBalance + step.signedAmount : null;
@@ -204,14 +382,74 @@ export function createHudMoneyPresenter({
     }
     if (!active.length && !counters.length) return;
 
-    await Promise.all([
-      wait(reducedMotion ? 220 : 760),
-      ...counters,
-    ]);
+    await Promise.all([wait(holdMs), ...counters]);
     for (const { card, feedback, tone } of active) {
       feedback.remove();
       if (card.dataset.moneyEffect === tone) delete card.dataset.moneyEffect;
       if (card.dataset.moneyCounting === tone) delete card.dataset.moneyCounting;
+    }
+  }
+
+  async function presentTransfer(phase) {
+    const source = resolveTransferEndpoint(phase.from);
+    const destination = resolveTransferEndpoint(phase.to);
+    if (!source.point || !destination.point) return;
+
+    if (source.card) source.card.dataset.moneyTransferSource = "true";
+    if (reducedMotion || !documentObject?.body?.append) {
+      if (destination.card) destination.card.dataset.moneyTransferImpact = "true";
+      await wait(180);
+      if (source.card) delete source.card.dataset.moneyTransferSource;
+      if (destination.card) delete destination.card.dataset.moneyTransferImpact;
+      return;
+    }
+
+    const layer = documentObject.createElement("div");
+    layer.className = "money-transfer-layer";
+    layer.setAttribute("aria-hidden", "true");
+    documentObject.body.append(layer);
+
+    const coinCount = resolveMoneyTransferCoinCount(phase.amount);
+    const animationPromises = [];
+    let usesFallback = false;
+    for (let index = 0; index < coinCount; index += 1) {
+      const flight = resolveMoneyTransferFlight(source.point, destination.point, index, coinCount);
+      const coin = createTransferCoin(documentObject, flight);
+      layer.append(coin);
+      const animationPromise = startTransferCoinAnimation(coin, flight, transferDurationMs);
+      if (animationPromise) animationPromises.push(animationPromise);
+      else usesFallback = true;
+    }
+
+    const fallbackDuration = transferDurationMs + ((coinCount - 1) * 68) + 100;
+    if (usesFallback || animationPromises.length !== coinCount) {
+      await wait(fallbackDuration);
+    } else {
+      await Promise.all(animationPromises);
+    }
+
+    if (destination.card) {
+      destination.card.dataset.moneyTransferImpact = "true";
+    } else {
+      layer.append(createBoardImpact(documentObject, destination.point));
+    }
+
+    await wait(280);
+    layer.remove();
+    if (source.card) delete source.card.dataset.moneyTransferSource;
+    if (destination.card) delete destination.card.dataset.moneyTransferImpact;
+  }
+
+  async function play(event) {
+    const sequence = createMoneyPresentationSequence(event);
+    if (!sequence.length || !documentObject?.createElement) return;
+
+    for (const phase of sequence) {
+      if (phase.kind === "transfer") {
+        await presentTransfer(phase);
+        continue;
+      }
+      await presentSteps(phase.steps, reducedMotion ? 220 : (phase.holdMs ?? 760));
     }
   }
 

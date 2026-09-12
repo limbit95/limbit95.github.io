@@ -4,12 +4,17 @@ import { readFileSync } from "node:fs";
 
 import {
   createMoneyPresentationPlan,
+  createMoneyPresentationSequence,
   formatClassicMoneyBalance,
   formatClassicMoneyDelta,
   interpolateMoneyBalance,
+  resolveMoneyTransferCoinCount,
+  resolveMoneyTransferFlight,
 } from "../js/presentation/moneyPresentation.js";
 
 const wrapperSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
+const moneySource = readFileSync(new URL("../js/presentation/moneyPresentation.js", import.meta.url), "utf8");
+const cssSource = readFileSync(new URL("../css/money-presentation.css", import.meta.url), "utf8");
 
 test("money presentation maps START and received money to player gains", () => {
   assert.deepEqual(createMoneyPresentationPlan({
@@ -59,6 +64,121 @@ test("toll presentation shows payer loss and creditor gain without changing valu
   ]);
 });
 
+test("toll presentation sequences payer loss, HUD transfer, then owner gain", () => {
+  assert.deepEqual(createMoneyPresentationSequence({
+    type: "MONEY_PAID",
+    playerId: "payer",
+    creditorId: "owner",
+    amount: 350,
+    reason: "TOLL",
+  }), [
+    {
+      kind: "money",
+      steps: [{
+        playerId: "payer",
+        tone: "loss",
+        signedAmount: -350,
+        label: "통행료 지불",
+      }],
+      holdMs: 520,
+    },
+    {
+      kind: "transfer",
+      from: { kind: "player", playerId: "payer" },
+      to: { kind: "player", playerId: "owner" },
+      amount: 350,
+    },
+    {
+      kind: "money",
+      steps: [{
+        playerId: "owner",
+        tone: "gain",
+        signedAmount: 350,
+        label: "통행료 수금",
+      }],
+      holdMs: 520,
+    },
+  ]);
+});
+
+test("property purchase and building send player coins to the authoritative event tile", () => {
+  for (const [type, label] of [
+    ["PROPERTY_BOUGHT", "도시 구매"],
+    ["PROPERTY_BUILT", "건설 비용"],
+  ]) {
+    assert.deepEqual(createMoneyPresentationSequence({
+      type,
+      playerId: "p1",
+      nodeId: "seoul",
+      amount: 500,
+    }), [
+      {
+        kind: "money",
+        steps: [{
+          playerId: "p1",
+          tone: "loss",
+          signedAmount: -500,
+          label,
+        }],
+        holdMs: 420,
+      },
+      {
+        kind: "transfer",
+        from: { kind: "player", playerId: "p1" },
+        to: { kind: "tile", nodeId: "seoul" },
+        amount: 500,
+      },
+    ]);
+  }
+});
+
+test("START and positive event money fly from board center to the receiving HUD", () => {
+  const start = createMoneyPresentationSequence({
+    type: "START_PASSED",
+    playerId: "p1",
+    amount: 200,
+  });
+  assert.deepEqual(start[0], {
+    kind: "transfer",
+    from: { kind: "board-center" },
+    to: { kind: "player", playerId: "p1" },
+    amount: 200,
+  });
+  assert.equal(start[1].kind, "money");
+
+  const event = createMoneyPresentationSequence({
+    type: "MONEY_RECEIVED",
+    playerId: "p2",
+    amount: 150,
+    reason: "EVENT",
+  });
+  assert.deepEqual(event[0], {
+    kind: "transfer",
+    from: { kind: "board-center" },
+    to: { kind: "player", playerId: "p2" },
+    amount: 150,
+  });
+  assert.equal(event[1].steps[0].label, "이벤트 보상");
+});
+
+test("transfer coin count stays intentionally bounded", () => {
+  assert.equal(resolveMoneyTransferCoinCount(50), 3);
+  assert.equal(resolveMoneyTransferCoinCount(250), 4);
+  assert.equal(resolveMoneyTransferCoinCount(700), 5);
+  assert.equal(resolveMoneyTransferCoinCount(2000), 6);
+});
+
+test("transfer flight creates a visible arced route with staggered coins", () => {
+  const first = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 0, 4);
+  const last = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 3, 4);
+  assert.ok(first.endX > 700);
+  assert.ok(first.endY > 400);
+  assert.ok(first.midY < first.endY / 2);
+  assert.equal(first.delayMs, 0);
+  assert.equal(last.delayMs, 204);
+  assert.notEqual(first.startX, last.startX);
+});
+
 test("tax presentation stays a one-way loss", () => {
   assert.deepEqual(createMoneyPresentationPlan({
     type: "MONEY_PAID",
@@ -71,30 +191,6 @@ test("tax presentation stays a one-way loss", () => {
     tone: "loss",
     signedAmount: -90,
     label: "세금",
-  }]);
-});
-
-test("property purchase and building costs use the same loss presentation path", () => {
-  assert.deepEqual(createMoneyPresentationPlan({
-    type: "PROPERTY_BOUGHT",
-    playerId: "p1",
-    amount: 500,
-  }), [{
-    playerId: "p1",
-    tone: "loss",
-    signedAmount: -500,
-    label: "도시 구매",
-  }]);
-
-  assert.deepEqual(createMoneyPresentationPlan({
-    type: "PROPERTY_BUILT",
-    playerId: "p1",
-    amount: 300,
-  }), [{
-    playerId: "p1",
-    tone: "loss",
-    signedAmount: -300,
-    label: "건설 비용",
   }]);
 });
 
@@ -126,12 +222,19 @@ test("START reward is deferred until PLAYER_MOVED completes", () => {
   assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
 });
 
-test("money wrapper keeps prior HUD balances during animation and covers purchase/build events", () => {
-  assert.match(wrapperSource, /playerBalanceById = new Map\(\)/);
-  assert.match(wrapperSource, /MutationObserverObject/);
-  assert.match(wrapperSource, /syncHudMoneyBalances/);
-  assert.match(wrapperSource, /PROPERTY_BOUGHT/);
-  assert.match(wrapperSource, /PROPERTY_BUILT/);
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r16/);
-  assert.match(wrapperSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
+test("money transfer VFX resolves board points and uses larger runtime coins", () => {
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r19/);
+  assert.match(wrapperSource, /resolveBoardTransferPoint/);
+  assert.match(wrapperSource, /projectClassicBoardPoint/);
+  assert.match(wrapperSource, /createSquareRingLayout\(state\.board\.nodes\)/);
+  assert.match(moneySource, /coin\.animate\(transferFrames\(flight\)/);
+  assert.match(moneySource, /transferDurationMs = 780/);
+  assert.match(moneySource, /money-transfer-board-impact/);
+  assert.match(cssSource, /\.money-transfer-layer/);
+  assert.match(cssSource, /z-index: 2147483000/);
+  assert.match(cssSource, /width: 30px/);
+  assert.match(cssSource, /height: 30px/);
+  assert.match(cssSource, /data-money-transfer-fallback="true"/);
+  assert.match(cssSource, /content: "G"/);
+  assert.match(cssSource, /\.money-transfer-board-impact/);
 });

@@ -17,7 +17,7 @@ import {
 import {
   createHudMoneyPresenter,
   syncHudMoneyBalances,
-} from "../presentation/moneyPresentation.js?v=20260912-r16";
+} from "../presentation/moneyPresentation.js?v=20260912-r19";
 
 export {
   CLASSIC_CAMERA_PROFILE,
@@ -30,6 +30,51 @@ export {
   installClassicShadowUpdatePolicy,
   resolveClassicRendererPixelRatio,
 };
+
+function subtractVector(a, b) {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+
+function dotVector(a, b) {
+  return (a[0] * b[0]) + (a[1] * b[1]) + (a[2] * b[2]);
+}
+
+function crossVector(a, b) {
+  return [
+    (a[1] * b[2]) - (a[2] * b[1]),
+    (a[2] * b[0]) - (a[0] * b[2]),
+    (a[0] * b[1]) - (a[1] * b[0]),
+  ];
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(vector[0], vector[1], vector[2]);
+  if (!length) return [0, 0, 0];
+  return vector.map((value) => value / length);
+}
+
+export function projectClassicBoardPoint(worldPoint, viewportRect) {
+  const left = Number(viewportRect?.left);
+  const top = Number(viewportRect?.top);
+  const width = Number(viewportRect?.width);
+  const height = Number(viewportRect?.height);
+  if (![left, top, width, height].every(Number.isFinite) || width <= 0 || height <= 0) return null;
+
+  const cameraPosition = CLASSIC_CAMERA_PROFILE.position;
+  const cameraTarget = CLASSIC_CAMERA_PROFILE.target;
+  const forward = normalizeVector(subtractVector(cameraTarget, cameraPosition));
+  const right = normalizeVector(crossVector(forward, [0, 1, 0]));
+  const cameraUp = normalizeVector(crossVector(right, forward));
+  const relative = subtractVector(worldPoint, cameraTarget);
+  const cameraX = dotVector(relative, right);
+  const cameraY = dotVector(relative, cameraUp);
+  const bounds = createOrthographicBounds(width, height);
+
+  return Object.freeze({
+    x: left + (((cameraX - bounds.left) / (bounds.right - bounds.left)) * width),
+    y: top + (((bounds.top - cameraY) / (bounds.top - bounds.bottom)) * height),
+  });
+}
 
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
   const documentObject = runtime.documentObject ?? globalThis.document;
@@ -44,10 +89,40 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   const pendingStartEvents = [];
   const presentationQueue = getSharedAnimationQueue("classic-online");
   let playerListObserver = null;
+  let rendererTarget = null;
+  let boardLayoutByNodeId = new Map();
+
+  function resolveBoardViewportRect() {
+    const canvas = rendererTarget?.querySelector?.(".classic-three-canvas");
+    return canvas?.getBoundingClientRect?.() ?? rendererTarget?.getBoundingClientRect?.() ?? null;
+  }
+
+  function resolveBoardTransferPoint(endpoint) {
+    const viewportRect = resolveBoardViewportRect();
+    if (!viewportRect) return null;
+
+    if (endpoint?.kind === "board-center") {
+      return projectClassicBoardPoint([0, 1.85, 0], viewportRect);
+    }
+
+    if (endpoint?.kind === "tile") {
+      const layout = boardLayoutByNodeId.get(endpoint.nodeId);
+      if (!layout) return null;
+      return projectClassicBoardPoint([
+        layout.x,
+        layout.y + 0.7,
+        layout.z,
+      ], viewportRect);
+    }
+
+    return null;
+  }
+
   const moneyPresenter = createHudMoneyPresenter({
     documentObject,
     seatByPlayerId: playerSeatById,
     balanceByPlayerId: playerBalanceById,
+    resolveBoardPoint: resolveBoardTransferPoint,
     reducedMotion: windowObject?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true,
     wait: (ms) => new Promise((resolve) => (windowObject?.setTimeout ?? globalThis.setTimeout)(resolve, ms)),
     requestFrame: typeof windowObject?.requestAnimationFrame === "function"
@@ -89,6 +164,10 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         playerBalanceById.set(player.id, Number(player.money));
       }
     }
+    if (Array.isArray(state?.board?.nodes)) {
+      const layout = createSquareRingLayout(state.board.nodes);
+      boardLayoutByNodeId = new Map(layout.map((entry) => [entry.nodeId, entry]));
+    }
     syncVisibleMoney();
   }
 
@@ -118,6 +197,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
   return Object.freeze({
     async mount(targetElement) {
+      rendererTarget = targetElement;
       const value = await renderer.mount(targetElement);
       installMoneyHudObserver();
       syncVisibleMoney();
@@ -151,6 +231,8 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     dispose() {
       playerListObserver?.disconnect?.();
       playerListObserver = null;
+      rendererTarget = null;
+      boardLayoutByNodeId.clear();
       pendingStartEvents.length = 0;
       playerSeatById.clear();
       playerBalanceById.clear();
