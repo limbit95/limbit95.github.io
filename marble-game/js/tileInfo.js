@@ -105,7 +105,7 @@ export function createClassicTileInfo(state, nodeId, { startSalary = CLASSIC_RUL
       typeLabel: "보너스",
       summary: `도착 시 ${money(node.amount)}를 받습니다.`,
       effect: "즉시 보너스 금액이 현재 플레이어의 자금에 추가됩니다.",
-      stats: [{ label: "획득", value: money(node.amount, { signed: true }) }],
+      stats: [{ label: "골드 변화", value: money(node.amount, { signed: true }) }],
     };
   }
 
@@ -115,7 +115,7 @@ export function createClassicTileInfo(state, nodeId, { startSalary = CLASSIC_RUL
       typeLabel: "비용",
       summary: `도착 시 ${money(node.amount)}를 지불합니다.`,
       effect: "즉시 비용이 현재 플레이어의 자금에서 차감됩니다.",
-      stats: [{ label: "지불", value: money(-node.amount, { signed: true }) }],
+      stats: [{ label: "골드 변화", value: money(-node.amount, { signed: true }) }],
     };
   }
 

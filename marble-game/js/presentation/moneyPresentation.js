@@ -36,7 +36,7 @@ function tileEndpoint(nodeId) {
 }
 
 const BOARD_CENTER_ENDPOINT = Object.freeze({ kind: "board-center" });
-const EVENT_MONEY_CARD_ENDPOINT = Object.freeze({ kind: "event-money-card" });
+const MODAL_MONEY_CARD_ENDPOINT = Object.freeze({ kind: "modal-money-card" });
 
 export function createMoneyPresentationPlan(event) {
   if (!MONEY_EVENT_TYPES.has(event?.type)) return [];
@@ -117,11 +117,11 @@ export function createMoneyPresentationSequence(event) {
     ];
   }
 
-  if (event?.type === "MONEY_RECEIVED" && event?.reason === "EVENT") {
+  if (event?.type === "MONEY_RECEIVED" && ["EVENT", "BONUS"].includes(event?.reason)) {
     return [
       {
         kind: "transfer",
-        from: EVENT_MONEY_CARD_ENDPOINT,
+        from: MODAL_MONEY_CARD_ENDPOINT,
         to: playerEndpoint(event.playerId),
         amount,
       },
@@ -129,7 +129,7 @@ export function createMoneyPresentationSequence(event) {
     ];
   }
 
-  if (event?.type === "MONEY_PAID" && event?.reason === "EVENT") {
+  if (event?.type === "MONEY_PAID" && ["EVENT", "TAX"].includes(event?.reason)) {
     return [
       { kind: "money", steps, holdMs: 420 },
       {
@@ -146,10 +146,10 @@ export function createMoneyPresentationSequence(event) {
 
 export function resolveMoneyTransferCoinCount(value) {
   const amount = normalizeAmount(value) ?? 0;
-  if (amount >= 1000) return 6;
-  if (amount >= 500) return 5;
-  if (amount >= 200) return 4;
-  return 3;
+  if (amount >= 1000) return 12;
+  if (amount >= 500) return 10;
+  if (amount >= 200) return 8;
+  return 6;
 }
 
 export function resolveMoneyTransferFlight(start, end, index, coinCount) {
@@ -200,7 +200,7 @@ function findHudBalanceElement(card) {
   return card?.querySelector?.("dl div:first-child dd") ?? card?.querySelector?.("dd") ?? null;
 }
 
-function findEventMoneyCard(documentObject) {
+function findModalMoneyCard(documentObject) {
   const modal = documentObject?.querySelector?.("[data-tile-info-modal][open]");
   if (!modal) return null;
   const rows = [...(modal.querySelectorAll?.("[data-tile-info-stats] > div") ?? [])];
@@ -371,8 +371,8 @@ export function createHudMoneyPresenter({
         point: elementCenter(card),
       };
     }
-    if (endpoint?.kind === "event-money-card") {
-      const result = findEventMoneyCard(documentObject);
+    if (endpoint?.kind === "modal-money-card") {
+      const result = findModalMoneyCard(documentObject);
       return {
         card: null,
         element: result?.element ?? null,
@@ -453,9 +453,14 @@ export function createHudMoneyPresenter({
     const layer = documentObject.createElement("div");
     layer.className = "money-transfer-layer";
     layer.setAttribute("aria-hidden", "true");
-    const layerHost = source.host?.append ? source.host : documentObject.body;
-    const previousOverflow = source.host?.style?.overflow ?? "";
-    if (source.host?.style) source.host.style.overflow = "visible";
+    const openModal = documentObject?.querySelector?.("[data-tile-info-modal][open]");
+    const layerHost = source.host?.append
+      ? source.host
+      : openModal?.append
+        ? openModal
+        : documentObject.body;
+    const previousOverflow = layerHost?.style?.overflow ?? "";
+    if (layerHost?.style) layerHost.style.overflow = "visible";
     layerHost.append(layer);
 
     const coinCount = resolveMoneyTransferCoinCount(phase.amount);
@@ -485,7 +490,7 @@ export function createHudMoneyPresenter({
 
     await wait(280);
     layer.remove();
-    if (source.host?.style) source.host.style.overflow = previousOverflow;
+    if (layerHost?.style) layerHost.style.overflow = previousOverflow;
     if (source.element) delete source.element.dataset.moneyTransferSource;
     if (destination.card) delete destination.card.dataset.moneyTransferImpact;
   }

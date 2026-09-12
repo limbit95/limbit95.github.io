@@ -14,6 +14,7 @@ import {
 
 const wrapperSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
 const moneySource = readFileSync(new URL("../js/presentation/moneyPresentation.js", import.meta.url), "utf8");
+const tileInfoSource = readFileSync(new URL("../js/tileInfo.js", import.meta.url), "utf8");
 const cssSource = readFileSync(new URL("../css/money-presentation.css", import.meta.url), "utf8");
 
 test("money presentation maps START and received money to player gains", () => {
@@ -145,65 +146,59 @@ test("only START salary flies from board center to the receiving HUD", () => {
     amount: 200,
   });
   assert.equal(start[1].kind, "money");
-
-  const bonus = createMoneyPresentationSequence({
-    type: "MONEY_RECEIVED",
-    playerId: "p2",
-    amount: 150,
-    reason: "BONUS",
-  });
-  assert.equal(bonus.length, 1);
-  assert.equal(bonus[0].kind, "money");
 });
 
-test("event reward flies from the event gold-change card to the receiving HUD", () => {
-  const event = createMoneyPresentationSequence({
-    type: "MONEY_RECEIVED",
-    playerId: "p2",
-    amount: 150,
-    reason: "EVENT",
-  });
-  assert.deepEqual(event[0], {
-    kind: "transfer",
-    from: { kind: "event-money-card" },
-    to: { kind: "player", playerId: "p2" },
-    amount: 150,
-  });
-  assert.equal(event[1].steps[0].label, "이벤트 보상");
+test("event and bonus rewards fly from the visible modal gold-change card to the receiving HUD", () => {
+  for (const reason of ["EVENT", "BONUS"]) {
+    const sequence = createMoneyPresentationSequence({
+      type: "MONEY_RECEIVED",
+      playerId: "p2",
+      amount: 150,
+      reason,
+    });
+    assert.deepEqual(sequence[0], {
+      kind: "transfer",
+      from: { kind: "modal-money-card" },
+      to: { kind: "player", playerId: "p2" },
+      amount: 150,
+    });
+    assert.equal(sequence[1].kind, "money");
+  }
 });
 
-test("event cost counts down before coins leave the player HUD for board center", () => {
-  const event = createMoneyPresentationSequence({
-    type: "MONEY_PAID",
-    playerId: "p2",
-    amount: 180,
-    reason: "EVENT",
-  });
-  assert.equal(event[0].kind, "money");
-  assert.equal(event[0].steps[0].label, "이벤트 지출");
-  assert.deepEqual(event[1], {
-    kind: "transfer",
-    from: { kind: "player", playerId: "p2" },
-    to: { kind: "board-center" },
-    amount: 180,
-  });
+test("event and tax costs count down before coins leave the player HUD for board center", () => {
+  for (const reason of ["EVENT", "TAX"]) {
+    const sequence = createMoneyPresentationSequence({
+      type: "MONEY_PAID",
+      playerId: "p2",
+      amount: 180,
+      reason,
+    });
+    assert.equal(sequence[0].kind, "money");
+    assert.deepEqual(sequence[1], {
+      kind: "transfer",
+      from: { kind: "player", playerId: "p2" },
+      to: { kind: "board-center" },
+      amount: 180,
+    });
+  }
 });
 
-test("transfer coin count stays intentionally bounded", () => {
-  assert.equal(resolveMoneyTransferCoinCount(50), 3);
-  assert.equal(resolveMoneyTransferCoinCount(250), 4);
-  assert.equal(resolveMoneyTransferCoinCount(700), 5);
-  assert.equal(resolveMoneyTransferCoinCount(2000), 6);
+test("transfer coin count is doubled while staying bounded", () => {
+  assert.equal(resolveMoneyTransferCoinCount(50), 6);
+  assert.equal(resolveMoneyTransferCoinCount(250), 8);
+  assert.equal(resolveMoneyTransferCoinCount(700), 10);
+  assert.equal(resolveMoneyTransferCoinCount(2000), 12);
 });
 
 test("transfer flight creates a visible arced route with staggered coins", () => {
-  const first = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 0, 4);
-  const last = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 3, 4);
+  const first = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 0, 8);
+  const last = resolveMoneyTransferFlight({ x: 100, y: 100 }, { x: 900, y: 600 }, 7, 8);
   assert.ok(first.endX > 700);
   assert.ok(first.endY > 400);
   assert.ok(first.midY < first.endY / 2);
   assert.equal(first.delayMs, 0);
-  assert.equal(last.delayMs, 204);
+  assert.equal(last.delayMs, 476);
   assert.notEqual(first.startX, last.startX);
 });
 
@@ -250,20 +245,31 @@ test("START reward is deferred until PLAYER_MOVED completes", () => {
   assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
 });
 
-test("event money waits for the result modal and preserves the pre-event HUD balance", () => {
-  assert.match(wrapperSource, /pendingEventMoneyEvents/);
-  assert.match(wrapperSource, /isEventMoneyEvent\(event\)/);
-  assert.match(wrapperSource, /\[data-tile-info-modal\]/);
+test("modal money waits after the result modal opens and preserves the prior HUD balance", () => {
+  assert.match(wrapperSource, /pendingModalMoneyEvents/);
+  assert.match(wrapperSource, /isModalMoneyEvent\(event\)/);
+  assert.match(wrapperSource, /MODAL_MONEY_LEAD_IN_MS = 520/);
+  assert.match(wrapperSource, /MODAL_MONEY_FALLBACK_MS = 1400/);
   assert.match(wrapperSource, /attributeFilter: \["open"\]/);
   assert.match(wrapperSource, /deferredPlayerIds\.has\(player\.id\)/);
-  assert.match(wrapperSource, /flushPendingEventMoney\(\{ requireOpenModal: true \}\)/);
-  assert.match(moneySource, /event-money-card/);
+  assert.match(wrapperSource, /schedulePendingModalMoney\(\{ requireOpenModal: true \}\)/);
+  assert.match(moneySource, /modal-money-card/);
   assert.match(moneySource, /골드 변화/);
-  assert.match(moneySource, /source\.host\.style\.overflow = "visible"/);
+  assert.match(moneySource, /layerHost\?\.style\) layerHost\.style\.overflow = "visible"/);
+  assert.match(moneySource, /\[data-tile-info-modal\]\[open\]/);
 });
 
-test("money transfer VFX resolves board points and uses larger runtime coins", () => {
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r20/);
+test("bonus and tax landings use the shared result modal gold-change card", () => {
+  assert.match(wrapperSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "TAX"\]\)/);
+  assert.match(wrapperSource, /populateLandingMoneyModal/);
+  assert.match(wrapperSource, /createClassicTileInfo/);
+  assert.match(wrapperSource, /\.\.\/tileInfo\.js\?v=20260912-r21/);
+  assert.match(tileInfoSource, /typeLabel: "보너스"[\s\S]*label: "골드 변화"/);
+  assert.match(tileInfoSource, /typeLabel: "비용"[\s\S]*label: "골드 변화"/);
+});
+
+test("money transfer VFX resolves board points and keeps the visible larger coin styling", () => {
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r21/);
   assert.match(wrapperSource, /resolveBoardTransferPoint/);
   assert.match(wrapperSource, /projectClassicBoardPoint/);
   assert.match(wrapperSource, /createSquareRingLayout\(state\.board\.nodes\)/);

@@ -17,7 +17,8 @@ import {
 import {
   createHudMoneyPresenter,
   syncHudMoneyBalances,
-} from "../presentation/moneyPresentation.js?v=20260912-r20";
+} from "../presentation/moneyPresentation.js?v=20260912-r21";
+import { createClassicTileInfo } from "../tileInfo.js?v=20260912-r21";
 
 export {
   CLASSIC_CAMERA_PROFILE,
@@ -30,6 +31,10 @@ export {
   installClassicShadowUpdatePolicy,
   resolveClassicRendererPixelRatio,
 };
+
+const MODAL_MONEY_LEAD_IN_MS = 520;
+const MODAL_MONEY_FALLBACK_MS = 1400;
+const MODAL_LANDING_TILE_TYPES = new Set(["BONUS", "TAX"]);
 
 function subtractVector(a, b) {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -76,9 +81,10 @@ export function projectClassicBoardPoint(worldPoint, viewportRect) {
   });
 }
 
-function isEventMoneyEvent(event) {
-  return event?.reason === "EVENT"
-    && (event?.type === "MONEY_RECEIVED" || event?.type === "MONEY_PAID");
+function isModalMoneyEvent(event) {
+  if (event?.type === "MONEY_RECEIVED") return ["EVENT", "BONUS"].includes(event?.reason);
+  if (event?.type === "MONEY_PAID") return ["EVENT", "TAX"].includes(event?.reason);
+  return false;
 }
 
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
@@ -92,12 +98,13 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   const playerSeatById = new Map();
   const playerBalanceById = new Map();
   const pendingStartEvents = [];
-  const pendingEventMoneyEvents = [];
+  const pendingModalMoneyEvents = [];
   const presentationQueue = getSharedAnimationQueue("classic-online");
   let playerListObserver = null;
-  let eventModalObserver = null;
+  let moneyModalObserver = null;
   let rendererTarget = null;
   let boardLayoutByNodeId = new Map();
+  let latestState = null;
 
   function resolveBoardViewportRect() {
     const canvas = rendererTarget?.querySelector?.(".classic-three-canvas");
@@ -164,12 +171,13 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     });
   }
 
-  function pendingEventPlayerIds() {
-    return new Set(pendingEventMoneyEvents.map(({ event }) => event.playerId));
+  function pendingModalPlayerIds() {
+    return new Set(pendingModalMoneyEvents.map(({ event }) => event.playerId));
   }
 
   function syncPlayerPresentationState(state) {
-    const deferredPlayerIds = pendingEventPlayerIds();
+    latestState = state;
+    const deferredPlayerIds = pendingModalPlayerIds();
     for (const player of state?.players ?? []) {
       playerSeatById.set(player.id, Number(player.seat) || 0);
       if (Number.isFinite(Number(player.money)) && !deferredPlayerIds.has(player.id)) {
@@ -207,44 +215,120 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     });
   }
 
-  function removePendingEventMoney(entry) {
-    const index = pendingEventMoneyEvents.indexOf(entry);
-    if (index >= 0) pendingEventMoneyEvents.splice(index, 1);
-    if (entry?.timerId !== null && entry?.timerId !== undefined) {
-      (windowObject?.clearTimeout ?? globalThis.clearTimeout)?.(entry.timerId);
+  function isViewerPlayer(playerId) {
+    const seat = playerSeatById.get(playerId);
+    const viewerCard = documentObject?.querySelector?.('.player-hud-card[data-viewer="true"]');
+    return Number.isInteger(Number(seat))
+      && Number(viewerCard?.dataset?.seat) === Number(seat);
+  }
+
+  function populateLandingMoneyModal(state, nodeId) {
+    const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+    const info = createClassicTileInfo(state, nodeId);
+    if (!modal || !info) return false;
+
+    const type = documentObject.querySelector?.("[data-tile-info-type]");
+    const title = documentObject.querySelector?.("[data-tile-info-title]");
+    const summary = documentObject.querySelector?.("[data-tile-info-summary]");
+    const stats = documentObject.querySelector?.("[data-tile-info-stats]");
+    const effect = documentObject.querySelector?.("[data-tile-info-effect]");
+    const confirm = documentObject.querySelector?.("[data-tile-info-confirm]");
+    const decline = documentObject.querySelector?.("[data-tile-info-decline]");
+    const action = documentObject.querySelector?.("[data-tile-info-action]");
+    if (!type || !title || !summary || !stats || !effect) return false;
+
+    type.textContent = info.typeLabel;
+    title.textContent = info.title;
+    summary.textContent = info.summary;
+    effect.textContent = info.effect;
+    stats.replaceChildren(...info.stats.map(({ label, value }) => {
+      const row = documentObject.createElement("div");
+      const term = documentObject.createElement("dt");
+      const description = documentObject.createElement("dd");
+      term.textContent = label;
+      description.textContent = value;
+      row.append(term, description);
+      return row;
+    }));
+
+    modal.dataset.mode = "inspect";
+    if (confirm) confirm.hidden = false;
+    if (decline) decline.hidden = true;
+    if (action) {
+      action.hidden = true;
+      action.disabled = false;
+      action.dataset.action = "";
+    }
+    if (!modal.open) {
+      if (typeof modal.showModal === "function") modal.showModal();
+      else modal.setAttribute("open", "");
+    }
+    return true;
+  }
+
+  function openLandingMoneyModal(event) {
+    if (event?.type !== "TILE_LANDED" || !isViewerPlayer(event.playerId)) return;
+    const node = latestState?.board?.nodes?.find?.((candidate) => candidate.id === event.nodeId);
+    if (!node || !MODAL_LANDING_TILE_TYPES.has(node.type)) return;
+    populateLandingMoneyModal(latestState, node.id);
+  }
+
+  function removePendingModalMoney(entry) {
+    const index = pendingModalMoneyEvents.indexOf(entry);
+    if (index >= 0) pendingModalMoneyEvents.splice(index, 1);
+    const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+    if (entry?.fallbackTimerId !== null && entry?.fallbackTimerId !== undefined) {
+      clearTimeoutFn?.(entry.fallbackTimerId);
+    }
+    if (entry?.modalTimerId !== null && entry?.modalTimerId !== undefined) {
+      clearTimeoutFn?.(entry.modalTimerId);
     }
   }
 
-  function flushPendingEventMoney({ requireOpenModal = false } = {}) {
-    if (!pendingEventMoneyEvents.length) return;
+  function flushPendingModalMoney(entry) {
+    if (!pendingModalMoneyEvents.includes(entry)) return;
+    removePendingModalMoney(entry);
+    void enqueueMoney(entry.event);
+  }
+
+  function schedulePendingModalMoney({ requireOpenModal = false } = {}) {
+    if (!pendingModalMoneyEvents.length) return;
     const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
     if (requireOpenModal && !modal?.open && !modal?.hasAttribute?.("open")) return;
-    const entries = [...pendingEventMoneyEvents];
-    entries.forEach(removePendingEventMoney);
-    for (const { event } of entries) void enqueueMoney(event);
-  }
-
-  function deferEventMoney(event) {
     const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
-    const entry = { event, timerId: null };
-    pendingEventMoneyEvents.push(entry);
-    entry.timerId = setTimeoutFn?.(() => {
-      if (!pendingEventMoneyEvents.includes(entry)) return;
-      removePendingEventMoney(entry);
-      void enqueueMoney(event);
-    }, 900) ?? null;
+    const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+    for (const entry of pendingModalMoneyEvents) {
+      if (entry.modalTimerId !== null && entry.modalTimerId !== undefined) continue;
+      if (entry.fallbackTimerId !== null && entry.fallbackTimerId !== undefined) {
+        clearTimeoutFn?.(entry.fallbackTimerId);
+        entry.fallbackTimerId = null;
+      }
+      entry.modalTimerId = setTimeoutFn?.(() => flushPendingModalMoney(entry), MODAL_MONEY_LEAD_IN_MS) ?? null;
+    }
   }
 
-  function installEventModalObserver() {
-    if (eventModalObserver || typeof MutationObserverObject !== "function") return;
+  function deferModalMoney(event) {
+    const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
+    const entry = { event, fallbackTimerId: null, modalTimerId: null };
+    pendingModalMoneyEvents.push(entry);
+    entry.fallbackTimerId = setTimeoutFn?.(() => flushPendingModalMoney(entry), MODAL_MONEY_FALLBACK_MS) ?? null;
+
+    const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+    if (modal?.open || modal?.hasAttribute?.("open")) {
+      schedulePendingModalMoney({ requireOpenModal: true });
+    }
+  }
+
+  function installMoneyModalObserver() {
+    if (moneyModalObserver || typeof MutationObserverObject !== "function") return;
     const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
     if (!modal) return;
-    eventModalObserver = new MutationObserverObject(() => {
+    moneyModalObserver = new MutationObserverObject(() => {
       if (modal.open || modal.hasAttribute?.("open")) {
-        flushPendingEventMoney({ requireOpenModal: true });
+        schedulePendingModalMoney({ requireOpenModal: true });
       }
     });
-    eventModalObserver.observe(modal, { attributes: true, attributeFilter: ["open"] });
+    moneyModalObserver.observe(modal, { attributes: true, attributeFilter: ["open"] });
   }
 
   return Object.freeze({
@@ -252,7 +336,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       rendererTarget = targetElement;
       const value = await renderer.mount(targetElement);
       installMoneyHudObserver();
-      installEventModalObserver();
+      installMoneyModalObserver();
       syncVisibleMoney();
       return value;
     },
@@ -267,9 +351,14 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         pendingStartEvents.push(event);
         return undefined;
       }
-      if (isEventMoneyEvent(event)) {
+      if (event?.type === "TILE_LANDED") {
         const value = await renderer.playEvent(event);
-        deferEventMoney(event);
+        openLandingMoneyModal(event);
+        return value;
+      }
+      if (isModalMoneyEvent(event)) {
+        const value = await renderer.playEvent(event);
+        deferModalMoney(event);
         return value;
       }
       if (moneyDirector.handles(event?.type)) {
@@ -289,10 +378,11 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     dispose() {
       playerListObserver?.disconnect?.();
       playerListObserver = null;
-      eventModalObserver?.disconnect?.();
-      eventModalObserver = null;
-      for (const entry of [...pendingEventMoneyEvents]) removePendingEventMoney(entry);
+      moneyModalObserver?.disconnect?.();
+      moneyModalObserver = null;
+      for (const entry of [...pendingModalMoneyEvents]) removePendingModalMoney(entry);
       rendererTarget = null;
+      latestState = null;
       boardLayoutByNodeId.clear();
       pendingStartEvents.length = 0;
       playerSeatById.clear();

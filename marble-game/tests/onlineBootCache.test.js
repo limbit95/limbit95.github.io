@@ -39,9 +39,10 @@ test("online recovery session bypasses stale modules while untouched core import
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r20/);
+  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r21/);
   assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
-  assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r20/);
+  assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r21/);
+  assert.match(moneyRendererSource, /tileInfo\.js\?v=20260912-r21/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
