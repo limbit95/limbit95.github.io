@@ -16,6 +16,7 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260910-r10"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260910-r10/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260912-r19/);
+  assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
@@ -40,7 +41,7 @@ test("online recovery session bypasses stale modules while untouched core import
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
   assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r21/);
-  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/moneyPresentation\.js\?v=20260912-r23/);
+  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260912-r24/);
   assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
   assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r21/);
   assert.match(moneyRendererSource, /tileInfo\.js\?v=20260912-r21/);
