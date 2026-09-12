@@ -61,7 +61,7 @@ test("2D diagnostic boot uses a dedicated controller with no renderer, dice, own
   assert.match(playWindowSource, /onlineGameController2d\.js/);
   assert.match(bootstrapSource, /mode === "online-2d"/);
   assert.doesNotMatch(twoDControllerSource, /three/i);
-  assert.noesNotMatch(twoDControllerSource, /diceStage/);
+  assert.doesNotMatch(twoDControllerSource, /diceStage/);
   assert.doesNotMatch(twoDControllerSource, /ownershipVisual/);
   assert.doesNotMatch(twoDControllerSource, /onlinePresenceHud/);
   assert.match(twoDControllerSource, /onlineRenderer = "disabled"/);
