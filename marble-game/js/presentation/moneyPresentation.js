@@ -137,7 +137,7 @@ export function createMoneyPresentationSequence(event) {
       {
         kind: "transfer",
         from: playerEndpoint(event.playerId),
-        to: BOARD_CENTER_ENDPOINT,
+        to: MODAL_MONEY_CARD_ENDPOINT,
         amount,
       },
     ];

@@ -40,6 +40,7 @@ test("online recovery session bypasses stale modules while untouched core import
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
   assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r21/);
+  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/moneyPresentation\.js\?v=20260912-r23/);
   assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
   assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r21/);
   assert.match(moneyRendererSource, /tileInfo\.js\?v=20260912-r21/);
@@ -60,7 +61,7 @@ test("2D diagnostic boot uses a dedicated controller with no renderer, dice, own
   assert.match(playWindowSource, /onlineGameController2d\.js/);
   assert.match(bootstrapSource, /mode === "online-2d"/);
   assert.doesNotMatch(twoDControllerSource, /three/i);
-  assert.doesNotMatch(twoDControllerSource, /diceStage/);
+  assert.noesNotMatch(twoDControllerSource, /diceStage/);
   assert.doesNotMatch(twoDControllerSource, /ownershipVisual/);
   assert.doesNotMatch(twoDControllerSource, /onlinePresenceHud/);
   assert.match(twoDControllerSource, /onlineRenderer = "disabled"/);
