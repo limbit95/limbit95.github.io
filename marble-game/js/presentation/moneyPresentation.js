@@ -36,6 +36,7 @@ function tileEndpoint(nodeId) {
 }
 
 const BOARD_CENTER_ENDPOINT = Object.freeze({ kind: "board-center" });
+const EVENT_MONEY_CARD_ENDPOINT = Object.freeze({ kind: "event-money-card" });
 
 export function createMoneyPresentationPlan(event) {
   if (!MONEY_EVENT_TYPES.has(event?.type)) return [];
@@ -104,7 +105,7 @@ export function createMoneyPresentationSequence(event) {
     ];
   }
 
-  if (event?.type === "START_PASSED" || event?.type === "MONEY_RECEIVED") {
+  if (event?.type === "START_PASSED") {
     return [
       {
         kind: "transfer",
@@ -113,6 +114,30 @@ export function createMoneyPresentationSequence(event) {
         amount,
       },
       { kind: "money", steps, holdMs: 520 },
+    ];
+  }
+
+  if (event?.type === "MONEY_RECEIVED" && event?.reason === "EVENT") {
+    return [
+      {
+        kind: "transfer",
+        from: EVENT_MONEY_CARD_ENDPOINT,
+        to: playerEndpoint(event.playerId),
+        amount,
+      },
+      { kind: "money", steps, holdMs: 520 },
+    ];
+  }
+
+  if (event?.type === "MONEY_PAID" && event?.reason === "EVENT") {
+    return [
+      { kind: "money", steps, holdMs: 420 },
+      {
+        kind: "transfer",
+        from: playerEndpoint(event.playerId),
+        to: BOARD_CENTER_ENDPOINT,
+        amount,
+      },
     ];
   }
 
@@ -173,6 +198,14 @@ function findHudCard(documentObject, seatByPlayerId, playerId) {
 
 function findHudBalanceElement(card) {
   return card?.querySelector?.("dl div:first-child dd") ?? card?.querySelector?.("dd") ?? null;
+}
+
+function findEventMoneyCard(documentObject) {
+  const modal = documentObject?.querySelector?.("[data-tile-info-modal][open]");
+  if (!modal) return null;
+  const rows = [...(modal.querySelectorAll?.("[data-tile-info-stats] > div") ?? [])];
+  const element = rows.find((row) => row.querySelector?.("dt")?.textContent?.trim?.() === "골드 변화") ?? null;
+  return element ? { element, modal } : null;
 }
 
 export function syncHudMoneyBalances({
@@ -333,12 +366,25 @@ export function createHudMoneyPresenter({
       const card = findHudCard(documentObject, seatByPlayerId, endpoint.playerId);
       return {
         card,
+        element: card,
+        host: null,
         point: elementCenter(card),
+      };
+    }
+    if (endpoint?.kind === "event-money-card") {
+      const result = findEventMoneyCard(documentObject);
+      return {
+        card: null,
+        element: result?.element ?? null,
+        host: result?.modal ?? null,
+        point: elementCenter(result?.element),
       };
     }
     const point = resolveBoardPoint(endpoint);
     return {
       card: null,
+      element: null,
+      host: null,
       point: point && Number.isFinite(Number(point.x)) && Number.isFinite(Number(point.y))
         ? { x: Number(point.x), y: Number(point.y) }
         : null,
@@ -395,11 +441,11 @@ export function createHudMoneyPresenter({
     const destination = resolveTransferEndpoint(phase.to);
     if (!source.point || !destination.point) return;
 
-    if (source.card) source.card.dataset.moneyTransferSource = "true";
+    if (source.element) source.element.dataset.moneyTransferSource = "true";
     if (reducedMotion || !documentObject?.body?.append) {
       if (destination.card) destination.card.dataset.moneyTransferImpact = "true";
       await wait(180);
-      if (source.card) delete source.card.dataset.moneyTransferSource;
+      if (source.element) delete source.element.dataset.moneyTransferSource;
       if (destination.card) delete destination.card.dataset.moneyTransferImpact;
       return;
     }
@@ -407,7 +453,10 @@ export function createHudMoneyPresenter({
     const layer = documentObject.createElement("div");
     layer.className = "money-transfer-layer";
     layer.setAttribute("aria-hidden", "true");
-    documentObject.body.append(layer);
+    const layerHost = source.host?.append ? source.host : documentObject.body;
+    const previousOverflow = source.host?.style?.overflow ?? "";
+    if (source.host?.style) source.host.style.overflow = "visible";
+    layerHost.append(layer);
 
     const coinCount = resolveMoneyTransferCoinCount(phase.amount);
     const animationPromises = [];
@@ -436,7 +485,8 @@ export function createHudMoneyPresenter({
 
     await wait(280);
     layer.remove();
-    if (source.card) delete source.card.dataset.moneyTransferSource;
+    if (source.host?.style) source.host.style.overflow = previousOverflow;
+    if (source.element) delete source.element.dataset.moneyTransferSource;
     if (destination.card) delete destination.card.dataset.moneyTransferImpact;
   }
 
