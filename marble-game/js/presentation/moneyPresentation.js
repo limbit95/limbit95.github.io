@@ -37,6 +37,8 @@ function tileEndpoint(nodeId) {
 
 const BOARD_CENTER_ENDPOINT = Object.freeze({ kind: "board-center" });
 const MODAL_MONEY_CARD_ENDPOINT = Object.freeze({ kind: "modal-money-card" });
+const DEFAULT_TRANSFER_STAGGER_MS = 68;
+const TILE_TRANSFER_STAGGER_MS = 30;
 
 export function createMoneyPresentationPlan(event) {
   if (!MONEY_EVENT_TYPES.has(event?.type)) return [];
@@ -165,7 +167,7 @@ export function resolveMoneyTransferFlight(start, end, index, coinCount) {
     midY: (deltaY * 0.5) - 58 - (index * 4),
     endX: deltaX,
     endY: deltaY,
-    delayMs: index * 68,
+    delayMs: index * DEFAULT_TRANSFER_STAGGER_MS,
   });
 }
 
@@ -464,10 +466,16 @@ export function createHudMoneyPresenter({
     layerHost.append(layer);
 
     const coinCount = resolveMoneyTransferCoinCount(phase.amount);
+    const staggerMs = phase.to?.kind === "tile"
+      ? TILE_TRANSFER_STAGGER_MS
+      : DEFAULT_TRANSFER_STAGGER_MS;
     const animationPromises = [];
     let usesFallback = false;
     for (let index = 0; index < coinCount; index += 1) {
-      const flight = resolveMoneyTransferFlight(source.point, destination.point, index, coinCount);
+      const baseFlight = resolveMoneyTransferFlight(source.point, destination.point, index, coinCount);
+      const flight = staggerMs === DEFAULT_TRANSFER_STAGGER_MS
+        ? baseFlight
+        : Object.freeze({ ...baseFlight, delayMs: index * staggerMs });
       const coin = createTransferCoin(documentObject, flight);
       layer.append(coin);
       const animationPromise = startTransferCoinAnimation(coin, flight, transferDurationMs);
@@ -475,7 +483,7 @@ export function createHudMoneyPresenter({
       else usesFallback = true;
     }
 
-    const fallbackDuration = transferDurationMs + ((coinCount - 1) * 68) + 100;
+    const fallbackDuration = transferDurationMs + ((coinCount - 1) * staggerMs) + 100;
     if (usesFallback || animationPromises.length !== coinCount) {
       await wait(fallbackDuration);
     } else {
