@@ -13,6 +13,10 @@ import {
   shouldDeferOnlineDiceRenderer,
   shouldStartOnlineDiceRenderer,
 } from "./onlineVisualPolicy.js?v=20260910-r10";
+import {
+  createAnimationDirector,
+  getSharedAnimationQueue,
+} from "./presentation/presentationFoundation.js?v=20260912-r13";
 
 export {
   DICE_STAGE_PROFILE,
@@ -78,6 +82,22 @@ export function createThreeDiceStage(options = {}, {
     return mountPromise;
   }
 
+  const presentationQueue = getSharedAnimationQueue("classic-online");
+  const presentationDirector = createAnimationDirector({
+    presenters: {
+      async DICE_ROLLED(event) {
+        const stage = await ensureMounted();
+        if (!stage) return;
+        await stage.playRoll(event.dice, event.rollOptions);
+      },
+    },
+  });
+
+  function reportDicePresentationError(error) {
+    setStatus("failed");
+    consoleObject?.error?.("Marble online 3D dice animation failed", error);
+  }
+
   return Object.freeze({
     async mount(targetElement) {
       if (!targetElement || typeof targetElement.replaceChildren !== "function") {
@@ -95,14 +115,15 @@ export function createThreeDiceStage(options = {}, {
     },
 
     async playRoll(values, rollOptions = {}) {
-      const stage = await ensureMounted();
-      if (!stage) return;
-      try {
-        await stage.playRoll(values, rollOptions);
-      } catch (error) {
-        setStatus("failed");
-        consoleObject?.error?.("Marble online 3D dice animation failed", error);
-      }
+      const task = presentationDirector.createTask({
+        type: "DICE_ROLLED",
+        dice: Array.isArray(values) ? [...values] : values,
+        rollOptions,
+      });
+      return presentationQueue.enqueue(task, {
+        eventType: "DICE_ROLLED",
+        onTaskError: reportDicePresentationError,
+      });
     },
 
     hide() {
