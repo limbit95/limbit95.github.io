@@ -132,7 +132,7 @@ test("property purchase and building send player coins to the authoritative even
   }
 });
 
-test("START and positive event money fly from board center to the receiving HUD", () => {
+test("only START salary flies from board center to the receiving HUD", () => {
   const start = createMoneyPresentationSequence({
     type: "START_PASSED",
     playerId: "p1",
@@ -146,6 +146,17 @@ test("START and positive event money fly from board center to the receiving HUD"
   });
   assert.equal(start[1].kind, "money");
 
+  const bonus = createMoneyPresentationSequence({
+    type: "MONEY_RECEIVED",
+    playerId: "p2",
+    amount: 150,
+    reason: "BONUS",
+  });
+  assert.equal(bonus.length, 1);
+  assert.equal(bonus[0].kind, "money");
+});
+
+test("event reward flies from the event gold-change card to the receiving HUD", () => {
   const event = createMoneyPresentationSequence({
     type: "MONEY_RECEIVED",
     playerId: "p2",
@@ -154,11 +165,28 @@ test("START and positive event money fly from board center to the receiving HUD"
   });
   assert.deepEqual(event[0], {
     kind: "transfer",
-    from: { kind: "board-center" },
+    from: { kind: "event-money-card" },
     to: { kind: "player", playerId: "p2" },
     amount: 150,
   });
   assert.equal(event[1].steps[0].label, "이벤트 보상");
+});
+
+test("event cost counts down before coins leave the player HUD for board center", () => {
+  const event = createMoneyPresentationSequence({
+    type: "MONEY_PAID",
+    playerId: "p2",
+    amount: 180,
+    reason: "EVENT",
+  });
+  assert.equal(event[0].kind, "money");
+  assert.equal(event[0].steps[0].label, "이벤트 지출");
+  assert.deepEqual(event[1], {
+    kind: "transfer",
+    from: { kind: "player", playerId: "p2" },
+    to: { kind: "board-center" },
+    amount: 180,
+  });
 });
 
 test("transfer coin count stays intentionally bounded", () => {
@@ -222,8 +250,20 @@ test("START reward is deferred until PLAYER_MOVED completes", () => {
   assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
 });
 
+test("event money waits for the result modal and preserves the pre-event HUD balance", () => {
+  assert.match(wrapperSource, /pendingEventMoneyEvents/);
+  assert.match(wrapperSource, /isEventMoneyEvent\(event\)/);
+  assert.match(wrapperSource, /\[data-tile-info-modal\]/);
+  assert.match(wrapperSource, /attributeFilter: \["open"\]/);
+  assert.match(wrapperSource, /deferredPlayerIds\.has\(player\.id\)/);
+  assert.match(wrapperSource, /flushPendingEventMoney\(\{ requireOpenModal: true \}\)/);
+  assert.match(moneySource, /event-money-card/);
+  assert.match(moneySource, /골드 변화/);
+  assert.match(moneySource, /source\.host\.style\.overflow = "visible"/);
+});
+
 test("money transfer VFX resolves board points and uses larger runtime coins", () => {
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r19/);
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r20/);
   assert.match(wrapperSource, /resolveBoardTransferPoint/);
   assert.match(wrapperSource, /projectClassicBoardPoint/);
   assert.match(wrapperSource, /createSquareRingLayout\(state\.board\.nodes\)/);
