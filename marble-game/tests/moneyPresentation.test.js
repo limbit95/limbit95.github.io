@@ -166,7 +166,7 @@ test("event and bonus rewards fly from the visible modal gold-change card to the
   }
 });
 
-test("event and tax costs count down before coins leave the player HUD for board center", () => {
+test("event and tax costs count down before coins move from the player HUD to the modal gold-change card", () => {
   for (const reason of ["EVENT", "TAX"]) {
     const sequence = createMoneyPresentationSequence({
       type: "MONEY_PAID",
@@ -178,7 +178,7 @@ test("event and tax costs count down before coins leave the player HUD for board
     assert.deepEqual(sequence[1], {
       kind: "transfer",
       from: { kind: "player", playerId: "p2" },
-      to: { kind: "board-center" },
+      to: { kind: "modal-money-card" },
       amount: 180,
     });
   }
