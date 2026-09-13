@@ -423,10 +423,14 @@ export function renderSignup() {
         await updatePassword(password);
         appliedPassword = password;
       } catch (error) {
-        setBusy(form, false);
-        goTo(2);
-        setFieldError(form, "password", getErrorMessage(error));
-        return;
+        if (error?.code === "same_password") {
+          appliedPassword = password;
+        } else {
+          setBusy(form, false);
+          goTo(2);
+          setFieldError(form, "password", getErrorMessage(error));
+          return;
+        }
       }
       setBusy(form, false);
     }
