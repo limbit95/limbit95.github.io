@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const migrationPath = "supabase/site/migrations/20260913083000_join_request_admin_notifications.sql";
+const migrationPath = "supabase/site/migrations/20260913115928_join_request_admin_notifications.sql";
 const edgeFunctionPath = "supabase/functions/send-web-push/index.ts";
 
 test("join requests notify the system admin and members-permission admins", async () => {
