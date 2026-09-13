@@ -305,14 +305,55 @@ function clearGroup(group) {
   }
 }
 
-function tokenOffset(seat) {
-  const offsets = [
-    [-0.4, -0.25],
-    [0.4, 0.25],
-    [-0.4, 0.34],
-    [0.4, -0.34],
-  ];
-  return offsets[seat % offsets.length];
+function tokenLocalSlots(count) {
+  if (count <= 1) return [[0, 0]];
+  if (count === 2) return [[-0.52, 0], [0.52, 0]];
+  if (count === 3) return [[-0.52, 0.34], [0.52, 0.34], [0, -0.48]];
+  if (count === 4) return [[-0.52, 0.42], [0.52, 0.42], [-0.52, -0.42], [0.52, -0.42]];
+
+  const radius = 0.72;
+  return Array.from({ length: count }, (_, index) => {
+    const angle = (-Math.PI / 2) + (index * Math.PI * 2 / count);
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+  });
+}
+
+export function createTokenPlacementMap(players, layoutByNode) {
+  const placements = new Map();
+  const groupedPlayers = new Map();
+
+  for (const player of players ?? []) {
+    if (player?.bankrupt || !player?.id || !player?.positionNodeId) continue;
+    if (!layoutByNode?.has?.(player.positionNodeId)) continue;
+    if (!groupedPlayers.has(player.positionNodeId)) groupedPlayers.set(player.positionNodeId, []);
+    groupedPlayers.get(player.positionNodeId).push(player);
+  }
+
+  for (const [nodeId, occupants] of groupedPlayers.entries()) {
+    const layout = layoutByNode.get(nodeId);
+    const ordered = occupants.slice().sort((left, right) => {
+      const seatDelta = (Number(left.seat) || 0) - (Number(right.seat) || 0);
+      return seatDelta || String(left.id).localeCompare(String(right.id));
+    });
+    const slots = tokenLocalSlots(ordered.length);
+    const rotationY = Number(layout.rotationY) || 0;
+    const cos = Math.cos(rotationY);
+    const sin = Math.sin(rotationY);
+
+    ordered.forEach((player, index) => {
+      const [localX, localZ] = slots[index];
+      const offsetX = (localX * cos) - (localZ * sin);
+      const offsetZ = (localX * sin) + (localZ * cos);
+      placements.set(player.id, Object.freeze({
+        nodeId,
+        x: layout.x + offsetX,
+        y: layout.y + 0.62,
+        z: layout.z + offsetZ,
+      }));
+    });
+  }
+
+  return placements;
 }
 
 function ownerColor(seat) {
@@ -341,6 +382,7 @@ export function createClassicThreePrototypeRenderer({
   let disposed = false;
   let activePlayerId = null;
   let centerGlobe = null;
+  let renderedPlayers = [];
   const ambientDecorations = [];
 
   function toon(color) {
@@ -429,6 +471,7 @@ export function createClassicThreePrototypeRenderer({
     selectedTileRoot = null;
     boardSignature = "";
     centerGlobe = null;
+    renderedPlayers = [];
     ambientDecorations.length = 0;
   }
 
@@ -675,11 +718,9 @@ export function createClassicThreePrototypeRenderer({
     return group;
   }
 
-  function setTokenPosition(token, nodeId, seat) {
-    const layout = layoutByNode.get(nodeId);
-    if (!layout || !token) return;
-    const [offsetX, offsetZ] = tokenOffset(seat);
-    token.position.set(layout.x + offsetX, layout.y + 0.62, layout.z + offsetZ);
+  function setTokenPosition(token, placement) {
+    if (!placement || !token) return;
+    token.position.set(placement.x, placement.y, placement.z);
   }
 
   function createOwnedBuilding(level, color) {
@@ -912,6 +953,7 @@ export function createClassicThreePrototypeRenderer({
   }
 
   function ensureTokens(state) {
+    const placements = createTokenPlacementMap(state.players, layoutByNode);
     for (const player of state.players) {
       let token = tokenMeshes.get(player.id);
       if (!token) {
@@ -920,7 +962,7 @@ export function createClassicThreePrototypeRenderer({
         boardRoot.add(token);
       }
       token.visible = !player.bankrupt;
-      if (!player.bankrupt) setTokenPosition(token, player.positionNodeId, player.seat);
+      if (!player.bankrupt) setTokenPosition(token, placements.get(player.id));
     }
   }
 
@@ -1049,22 +1091,36 @@ export function createClassicThreePrototypeRenderer({
         : state.players[state.currentPlayerIndex]?.id ?? null;
       updateOwnership(state);
       ensureTokens(state);
+      renderedPlayers = state.players.map((player) => ({
+        id: player.id,
+        seat: player.seat,
+        bankrupt: player.bankrupt,
+        positionNodeId: player.positionNodeId,
+      }));
     },
 
     async playEvent(event) {
       if (!scene || event?.type !== "PLAYER_MOVED") return;
       const token = tokenMeshes.get(event.playerId);
       if (!token || !Array.isArray(event.path)) return;
-      const playerSeat = Number(token.userData.seat) || 0;
+      const fallbackPlayer = {
+        id: event.playerId,
+        seat: Number(token.userData.seat) || 0,
+        bankrupt: false,
+        positionNodeId: event.path[0],
+      };
+      const basePlayers = renderedPlayers.some((player) => player.id === event.playerId)
+        ? renderedPlayers
+        : [...renderedPlayers, fallbackPlayer];
+
       for (const nodeId of event.path) {
-        const layout = layoutByNode.get(nodeId);
-        if (!layout) continue;
-        const [offsetX, offsetZ] = tokenOffset(playerSeat);
-        const destination = new THREE.Vector3(
-          layout.x + offsetX,
-          layout.y + 0.62,
-          layout.z + offsetZ,
-        );
+        if (!layoutByNode.has(nodeId)) continue;
+        const movementPlayers = basePlayers.map((player) => (
+          player.id === event.playerId ? { ...player, positionNodeId: nodeId } : player
+        ));
+        const placement = createTokenPlacementMap(movementPlayers, layoutByNode).get(event.playerId);
+        if (!placement) continue;
+        const destination = new THREE.Vector3(placement.x, placement.y, placement.z);
         await tweenToken(token, destination, reducedMotion ? 0 : 165);
       }
     },
