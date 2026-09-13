@@ -1,0 +1,15 @@
+.stats-modal {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-modal__header {
+  flex: 0 0 auto;
+}
+
+.stats-modal__content {
+  min-height: 0;
+  flex: 1 1 auto;
+  max-height: none;
+  padding-bottom: 18px;
+}
