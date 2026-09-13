@@ -436,14 +436,9 @@ export async function verifyRecoveryToken(tokenHash) {
   return data;
 }
 
-function isAlreadyAppliedSignupPassword(error) {
-  return error?.code === "same_password"
-    && isPendingNativeSignupSession(state.session);
-}
-
 export async function updatePassword(password) {
   const { data, error } = await supabase.auth.updateUser({ password });
-  if (error && !isAlreadyAppliedSignupPassword(error)) throw error;
+  if (error) throw error;
   return data;
 }
 

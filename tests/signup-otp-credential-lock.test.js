@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const signup = readFileSync(new URL("../js/pages/signup.js", import.meta.url), "utf8");
-const auth = readFileSync(new URL("../js/auth.js", import.meta.url), "utf8");
 
 test("pending signup OTP locks only the requested email and defers password entry", () => {
   assert.match(signup, /const isAwaitingCode = codeRequested && !isVerified/);
@@ -11,10 +10,4 @@ test("pending signup OTP locks only the requested email and defers password entr
   assert.match(signup, /fields\.password\.input\.disabled = !isVerified/);
   assert.match(signup, /인증을 완료하기 전에는 이메일을 변경할 수 없습니다/);
   assert.doesNotMatch(signup, /인증을 완료하기 전에는 이메일과 비밀번호를 변경할 수 없습니다/);
-});
-
-test("resumed pending signup treats an already-applied password as idempotent", () => {
-  assert.match(auth, /error\?\.code === "same_password"/);
-  assert.match(auth, /isPendingNativeSignupSession\(state\.session\)/);
-  assert.match(auth, /if \(error && !isAlreadyAppliedSignupPassword\(error\)\) throw error/);
 });
