@@ -8,7 +8,7 @@ import {
   createSquareRingLayout,
   getClassicTileVisual,
   resolveClassicRendererPixelRatio,
-} from "./threeClassicPrototype.js?implementation=20260911-r9";
+} from "./threeClassicPrototype.js?implementation=20260913-r10";
 import {
   isOnlineMarbleSession,
   logMarbleRenderStep,
