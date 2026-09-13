@@ -13,8 +13,9 @@ test("pending signup OTP locks only the requested email and defers password entr
   assert.doesNotMatch(signup, /인증을 완료하기 전에는 이메일과 비밀번호를 변경할 수 없습니다/);
 });
 
-test("resumed pending signup treats an already-applied password as idempotent", () => {
-  assert.match(auth, /error\?\.code === "same_password"/);
-  assert.match(auth, /isPendingNativeSignupSession\(state\.session\)/);
-  assert.match(auth, /if \(error && !isAlreadyAppliedSignupPassword\(error\)\) throw error/);
+test("resumed pending signup treats an already-applied password as idempotent only in signup", () => {
+  assert.match(signup, /error\?\.code === "same_password"/);
+  assert.match(signup, /appliedPassword = password/);
+  assert.doesNotMatch(auth, /isAlreadyAppliedSignupPassword/);
+  assert.match(auth, /if \(error\) throw error/);
 });
