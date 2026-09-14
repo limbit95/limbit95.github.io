@@ -12,6 +12,7 @@ import {
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260910050634_member_owned_activity_management.sql");
 const capabilityMigration = read("../supabase/site/migrations/20260911030321_member_activity_capability_boundaries.sql");
+const ownerDeleteMigration = read("../supabase/site/migrations/20260915002000_restore_activity_owner_clean_delete.sql");
 const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
@@ -32,21 +33,30 @@ function activity({
   creator = "owner",
   categoryId = 7,
   status = "scheduled",
+  joinedCount = 0,
+  waitlistedCount = 0,
+  myStatus = null,
 } = {}) {
   return {
     series_id: seriesId,
     created_by: creator,
     category_id: categoryId,
     status,
+    joined_count: joinedCount,
+    waitlisted_count: waitlistedCount,
+    my_participation_status: myStatus,
   };
 }
 
-test("activity capabilities separate member edit/cancel from operator deletion", () => {
+test("activity capabilities allow owner clean deletion but hide it once another active participant exists", () => {
   const owner = auth({ id: "owner" });
   const manager = auth({ categories: [7] });
   const community = auth({ community: true });
   const system = auth({ system: true });
-  const scheduled = activity();
+  const scheduled = activity({ joinedCount: 1, myStatus: "joined" });
+  const withOtherJoined = activity({ joinedCount: 2, myStatus: "joined" });
+  const withOtherWaitlisted = activity({ joinedCount: 1, waitlistedCount: 1, myStatus: "joined" });
+  const ownerCancelledWithOther = activity({ joinedCount: 1, myStatus: "cancelled" });
   const closed = activity({ status: "closed" });
   const cancelled = activity({ status: "cancelled" });
   const completed = activity({ status: "completed" });
@@ -66,7 +76,11 @@ test("activity capabilities separate member edit/cancel from operator deletion",
   assert.equal(canCancelActivityFor(owner, completed), false);
   assert.equal(canCancelActivityFor(owner, recurring), false);
 
-  assert.equal(canDeleteActivityFor(owner, scheduled), false);
+  assert.equal(canDeleteActivityFor(owner, scheduled), true);
+  assert.equal(canDeleteActivityFor(owner, withOtherJoined), false);
+  assert.equal(canDeleteActivityFor(owner, withOtherWaitlisted), false);
+  assert.equal(canDeleteActivityFor(owner, ownerCancelledWithOther), false);
+  assert.equal(canDeleteActivityFor(owner, cancelled), false);
   assert.equal(canDeleteActivityFor(manager, scheduled), true);
   assert.equal(canDeleteActivityFor(manager, recurring), false);
   assert.equal(canDeleteActivityFor(community, scheduled), true);
@@ -142,32 +156,27 @@ test("terminal member-owned activities are read-only unless the owner is also an
   assert.match(capabilityMigration, /not private\.is_category_manager\(old\.category_id\)/);
 });
 
-test("physical removal is reserved for category or community operators", () => {
-  assert.match(capabilityMigration, /create or replace function public\.remove_or_cancel_event/);
+test("latest removal boundary allows standalone owner deletion and keeps operator access", () => {
+  assert.match(ownerDeleteMigration, /create or replace function public\.remove_or_cancel_event/);
   assert.match(
-    capabilityMigration,
-    /if not \(\s*private\.has_admin_permission\('community'\)\s*or private\.is_category_manager\(v_event\.category_id\)\s*\) then/,
+    ownerDeleteMigration,
+    /private\.has_admin_permission\('community'\)[\s\S]*private\.is_category_manager\(v_event\.category_id\)[\s\S]*v_event\.series_id is null[\s\S]*v_event\.created_by = v_user_id/,
   );
-  assert.doesNotMatch(
-    capabilityMigration,
-    /v_event\.series_id is null[\s\S]*v_event\.created_by = v_user_id/,
-  );
-  assert.match(capabilityMigration, /if v_event\.series_id is not null or exists/);
-  assert.match(capabilityMigration, /update public\.events set status = 'cancelled'/);
-  assert.match(capabilityMigration, /delete from public\.events where id = p_event_id/);
-  assert.match(capabilityMigration, /grant execute on function public\.remove_or_cancel_event\(bigint\) to authenticated/);
+  assert.match(ownerDeleteMigration, /delete from public\.events where id = p_event_id/);
+  assert.match(ownerDeleteMigration, /grant execute on function public\.remove_or_cancel_event\(bigint\) to authenticated/);
 });
 
-test("safe removal preserves recurring occurrences and activities with operational history", () => {
-  assert.match(migration, /create or replace function public\.remove_or_cancel_event/);
-  assert.match(migration, /if v_event\.series_id is not null or exists/);
-  assert.match(migration, /from public\.event_participants participant[\s\S]*participant\.event_id = p_event_id/);
-  assert.match(migration, /from public\.notifications notification[\s\S]*notification\.event_id = p_event_id/);
-  assert.match(migration, /from public\.date_polls poll[\s\S]*poll\.result_event_id = p_event_id/);
-  assert.match(migration, /update public\.events set status = 'cancelled'/);
-  assert.match(migration, /delete from public\.events where id = p_event_id/);
-  assert.match(migration, /revoke all on function public\.remove_or_cancel_event\(bigint\) from public, anon, authenticated/);
-  assert.match(migration, /grant execute on function public\.remove_or_cancel_event\(bigint\) to authenticated/);
+test("safe removal preserves recurring occurrences and activities with meaningful history", () => {
+  assert.match(ownerDeleteMigration, /if v_event\.series_id is not null or exists/);
+  assert.match(
+    ownerDeleteMigration,
+    /from public\.event_participants participant[\s\S]*participant\.event_id = p_event_id[\s\S]*participant\.user_id <> v_event\.created_by/,
+  );
+  assert.match(ownerDeleteMigration, /from public\.notifications notification[\s\S]*notification\.event_id = p_event_id/);
+  assert.match(ownerDeleteMigration, /from public\.date_polls poll[\s\S]*poll\.result_event_id = p_event_id/);
+  assert.match(ownerDeleteMigration, /update public\.events set status = 'cancelled'/);
+  assert.match(ownerDeleteMigration, /delete from public\.events where id = p_event_id/);
+  assert.match(ownerDeleteMigration, /revoke all on function public\.remove_or_cancel_event\(bigint\) from public, anon, authenticated/);
 });
 
 test("recurring activity authorization remains manager-only at UI and database layers", () => {
