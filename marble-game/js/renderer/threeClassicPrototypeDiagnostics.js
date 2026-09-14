@@ -19,6 +19,9 @@ import {
   createAnimationDirector,
   getSharedAnimationQueue,
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
+import {
+  installClassicAdaptiveRenderPolicy,
+} from "./classicRenderPerformance.js?v=20260914-r1";
 
 const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
 
@@ -36,6 +39,11 @@ export {
 export function installClassicShadowUpdatePolicy(threeModule) {
   const prototype = threeModule?.WebGLRenderer?.prototype;
   if (!prototype || typeof prototype.render !== "function") return false;
+
+  installClassicAdaptiveRenderPolicy(threeModule, {
+    resolveBasePixelRatio: resolveClassicRendererPixelRatio,
+  });
+
   if (prototype[CLASSIC_SHADOW_POLICY]) return true;
 
   const render = prototype.render;
