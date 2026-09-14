@@ -1,13 +1,27 @@
 import webpush from "npm:web-push@3.6.7";
 import { sendUserEmail } from "../_shared/email.ts";
 
+// 종 알림에 기록되는 항목 중 이번 알림 정책에 포함된 종류만 Push 전달 후보로 확장한다.
 const PUSH_TYPES = new Set([
+  "event_updated",
+  "event_cancelled",
+  "new_activity",
   "event_participant_joined",
   "event_participant_waitlisted",
   "event_participation_cancelled",
+  "service_notice",
   "join_request_received",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
+const CREATED_ACTIVITY_TYPES = new Set([
+  "event_participant_joined",
+  "event_participant_waitlisted",
+  "event_participation_cancelled",
+]);
+const JOINED_ACTIVITY_TYPES = new Set([
+  "event_updated",
+  "event_cancelled",
+]);
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -37,6 +51,40 @@ async function rest(path: string, init: RequestInit = {}) {
   if (!response.ok) throw new Error(`SUPABASE_REST_${response.status}`);
   if (response.status === 204) return null;
   return response.json();
+}
+
+async function shouldSendPush(notification: Record<string, unknown>) {
+  const type = String(notification.notification_type ?? "");
+  if (type === "join_request_received") return true;
+
+  const userId = String(notification.user_id ?? "");
+  const rows = await rest(
+    `push_notification_preferences?select=new_activity_scope,created_activity_participation_enabled,joined_activity_updates_enabled,service_notices_enabled&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+  );
+  const preference = Array.isArray(rows) ? rows[0] : null;
+  const newActivityScope = String(preference?.new_activity_scope ?? "interest_only");
+  const createdActivityEnabled = preference?.created_activity_participation_enabled !== false;
+  const joinedActivityEnabled = preference?.joined_activity_updates_enabled !== false;
+  const serviceNoticesEnabled = preference?.service_notices_enabled !== false;
+
+  if (CREATED_ACTIVITY_TYPES.has(type)) return createdActivityEnabled;
+  if (JOINED_ACTIVITY_TYPES.has(type)) return joinedActivityEnabled;
+  if (type === "service_notice") return serviceNoticesEnabled;
+  if (type !== "new_activity") return true;
+
+  if (newActivityScope === "none") return false;
+  if (newActivityScope === "all") return true;
+
+  const eventId = Number(notification.event_id);
+  if (!Number.isSafeInteger(eventId)) return false;
+  const events = await rest(`events?select=category_id&id=eq.${eventId}&limit=1`);
+  const categoryId = Number(Array.isArray(events) ? events[0]?.category_id : null);
+  if (!Number.isSafeInteger(categoryId)) return false;
+
+  const interests = await rest(
+    `profile_interests?select=category_id&user_id=eq.${encodeURIComponent(userId)}&category_id=eq.${categoryId}&limit=1`,
+  );
+  return Array.isArray(interests) && interests.length > 0;
 }
 
 Deno.serve(async (request: Request) => {
@@ -75,7 +123,10 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    const subscriptions = PUSH_TYPES.has(notification.notification_type)
+    const pushEnabled = PUSH_TYPES.has(notification.notification_type)
+      ? await shouldSendPush(notification)
+      : false;
+    const subscriptions = pushEnabled
       ? await rest(
         `push_subscriptions?select=id,endpoint,p256dh,auth&user_id=eq.${encodeURIComponent(notification.user_id)}`,
       )

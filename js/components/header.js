@@ -42,6 +42,7 @@ function notificationIcon(notification) {
   if (notification.kind === "direct_message") return "✉️";
   if (notification.kind === "activity_reminder") return "⏰";
   if (notification.kind === "new_activity") return "🌿";
+  if (notification.kind === "service_notice") return "📢";
   return "🔔";
 }
 
@@ -155,6 +156,22 @@ export function createHeader({ auth, currentPath, onLogout }) {
     window.location.hash = notificationTarget(notification);
   }
 
+  async function handleNotificationRead(notification, trigger) {
+    if (notification.is_read) return;
+    setBusy(trigger, true, "처리 중…");
+    try {
+      const readAt = new Date().toISOString();
+      await markNotificationRead(notification.id);
+      notification.is_read = true;
+      notification.read_at = readAt;
+      setUnreadBadge(Math.max(0, notificationState.unread - 1));
+      renderNotificationPanel();
+    } catch (error) {
+      showToast(getErrorMessage(error, "알림을 읽음 처리하지 못했습니다."), "error");
+      setBusy(trigger, false);
+    }
+  }
+
   function appendNotificationGroup(title, notifications, { past = false } = {}) {
     if (!notifications.length) return;
     const group = el("section", {
@@ -163,8 +180,11 @@ export function createHeader({ auth, currentPath, onLogout }) {
       el("div", { className: "notification-group__title", text: title }),
     ]);
     notifications.forEach((notification) => {
-      group.append(el("button", {
-        className: `notification-item ${notification.is_read ? "" : "notification-item--unread"} ${past ? "notification-item--past" : ""}`,
+      const item = el("div", {
+        className: `notification-item-row ${notification.is_read ? "" : "notification-item-row--unread"} ${past ? "notification-item-row--past" : ""}`,
+      });
+      item.append(el("button", {
+        className: "notification-item notification-item__open",
         type: "button",
         onClick: () => handleNotificationClick(notification),
       }, [
@@ -175,6 +195,20 @@ export function createHeader({ auth, currentPath, onLogout }) {
           el("span", { className: "small subtle", text: formatDateTime(notification.created_at) }),
         ]),
       ]));
+      if (!notification.is_read) {
+        item.append(el("button", {
+          className: "button button--ghost notification-item__read",
+          type: "button",
+          text: "읽음",
+          "aria-label": `${notification.title} 읽음 처리`,
+          onClick: (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            void handleNotificationRead(notification, event.currentTarget);
+          },
+        }));
+      }
+      group.append(item);
     });
     panel.append(group);
   }

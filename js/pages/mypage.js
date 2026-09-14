@@ -10,6 +10,10 @@ import {
   getMyParticipationOverview,
   listCategories,
 } from "../api/activities.js";
+import {
+  getPushNotificationPreferences,
+  updatePushNotificationPreferences,
+} from "../api/notifications.js";
 import { createActivityCard } from "../components/activityCard.js";
 import { showToast } from "../components/toast.js";
 import {
@@ -39,7 +43,7 @@ const UPCOMING_DISPLAY_LIMIT = 20;
 
 export async function renderMyPage() {
   const auth = getAuthState();
-  const [avatar, interests, participationOverview, categories] = await Promise.all([
+  const [avatar, interests, participationOverview, categories, savedNotificationPreferences] = await Promise.all([
     getSignedAvatarUrl(auth.profile.avatar_path),
     getProfileInterests(auth.user.id),
     getMyParticipationOverview({
@@ -48,6 +52,7 @@ export async function renderMyPage() {
       historyOffset: 0,
     }),
     listCategories(),
+    getPushNotificationPreferences(auth.user.id),
   ]);
   const categoryMap = new Map(categories.map((category) => [Number(category.id), category]));
   const upcoming = participationOverview.upcoming ?? [];
@@ -86,6 +91,92 @@ export async function renderMyPage() {
         : el("p", { className: "subtle", text: "선택한 관심 활동이 없습니다." }),
     ]),
   );
+
+  let notificationPreferences = { ...savedNotificationPreferences };
+  const scopeOptions = [
+    ["none", "받지 않음"],
+    ["interest_only", "관심분야만"],
+    ["all", "모든 활동"],
+  ];
+  const scopeInputs = scopeOptions.map(([value, label]) => el("label", { className: "checkbox chip" }, [
+    el("input", {
+      type: "radio",
+      name: "new_activity_scope",
+      value,
+      checked: notificationPreferences.new_activity_scope === value,
+    }),
+    el("span", { text: label }),
+  ]));
+  const createdActivityToggle = el("input", {
+    type: "checkbox",
+    checked: notificationPreferences.created_activity_participation_enabled,
+  });
+  const joinedActivityToggle = el("input", {
+    type: "checkbox",
+    checked: notificationPreferences.joined_activity_updates_enabled,
+  });
+  const serviceNoticeToggle = el("input", {
+    type: "checkbox",
+    checked: notificationPreferences.service_notices_enabled,
+  });
+  const preferenceInputs = [
+    ...scopeInputs.map((label) => label.querySelector("input")),
+    createdActivityToggle,
+    joinedActivityToggle,
+    serviceNoticeToggle,
+  ];
+  let preferenceSaving = false;
+
+  function syncNotificationPreferenceControls() {
+    scopeInputs.forEach((label) => {
+      const input = label.querySelector("input");
+      input.checked = input.value === notificationPreferences.new_activity_scope;
+    });
+    createdActivityToggle.checked = notificationPreferences.created_activity_participation_enabled;
+    joinedActivityToggle.checked = notificationPreferences.joined_activity_updates_enabled;
+    serviceNoticeToggle.checked = notificationPreferences.service_notices_enabled;
+  }
+
+  function setNotificationPreferenceBusy(busy) {
+    preferenceSaving = busy;
+    preferenceInputs.forEach((input) => { input.disabled = busy; });
+  }
+
+  async function saveNotificationPreferences(patch) {
+    if (preferenceSaving) return;
+    const previous = { ...notificationPreferences };
+    notificationPreferences = { ...notificationPreferences, ...patch };
+    syncNotificationPreferenceControls();
+    setNotificationPreferenceBusy(true);
+    try {
+      notificationPreferences = await updatePushNotificationPreferences(auth.user.id, notificationPreferences);
+      syncNotificationPreferenceControls();
+      showToast("푸시 알림 설정을 저장했습니다.", "success");
+    } catch (error) {
+      notificationPreferences = previous;
+      syncNotificationPreferenceControls();
+      showToast(getErrorMessage(error, "푸시 알림 설정을 저장하지 못했습니다."), "error");
+    } finally {
+      setNotificationPreferenceBusy(false);
+    }
+  }
+
+  scopeInputs.forEach((label) => {
+    const input = label.querySelector("input");
+    input.addEventListener("change", () => {
+      if (input.checked) void saveNotificationPreferences({ new_activity_scope: input.value });
+    });
+  });
+  createdActivityToggle.addEventListener("change", () => {
+    void saveNotificationPreferences({ created_activity_participation_enabled: createdActivityToggle.checked });
+  });
+  joinedActivityToggle.addEventListener("change", () => {
+    void saveNotificationPreferences({ joined_activity_updates_enabled: joinedActivityToggle.checked });
+  });
+  serviceNoticeToggle.addEventListener("change", () => {
+    void saveNotificationPreferences({ service_notices_enabled: serviceNoticeToggle.checked });
+  });
+
   const pushCapability = getPushCapability();
   let pushPreference = getPushPreference(auth.user.id);
   let pushState = { subscription: null, owned: false };
@@ -94,10 +185,44 @@ export async function renderMyPage() {
   }
   const pushDescription = el("p", { className: "subtle" });
   const pushButton = el("button", { className: "button button--secondary", type: "button" });
-  const pushSection = el("section", { className: "card page-stack" }, [
-    el("h2", { className: "section-title", text: "푸시 알림" }),
-    pushDescription,
-    pushButton,
+  const notificationSettingsSection = el("section", { className: "card page-stack" }, [
+    el("h2", { className: "section-title", text: "알림 설정" }),
+    el("p", {
+      className: "subtle",
+      text: "종 알림에는 대상 알림이 계속 기록되며, 아래 알림 종류 설정은 계정 전체에 적용됩니다. 실제 푸시 수신 여부는 기기별로 설정할 수 있습니다.",
+    }),
+    el("fieldset", { className: "field" }, [
+      el("legend", { className: "field-label", text: "새 활동 알림" }),
+      el("div", { className: "chip-list" }, scopeInputs),
+    ]),
+    el("div", { className: "field" }, [
+      el("strong", { text: "내가 만든 활동" }),
+      el("label", { className: "checkbox" }, [
+        createdActivityToggle,
+        el("span", { text: "참여 현황 알림" }),
+      ]),
+      el("p", { className: "field-help", text: "참여 신청, 대기 신청, 참여 취소 소식을 알려드립니다." }),
+    ]),
+    el("div", { className: "field" }, [
+      el("strong", { text: "내가 참여한 활동" }),
+      el("label", { className: "checkbox" }, [
+        joinedActivityToggle,
+        el("span", { text: "중요 변경 및 취소 알림" }),
+      ]),
+      el("p", { className: "field-help", text: "카테고리, 날짜, 시간, 장소 변경과 활동 취소를 알려드립니다." }),
+    ]),
+    el("div", { className: "field" }, [
+      el("strong", { text: "서비스" }),
+      el("label", { className: "checkbox" }, [
+        serviceNoticeToggle,
+        el("span", { text: "중요 공지" }),
+      ]),
+    ]),
+    el("div", { className: "notice-box page-stack" }, [
+      el("strong", { text: "이 기기 푸시 알림" }),
+      pushDescription,
+      pushButton,
+    ]),
   ]);
 
   function isPushEnabled() {
@@ -111,7 +236,6 @@ export async function renderMyPage() {
 
   function getPushButtonLabel(enabled, needsReauthorization) {
     if (needsReauthorization) return "알림 권한 다시 허용하기";
-    // Legacy accounts without a saved preference still fall back to endpoint ownership.
     if (pushPreference === null) {
       return pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
     }
@@ -131,7 +255,7 @@ export async function renderMyPage() {
       return;
     }
     if (capability.permission === "denied") {
-      pushDescription.textContent = "브라우저 설정에서 청파 같이의 알림 권한을 허용해 주세요.";
+      pushDescription.textContent = "브라우저 설정에서 청파 같이의 알림 권한을 허용해 주세요. 알림 수신 범위 설정은 그대로 저장됩니다.";
       pushButton.hidden = true;
       return;
     }
@@ -140,14 +264,14 @@ export async function renderMyPage() {
     pushButton.hidden = false;
     pushButton.textContent = getPushButtonLabel(enabled, needsReauthorization);
     if (needsReauthorization) {
-      pushDescription.textContent = "저장된 푸시 알림 설정은 켜져 있지만 브라우저 알림 권한을 다시 허용해야 합니다.";
+      pushDescription.textContent = "저장된 푸시 알림 설정을 받으려면 브라우저 알림 권한을 다시 허용해야 합니다.";
       return;
     }
     pushDescription.textContent = enabled
       ? (pushState.owned
-          ? "이 기기에서 푸시 알림을 받고 있습니다."
+          ? "이 기기에서는 위에서 선택한 알림만 푸시로 받습니다."
           : "저장된 푸시 알림 설정을 이 기기에 다시 연결하고 있습니다.")
-      : "내가 등록한 활동의 참여 및 취소 소식을 휴대폰이나 PC에서 바로 받을 수 있습니다.";
+      : "알림 수신 범위는 저장되어 있습니다. 실제 푸시를 받으려면 이 기기에서 푸시 알림을 허용해 주세요.";
   }
 
   pushButton.addEventListener("click", async () => {
@@ -173,11 +297,11 @@ export async function renderMyPage() {
     }
   });
   renderPushState();
-  root.append(pushSection);
+  root.append(notificationSettingsSection);
 
   if (pushPreference === "on" && !pushState.owned && getPushCapability().permission === "granted") {
     void enablePushNotifications(auth.user.id).then((subscription) => {
-      if (!pushSection.isConnected || getAuthState().user?.id !== auth.user.id) return;
+      if (!notificationSettingsSection.isConnected || getAuthState().user?.id !== auth.user.id) return;
       pushState = { subscription, owned: true };
       renderPushState();
     }).catch(() => {});

@@ -19,6 +19,23 @@ const NOTIFICATION_COLUMNS = [
   "dedupe_key",
 ].join(",");
 
+const PUSH_NOTIFICATION_PREFERENCE_COLUMNS = [
+  "user_id",
+  "new_activity_scope",
+  "created_activity_participation_enabled",
+  "joined_activity_updates_enabled",
+  "service_notices_enabled",
+  "created_at",
+  "updated_at",
+].join(",");
+
+export const DEFAULT_PUSH_NOTIFICATION_PREFERENCES = Object.freeze({
+  new_activity_scope: "interest_only",
+  created_activity_participation_enabled: true,
+  joined_activity_updates_enabled: true,
+  service_notices_enabled: true,
+});
+
 export async function listNotificationsPage({ cursor = null, pageSize = 20 } = {}) {
   const safePageSize = Math.min(Math.max(Number(pageSize) || 20, 1), 50);
   let query = supabase
@@ -78,4 +95,34 @@ export async function markAllNotificationsRead() {
     })
     .eq("is_read", false)
     .select(NOTIFICATION_COLUMNS)) ?? [];
+}
+
+export async function getPushNotificationPreferences(userId) {
+  const { data, error } = await supabase
+    .from("push_notification_preferences")
+    .select(PUSH_NOTIFICATION_PREFERENCE_COLUMNS)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return {
+    user_id: userId,
+    ...DEFAULT_PUSH_NOTIFICATION_PREFERENCES,
+    ...(data ?? {}),
+  };
+}
+
+export async function updatePushNotificationPreferences(userId, preferences) {
+  const payload = {
+    user_id: userId,
+    new_activity_scope: preferences.new_activity_scope,
+    created_activity_participation_enabled: Boolean(preferences.created_activity_participation_enabled),
+    joined_activity_updates_enabled: Boolean(preferences.joined_activity_updates_enabled),
+    service_notices_enabled: Boolean(preferences.service_notices_enabled),
+    updated_at: new Date().toISOString(),
+  };
+  return unwrap(await supabase
+    .from("push_notification_preferences")
+    .upsert(payload, { onConflict: "user_id" })
+    .select(PUSH_NOTIFICATION_PREFERENCE_COLUMNS)
+    .single());
 }
