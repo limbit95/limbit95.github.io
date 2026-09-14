@@ -88,7 +88,7 @@ Deno.serve(async (request: Request) => {
       tag: `notification-${notification.id}`,
     });
 
-    const results = await Promise.allSettled((subscriptions ?? []).map(async (subscription: Record<string, string | number>) => {
+    const pushResultsPromise = Promise.allSettled((subscriptions ?? []).map(async (subscription: Record<string, string | number>) => {
       try {
         await webpush.sendNotification({
           endpoint: String(subscription.endpoint),
@@ -107,8 +107,8 @@ Deno.serve(async (request: Request) => {
       }
     }));
 
-    const email = EMAIL_TYPES.has(notification.notification_type)
-      ? await sendUserEmail({
+    const emailPromise = EMAIL_TYPES.has(notification.notification_type)
+      ? sendUserEmail({
         userId: String(notification.user_id),
         template: "join_request_received",
         data: {
@@ -118,7 +118,10 @@ Deno.serve(async (request: Request) => {
         },
         idempotencyKey: `notification-${notification.id}-join-request-received`,
       })
-      : { attempted: 0, sent: 0, failed: 0 };
+      : Promise.resolve({ attempted: 0, sent: 0, failed: 0 });
+
+    // Push와 서비스 메일은 서로 독립적인 외부 I/O이므로 동시에 시작해 webhook 시간 예산을 공유한다.
+    const [results, email] = await Promise.all([pushResultsPromise, emailPromise]);
 
     const responseBody = {
       attempted: results.length,
