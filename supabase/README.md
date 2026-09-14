@@ -93,3 +93,16 @@
 이 값들은 서버 전용 인증 정보이므로 `js/config.js`나 다른 브라우저 소스에 넣지 않습니다. Secret을 변경하면 Edge Function을 다시 배포하지 않아도 런타임에서 새 값이 사용됩니다.
 
 지도 렌더링은 NAVER Cloud Maps Web Dynamic Map Client ID를 계속 사용하며, 카카오 JavaScript 키는 카카오톡 활동 공유 기능에서만 사용합니다.
+
+## 8. 가입 신청 관리자 이메일 알림 설정
+
+가입 신청이 생성되면 `send-web-push` Edge Function이 최고 관리자와 `members` 권한이 있는 관리자에게 Web Push와 이메일을 각각 전송합니다.
+
+이메일 전송은 Resend를 사용하며 운영 환경에 다음 두 값을 **Supabase Edge Function Secret**으로 반드시 등록해야 합니다.
+
+- `RESEND_API_KEY`: Resend API Key
+- `SIGNUP_EMAIL_FROM`: Resend에서 발송이 허용된 발신자 주소. 운영에서는 검증된 도메인의 주소 사용을 권장합니다.
+
+이 값들은 소스 코드나 브라우저 설정에 저장하지 않습니다. Supabase Dashboard의 **Edge Functions → Secrets**에서 등록하거나 Supabase CLI의 `supabase secrets set`을 사용합니다. Secret은 프로젝트의 Edge Function 런타임에 즉시 반영되므로 값을 추가하거나 변경하기 위해 함수를 다시 배포할 필요는 없습니다.
+
+가입 신청 알림의 Webhook 결과는 `supabase_functions.hooks`와 `net._http_response`에서 확인할 수 있습니다. `send-web-push` 응답의 `email.sent`가 `1`이면 메일 전송 요청이 성공한 것이고, `EMAIL_NOT_CONFIGURED`가 나오면 위 Secret 중 하나 이상이 누락된 상태입니다. 가입 신청 메일이 실패하면 푸시 성공 여부와 별개로 Webhook 응답을 502로 기록하여 운영에서 실패가 정상 응답으로 숨지 않도록 합니다.
