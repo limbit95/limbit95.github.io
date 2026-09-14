@@ -237,9 +237,9 @@ export async function renderMyPage() {
   function getPushButtonLabel(enabled, needsReauthorization) {
     if (needsReauthorization) return "알림 권한 다시 허용하기";
     if (pushPreference === null) {
-      return pushState.owned ? "이 기기 푸시 끄기" : "이 기기에서 푸시 받기";
+      return pushState.owned ? "푸시 알림 끄기" : "푸시 알림 받기";
     }
-    return enabled ? "이 기기 푸시 끄기" : "이 기기에서 푸시 받기";
+    return enabled ? "푸시 알림 끄기" : "푸시 알림 받기";
   }
 
   function renderPushState() {
