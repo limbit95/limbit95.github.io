@@ -21,15 +21,24 @@ import {
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
 import {
   MARBLE_RENDER_RUNTIME_PROFILE,
+  isMarbleOverlayMotionActive,
   shouldRenderMarbleFrame,
-} from "../presentation/renderRuntimePolicy.js?v=20260914-r1";
+} from "../presentation/renderRuntimePolicy.js?v=20260914-r2";
 
 const CLASSIC_RENDER_POLICY = Symbol.for("marble.classic.render-policy.v2");
 const CLASSIC_PIXEL_RATIO_POLICY = Symbol.for("marble.classic.pixel-ratio-policy");
 const CLASSIC_LAST_RENDERED_AT = new WeakMap();
+const MARBLE_REQUESTED_PIXEL_RATIO = new WeakMap();
+const MARBLE_RENDERER_BY_CANVAS = new WeakMap();
+const MARBLE_PIXEL_RATIO_APPLYING = new WeakSet();
 
 export const CLASSIC_RUNTIME_RENDER_PROFILE = Object.freeze({
   maxRenderPixels: 1_800_000,
+  motionMaxRenderPixels: 1_100_000,
+});
+
+export const DICE_RUNTIME_RENDER_PROFILE = Object.freeze({
+  maxRenderPixels: 1_100_000,
 });
 
 export {
@@ -44,23 +53,74 @@ export {
   resolveClassicRendererPixelRatio,
 };
 
-export function resolveClassicRuntimePixelRatio(requestedRatio, width, height) {
+function resolvePixelBudgetRatio(requestedRatio, width, height, maxRenderPixels) {
   const requested = Number(requestedRatio);
   const safeRequested = Number.isFinite(requested) && requested > 0 ? requested : 1;
   const safeWidth = Math.max(1, Number(width) || 1);
   const safeHeight = Math.max(1, Number(height) || 1);
-  const budgetRatio = Math.sqrt(
-    CLASSIC_RUNTIME_RENDER_PROFILE.maxRenderPixels / (safeWidth * safeHeight),
-  );
+  const budgetRatio = Math.sqrt(maxRenderPixels / (safeWidth * safeHeight));
   return Math.min(safeRequested, budgetRatio);
+}
+
+export function resolveClassicRuntimePixelRatio(requestedRatio, width, height, {
+  motionActive = false,
+} = {}) {
+  return resolvePixelBudgetRatio(
+    requestedRatio,
+    width,
+    height,
+    motionActive
+      ? CLASSIC_RUNTIME_RENDER_PROFILE.motionMaxRenderPixels
+      : CLASSIC_RUNTIME_RENDER_PROFILE.maxRenderPixels,
+  );
+}
+
+export function resolveDiceRuntimePixelRatio(requestedRatio, width, height) {
+  return resolvePixelBudgetRatio(
+    requestedRatio,
+    width,
+    height,
+    DICE_RUNTIME_RENDER_PROFILE.maxRenderPixels,
+  );
+}
+
+function isClassicCanvas(canvas) {
+  return canvas?.classList?.contains?.("classic-three-canvas") === true;
+}
+
+function isDiceCanvas(canvas) {
+  return canvas?.classList?.contains?.("dice-three-canvas") === true;
+}
+
+function canvasRenderSize(canvas, width = null, height = null) {
+  const host = canvas?.parentElement;
+  return {
+    width: Math.max(1, Number(width) || Number(host?.clientWidth) || Number(canvas?.clientWidth) || 1),
+    height: Math.max(1, Number(height) || Number(host?.clientHeight) || Number(canvas?.clientHeight) || 1),
+  };
+}
+
+function resolveCanvasPixelRatio(canvas, requestedRatio, width, height) {
+  if (isClassicCanvas(canvas)) {
+    return resolveClassicRuntimePixelRatio(requestedRatio, width, height, {
+      motionActive: canvas?.dataset?.marbleMotionActive === "true",
+    });
+  }
+  if (isDiceCanvas(canvas)) {
+    return resolveDiceRuntimePixelRatio(requestedRatio, width, height);
+  }
+  return requestedRatio;
 }
 
 export function installClassicPixelRatioPolicy(threeModule) {
   const prototype = threeModule?.WebGLRenderer?.prototype;
-  if (!prototype || typeof prototype.setPixelRatio !== "function") return false;
+  if (!prototype || typeof prototype.setPixelRatio !== "function" || typeof prototype.setSize !== "function") {
+    return false;
+  }
   if (prototype[CLASSIC_PIXEL_RATIO_POLICY]) return true;
 
   const setPixelRatio = prototype.setPixelRatio;
+  const setSize = prototype.setSize;
   Object.defineProperty(prototype, CLASSIC_PIXEL_RATIO_POLICY, {
     configurable: false,
     enumerable: false,
@@ -68,18 +128,55 @@ export function installClassicPixelRatioPolicy(threeModule) {
     writable: false,
   });
 
-  prototype.setPixelRatio = function setClassicPixelRatio(value) {
+  prototype.setPixelRatio = function setMarblePixelRatio(value) {
+    MARBLE_REQUESTED_PIXEL_RATIO.set(this, value);
     const canvas = this.domElement;
-    const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
-    if (!classicCanvas) return setPixelRatio.call(this, value);
+    const marbleCanvas = isClassicCanvas(canvas) || isDiceCanvas(canvas);
+    if (!marbleCanvas || MARBLE_PIXEL_RATIO_APPLYING.has(this)) {
+      return setPixelRatio.call(this, value);
+    }
 
-    const host = canvas?.parentElement;
-    const width = Number(host?.clientWidth) || Number(canvas?.clientWidth) || 1;
-    const height = Number(host?.clientHeight) || Number(canvas?.clientHeight) || 1;
-    return setPixelRatio.call(this, resolveClassicRuntimePixelRatio(value, width, height));
+    MARBLE_RENDERER_BY_CANVAS.set(canvas, this);
+    const size = canvasRenderSize(canvas);
+    const resolved = resolveCanvasPixelRatio(canvas, value, size.width, size.height);
+    MARBLE_PIXEL_RATIO_APPLYING.add(this);
+    try {
+      return setPixelRatio.call(this, resolved);
+    } finally {
+      MARBLE_PIXEL_RATIO_APPLYING.delete(this);
+    }
+  };
+
+  prototype.setSize = function setMarbleSize(width, height, updateStyle) {
+    const canvas = this.domElement;
+    const marbleCanvas = isClassicCanvas(canvas) || isDiceCanvas(canvas);
+    if (!marbleCanvas || MARBLE_PIXEL_RATIO_APPLYING.has(this)) {
+      return setSize.call(this, width, height, updateStyle);
+    }
+
+    MARBLE_RENDERER_BY_CANVAS.set(canvas, this);
+    const requested = MARBLE_REQUESTED_PIXEL_RATIO.get(this)
+      ?? (typeof this.getPixelRatio === "function" ? this.getPixelRatio() : 1);
+    const size = canvasRenderSize(canvas, width, height);
+    const resolved = resolveCanvasPixelRatio(canvas, requested, size.width, size.height);
+    MARBLE_PIXEL_RATIO_APPLYING.add(this);
+    try {
+      setPixelRatio.call(this, resolved);
+      return setSize.call(this, width, height, updateStyle);
+    } finally {
+      MARBLE_PIXEL_RATIO_APPLYING.delete(this);
+    }
   };
 
   return true;
+}
+
+function reapplyClassicPixelBudget(targetElement) {
+  const canvas = targetElement?.querySelector?.(".classic-three-canvas");
+  const renderer = canvas ? MARBLE_RENDERER_BY_CANVAS.get(canvas) : null;
+  if (!canvas || !renderer || typeof renderer.setSize !== "function") return;
+  const size = canvasRenderSize(canvas);
+  renderer.setSize(size.width, size.height, false);
 }
 
 function renderNow(canvas) {
@@ -105,6 +202,7 @@ function setClassicMotionActive(targetElement, active) {
   if (!canvas?.dataset) return;
   if (active) canvas.dataset.marbleMotionActive = "true";
   else delete canvas.dataset.marbleMotionActive;
+  reapplyClassicPixelBudget(targetElement);
 }
 
 export function installClassicShadowUpdatePolicy(threeModule) {
@@ -122,8 +220,7 @@ export function installClassicShadowUpdatePolicy(threeModule) {
 
   prototype.render = function renderClassicScene(...args) {
     const canvas = this.domElement;
-    const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
-    if (!classicCanvas) return render.apply(this, args);
+    if (!isClassicCanvas(canvas)) return render.apply(this, args);
 
     const dataset = canvas?.dataset;
     const now = renderNow(canvas);
@@ -131,12 +228,14 @@ export function installClassicShadowUpdatePolicy(threeModule) {
     const force = dataset?.marbleRenderForce === "true" || dataset?.marbleShadowRefresh === "true";
     const motionActive = dataset?.marbleMotionActive === "true";
     const visible = isRenderVisible(canvas);
+    const overlayActive = isMarbleOverlayMotionActive();
 
     if (!shouldRenderMarbleFrame({
       now,
       lastRenderedAt,
       force,
       motionActive,
+      overlayActive,
       visible,
     })) {
       return undefined;
