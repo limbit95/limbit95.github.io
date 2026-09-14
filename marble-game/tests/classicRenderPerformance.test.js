@@ -52,7 +52,7 @@ test("frame budget degrades quickly under sustained slow frames and recovers gra
   controller.recordFrame(170);
   const recovered = controller.recordFrame(186);
   assert.equal(recovered.changed, true);
-  assert.equal(recovered.scale, 0.85);
+  assert.ok(Math.abs(recovered.scale - 0.85) < 1e-9);
 });
 
 test("Classic WebGL policy adapts only the board canvas and exposes runtime diagnostics", () => {
