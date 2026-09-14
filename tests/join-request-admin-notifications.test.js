@@ -7,6 +7,7 @@ const cleanupMigrationPath = "supabase/site/migrations/20260914024000_remove_leg
 const edgeFunctionPath = "supabase/functions/send-web-push/index.ts";
 const emailModulePath = "supabase/functions/_shared/email.ts";
 const emailTemplatesPath = "supabase/functions/_shared/email-templates.ts";
+const emailLayoutPath = "supabase/functions/_shared/email-layout.ts";
 const authPath = "js/auth.js";
 
 test("join requests notify the system admin and members-permission admins", async () => {
@@ -28,10 +29,11 @@ test("join request notifications allow route-only targets", async () => {
 });
 
 test("join request email delivery goes through the shared email system", async () => {
-  const [source, email, templates] = await Promise.all([
+  const [source, email, templates, layout] = await Promise.all([
     readFile(edgeFunctionPath, "utf8"),
     readFile(emailModulePath, "utf8"),
     readFile(emailTemplatesPath, "utf8"),
+    readFile(emailLayoutPath, "utf8"),
   ]);
 
   assert.match(source, /import \{ sendUserEmail \} from "\.\.\/_shared\/email\.ts"/);
@@ -48,11 +50,24 @@ test("join request email delivery goes through the shared email system", async (
   assert.match(email, /https:\/\/api\.resend\.com\/emails/);
   assert.match(email, /"Idempotency-Key": idempotencyKey/);
   assert.match(email, /renderEmailTemplate/);
+  assert.match(email, /html: rendered\.html/);
+  assert.match(email, /text: rendered\.text/);
   assert.doesNotMatch(email, /SIGNUP_EMAIL_FROM/);
 
   assert.match(templates, /EmailTemplateId = "join_request_received"/);
+  assert.match(templates, /renderServiceEmailLayout/);
   assert.match(templates, /case "join_request_received"/);
-  assert.match(templates, /관리자 페이지에서 바로 확인하세요/);
+  assert.match(templates, /가입 신청 확인하기/);
+  assert.match(templates, /관리자 페이지에서 가입 신청 정보를 확인하고 처리해주세요/);
+
+  assert.match(layout, /export function renderServiceEmailLayout/);
+  assert.match(layout, /export function escapeHtml/);
+  assert.match(layout, /<html lang="ko">/);
+  assert.match(layout, /청파 같이/);
+  assert.match(layout, /role="presentation"/);
+  assert.match(layout, /action\.url/);
+  assert.match(layout, /footerNote/);
+  assert.doesNotMatch(layout, /<style[\s>]/i);
 });
 
 test("legacy custom signup email verification is removed in favor of Supabase Auth OTP", async () => {
