@@ -69,9 +69,10 @@ Deno.serve(async (request: Request) => {
     );
     const notification = Array.isArray(notifications) ? notifications[0] : null;
     if (!notification) return json({ error: "NOTIFICATION_NOT_FOUND" }, 404);
-    if (!PUSH_TYPES.has(notification.notification_type)
-        && !EMAIL_TYPES.has(notification.notification_type)) {
-      return json({ skipped: true, reason: "NOT_DELIVERY_TYPE" });
+    if (!PUSH_TYPES.has(notification.notification_type)) {
+      if (!EMAIL_TYPES.has(notification.notification_type)) {
+        return json({ skipped: true, reason: "NOT_DELIVERY_TYPE" });
+      }
     }
 
     const subscriptions = PUSH_TYPES.has(notification.notification_type)
