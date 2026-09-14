@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
-const migration = read("../supabase/site/migrations/20260914215500_activity_organizer_transfer.sql");
+const migration = read("../supabase/site/migrations/20260914213436_activity_organizer_transfer_production_fix.sql");
 const detail = read("../js/pages/activityDetail.js");
 const api = read("../js/api/activities.js");
 const styles = read("../css/activity-detail.css");
@@ -14,7 +14,11 @@ test("organizer transfer is restricted to the current organizer and joined parti
   assert.match(migration, /v_new_organizer_status <> 'joined'/);
   assert.match(migration, /set_config\('app\.allow_event_organizer_transfer', 'true', true\)/);
   assert.match(migration, /update public\.events[\s\S]*set created_by = p_new_organizer_id/);
-  assert.match(migration, /grant execute on function public\.transfer_event_organizer\(bigint, uuid, boolean\) to authenticated/);
+  assert.match(
+    migration,
+    /grant execute on function public\.transfer_event_organizer\(bigint, uuid, boolean\)[\s\S]*to authenticated, service_role/,
+  );
+  assert.match(migration, /notify pgrst, 'reload schema'/);
 });
 
 test("organizer cannot leave while another confirmed participant remains", () => {
@@ -23,6 +27,12 @@ test("organizer cannot leave while another confirmed participant remains", () =>
     /v_event\.created_by = v_user_id[\s\S]*other_participant\.status = 'joined'[\s\S]*먼저 주최자를 변경해야 합니다/,
   );
   assert.match(migration, /if p_leave_current then[\s\S]*perform public\.cancel_event_participation\(p_event_id\)/);
+});
+
+test("organizer migration preserves participant cancellation notifications", () => {
+  assert.match(migration, /v_actor_name text/);
+  assert.match(migration, /event_participation_cancelled/);
+  assert.match(migration, /format\('#\/activities\/%s', p_event_id\)/);
 });
 
 test("activity detail exposes organizer card, crown, and leave handoff flow", () => {
