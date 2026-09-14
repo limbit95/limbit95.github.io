@@ -21,6 +21,10 @@ import {
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
 
 const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
+const CLASSIC_PIXEL_RATIO_POLICY = Symbol.for("marble.classic.pixel-ratio-policy");
+export const CLASSIC_RUNTIME_RENDER_PROFILE = Object.freeze({
+  maxRenderPixels: 1_800_000,
+});
 
 export {
   CLASSIC_CAMERA_PROFILE,
@@ -32,6 +36,44 @@ export {
   getClassicTileVisual,
   resolveClassicRendererPixelRatio,
 };
+
+export function resolveClassicRuntimePixelRatio(requestedRatio, width, height) {
+  const requested = Number(requestedRatio);
+  const safeRequested = Number.isFinite(requested) && requested > 0 ? requested : 1;
+  const safeWidth = Math.max(1, Number(width) || 1);
+  const safeHeight = Math.max(1, Number(height) || 1);
+  const budgetRatio = Math.sqrt(
+    CLASSIC_RUNTIME_RENDER_PROFILE.maxRenderPixels / (safeWidth * safeHeight),
+  );
+  return Math.min(safeRequested, budgetRatio);
+}
+
+export function installClassicPixelRatioPolicy(threeModule) {
+  const prototype = threeModule?.WebGLRenderer?.prototype;
+  if (!prototype || typeof prototype.setPixelRatio !== "function") return false;
+  if (prototype[CLASSIC_PIXEL_RATIO_POLICY]) return true;
+
+  const setPixelRatio = prototype.setPixelRatio;
+  Object.defineProperty(prototype, CLASSIC_PIXEL_RATIO_POLICY, {
+    configurable: false,
+    enumerable: false,
+    value: true,
+    writable: false,
+  });
+
+  prototype.setPixelRatio = function setClassicPixelRatio(value) {
+    const canvas = this.domElement;
+    const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
+    if (!classicCanvas) return setPixelRatio.call(this, value);
+
+    const host = canvas?.parentElement;
+    const width = Number(host?.clientWidth) || Number(canvas?.clientWidth) || 1;
+    const height = Number(host?.clientHeight) || Number(canvas?.clientHeight) || 1;
+    return setPixelRatio.call(this, resolveClassicRuntimePixelRatio(value, width, height));
+  };
+
+  return true;
+}
 
 export function installClassicShadowUpdatePolicy(threeModule) {
   const prototype = threeModule?.WebGLRenderer?.prototype;
@@ -116,7 +158,9 @@ export function createClassicThreePrototypeRenderer(options = {}, {
       mountedTarget = targetElement;
 
       if (!traceOnlineRenderer) {
-        installClassicShadowUpdatePolicy(await loadThree());
+        const threeModule = await loadThree();
+        installClassicShadowUpdatePolicy(threeModule);
+        installClassicPixelRatioPolicy(threeModule);
         const value = await renderer.mount(targetElement);
         requestClassicShadowRefresh(mountedTarget);
         return value;
@@ -128,6 +172,7 @@ export function createClassicThreePrototypeRenderer(options = {}, {
       const importStartedAt = performanceNow(performanceObject);
       const threeModule = await loadThree();
       installClassicShadowUpdatePolicy(threeModule);
+      installClassicPixelRatioPolicy(threeModule);
       logMarbleRenderStep("three-import-ready", {
         startedAt: importStartedAt,
         performanceObject,
