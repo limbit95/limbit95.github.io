@@ -44,14 +44,23 @@ test("join request email delivery goes through the shared email system", async (
   assert.doesNotMatch(source, /SIGNUP_EMAIL_FROM/);
   assert.doesNotMatch(source, /auth\/v1\/admin\/users/);
 
-  assert.match(email, /RESEND_API_KEY/);
-  assert.match(email, /EMAIL_FROM/);
+  assert.match(email, /import nodemailer from "npm:nodemailer@9\.1\.1"/);
+  assert.match(email, /const SMTP_HOST = "smtp\.gmail\.com"/);
+  assert.match(email, /const SMTP_PORT = 465/);
+  assert.match(email, /secure: true/);
+  assert.match(email, /SMTP_USERNAME/);
+  assert.match(email, /SMTP_PASSWORD/);
+  assert.match(email, /SMTP_FROM/);
   assert.match(email, /auth\/v1\/admin\/users\/\$\{encodeURIComponent\(userId\)\}/);
-  assert.match(email, /https:\/\/api\.resend\.com\/emails/);
-  assert.match(email, /"Idempotency-Key": idempotencyKey/);
+  assert.match(email, /createSmtpTransport/);
+  assert.match(email, /transport\.sendMail\(/);
+  assert.match(email, /messageId: messageIdFor\(idempotencyKey\)/);
+  assert.match(email, /X-Cheongpa-Idempotency-Key/);
   assert.match(email, /renderEmailTemplate/);
   assert.match(email, /html: rendered\.html/);
   assert.match(email, /text: rendered\.text/);
+  assert.doesNotMatch(email, /api\.resend\.com/i);
+  assert.doesNotMatch(email, /RESEND_API_KEY/);
   assert.doesNotMatch(email, /SIGNUP_EMAIL_FROM/);
 
   assert.match(templates, /EmailTemplateId = "join_request_received"/);
@@ -70,16 +79,17 @@ test("join request email delivery goes through the shared email system", async (
   assert.doesNotMatch(layout, /<style[\s>]/i);
 });
 
-test("shared email failures keep explicit and safe operational diagnostics", async () => {
+test("shared email failures keep explicit and safe SMTP diagnostics", async () => {
   const email = await readFile(emailModulePath, "utf8");
 
-  assert.match(email, /REQUIRED_PROVIDER_SECRETS = \["RESEND_API_KEY", "EMAIL_FROM"\]/);
+  assert.match(email, /REQUIRED_PROVIDER_SECRETS = \["SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM"\]/);
   assert.match(email, /reason: "EMAIL_NOT_CONFIGURED", missing/);
-  assert.match(email, /async function readProviderCode\(response: Response\)/);
-  assert.match(email, /providerStatus: response\.status/);
-  assert.match(email, /reason: `RESEND_\$\{response\.status\}`/);
+  assert.match(email, /function smtpErrorDetails\(error: unknown\)/);
+  assert.match(email, /providerStatus: providerStatus \?\? null/);
   assert.match(email, /providerCode: providerCode \|\| null/);
-  assert.doesNotMatch(email, /console\.error\([\s\S]{0,180}RESEND_API_KEY/);
+  assert.match(email, /reason: providerCode \? `SMTP_\$\{providerCode\}` : "SMTP_DELIVERY_FAILED"/);
+  assert.doesNotMatch(email, /console\.error\([\s\S]{0,220}SMTP_PASSWORD/);
+  assert.doesNotMatch(email, /console\.error\([\s\S]{0,220}recipient/);
 });
 
 test("legacy custom signup email verification is removed in favor of Supabase Auth OTP", async () => {
