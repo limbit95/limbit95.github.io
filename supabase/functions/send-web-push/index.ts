@@ -7,6 +7,7 @@ const PUSH_TYPES = new Set([
   "join_request_received",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
+const EMAIL_SECRET_NAMES = ["RESEND_API_KEY", "SIGNUP_EMAIL_FROM"] as const;
 const DEFAULT_SITE_URL = "https://limbit95.github.io/";
 
 function json(body: unknown, status = 200) {
@@ -18,6 +19,10 @@ function json(body: unknown, status = 200) {
 
 function env(name: string) {
   return String(Deno.env.get(name) ?? "").trim();
+}
+
+function missingEmailSecrets() {
+  return EMAIL_SECRET_NAMES.filter((name) => !env(name));
 }
 
 function serviceHeaders() {
@@ -57,11 +62,14 @@ async function sendAdminEmail(notification: Record<string, unknown>) {
   if (!EMAIL_TYPES.has(String(notification.notification_type))) {
     return { attempted: 0, sent: 0, failed: 0 };
   }
-  if (!env("RESEND_API_KEY") || !env("SIGNUP_EMAIL_FROM")) {
+
+  const missing = missingEmailSecrets();
+  if (missing.length > 0) {
     console.error("Admin email delivery skipped: email provider is not configured", {
       notificationId: notification.id,
+      missing,
     });
-    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED" };
+    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED", missing };
   }
 
   try {
@@ -89,11 +97,25 @@ async function sendAdminEmail(notification: Record<string, unknown>) {
       }),
     });
     if (!response.ok) {
+      let providerCode = "UNKNOWN";
+      try {
+        const providerError = await response.json();
+        providerCode = String(providerError?.name ?? providerError?.code ?? "UNKNOWN").slice(0, 100);
+      } catch {
+        // Resend가 JSON 오류 본문을 주지 않아도 HTTP 상태만으로 실패를 기록한다.
+      }
       console.error("Admin email delivery failed", {
         notificationId: notification.id,
         status: response.status,
+        providerCode,
       });
-      return { attempted: 1, sent: 0, failed: 1, reason: `RESEND_${response.status}` };
+      return {
+        attempted: 1,
+        sent: 0,
+        failed: 1,
+        reason: `RESEND_${response.status}`,
+        providerCode,
+      };
     }
     return { attempted: 1, sent: 1, failed: 0 };
   } catch (error) {
@@ -173,14 +195,16 @@ Deno.serve(async (request: Request) => {
       }
     }));
     const email = await sendAdminEmail(notification);
-
-    return json({
+    const body = {
       attempted: results.length,
       sent: results.filter((result) => result.status === "fulfilled" && result.value === "sent").length,
       removed: results.filter((result) => result.status === "fulfilled" && result.value === "removed").length,
       failed: results.filter((result) => result.status === "rejected").length,
       email,
-    });
+    };
+
+    // 푸시 전송은 성공했더라도, 가입 신청 메일이 실패하면 Webhook을 성공으로 숨기지 않는다.
+    return json(body, email.failed > 0 ? 502 : 200);
   } catch (error) {
     console.error("send-web-push failed", error instanceof Error ? error.message : "UNKNOWN_ERROR");
     return json({ error: "INTERNAL_ERROR" }, 500);
