@@ -45,17 +45,13 @@ test("important activity changes replace the broad legacy trigger without duplic
   assert.doesNotMatch(sql, /new\.capacity is distinct from old\.capacity/);
 });
 
-test("all existing bell notification types remain push delivery candidates", async () => {
+test("agreed notification types become push candidates without expanding unrelated direct messages", async () => {
   const source = await readFile(edgeFunctionPath, "utf8");
 
   for (const type of [
     "event_updated",
     "event_cancelled",
-    "waitlist_promoted",
-    "poll_closed",
     "new_activity",
-    "direct_message",
-    "activity_reminder",
     "event_participant_joined",
     "event_participant_waitlisted",
     "event_participation_cancelled",
@@ -64,6 +60,7 @@ test("all existing bell notification types remain push delivery candidates", asy
   ]) {
     assert.match(source, new RegExp(`"${type}"`));
   }
+  assert.doesNotMatch(source, /PUSH_TYPES[\s\S]*direct_message/);
   assert.match(source, /push_notification_preferences\?select=/);
   assert.match(source, /CREATED_ACTIVITY_TYPES\.has\(type\)/);
   assert.match(source, /JOINED_ACTIVITY_TYPES\.has\(type\)/);

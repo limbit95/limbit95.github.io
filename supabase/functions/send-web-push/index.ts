@@ -1,15 +1,11 @@
 import webpush from "npm:web-push@3.6.7";
 import { sendUserEmail } from "../_shared/email.ts";
 
-// 종 알림에 기록되는 기존 알림 종류를 모두 Push 전달 후보로 유지한다.
+// 종 알림에 기록되는 항목 중 이번 알림 정책에 포함된 종류만 Push 전달 후보로 확장한다.
 const PUSH_TYPES = new Set([
   "event_updated",
   "event_cancelled",
-  "waitlist_promoted",
-  "poll_closed",
   "new_activity",
-  "direct_message",
-  "activity_reminder",
   "event_participant_joined",
   "event_participant_waitlisted",
   "event_participation_cancelled",
@@ -25,9 +21,6 @@ const CREATED_ACTIVITY_TYPES = new Set([
 const JOINED_ACTIVITY_TYPES = new Set([
   "event_updated",
   "event_cancelled",
-  "waitlist_promoted",
-  "poll_closed",
-  "activity_reminder",
 ]);
 
 function json(body: unknown, status = 200) {
@@ -62,7 +55,7 @@ async function rest(path: string, init: RequestInit = {}) {
 
 async function shouldSendPush(notification: Record<string, unknown>) {
   const type = String(notification.notification_type ?? "");
-  if (type === "join_request_received" || type === "direct_message") return true;
+  if (type === "join_request_received") return true;
 
   const userId = String(notification.user_id ?? "");
   const rows = await rest(
