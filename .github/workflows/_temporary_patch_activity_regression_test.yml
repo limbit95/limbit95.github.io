@@ -1,0 +1,108 @@
+name: Temporary activity regression test patch
+
+on:
+  push:
+    branches:
+      - fix/activity-auto-join-production-regression
+    paths:
+      - .github/workflows/_temporary_patch_activity_regression_test.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/activity-auto-join-production-regression
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Update authenticated activity regression cases
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path("tests/e2e/community-authenticated.spec.js")
+          source = path.read_text()
+
+          start = source.index('  test("creates and cancels a single activity without exposing member deletion"')
+          end = source.index('  test("enforces member activity transitions and operator-only removal in the database"', start)
+          replacement = '''  test("creates, auto-joins, and deletes a clean single activity", async ({ page }, testInfo) => {
+            test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
+            const pageErrors = collectPageErrors(page);
+            const title = `E2E 일반 회원 단일 활동 ${projectToken(testInfo)}`;
+            const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            const deadlineDate = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+
+            await serviceRoleRequest(`/rest/v1/category_managers?user_id=eq.${encodeURIComponent(memberUserId)}`, {
+              method: "DELETE",
+            });
+            await login(page, memberEmail, memberPassword);
+            await page.goto("/#/activities/new");
+            await assertHealthyPage(page, "활동 등록");
+            await expect(page.locator('[name="recurring"]')).toHaveCount(0);
+            await page.locator('[name="title"]').fill(title);
+            await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
+            await setHiddenFormValue(page, "event_date", eventDate);
+            await setHiddenFormValue(page, "start_time", "19:00");
+            await setHiddenFormValue(page, "end_time", "20:00");
+            await setHiddenFormValue(page, "registration_deadline", deadlineDate);
+            await page.locator('[name="location_name"]').fill("청파동");
+            await page.getByRole("button", { name: "활동 등록", exact: true }).click();
+
+            await expect(page).toHaveURL(/#\\/activities\\/\\d+$/);
+            const createdEventId = new URL(page.url()).hash.match(/^#\\/activities\\/(\\d+)$/)?.[1];
+            expect(createdEventId).toBeTruthy();
+            await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+            await expect(page.getByRole("button", { name: "참여 취소", exact: true })).toBeVisible();
+            await expect(page.getByRole("button", { name: "활동 삭제", exact: true })).toBeVisible();
+
+            const shareDialog = page.getByRole("dialog", { name: "활동이 등록됐어요!" });
+            await expect(shareDialog).toBeVisible();
+            await shareDialog.getByRole("button", { name: "나중에", exact: true }).click();
+            await expect(shareDialog).toBeHidden();
+
+            await page.getByRole("button", { name: "활동 삭제", exact: true }).click();
+            const deleteDialog = page.getByRole("alertdialog");
+            await expect(deleteDialog).toBeVisible();
+            await deleteDialog.getByRole("button", { name: "삭제 요청", exact: true }).click();
+            await expect(page).toHaveURL(/#\\/activities$/);
+            expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${createdEventId}&select=id`)).toEqual([]);
+            expectNoPageErrors(pageErrors);
+          });
+
+          test("enforces member activity transitions and owner-safe removal in the database", async ({}, testInfo) => {
+          '''
+          source = source[:start] + replacement + source[end:].split('\n', 1)[1]
+
+          source = source.replace(
+            '''    expect(created.response.status).toBe(201);\n    const ownedEventId = Number(created.body[0].id);\n\n    const inactiveInsert''',
+            '''    expect(created.response.status).toBe(201);\n    const ownedEventId = Number(created.body[0].id);\n    const creatorParticipation = await serviceRoleRequest(\n      `/rest/v1/event_participants?event_id=eq.${ownedEventId}&user_id=eq.${encodeURIComponent(memberUserId)}&select=status`,\n    );\n    expect(creatorParticipation).toEqual([{ status: "joined" }]);\n\n    const inactiveInsert''',
+          )
+          source = source.replace(
+            '''    expect(ownerHistoryRemoval.response.status).toBeGreaterThanOrEqual(400);\n    const historyBeforeOperator = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);\n    expect(historyBeforeOperator[0].status).toBe("scheduled");''',
+            '''    expect(ownerHistoryRemoval.response.status).toBe(200);\n    expect(ownerHistoryRemoval.body.action).toBe("cancelled");\n    const historyBeforeOperator = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);\n    expect(historyBeforeOperator[0].status).toBe("cancelled");''',
+          )
+          source = source.replace(
+            '''    expect(ownerCleanRemoval.response.status).toBeGreaterThanOrEqual(400);\n    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toHaveLength(1);''',
+            '''    expect(ownerCleanRemoval.response.status).toBe(200);\n    expect(ownerCleanRemoval.body.action).toBe("deleted");\n    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);''',
+          )
+          source = source.replace(
+            '''    const removed = await authenticatedRequest(adminToken, "/rest/v1/rpc/remove_or_cancel_event", {\n      method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),\n    });\n    expect(removed.response.status).toBe(200);\n    expect(removed.body.action).toBe("deleted");\n    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);''',
+            '''    const operatorRemovableRows = await serviceRoleRequest("/rest/v1/events?select=id", {\n      method: "POST",\n      headers: { Prefer: "return=representation" },\n      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E operator removable ${token}`)),\n    });\n    const operatorRemovableEventId = Number(operatorRemovableRows[0].id);\n    const removed = await authenticatedRequest(adminToken, "/rest/v1/rpc/remove_or_cancel_event", {\n      method: "POST", body: JSON.stringify({ p_event_id: operatorRemovableEventId }),\n    });\n    expect(removed.response.status).toBe(200);\n    expect(removed.body.action).toBe("deleted");\n    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${operatorRemovableEventId}&select=id`)).toEqual([]);''',
+          )
+
+          path.write_text(source)
+          PY
+          node --check tests/e2e/community-authenticated.spec.js
+      - name: Commit authenticated regression update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/community-authenticated.spec.js
+          git diff --cached --check
+          git commit -m "test(activity): update authenticated owner deletion flow"
+          git push origin HEAD:fix/activity-auto-join-production-regression
