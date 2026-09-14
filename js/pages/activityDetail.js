@@ -8,10 +8,11 @@ import {
   joinEvent,
   listEventParticipants,
   removeEvent,
+  transferEventOrganizer,
   updateEvent,
 } from "../api/activities.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
-import { confirmDialog, contentDialog } from "../components/modal.js";
+import { contentDialog, confirmDialog } from "../components/modal.js";
 import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";
 import { EVENT_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../constants.js";
@@ -42,6 +43,10 @@ export async function renderActivityDetail(route) {
   const canDelete = canDeleteActivityFor(auth, event);
   const root = pageContainer();
   const categoryColor = event.category?.color ?? "#2f6b4f";
+  const organizerAvatarUrl = await getSignedAvatarUrl(event.organizer?.avatar_path);
+  const canTransferOrganizer = event.series_id == null
+    && event.created_by === auth.user.id
+    && ["scheduled", "closed"].includes(event.status);
 
   const detail = el("section", {
     className: "detail-hero activity-detail-hero",
@@ -58,11 +63,9 @@ export async function renderActivityDetail(route) {
       meta("🗓️", "일정", activityScheduleText(event), null, "activity-detail__meta--schedule"),
       meta("📍", "장소", event.location_name, event.location_url),
       meta("💳", "참가비", event.fee_text || "무료"),
-      event.difficulty
-        ? meta("🌱", "난이도", `${event.difficulty}${event.beginner_friendly ? " · 초보자 환영" : ""}`)
-        : null,
+      organizerMeta(event, organizerAvatarUrl, canTransferOrganizer, participants, root),
     ]),
-    createParticipationPanel(event, mine, counts, participants, root),
+    createParticipationPanel(event, mine, counts, participants, root, auth),
     el("div", { className: "button-row activity-detail__utility-actions" }, [
       el("button", {
         className: "button button--yellow",
@@ -123,6 +126,36 @@ function meta(icon, label, text, link = null, extraClass = "") {
   ]);
 }
 
+function organizerMeta(event, avatarUrl, canTransfer, participants, root) {
+  const profile = event.organizer;
+  const organizerAvatar = profile
+    ? createProfileAvatarTrigger(profile, { avatarUrl, portalMenu: true })
+    : el("span", { className: "activity-detail__organizer-fallback", text: "👤", "aria-hidden": "true" });
+  return el("div", { className: "activity-detail__meta activity-detail__organizer" }, [
+    el("span", { className: "activity-detail__meta-icon", text: "👑", "aria-hidden": "true" }),
+    el("div", { className: "activity-detail__meta-body" }, [
+      el("span", { className: "activity-detail__meta-label", text: "주최자" }),
+      el("div", { className: "activity-detail__meta-value activity-detail__organizer-value" }, [
+        el("span", { className: "activity-detail__organizer-profile" }, [
+          organizerAvatar,
+          el("strong", { text: profile?.display_name ?? "회원" }),
+        ]),
+        canTransfer ? el("button", {
+          className: "activity-detail__organizer-change",
+          type: "button",
+          text: "변경",
+          onClick: (clickEvent) => openOrganizerTransferDialog({
+            event,
+            participants,
+            root,
+            trigger: clickEvent.currentTarget,
+          }),
+        }) : null,
+      ]),
+    ]),
+  ]);
+}
+
 function activityScheduleText(event) {
   const time = `${formatTime(event.start_time)}${event.end_time ? `–${formatTime(event.end_time)}` : ""}`;
   return `${formatDate(event.event_date)}\n${time}`;
@@ -165,7 +198,7 @@ function statusBadge(status, registrationDeadline = null) {
   ]);
 }
 
-function createParticipationPanel(event, mine, counts, participants, root) {
+function createParticipationPanel(event, mine, counts, participants, root, auth) {
   const deadline = new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -173,7 +206,7 @@ function createParticipationPanel(event, mine, counts, participants, root) {
 
   return el("aside", { className: "activity-detail__participation-panel" }, [
     createParticipationOverview(event, mine, counts, participants, deadline),
-    createParticipationAction(event, mine, counts, root),
+    createParticipationAction(event, mine, counts, participants, root, auth),
   ]);
 }
 
@@ -204,12 +237,12 @@ function createParticipationOverview(event, mine, counts, participants, deadline
       className: "button button--secondary activity-detail__participants-button",
       type: "button",
       text: "참여 인원 보기",
-      onClick: (clickEvent) => openParticipantsDialog(participants, counts, clickEvent.currentTarget),
+      onClick: (clickEvent) => openParticipantsDialog(event, participants, counts, clickEvent.currentTarget),
     }),
   ]);
 }
 
-function createParticipationAction(event, mine, counts, root) {
+function createParticipationAction(event, mine, counts, participants, root, auth) {
   const wrapper = el("div", { className: "activity-detail__participation-action" });
   const registrationOpen = event.status === "scheduled"
     && new Date(event.registration_deadline) >= new Date();
@@ -220,6 +253,23 @@ function createParticipationAction(event, mine, counts, root) {
       type: "button",
       text: `${mine.status === "waitlisted" ? "⏳ 대기 신청 취소" : "참여 취소"}`,
       onClick: async (clickEvent) => {
+        const isOrganizer = event.series_id == null
+          && event.created_by === auth.user.id
+          && mine.status === "joined";
+        const otherJoinedParticipants = participants.filter((participant) => (
+          participant.status === "joined" && participant.user_id !== auth.user.id
+        ));
+        if (isOrganizer && otherJoinedParticipants.length) {
+          await openOrganizerTransferDialog({
+            event,
+            participants,
+            root,
+            trigger: clickEvent.currentTarget,
+            leaveAfterTransfer: true,
+          });
+          return;
+        }
+
         const confirmed = await confirmDialog({
           title: "참여를 취소할까요?",
           message: "취소 후 다시 신청하면 대기 순서가 달라질 수 있습니다.",
@@ -278,10 +328,10 @@ function createParticipationAction(event, mine, counts, root) {
   return wrapper;
 }
 
-async function openParticipantsDialog(participants, counts, button) {
+async function openParticipantsDialog(event, participants, counts, button) {
   setBusy(button, true, "불러오는 중…");
   try {
-    const content = await participantDialogContent(participants, counts);
+    const content = await participantDialogContent(event, participants, counts);
     setBusy(button, false);
     void contentDialog({
       title: "참여 인원",
@@ -293,7 +343,7 @@ async function openParticipantsDialog(participants, counts, button) {
   }
 }
 
-async function participantDialogContent(participants, counts) {
+async function participantDialogContent(event, participants, counts) {
   const joined = participants.filter((item) => item.status === "joined");
   const content = el("div", { className: "activity-participants-dialog page-stack" }, [
     el("div", { className: "activity-participants-dialog__summary" }, [
@@ -318,8 +368,17 @@ async function participantDialogContent(participants, counts) {
     const profileAvatar = profile
       ? createProfileAvatarTrigger(profile, { avatarUrl: avatar, portalMenu: true })
       : el("img", { className: "avatar", src: avatar, alt: "", width: "44", height: "44" });
+    const isOrganizer = item.user_id === event.created_by;
     return el("div", { className: "participant-person" }, [
-      profileAvatar,
+      el("span", { className: "participant-person__avatar-wrap" }, [
+        profileAvatar,
+        isOrganizer ? el("span", {
+          className: "participant-person__organizer-crown",
+          text: "👑",
+          title: "주최자",
+          "aria-label": "주최자",
+        }) : null,
+      ]),
       el("strong", { text: profile?.display_name ?? "회원" }),
       profile?.age_group ? el("span", { className: "small subtle", text: profile.age_group }) : null,
     ]);
@@ -327,6 +386,82 @@ async function participantDialogContent(participants, counts) {
 
   content.append(el("div", { className: "participant-list activity-participants-dialog__list" }, people));
   return content;
+}
+
+async function openOrganizerTransferDialog({
+  event,
+  participants,
+  root,
+  trigger,
+  leaveAfterTransfer = false,
+}) {
+  const candidates = participants.filter((participant) => (
+    participant.status === "joined" && participant.user_id !== event.created_by
+  ));
+  const content = el("div", { className: "activity-organizer-transfer page-stack" }, [
+    el("p", {
+      className: "prose activity-organizer-transfer__message",
+      text: leaveAfterTransfer
+        ? "현재 활동의 주최자입니다. 참여를 취소하려면 먼저 함께 참여 중인 사람에게 주최자를 넘겨주세요."
+        : "함께 참여 중인 사람 중 새 주최자를 선택해주세요. 주최자를 넘기면 활동 수정과 일정 관리 권한도 함께 이전됩니다.",
+    }),
+  ]);
+
+  if (!candidates.length) {
+    content.append(el("div", {
+      className: "activity-organizer-transfer__empty",
+      text: "주최자를 넘길 수 있는 다른 참여자가 없습니다.",
+    }));
+  } else {
+    const candidateRows = await Promise.all(candidates.map(async (participant) => {
+      const profile = participant.profile;
+      const avatarUrl = await getSignedAvatarUrl(profile?.avatar_path);
+      const profileAvatar = profile
+        ? createProfileAvatarTrigger(profile, { avatarUrl, portalMenu: true })
+        : el("span", { className: "activity-detail__organizer-fallback", text: "👤", "aria-hidden": "true" });
+      return el("div", { className: "activity-organizer-transfer__person" }, [
+        el("span", { className: "activity-organizer-transfer__profile" }, [
+          profileAvatar,
+          el("strong", { text: profile?.display_name ?? "회원" }),
+        ]),
+        el("button", {
+          className: `button ${leaveAfterTransfer ? "button--danger" : "button--secondary"}`,
+          type: "button",
+          text: leaveAfterTransfer ? "넘기고 참여 취소" : "주최자로 변경",
+          onClick: async (clickEvent) => {
+            setBusy(clickEvent.currentTarget, true, "변경 중…");
+            try {
+              await transferEventOrganizer(event.id, participant.user_id, { leaveCurrent: leaveAfterTransfer });
+              showToast(
+                leaveAfterTransfer
+                  ? `${profile?.display_name ?? "선택한 참여자"}님에게 주최자를 넘기고 참여를 취소했습니다.`
+                  : `${profile?.display_name ?? "선택한 참여자"}님으로 주최자를 변경했습니다.`,
+                "success",
+              );
+              root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
+            } catch (error) {
+              showToast(getErrorMessage(error), "error");
+              setBusy(clickEvent.currentTarget, false);
+            }
+          },
+        }),
+      ]);
+    }));
+    content.append(el("div", { className: "activity-organizer-transfer__list" }, candidateRows));
+  }
+
+  if (leaveAfterTransfer) {
+    content.append(el("p", {
+      className: "small subtle activity-organizer-transfer__hint",
+      text: "활동 자체를 진행하지 않을 경우에는 참여 취소 대신 아래 활동 관리의 ‘일정 취소’를 이용해주세요.",
+    }));
+  }
+
+  if (trigger) setBusy(trigger, false);
+  return contentDialog({
+    title: leaveAfterTransfer ? "주최자를 먼저 변경해주세요" : "주최자 변경",
+    content,
+  });
 }
 
 function managementSection(event, root, permissions) {
