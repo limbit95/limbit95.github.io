@@ -1,7 +1,7 @@
 -- Creator auto-participation is the initial state of a newly created activity, not
--- meaningful participation history by itself. Keep the existing removal policy:
--- standalone activities with no external participation or other history can still
--- be physically deleted by an authorized operator.
+-- meaningful participation history by itself. Preserve the current operator-only
+-- removal boundary while allowing a clean standalone activity to be physically
+-- deleted when its only participant row belongs to the creator.
 
 begin;
 
@@ -31,12 +31,8 @@ begin
   if not (
     private.has_admin_permission('community')
     or private.is_category_manager(v_event.category_id)
-    or (
-      v_event.series_id is null
-      and v_event.created_by = v_user_id
-    )
   ) then
-    raise exception '이 활동을 관리할 권한이 없습니다.' using errcode = '42501';
+    raise exception '활동 삭제는 카테고리 담당자 또는 커뮤니티 관리자만 할 수 있습니다.' using errcode = '42501';
   end if;
 
   if v_event.series_id is not null or exists (
