@@ -17,6 +17,10 @@ import {
   createAnimationDirector,
   getSharedAnimationQueue,
 } from "./presentation/presentationFoundation.js?v=20260912-r13";
+import {
+  beginMarbleOverlayMotion,
+  endMarbleOverlayMotion,
+} from "./presentation/renderRuntimePolicy.js?v=20260914-r2";
 
 export {
   DICE_STAGE_PROFILE,
@@ -25,6 +29,35 @@ export {
   normalizeRollStrength,
   rollAnimationProfile,
 };
+
+function wrapLocalDiceStage(baseStage) {
+  return Object.freeze({
+    mount(targetElement) {
+      return baseStage.mount(targetElement);
+    },
+
+    showReady() {
+      return baseStage.showReady?.();
+    },
+
+    async playRoll(values, rollOptions = {}) {
+      beginMarbleOverlayMotion();
+      try {
+        return await baseStage.playRoll(values, rollOptions);
+      } finally {
+        endMarbleOverlayMotion();
+      }
+    },
+
+    hide() {
+      return baseStage.hide?.();
+    },
+
+    dispose() {
+      return baseStage.dispose?.();
+    },
+  });
+}
 
 export function createThreeDiceStage(options = {}, {
   createBaseStage = createBaseThreeDiceStage,
@@ -37,7 +70,9 @@ export function createThreeDiceStage(options = {}, {
     ...stageOptions
   } = options;
   const baseStage = createBaseStage(stageOptions);
-  if (!shouldDeferOnlineDiceRenderer({ documentObject, locationObject })) return baseStage;
+  if (!shouldDeferOnlineDiceRenderer({ documentObject, locationObject })) {
+    return wrapLocalDiceStage(baseStage);
+  }
 
   markOnlineVisualRuntime({ documentObject, locationObject });
   const diceEnabled = shouldStartOnlineDiceRenderer({ documentObject, locationObject });
