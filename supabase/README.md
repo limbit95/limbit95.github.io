@@ -93,3 +93,69 @@
 이 값들은 서버 전용 인증 정보이므로 `js/config.js`나 다른 브라우저 소스에 넣지 않습니다. Secret을 변경하면 Edge Function을 다시 배포하지 않아도 런타임에서 새 값이 사용됩니다.
 
 지도 렌더링은 NAVER Cloud Maps Web Dynamic Map Client ID를 계속 사용하며, 카카오 JavaScript 키는 카카오톡 활동 공유 기능에서만 사용합니다.
+
+## 8. 공통 메일 발송 시스템
+
+메일은 **인증 메일**과 **서비스 메일**을 구분합니다.
+
+### 8.1 인증 메일
+
+회원가입 이메일 OTP, 비밀번호 재설정 등 인증 수명주기에 속한 메일은 Supabase Auth가 담당합니다.
+
+- 회원가입 인증번호: `supabase.auth.signInWithOtp()` / `verifyOtp()`
+- 비밀번호 재설정: Supabase Auth recovery 흐름
+- 발송 Provider/SMTP 설정: Supabase Auth 설정에서 관리
+
+서비스 Edge Function에서 인증번호를 직접 생성하거나 별도의 challenge 테이블을 만들지 않습니다.
+
+### 8.2 서비스 메일
+
+가입 신청 관리자 알림처럼 애플리케이션 업무에서 발생하는 메일은 아래 공통 모듈만 사용합니다.
+
+- 전송/Provider/수신자 조회: `supabase/functions/_shared/email.ts`
+- 업무별 템플릿: `supabase/functions/_shared/email-templates.ts`
+- 공통 HTML 레이아웃: `supabase/functions/_shared/email-layout.ts`
+
+업무별 Edge Function에서 Resend API를 직접 호출하거나 발신자/Provider 설정을 중복 구현하지 않습니다. 서비스 메일은 공통 HTML 레이아웃을 사용하고, 메일 클라이언트 호환 및 접근성을 위해 plain text 본문도 함께 전송합니다.
+
+운영 Supabase 프로젝트에는 다음 값을 **Edge Function Secret**으로 한 번만 등록하고 모든 서비스 메일에서 공통 사용합니다.
+
+- `RESEND_API_KEY`: 서비스 메일 전송용 Resend API Key
+- `EMAIL_FROM`: 검증된 발신자. 예: `청파 같이 <noreply@example.com>`
+- `APP_SITE_URL`: 선택값. 메일에서 사이트 링크를 생성할 때 사용하며 미설정 시 `https://limbit95.github.io/`를 사용합니다.
+
+기존 `SIGNUP_EMAIL_FROM`처럼 특정 업무 이름이 붙은 발신자 Secret은 새 서비스 메일에서 사용하지 않습니다.
+
+### 8.3 새 서비스 메일 추가 규칙
+
+새 프로세스에서 메일을 추가할 때는 다음 순서를 지킵니다.
+
+1. `email-templates.ts`에 템플릿 ID와 입력 데이터 타입, 제목/본문/CTA를 추가합니다.
+2. 브랜드 헤더, 본문 여백, 버튼, 푸터처럼 모든 메일에 공통인 UI는 `email-layout.ts`에서만 관리합니다.
+3. 업무 템플릿은 공통 레이아웃을 호출하고 사용자/업무 데이터는 HTML escape를 거쳐 렌더링합니다.
+4. 업무 Edge Function은 `sendEmail()` 또는 Auth 사용자를 대상으로 하는 `sendUserEmail()`만 호출합니다.
+5. 호출부는 업무 이벤트별로 안정적인 `idempotencyKey`를 전달해 중복 전송을 방지합니다.
+6. Provider 응답 본문이나 API Key, 수신자 주소를 운영 로그에 그대로 남기지 않습니다.
+7. 공통 전송 계층을 우회하는 `fetch("https://api.resend.com/emails", ...)` 구현을 업무 코드에 추가하지 않습니다.
+
+현재 첫 서비스 메일 템플릿은 `join_request_received`이며, 동일한 공통 프레임 안에서 제목·안내 문구·버튼 목적지만 업무에 맞게 교체합니다.
+
+### 8.4 서비스 메일 운영 진단
+
+서비스 메일 전송 결과는 업무 Edge Function 응답의 `email` 객체로 확인합니다.
+
+- `email.sent = 1`: Provider 전송 요청 성공
+- `reason = "EMAIL_NOT_CONFIGURED"`: 필수 Secret이 누락된 상태이며 `missing` 배열에서 누락된 이름 확인
+- `reason = "RESEND_<HTTP 상태>"`: Resend가 전송 요청을 거절한 상태이며 `providerStatus`와 제공 가능한 경우 `providerCode`로 원인 확인
+- `reason = "RECIPIENT_EMAIL_MISSING"`: 대상 Auth 사용자에게 사용할 이메일 주소가 없음
+- `reason = "EMAIL_DELIVERY_FAILED"`: 수신자 조회 또는 Provider 요청 중 예외 발생
+
+가입 신청 관리자 알림처럼 필수 서비스 메일이 실패하면 Web Push 성공 여부와 관계없이 Webhook 응답을 `502`로 기록해 메일 실패가 정상 `200`으로 숨지 않도록 합니다. 가입 신청 알림은 `supabase_functions.hooks`와 `net._http_response`에서 Webhook HTTP 결과를 확인할 수 있으며, 운영 로그에는 API Key, 수신자 이메일 주소, Provider 응답 원문을 남기지 않습니다.
+
+Secret은 Supabase Dashboard의 Edge Functions Secrets 또는 Supabase CLI의 `supabase secrets set`으로 관리하고 소스 코드나 브라우저 설정에는 저장하지 않습니다.
+
+### 8.5 레거시 회원가입 메일 제거
+
+초기 다단계 회원가입 구현에서 사용했던 `signup-verification` Edge Function과 `signup_email_challenges` 기반 자체 OTP 방식은 현재 Native Supabase Auth OTP 경로에서 사용하지 않습니다.
+
+DB의 미사용 challenge 테이블 및 RPC는 `20260914024000_remove_legacy_signup_email_verification.sql`에서 제거합니다. 운영 반영 시에는 더 이상 호출되지 않는 배포본 `signup-verification` Edge Function도 함께 삭제하여 레거시 실행 경로를 남기지 않습니다.

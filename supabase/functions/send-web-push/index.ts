@@ -1,4 +1,5 @@
 import webpush from "npm:web-push@3.6.7";
+import { sendUserEmail } from "../_shared/email.ts";
 
 const PUSH_TYPES = new Set([
   "event_participant_joined",
@@ -7,7 +8,6 @@ const PUSH_TYPES = new Set([
   "join_request_received",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
-const DEFAULT_SITE_URL = "https://limbit95.github.io/";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -37,72 +37,6 @@ async function rest(path: string, init: RequestInit = {}) {
   if (!response.ok) throw new Error(`SUPABASE_REST_${response.status}`);
   if (response.status === 204) return null;
   return response.json();
-}
-
-async function authAdminUser(userId: string) {
-  const response = await fetch(`${env("SUPABASE_URL")}/auth/v1/admin/users/${encodeURIComponent(userId)}`, {
-    method: "GET",
-    headers: serviceHeaders(),
-  });
-  if (!response.ok) throw new Error(`SUPABASE_AUTH_${response.status}`);
-  return response.json();
-}
-
-function adminTargetUrl(targetPath: string | null | undefined) {
-  const base = env("ADMIN_ALERT_SITE_URL") || DEFAULT_SITE_URL;
-  return new URL(targetPath || "#/admin/approvals?status=pending", base).toString();
-}
-
-async function sendAdminEmail(notification: Record<string, unknown>) {
-  if (!EMAIL_TYPES.has(String(notification.notification_type))) {
-    return { attempted: 0, sent: 0, failed: 0 };
-  }
-  if (!env("RESEND_API_KEY") || !env("SIGNUP_EMAIL_FROM")) {
-    console.error("Admin email delivery skipped: email provider is not configured", {
-      notificationId: notification.id,
-    });
-    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED" };
-  }
-
-  try {
-    const user = await authAdminUser(String(notification.user_id));
-    const email = String(user?.email ?? "").trim();
-    if (!email) {
-      console.error("Admin email delivery skipped: recipient has no email", {
-        notificationId: notification.id,
-      });
-      return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
-    }
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${env("RESEND_API_KEY")}`,
-        "content-type": "application/json",
-        "Idempotency-Key": `admin-notification-${notification.id}`,
-      },
-      body: JSON.stringify({
-        from: env("SIGNUP_EMAIL_FROM"),
-        to: [email],
-        subject: `[청파 같이] ${String(notification.title)}`,
-        text: `${String(notification.body)}\n\n관리자 페이지에서 바로 확인하세요.\n${adminTargetUrl(String(notification.target_path ?? ""))}\n\n이 메일은 최고 관리자 및 회원 관리 권한이 있는 관리자에게 발송되었습니다.`,
-      }),
-    });
-    if (!response.ok) {
-      console.error("Admin email delivery failed", {
-        notificationId: notification.id,
-        status: response.status,
-      });
-      return { attempted: 1, sent: 0, failed: 1, reason: `RESEND_${response.status}` };
-    }
-    return { attempted: 1, sent: 1, failed: 0 };
-  } catch (error) {
-    console.error("Admin email delivery failed", {
-      notificationId: notification.id,
-      error: error instanceof Error ? error.message : "UNKNOWN_ERROR",
-    });
-    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_DELIVERY_FAILED" };
-  }
 }
 
 Deno.serve(async (request: Request) => {
@@ -172,15 +106,30 @@ Deno.serve(async (request: Request) => {
         throw error;
       }
     }));
-    const email = await sendAdminEmail(notification);
 
-    return json({
+    const email = EMAIL_TYPES.has(notification.notification_type)
+      ? await sendUserEmail({
+        userId: String(notification.user_id),
+        template: "join_request_received",
+        data: {
+          title: String(notification.title),
+          body: String(notification.body),
+          targetPath: String(notification.target_path ?? ""),
+        },
+        idempotencyKey: `notification-${notification.id}-join-request-received`,
+      })
+      : { attempted: 0, sent: 0, failed: 0 };
+
+    const responseBody = {
       attempted: results.length,
       sent: results.filter((result) => result.status === "fulfilled" && result.value === "sent").length,
       removed: results.filter((result) => result.status === "fulfilled" && result.value === "removed").length,
       failed: results.filter((result) => result.status === "rejected").length,
       email,
-    });
+    };
+
+    // Push 성공 여부와 별개로 필수 서비스 메일 실패를 운영에서 정상 200으로 숨기지 않는다.
+    return json(responseBody, email.failed > 0 ? 502 : 200);
   } catch (error) {
     console.error("send-web-push failed", error instanceof Error ? error.message : "UNKNOWN_ERROR");
     return json({ error: "INTERNAL_ERROR" }, 500);
