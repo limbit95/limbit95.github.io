@@ -1,11 +1,11 @@
 {
-  "entry": "assets/build/app-4GYE4B3D.js",
+  "entry": "assets/build/app-B5TFIPNU.js",
   "outputs": [
-    "assets/build/app-4GYE4B3D.js",
+    "assets/build/app-B5TFIPNU.js",
     "assets/build/chunks/activities-CYKFL4C5.js",
     "assets/build/chunks/activityDetail-I6MFWKXU.js",
     "assets/build/chunks/activityForm-FW5DBTRA.js",
-    "assets/build/chunks/admin-BWD42JCT.js",
+    "assets/build/chunks/admin-AKYOYBQB.js",
     "assets/build/chunks/approvals-HED5GQOX.js",
     "assets/build/chunks/authConfirm-PPYIXBHL.js",
     "assets/build/chunks/board-CN34BB2G.js",
@@ -29,7 +29,7 @@
     "assets/build/chunks/chunk-R77LEZCX.js",
     "assets/build/chunks/chunk-SWWHUZGS.js",
     "assets/build/chunks/chunk-VKXN6RK2.js",
-    "assets/build/chunks/dashboard-O3UTTIAY.js",
+    "assets/build/chunks/dashboard-JHWADJQR.js",
     "assets/build/chunks/errors-PM4CZS5B.js",
     "assets/build/chunks/games-MHLJPEC3.js",
     "assets/build/chunks/home-D7WTNTCO.js",
