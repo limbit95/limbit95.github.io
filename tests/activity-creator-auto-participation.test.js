@@ -42,6 +42,16 @@ test("creator auto-participation alone does not count as activity history for op
   assert.match(removalCompatMigration, /delete from public\.events where id = p_event_id/);
 });
 
+test("removal compatibility keeps the current operator-only authorization boundary", () => {
+  assert.match(removalCompatMigration, /private\.has_admin_permission\('community'\)/);
+  assert.match(removalCompatMigration, /private\.is_category_manager\(v_event\.category_id\)/);
+  assert.match(
+    removalCompatMigration,
+    /활동 삭제는 카테고리 담당자 또는 커뮤니티 관리자만 할 수 있습니다\./,
+  );
+  assert.doesNotMatch(removalCompatMigration, /v_event\.created_by\s*=\s*v_user_id/);
+});
+
 test("trigger applies to every inserted event so recurring occurrences receive the same creator policy", () => {
   assert.match(migration, /after insert on public\.events/);
   assert.doesNotMatch(migration, /series_id is null/);
