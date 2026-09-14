@@ -9,6 +9,7 @@ export async function renderAdmin(route) {
     approvals: ADMIN_PERMISSION.MEMBERS,
     members: ADMIN_PERMISSION.MEMBERS,
     managers: ADMIN_PERMISSION.OPERATIONS,
+    "organizer-history": ADMIN_PERMISSION.OPERATIONS,
     categories: ADMIN_PERMISSION.CONTENT,
     errors: ADMIN_PERMISSION.OPERATIONS,
     permissions: ADMIN_PERMISSION.PERMISSIONS,
@@ -43,6 +44,9 @@ export async function renderAdmin(route) {
   } else if (section === "managers") {
     const { renderManagers } = await import("./admin/managers.js");
     root.append(await renderManagers());
+  } else if (section === "organizer-history") {
+    const { renderOrganizerHistory } = await import("./admin/organizerHistory.js");
+    root.append(await renderOrganizerHistory());
   } else if (section === "categories") {
     const { renderCategories } = await import("./admin/categories.js");
     root.append(await renderCategories());
@@ -62,6 +66,7 @@ function adminTitle(section) {
     approvals: "가입 신청 관리",
     members: "회원 관리",
     managers: "활동 담당자 관리",
+    "organizer-history": "활동 주최자 변경 이력",
     categories: "활동 카테고리 관리",
     errors: "오류 로그",
     permissions: "관리자 권한 설정",
