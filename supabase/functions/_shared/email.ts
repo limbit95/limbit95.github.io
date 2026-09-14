@@ -68,9 +68,16 @@ export async function sendEmail<T extends EmailTemplateId>({
     return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
   }
 
-  const rendered = renderEmailTemplate(template, data, {
-    siteUrl: env("APP_SITE_URL") || undefined,
-  });
+  let rendered;
+  try {
+    rendered = renderEmailTemplate(template, data, {
+      siteUrl: env("APP_SITE_URL") || undefined,
+    });
+  } catch {
+    console.error("Email template rendering failed", { template });
+    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_RENDER_FAILED" };
+  }
+
   return await sendRenderedEmail({
     to: recipient,
     template,
@@ -94,13 +101,9 @@ export async function sendUserEmail<T extends EmailTemplateId>({
     return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED", missing };
   }
 
+  let email = "";
   try {
-    const email = await authUserEmail(userId);
-    if (!email) {
-      console.error("Email delivery skipped: recipient has no email", { template });
-      return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
-    }
-    return await sendEmail({ to: email, template, data, idempotencyKey });
+    email = await authUserEmail(userId);
   } catch (error) {
     console.error("Email recipient lookup failed", {
       template,
@@ -108,4 +111,11 @@ export async function sendUserEmail<T extends EmailTemplateId>({
     });
     return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_DELIVERY_FAILED" };
   }
+
+  if (!email) {
+    console.error("Email delivery skipped: recipient has no email", { template });
+    return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
+  }
+
+  return await sendEmail({ to: email, template, data, idempotencyKey });
 }

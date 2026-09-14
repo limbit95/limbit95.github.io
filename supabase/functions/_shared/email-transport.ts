@@ -1,5 +1,4 @@
 import nodemailer from "npm:nodemailer@9.1.1";
-import type { RenderedEmail } from "./email-templates.ts";
 
 const SMTP_HOST = "smtp.gmail.com";
 const SMTP_PORT = 465;
@@ -15,10 +14,16 @@ export type EmailDeliveryResult = {
   providerCode?: string;
 };
 
+export type RenderedEmailMessage = {
+  subject: string;
+  text: string;
+  html: string;
+};
+
 type SendRenderedEmailOptions = {
   to: string;
   template: string;
-  rendered: RenderedEmail;
+  rendered: RenderedEmailMessage;
   idempotencyKey: string;
 };
 
