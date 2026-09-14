@@ -151,8 +151,12 @@ export async function createOnlineClassicSession({
   }
 
   function markSnapshotRecovered() {
+    const wasRecovering = snapshotRecoveryPending;
     snapshotRecoveryPending = false;
-    if (realtimeHealthy) clearRecoveryTimer();
+    if (realtimeHealthy) {
+      clearRecoveryTimer();
+      if (wasRecovering) onConnectionStatus?.("SUBSCRIBED");
+    }
   }
 
   function requestRefresh(options) {
@@ -216,7 +220,7 @@ export async function createOnlineClassicSession({
       if (disposed || (realtimeHealthy && !snapshotRecoveryPending)) return;
       try {
         await refresh();
-        snapshotRecoveryPending = false;
+        markSnapshotRecovered();
       } catch (error) {
         snapshotRecoveryPending = true;
         onConnectionStatus?.("RECONNECTING", error);
