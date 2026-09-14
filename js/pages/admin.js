@@ -4,6 +4,8 @@ import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 
 export async function renderAdmin(route) {
   const section = route.path.split("/")[2] || "dashboard";
+  const organizerHistoryView = section === "managers"
+    && route.query.get("view") === "organizer-history";
   const auth = getAuthState();
   const requiredPermission = {
     approvals: ADMIN_PERMISSION.MEMBERS,
@@ -24,7 +26,7 @@ export async function renderAdmin(route) {
     el("div", { className: "page-header" }, [
       el("div", {}, [
         el("p", { className: "eyebrow", text: "ADMIN" }),
-        el("h1", { className: "page-title", text: adminTitle(section) }),
+        el("h1", { className: "page-title", text: organizerHistoryView ? "활동 주최자 변경 이력" : adminTitle(section) }),
         el("p", { className: "page-description", text: "민감한 정보와 권한 변경은 관리자에게만 표시되며 RPC와 RLS에서 다시 검증됩니다." }),
       ]),
       section !== "dashboard" ? el("a", { className: "button button--ghost", href: "#/admin", text: "← 대시보드" }) : null,
@@ -40,6 +42,9 @@ export async function renderAdmin(route) {
   } else if (section === "members") {
     const { renderMembers } = await import("./admin/members.js");
     root.append(await renderMembers());
+  } else if (section === "managers" && organizerHistoryView) {
+    const { renderOrganizerHistory } = await import("./admin/organizerHistory.js");
+    root.append(await renderOrganizerHistory());
   } else if (section === "managers") {
     const { renderManagers } = await import("./admin/managers.js");
     root.append(await renderManagers());
