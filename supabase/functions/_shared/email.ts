@@ -99,6 +99,7 @@ export async function sendEmail<T extends EmailTemplateId>({
         to: [recipient],
         subject: rendered.subject,
         text: rendered.text,
+        html: rendered.html,
       }),
     });
 
