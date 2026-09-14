@@ -9,7 +9,7 @@ import {
   getClassicTileVisual,
   installClassicShadowUpdatePolicy,
   resolveClassicRendererPixelRatio,
-} from "./threeClassicPrototypeDiagnostics.js?v=20260912-r13";
+} from "./threeClassicPrototypeDiagnostics.js?v=20260914-r22";
 import {
   createAnimationDirector,
   getSharedAnimationQueue,

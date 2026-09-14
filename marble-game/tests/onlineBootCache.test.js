@@ -11,9 +11,10 @@ const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta
 const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
 const diceStageLazySource = readFileSync(new URL("../js/diceStageOnlineLazy.js", import.meta.url), "utf8");
 const moneyRendererSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
+const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260914-r11"/);
+  assert.match(indexHtml, /data-marble-build="20260914-r12"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260914-r11/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260912-r19/);
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
@@ -29,7 +30,7 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(diceStageLazySource, /presentationFoundation\.js\?v=20260912-r13/);
 });
 
-test("online recovery session bypasses stale modules while untouched core imports stay pinned", () => {
+test("online recovery and render runtime bypass stale modules while untouched core imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260914-r11"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
@@ -41,11 +42,12 @@ test("online recovery session bypasses stale modules while untouched core import
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260912-r21/);
+  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260914-r22/);
   assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260913-r25/);
-  assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
+  assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260914-r22/);
   assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r21/);
   assert.match(moneyRendererSource, /tileInfo\.js\?v=20260912-r21/);
+  assert.match(diagnosticsSource, /renderRuntimePolicy\.js\?v=20260914-r1/);
   assert.match(bootstrapSource, /ownershipVisualLoader\.js\?v=20260910-r10/);
 });
 
