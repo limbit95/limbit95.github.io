@@ -320,21 +320,6 @@ export async function signIn(email, password) {
   return data;
 }
 
-export async function signUp({ email, password, metadata }) {
-  const redirect = `${window.location.origin}${window.location.pathname}`;
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: redirect,
-      data: metadata,
-    },
-  });
-  if (error) throw error;
-  if (data.session) await refreshAuthContext(data.session, { force: true });
-  return data;
-}
-
 function signupRedirect() {
   return `${window.location.origin}${window.location.pathname}`;
 }
