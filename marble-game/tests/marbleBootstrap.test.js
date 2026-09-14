@@ -19,7 +19,7 @@ test("strict online 2D bootstrap evaluates only the play-window entry", async ()
   assert.equal(mode, "online-2d");
   assert.deepEqual(imports, ["./playWindow.js?v=20260910-r10"]);
   assert.equal(documentObject.body.dataset.marbleBootstrapMode, "online-2d");
-  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260910-r10");
+  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260914-r11");
 });
 
 test("online gameplay bootstrap restores dice charge, game exit, and ownership loader", async () => {
@@ -52,7 +52,7 @@ test("lobby and local routes keep the existing full module graph", async () => {
   assert.equal(mode, "full");
   assert.deepEqual(imports, [
     "./app.js?v=20260910-r7",
-    "./multiplayerLobby.js?v=20260910-r7",
+    "./multiplayerLobby.js?v=20260914-r8",
     "./diceCharge.js?v=20260910-r7",
     "./playWindow.js?v=20260910-r10",
     "./onlineGameExit.js?v=20260910-r10",
