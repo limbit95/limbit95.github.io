@@ -102,6 +102,7 @@ export async function createOnlineClassicSession({
   let pendingRefresh = false;
   let recoveryTimer = null;
   let realtimeHealthy = false;
+  let snapshotRecoveryPending = false;
   let subscriptionReconciled = false;
 
   function accept(nextSnapshot) {
@@ -131,7 +132,7 @@ export async function createOnlineClassicSession({
       refreshing = false;
       if (pendingRefresh && !actionInFlight && !disposed) {
         pendingRefresh = false;
-        void refresh({ notify });
+        requestRefresh({ notify });
       }
     }
   }
@@ -141,6 +142,23 @@ export async function createOnlineClassicSession({
     subscriptionReconciled = false;
     onConnectionStatus?.("RECONNECTING", error);
     scheduleRecoveryRefresh();
+  }
+
+  function markSnapshotRecovery(error) {
+    snapshotRecoveryPending = true;
+    onConnectionStatus?.("RECONNECTING", error);
+    scheduleRecoveryRefresh();
+  }
+
+  function markSnapshotRecovered() {
+    snapshotRecoveryPending = false;
+    if (realtimeHealthy) clearRecoveryTimer();
+  }
+
+  function requestRefresh(options) {
+    void refresh(options)
+      .then(markSnapshotRecovered)
+      .catch(markSnapshotRecovery);
   }
 
   async function reconcileAmbiguousAction(expectedVersion) {
@@ -180,7 +198,7 @@ export async function createOnlineClassicSession({
       actionInFlight = false;
       if (pendingRefresh && !disposed) {
         pendingRefresh = false;
-        void refresh();
+        requestRefresh();
       }
     }
   }
@@ -192,16 +210,18 @@ export async function createOnlineClassicSession({
   }
 
   function scheduleRecoveryRefresh() {
-    if (disposed || realtimeHealthy || recoveryTimer !== null) return;
+    if (disposed || recoveryTimer !== null || (realtimeHealthy && !snapshotRecoveryPending)) return;
     recoveryTimer = window.setTimeout(async () => {
       recoveryTimer = null;
-      if (disposed || realtimeHealthy) return;
+      if (disposed || (realtimeHealthy && !snapshotRecoveryPending)) return;
       try {
         await refresh();
+        snapshotRecoveryPending = false;
       } catch (error) {
+        snapshotRecoveryPending = true;
         onConnectionStatus?.("RECONNECTING", error);
       } finally {
-        if (!disposed && !realtimeHealthy) scheduleRecoveryRefresh();
+        if (!disposed && (!realtimeHealthy || snapshotRecoveryPending)) scheduleRecoveryRefresh();
       }
     }, RECOVERY_REFRESH_MS);
   }
@@ -213,7 +233,7 @@ export async function createOnlineClassicSession({
       clearRecoveryTimer();
       if (!subscriptionReconciled) {
         subscriptionReconciled = true;
-        void refresh().catch((refreshError) => onConnectionStatus?.("RECONNECTING", refreshError));
+        requestRefresh();
       }
       return;
     }
@@ -227,7 +247,7 @@ export async function createOnlineClassicSession({
   try {
     unsubscribe = subscribeGame(roomId, {
       channelScope: "session",
-      onChange: () => { void refresh(); },
+      onChange: () => { requestRefresh(); },
       onStatus: handleRealtimeStatus,
     });
   } catch (error) {
@@ -240,7 +260,7 @@ export async function createOnlineClassicSession({
     realtimeHealthy = false;
     onConnectionStatus?.("RECONNECTING");
     scheduleRecoveryRefresh();
-    void refresh().catch((error) => onConnectionStatus?.("RECONNECTING", error));
+    requestRefresh();
   };
   const handleOffline = () => {
     realtimeHealthy = false;
@@ -250,9 +270,7 @@ export async function createOnlineClassicSession({
   const visibilityDocument = globalThis.document;
   const handleVisibilityChange = () => {
     if (visibilityDocument?.visibilityState !== "visible") return;
-    void refresh().catch((error) => {
-      markTransportRecovery(error);
-    });
+    requestRefresh();
   };
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
@@ -283,6 +301,7 @@ export async function createOnlineClassicSession({
     dispose() {
       disposed = true;
       realtimeHealthy = false;
+      snapshotRecoveryPending = false;
       clearRecoveryTimer();
       unsubscribe?.();
       unsubscribe = null;
