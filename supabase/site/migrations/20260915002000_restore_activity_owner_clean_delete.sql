@@ -34,6 +34,7 @@ begin
     or (
       v_event.series_id is null
       and v_event.created_by = v_user_id
+      and v_event.status in ('scheduled', 'closed')
     )
   ) then
     raise exception '이 활동을 삭제할 권한이 없습니다.' using errcode = '42501';
