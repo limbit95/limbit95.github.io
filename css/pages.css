@@ -138,8 +138,12 @@
 .prayer-comment-edit { padding: 1rem; background: #ffffff; }
 .prayer-comment-edit .button-row { justify-content: flex-end; }
 .prayer-comment-empty { padding: 1.15rem; border: 1px dashed #d9e8ed; border-radius: 14px; text-align: center; background: #f8fbfc; }
-.signup-flow { display: grid; gap: 1.5rem; }
-.signup-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.auth-card--signup { width: min(100%, 860px); padding-inline: clamp(1.1rem, 3vw, 1.5rem); }
+.auth-card--signup > .page-stack > :first-child { width: 100%; text-align: center; }
+.auth-card--signup > .page-stack > :first-child .page-description { max-width: 38rem; margin-inline: auto; }
+.signup-flow { width: 100%; display: grid; gap: 1.5rem; }
+.signup-flow > .section-title { text-align: center; }
+.signup-progress { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
 .signup-progress li { display: grid; justify-items: center; gap: .35rem; color: var(--muted); font-size: .78rem; text-align: center; }
 .signup-progress li::before { content: ""; position: relative; top: 1rem; z-index: 0; width: calc(100% + .5rem); height: 2px; background: var(--line); transform: translateX(50%); }
 .signup-progress li:last-child::before { visibility: hidden; }
@@ -155,7 +159,7 @@
 .signup-email-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
 .signup-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; }
 .signup-verified { margin: 0; color: var(--success); font-weight: 700; }
-.signup-actions { justify-content: space-between; }
+.form-actions.signup-actions { justify-content: center; }
 .signup-review { display: grid; gap: .75rem; }
 .signup-review__head { display: flex; align-items: center; justify-content: space-between; }
 .signup-review__head h3 { margin: 0; }
