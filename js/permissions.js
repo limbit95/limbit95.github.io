@@ -52,10 +52,11 @@ export function canCancelActivityFor(auth, event) {
   return isActivityOperatorFor(auth, event) || isStandaloneActivityOwnerFor(auth, event);
 }
 
-export function canDeleteActivityFor(auth, event) {
-  return Boolean(event)
-    && event.series_id == null
-    && isActivityOperatorFor(auth, event);
+export function canDeleteActivityFor(auth, event, { hasOtherActiveParticipants = false } = {}) {
+  if (!event || event.series_id != null || hasOtherActiveParticipants) return false;
+  if (isActivityOperatorFor(auth, event)) return true;
+  return isStandaloneActivityOwnerFor(auth, event)
+    && MEMBER_EDITABLE_ACTIVITY_STATUSES.has(event.status);
 }
 
 export function canManageActivityFor(auth, event) {
