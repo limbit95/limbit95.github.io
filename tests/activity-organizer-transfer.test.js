@@ -6,8 +6,13 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const productionFixMigration = read("../supabase/site/migrations/20260914213436_activity_organizer_transfer_production_fix.sql");
 const creatorGuardMigration = read("../supabase/site/migrations/20260914213818_allow_organizer_transfer_through_creator_guard.sql");
 const historyMigration = read("../supabase/site/migrations/20260914215312_separate_event_creator_and_organizer_history.sql");
+const adminHistoryMigration = read("../supabase/site/migrations/20260915070000_admin_event_organizer_history.sql");
 const detail = read("../js/pages/activityDetail.js");
 const api = read("../js/api/activities.js");
+const adminApi = read("../js/api/admin.js");
+const adminPage = read("../js/pages/admin/organizerHistory.js");
+const adminShell = read("../js/pages/admin.js");
+const adminDashboard = read("../js/pages/admin/dashboard.js");
 const styles = read("../css/activity-detail.css");
 
 test("production organizer RPC migration preserves notification behavior and schema visibility", () => {
@@ -46,6 +51,24 @@ test("organizer changes are recorded as durable history", () => {
   assert.match(historyMigration, /revoke all on table public\.event_organizer_history from public, anon, authenticated/);
 });
 
+test("organizer history survives activity deletion with a title snapshot", () => {
+  assert.match(adminHistoryMigration, /add column if not exists event_title text/);
+  assert.match(adminHistoryMigration, /alter column event_id drop not null/);
+  assert.match(adminHistoryMigration, /foreign key \(event_id\) references public\.events\(id\) on delete set null/);
+  assert.match(adminHistoryMigration, /event_organizer_history_set_event_title/);
+  assert.match(adminHistoryMigration, /before insert on public\.event_organizer_history/);
+  assert.match(adminHistoryMigration, /alter column event_title set not null/);
+});
+
+test("operations admins can query paginated organizer history through a guarded RPC", () => {
+  assert.match(adminHistoryMigration, /create or replace function public\.admin_list_event_organizer_history/);
+  assert.match(adminHistoryMigration, /private\.has_admin_permission\('operations'\)/);
+  assert.match(adminHistoryMigration, /p_search text default null/);
+  assert.match(adminHistoryMigration, /p_change_type text default null/);
+  assert.match(adminHistoryMigration, /count\(\*\) over\(\) as total_count/);
+  assert.match(adminHistoryMigration, /grant execute on function public\.admin_list_event_organizer_history/);
+});
+
 test("organizer transfer is restricted to current organizer and joined participants", () => {
   assert.match(historyMigration, /v_event\.organizer_id <> v_user_id/);
   assert.match(historyMigration, /v_new_organizer_status <> 'joined'/);
@@ -79,6 +102,18 @@ test("activity API resolves current organizer while retaining original creator i
   assert.match(api, /getPublicProfiles\(\[withSummary\.organizer_id\]\)/);
   assert.match(api, /export async function transferEventOrganizer/);
   assert.match(api, /supabase\.rpc\("transfer_event_organizer"/);
+});
+
+test("admin organizer history is exposed from the operations admin surface", () => {
+  assert.match(adminApi, /export async function listEventOrganizerHistory/);
+  assert.match(adminApi, /supabase\.rpc\("admin_list_event_organizer_history"/);
+  assert.match(adminShell, /route\.query\.get\("view"\) === "organizer-history"/);
+  assert.match(adminShell, /renderOrganizerHistory/);
+  assert.match(adminDashboard, /#\/admin\/managers\?view=organizer-history/);
+  assert.match(adminPage, /활동 주최자 이력/);
+  assert.match(adminPage, /삭제된 활동/);
+  assert.match(adminPage, /이전 주최자 참여/);
+  assert.match(adminPage, /change_type === "initial"/);
 });
 
 test("activity detail keeps organizer card, crown, and leave handoff flow", () => {
