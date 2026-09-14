@@ -26,6 +26,7 @@ const EVENT_COLUMNS = [
   "registration_deadline",
   "status",
   "created_by",
+  "organizer_id",
   "created_at",
   "updated_at",
 ].join(",");
@@ -65,6 +66,18 @@ const EVENT_DETAIL_COLUMNS = `
   category:activity_categories(${CATEGORY_COLUMNS}),
   series:event_series(${EVENT_SERIES_COLUMNS})
 `;
+
+// The database now keeps created_by immutable as the original creator. Existing
+// activity UI code historically treats created_by as the current activity owner,
+// so preserve that client contract while exposing the immutable value separately.
+function normalizeEventOrganizer(event) {
+  if (!event) return event;
+  return {
+    ...event,
+    original_created_by: event.created_by,
+    created_by: event.organizer_id ?? event.created_by,
+  };
+}
 
 async function withLocationCoordinates(payload) {
   if (!payload || !Object.prototype.hasOwnProperty.call(payload, "location_name")) return payload;
@@ -121,12 +134,13 @@ export async function updateCategory(categoryId, payload) {
 export async function attachEventParticipationSummaries(events) {
   if (!events?.length) return events ?? [];
   const eventIds = [...new Set(events.map((event) => Number(event.id)).filter(Number.isFinite))];
-  if (!eventIds.length) return events;
+  if (!eventIds.length) return events.map(normalizeEventOrganizer);
   const summaries = unwrap(await supabase.rpc("get_event_participation_summaries", {
     p_event_ids: eventIds,
   })) ?? [];
   const summaryMap = new Map(summaries.map((summary) => [Number(summary.event_id), summary]));
-  return events.map((event) => {
+  return events.map((rawEvent) => {
+    const event = normalizeEventOrganizer(rawEvent);
     const summary = summaryMap.get(Number(event.id));
     return {
       ...event,
@@ -172,7 +186,7 @@ export async function getEvent(eventId) {
     .eq("id", Number(eventId))
     .single());
   const [withSummary] = await attachEventParticipationSummaries([event]);
-  const [organizer] = await getPublicProfiles([withSummary.created_by]);
+  const [organizer] = await getPublicProfiles([withSummary.organizer_id]);
   return {
     ...withSummary,
     organizer: organizer ?? null,
@@ -181,11 +195,11 @@ export async function getEvent(eventId) {
 
 export async function createEvent(payload) {
   const locationPayload = await withLocationCoordinates(payload);
-  return unwrap(await supabase
+  return normalizeEventOrganizer(unwrap(await supabase
     .from("events")
     .insert(compact(locationPayload))
     .select(EVENT_COLUMNS)
-    .single());
+    .single()));
 }
 
 export async function createRecurringEvent(seriesPayload, occurrencePayloads) {
@@ -194,23 +208,28 @@ export async function createRecurringEvent(seriesPayload, occurrencePayloads) {
     location_latitude: locationSeriesPayload.location_latitude ?? null,
     location_longitude: locationSeriesPayload.location_longitude ?? null,
   };
-  return unwrap(await supabase.rpc("create_recurring_event", {
+  const result = unwrap(await supabase.rpc("create_recurring_event", {
     p_series: compact(locationSeriesPayload),
     p_occurrences: (occurrencePayloads ?? []).map((occurrence) => compact({
       ...occurrence,
       ...locationCoordinates,
     })),
   }));
+  if (!result?.events) return result;
+  return {
+    ...result,
+    events: result.events.map(normalizeEventOrganizer),
+  };
 }
 
 export async function updateEvent(eventId, payload) {
   const locationPayload = await withLocationCoordinates(payload);
-  return unwrap(await supabase
+  return normalizeEventOrganizer(unwrap(await supabase
     .from("events")
     .update(compact(locationPayload))
     .eq("id", Number(eventId))
     .select(EVENT_COLUMNS)
-    .single());
+    .single()));
 }
 
 export async function removeEvent(eventId) {

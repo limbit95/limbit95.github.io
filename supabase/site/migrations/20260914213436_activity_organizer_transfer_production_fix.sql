@@ -1,8 +1,3 @@
--- Treat the current standalone activity owner as the organizer and allow that
--- responsibility to move only through the domain RPC below. The original
--- events.created_by column remains the single authority used by the existing
--- member ownership policies, so edit/cancel permissions move with the organizer.
-
 begin;
 
 create or replace function private.enforce_event_management_boundary()
@@ -84,9 +79,6 @@ $$;
 revoke all on function private.enforce_event_management_boundary()
 from public, anon, authenticated;
 
--- A current organizer cannot leave an active activity while another confirmed
--- participant remains. The UI guides this case into transfer_event_organizer,
--- but the database guard keeps the invariant even for direct RPC calls.
 create or replace function public.cancel_event_participation(p_event_id bigint)
 returns void
 language plpgsql
@@ -99,43 +91,37 @@ declare
     v_current_status text;
     v_promoted_user_id uuid;
     v_joined_count integer;
+    v_actor_name text;
 begin
     if v_user_id is null or not private.is_approved_member() then
-        raise exception '승인된 회원만 참여를 취소할 수 있습니다.'
-            using errcode = '42501';
+        raise exception '승인된 회원만 참여를 취소할 수 있습니다.' using errcode = '42501';
     end if;
 
-    select e.*
-    into v_event
+    select e.* into v_event
     from public.events as e
     where e.id = p_event_id
     for update;
 
     if not found then
-        raise exception '활동을 찾을 수 없습니다.'
-            using errcode = 'P0002';
+        raise exception '활동을 찾을 수 없습니다.' using errcode = 'P0002';
     end if;
 
     if v_event.status not in ('scheduled', 'closed') then
-        raise exception '현재 참여 취소를 처리할 수 없는 활동입니다.'
-            using errcode = '23514';
+        raise exception '현재 참여 취소를 처리할 수 없는 활동입니다.' using errcode = '23514';
     end if;
 
     if now() > v_event.registration_deadline then
-        raise exception '참여 취소 가능 시간이 지났습니다.'
-            using errcode = '23514';
+        raise exception '참여 취소 가능 시간이 지났습니다.' using errcode = '23514';
     end if;
 
-    select ep.status
-    into v_current_status
+    select ep.status into v_current_status
     from public.event_participants as ep
     where ep.event_id = p_event_id
       and ep.user_id = v_user_id
     for update;
 
     if not found or v_current_status = 'cancelled' then
-        raise exception '취소할 참여 정보가 없습니다.'
-            using errcode = 'P0002';
+        raise exception '취소할 참여 정보가 없습니다.' using errcode = 'P0002';
     end if;
 
     if v_event.series_id is null
@@ -153,21 +139,36 @@ begin
     end if;
 
     update public.event_participants
-    set status = 'cancelled',
-        cancelled_at = now()
+    set status = 'cancelled', cancelled_at = now()
     where event_id = p_event_id
       and user_id = v_user_id;
 
+    if v_event.created_by <> v_user_id then
+        select coalesce(nullif(btrim(p.display_name), ''), '회원') into v_actor_name
+        from public.profiles as p
+        where p.id = v_user_id;
+
+        insert into public.notifications (
+            user_id, notification_type, kind, title, body, event_id, target_path
+        ) values (
+            v_event.created_by,
+            'event_participation_cancelled',
+            'event_participation_cancelled',
+            '활동 참여 취소',
+            format('%s님이 ''%s'' 활동 참여를 취소했습니다.', v_actor_name, v_event.title),
+            p_event_id,
+            format('#/activities/%s', p_event_id)
+        );
+    end if;
+
     if v_current_status = 'joined' then
-        select count(*)::integer
-        into v_joined_count
+        select count(*)::integer into v_joined_count
         from public.event_participants as ep
         where ep.event_id = p_event_id
           and ep.status = 'joined';
 
         if v_event.capacity is null or v_joined_count < v_event.capacity then
-            select ep.user_id
-            into v_promoted_user_id
+            select ep.user_id into v_promoted_user_id
             from public.event_participants as ep
             where ep.event_id = p_event_id
               and ep.status = 'waitlisted'
@@ -185,13 +186,8 @@ begin
                   and user_id = v_promoted_user_id;
 
                 insert into public.notifications (
-                    user_id,
-                    notification_type,
-                    title,
-                    body,
-                    event_id
-                )
-                values (
+                    user_id, notification_type, title, body, event_id
+                ) values (
                     v_promoted_user_id,
                     'waitlist_promoted',
                     '활동 참여가 확정되었어요',
@@ -224,8 +220,7 @@ begin
             using errcode = '42501';
     end if;
 
-    select e.*
-    into v_event
+    select e.* into v_event
     from public.events as e
     where e.id = p_event_id
     for update;
@@ -255,8 +250,7 @@ begin
             using errcode = '23514';
     end if;
 
-    select ep.status
-    into v_new_organizer_status
+    select ep.status into v_new_organizer_status
     from public.event_participants as ep
     where ep.event_id = p_event_id
       and ep.user_id = p_new_organizer_id
@@ -290,10 +284,14 @@ $$;
 
 revoke all on function public.cancel_event_participation(bigint)
 from public, anon, authenticated;
-grant execute on function public.cancel_event_participation(bigint) to authenticated;
+grant execute on function public.cancel_event_participation(bigint)
+to authenticated, service_role;
 
 revoke all on function public.transfer_event_organizer(bigint, uuid, boolean)
 from public, anon, authenticated;
-grant execute on function public.transfer_event_organizer(bigint, uuid, boolean) to authenticated;
+grant execute on function public.transfer_event_organizer(bigint, uuid, boolean)
+to authenticated, service_role;
+
+notify pgrst, 'reload schema';
 
 commit;
