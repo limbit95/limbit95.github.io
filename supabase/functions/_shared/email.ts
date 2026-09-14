@@ -1,11 +1,13 @@
+import nodemailer from "npm:nodemailer@9.1.1";
 import {
   renderEmailTemplate,
   type EmailTemplateDataMap,
   type EmailTemplateId,
 } from "./email-templates.ts";
 
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
-const REQUIRED_PROVIDER_SECRETS = ["RESEND_API_KEY", "EMAIL_FROM"] as const;
+const SMTP_HOST = "smtp.gmail.com";
+const SMTP_PORT = 465;
+const REQUIRED_PROVIDER_SECRETS = ["SMTP_USERNAME", "SMTP_PASSWORD", "SMTP_FROM"] as const;
 const REQUIRED_USER_LOOKUP_SECRETS = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
 
 export type EmailDeliveryResult = {
@@ -27,6 +29,12 @@ type SendEmailOptions<T extends EmailTemplateId> = {
 
 type SendUserEmailOptions<T extends EmailTemplateId> = Omit<SendEmailOptions<T>, "to"> & {
   userId: string;
+};
+
+type SmtpError = Error & {
+  code?: string;
+  responseCode?: number;
+  command?: string;
 };
 
 function env(name: string) {
@@ -56,14 +64,41 @@ async function authUserEmail(userId: string) {
   return String(user?.email ?? "").trim();
 }
 
-async function readProviderCode(response: Response) {
-  try {
-    const body = await response.clone().json();
-    const code = body?.name ?? body?.code ?? body?.error?.name ?? body?.error?.code;
-    return code ? String(code).slice(0, 100) : "";
-  } catch {
-    return "";
-  }
+function createSmtpTransport() {
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: true,
+    auth: {
+      user: env("SMTP_USERNAME"),
+      pass: env("SMTP_PASSWORD"),
+    },
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  });
+}
+
+function messageIdFor(idempotencyKey: string) {
+  const safeKey = String(idempotencyKey ?? "")
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]/g, "-")
+    .slice(0, 180) || crypto.randomUUID();
+  const from = env("SMTP_FROM");
+  const domain = from.match(/@([^>\s]+)/)?.[1] || "gmail.com";
+  return `<${safeKey}@${domain}>`;
+}
+
+function smtpErrorDetails(error: unknown) {
+  const smtpError = error as SmtpError;
+  const providerCode = smtpError?.code ? String(smtpError.code).slice(0, 100) : "";
+  const providerStatus = Number(smtpError?.responseCode);
+  const command = smtpError?.command ? String(smtpError.command).slice(0, 100) : "";
+  return {
+    providerCode,
+    providerStatus: Number.isFinite(providerStatus) && providerStatus > 0 ? providerStatus : undefined,
+    command,
+  };
 }
 
 export async function sendEmail<T extends EmailTemplateId>({
@@ -87,46 +122,41 @@ export async function sendEmail<T extends EmailTemplateId>({
     const rendered = renderEmailTemplate(template, data, {
       siteUrl: env("APP_SITE_URL") || undefined,
     });
-    const response = await fetch(RESEND_ENDPOINT, {
-      method: "POST",
+    const transport = createSmtpTransport();
+    const result = await transport.sendMail({
+      from: env("SMTP_FROM"),
+      to: recipient,
+      subject: rendered.subject,
+      text: rendered.text,
+      html: rendered.html,
+      messageId: messageIdFor(idempotencyKey),
       headers: {
-        authorization: `Bearer ${env("RESEND_API_KEY")}`,
-        "content-type": "application/json",
-        "Idempotency-Key": idempotencyKey,
+        "X-Cheongpa-Idempotency-Key": idempotencyKey,
       },
-      body: JSON.stringify({
-        from: env("EMAIL_FROM"),
-        to: [recipient],
-        subject: rendered.subject,
-        text: rendered.text,
-        html: rendered.html,
-      }),
     });
 
-    if (!response.ok) {
-      const providerCode = await readProviderCode(response);
-      console.error("Email provider delivery failed", {
-        template,
-        status: response.status,
-        providerCode: providerCode || null,
-      });
-      return {
-        attempted: 1,
-        sent: 0,
-        failed: 1,
-        reason: `RESEND_${response.status}`,
-        providerStatus: response.status,
-        ...(providerCode ? { providerCode } : {}),
-      };
+    if (!Array.isArray(result.accepted) || result.accepted.length === 0) {
+      console.error("Email SMTP delivery was not accepted", { template });
+      return { attempted: 1, sent: 0, failed: 1, reason: "SMTP_NOT_ACCEPTED" };
     }
 
     return { attempted: 1, sent: 1, failed: 0 };
   } catch (error) {
-    console.error("Email provider request failed", {
+    const { providerCode, providerStatus, command } = smtpErrorDetails(error);
+    console.error("Email SMTP delivery failed", {
       template,
-      error: error instanceof Error ? error.message : "UNKNOWN_ERROR",
+      providerStatus: providerStatus ?? null,
+      providerCode: providerCode || null,
+      command: command || null,
     });
-    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_DELIVERY_FAILED" };
+    return {
+      attempted: 1,
+      sent: 0,
+      failed: 1,
+      reason: providerCode ? `SMTP_${providerCode}` : "SMTP_DELIVERY_FAILED",
+      ...(providerStatus ? { providerStatus } : {}),
+      ...(providerCode ? { providerCode } : {}),
+    };
   }
 }
 
