@@ -43,12 +43,12 @@ test("creator auto-participation alone does not count as activity history for re
   assert.match(ownerDeleteMigration, /delete from public\.events where id = p_event_id/);
 });
 
-test("latest removal policy lets a standalone creator clean up their own activity", () => {
+test("latest removal policy lets a standalone creator clean up only mutable activities", () => {
   assert.match(ownerDeleteMigration, /private\.has_admin_permission\('community'\)/);
   assert.match(ownerDeleteMigration, /private\.is_category_manager\(v_event\.category_id\)/);
   assert.match(
     ownerDeleteMigration,
-    /v_event\.series_id is null\s*and v_event\.created_by = v_user_id/,
+    /v_event\.series_id is null\s*and v_event\.created_by = v_user_id\s*and v_event\.status in \('scheduled', 'closed'\)/,
   );
   assert.match(ownerDeleteMigration, /이 활동을 삭제할 권한이 없습니다\./);
 });
