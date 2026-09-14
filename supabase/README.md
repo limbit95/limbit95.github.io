@@ -113,9 +113,10 @@
 가입 신청 관리자 알림처럼 애플리케이션 업무에서 발생하는 메일은 아래 공통 모듈만 사용합니다.
 
 - 전송/Provider/수신자 조회: `supabase/functions/_shared/email.ts`
-- 템플릿: `supabase/functions/_shared/email-templates.ts`
+- 업무별 템플릿: `supabase/functions/_shared/email-templates.ts`
+- 공통 HTML 레이아웃: `supabase/functions/_shared/email-layout.ts`
 
-업무별 Edge Function에서 Resend API를 직접 호출하거나 발신자/Provider 설정을 중복 구현하지 않습니다.
+업무별 Edge Function에서 Resend API를 직접 호출하거나 발신자/Provider 설정을 중복 구현하지 않습니다. 서비스 메일은 공통 HTML 레이아웃을 사용하고, 메일 클라이언트 호환 및 접근성을 위해 plain text 본문도 함께 전송합니다.
 
 운영 Supabase 프로젝트에는 다음 값을 **Edge Function Secret**으로 한 번만 등록하고 모든 서비스 메일에서 공통 사용합니다.
 
@@ -129,11 +130,15 @@
 
 새 프로세스에서 메일을 추가할 때는 다음 순서를 지킵니다.
 
-1. `email-templates.ts`에 템플릿 ID와 입력 데이터 타입, 제목/본문 렌더링을 추가합니다.
-2. 업무 Edge Function은 `sendEmail()` 또는 Auth 사용자를 대상으로 하는 `sendUserEmail()`만 호출합니다.
-3. 호출부는 업무 이벤트별로 안정적인 `idempotencyKey`를 전달해 중복 전송을 방지합니다.
-4. Provider 응답 본문이나 API Key, 수신자 주소를 운영 로그에 그대로 남기지 않습니다.
-5. 공통 전송 계층을 우회하는 `fetch("https://api.resend.com/emails", ...)` 구현을 업무 코드에 추가하지 않습니다.
+1. `email-templates.ts`에 템플릿 ID와 입력 데이터 타입, 제목/본문/CTA를 추가합니다.
+2. 브랜드 헤더, 본문 여백, 버튼, 푸터처럼 모든 메일에 공통인 UI는 `email-layout.ts`에서만 관리합니다.
+3. 업무 템플릿은 공통 레이아웃을 호출하고 사용자/업무 데이터는 HTML escape를 거쳐 렌더링합니다.
+4. 업무 Edge Function은 `sendEmail()` 또는 Auth 사용자를 대상으로 하는 `sendUserEmail()`만 호출합니다.
+5. 호출부는 업무 이벤트별로 안정적인 `idempotencyKey`를 전달해 중복 전송을 방지합니다.
+6. Provider 응답 본문이나 API Key, 수신자 주소를 운영 로그에 그대로 남기지 않습니다.
+7. 공통 전송 계층을 우회하는 `fetch("https://api.resend.com/emails", ...)` 구현을 업무 코드에 추가하지 않습니다.
+
+현재 첫 서비스 메일 템플릿은 `join_request_received`이며, 동일한 공통 프레임 안에서 제목·안내 문구·버튼 목적지만 업무에 맞게 교체합니다.
 
 ### 8.4 레거시 회원가입 메일 제거
 
