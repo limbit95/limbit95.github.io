@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   site-checks:
     runs-on: ubuntu-latest
@@ -28,6 +31,19 @@ jobs:
 
       - name: Rebuild content-hashed community assets
         run: npm run build:assets
+
+      - name: Refresh built assets on organizer branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/activity-organizer-transfer'
+        shell: bash
+        run: |
+          if [[ -z "$(git status --porcelain -- index.html assets/build)" ]]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html assets/build
+          git commit -m "Refresh built assets after main sync"
+          git push
 
       - name: Guard committed hashed assets are current
         if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
