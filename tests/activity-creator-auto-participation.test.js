@@ -5,6 +5,7 @@ import test from "node:test";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260914123000_activity_creator_auto_participation.sql");
 const removalCompatMigration = read("../supabase/site/migrations/20260914125500_activity_creator_auto_participation_removal_compat.sql");
+const ownerDeleteMigration = read("../supabase/site/migrations/20260915002000_restore_activity_owner_clean_delete.sql");
 const participationRpc = read("../supabase/site/baseline/10_participation_rpc.sql");
 
 test("activity creator is auto-joined atomically by an events insert trigger", () => {
@@ -33,23 +34,23 @@ test("automatic creator participation uses joined status and remains cancellable
   assert.match(participationRpc, /set status = 'cancelled',[\s\S]*cancelled_at = now\(\)/);
 });
 
-test("creator auto-participation alone does not count as activity history for operator removal", () => {
+test("creator auto-participation alone does not count as activity history for removal", () => {
   assert.match(removalCompatMigration, /create or replace function public\.remove_or_cancel_event\(p_event_id bigint\)/);
   assert.match(
-    removalCompatMigration,
+    ownerDeleteMigration,
     /participant\.event_id = p_event_id\s*and participant\.user_id <> v_event\.created_by/,
   );
-  assert.match(removalCompatMigration, /delete from public\.events where id = p_event_id/);
+  assert.match(ownerDeleteMigration, /delete from public\.events where id = p_event_id/);
 });
 
-test("removal compatibility keeps the current operator-only authorization boundary", () => {
-  assert.match(removalCompatMigration, /private\.has_admin_permission\('community'\)/);
-  assert.match(removalCompatMigration, /private\.is_category_manager\(v_event\.category_id\)/);
+test("latest removal policy lets a standalone creator clean up their own activity", () => {
+  assert.match(ownerDeleteMigration, /private\.has_admin_permission\('community'\)/);
+  assert.match(ownerDeleteMigration, /private\.is_category_manager\(v_event\.category_id\)/);
   assert.match(
-    removalCompatMigration,
-    /활동 삭제는 카테고리 담당자 또는 커뮤니티 관리자만 할 수 있습니다\./,
+    ownerDeleteMigration,
+    /v_event\.series_id is null\s*and v_event\.created_by = v_user_id/,
   );
-  assert.doesNotMatch(removalCompatMigration, /v_event\.created_by\s*=\s*v_user_id/);
+  assert.match(ownerDeleteMigration, /이 활동을 삭제할 권한이 없습니다\./);
 });
 
 test("trigger applies to every inserted event so recurring occurrences receive the same creator policy", () => {
