@@ -88,8 +88,8 @@ test("shared email failures keep explicit and safe SMTP diagnostics", async () =
   assert.match(email, /providerStatus: providerStatus \?\? null/);
   assert.match(email, /providerCode: providerCode \|\| null/);
   assert.match(email, /reason: providerCode \? `SMTP_\$\{providerCode\}` : "SMTP_DELIVERY_FAILED"/);
-  assert.doesNotMatch(email, /console\.error\([\s\S]{0,220}SMTP_PASSWORD/);
-  assert.doesNotMatch(email, /console\.error\([\s\S]{0,220}recipient/);
+  assert.doesNotMatch(email, /console\.error\([^;]*SMTP_PASSWORD/);
+  assert.doesNotMatch(email, /console\.error\([^;]*recipient/);
 });
 
 test("legacy custom signup email verification is removed in favor of Supabase Auth OTP", async () => {
