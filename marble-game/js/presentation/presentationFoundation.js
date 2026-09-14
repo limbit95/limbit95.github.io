@@ -1,3 +1,9 @@
+import {
+  beginMarbleOverlayMotion,
+  endMarbleOverlayMotion,
+  isMarbleOverlayEventType,
+} from "./renderRuntimePolicy.js?v=20260914-r2";
+
 function normalizePresenters(presenters) {
   const entries = presenters instanceof Map
     ? [...presenters.entries()]
@@ -43,6 +49,8 @@ export function createAnimationQueue({ onTaskError = null } = {}) {
 
     pendingCount += 1;
     const run = async () => {
+      const ownsOverlayBudget = isMarbleOverlayEventType(metadata?.eventType);
+      if (ownsOverlayBudget) beginMarbleOverlayMotion();
       try {
         return await task();
       } catch (error) {
@@ -56,6 +64,7 @@ export function createAnimationQueue({ onTaskError = null } = {}) {
         }
         return undefined;
       } finally {
+        if (ownsOverlayBudget) endMarbleOverlayMotion();
         pendingCount -= 1;
       }
     };
