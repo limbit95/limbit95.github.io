@@ -278,6 +278,20 @@ if (root && !onlinePlayRoomId) {
     }
   }
 
+  function openPlayingGame(roomId, { popupWindow = null } = {}) {
+    const entryMode = enterOnlineClassicPlay(roomId, { popupWindow });
+    if (entryMode === "blocked") {
+      popupWindow?.close?.();
+      setMessage("팝업이 차단됐어요. 브라우저에서 이 사이트의 팝업을 허용한 뒤 게임 플레이 창 열기를 다시 눌러 주세요.", "warning");
+      return false;
+    }
+
+    enteringGame = true;
+    unsubscribeLobby?.();
+    unsubscribeLobby = null;
+    return true;
+  }
+
   roomCodeInput.addEventListener("input", () => {
     roomCodeInput.value = normalizeRoomCode(roomCodeInput.value);
   });
@@ -300,29 +314,31 @@ if (root && !onlinePlayRoomId) {
   }));
 
   startButton.addEventListener("click", () => {
+    if (snapshot?.room?.status === "playing") {
+      openPlayingGame(snapshot.room.id);
+      return;
+    }
+
     const reservedPlayWindow = reserveOnlineClassicPlayWindow();
 
     void run(async () => {
       try {
-        let roomId = snapshot.room.id;
-        if (snapshot?.room?.status !== "playing") {
-          const gameSnapshot = await startOnlineGame({
-            roomId: snapshot.room.id,
-            expectedVersion: snapshot.room.version,
-          });
-          roomId = gameSnapshot.room.id;
-        }
+        const gameSnapshot = await startOnlineGame({
+          roomId: snapshot.room.id,
+          expectedVersion: snapshot.room.version,
+        });
+        const roomId = gameSnapshot.room.id;
+        snapshot = {
+          ...snapshot,
+          room: {
+            ...snapshot.room,
+            status: gameSnapshot.room.status ?? "playing",
+            version: gameSnapshot.room.version ?? snapshot.room.version,
+            currentGameId: gameSnapshot.room.currentGameId ?? snapshot.room.currentGameId,
+          },
+        };
 
-        const entryMode = enterOnlineClassicPlay(roomId, { popupWindow: reservedPlayWindow });
-        if (entryMode === "blocked") {
-          reservedPlayWindow?.close?.();
-          setMessage("팝업이 차단됐어요. 브라우저에서 이 사이트의 팝업을 허용한 뒤 게임 플레이 창 열기를 다시 눌러 주세요.", "warning");
-          return;
-        }
-
-        enteringGame = true;
-        unsubscribeLobby?.();
-        unsubscribeLobby = null;
+        openPlayingGame(roomId, { popupWindow: reservedPlayWindow });
       } catch (error) {
         reservedPlayWindow?.close?.();
         throw error;
