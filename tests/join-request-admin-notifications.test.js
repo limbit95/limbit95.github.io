@@ -36,3 +36,20 @@ test("join request delivery reuses web push and Resend for the admin recipient",
   assert.match(source, /adminTargetUrl/);
   assert.match(source, /await sendAdminEmail\(notification\)/);
 });
+
+test("join request email misconfiguration is explicit and does not look successful", async () => {
+  const source = await readFile(edgeFunctionPath, "utf8");
+
+  assert.match(source, /EMAIL_SECRET_NAMES = \["RESEND_API_KEY", "SIGNUP_EMAIL_FROM"\]/);
+  assert.match(source, /missingEmailSecrets\(\)/);
+  assert.match(source, /reason: "EMAIL_NOT_CONFIGURED", missing/);
+  assert.match(source, /email\.failed > 0 \? 502 : 200/);
+});
+
+test("Resend failures expose only safe provider diagnostics", async () => {
+  const source = await readFile(edgeFunctionPath, "utf8");
+
+  assert.match(source, /providerCode = String\(providerError\?\.name \?\? providerError\?\.code/);
+  assert.match(source, /reason: `RESEND_\$\{response\.status\}`/);
+  assert.doesNotMatch(source, /console\.error\([^\n]*RESEND_API_KEY/);
+});
