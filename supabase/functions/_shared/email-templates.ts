@@ -28,8 +28,9 @@ export function renderEmailTemplate<T extends EmailTemplateId>(
   options: { siteUrl?: string } = {},
 ): RenderedEmail {
   const siteUrl = options.siteUrl || DEFAULT_SITE_URL;
+  const templateId: EmailTemplateId = template;
 
-  switch (template) {
+  switch (templateId) {
     case "join_request_received": {
       const payload = data as EmailTemplateDataMap["join_request_received"];
       const adminUrl = targetUrl(payload.targetPath, siteUrl);
@@ -54,7 +55,7 @@ export function renderEmailTemplate<T extends EmailTemplateId>(
       };
     }
     default: {
-      const exhaustive: never = template;
+      const exhaustive: never = templateId;
       throw new Error(`Unsupported email template: ${exhaustive}`);
     }
   }
