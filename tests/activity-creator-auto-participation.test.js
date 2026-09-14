@@ -4,6 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260914123000_activity_creator_auto_participation.sql");
+const removalCompatMigration = read("../supabase/site/migrations/20260914125500_activity_creator_auto_participation_removal_compat.sql");
 const participationRpc = read("../supabase/site/baseline/10_participation_rpc.sql");
 
 test("activity creator is auto-joined atomically by an events insert trigger", () => {
@@ -30,6 +31,15 @@ test("automatic creator participation uses joined status and remains cancellable
   assert.match(participationRpc, /create or replace function public\.cancel_event_participation\(p_event_id bigint\)/);
   assert.match(participationRpc, /where ep\.event_id = p_event_id[\s\S]*ep\.user_id = v_user_id/);
   assert.match(participationRpc, /set status = 'cancelled',[\s\S]*cancelled_at = now\(\)/);
+});
+
+test("creator auto-participation alone does not count as activity history for operator removal", () => {
+  assert.match(removalCompatMigration, /create or replace function public\.remove_or_cancel_event\(p_event_id bigint\)/);
+  assert.match(
+    removalCompatMigration,
+    /participant\.event_id = p_event_id\s*and participant\.user_id <> v_event\.created_by/,
+  );
+  assert.match(removalCompatMigration, /delete from public\.events where id = p_event_id/);
 });
 
 test("trigger applies to every inserted event so recurring occurrences receive the same creator policy", () => {
