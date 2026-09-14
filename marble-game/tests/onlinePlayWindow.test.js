@@ -148,3 +148,18 @@ test("realtime game start keeps participants in the lobby until they click the p
   assert.match(lobbySource, /게임 플레이 창 열기/);
   assert.match(lobbySource, /게임이 시작됐습니다\. 버튼을 눌러 새 플레이 창에서 이어가 주세요/);
 });
+
+test("active game re-entry skips the reserved blank popup path", () => {
+  const handlerIndex = lobbySource.indexOf('startButton.addEventListener("click"');
+  const playingBranchIndex = lobbySource.indexOf('if (snapshot?.room?.status === "playing")', handlerIndex);
+  const directEntryIndex = lobbySource.indexOf("openPlayingGame(snapshot.room.id)", playingBranchIndex);
+  const reserveIndex = lobbySource.indexOf("reserveOnlineClassicPlayWindow()", handlerIndex);
+
+  assert.ok(handlerIndex >= 0);
+  assert.ok(playingBranchIndex > handlerIndex);
+  assert.ok(directEntryIndex > playingBranchIndex);
+  assert.ok(reserveIndex > directEntryIndex);
+  assert.match(lobbySource, /function openPlayingGame\(roomId, \{ popupWindow = null \} = \{\}\)/);
+  assert.match(lobbySource, /enterOnlineClassicPlay\(roomId, \{ popupWindow \}\)/);
+  assert.match(lobbySource, /status: gameSnapshot\.room\.status \?\? "playing"/);
+});

@@ -1,4 +1,4 @@
-const BOOTSTRAP_REVISION = "20260910-r10";
+const BOOTSTRAP_REVISION = "20260914-r11";
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
@@ -38,7 +38,7 @@ export async function loadMarblePage({
   }
 
   await importModule("./app.js?v=20260910-r7");
-  await importModule("./multiplayerLobby.js?v=20260910-r7");
+  await importModule("./multiplayerLobby.js?v=20260914-r8");
   await importModule("./diceCharge.js?v=20260910-r7");
   await importModule("./playWindow.js?v=20260910-r10");
   await importModule("./onlineGameExit.js?v=20260910-r10");
