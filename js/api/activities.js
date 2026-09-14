@@ -172,7 +172,11 @@ export async function getEvent(eventId) {
     .eq("id", Number(eventId))
     .single());
   const [withSummary] = await attachEventParticipationSummaries([event]);
-  return withSummary;
+  const [organizer] = await getPublicProfiles([withSummary.created_by]);
+  return {
+    ...withSummary,
+    organizer: organizer ?? null,
+  };
 }
 
 export async function createEvent(payload) {
@@ -224,6 +228,14 @@ export async function joinEvent(eventId) {
 export async function cancelEventParticipation(eventId) {
   return unwrap(await supabase.rpc("cancel_event_participation", {
     p_event_id: Number(eventId),
+  }));
+}
+
+export async function transferEventOrganizer(eventId, newOrganizerId, { leaveCurrent = false } = {}) {
+  return unwrap(await supabase.rpc("transfer_event_organizer", {
+    p_event_id: Number(eventId),
+    p_new_organizer_id: newOrganizerId,
+    p_leave_current: Boolean(leaveCurrent),
   }));
 }
 
