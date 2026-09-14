@@ -125,7 +125,7 @@
   letter-spacing: .03em;
 }
 
-.notification-item {
+.notification-item-row {
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -138,7 +138,7 @@
   color: var(--ink);
 }
 
-.notification-item:hover {
+.notification-item-row:hover {
   background: var(--forest-050);
 }
 
@@ -197,16 +197,16 @@
   white-space: nowrap;
 }
 
-.notification-item--unread {
+.notification-item-row--unread {
   background: #eef7fa;
 }
 
-.notification-item--past {
+.notification-item-row--past {
   opacity: .7;
   background: transparent;
 }
 
-.notification-item--past.notification-item--unread {
+.notification-item-row--past.notification-item-row--unread {
   background: #f7fafb;
 }
 
@@ -250,7 +250,7 @@
     gap: .2rem;
   }
 
-  .notification-item {
+  .notification-item-row {
     align-items: start;
   }
 

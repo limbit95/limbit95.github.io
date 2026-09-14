@@ -134,9 +134,21 @@ export function createHeader({ auth, currentPath, onLogout }) {
   }
 
   async function handleNotificationClick(notification) {
+    try {
+      if (!notification.is_read) {
+        await markNotificationRead(notification.id);
+        notification.is_read = true;
+        notification.read_at = new Date().toISOString();
+        setUnreadBadge(Math.max(0, notificationState.unread - 1));
+      }
+    } catch {
+      // 대상 화면/쪽지는 계속 열고 다음 조회 때 읽음 처리를 재시도한다.
+    }
+
     closeNotificationPanel();
 
     if (notification.kind === "direct_message" && notification.message_id) {
+      await refreshNotificationBadge();
       await openDirectMessageNotification(notification);
       return;
     }
@@ -169,10 +181,10 @@ export function createHeader({ auth, currentPath, onLogout }) {
     ]);
     notifications.forEach((notification) => {
       const item = el("div", {
-        className: `notification-item ${notification.is_read ? "" : "notification-item--unread"} ${past ? "notification-item--past" : ""}`,
+        className: `notification-item-row ${notification.is_read ? "" : "notification-item-row--unread"} ${past ? "notification-item-row--past" : ""}`,
       });
       item.append(el("button", {
-        className: "notification-item__open",
+        className: "notification-item notification-item__open",
         type: "button",
         onClick: () => handleNotificationClick(notification),
       }, [

@@ -101,5 +101,5 @@ test("my page exposes the agreed push choices while the bell keeps explicit read
   const readHandlerStart = header.indexOf("async function handleNotificationRead");
   assert.notEqual(clickHandlerStart, -1);
   assert.notEqual(readHandlerStart, -1);
-  assert.doesNotMatch(header.slice(clickHandlerStart, readHandlerStart), /markNotificationRead/);
+  assert.match(header.slice(clickHandlerStart, readHandlerStart), /markNotificationRead\(notification\.id\)/);
 });
