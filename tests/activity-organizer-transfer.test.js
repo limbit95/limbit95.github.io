@@ -4,6 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260914213436_activity_organizer_transfer_production_fix.sql");
+const creatorGuardMigration = read("../supabase/site/migrations/20260914213818_allow_organizer_transfer_through_creator_guard.sql");
 const detail = read("../js/pages/activityDetail.js");
 const api = read("../js/api/activities.js");
 const styles = read("../css/activity-detail.css");
@@ -19,6 +20,17 @@ test("organizer transfer is restricted to the current organizer and joined parti
     /grant execute on function public\.transfer_event_organizer\(bigint, uuid, boolean\)[\s\S]*to authenticated, service_role/,
   );
   assert.match(migration, /notify pgrst, 'reload schema'/);
+});
+
+test("creator identity guard only allows created_by changes during organizer transfer", () => {
+  assert.match(creatorGuardMigration, /create or replace function private\.protect_creator_identity/);
+  assert.match(creatorGuardMigration, /tg_table_name = 'events'/);
+  assert.match(creatorGuardMigration, /current_setting\('app\.allow_event_organizer_transfer', true\)/);
+  assert.match(
+    creatorGuardMigration,
+    /new\.created_by is distinct from old\.created_by[\s\S]*and not v_organizer_transfer_allowed/,
+  );
+  assert.match(creatorGuardMigration, /new\.created_at is distinct from old\.created_at/);
 });
 
 test("organizer cannot leave while another confirmed participant remains", () => {
