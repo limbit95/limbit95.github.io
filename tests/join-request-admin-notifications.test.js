@@ -40,7 +40,10 @@ test("join request email delivery goes through provider-neutral shared orchestra
 
   assert.match(source, /import \{ sendUserEmail \} from "\.\.\/_shared\/email\.ts"/);
   assert.match(source, /template: "join_request_received"/);
-  assert.match(source, /await sendUserEmail\(/);
+  assert.match(source, /sendUserEmail\(/);
+  assert.match(source, /const pushResultsPromise = Promise\.allSettled/);
+  assert.match(source, /const emailPromise = EMAIL_TYPES\.has/);
+  assert.match(source, /const \[results, email\] = await Promise\.all\(\[pushResultsPromise, emailPromise\]\)/);
   assert.match(source, /email\.failed > 0 \? 502 : 200/);
   assert.doesNotMatch(source, /nodemailer|smtp\.gmail\.com|SMTP_USERNAME|SMTP_PASSWORD|SMTP_FROM/i);
   assert.doesNotMatch(source, /api\.resend\.com|RESEND_API_KEY|SIGNUP_EMAIL_FROM/i);
