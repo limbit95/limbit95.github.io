@@ -90,6 +90,8 @@ test("legacy custom signup email verification is removed in favor of Supabase Au
 
   assert.match(authSource, /supabase\.auth\.signInWithOtp\(/);
   assert.match(authSource, /supabase\.auth\.verifyOtp\(/);
+  assert.doesNotMatch(authSource, /supabase\.auth\.signUp\(/);
+  assert.doesNotMatch(authSource, /export async function signUp\(/);
   assert.match(cleanupSql, /drop function if exists public\.create_signup_email_challenge/);
   assert.match(cleanupSql, /drop function if exists public\.record_signup_email_failure/);
   assert.match(cleanupSql, /drop function if exists public\.verify_signup_email_challenge/);
