@@ -189,7 +189,7 @@ export async function renderMyPage() {
     el("h2", { className: "section-title", text: "알림 설정" }),
     el("p", {
       className: "subtle",
-      text: "종 알림에는 대상 알림이 계속 기록되며, 아래 설정은 이 기기로 보내는 푸시 알림만 제어합니다.",
+      text: "종 알림에는 대상 알림이 계속 기록되며, 아래 알림 종류 설정은 계정 전체에 적용됩니다. 실제 푸시 수신 여부는 기기별로 설정할 수 있습니다.",
     }),
     el("fieldset", { className: "field" }, [
       el("legend", { className: "field-label", text: "새 활동 알림" }),
