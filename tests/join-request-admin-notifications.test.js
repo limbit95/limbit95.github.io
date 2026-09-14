@@ -70,6 +70,18 @@ test("join request email delivery goes through the shared email system", async (
   assert.doesNotMatch(layout, /<style[\s>]/i);
 });
 
+test("shared email failures keep explicit and safe operational diagnostics", async () => {
+  const email = await readFile(emailModulePath, "utf8");
+
+  assert.match(email, /REQUIRED_PROVIDER_SECRETS = \["RESEND_API_KEY", "EMAIL_FROM"\]/);
+  assert.match(email, /reason: "EMAIL_NOT_CONFIGURED", missing/);
+  assert.match(email, /async function readProviderCode\(response: Response\)/);
+  assert.match(email, /providerStatus: response\.status/);
+  assert.match(email, /reason: `RESEND_\$\{response\.status\}`/);
+  assert.match(email, /providerCode: providerCode \|\| null/);
+  assert.doesNotMatch(email, /console\.error\([\s\S]{0,180}RESEND_API_KEY/);
+});
+
 test("legacy custom signup email verification is removed in favor of Supabase Auth OTP", async () => {
   const [cleanupSql, authSource] = await Promise.all([
     readFile(cleanupMigrationPath, "utf8"),
