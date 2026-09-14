@@ -21,7 +21,7 @@ function gameSnapshot(version = 3) {
   };
 }
 
-test("remote snapshot failure starts recovery polling even while realtime stays subscribed", async () => {
+test("healthy realtime refresh stays on the normal path and snapshot failures recover by polling", async () => {
   const originalWindow = globalThis.window;
   const timers = new Map();
   const listeners = new Map();
@@ -79,15 +79,25 @@ test("remote snapshot failure starts recovery polling even while realtime stays 
     await new Promise((resolve) => setImmediate(resolve));
     assert.equal(snapshotCalls, 1);
     assert.equal(session.getState().version, 3);
+    assert.deepEqual(connectionStatuses, ["SUBSCRIBED"]);
     assert.equal(timers.size, 0);
 
     latestSnapshot = gameSnapshot(4);
-    failNextSnapshot = true;
     realtimeChange();
     await new Promise((resolve) => setImmediate(resolve));
 
     assert.equal(snapshotCalls, 2);
-    assert.equal(session.getState().version, 3);
+    assert.equal(session.getState().version, 4);
+    assert.deepEqual(connectionStatuses, ["SUBSCRIBED"]);
+    assert.equal(timers.size, 0);
+
+    latestSnapshot = gameSnapshot(5);
+    failNextSnapshot = true;
+    realtimeChange();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(snapshotCalls, 3);
+    assert.equal(session.getState().version, 4);
     assert.equal(connectionStatuses.at(-1), "RECONNECTING");
     assert.equal(timers.size, 1);
 
@@ -96,8 +106,8 @@ test("remote snapshot failure starts recovery polling even while realtime stays 
     await recovery();
     await new Promise((resolve) => setImmediate(resolve));
 
-    assert.equal(snapshotCalls, 3);
-    assert.equal(session.getState().version, 4);
+    assert.equal(snapshotCalls, 4);
+    assert.equal(session.getState().version, 5);
     assert.equal(connectionStatuses.at(-1), "SUBSCRIBED");
     assert.equal(timers.size, 0);
 

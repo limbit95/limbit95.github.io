@@ -28,12 +28,14 @@ test("online session falls back to snapshot refresh while realtime or snapshot d
   assert.match(sessionSource, /let realtimeHealthy = false/);
   assert.match(sessionSource, /let snapshotRecoveryPending = false/);
   assert.match(sessionSource, /function markSnapshotRecovery\(error\)/);
-  assert.match(sessionSource, /function requestRefresh\(options\)/);
-  assert.match(sessionSource, /onChange: \(\) => \{ requestRefresh\(\); \}/);
+  assert.match(sessionSource, /function refreshWithRecovery\(options\)/);
+  assert.match(sessionSource, /void refresh\(options\)\.catch\(markSnapshotRecovery\)/);
+  assert.match(sessionSource, /function retrySnapshotRecovery\(options\)/);
+  assert.match(sessionSource, /onChange: \(\) => \{ refreshWithRecovery\(\); \}/);
   assert.match(sessionSource, /function scheduleRecoveryRefresh\(\)/);
   assert.match(sessionSource, /if \(disposed \|\| recoveryTimer !== null \|\| \(realtimeHealthy && !snapshotRecoveryPending\)\) return/);
   assert.match(sessionSource, /\["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"\]\.includes\(status\)/);
-  assert.match(sessionSource, /if \(status === "SUBSCRIBED"\) \{[\s\S]*?realtimeHealthy = true;[\s\S]*?clearRecoveryTimer\(\)/);
+  assert.match(sessionSource, /if \(status === "SUBSCRIBED"\) \{[\s\S]*?realtimeHealthy = true;[\s\S]*?snapshotRecoveryPending[\s\S]*?retrySnapshotRecovery\(\)/);
   assert.match(sessionSource, /if \(!disposed && \(!realtimeHealthy \|\| snapshotRecoveryPending\)\) scheduleRecoveryRefresh\(\)/);
   assert.match(sessionSource, /const handleOffline = \(\) => \{[\s\S]*?realtimeHealthy = false;[\s\S]*?onConnectionStatus\?\.\("OFFLINE"\);[\s\S]*?scheduleRecoveryRefresh\(\)/);
   assert.match(sessionSource, /dispose\(\) \{[\s\S]*?disposed = true;[\s\S]*?snapshotRecoveryPending = false;[\s\S]*?clearRecoveryTimer\(\)/);

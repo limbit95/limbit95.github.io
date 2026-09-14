@@ -132,7 +132,7 @@ export async function createOnlineClassicSession({
       refreshing = false;
       if (pendingRefresh && !actionInFlight && !disposed) {
         pendingRefresh = false;
-        requestRefresh({ notify });
+        refreshWithRecovery({ notify });
       }
     }
   }
@@ -151,15 +151,19 @@ export async function createOnlineClassicSession({
   }
 
   function markSnapshotRecovered() {
-    const wasRecovering = snapshotRecoveryPending;
+    if (!snapshotRecoveryPending) return;
     snapshotRecoveryPending = false;
     if (realtimeHealthy) {
       clearRecoveryTimer();
-      if (wasRecovering) onConnectionStatus?.("SUBSCRIBED");
+      onConnectionStatus?.("SUBSCRIBED");
     }
   }
 
-  function requestRefresh(options) {
+  function refreshWithRecovery(options) {
+    void refresh(options).catch(markSnapshotRecovery);
+  }
+
+  function retrySnapshotRecovery(options) {
     void refresh(options)
       .then(markSnapshotRecovered)
       .catch(markSnapshotRecovery);
@@ -202,7 +206,7 @@ export async function createOnlineClassicSession({
       actionInFlight = false;
       if (pendingRefresh && !disposed) {
         pendingRefresh = false;
-        requestRefresh();
+        refreshWithRecovery();
       }
     }
   }
@@ -234,10 +238,15 @@ export async function createOnlineClassicSession({
     onConnectionStatus?.(status, error);
     if (status === "SUBSCRIBED") {
       realtimeHealthy = true;
+      if (snapshotRecoveryPending) {
+        subscriptionReconciled = true;
+        retrySnapshotRecovery();
+        return;
+      }
       clearRecoveryTimer();
       if (!subscriptionReconciled) {
         subscriptionReconciled = true;
-        requestRefresh();
+        refreshWithRecovery();
       }
       return;
     }
@@ -251,7 +260,7 @@ export async function createOnlineClassicSession({
   try {
     unsubscribe = subscribeGame(roomId, {
       channelScope: "session",
-      onChange: () => { requestRefresh(); },
+      onChange: () => { refreshWithRecovery(); },
       onStatus: handleRealtimeStatus,
     });
   } catch (error) {
@@ -264,7 +273,7 @@ export async function createOnlineClassicSession({
     realtimeHealthy = false;
     onConnectionStatus?.("RECONNECTING");
     scheduleRecoveryRefresh();
-    requestRefresh();
+    refreshWithRecovery();
   };
   const handleOffline = () => {
     realtimeHealthy = false;
@@ -274,7 +283,7 @@ export async function createOnlineClassicSession({
   const visibilityDocument = globalThis.document;
   const handleVisibilityChange = () => {
     if (visibilityDocument?.visibilityState !== "visible") return;
-    requestRefresh();
+    refreshWithRecovery();
   };
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
