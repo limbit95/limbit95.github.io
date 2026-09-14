@@ -140,7 +140,21 @@
 
 현재 첫 서비스 메일 템플릿은 `join_request_received`이며, 동일한 공통 프레임 안에서 제목·안내 문구·버튼 목적지만 업무에 맞게 교체합니다.
 
-### 8.4 레거시 회원가입 메일 제거
+### 8.4 서비스 메일 운영 진단
+
+서비스 메일 전송 결과는 업무 Edge Function 응답의 `email` 객체로 확인합니다.
+
+- `email.sent = 1`: Provider 전송 요청 성공
+- `reason = "EMAIL_NOT_CONFIGURED"`: 필수 Secret이 누락된 상태이며 `missing` 배열에서 누락된 이름 확인
+- `reason = "RESEND_<HTTP 상태>"`: Resend가 전송 요청을 거절한 상태이며 `providerStatus`와 제공 가능한 경우 `providerCode`로 원인 확인
+- `reason = "RECIPIENT_EMAIL_MISSING"`: 대상 Auth 사용자에게 사용할 이메일 주소가 없음
+- `reason = "EMAIL_DELIVERY_FAILED"`: 수신자 조회 또는 Provider 요청 중 예외 발생
+
+가입 신청 관리자 알림처럼 필수 서비스 메일이 실패하면 Web Push 성공 여부와 관계없이 Webhook 응답을 `502`로 기록해 메일 실패가 정상 `200`으로 숨지 않도록 합니다. 가입 신청 알림은 `supabase_functions.hooks`와 `net._http_response`에서 Webhook HTTP 결과를 확인할 수 있으며, 운영 로그에는 API Key, 수신자 이메일 주소, Provider 응답 원문을 남기지 않습니다.
+
+Secret은 Supabase Dashboard의 Edge Functions Secrets 또는 Supabase CLI의 `supabase secrets set`으로 관리하고 소스 코드나 브라우저 설정에는 저장하지 않습니다.
+
+### 8.5 레거시 회원가입 메일 제거
 
 초기 다단계 회원가입 구현에서 사용했던 `signup-verification` Edge Function과 `signup_email_challenges` 기반 자체 OTP 방식은 현재 Native Supabase Auth OTP 경로에서 사용하지 않습니다.
 
