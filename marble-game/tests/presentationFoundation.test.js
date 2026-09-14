@@ -7,6 +7,9 @@ import {
   createAnimationQueue,
   getSharedAnimationQueue,
 } from "../js/presentation/presentationFoundation.js";
+import {
+  isMarbleOverlayMotionActive,
+} from "../js/presentation/renderRuntimePolicy.js?v=20260914-r2";
 
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const rendererSource = readFileSync(new URL("../js/renderer/threeClassicPrototype.js", import.meta.url), "utf8");
@@ -37,7 +40,25 @@ test("animation queue runs presentation tasks serially", async () => {
   assert.equal(queue.size, 0);
 });
 
-test("animation queue isolates failed presentation tasks", async () => {
+test("overlay presentation tasks own and release the shared GPU budget", async () => {
+  const queue = createAnimationQueue();
+  let overlayDuringDice = false;
+  let overlayDuringMove = true;
+
+  await queue.enqueue(async () => {
+    overlayDuringDice = isMarbleOverlayMotionActive();
+  }, { eventType: "DICE_ROLLED" });
+  assert.equal(overlayDuringDice, true);
+  assert.equal(isMarbleOverlayMotionActive(), false);
+
+  await queue.enqueue(async () => {
+    overlayDuringMove = isMarbleOverlayMotionActive();
+  }, { eventType: "PLAYER_MOVED" });
+  assert.equal(overlayDuringMove, false);
+  assert.equal(isMarbleOverlayMotionActive(), false);
+});
+
+test("animation queue isolates failed presentation tasks and releases GPU ownership", async () => {
   const errors = [];
   const steps = [];
   const queue = createAnimationQueue({
@@ -47,15 +68,17 @@ test("animation queue isolates failed presentation tasks", async () => {
   });
 
   queue.enqueue(() => {
-    throw new Error("MOVE_PRESENTATION_FAILED");
-  }, { eventType: "PLAYER_MOVED" });
+    assert.equal(isMarbleOverlayMotionActive(), true);
+    throw new Error("DICE_PRESENTATION_FAILED");
+  }, { eventType: "DICE_ROLLED" });
   queue.enqueue(() => {
     steps.push("after-failure");
   }, { eventType: "TILE_LANDED" });
 
   await queue.drain();
-  assert.deepEqual(errors, [["MOVE_PRESENTATION_FAILED", "PLAYER_MOVED"]]);
+  assert.deepEqual(errors, [["DICE_PRESENTATION_FAILED", "DICE_ROLLED"]]);
   assert.deepEqual(steps, ["after-failure"]);
+  assert.equal(isMarbleOverlayMotionActive(), false);
 });
 
 test("animation queue supports task-specific error isolation on a shared queue", async () => {
@@ -70,6 +93,7 @@ test("animation queue supports task-specific error isolation on a shared queue",
     },
   });
   assert.deepEqual(errors, [["DICE_PRESENTATION_FAILED", "DICE_ROLLED"]]);
+  assert.equal(isMarbleOverlayMotionActive(), false);
 });
 
 test("shared animation queues reuse the same named runtime", () => {
@@ -106,8 +130,10 @@ test("Classic dice and movement use the shared presentation queue without changi
   assert.match(diagnosticsSource, /getSharedAnimationQueue\("classic-online"\)/);
   assert.match(diagnosticsSource, /PLAYER_MOVED/);
   assert.match(diagnosticsSource, /presentationQueue\.enqueue/);
+  assert.match(diagnosticsSource, /motionMaxRenderPixels: 1_100_000/);
   assert.match(diceStageLazySource, /getSharedAnimationQueue\("classic-online"\)/);
   assert.match(diceStageLazySource, /DICE_ROLLED/);
+  assert.match(diceStageLazySource, /beginMarbleOverlayMotion\(\)/);
   assert.match(diceStageLazySource, /stage\.playRoll\(event\.dice, event\.rollOptions\)/);
   assert.match(diceStageLazySource, /diceStage\.js\?implementation=20260911-r12/);
   assert.match(rendererSource, /for \(const nodeId of event\.path\)/);
