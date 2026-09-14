@@ -3,7 +3,7 @@ import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const migrationPath = "supabase/site/migrations/20260913115928_join_request_admin_notifications.sql";
-const cleanupMigrationPath = "supabase/site/migrations/20260914024000_remove_legacy_signup_email_verification.sql";
+const cleanupMigrationPath = "supabase/site/migrations/20260914075722_remove_legacy_signup_email_verification.sql";
 const edgeFunctionPath = "supabase/functions/send-web-push/index.ts";
 const emailModulePath = "supabase/functions/_shared/email.ts";
 const emailTransportPath = "supabase/functions/_shared/email-transport.ts";
