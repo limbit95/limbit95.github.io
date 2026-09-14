@@ -3,20 +3,15 @@ import {
   type EmailTemplateDataMap,
   type EmailTemplateId,
 } from "./email-templates.ts";
+import {
+  emailTransportMissingSecrets,
+  sendRenderedEmail,
+  type EmailDeliveryResult,
+} from "./email-transport.ts";
 
-const RESEND_ENDPOINT = "https://api.resend.com/emails";
-const REQUIRED_PROVIDER_SECRETS = ["RESEND_API_KEY", "EMAIL_FROM"] as const;
+export type { EmailDeliveryResult } from "./email-transport.ts";
+
 const REQUIRED_USER_LOOKUP_SECRETS = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"] as const;
-
-export type EmailDeliveryResult = {
-  attempted: number;
-  sent: number;
-  failed: number;
-  reason?: string;
-  missing?: string[];
-  providerStatus?: number;
-  providerCode?: string;
-};
 
 type SendEmailOptions<T extends EmailTemplateId> = {
   to: string;
@@ -56,23 +51,13 @@ async function authUserEmail(userId: string) {
   return String(user?.email ?? "").trim();
 }
 
-async function readProviderCode(response: Response) {
-  try {
-    const body = await response.clone().json();
-    const code = body?.name ?? body?.code ?? body?.error?.name ?? body?.error?.code;
-    return code ? String(code).slice(0, 100) : "";
-  } catch {
-    return "";
-  }
-}
-
 export async function sendEmail<T extends EmailTemplateId>({
   to,
   template,
   data,
   idempotencyKey,
 }: SendEmailOptions<T>): Promise<EmailDeliveryResult> {
-  const missing = missingSecrets(REQUIRED_PROVIDER_SECRETS);
+  const missing = emailTransportMissingSecrets();
   if (missing.length) {
     console.error("Email delivery skipped: service is not configured", { template, missing });
     return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED", missing };
@@ -83,51 +68,22 @@ export async function sendEmail<T extends EmailTemplateId>({
     return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
   }
 
+  let rendered;
   try {
-    const rendered = renderEmailTemplate(template, data, {
+    rendered = renderEmailTemplate(template, data, {
       siteUrl: env("APP_SITE_URL") || undefined,
     });
-    const response = await fetch(RESEND_ENDPOINT, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${env("RESEND_API_KEY")}`,
-        "content-type": "application/json",
-        "Idempotency-Key": idempotencyKey,
-      },
-      body: JSON.stringify({
-        from: env("EMAIL_FROM"),
-        to: [recipient],
-        subject: rendered.subject,
-        text: rendered.text,
-        html: rendered.html,
-      }),
-    });
-
-    if (!response.ok) {
-      const providerCode = await readProviderCode(response);
-      console.error("Email provider delivery failed", {
-        template,
-        status: response.status,
-        providerCode: providerCode || null,
-      });
-      return {
-        attempted: 1,
-        sent: 0,
-        failed: 1,
-        reason: `RESEND_${response.status}`,
-        providerStatus: response.status,
-        ...(providerCode ? { providerCode } : {}),
-      };
-    }
-
-    return { attempted: 1, sent: 1, failed: 0 };
-  } catch (error) {
-    console.error("Email provider request failed", {
-      template,
-      error: error instanceof Error ? error.message : "UNKNOWN_ERROR",
-    });
-    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_DELIVERY_FAILED" };
+  } catch {
+    console.error("Email template rendering failed", { template });
+    return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_RENDER_FAILED" };
   }
+
+  return await sendRenderedEmail({
+    to: recipient,
+    template,
+    rendered,
+    idempotencyKey,
+  });
 }
 
 export async function sendUserEmail<T extends EmailTemplateId>({
@@ -136,22 +92,18 @@ export async function sendUserEmail<T extends EmailTemplateId>({
   data,
   idempotencyKey,
 }: SendUserEmailOptions<T>): Promise<EmailDeliveryResult> {
-  const missing = missingSecrets([
-    ...REQUIRED_PROVIDER_SECRETS,
-    ...REQUIRED_USER_LOOKUP_SECRETS,
-  ]);
+  const missing = [
+    ...emailTransportMissingSecrets(),
+    ...missingSecrets(REQUIRED_USER_LOOKUP_SECRETS),
+  ];
   if (missing.length) {
     console.error("Email delivery skipped: service is not configured", { template, missing });
     return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_NOT_CONFIGURED", missing };
   }
 
+  let email = "";
   try {
-    const email = await authUserEmail(userId);
-    if (!email) {
-      console.error("Email delivery skipped: recipient has no email", { template });
-      return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
-    }
-    return await sendEmail({ to: email, template, data, idempotencyKey });
+    email = await authUserEmail(userId);
   } catch (error) {
     console.error("Email recipient lookup failed", {
       template,
@@ -159,4 +111,11 @@ export async function sendUserEmail<T extends EmailTemplateId>({
     });
     return { attempted: 1, sent: 0, failed: 1, reason: "EMAIL_DELIVERY_FAILED" };
   }
+
+  if (!email) {
+    console.error("Email delivery skipped: recipient has no email", { template });
+    return { attempted: 1, sent: 0, failed: 1, reason: "RECIPIENT_EMAIL_MISSING" };
+  }
+
+  return await sendEmail({ to: email, template, data, idempotencyKey });
 }
