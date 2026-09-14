@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   MARBLE_RENDER_RUNTIME_PROFILE,
+  beginMarbleOverlayMotion,
+  endMarbleOverlayMotion,
+  isMarbleOverlayEventType,
+  isMarbleOverlayMotionActive,
   shouldRenderMarbleFrame,
 } from "../js/presentation/renderRuntimePolicy.js";
 import { installClassicShadowUpdatePolicy } from "../js/renderer/threeClassicPrototypeDiagnostics.js";
@@ -13,6 +17,39 @@ test("Marble render runtime keeps idle WebGL work below full refresh rate", () =
   assert.equal(shouldRenderMarbleFrame({ now: 0, lastRenderedAt: Number.NEGATIVE_INFINITY }), true);
   assert.equal(shouldRenderMarbleFrame({ now: interval - 1, lastRenderedAt: 0 }), false);
   assert.equal(shouldRenderMarbleFrame({ now: interval, lastRenderedAt: 0 }), true);
+});
+
+test("overlay VFX owns the GPU budget while board motion keeps priority", () => {
+  assert.equal(shouldRenderMarbleFrame({
+    now: 100,
+    lastRenderedAt: 0,
+    force: true,
+    overlayActive: true,
+  }), false);
+  assert.equal(shouldRenderMarbleFrame({
+    now: 100,
+    lastRenderedAt: 0,
+    force: true,
+    motionActive: true,
+    overlayActive: true,
+  }), true);
+});
+
+test("overlay motion tracking is ref-counted and classifies presentation events", () => {
+  assert.equal(isMarbleOverlayMotionActive(), false);
+  assert.equal(isMarbleOverlayEventType("DICE_ROLLED"), true);
+  assert.equal(isMarbleOverlayEventType("MONEY_PAID"), true);
+  assert.equal(isMarbleOverlayEventType("PLAYER_MOVED"), false);
+
+  beginMarbleOverlayMotion();
+  beginMarbleOverlayMotion();
+  assert.equal(isMarbleOverlayMotionActive(), true);
+  endMarbleOverlayMotion();
+  assert.equal(isMarbleOverlayMotionActive(), true);
+  endMarbleOverlayMotion();
+  assert.equal(isMarbleOverlayMotionActive(), false);
+  endMarbleOverlayMotion();
+  assert.equal(isMarbleOverlayMotionActive(), false);
 });
 
 test("active motion and forced state refreshes bypass the idle frame budget", () => {
