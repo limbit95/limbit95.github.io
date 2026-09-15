@@ -6,7 +6,7 @@ const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const productionFixMigration = read("../supabase/site/migrations/20260914213436_activity_organizer_transfer_production_fix.sql");
 const creatorGuardMigration = read("../supabase/site/migrations/20260914213818_allow_organizer_transfer_through_creator_guard.sql");
 const historyMigration = read("../supabase/site/migrations/20260914215312_separate_event_creator_and_organizer_history.sql");
-const adminHistoryMigration = read("../supabase/site/migrations/20260915070000_admin_event_organizer_history.sql");
+const adminHistoryMigration = read("../supabase/site/migrations/20260915000018_admin_event_organizer_history.sql");
 const detail = read("../js/pages/activityDetail.js");
 const api = read("../js/api/activities.js");
 const adminApi = read("../js/api/admin.js");
