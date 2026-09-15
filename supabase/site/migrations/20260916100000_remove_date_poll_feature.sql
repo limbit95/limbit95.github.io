@@ -95,6 +95,9 @@ alter table public.notifications
 drop trigger if exists date_polls_notify_closed on public.date_polls;
 drop function if exists private.notify_date_poll_closed();
 
+alter table public.date_polls
+  drop constraint if exists date_polls_selected_option_fk;
+
 drop table if exists public.date_poll_votes;
 drop table if exists public.date_poll_options;
 drop table if exists public.date_polls;
