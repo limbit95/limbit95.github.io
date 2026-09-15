@@ -8,6 +8,7 @@ const notificationPolicyMigration = read("../supabase/site/migrations/2026091505
 const cancellationMigration = read("../supabase/site/migrations/20260915065000_organizer_transfer_cancel_push.sql");
 const routingMigration = read("../supabase/site/migrations/20260915104625_organizer_notification_routing_stability.sql");
 const pushFunction = read("../supabase/functions/send-web-push/index.ts");
+const header = read("../js/components/header.js");
 const desktopStyles = read("../css/activity-organizer-transfer.css");
 const indexTemplate = read("../index.template.html");
 const index = read("../index.html");
@@ -96,6 +97,32 @@ test("organizer transfer lifecycle notifications bypass category preferences whe
     assert.match(pushFunction, new RegExp(`const REQUIRED_PUSH_TYPES = new Set\\([\\s\\S]*"${type}"`));
   }
   assert.match(pushFunction, /if \(REQUIRED_PUSH_TYPES\.has\(type\)\) return true/);
+});
+
+test("organizer transfer notifications refresh the currently visible activity detail", () => {
+  for (const type of [
+    "event_organizer_transfer_requested",
+    "event_organizer_transfer_cancelled",
+    "event_organizer_transfer_accepted",
+    "event_organizer_transfer_rejected",
+  ]) {
+    assert.match(
+      header,
+      new RegExp(`ACTIVITY_DETAIL_REFRESH_NOTIFICATION_TYPES[\\s\\S]*"${type}"`),
+    );
+  }
+  assert.match(
+    header,
+    /function shouldRefreshCurrentActivity\(notification\)[\s\S]*window\.location\.hash === `#\/activities\/\$\{eventId\}`/,
+  );
+  assert.match(
+    header,
+    /subscribeNotificationUpdates\(auth\.user\?\.id, async \(notification\)[\s\S]*shouldRefreshCurrentActivity\(notification\)[\s\S]*resolveRoute\(\)/,
+  );
+  assert.match(
+    header,
+    /function openNotificationTarget\(notification\)[\s\S]*window\.location\.hash === target[\s\S]*await resolveRoute\(\)/,
+  );
 });
 
 test("desktop organizer transfer request panel uses balanced full-width centered layout", () => {
