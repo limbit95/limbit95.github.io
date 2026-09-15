@@ -196,7 +196,7 @@ test("recurring occurrence ownership cannot bypass manager boundaries", async ()
     `${supabaseUrl}/rest/v1/event_series?id=eq.${recurringA.seriesId}`,
     {
       method: "PATCH",
-      headers: restHeaders(memberToken),
+      headers: restHeaders(memberToken, { Prefer: "return=representation" }),
       body: JSON.stringify({ category_id: categoryB }),
     },
   );
