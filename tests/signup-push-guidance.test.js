@@ -74,13 +74,17 @@ test("signup push guidance reflects install and permission states", () => {
   }
 });
 
-test("signup guidance explains that checking the option does not immediately enable push", () => {
+test("signup guidance explains that notification intent is saved and activation happens after approval", () => {
   assert.match(
     resolveSignupPushGuidance({ supported: true, permission: "granted", requiresIosInstall: false }).message,
-    /현재 선택만으로 알림이 바로 켜지지는 않으며/,
+    /수신 의사가 저장/,
   );
   assert.match(
     resolveSignupPushGuidance({ supported: true, permission: "default", requiresIosInstall: true }).message,
-    /홈 화면에 추가해야/,
+    /홈 화면에 추가/,
+  );
+  assert.match(
+    resolveSignupPushGuidance({ supported: true, permission: "default", requiresIosInstall: false }).message,
+    /가입 승인 후/,
   );
 });

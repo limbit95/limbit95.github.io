@@ -17,5 +17,8 @@ export function showToast(message, type = "info", duration = 3800) {
   });
   toast.append(el("strong", { text: icon, "aria-hidden": "true" }), el("div", { className: "toast__body", text: message }), close);
   region.append(toast);
+  window.dispatchEvent(new CustomEvent("app:toast", {
+    detail: { message: String(message ?? ""), type },
+  }));
   window.setTimeout(() => toast.remove(), duration);
 }

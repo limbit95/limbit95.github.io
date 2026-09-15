@@ -90,6 +90,7 @@ function openPushNotificationTarget(targetPath) {
 }
 
 if (typeof window !== "undefined") {
+  let refreshPushOnboarding = () => {};
   const scheduleServiceWorkerRefresh = () => {
     void refreshRegisteredServiceWorker();
   };
@@ -97,11 +98,13 @@ if (typeof window !== "undefined") {
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
+    refreshPushOnboarding();
   });
 
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     installedInSession = true;
+    refreshPushOnboarding();
   });
 
   window.addEventListener("focus", scheduleServiceWorkerRefresh);
@@ -116,4 +119,15 @@ if (typeof window !== "undefined") {
       openPushNotificationTarget(event.data.target_path);
     });
   }
+
+  void import("./push-onboarding.js")
+    .then(({ initializePushOnboarding }) => {
+      refreshPushOnboarding = initializePushOnboarding({
+        getAppInstallMode,
+        promptAppInstall,
+      });
+    })
+    .catch((error) => {
+      console.warn("Push onboarding could not be initialized.", error);
+    });
 }
