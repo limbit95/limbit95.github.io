@@ -96,8 +96,12 @@ test("signup guidance explains that notification intent is saved and activation 
   );
 });
 
-test("signup submit synchronizes push intent into Auth metadata before the application RPC continues", () => {
+test("signup submit synchronizes the stored push choice after the review step detaches the checkbox", () => {
   assert.match(signupGuidanceSource, /document\.addEventListener\("submit", handleSignupSubmit, true\)/);
+  assert.match(signupGuidanceSource, /const draftValue = readDraftValue\(\)/);
+  assert.match(signupGuidanceSource, /typeof draftValue !== "boolean"/);
+  assert.match(signupGuidanceSource, /syncSignupPushOptInMetadata\(draftValue\)/);
+  assert.doesNotMatch(signupGuidanceSource, /form\.querySelector\(PUSH_OPT_IN_SELECTOR\)/);
   assert.match(signupGuidanceSource, /supabase\.auth\.updateUser\(\{/);
   assert.match(signupGuidanceSource, /signup_push_opt_in/);
   assert.match(signupGuidanceSource, /event\.stopImmediatePropagation\(\)/);
