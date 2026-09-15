@@ -7,7 +7,8 @@ const productionFixMigration = read("../supabase/site/migrations/20260914213436_
 const creatorGuardMigration = read("../supabase/site/migrations/20260914213818_allow_organizer_transfer_through_creator_guard.sql");
 const historyMigration = read("../supabase/site/migrations/20260914215312_separate_event_creator_and_organizer_history.sql");
 const adminHistoryMigration = read("../supabase/site/migrations/20260915000018_admin_event_organizer_history.sql");
-const approvalMigration = read("../supabase/site/migrations/20260915024000_activity_organizer_history_and_push.sql");
+const approvalMigration = read("../supabase/site/migrations/20260915043318_activity_organizer_history_and_push.sql");
+const notificationPolicyMigration = read("../supabase/site/migrations/20260915050200_refine_organizer_transfer_notifications.sql");
 const detail = read("../js/pages/activityDetail.js");
 const api = read("../js/api/activities.js");
 const adminApi = read("../js/api/admin.js");
@@ -120,6 +121,13 @@ test("recipient acceptance performs the actual organizer change and rejection le
   assert.match(responseFunction, /'event_organizer_transferred'/);
 });
 
+test("accepted organizer transfer emits no redundant self notification", () => {
+  assert.match(notificationPolicyMigration, /create or replace function public\.respond_event_organizer_transfer/);
+  assert.match(notificationPolicyMigration, /update public\.events[\s\S]*set organizer_id = v_user_id/);
+  assert.match(notificationPolicyMigration, /set status = 'accepted'/);
+  assert.doesNotMatch(notificationPolicyMigration, /event_organizer_transferred/);
+});
+
 test("leave-after-accept waits for acceptance then cancels previous organizer and promotes waitlist", () => {
   assert.match(approvalMigration, /if v_request\.leave_current_after_accept then/);
   assert.match(
@@ -154,7 +162,7 @@ test("organizer request and completion pushes bypass my-page category preference
   assert.match(approvalMigration, /'event_organizer_transferred'::text/);
   assert.match(pushFunction, /const REQUIRED_PUSH_TYPES = new Set/);
   assert.match(pushFunction, /"event_organizer_transfer_requested"/);
-  assert.match(pushFunction, /"event_organizer_transferred"/);
+  assert.doesNotMatch(pushFunction, /"event_organizer_transferred"/);
   assert.match(pushFunction, /if \(REQUIRED_PUSH_TYPES\.has\(type\)\) return true/);
 });
 
@@ -205,6 +213,14 @@ test("activity detail exposes pending request acceptance, rejection, and cancell
   assert.match(detail, /respondEventOrganizerTransfer\(request\.id, accept\)/);
   assert.match(detail, /cancelEventOrganizerTransferRequest\(request\.id\)/);
   assert.match(detail, /상대방이 수락하기 전까지는 현재 주최자 권한이 그대로 유지됩니다/);
+});
+
+test("organizer request closes its modal and releases the global busy state before rerender", () => {
+  assert.match(detail, /import \{ closeModal, contentDialog, confirmDialog \}/);
+  assert.match(
+    detail,
+    /await requestEventOrganizerTransfer[\s\S]*setBusy\(button, false\);[\s\S]*closeModal\(true\);[\s\S]*root\.replaceWith/,
+  );
 });
 
 test("activity detail keeps organizer crown and leave-after-accept handoff flow", () => {
