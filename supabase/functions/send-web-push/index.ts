@@ -11,6 +11,7 @@ const PUSH_TYPES = new Set([
   "event_participation_cancelled",
   "service_notice",
   "join_request_received",
+  "event_organizer_transfer_requested",
   "event_organizer_transferred",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
@@ -22,6 +23,11 @@ const CREATED_ACTIVITY_TYPES = new Set([
 const JOINED_ACTIVITY_TYPES = new Set([
   "event_updated",
   "event_cancelled",
+]);
+const REQUIRED_PUSH_TYPES = new Set([
+  "join_request_received",
+  "event_organizer_transfer_requested",
+  "event_organizer_transferred",
 ]);
 
 function json(body: unknown, status = 200) {
@@ -56,7 +62,7 @@ async function rest(path: string, init: RequestInit = {}) {
 
 async function shouldSendPush(notification: Record<string, unknown>) {
   const type = String(notification.notification_type ?? "");
-  if (type === "join_request_received" || type === "event_organizer_transferred") return true;
+  if (REQUIRED_PUSH_TYPES.has(type)) return true;
 
   const userId = String(notification.user_id ?? "");
   const rows = await rest(
