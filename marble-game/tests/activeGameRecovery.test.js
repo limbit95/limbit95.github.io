@@ -8,7 +8,7 @@ test("restored playing room stays in lobby until the player opens the play windo
   assert.match(lobbySource, /if \(snapshot\.room\.status === "playing"\)/);
   assert.match(lobbySource, /startButton\.textContent = "게임 플레이 창 열기"/);
   assert.match(lobbySource, /게임이 시작됐습니다\. 버튼을 눌러 새 플레이 창에서 이어가 주세요/);
-  assert.match(lobbySource, /enterOnlineClassicPlay\(roomId, \{ popupWindow: reservedPlayWindow \}\)/);
+  assert.match(lobbySource, /if \(snapshot\?\.room\?\.status === "playing"\) \{[\s\S]*?openPlayingGame\(snapshot\.room\.id\)/);
   assert.match(lobbySource, /leaveButton\.textContent = "진행 중 게임 종료"/);
 });
 
