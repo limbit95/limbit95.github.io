@@ -9,11 +9,18 @@ import {
   markDirectMessageRead,
   subscribeNotificationUpdates,
 } from "../notifications.js";
+import { resolveRoute } from "../router.js";
 import { el, formatDateTime, getErrorMessage, setBusy } from "../ui.js";
 import { contentDialog } from "./modal.js";
 import { showToast } from "./toast.js";
 
 const NOTIFICATION_PAGE_SIZE = 20;
+const ACTIVITY_DETAIL_REFRESH_NOTIFICATION_TYPES = new Set([
+  "event_organizer_transfer_requested",
+  "event_organizer_transfer_cancelled",
+  "event_organizer_transfer_accepted",
+  "event_organizer_transfer_rejected",
+]);
 
 function navLink(href, label, currentPath) {
   const active = href === "#/"
@@ -30,6 +37,23 @@ function notificationTarget(notification) {
   if (notification.target_path) return notification.target_path;
   if (notification.event_id) return `#/activities/${notification.event_id}`;
   return "#/activities?view=polls";
+}
+
+function shouldRefreshCurrentActivity(notification) {
+  const notificationType = String(notification?.notification_type ?? "");
+  if (!ACTIVITY_DETAIL_REFRESH_NOTIFICATION_TYPES.has(notificationType)) return false;
+  const eventId = Number(notification?.event_id);
+  if (!Number.isSafeInteger(eventId)) return false;
+  return window.location.hash === `#/activities/${eventId}`;
+}
+
+async function openNotificationTarget(notification) {
+  const target = notificationTarget(notification);
+  if (window.location.hash === target) {
+    await resolveRoute();
+    return;
+  }
+  window.location.hash = target;
 }
 
 function notificationIsPast(notification) {
@@ -153,7 +177,7 @@ export function createHeader({ auth, currentPath, onLogout }) {
       return;
     }
 
-    window.location.hash = notificationTarget(notification);
+    await openNotificationTarget(notification);
   }
 
   async function handleNotificationRead(notification, trigger) {
@@ -327,9 +351,10 @@ export function createHeader({ auth, currentPath, onLogout }) {
   document.addEventListener("pointerdown", handleNotificationOutsidePointerDown, true);
   notificationWrap.append(notificationButton, panel);
 
-  subscribeNotificationUpdates(auth.user?.id, async () => {
+  subscribeNotificationUpdates(auth.user?.id, async (notification) => {
     if (panel.hidden) await refreshNotificationBadge();
     else await refreshNotifications({ loading: false });
+    if (shouldRefreshCurrentActivity(notification)) await resolveRoute();
   }, header);
   window.setTimeout(refreshNotificationBadge, 0);
 
