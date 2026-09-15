@@ -32,12 +32,6 @@ export const JOIN_REQUEST_STATUS_LABEL = Object.freeze({
   held: "보류",
 });
 
-export const POLL_STATUS_LABEL = Object.freeze({
-  open: "투표 중",
-  closed: "투표 마감",
-  cancelled: "투표 취소",
-});
-
 export const ROUTE_META = Object.freeze({
   "/": { title: "홈", auth: "approved" },
   "/login": { title: "로그인", auth: "guest" },

@@ -82,11 +82,9 @@ function checkArchitectureContracts() {
     "js/api/activities.js",
     "js/api/boards.js",
     "js/api/admin.js",
-    "js/api/polls.js",
     "js/api/notifications.js",
     "js/pages/activities/listView.js",
     "js/pages/activities/calendarView.js",
-    "js/pages/activities/pollView.js",
     "js/pages/admin/dashboard.js",
     "js/pages/admin/approvals.js",
     "js/pages/admin/members.js",
@@ -97,25 +95,44 @@ function checkArchitectureContracts() {
     "supabase/site/migrations/20260826073714_community_p2_admin_member_pagination.sql",
     "supabase/site/migrations/20260826084607_community_p2_participation_overview.sql",
     "supabase/site/migrations/20260826085757_community_p2_comment_cursor_pagination.sql",
+    "supabase/site/migrations/20260916100000_remove_date_poll_feature.sql",
   ];
   requiredFiles.forEach(sourceAt);
 
+  ["js/api/polls.js", "js/pages/activities/pollView.js"].forEach((removedFile) => {
+    if (fs.existsSync(path.join(root, removedFile))) {
+      fail(`${removedFile}: removed date poll feature file must not be restored`);
+    }
+  });
+
   const apiFacade = sourceAt("js/api.js");
-  const expectedApiModules = ["profiles", "activities", "boards", "admin", "polls", "notifications"];
+  const expectedApiModules = ["profiles", "activities", "boards", "admin", "notifications"];
   expectedApiModules.forEach((moduleName) => {
     if (!apiFacade.includes(`./api/${moduleName}.js`)) {
       fail(`js/api.js: missing ${moduleName} domain re-export`);
     }
   });
+  if (apiFacade.includes("./api/polls.js")) {
+    fail("js/api.js: removed date poll API must not be re-exported");
+  }
   if (apiFacade.split(/\r?\n/).filter(Boolean).length > 20) {
     fail("js/api.js: facade grew beyond 20 non-empty lines; keep domain logic in js/api/*");
   }
 
   const activitiesFacade = sourceAt("js/pages/activities.js");
   if (!activitiesFacade.includes("./activities/listView.js")
-    || !activitiesFacade.includes("./activities/calendarView.js")
-    || !activitiesFacade.includes("./activities/pollView.js")) {
-    fail("js/pages/activities.js: split activity view modules are not all wired");
+    || !activitiesFacade.includes("./activities/calendarView.js")) {
+    fail("js/pages/activities.js: split list/calendar activity view modules are not all wired");
+  }
+  if (activitiesFacade.includes("pollView.js") || activitiesFacade.includes('"polls"')) {
+    fail("js/pages/activities.js: removed date poll view must not be wired");
+  }
+
+  const datePollRemovalMigration = sourceAt("supabase/site/migrations/20260916100000_remove_date_poll_feature.sql");
+  if (!datePollRemovalMigration.includes("drop table if exists public.date_polls")
+    || !datePollRemovalMigration.includes("drop column if exists poll_id")
+    || datePollRemovalMigration.includes("select 1 from public.date_polls")) {
+    fail("date poll removal migration: poll tables, notification target, and activity dependency must remain removed");
   }
 
   const adminFacade = sourceAt("js/pages/admin.js");
