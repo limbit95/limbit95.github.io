@@ -607,3 +607,32 @@ a.activity-detail__meta-value:hover {
     text-align: left;
   }
 }
+.activity-detail__organizer-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+.activity-organizer-history {
+  min-width: 0;
+  gap: .55rem;
+}
+
+.activity-organizer-history__item {
+  display: grid;
+  gap: .28rem;
+  padding: .72rem .78rem;
+  border: 1px solid #dde9ec;
+  border-radius: 12px;
+  background: #f9fcfd;
+}
+
+.activity-organizer-history__change {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  color: #45636e;
+  font-size: .88rem;
+}
+

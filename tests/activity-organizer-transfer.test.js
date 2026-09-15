@@ -117,7 +117,7 @@ test("admin organizer history is exposed from the operations admin surface", () 
 });
 
 test("activity detail keeps organizer card, crown, and leave handoff flow", () => {
-  assert.match(detail, /organizerMeta\(event, organizerAvatarUrl, canTransferOrganizer, participants, root\)/);
+  assert.match(detail, /organizerMeta\(event, organizerAvatarUrl, canTransferOrganizer, participants, root, organizerHistory\)/);
   assert.match(detail, /activity-detail__meta-label", text: "주최자"/);
   assert.match(detail, /participant-person__organizer-crown/);
   assert.match(detail, /text: "👑"/);

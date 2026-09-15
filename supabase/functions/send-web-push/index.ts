@@ -5,6 +5,7 @@ import { sendUserEmail } from "../_shared/email.ts";
 const PUSH_TYPES = new Set([
   "event_updated",
   "event_cancelled",
+  "event_organizer_changed",
   "new_activity",
   "event_participant_joined",
   "event_participant_waitlisted",
@@ -12,6 +13,7 @@ const PUSH_TYPES = new Set([
   "service_notice",
   "join_request_received",
 ]);
+const ALWAYS_PUSH_TYPES = new Set(["join_request_received", "event_organizer_changed"]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
 const CREATED_ACTIVITY_TYPES = new Set([
   "event_participant_joined",
@@ -55,7 +57,7 @@ async function rest(path: string, init: RequestInit = {}) {
 
 async function shouldSendPush(notification: Record<string, unknown>) {
   const type = String(notification.notification_type ?? "");
-  if (type === "join_request_received") return true;
+  if (ALWAYS_PUSH_TYPES.has(type)) return true;
 
   const userId = String(notification.user_id ?? "");
   const rows = await rest(

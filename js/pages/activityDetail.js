@@ -1,4 +1,5 @@
 import { getAuthState } from "../auth.js";
+import { listEventOrganizerHistory } from "../api/activityOrganizerHistory.js";
 import { getSignedAvatarUrl } from "../api/profiles.js";
 import { enhanceActivityDetails } from "../activity-detail-map.js";
 import { enhanceActivityShare } from "../activity-share-enhancements.js";
@@ -25,6 +26,7 @@ import {
   downloadFile,
   el,
   formatDate,
+  formatDateTime,
   formatTime,
   getErrorMessage,
   pageContainer,
@@ -35,7 +37,10 @@ import {
 export async function renderActivityDetail(route) {
   const auth = getAuthState();
   const event = await getEvent(route.params.id);
-  const participants = await listEventParticipants(event.id);
+  const [participants, organizerHistory] = await Promise.all([
+    listEventParticipants(event.id),
+    listEventOrganizerHistory(event.id),
+  ]);
   const counts = participationCounts(event);
   const mine = getMyParticipation(event, auth.user.id);
   const canEdit = canEditActivityFor(auth, event);
@@ -63,7 +68,7 @@ export async function renderActivityDetail(route) {
       meta("🗓️", "일정", activityScheduleText(event), null, "activity-detail__meta--schedule"),
       meta("📍", "장소", event.location_name, event.location_url),
       meta("💳", "참가비", event.fee_text || "무료"),
-      organizerMeta(event, organizerAvatarUrl, canTransferOrganizer, participants, root),
+      organizerMeta(event, organizerAvatarUrl, canTransferOrganizer, participants, root, organizerHistory),
     ]),
     createParticipationPanel(event, mine, counts, participants, root, auth),
     el("div", { className: "button-row activity-detail__utility-actions" }, [
@@ -126,7 +131,7 @@ function meta(icon, label, text, link = null, extraClass = "") {
   ]);
 }
 
-function organizerMeta(event, avatarUrl, canTransfer, participants, root) {
+function organizerMeta(event, avatarUrl, canTransfer, participants, root, organizerHistory) {
   const profile = event.organizer;
   const organizerAvatar = profile
     ? createProfileAvatarTrigger(profile, { avatarUrl, portalMenu: true })
@@ -140,17 +145,25 @@ function organizerMeta(event, avatarUrl, canTransfer, participants, root) {
           organizerAvatar,
           el("strong", { text: profile?.display_name ?? "회원" }),
         ]),
-        canTransfer ? el("button", {
-          className: "activity-detail__organizer-change",
-          type: "button",
-          text: "변경",
-          onClick: (clickEvent) => openOrganizerTransferDialog({
-            event,
-            participants,
-            root,
-            trigger: clickEvent.currentTarget,
-          }),
-        }) : null,
+        organizerHistory.length || canTransfer ? el("span", { className: "activity-detail__organizer-actions" }, [
+          organizerHistory.length ? el("button", {
+            className: "activity-detail__organizer-change",
+            type: "button",
+            text: "변경 내역",
+            onClick: () => openOrganizerHistoryDialog(organizerHistory),
+          }) : null,
+          canTransfer ? el("button", {
+            className: "activity-detail__organizer-change",
+            type: "button",
+            text: "변경",
+            onClick: (clickEvent) => openOrganizerTransferDialog({
+              event,
+              participants,
+              root,
+              trigger: clickEvent.currentTarget,
+            }),
+          }) : null,
+        ]) : null,
       ]),
     ]),
   ]);
@@ -386,6 +399,30 @@ async function participantDialogContent(event, participants, counts) {
 
   content.append(el("div", { className: "participant-list activity-participants-dialog__list" }, people));
   return content;
+}
+
+function openOrganizerHistoryDialog(history) {
+  const content = el("div", { className: "activity-organizer-history page-stack" }, history.map((item) => (
+    el("div", { className: "activity-organizer-history__item" }, [
+      el("div", { className: "activity-organizer-history__change" }, [
+        el("strong", { text: item.previous_organizer_name ?? "이전 주최자" }),
+        el("span", { text: "→", "aria-hidden": "true" }),
+        el("strong", { text: item.organizer_name ?? "새 주최자" }),
+      ]),
+      el("span", { className: "small subtle", text: formatDateTime(item.changed_at) }),
+      item.previous_organizer_left
+        ? el("span", {
+            className: "small subtle",
+            text: "이전 주최자는 주최자 변경과 함께 참여도 취소했습니다.",
+          })
+        : null,
+    ])
+  )));
+
+  void contentDialog({
+    title: "주최자 변경 내역",
+    content,
+  });
 }
 
 async function openOrganizerTransferDialog({
