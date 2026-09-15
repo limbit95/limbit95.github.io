@@ -8,14 +8,17 @@ import {
   formatClassicMoneyBalance,
   formatClassicMoneyDelta,
   interpolateMoneyBalance,
+  resolveMoneyBurstVector,
   resolveMoneyTransferCoinCount,
   resolveMoneyTransferFlight,
 } from "../js/presentation/moneyPresentation.js";
 
 const wrapperSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
+const timingSource = readFileSync(new URL("../js/renderer/threeClassicPresentationTiming.js", import.meta.url), "utf8");
 const moneySource = readFileSync(new URL("../js/presentation/moneyPresentation.js", import.meta.url), "utf8");
 const tileInfoSource = readFileSync(new URL("../js/tileInfo.js", import.meta.url), "utf8");
 const cssSource = readFileSync(new URL("../css/money-presentation.css", import.meta.url), "utf8");
+const timingCssSource = readFileSync(new URL("../css/presentation-timing.css", import.meta.url), "utf8");
 
 test("money presentation maps START and received money to player gains", () => {
   assert.deepEqual(createMoneyPresentationPlan({
@@ -65,7 +68,7 @@ test("toll presentation shows payer loss and creditor gain without changing valu
   ]);
 });
 
-test("toll presentation sequences payer loss, HUD transfer, then owner gain", () => {
+test("toll presentation keeps the authoritative payer, transfer, owner sequence", () => {
   assert.deepEqual(createMoneyPresentationSequence({
     type: "MONEY_PAID",
     playerId: "payer",
@@ -166,7 +169,7 @@ test("event and bonus rewards fly from the visible modal gold-change card to the
   }
 });
 
-test("event and tax costs count down before coins move from the player HUD to the modal gold-change card", () => {
+test("event and tax costs retain their baseline sequence for non-specialized callers", () => {
   for (const reason of ["EVENT", "TAX"]) {
     const sequence = createMoneyPresentationSequence({
       type: "MONEY_PAID",
@@ -202,6 +205,20 @@ test("transfer flight creates a visible arced route with staggered coins", () =>
   assert.notEqual(first.startX, last.startX);
 });
 
+test("event loss burst scatters coins upward with staggered directions", () => {
+  const first = resolveMoneyBurstVector(0, 8);
+  const last = resolveMoneyBurstVector(7, 8);
+  assert.ok(first.y < 0);
+  assert.ok(last.y < 0);
+  assert.equal(first.delayMs, 0);
+  assert.equal(last.delayMs, 238);
+  assert.notEqual(Math.sign(first.x), Math.sign(last.x));
+  assert.match(moneySource, /playEventLossBurst/);
+  assert.match(moneySource, /presentBurst\(event\.playerId, event\.amount\)/);
+  assert.match(timingCssSource, /\.money-burst-layer/);
+  assert.match(timingCssSource, /marble-money-burst-flight/);
+});
+
 test("tax presentation stays a one-way loss", () => {
   assert.deepEqual(createMoneyPresentationPlan({
     type: "MONEY_PAID",
@@ -235,14 +252,30 @@ test("money balance interpolation is monotonic and reaches the authoritative tar
   assert.equal(interpolateMoneyBalance(500, 900, 1), 900);
 });
 
-test("START reward is deferred until PLAYER_MOVED completes", () => {
-  const startIndex = wrapperSource.indexOf('event?.type === "START_PASSED"');
-  const moveAwaitIndex = wrapperSource.indexOf("await renderer.playEvent(event)");
-  const flushIndex = wrapperSource.indexOf('event?.type === "PLAYER_MOVED" && pendingStartEvents.length');
-  assert.ok(startIndex >= 0);
-  assert.ok(moveAwaitIndex > startIndex);
-  assert.ok(flushIndex > moveAwaitIndex);
-  assert.match(wrapperSource, /getSharedAnimationQueue\("classic-online"\)/);
+test("START reward begins at the START path crossing while PLAYER_MOVED continues", () => {
+  assert.match(timingSource, /resolveStartCrossingDelay/);
+  assert.match(timingSource, /normalizedPath\.findIndex\(\(nodeId\) => starts\.has\(nodeId\)\)/);
+  assert.match(timingSource, /\(startIndex \+ 1\) \* START_PATH_STEP_MS/);
+  assert.match(timingSource, /const movementPromise = renderer\.playEvent\(event\)/);
+  assert.match(timingSource, /const salaryPromise = playPendingStartDuringMovement\(event\)/);
+  assert.match(timingSource, /Promise\.all\(\[movementPromise, salaryPromise\]\)/);
+  assert.match(timingSource, /await moneyPresenter\.play\(event\)/);
+});
+
+test("purchase clicks preview the transfer immediately and suppress duplicate authoritative transfer", () => {
+  assert.match(timingSource, /\[data-tile-info-action\]/);
+  assert.match(timingSource, /addEventListener\?\.\("click", previewChoiceTransfer, true\)/);
+  assert.match(timingSource, /moneyPresenter\.playTransfer\(event\)/);
+  assert.match(timingSource, /presentationTransferPreviewed: true/);
+  assert.match(moneySource, /const skipTransfer = event\?\.presentationTransferPreviewed === true/);
+});
+
+test("viewer toll payment waits for the toll modal and launches the HUD transfer as it opens", () => {
+  assert.match(timingSource, /pendingTolls/);
+  assert.match(timingSource, /\[data-toll-notice-modal\]/);
+  assert.match(timingSource, /flushOpenTolls/);
+  assert.match(timingSource, /moneyPresenter\.playTransfer\?\.\(entry\.event\)/);
+  assert.match(timingSource, /moneyPresenter\.play\(\{ \.\.\.entry\.event, presentationTransferPreviewed: true \}\)/);
 });
 
 test("modal money waits after the result modal opens and preserves the prior HUD balance", () => {
@@ -256,7 +289,22 @@ test("modal money waits after the result modal opens and preserves the prior HUD
   assert.match(moneySource, /modal-money-card/);
   assert.match(moneySource, /골드 변화/);
   assert.match(moneySource, /layerHost\?\.style\) layerHost\.style\.overflow = "visible"/);
-  assert.match(moneySource, /\[data-tile-info-modal\]\[open\]/);
+  assert.match(moneySource, /\[data-tile-info-modal\]\[open\], \[data-toll-notice-modal\]\[open\]/);
+});
+
+test("event deductions use the HUD burst while tax keeps the modal transfer", () => {
+  assert.match(timingSource, /event\?\.reason === "EVENT" && isViewerPlayer\(event\.playerId\)/);
+  assert.match(timingSource, /moneyPresenter\.playEventLossBurst\?\.\(entry\.event\)/);
+  assert.match(moneySource, /async function playEventLossBurst\(event\)/);
+});
+
+test("rest assignment and skipped rest turns use a dedicated center-screen celebration", () => {
+  assert.match(timingSource, /event\?\.type === "REST_ASSIGNED" \|\| event\?\.type === "TURN_SKIPPED"/);
+  assert.match(timingSource, /무인도 도착!/);
+  assert.match(timingSource, /무인도 휴식 턴/);
+  assert.match(timingSource, /presentRestTurnCelebration\(event\)/);
+  assert.match(timingCssSource, /\.rest-turn-celebration/);
+  assert.match(timingCssSource, /marble-rest-turn-card-in/);
 });
 
 test("bonus and tax landings use the shared result modal gold-change card", () => {
@@ -269,10 +317,10 @@ test("bonus and tax landings use the shared result modal gold-change card", () =
 });
 
 test("money transfer VFX resolves board points and keeps the visible larger coin styling", () => {
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260912-r21/);
-  assert.match(wrapperSource, /resolveBoardTransferPoint/);
-  assert.match(wrapperSource, /projectClassicBoardPoint/);
-  assert.match(wrapperSource, /createSquareRingLayout\(state\.board\.nodes\)/);
+  assert.match(timingSource, /moneyPresentation\.js\?v=20260912-r21/);
+  assert.match(timingSource, /resolveBoardTransferPoint/);
+  assert.match(timingSource, /projectClassicBoardPoint/);
+  assert.match(timingSource, /createSquareRingLayout\(state\.board\.nodes\)/);
   assert.match(moneySource, /coin\.animate\(transferFrames\(flight\)/);
   assert.match(moneySource, /transferDurationMs = 780/);
   assert.match(moneySource, /money-transfer-board-impact/);
