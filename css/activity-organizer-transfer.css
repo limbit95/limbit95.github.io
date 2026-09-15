@@ -1,0 +1,22 @@
+@media (min-width: 900px) {
+  .activity-detail__organizer-request {
+    grid-column: 1 / -1;
+    width: 100%;
+    flex-direction: column;
+    justify-content: center;
+    gap: .55rem;
+    padding: .7rem .85rem;
+    text-align: center;
+  }
+
+  .activity-detail__organizer-request-copy {
+    width: 100%;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .activity-detail__organizer-request-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
