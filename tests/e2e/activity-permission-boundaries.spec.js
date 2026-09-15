@@ -16,9 +16,9 @@ const environmentReady = Boolean(
   && memberPassword
   && memberUserId
   && adminEmail
-  && adminPassword
-  && adminUserId,
+  && adminPassword,
 );
+const organizerTransferEnvironmentReady = Boolean(environmentReady && adminUserId);
 
 async function requestJson(url, init = {}) {
   const response = await fetch(url, init);
@@ -196,7 +196,7 @@ test("recurring occurrence ownership cannot bypass manager boundaries", async ()
     `${supabaseUrl}/rest/v1/event_series?id=eq.${recurringA.seriesId}`,
     {
       method: "PATCH",
-      headers: restHeaders(memberToken, { Prefer: "return=representation" }),
+      headers: restHeaders(memberToken),
       body: JSON.stringify({ category_id: categoryB }),
     },
   );
@@ -286,7 +286,7 @@ test("recurring occurrence ownership cannot bypass manager boundaries", async ()
 });
 
 test("organizer transfer request, cancellation, and acceptance preserve notification boundaries", async () => {
-  test.skip(!environmentReady, "Local Supabase E2E environment is not configured.");
+  test.skip(!organizerTransferEnvironmentReady, "Organizer transfer E2E environment is not configured.");
 
   const [memberToken, adminToken] = await Promise.all([
     signIn(memberEmail, memberPassword),
