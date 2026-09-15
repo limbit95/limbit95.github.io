@@ -43,11 +43,11 @@ test("online recovery and Classic renderer entries bypass stale modules while un
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260915-r1/);
+  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260915-r3/);
   assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13\": \"\.\/js\/renderer\/threeClassicPrototypeDiagnostics\.js\?v=20260915-r1/);
-  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260913-r25/);
+  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260915-r2/);
   assert.match(performanceEntrySource, /threeClassicPrototypeDiagnostics\.js\?v=20260915-r1/);
-  assert.match(performanceEntrySource, /threeClassicMoneyPresentation\.js\?v=20260915-r1/);
+  assert.match(performanceEntrySource, /threeClassicPresentationTiming\.js\?v=20260915-r2/);
   assert.match(diagnosticsSource, /threeClassicPrototype\.js\?implementation=20260915-r1/);
   assert.match(moneyRendererSource, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13/);
   assert.match(moneyRendererSource, /moneyPresentation\.js\?v=20260912-r21/);
