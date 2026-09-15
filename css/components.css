@@ -87,7 +87,7 @@ button.chip[aria-pressed="true"], .chip--active { color: #3f6270; background: #d
 .skeleton { overflow: hidden; position: relative; background: #e9f2f5; border-radius: 10px; min-height: 18px; }
 .skeleton::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent); animation: shimmer 1.25s infinite; }
 @keyframes shimmer { to { transform: translateX(100%); } }
-.toast-region { position: fixed; z-index: 1500; right: 1rem; bottom: calc(var(--bottom-nav-height) + 1rem); display: grid; gap: .6rem; width: min(calc(100% - 2rem), 380px); pointer-events: none; }
+.toast-region { position: fixed; z-index: 3100; right: 1rem; bottom: calc(var(--bottom-nav-height) + 1rem); display: grid; gap: .6rem; width: min(calc(100% - 2rem), 380px); pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: flex-start; gap: .7rem; padding: .85rem 1rem; border-radius: 15px; background: var(--forest-900); color: white; box-shadow: var(--shadow-md); animation: toast-in .2s ease-out; }
 .toast--error { background: #8e3030; }
 .toast--success { background: var(--success); }

@@ -40,6 +40,14 @@ function isStandaloneActivityOwnerFor(auth, event) {
     && event.created_by === auth.user?.id;
 }
 
+function hasOtherActiveParticipantsForOwner(event) {
+  const joinedCount = Number(event.joined_count ?? 0);
+  const waitlistedCount = Number(event.waitlisted_count ?? 0);
+  const creatorJoinedCount = event.my_participation_status === "joined" ? 1 : 0;
+  const creatorWaitlistedCount = event.my_participation_status === "waitlisted" ? 1 : 0;
+  return joinedCount > creatorJoinedCount || waitlistedCount > creatorWaitlistedCount;
+}
+
 export function canEditActivityFor(auth, event) {
   if (!event) return false;
   if (isActivityOperatorFor(auth, event)) return true;
@@ -53,9 +61,11 @@ export function canCancelActivityFor(auth, event) {
 }
 
 export function canDeleteActivityFor(auth, event) {
-  return Boolean(event)
-    && event.series_id == null
-    && isActivityOperatorFor(auth, event);
+  if (!event || event.series_id != null) return false;
+  if (isActivityOperatorFor(auth, event)) return true;
+  return isStandaloneActivityOwnerFor(auth, event)
+    && MEMBER_EDITABLE_ACTIVITY_STATUSES.has(event.status)
+    && !hasOtherActiveParticipantsForOwner(event);
 }
 
 export function canManageActivityFor(auth, event) {

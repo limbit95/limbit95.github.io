@@ -75,6 +75,7 @@ test("join request email delivery goes through provider-neutral shared orchestra
   assert.doesNotMatch(transport, /api\.resend\.com|RESEND_API_KEY|SIGNUP_EMAIL_FROM/i);
 
   assert.match(templates, /EmailTemplateId = "join_request_received"/);
+  assert.match(templates, /const DEFAULT_SITE_URL = "https:\/\/chungpagachi\.com\/"/);
   assert.match(templates, /renderServiceEmailLayout/);
   assert.match(templates, /case "join_request_received"/);
   assert.match(templates, /가입 신청 확인하기/);

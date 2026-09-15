@@ -364,49 +364,51 @@ test.describe("approved member flow", () => {
     expectNoPageErrors(pageErrors);
   });
 
-  test("creates and cancels a single activity without exposing member deletion", async ({ page }, testInfo) => {
-    test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
-    const pageErrors = collectPageErrors(page);
-    const title = `E2E 일반 회원 단일 활동 ${projectToken(testInfo)}`;
-    const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const deadlineDate = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
+  test("creates, auto-joins, and deletes a clean single activity", async ({ page }, testInfo) => {
+  test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
+  const pageErrors = collectPageErrors(page);
+  const title = `E2E 일반 회원 단일 활동 ${projectToken(testInfo)}`;
+  const eventDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const deadlineDate = new Date(Date.now() + 13 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16);
 
-    await serviceRoleRequest(`/rest/v1/category_managers?user_id=eq.${encodeURIComponent(memberUserId)}`, {
-      method: "DELETE",
-    });
-    await login(page, memberEmail, memberPassword);
-    await page.goto("/#/activities/new");
-    await assertHealthyPage(page, "활동 등록");
-    await expect(page.locator('[name="recurring"]')).toHaveCount(0);
-    await page.locator('[name="title"]').fill(title);
-    await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
-    await setHiddenFormValue(page, "event_date", eventDate);
-    await setHiddenFormValue(page, "start_time", "19:00");
-    await setHiddenFormValue(page, "end_time", "20:00");
-    await setHiddenFormValue(page, "registration_deadline", deadlineDate);
-    await page.locator('[name="location_name"]').fill("청파동");
-    await page.getByRole("button", { name: "활동 등록", exact: true }).click();
-
-    await expect(page).toHaveURL(/#\/activities\/\d+$/);
-    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "활동 삭제", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "일정 취소", exact: true })).toBeVisible();
-
-    const shareDialog = page.getByRole("dialog", { name: "활동이 등록됐어요!" });
-    await expect(shareDialog).toBeVisible();
-    await shareDialog.getByRole("button", { name: "나중에", exact: true }).click();
-    await expect(shareDialog).toBeHidden();
-
-    await page.getByRole("button", { name: "일정 취소", exact: true }).click();
-    const cancelDialog = page.getByRole("alertdialog");
-    await expect(cancelDialog).toBeVisible();
-    await cancelDialog.getByRole("button", { name: "일정 취소", exact: true }).click();
-    await expect(page.getByRole("link", { name: "✏️ 활동 수정", exact: true })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "일정 취소", exact: true })).toHaveCount(0);
-    expectNoPageErrors(pageErrors);
+  await serviceRoleRequest(`/rest/v1/category_managers?user_id=eq.${encodeURIComponent(memberUserId)}`, {
+    method: "DELETE",
   });
+  await login(page, memberEmail, memberPassword);
+  await page.goto("/#/activities/new");
+  await assertHealthyPage(page, "활동 등록");
+  await expect(page.locator('[name="recurring"]')).toHaveCount(0);
+  await page.locator('[name="title"]').fill(title);
+  await page.locator("#event-description").fill("반복 입력 필드가 없는 일반 회원의 단일 활동 등록 테스트입니다.");
+  await setHiddenFormValue(page, "event_date", eventDate);
+  await setHiddenFormValue(page, "start_time", "19:00");
+  await setHiddenFormValue(page, "end_time", "20:00");
+  await setHiddenFormValue(page, "registration_deadline", deadlineDate);
+  await page.locator('[name="location_name"]').fill("청파동");
+  await page.getByRole("button", { name: "활동 등록", exact: true }).click();
 
-  test("enforces member activity transitions and operator-only removal in the database", async ({}, testInfo) => {
+  await expect(page).toHaveURL(/#\/activities\/\d+$/);
+  const createdEventId = new URL(page.url()).hash.match(/^#\/activities\/(\d+)$/)?.[1];
+  expect(createdEventId).toBeTruthy();
+  await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "참여 취소", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "활동 삭제", exact: true })).toBeVisible();
+
+  const shareDialog = page.getByRole("dialog", { name: "활동이 등록됐어요!" });
+  await expect(shareDialog).toBeVisible();
+  await shareDialog.getByRole("button", { name: "나중에", exact: true }).click();
+  await expect(shareDialog).toBeHidden();
+
+  await page.getByRole("button", { name: "활동 삭제", exact: true }).click();
+  const deleteDialog = page.getByRole("alertdialog");
+  await expect(deleteDialog).toBeVisible();
+  await deleteDialog.getByRole("button", { name: "삭제 요청", exact: true }).click();
+  await expect(page).toHaveURL(/#\/activities$/);
+  expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${createdEventId}&select=id`)).toEqual([]);
+  expectNoPageErrors(pageErrors);
+});
+
+test("enforces member activity transitions and owner-safe removal in the database", async ({}, testInfo) => {
     test.skip(!writeEnvironmentReady, "Write-path E2E requires isolated community fixtures.");
     const token = projectToken(testInfo);
     const accessToken = await memberSession();
@@ -434,6 +436,10 @@ test.describe("approved member flow", () => {
     });
     expect(created.response.status).toBe(201);
     const ownedEventId = Number(created.body[0].id);
+    const creatorParticipation = await serviceRoleRequest(
+      `/rest/v1/event_participants?event_id=eq.${ownedEventId}&user_id=eq.${encodeURIComponent(memberUserId)}&select=status`,
+    );
+    expect(creatorParticipation).toEqual([{ status: "joined" }]);
 
     const inactiveInsert = await authenticatedRequest(accessToken, "/rest/v1/events", {
       method: "POST",
@@ -492,9 +498,10 @@ test.describe("approved member flow", () => {
     const ownerHistoryRemoval = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
       method: "POST", body: JSON.stringify({ p_event_id: historyEventId }),
     });
-    expect(ownerHistoryRemoval.response.status).toBeGreaterThanOrEqual(400);
+    expect(ownerHistoryRemoval.response.status).toBe(200);
+    expect(ownerHistoryRemoval.body.action).toBe("cancelled");
     const historyBeforeOperator = await serviceRoleRequest(`/rest/v1/events?id=eq.${historyEventId}&select=status`);
-    expect(historyBeforeOperator[0].status).toBe("scheduled");
+    expect(historyBeforeOperator[0].status).toBe("cancelled");
 
     const removableRows = await authenticatedRequest(accessToken, "/rest/v1/events?select=id", {
       method: "POST",
@@ -506,8 +513,9 @@ test.describe("approved member flow", () => {
     const ownerCleanRemoval = await authenticatedRequest(accessToken, "/rest/v1/rpc/remove_or_cancel_event", {
       method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
     });
-    expect(ownerCleanRemoval.response.status).toBeGreaterThanOrEqual(400);
-    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toHaveLength(1);
+    expect(ownerCleanRemoval.response.status).toBe(200);
+    expect(ownerCleanRemoval.body.action).toBe("deleted");
+    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);
 
     await serviceRoleRequest("/rest/v1/admin_permissions", {
       method: "POST", headers: { Prefer: "resolution=merge-duplicates" },
@@ -533,12 +541,18 @@ test.describe("approved member flow", () => {
     });
     expect(terminalOwnerEdit.response.status).toBeGreaterThanOrEqual(400);
 
+    const operatorRemovableRows = await serviceRoleRequest("/rest/v1/events?select=id", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(activityPayload(activeCategoryId, memberUserId, `E2E operator removable ${token}`)),
+    });
+    const operatorRemovableEventId = Number(operatorRemovableRows[0].id);
     const removed = await authenticatedRequest(adminToken, "/rest/v1/rpc/remove_or_cancel_event", {
-      method: "POST", body: JSON.stringify({ p_event_id: removableEventId }),
+      method: "POST", body: JSON.stringify({ p_event_id: operatorRemovableEventId }),
     });
     expect(removed.response.status).toBe(200);
     expect(removed.body.action).toBe("deleted");
-    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${removableEventId}&select=id`)).toEqual([]);
+    expect(await serviceRoleRequest(`/rest/v1/events?id=eq.${operatorRemovableEventId}&select=id`)).toEqual([]);
 
     await serviceRoleRequest("/rest/v1/category_managers", {
       method: "POST",

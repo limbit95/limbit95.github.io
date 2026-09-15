@@ -133,6 +133,7 @@ jobs:
           npx playwright test
           tests/e2e/community-authenticated.spec.js
           tests/e2e/activity-permission-boundaries.spec.js
+          tests/e2e/organizer-notification-routing.spec.js
           tests/e2e/community-notification-pagination.spec.js
           tests/e2e/community-observability.spec.js
           --workers=1

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
+    <title>비밀번호 재설정 안내</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f9fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans KR',Arial,sans-serif;color:#24363d;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">비밀번호 재설정 요청을 확인하고 새 비밀번호를 설정해 주세요.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f9fb;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #dcebef;border-radius:20px;overflow:hidden;">
+            <tr>
+              <td style="padding:22px 28px;background:#ffffff;border-bottom:1px solid #dcebef;">
+                <div style="font-size:18px;font-weight:900;letter-spacing:-0.02em;color:#3f6270;">청파 같이</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:36px 28px 28px;">
+                <div style="margin:0 0 10px;font-size:12px;font-weight:900;letter-spacing:0.08em;color:#6f8f9b;">계정 보안</div>
+                <h1 style="margin:0 0 20px;font-size:26px;line-height:1.35;letter-spacing:-0.03em;color:#24363d;">비밀번호를 다시 설정해 주세요</h1>
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#24363d;">청파 같이 계정의 비밀번호 재설정 요청을 받았습니다.</p>
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#24363d;">아래 버튼을 눌러 새 비밀번호를 설정해 주세요.</p>
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 8px;">
+                  <tr>
+                    <td bgcolor="#c9e3ec" style="border-radius:12px;">
+                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 20px;font-size:14px;font-weight:800;line-height:1.2;color:#3f6270;text-decoration:none;border:1px solid #bad9e4;border-radius:12px;">비밀번호 다시 설정하기</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:20px 0 0;font-size:13px;line-height:1.7;color:#66777e;">비밀번호 재설정을 요청하지 않으셨다면 이 메일을 무시하셔도 됩니다.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:20px 28px 26px;border-top:1px solid #dcebef;background:#fbfdfe;">
+                <p style="margin:0;font-size:12px;line-height:1.65;color:#66777e;">본 메일은 청파 같이 서비스의 비밀번호 재설정 요청에 따라 발송되었습니다.</p>
+                <p style="margin:8px 0 0;font-size:12px;line-height:1.65;color:#8a989e;">© 청파 같이</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
