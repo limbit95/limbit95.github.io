@@ -103,6 +103,13 @@ a.activity-detail__meta-value:hover {
   gap: .55rem;
 }
 
+.activity-detail__organizer-actions {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  flex: 0 0 auto;
+}
+
 .activity-detail__organizer-profile,
 .activity-organizer-transfer__profile {
   min-width: 0;
@@ -159,6 +166,46 @@ a.activity-detail__meta-value:hover {
   border-color: #b9d2da;
   background: #f2f8fa;
   color: #45636e;
+}
+
+.activity-detail__organizer-request {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+  padding: .62rem .7rem;
+  border: 1px solid #d8e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.activity-detail__organizer-request-copy {
+  min-width: 0;
+  display: grid;
+  gap: .16rem;
+  color: #5d747d;
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.activity-detail__organizer-request-copy > strong {
+  color: #45636e;
+  font-size: .78rem;
+}
+
+.activity-detail__organizer-request-actions {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex: 0 0 auto;
+}
+
+.activity-detail__organizer-request-actions .button {
+  min-height: 32px;
+  padding: .32rem .55rem;
+  font-size: .72rem;
 }
 
 .activity-detail__participation-panel {
@@ -557,6 +604,19 @@ a.activity-detail__meta-value:hover {
     gap: .24rem;
   }
 
+  .activity-detail__organizer-request {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .activity-detail__organizer-request-actions {
+    width: 100%;
+  }
+
+  .activity-detail__organizer-request-actions .button {
+    flex: 1 1 0;
+  }
+
   .activity-detail__participation-panel {
     width: 100%;
     margin-left: 0;
@@ -595,6 +655,10 @@ a.activity-detail__meta-value:hover {
   .activity-detail__organizer-value {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .activity-detail__organizer-actions {
+    flex-wrap: wrap;
   }
 
   .activity-detail__overview-deadline {
