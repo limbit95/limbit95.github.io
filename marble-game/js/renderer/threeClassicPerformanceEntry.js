@@ -3,4 +3,4 @@ import { installClassicShadowUpdatePolicy } from "./threeClassicPrototypeDiagnos
 
 installClassicShadowUpdatePolicy(THREE);
 
-export * from "./threeClassicPresentationTiming.js?v=20260915-r1";
+export * from "./threeClassicPresentationTiming.js?v=20260915-r2";

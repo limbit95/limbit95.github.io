@@ -31,7 +31,7 @@ export {
 const START_PATH_STEP_MS = 165;
 const MODAL_MONEY_FALLBACK_MS = 1400;
 const CHOICE_TRANSFER_PREVIEW_TIMEOUT_MS = 3200;
-const REST_CELEBRATION_HOLD_MS = 980;
+const REST_CELEBRATION_HOLD_MS = 2000;
 
 export function resolveStartCrossingDelay(path, startNodeIds, { reducedMotion = false } = {}) {
   if (reducedMotion) return 0;
@@ -145,7 +145,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   function flushEventLoss(entry) {
     if (!pendingEventLosses.includes(entry)) return;
     removePendingEntry(pendingEventLosses, entry);
-    void moneyPresenter.playEventLossBurst?.(entry.event)
+    void moneyPresenter.playLossBurst?.(entry.event)
       .catch((error) => reportPresentationError(error, entry.event?.type));
   }
 
@@ -166,10 +166,8 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   function flushToll(entry) {
     if (!pendingTolls.includes(entry)) return;
     removePendingEntry(pendingTolls, entry);
-    void Promise.all([
-      moneyPresenter.playTransfer?.(entry.event),
-      moneyPresenter.play({ ...entry.event, presentationTransferPreviewed: true }),
-    ]).catch((error) => reportPresentationError(error, entry.event?.type));
+    void moneyPresenter.play(entry.event)
+      .catch((error) => reportPresentationError(error, entry.event?.type));
   }
 
   function flushOpenTolls() {
@@ -234,11 +232,13 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       ? latestState?.players?.[Number(currentIndex)]
       : null;
     const action = choiceActionButton?.dataset?.action;
-    if (!choice || !actor?.id || !isViewerPlayer(actor.id)) return null;
+    if (!choice || !actor?.id || !isViewerPlayer(actor.id) || choiceActionButton?.disabled) return null;
     if (action === "buy" && choice.type === "BUY_PROPERTY") {
+      if (Number(actor.money) < Number(choice.price)) return null;
       return { type: "PROPERTY_BOUGHT", playerId: actor.id, nodeId: choice.nodeId, amount: choice.price };
     }
     if (action === "build" && choice.type === "BUILD_PROPERTY") {
+      if (Number(actor.money) < Number(choice.cost)) return null;
       return { type: "PROPERTY_BUILT", playerId: actor.id, nodeId: choice.nodeId, amount: choice.cost };
     }
     return null;
@@ -308,7 +308,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     documentObject.querySelectorAll?.(".rest-turn-celebration").forEach((element) => element.remove());
     const layer = createRestCelebrationElement(event);
     documentObject.body.append(layer);
-    await wait(reducedMotion ? 420 : REST_CELEBRATION_HOLD_MS);
+    await wait(reducedMotion ? 900 : REST_CELEBRATION_HOLD_MS);
     layer.dataset.state = "exit";
     await wait(reducedMotion ? 80 : 180);
     layer.remove();

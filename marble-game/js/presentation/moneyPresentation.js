@@ -39,6 +39,7 @@ const BOARD_CENTER_ENDPOINT = Object.freeze({ kind: "board-center" });
 const MODAL_MONEY_CARD_ENDPOINT = Object.freeze({ kind: "modal-money-card" });
 const DEFAULT_TRANSFER_STAGGER_MS = 68;
 const TILE_TRANSFER_STAGGER_MS = 30;
+const TILE_TRANSFER_DURATION_MS = 520;
 const BURST_STAGGER_MS = 34;
 const BURST_DURATION_MS = 620;
 
@@ -86,13 +87,12 @@ export function createMoneyPresentationSequence(event) {
 
   if (isTollTransfer) {
     return [
-      { kind: "money", steps: [steps[0]], holdMs: 520 },
       {
-        kind: "transfer",
-        from: playerEndpoint(event.playerId),
-        to: playerEndpoint(event.creditorId),
+        kind: "burst",
+        playerId: event.playerId,
         amount,
       },
+      { kind: "money", steps: [steps[0]], holdMs: 520 },
       { kind: "money", steps: [steps[1]], holdMs: 520 },
     ];
   }
@@ -105,6 +105,7 @@ export function createMoneyPresentationSequence(event) {
         from: playerEndpoint(event.playerId),
         to: tileEndpoint(event.nodeId),
         amount,
+        durationMs: TILE_TRANSFER_DURATION_MS,
       },
     ];
   }
@@ -135,13 +136,8 @@ export function createMoneyPresentationSequence(event) {
 
   if (event?.type === "MONEY_PAID" && ["EVENT", "TAX"].includes(event?.reason)) {
     return [
+      { kind: "burst", playerId: event.playerId, amount },
       { kind: "money", steps, holdMs: 420 },
-      {
-        kind: "transfer",
-        from: playerEndpoint(event.playerId),
-        to: MODAL_MONEY_CARD_ENDPOINT,
-        amount,
-      },
     ];
   }
 
@@ -177,11 +173,14 @@ export function resolveMoneyBurstVector(index, coinCount) {
   const count = Math.max(1, Number(coinCount) || 1);
   const safeIndex = Math.min(count - 1, Math.max(0, Number(index) || 0));
   const progress = count <= 1 ? 0.5 : safeIndex / (count - 1);
-  const angle = (-Math.PI * 0.86) + (progress * Math.PI * 0.72);
-  const distance = 92 + ((safeIndex % 3) * 22);
+  const horizontal = -96 + (progress * 192) + ((safeIndex % 2 === 0) ? -8 : 8);
+  const rise = 82 + ((safeIndex % 3) * 18);
+  const fall = 108 + ((safeIndex % 4) * 20);
   return Object.freeze({
-    x: Math.cos(angle) * distance,
-    y: Math.sin(angle) * distance - 42,
+    apexX: horizontal * 0.58,
+    apexY: -rise,
+    endX: horizontal,
+    endY: fall,
     rotation: (safeIndex % 2 === 0 ? 1 : -1) * (420 + (safeIndex * 34)),
     delayMs: safeIndex * BURST_STAGGER_MS,
   });
@@ -359,11 +358,11 @@ function burstFrames(vector) {
     {
       offset: 0.58,
       opacity: 1,
-      transform: `translate(calc(-50% + ${Math.round(vector.x * 0.56)}px), calc(-50% + ${Math.round(vector.y * 0.7)}px)) scale(0.98) rotate(${Math.round(vector.rotation * 0.55)}deg)`,
+      transform: `translate(calc(-50% + ${Math.round(vector.apexX)}px), calc(-50% + ${Math.round(vector.apexY)}px)) scale(0.98) rotate(${Math.round(vector.rotation * 0.55)}deg)`,
     },
     {
       opacity: 0,
-      transform: `translate(calc(-50% + ${Math.round(vector.x)}px), calc(-50% + ${Math.round(vector.y)}px)) scale(0.62) rotate(${Math.round(vector.rotation)}deg)`,
+      transform: `translate(calc(-50% + ${Math.round(vector.endX)}px), calc(-50% + ${Math.round(vector.endY)}px)) scale(0.62) rotate(${Math.round(vector.rotation)}deg)`,
     },
   ];
 }
@@ -401,8 +400,11 @@ function startBurstCoinAnimation(coin, vector) {
   }
 
   coin.dataset.moneyBurstFallback = "true";
-  coin.style.setProperty("--money-burst-x", `${Math.round(vector.x)}px`);
-  coin.style.setProperty("--money-burst-y", `${Math.round(vector.y)}px`);
+  coin.style.setProperty("--money-burst-apex-x", `${Math.round(vector.apexX)}px`);
+  coin.style.setProperty("--money-burst-apex-y", `${Math.round(vector.apexY)}px`);
+  coin.style.setProperty("--money-burst-end-x", `${Math.round(vector.endX)}px`);
+  coin.style.setProperty("--money-burst-end-y", `${Math.round(vector.endY)}px`);
+  coin.style.setProperty("--money-burst-apex-rotation", `${Math.round(vector.rotation * 0.55)}deg`);
   coin.style.setProperty("--money-burst-rotation", `${Math.round(vector.rotation)}deg`);
   coin.style.setProperty("--money-burst-delay", `${vector.delayMs}ms`);
   return null;
@@ -527,6 +529,7 @@ export function createHudMoneyPresenter({
     const staggerMs = phase.to?.kind === "tile"
       ? TILE_TRANSFER_STAGGER_MS
       : DEFAULT_TRANSFER_STAGGER_MS;
+    const phaseDurationMs = Number(phase.durationMs) || transferDurationMs;
     const animationPromises = [];
     let usesFallback = false;
     for (let index = 0; index < coinCount; index += 1) {
@@ -536,12 +539,12 @@ export function createHudMoneyPresenter({
         : Object.freeze({ ...baseFlight, delayMs: index * staggerMs });
       const coin = createTransferCoin(documentObject, flight);
       layer.append(coin);
-      const animationPromise = startTransferCoinAnimation(coin, flight, transferDurationMs);
+      const animationPromise = startTransferCoinAnimation(coin, flight, phaseDurationMs);
       if (animationPromise) animationPromises.push(animationPromise);
       else usesFallback = true;
     }
 
-    const fallbackDuration = transferDurationMs + ((coinCount - 1) * staggerMs) + 100;
+    const fallbackDuration = phaseDurationMs + ((coinCount - 1) * staggerMs) + 100;
     if (usesFallback || animationPromises.length !== coinCount) {
       await wait(fallbackDuration);
     } else {
@@ -563,6 +566,8 @@ export function createHudMoneyPresenter({
 
   async function presentBurst(playerId, amount) {
     const source = resolveTransferEndpoint(playerEndpoint(playerId));
+    const balancePoint = elementCenter(findHudBalanceElement(source.card));
+    if (balancePoint) source.point = balancePoint;
     if (!source.point) return;
 
     if (source.card) source.card.dataset.moneyBurst = "true";
@@ -616,8 +621,8 @@ export function createHudMoneyPresenter({
     await presentTransfer(transfer);
   }
 
-  async function playEventLossBurst(event) {
-    if (event?.type !== "MONEY_PAID" || event?.reason !== "EVENT") {
+  async function playLossBurst(event) {
+    if (event?.type !== "MONEY_PAID") {
       await play(event);
       return;
     }
@@ -635,6 +640,10 @@ export function createHudMoneyPresenter({
     const skipTransfer = event?.presentationTransferPreviewed === true;
 
     for (const phase of sequence) {
+      if (phase.kind === "burst") {
+        await presentBurst(phase.playerId, phase.amount);
+        continue;
+      }
       if (phase.kind === "transfer") {
         if (!skipTransfer) await presentTransfer(phase);
         continue;
@@ -643,5 +652,5 @@ export function createHudMoneyPresenter({
     }
   }
 
-  return Object.freeze({ play, playTransfer, playEventLossBurst });
+  return Object.freeze({ play, playTransfer, playLossBurst });
 }

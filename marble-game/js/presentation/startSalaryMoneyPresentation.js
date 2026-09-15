@@ -1,6 +1,6 @@
 import {
   createHudMoneyPresenter as createBaseHudMoneyPresenter,
-} from "./moneyPresentation.js?v=20260912-r24-impl";
+} from "./moneyPresentation.js?v=20260915-r25-impl";
 
 export {
   createMoneyPresentationPlan,
@@ -12,7 +12,7 @@ export {
   resolveMoneyTransferCoinCount,
   resolveMoneyTransferFlight,
   syncHudMoneyBalances,
-} from "./moneyPresentation.js?v=20260912-r24-impl";
+} from "./moneyPresentation.js?v=20260915-r25-impl";
 
 const PACED_MONEY_COUNT_DURATION_MS = 360;
 const PACED_MONEY_WAIT_MS = Object.freeze(new Map([
@@ -120,9 +120,9 @@ export function createHudMoneyPresenter(options = {}) {
     return pacedPresenter.playTransfer?.(event) ?? startPresenter.playTransfer?.(event);
   }
 
-  function playEventLossBurst(event) {
-    return pacedPresenter.playEventLossBurst?.(event) ?? pacedPresenter.play(event);
+  function playLossBurst(event) {
+    return pacedPresenter.playLossBurst?.(event) ?? pacedPresenter.play(event);
   }
 
-  return Object.freeze({ play, playTransfer, playEventLossBurst });
+  return Object.freeze({ play, playTransfer, playLossBurst });
 }

@@ -87,9 +87,13 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1.12) rotate(70deg);
   }
+  58% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--money-burst-apex-x)), calc(-50% + var(--money-burst-apex-y))) scale(0.98) rotate(var(--money-burst-apex-rotation));
+  }
   100% {
     opacity: 0;
-    transform: translate(calc(-50% + var(--money-burst-x)), calc(-50% + var(--money-burst-y))) scale(0.62) rotate(var(--money-burst-rotation));
+    transform: translate(calc(-50% + var(--money-burst-end-x)), calc(-50% + var(--money-burst-end-y))) scale(0.62) rotate(var(--money-burst-rotation));
   }
 }
 
