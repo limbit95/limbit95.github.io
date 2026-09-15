@@ -29,6 +29,18 @@ jobs:
       - name: Apply source changes
         run: node scripts/_apply-organizer-history-detail-push.mjs
 
+      - name: Align existing organizer detail assertion
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          const path = "tests/activity-organizer-transfer.test.js";
+          const source = await readFile(path, "utf8");
+          const from = "/organizerMeta\\(event, organizerAvatarUrl, canTransferOrganizer, participants, root\\)/";
+          const to = "/organizerMeta\\(event, organizerAvatarUrl, canTransferOrganizer, participants, root, organizerHistory\\)/";
+          if (!source.includes(from)) throw new Error("Legacy organizer detail assertion not found");
+          await writeFile(path, source.replace(from, to), "utf8");
+          NODE
+
       - name: Rebuild hashed assets
         run: npm run build:assets
 
