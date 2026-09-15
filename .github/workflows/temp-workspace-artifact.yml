@@ -1,0 +1,19 @@
+name: Temporary workspace artifact
+
+on:
+  push:
+    branches:
+      - fix/organizer-transfer-loading-notifications
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Upload workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-snapshot
+          path: .
+          include-hidden-files: true
