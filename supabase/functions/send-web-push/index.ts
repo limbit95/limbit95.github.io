@@ -13,6 +13,8 @@ const PUSH_TYPES = new Set([
   "join_request_received",
   "event_organizer_transfer_requested",
   "event_organizer_transfer_cancelled",
+  "event_organizer_transfer_accepted",
+  "event_organizer_transfer_rejected",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
 const CREATED_ACTIVITY_TYPES = new Set([
@@ -28,6 +30,8 @@ const REQUIRED_PUSH_TYPES = new Set([
   "join_request_received",
   "event_organizer_transfer_requested",
   "event_organizer_transfer_cancelled",
+  "event_organizer_transfer_accepted",
+  "event_organizer_transfer_rejected",
 ]);
 
 function json(body: unknown, status = 200) {
