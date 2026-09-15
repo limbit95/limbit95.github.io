@@ -6,6 +6,7 @@ import {
   cancelEventParticipation,
   getEvent,
   joinEvent,
+  listEventOrganizerHistory,
   listEventParticipants,
   removeEvent,
   transferEventOrganizer,
@@ -35,7 +36,10 @@ import {
 export async function renderActivityDetail(route) {
   const auth = getAuthState();
   const event = await getEvent(route.params.id);
-  const participants = await listEventParticipants(event.id);
+  const [participants, organizerHistory] = await Promise.all([
+    listEventParticipants(event.id),
+    listEventOrganizerHistory(event.id),
+  ]);
   const counts = participationCounts(event);
   const mine = getMyParticipation(event, auth.user.id);
   const canEdit = canEditActivityFor(auth, event);
@@ -63,7 +67,7 @@ export async function renderActivityDetail(route) {
       meta("🗓️", "일정", activityScheduleText(event), null, "activity-detail__meta--schedule"),
       meta("📍", "장소", event.location_name, event.location_url),
       meta("💳", "참가비", event.fee_text || "무료"),
-      organizerMeta(event, organizerAvatarUrl, canTransferOrganizer, participants, root),
+      organizerMeta(event, organizerAvatarUrl, canTransferOrganizer, participants, organizerHistory, root),
     ]),
     createParticipationPanel(event, mine, counts, participants, root, auth),
     el("div", { className: "button-row activity-detail__utility-actions" }, [
@@ -126,20 +130,27 @@ function meta(icon, label, text, link = null, extraClass = "") {
   ]);
 }
 
-function organizerMeta(event, avatarUrl, canTransfer, participants, root) {
+function organizerMeta(event, avatarUrl, canTransfer, participants, organizerHistory, root) {
   const profile = event.organizer;
   const organizerAvatar = profile
     ? createProfileAvatarTrigger(profile, { avatarUrl, portalMenu: true })
     : el("span", { className: "activity-detail__organizer-fallback", text: "👤", "aria-hidden": "true" });
-  return el("div", { className: "activity-detail__meta activity-detail__organizer" }, [
-    el("span", { className: "activity-detail__meta-icon", text: "👑", "aria-hidden": "true" }),
-    el("div", { className: "activity-detail__meta-body" }, [
-      el("span", { className: "activity-detail__meta-label", text: "주최자" }),
-      el("div", { className: "activity-detail__meta-value activity-detail__organizer-value" }, [
-        el("span", { className: "activity-detail__organizer-profile" }, [
-          organizerAvatar,
-          el("strong", { text: profile?.display_name ?? "회원" }),
-        ]),
+  const organizerActions = organizerHistory.length || canTransfer
+    ? el("span", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: ".3rem",
+          flex: "0 0 auto",
+        },
+      }, [
+        organizerHistory.length ? el("button", {
+          className: "activity-detail__organizer-change",
+          type: "button",
+          text: "주최자 이력",
+          title: "주최자 변경 이력 보기",
+          onClick: () => openOrganizerHistoryDialog(organizerHistory),
+        }) : null,
         canTransfer ? el("button", {
           className: "activity-detail__organizer-change",
           type: "button",
@@ -151,6 +162,19 @@ function organizerMeta(event, avatarUrl, canTransfer, participants, root) {
             trigger: clickEvent.currentTarget,
           }),
         }) : null,
+      ])
+    : null;
+
+  return el("div", { className: "activity-detail__meta activity-detail__organizer" }, [
+    el("span", { className: "activity-detail__meta-icon", text: "👑", "aria-hidden": "true" }),
+    el("div", { className: "activity-detail__meta-body" }, [
+      el("span", { className: "activity-detail__meta-label", text: "주최자" }),
+      el("div", { className: "activity-detail__meta-value activity-detail__organizer-value" }, [
+        el("span", { className: "activity-detail__organizer-profile" }, [
+          organizerAvatar,
+          el("strong", { text: profile?.display_name ?? "회원" }),
+        ]),
+        organizerActions,
       ]),
     ]),
   ]);
@@ -386,6 +410,54 @@ async function participantDialogContent(event, participants, counts) {
 
   content.append(el("div", { className: "participant-list activity-participants-dialog__list" }, people));
   return content;
+}
+
+function openOrganizerHistoryDialog(history) {
+  const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+  const content = el("div", { className: "page-stack" }, history.map((item) => (
+    el("div", {
+      style: {
+        display: "grid",
+        gap: ".35rem",
+        padding: ".78rem .82rem",
+        border: "1px solid #dde9ec",
+        borderRadius: "12px",
+        background: "#f9fcfd",
+      },
+    }, [
+      el("div", {
+        style: {
+          display: "flex",
+          alignItems: "center",
+          gap: ".45rem",
+          flexWrap: "wrap",
+          color: "#45636e",
+        },
+      }, [
+        el("strong", { text: item.previous_organizer_name ?? "회원" }),
+        el("span", { text: "→", "aria-hidden": "true" }),
+        el("strong", { text: item.organizer_name ?? "회원" }),
+      ]),
+      el("span", {
+        className: "small subtle",
+        text: dateFormatter.format(new Date(item.changed_at)),
+      }),
+      el("span", {
+        className: "small subtle",
+        text: item.previous_organizer_left
+          ? "이전 주최자 · 참여 취소"
+          : "이전 주최자 · 계속 참여",
+      }),
+    ])
+  )));
+
+  return contentDialog({
+    title: "주최자 변경 이력",
+    content,
+  });
 }
 
 async function openOrganizerTransferDialog({
