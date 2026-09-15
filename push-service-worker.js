@@ -1,3 +1,20 @@
+async function showPushNotification(title, options) {
+  try {
+    await self.registration.showNotification(title, {
+      ...options,
+      icon: new URL("./assets/images/icon-192.png", self.registration.scope).href,
+      badge: new URL("./assets/images/icon-192.png", self.registration.scope).href,
+    });
+  } catch (error) {
+    console.warn("Rich push notification failed; retrying with basic options.", error);
+    await self.registration.showNotification(title, {
+      body: options.body,
+      tag: options.tag,
+      data: options.data,
+    });
+  }
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try {
@@ -9,10 +26,8 @@ self.addEventListener("push", (event) => {
   const targetPath = typeof payload.target_path === "string"
     ? payload.target_path
     : "#/activities";
-  event.waitUntil(self.registration.showNotification(payload.title || "청파 같이", {
+  event.waitUntil(showPushNotification(payload.title || "청파 같이", {
     body: payload.body || "새로운 활동 소식이 있습니다.",
-    icon: "./assets/images/logo.svg",
-    badge: "./assets/images/logo.svg",
     tag: payload.tag || undefined,
     data: { target_path: targetPath },
   }));

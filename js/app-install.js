@@ -1,5 +1,9 @@
 let deferredInstallPrompt = null;
 let installedInSession = false;
+let pushResumeReconcilePromise = null;
+let lastPushResumeReconcileAt = 0;
+
+const PUSH_RESUME_RECONCILE_MIN_INTERVAL_MS = 60_000;
 
 export function resolveAppInstallMode({
   userAgent = "",
@@ -46,7 +50,46 @@ export async function promptAppInstall() {
   return choice?.outcome ?? "dismissed";
 }
 
+async function reconcilePushAfterResume() {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+  if (pushResumeReconcilePromise) return pushResumeReconcilePromise;
+
+  pushResumeReconcilePromise = (async () => {
+    const [{ getAuthState }, { getPushPreference, setPushDesiredAuthContext }] = await Promise.all([
+      import("./auth.js"),
+      import("./web-push.js"),
+    ]);
+    const auth = getAuthState();
+    const userId = auth.user?.id;
+    if (!userId || auth.profile?.status !== "approved") return false;
+    if (getPushPreference(userId) !== "on") return false;
+
+    const now = Date.now();
+    if (now - lastPushResumeReconcileAt < PUSH_RESUME_RECONCILE_MIN_INTERVAL_MS) return false;
+    lastPushResumeReconcileAt = now;
+
+    // Reuse the existing coordinator. It never requests permission here; it
+    // only repairs/reclaims this device's subscription when permission is
+    // already granted and the user explicitly enabled Push on this device.
+    setPushDesiredAuthContext(auth);
+    return true;
+  })()
+    .catch((error) => {
+      console.warn("Push subscription reconcile failed after app resume.", error);
+      return false;
+    })
+    .finally(() => {
+      pushResumeReconcilePromise = null;
+    });
+
+  return pushResumeReconcilePromise;
+}
+
 if (typeof window !== "undefined") {
+  const schedulePushResumeReconcile = () => {
+    void reconcilePushAfterResume();
+  };
+
   window.addEventListener("beforeinstallprompt", (event) => {
     event.preventDefault();
     deferredInstallPrompt = event;
@@ -55,5 +98,11 @@ if (typeof window !== "undefined") {
   window.addEventListener("appinstalled", () => {
     deferredInstallPrompt = null;
     installedInSession = true;
+  });
+
+  window.addEventListener("focus", schedulePushResumeReconcile);
+  window.addEventListener("online", schedulePushResumeReconcile);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") schedulePushResumeReconcile();
   });
 }
