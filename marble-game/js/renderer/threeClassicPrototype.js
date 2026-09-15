@@ -305,14 +305,55 @@ function clearGroup(group) {
   }
 }
 
-function tokenOffset(seat) {
-  const offsets = [
-    [-0.4, -0.25],
-    [0.4, 0.25],
-    [-0.4, 0.34],
-    [0.4, -0.34],
-  ];
-  return offsets[seat % offsets.length];
+function tokenLocalSlots(count) {
+  if (count <= 1) return [[0, 0]];
+  if (count === 2) return [[-0.68, 0.18], [0.68, -0.18]];
+  if (count === 3) return [[-0.68, 0.58], [0.68, 0.58], [0, -0.68]];
+  if (count === 4) return [[-0.68, 0.62], [0.68, 0.62], [-0.68, -0.62], [0.68, -0.62]];
+
+  const radius = 0.9;
+  return Array.from({ length: count }, (_, index) => {
+    const angle = (-Math.PI / 2) + (index * Math.PI * 2 / count);
+    return [Math.cos(angle) * radius, Math.sin(angle) * radius];
+  });
+}
+
+export function createTokenPlacementMap(players, layoutByNode) {
+  const placements = new Map();
+  const groupedPlayers = new Map();
+
+  for (const player of players ?? []) {
+    if (player?.bankrupt || !player?.id || !player?.positionNodeId) continue;
+    if (!layoutByNode?.has?.(player.positionNodeId)) continue;
+    if (!groupedPlayers.has(player.positionNodeId)) groupedPlayers.set(player.positionNodeId, []);
+    groupedPlayers.get(player.positionNodeId).push(player);
+  }
+
+  for (const [nodeId, occupants] of groupedPlayers.entries()) {
+    const layout = layoutByNode.get(nodeId);
+    const ordered = occupants.slice().sort((left, right) => {
+      const seatDelta = (Number(left.seat) || 0) - (Number(right.seat) || 0);
+      return seatDelta || String(left.id).localeCompare(String(right.id));
+    });
+    const slots = tokenLocalSlots(ordered.length);
+    const rotationY = Number(layout.rotationY) || 0;
+    const cos = Math.cos(rotationY);
+    const sin = Math.sin(rotationY);
+
+    ordered.forEach((player, index) => {
+      const [localX, localZ] = slots[index];
+      const offsetX = (localX * cos) - (localZ * sin);
+      const offsetZ = (localX * sin) + (localZ * cos);
+      placements.set(player.id, Object.freeze({
+        nodeId,
+        x: layout.x + offsetX,
+        y: layout.y + 0.62,
+        z: layout.z + offsetZ,
+      }));
+    });
+  }
+
+  return placements;
 }
 
 function ownerColor(seat) {
@@ -341,6 +382,7 @@ export function createClassicThreePrototypeRenderer({
   let disposed = false;
   let activePlayerId = null;
   let centerGlobe = null;
+  let renderedPlayers = [];
   const ambientDecorations = [];
 
   function toon(color) {
@@ -429,6 +471,7 @@ export function createClassicThreePrototypeRenderer({
     selectedTileRoot = null;
     boardSignature = "";
     centerGlobe = null;
+    renderedPlayers = [];
     ambientDecorations.length = 0;
   }
 
@@ -583,7 +626,7 @@ export function createClassicThreePrototypeRenderer({
         }
         break;
       case "lighthouse":
-        group.add(mesh(new THREE.CylinderGeometry(0.16, 0.28, 0.95, 14), 0xf7f3ea, { y: 0.48 }));
+        group.add(mesh(new THREE.CylinderGeometry(0.16, 0.28, 0.95, 14), 0xf7f7f7, { y: 0.48 }));
         group.add(mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.22, 14), 0xf06161, { y: 1.0 }));
         addRoof(group, 0.22, 1.23, 0x3a6482);
         break;
@@ -675,11 +718,9 @@ export function createClassicThreePrototypeRenderer({
     return group;
   }
 
-  function setTokenPosition(token, nodeId, seat) {
-    const layout = layoutByNode.get(nodeId);
-    if (!layout || !token) return;
-    const [offsetX, offsetZ] = tokenOffset(seat);
-    token.position.set(layout.x + offsetX, layout.y + 0.62, layout.z + offsetZ);
+  function setTokenPosition(token, placement) {
+    if (!placement || !token) return;
+    token.position.set(placement.x, placement.y, placement.z);
   }
 
   function createOwnedBuilding(level, color) {
@@ -912,6 +953,7 @@ export function createClassicThreePrototypeRenderer({
   }
 
   function ensureTokens(state) {
+    const placements = createTokenPlacementMap(state.players, layoutByNode);
     for (const player of state.players) {
       let token = tokenMeshes.get(player.id);
       if (!token) {
@@ -920,7 +962,7 @@ export function createClassicThreePrototypeRenderer({
         boardRoot.add(token);
       }
       token.visible = !player.bankrupt;
-      if (!player.bankrupt) setTokenPosition(token, player.positionNodeId, player.seat);
+      if (!player.bankrupt) setTokenPosition(token, placements.get(player.id));
     }
   }
 
@@ -971,6 +1013,51 @@ export function createClassicThreePrototypeRenderer({
       }
       requestAnimationFrame(step);
     });
+  }
+
+  async function tweenTokenShift(token, destination, duration) {
+    if (reducedMotion || duration <= 0) {
+      token.position.copy(destination);
+      return;
+    }
+    const origin = token.position.clone();
+    if (origin.distanceTo(destination) < 0.01) return;
+    const startedAt = performance.now();
+    await new Promise((resolve) => {
+      function step(now) {
+        const progress = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - ((1 - progress) ** 3);
+        token.position.lerpVectors(origin, destination, eased);
+        if (progress >= 1) resolve();
+        else requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  async function reflowTokens(players, {
+    excludePlayerId = null,
+    nodeIds = null,
+    duration = 160,
+  } = {}) {
+    const placements = createTokenPlacementMap(players, layoutByNode);
+    const scopedNodeIds = Array.isArray(nodeIds) ? new Set(nodeIds) : null;
+    const tasks = [];
+
+    for (const player of players) {
+      if (player.id === excludePlayerId || player.bankrupt) continue;
+      if (scopedNodeIds && !scopedNodeIds.has(player.positionNodeId)) continue;
+      const token = tokenMeshes.get(player.id);
+      const placement = placements.get(player.id);
+      if (!token || !placement) continue;
+      tasks.push(tweenTokenShift(
+        token,
+        new THREE.Vector3(placement.x, placement.y, placement.z),
+        reducedMotion ? 0 : duration,
+      ));
+    }
+
+    await Promise.all(tasks);
   }
 
   const renderer = {
@@ -1049,24 +1136,81 @@ export function createClassicThreePrototypeRenderer({
         : state.players[state.currentPlayerIndex]?.id ?? null;
       updateOwnership(state);
       ensureTokens(state);
+      renderedPlayers = state.players.map((player) => ({
+        id: player.id,
+        seat: player.seat,
+        bankrupt: player.bankrupt,
+        positionNodeId: player.positionNodeId,
+      }));
     },
 
     async playEvent(event) {
       if (!scene || event?.type !== "PLAYER_MOVED") return;
       const token = tokenMeshes.get(event.playerId);
       if (!token || !Array.isArray(event.path)) return;
-      const playerSeat = Number(token.userData.seat) || 0;
-      for (const nodeId of event.path) {
+      const fallbackPlayer = {
+        id: event.playerId,
+        seat: Number(token.userData.seat) || 0,
+        bankrupt: false,
+        positionNodeId: event.path[0],
+      };
+      const basePlayers = renderedPlayers.some((player) => player.id === event.playerId)
+        ? renderedPlayers
+        : [...renderedPlayers, fallbackPlayer];
+      const movingPlayer = basePlayers.find((player) => player.id === event.playerId) ?? fallbackPlayer;
+      const path = event.path.filter((nodeId, index) => (
+        layoutByNode.has(nodeId)
+        && !(index === 0 && nodeId === movingPlayer.positionNodeId)
+      ));
+      if (!path.length) return;
+
+      const fromNodeId = movingPlayer.positionNodeId;
+      const departedPlayers = basePlayers.map((player) => (
+        player.id === event.playerId ? { ...player, positionNodeId: null } : player
+      ));
+      const departureTask = fromNodeId
+        ? reflowTokens(departedPlayers, {
+          excludePlayerId: event.playerId,
+          nodeIds: [fromNodeId],
+          duration: 150,
+        })
+        : Promise.resolve();
+      let finalPlayers = basePlayers;
+
+      for (const [index, nodeId] of path.entries()) {
         const layout = layoutByNode.get(nodeId);
-        if (!layout) continue;
-        const [offsetX, offsetZ] = tokenOffset(playerSeat);
-        const destination = new THREE.Vector3(
-          layout.x + offsetX,
-          layout.y + 0.62,
-          layout.z + offsetZ,
-        );
-        await tweenToken(token, destination, reducedMotion ? 0 : 165);
+        const isFinalStep = index === path.length - 1;
+
+        if (!isFinalStep) {
+          const destination = new THREE.Vector3(layout.x, layout.y + 0.62, layout.z);
+          const moveTask = tweenToken(token, destination, reducedMotion ? 0 : 165);
+          if (index === 0) await Promise.all([moveTask, departureTask]);
+          else await moveTask;
+          continue;
+        }
+
+        finalPlayers = basePlayers.map((player) => (
+          player.id === event.playerId ? { ...player, positionNodeId: nodeId } : player
+        ));
+        const placement = createTokenPlacementMap(finalPlayers, layoutByNode).get(event.playerId);
+        if (!placement) continue;
+        const destination = new THREE.Vector3(placement.x, placement.y, placement.z);
+        const moveTask = tweenToken(token, destination, reducedMotion ? 0 : 205);
+        const arrivalTask = reflowTokens(finalPlayers, {
+          excludePlayerId: event.playerId,
+          nodeIds: [nodeId],
+          duration: 190,
+        });
+        if (index === 0) await Promise.all([moveTask, arrivalTask, departureTask]);
+        else await Promise.all([moveTask, arrivalTask]);
       }
+
+      renderedPlayers = finalPlayers.map((player) => ({
+        id: player.id,
+        seat: player.seat,
+        bankrupt: player.bankrupt,
+        positionNodeId: player.positionNodeId,
+      }));
     },
 
     dispose() {
