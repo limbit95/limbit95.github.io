@@ -19,7 +19,7 @@ test("strict online 2D bootstrap evaluates only the play-window entry", async ()
   assert.equal(mode, "online-2d");
   assert.deepEqual(imports, ["./playWindow.js?v=20260910-r10"]);
   assert.equal(documentObject.body.dataset.marbleBootstrapMode, "online-2d");
-  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260914-r11");
+  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260915-r1");
 });
 
 test("online gameplay bootstrap restores dice charge, game exit, and ownership loader", async () => {
