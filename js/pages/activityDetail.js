@@ -16,7 +16,7 @@ import {
   updateEvent,
 } from "../api/activities.js";
 import { getMyParticipation, participationCounts } from "../components/activityCard.js";
-import { contentDialog, confirmDialog } from "../components/modal.js";
+import { closeModal, contentDialog, confirmDialog } from "../components/modal.js";
 import { createProfileAvatarTrigger } from "../components/profilePopover.js";
 import { showToast } from "../components/toast.js";
 import { EVENT_STATUS_LABEL, PARTICIPATION_STATUS_LABEL } from "../constants.js";
@@ -644,9 +644,12 @@ async function openOrganizerTransferDialog({
           type: "button",
           text: leaveAfterTransfer ? "요청하고 참여 취소" : "변경 요청",
           onClick: async (clickEvent) => {
-            setBusy(clickEvent.currentTarget, true, "요청 중…");
+            const button = clickEvent.currentTarget;
+            setBusy(button, true, "요청 중…");
             try {
               await requestEventOrganizerTransfer(event.id, participant.user_id, { leaveCurrent: leaveAfterTransfer });
+              setBusy(button, false);
+              closeModal(true);
               showToast(
                 leaveAfterTransfer
                   ? `${profile?.display_name ?? "선택한 참여자"}님께 주최자 변경을 요청했습니다. 수락되면 참여가 자동으로 취소됩니다.`
@@ -655,8 +658,8 @@ async function openOrganizerTransferDialog({
               );
               root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
             } catch (error) {
+              setBusy(button, false);
               showToast(getErrorMessage(error), "error");
-              setBusy(clickEvent.currentTarget, false);
             }
           },
         }),

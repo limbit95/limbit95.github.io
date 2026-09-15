@@ -12,7 +12,6 @@ const PUSH_TYPES = new Set([
   "service_notice",
   "join_request_received",
   "event_organizer_transfer_requested",
-  "event_organizer_transferred",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
 const CREATED_ACTIVITY_TYPES = new Set([
@@ -27,7 +26,6 @@ const JOINED_ACTIVITY_TYPES = new Set([
 const REQUIRED_PUSH_TYPES = new Set([
   "join_request_received",
   "event_organizer_transfer_requested",
-  "event_organizer_transferred",
 ]);
 
 function json(body: unknown, status = 200) {
