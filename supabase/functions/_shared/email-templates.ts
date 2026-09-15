@@ -16,7 +16,7 @@ export type RenderedEmail = {
   html: string;
 };
 
-const DEFAULT_SITE_URL = "https://limbit95.github.io/";
+const DEFAULT_SITE_URL = "https://chungpagachi.com/";
 
 function targetUrl(path: string | null | undefined, siteUrl: string) {
   return new URL(path || "#/admin/approvals?status=pending", siteUrl).toString();
