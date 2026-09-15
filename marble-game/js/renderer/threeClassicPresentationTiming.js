@@ -164,10 +164,16 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   }
 
   function flushToll(entry) {
-    if (!pendingTolls.includes(entry)) return;
-    removePendingEntry(pendingTolls, entry);
+    if (!pendingTolls.includes(entry) || entry.flushing) return;
+    entry.flushing = true;
+    const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+    if (entry.timerId !== null && entry.timerId !== undefined) {
+      clearTimeoutFn?.(entry.timerId);
+      entry.timerId = null;
+    }
     void moneyPresenter.play(entry.event)
-      .catch((error) => reportPresentationError(error, entry.event?.type));
+      .catch((error) => reportPresentationError(error, entry.event?.type))
+      .finally(() => removePendingEntry(pendingTolls, entry));
   }
 
   function flushOpenTolls() {
@@ -178,7 +184,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
   function deferToll(event) {
     const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
-    const entry = { event, timerId: null };
+    const entry = { event, timerId: null, flushing: false };
     pendingTolls.push(entry);
     entry.timerId = setTimeoutFn?.(() => flushToll(entry), MODAL_MONEY_FALLBACK_MS) ?? null;
     flushOpenTolls();
@@ -308,7 +314,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     documentObject.querySelectorAll?.(".rest-turn-celebration").forEach((element) => element.remove());
     const layer = createRestCelebrationElement(event);
     documentObject.body.append(layer);
-    await wait(reducedMotion ? 900 : REST_CELEBRATION_HOLD_MS);
+    await wait(REST_CELEBRATION_HOLD_MS);
     layer.dataset.state = "exit";
     await wait(reducedMotion ? 80 : 180);
     layer.remove();
