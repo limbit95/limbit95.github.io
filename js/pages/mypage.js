@@ -189,7 +189,7 @@ export async function renderMyPage() {
     el("h2", { className: "section-title", text: "알림 설정" }),
     el("p", {
       className: "subtle",
-      text: "종 알림에는 대상 알림이 계속 기록되며, 아래 알림 종류 설정은 계정 전체에 적용됩니다. 실제 푸시 수신 여부는 기기별로 설정할 수 있습니다.",
+      text: "종 알림에는 대상 알림이 계속 기록되며, 아래 알림 종류 설정은 계정 전체에 적용됩니다. 주최자 지정 알림은 아래 종류 설정과 관계없이 전달되며, 실제 푸시 수신 여부는 기기별로 설정할 수 있습니다.",
     }),
     el("fieldset", { className: "field" }, [
       el("legend", { className: "field-label", text: "새 활동 알림" }),
@@ -269,7 +269,7 @@ export async function renderMyPage() {
     }
     pushDescription.textContent = enabled
       ? (pushState.owned
-          ? "이 기기에서는 위에서 선택한 알림만 푸시로 받습니다."
+          ? "이 기기에서는 설정한 알림을 푸시로 받으며, 주최자 지정 알림은 알림 종류 설정과 관계없이 받습니다."
           : "저장된 푸시 알림 설정을 이 기기에 다시 연결하고 있습니다.")
       : "알림 수신 범위는 저장되어 있습니다. 실제 푸시를 받으려면 이 기기에서 푸시 알림을 허용해 주세요.";
   }

@@ -8,6 +8,7 @@ const api = read("../js/api/activityOrganizerHistory.js");
 const detail = read("../js/pages/activityDetail.js");
 const pushFunction = read("../supabase/functions/send-web-push/index.ts");
 const styles = read("../css/activity-detail.css");
+const mypage = read("../js/pages/mypage.js");
 
 test("approved members can read transfer-only organizer history for an activity", () => {
   assert.match(migration, /create or replace function public\.list_event_organizer_history/);
@@ -41,4 +42,10 @@ test("organizer transfer push bypasses My Page category preferences but still us
   assert.match(pushFunction, /const ALWAYS_PUSH_TYPES = new Set\(\["join_request_received", "event_organizer_changed"\]\)/);
   assert.match(pushFunction, /if \(ALWAYS_PUSH_TYPES\.has\(type\)\) return true/);
   assert.match(pushFunction, /push_subscriptions\?select=id,endpoint,p256dh,auth&user_id=eq\./);
+});
+
+
+test("My Page explains mandatory organizer transfer push", () => {
+  assert.match(mypage, /주최자 지정 알림은 아래 종류 설정과 관계없이 전달/);
+  assert.match(mypage, /주최자 지정 알림은 알림 종류 설정과 관계없이 받습니다/);
 });

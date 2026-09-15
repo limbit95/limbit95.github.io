@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-7W7CFCS7.js",
+  "entry": "assets/build/app-Y5INWO4H.js",
   "outputs": [
-    "assets/build/app-7W7CFCS7.js",
+    "assets/build/app-Y5INWO4H.js",
     "assets/build/chunks/activities-CYKFL4C5.js",
     "assets/build/chunks/activityDetail-OGJQD52D.js",
     "assets/build/chunks/activityForm-FW5DBTRA.js",
@@ -36,7 +36,7 @@
     "assets/build/chunks/login-DWFB7QD4.js",
     "assets/build/chunks/managers-QYRI2ZRJ.js",
     "assets/build/chunks/members-L3E2C4BY.js",
-    "assets/build/chunks/mypage-FKY533WS.js",
+    "assets/build/chunks/mypage-B5YRZXBI.js",
     "assets/build/chunks/organizerHistory-TVKY362V.js",
     "assets/build/chunks/passwordReset-MQWBLVBO.js",
     "assets/build/chunks/pending-RDRI5RWX.js",
