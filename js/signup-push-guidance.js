@@ -2,6 +2,7 @@ const PUSH_OPT_IN_SELECTOR = 'input[name="push_opt_in"]';
 const GUIDANCE_ENHANCED_KEY = "pushGuidanceEnhanced";
 const GUIDANCE_BOUND_KEY = "pushGuidanceBound";
 const SIGNUP_PUSH_OPT_IN_DRAFT_KEY = "cheongpa:signup-push-opt-in-draft";
+const SIGNUP_PUSH_METADATA_KEY = "signup_push_opt_in";
 
 export function resolveSignupPushCapability({
   windowObject = globalThis.window,
@@ -95,8 +96,49 @@ function writeDraftValue(value) {
       userId,
     }));
   } catch {
-    // This is only a signup-flow UX aid; final persistence is handled separately.
+    // This is only a signup-flow UX aid; server persistence does not depend on it.
   }
+}
+
+async function syncSignupPushOptInMetadata(value) {
+  const { supabase } = await import("./supabaseClient.js");
+  if (!supabase) return;
+  const { error } = await supabase.auth.updateUser({
+    data: { [SIGNUP_PUSH_METADATA_KEY]: Boolean(value) },
+  });
+  if (error) throw error;
+}
+
+function handleSignupSubmit(event) {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.matches("form.signup-flow")) return;
+  if (form.dataset.pushOptInMetadataSynced === "true") {
+    delete form.dataset.pushOptInMetadataSynced;
+    return;
+  }
+  if (form.dataset.pushOptInMetadataSyncing === "true") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  const input = form.querySelector(PUSH_OPT_IN_SELECTOR);
+  if (!(input instanceof HTMLInputElement)) return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  form.dataset.pushOptInMetadataSyncing = "true";
+  writeDraftValue(input.checked);
+
+  void syncSignupPushOptInMetadata(input.checked)
+    .catch((error) => {
+      console.warn("Signup push preference metadata sync failed; local fallback remains available.", error);
+    })
+    .finally(() => {
+      delete form.dataset.pushOptInMetadataSyncing;
+      form.dataset.pushOptInMetadataSynced = "true";
+      form.requestSubmit();
+    });
 }
 
 function enhancePushOptIn(input) {
@@ -123,6 +165,8 @@ function enhancePushGuidance(root = document) {
 }
 
 if (typeof document !== "undefined") {
+  document.addEventListener("submit", handleSignupSubmit, true);
+
   const app = document.getElementById("app");
   if (app) {
     enhancePushGuidance(app);
