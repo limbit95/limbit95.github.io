@@ -258,6 +258,12 @@ export async function transferEventOrganizer(eventId, newOrganizerId, { leaveCur
   }));
 }
 
+export async function listEventOrganizerHistory(eventId) {
+  return unwrap(await supabase.rpc("list_event_organizer_history", {
+    p_event_id: Number(eventId),
+  })) ?? [];
+}
+
 export async function listEventParticipants(eventId) {
   const participants = unwrap(await supabase
     .from("event_participants")
