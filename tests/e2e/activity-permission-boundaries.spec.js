@@ -7,6 +7,7 @@ const memberPassword = process.env.E2E_MEMBER_PASSWORD;
 const memberUserId = process.env.E2E_MEMBER_USER_ID;
 const adminEmail = process.env.E2E_ADMIN_EMAIL;
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
+const adminUserId = process.env.E2E_ADMIN_USER_ID;
 
 const environmentReady = Boolean(
   supabaseUrl
@@ -15,7 +16,8 @@ const environmentReady = Boolean(
   && memberPassword
   && memberUserId
   && adminEmail
-  && adminPassword,
+  && adminPassword
+  && adminUserId,
 );
 
 async function requestJson(url, init = {}) {
@@ -281,4 +283,161 @@ test("recurring occurrence ownership cannot bypass manager boundaries", async ()
 
   await setCategoryManager(adminToken, categoryA, false);
   await setCategoryManager(adminToken, categoryB, false);
+});
+
+test("organizer transfer request, cancellation, and acceptance preserve notification boundaries", async () => {
+  test.skip(!environmentReady, "Local Supabase E2E environment is not configured.");
+
+  const [memberToken, adminToken] = await Promise.all([
+    signIn(memberEmail, memberPassword),
+    signIn(adminEmail, adminPassword),
+  ]);
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const categoryId = await createCategory(adminToken, `E2E organizer transfer ${suffix}`);
+
+  const createEvent = await requestJson(
+    `${supabaseUrl}/rest/v1/events?select=id,created_by,organizer_id`,
+    {
+      method: "POST",
+      headers: restHeaders(memberToken, { Prefer: "return=representation" }),
+      body: JSON.stringify({
+        category_id: categoryId,
+        title: `E2E organizer transfer ${suffix}`,
+        description: "Organizer transfer notification lifecycle E2E",
+        event_date: "2030-02-10",
+        start_time: "19:00:00",
+        end_time: "20:00:00",
+        location_name: "E2E location",
+        capacity: 5,
+        fee_text: "무료",
+        difficulty: "초급",
+        preparation: "",
+        beginner_friendly: true,
+        participant_notice: "",
+        registration_deadline: "2030-02-09T20:00:00+09:00",
+        status: "scheduled",
+        created_by: memberUserId,
+      }),
+    },
+  );
+  expect(createEvent.response.status, JSON.stringify(createEvent.body)).toBe(201);
+  expect(createEvent.body).toHaveLength(1);
+  const eventId = Number(createEvent.body[0].id);
+  expect(createEvent.body[0].created_by).toBe(memberUserId);
+  expect(createEvent.body[0].organizer_id).toBe(memberUserId);
+
+  const joinAdmin = await requestJson(
+    `${supabaseUrl}/rest/v1/rpc/join_event`,
+    {
+      method: "POST",
+      headers: restHeaders(adminToken),
+      body: JSON.stringify({ p_event_id: eventId }),
+    },
+  );
+  expect(joinAdmin.response.ok, JSON.stringify(joinAdmin.body)).toBeTruthy();
+  expect(joinAdmin.body).toBe("joined");
+
+  const requestTransfer = async (leaveCurrent) => {
+    const result = await requestJson(
+      `${supabaseUrl}/rest/v1/rpc/request_event_organizer_transfer`,
+      {
+        method: "POST",
+        headers: restHeaders(memberToken),
+        body: JSON.stringify({
+          p_event_id: eventId,
+          p_new_organizer_id: adminUserId,
+          p_leave_current: leaveCurrent,
+        }),
+      },
+    );
+    expect(result.response.ok, JSON.stringify(result.body)).toBeTruthy();
+
+    const pending = await requestJson(
+      `${supabaseUrl}/rest/v1/rpc/get_event_organizer_transfer_request`,
+      {
+        method: "POST",
+        headers: restHeaders(memberToken),
+        body: JSON.stringify({ p_event_id: eventId }),
+      },
+    );
+    expect(pending.response.ok, JSON.stringify(pending.body)).toBeTruthy();
+    expect(pending.body).toHaveLength(1);
+    return pending.body[0];
+  };
+
+  const firstRequest = await requestTransfer(false);
+  expect(firstRequest.from_organizer_id).toBe(memberUserId);
+  expect(firstRequest.to_organizer_id).toBe(adminUserId);
+  expect(firstRequest.leave_current_after_accept).toBe(false);
+
+  const requestedNotifications = await requestJson(
+    `${supabaseUrl}/rest/v1/notifications?event_id=eq.${eventId}&notification_type=eq.event_organizer_transfer_requested&select=notification_type,title,event_id`,
+    { headers: restHeaders(adminToken) },
+  );
+  expect(requestedNotifications.response.ok, JSON.stringify(requestedNotifications.body)).toBeTruthy();
+  expect(requestedNotifications.body).toContainEqual(expect.objectContaining({
+    notification_type: "event_organizer_transfer_requested",
+    event_id: eventId,
+  }));
+
+  const cancelRequest = await requestJson(
+    `${supabaseUrl}/rest/v1/rpc/cancel_event_organizer_transfer_request`,
+    {
+      method: "POST",
+      headers: restHeaders(memberToken),
+      body: JSON.stringify({ p_request_id: Number(firstRequest.id) }),
+    },
+  );
+  expect(cancelRequest.response.ok, JSON.stringify(cancelRequest.body)).toBeTruthy();
+
+  const cancelledNotifications = await requestJson(
+    `${supabaseUrl}/rest/v1/notifications?event_id=eq.${eventId}&notification_type=eq.event_organizer_transfer_cancelled&select=notification_type,title,event_id`,
+    { headers: restHeaders(adminToken) },
+  );
+  expect(cancelledNotifications.response.ok, JSON.stringify(cancelledNotifications.body)).toBeTruthy();
+  expect(cancelledNotifications.body).toContainEqual(expect.objectContaining({
+    notification_type: "event_organizer_transfer_cancelled",
+    title: "주최자 변경 요청이 취소되었어요",
+    event_id: eventId,
+  }));
+
+  const secondRequest = await requestTransfer(true);
+  expect(secondRequest.leave_current_after_accept).toBe(true);
+
+  const acceptRequest = await requestJson(
+    `${supabaseUrl}/rest/v1/rpc/respond_event_organizer_transfer`,
+    {
+      method: "POST",
+      headers: restHeaders(adminToken),
+      body: JSON.stringify({
+        p_request_id: Number(secondRequest.id),
+        p_accept: true,
+      }),
+    },
+  );
+  expect(acceptRequest.response.ok, JSON.stringify(acceptRequest.body)).toBeTruthy();
+
+  const eventAfterAccept = await requestJson(
+    `${supabaseUrl}/rest/v1/events?id=eq.${eventId}&select=created_by,organizer_id`,
+    { headers: restHeaders(adminToken) },
+  );
+  expect(eventAfterAccept.response.ok, JSON.stringify(eventAfterAccept.body)).toBeTruthy();
+  expect(eventAfterAccept.body).toEqual([{
+    created_by: memberUserId,
+    organizer_id: adminUserId,
+  }]);
+
+  const formerOrganizerParticipation = await requestJson(
+    `${supabaseUrl}/rest/v1/event_participants?event_id=eq.${eventId}&user_id=eq.${memberUserId}&select=status`,
+    { headers: restHeaders(memberToken) },
+  );
+  expect(formerOrganizerParticipation.response.ok, JSON.stringify(formerOrganizerParticipation.body)).toBeTruthy();
+  expect(formerOrganizerParticipation.body).toEqual([{ status: "cancelled" }]);
+
+  const redundantSelfNotification = await requestJson(
+    `${supabaseUrl}/rest/v1/notifications?event_id=eq.${eventId}&notification_type=eq.event_organizer_transferred&select=id`,
+    { headers: restHeaders(adminToken) },
+  );
+  expect(redundantSelfNotification.response.ok, JSON.stringify(redundantSelfNotification.body)).toBeTruthy();
+  expect(redundantSelfNotification.body).toEqual([]);
 });
