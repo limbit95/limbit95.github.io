@@ -250,12 +250,44 @@ export async function cancelEventParticipation(eventId) {
   }));
 }
 
-export async function transferEventOrganizer(eventId, newOrganizerId, { leaveCurrent = false } = {}) {
-  return unwrap(await supabase.rpc("transfer_event_organizer", {
+export async function requestEventOrganizerTransfer(eventId, newOrganizerId, { leaveCurrent = false } = {}) {
+  return unwrap(await supabase.rpc("request_event_organizer_transfer", {
     p_event_id: Number(eventId),
     p_new_organizer_id: newOrganizerId,
     p_leave_current: Boolean(leaveCurrent),
   }));
+}
+
+// Keep the previous client API as a compatibility alias. The database RPC now
+// creates a pending request as well, so older clients cannot bypass acceptance.
+export async function transferEventOrganizer(eventId, newOrganizerId, options = {}) {
+  return requestEventOrganizerTransfer(eventId, newOrganizerId, options);
+}
+
+export async function getEventOrganizerTransferRequest(eventId) {
+  const rows = unwrap(await supabase.rpc("get_event_organizer_transfer_request", {
+    p_event_id: Number(eventId),
+  })) ?? [];
+  return rows[0] ?? null;
+}
+
+export async function respondEventOrganizerTransfer(requestId, accept) {
+  return unwrap(await supabase.rpc("respond_event_organizer_transfer", {
+    p_request_id: Number(requestId),
+    p_accept: Boolean(accept),
+  }));
+}
+
+export async function cancelEventOrganizerTransferRequest(requestId) {
+  return unwrap(await supabase.rpc("cancel_event_organizer_transfer_request", {
+    p_request_id: Number(requestId),
+  }));
+}
+
+export async function listEventOrganizerHistory(eventId) {
+  return unwrap(await supabase.rpc("list_event_organizer_history", {
+    p_event_id: Number(eventId),
+  })) ?? [];
 }
 
 export async function listEventParticipants(eventId) {
