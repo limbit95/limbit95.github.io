@@ -122,15 +122,14 @@ function handleSignupSubmit(event) {
     return;
   }
 
-  const input = form.querySelector(PUSH_OPT_IN_SELECTOR);
-  if (!(input instanceof HTMLInputElement)) return;
+  const draftValue = readDraftValue();
+  if (typeof draftValue !== "boolean") return;
 
   event.preventDefault();
   event.stopImmediatePropagation();
   form.dataset.pushOptInMetadataSyncing = "true";
-  writeDraftValue(input.checked);
 
-  void syncSignupPushOptInMetadata(input.checked)
+  void syncSignupPushOptInMetadata(draftValue)
     .catch((error) => {
       console.warn("Signup push preference metadata sync failed; local fallback remains available.", error);
     })
