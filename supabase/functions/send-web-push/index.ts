@@ -11,6 +11,7 @@ const PUSH_TYPES = new Set([
   "event_participation_cancelled",
   "service_notice",
   "join_request_received",
+  "event_organizer_transferred",
 ]);
 const EMAIL_TYPES = new Set(["join_request_received"]);
 const CREATED_ACTIVITY_TYPES = new Set([
@@ -55,7 +56,7 @@ async function rest(path: string, init: RequestInit = {}) {
 
 async function shouldSendPush(notification: Record<string, unknown>) {
   const type = String(notification.notification_type ?? "");
-  if (type === "join_request_received") return true;
+  if (type === "join_request_received" || type === "event_organizer_transferred") return true;
 
   const userId = String(notification.user_id ?? "");
   const rows = await rest(
