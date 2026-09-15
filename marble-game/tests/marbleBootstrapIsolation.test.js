@@ -35,5 +35,5 @@ test("dedicated local play loads only local gameplay modules", async () => {
   ]);
   assert.equal(imports.some((value) => value.includes("multiplayerLobby")), false);
   assert.equal(imports.some((value) => value.includes("onlineGameExit")), false);
-  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260914-r11");
+  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260915-r1");
 });
