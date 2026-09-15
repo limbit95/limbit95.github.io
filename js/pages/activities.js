@@ -3,11 +3,10 @@ import { listCategories } from "../api/activities.js";
 import { debounce, el, pageContainer } from "../ui.js";
 import { renderActivityCalendar } from "./activities/calendarView.js";
 import { renderActivityList } from "./activities/listView.js";
-import { renderPollView } from "./activities/pollView.js";
 
 export async function renderActivities(route) {
   const auth = getAuthState();
-  const view = ["list", "calendar", "polls"].includes(route.query.get("view"))
+  const view = ["list", "calendar"].includes(route.query.get("view"))
     ? route.query.get("view")
     : "list";
   const categoryId = route.query.get("category") || "";
@@ -25,14 +24,8 @@ export async function renderActivities(route) {
   const tabs = el("div", { className: "tabs", role: "tablist", "aria-label": "활동 보기 방식" }, [
     tab("list", "☰ 목록", view, route.query),
     tab("calendar", "🗓️ 달력", view, route.query),
-    tab("polls", "🗳️ 날짜 투표", view, route.query),
   ]);
   root.append(header, tabs);
-
-  if (view === "polls") {
-    root.append(await renderPollView(categories, categoryId, auth));
-    return root;
-  }
 
   const filter = createFilters(categories, categoryId, search, view);
   root.append(filter);
