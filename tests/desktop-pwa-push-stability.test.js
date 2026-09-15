@@ -10,28 +10,27 @@ function section(source, startMarker, endMarker) {
   return source.slice(start, end);
 }
 
-test("desktop PWA resume reuses the existing push coordinator without prompting", async () => {
+test("installed app resume refreshes only an already-registered service worker", async () => {
   const source = await readFile("js/app-install.js", "utf8");
-  const reconcile = section(
+  const refresh = section(
     source,
-    "async function reconcilePushAfterResume()",
+    "async function refreshRegisteredServiceWorker()",
     "\nif (typeof window !== \"undefined\")",
   );
 
-  assert.match(source, /PUSH_RESUME_RECONCILE_MIN_INTERVAL_MS = 60_000/);
-  assert.match(reconcile, /import\("\.\/auth\.js"\)/);
-  assert.match(reconcile, /import\("\.\/web-push\.js"\)/);
-  assert.match(reconcile, /auth\.profile\?\.status !== "approved"/);
-  assert.match(reconcile, /getPushPreference\(userId\) !== "on"/);
-  assert.match(reconcile, /setPushDesiredAuthContext\(auth\)/);
-  assert.doesNotMatch(reconcile, /requestPermission/);
-  assert.match(source, /addEventListener\("focus", schedulePushResumeReconcile\)/);
-  assert.match(source, /addEventListener\("online", schedulePushResumeReconcile\)/);
+  assert.match(source, /SERVICE_WORKER_REFRESH_MIN_INTERVAL_MS = 60_000/);
+  assert.match(refresh, /navigator\.serviceWorker\.getRegistration\("\.\/"\)/);
+  assert.match(refresh, /await registration\.update\(\)/);
+  assert.doesNotMatch(refresh, /serviceWorker\.register/);
+  assert.doesNotMatch(refresh, /requestPermission/);
+  assert.doesNotMatch(refresh, /pushManager\.subscribe/);
+  assert.match(source, /addEventListener\("focus", scheduleServiceWorkerRefresh\)/);
+  assert.match(source, /addEventListener\("online", scheduleServiceWorkerRefresh\)/);
   assert.match(source, /addEventListener\("visibilitychange"/);
   assert.match(source, /document\.visibilityState === "visible"/);
 });
 
-test("push service worker retries a basic notification when rich rendering fails", async () => {
+test("push service worker activates updates immediately and retries basic rendering", async () => {
   const source = await readFile("push-service-worker.js", "utf8");
   const showNotification = section(
     source,
@@ -39,6 +38,10 @@ test("push service worker retries a basic notification when rich rendering fails
     "\nself.addEventListener(\"push\"",
   );
 
+  assert.match(source, /addEventListener\("install"/);
+  assert.match(source, /self\.skipWaiting\(\)/);
+  assert.match(source, /addEventListener\("activate"/);
+  assert.match(source, /self\.clients\.claim\(\)/);
   assert.match(showNotification, /icon-192\.png/);
   assert.match(showNotification, /new URL\("\.\/assets\/images\/icon-192\.png", self\.registration\.scope\)\.href/);
   assert.match(showNotification, /catch \(error\)/);

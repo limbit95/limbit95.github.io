@@ -1,9 +1,9 @@
 let deferredInstallPrompt = null;
 let installedInSession = false;
-let pushResumeReconcilePromise = null;
-let lastPushResumeReconcileAt = 0;
+let serviceWorkerRefreshPromise = null;
+let lastServiceWorkerRefreshAt = 0;
 
-const PUSH_RESUME_RECONCILE_MIN_INTERVAL_MS = 60_000;
+const SERVICE_WORKER_REFRESH_MIN_INTERVAL_MS = 60_000;
 
 export function resolveAppInstallMode({
   userAgent = "",
@@ -50,44 +50,36 @@ export async function promptAppInstall() {
   return choice?.outcome ?? "dismissed";
 }
 
-async function reconcilePushAfterResume() {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
-  if (pushResumeReconcilePromise) return pushResumeReconcilePromise;
+async function refreshRegisteredServiceWorker() {
+  if (typeof navigator === "undefined"
+    || !("serviceWorker" in navigator)
+    || navigator.onLine === false) return false;
+  if (serviceWorkerRefreshPromise) return serviceWorkerRefreshPromise;
 
-  pushResumeReconcilePromise = (async () => {
-    const [{ getAuthState }, { getPushPreference, setPushDesiredAuthContext }] = await Promise.all([
-      import("./auth.js"),
-      import("./web-push.js"),
-    ]);
-    const auth = getAuthState();
-    const userId = auth.user?.id;
-    if (!userId || auth.profile?.status !== "approved") return false;
-    if (getPushPreference(userId) !== "on") return false;
+  const now = Date.now();
+  if (now - lastServiceWorkerRefreshAt < SERVICE_WORKER_REFRESH_MIN_INTERVAL_MS) return false;
+  lastServiceWorkerRefreshAt = now;
 
-    const now = Date.now();
-    if (now - lastPushResumeReconcileAt < PUSH_RESUME_RECONCILE_MIN_INTERVAL_MS) return false;
-    lastPushResumeReconcileAt = now;
-
-    // Reuse the existing coordinator. It never requests permission here; it
-    // only repairs/reclaims this device's subscription when permission is
-    // already granted and the user explicitly enabled Push on this device.
-    setPushDesiredAuthContext(auth);
+  serviceWorkerRefreshPromise = (async () => {
+    const registration = await navigator.serviceWorker.getRegistration("./");
+    if (!registration) return false;
+    await registration.update();
     return true;
   })()
     .catch((error) => {
-      console.warn("Push subscription reconcile failed after app resume.", error);
+      console.warn("Push service worker refresh failed after app resume.", error);
       return false;
     })
     .finally(() => {
-      pushResumeReconcilePromise = null;
+      serviceWorkerRefreshPromise = null;
     });
 
-  return pushResumeReconcilePromise;
+  return serviceWorkerRefreshPromise;
 }
 
 if (typeof window !== "undefined") {
-  const schedulePushResumeReconcile = () => {
-    void reconcilePushAfterResume();
+  const scheduleServiceWorkerRefresh = () => {
+    void refreshRegisteredServiceWorker();
   };
 
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -100,9 +92,9 @@ if (typeof window !== "undefined") {
     installedInSession = true;
   });
 
-  window.addEventListener("focus", schedulePushResumeReconcile);
-  window.addEventListener("online", schedulePushResumeReconcile);
+  window.addEventListener("focus", scheduleServiceWorkerRefresh);
+  window.addEventListener("online", scheduleServiceWorkerRefresh);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") schedulePushResumeReconcile();
+    if (document.visibilityState === "visible") scheduleServiceWorkerRefresh();
   });
 }
