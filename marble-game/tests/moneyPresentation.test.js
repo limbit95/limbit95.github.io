@@ -152,7 +152,7 @@ test("event and bonus rewards fly from the visible modal gold-change card to the
   }
 });
 
-test("event and tax costs burst from the payer HUD without a destination transfer", () => {
+test("event and tax costs keep the generic one-way loss presentation", () => {
   for (const reason of ["EVENT", "TAX"]) {
     const sequence = createMoneyPresentationSequence({
       type: "MONEY_PAID",
@@ -251,12 +251,14 @@ test("purchase clicks preview the transfer immediately and suppress duplicate au
   assert.match(moneySource, /const skipTransfer = event\?\.presentationTransferPreviewed === true/);
 });
 
-test("viewer toll payment waits for the toll modal and launches the payer burst as it opens", () => {
+test("viewer toll payment counts down in the toll modal while preserving creditor gain feedback", () => {
   assert.match(timingSource, /pendingTolls/);
   assert.match(timingSource, /\[data-toll-notice-modal\]/);
   assert.match(timingSource, /flushOpenTolls/);
-  assert.match(timingSource, /moneyPresenter\.play\(entry\.event\)/);
-  assert.doesNotMatch(timingSource, /playTransfer\?\.\(entry\.event\)/);
+  assert.match(timingSource, /presentModalLoss\(entry\.event\)/);
+  assert.match(timingSource, /playTollCreditorGain\(entry\.event\)/);
+  assert.match(timingSource, /\[data-toll-balance-before\]/);
+  assert.match(timingSource, /\[data-toll-deduction\]/);
 });
 
 test("modal money waits after the result modal opens and preserves the prior HUD balance", () => {
@@ -273,15 +275,21 @@ test("modal money waits after the result modal opens and preserves the prior HUD
   assert.match(moneySource, /\[data-tile-info-modal\]\[open\], \[data-toll-notice-modal\]\[open\]/);
 });
 
-test("event deductions use the HUD burst while modal tax uses the same loss presentation", () => {
-  assert.match(timingSource, /event\?\.reason === "EVENT" && isViewerPlayer\(event\.playerId\)/);
-  assert.match(timingSource, /moneyPresenter\.playLossBurst\?\.\(entry\.event\)/);
-  assert.match(moneySource, /async function playLossBurst\(event\)/);
+test("viewer event and tax deductions count down inside the centered info modal", () => {
+  assert.match(timingSource, /\["EVENT", "TAX"\]\.includes\(event\?\.reason\)/);
+  assert.match(timingSource, /prepareTileModalLossDisplay/);
+  assert.match(timingSource, /"내 보유 골드"/);
+  assert.match(timingSource, /"차감 골드"/);
+  assert.match(timingSource, /animateModalLossBalance/);
+  assert.match(timingSource, /interpolateMoneyBalance/);
+  assert.match(timingCssSource, /marble-modal-money-loss-balance/);
+  assert.match(timingCssSource, /marble-modal-money-loss-deduction/);
 });
 
-test("rest assignment and skipped rest turns use a dedicated center-screen celebration", () => {
-  assert.match(timingSource, /event\?\.type === "REST_ASSIGNED" \|\| event\?\.type === "TURN_SKIPPED"/);
-  assert.match(timingSource, /무인도 도착!/);
+test("only skipped REST turns use a center celebration while REST landing stays modal-only", () => {
+  assert.match(timingSource, /return event\?\.type === "TURN_SKIPPED"/);
+  assert.doesNotMatch(timingSource, /REST_ASSIGNED" \|\| event\?\.type === "TURN_SKIPPED"/);
+  assert.doesNotMatch(timingSource, /무인도 도착!/);
   assert.match(timingSource, /무인도 휴식 턴/);
   assert.match(timingSource, /presentRestTurnCelebration\(event\)/);
   assert.match(timingCssSource, /\.rest-turn-celebration/);
@@ -289,13 +297,14 @@ test("rest assignment and skipped rest turns use a dedicated center-screen celeb
   assert.match(timingSource, /REST_CELEBRATION_HOLD_MS = 2000/);
 });
 
-test("bonus and tax landings use the shared result modal gold-change card", () => {
-  assert.match(wrapperSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "TAX"\]\)/);
+test("bonus, tax and REST landings use the shared result information modal", () => {
+  assert.match(wrapperSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "TAX", "REST"\]\)/);
   assert.match(wrapperSource, /populateLandingMoneyModal/);
   assert.match(wrapperSource, /createClassicTileInfo/);
   assert.match(wrapperSource, /\.\.\/tileInfo\.js\?v=20260912-r21/);
   assert.match(tileInfoSource, /typeLabel: "보너스"[\s\S]*label: "골드 변화"/);
   assert.match(tileInfoSource, /typeLabel: "비용"[\s\S]*label: "골드 변화"/);
+  assert.match(tileInfoSource, /typeLabel: "무인도"/);
 });
 
 test("money transfer VFX resolves board points and keeps the visible larger coin styling", () => {
