@@ -10,25 +10,40 @@ const performanceEntrySource = readFileSync(
   new URL("../js/renderer/threeClassicPerformanceEntry.js", import.meta.url),
   "utf8",
 );
+const timingCssSource = readFileSync(
+  new URL("../css/presentation-timing.css", import.meta.url),
+  "utf8",
+);
 
-test("toll modal counts up first, then slowly deducts while coins move HUD to HUD", () => {
-  assert.match(performanceEntrySource, /TOLL_BALANCE_COUNT_UP_MS = 900/);
-  assert.match(performanceEntrySource, /TOLL_BALANCE_SETTLE_MS = 280/);
+test("toll modal only counts the remaining balance down while coins move HUD to HUD", () => {
+  assert.doesNotMatch(performanceEntrySource, /TOLL_BALANCE_COUNT_UP_MS/);
+  assert.doesNotMatch(performanceEntrySource, /TOLL_BALANCE_SETTLE_MS/);
   assert.match(performanceEntrySource, /TOLL_BALANCE_COUNT_DOWN_MS = 1450/);
-  assert.match(performanceEntrySource, /fromValue: 0,[\s\S]*toValue: balanceBefore/);
   assert.match(performanceEntrySource, /fromValue: balanceBefore,[\s\S]*toValue: balanceAfter/);
   assert.match(performanceEntrySource, /playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)/);
-  assert.match(performanceEntrySource, /deductionElement\.hidden = true/);
-  assert.match(performanceEntrySource, /deductionElement\.textContent = ""/);
+  assert.match(performanceEntrySource, /ensureTollFlowLayout/);
+  assert.match(performanceEntrySource, /balanceLabel\.textContent = "보유 골드"/);
+  assert.match(performanceEntrySource, /arrow\.textContent = "→"/);
+  assert.match(timingCssSource, /\.toll-notice-modal__payment-flow/);
+  assert.match(timingCssSource, /animation-duration: 1450ms/);
 });
 
-test("viewer EVENT loss moves coins from payer HUD into the centered modal gold card", () => {
+test("viewer EVENT loss moves coins from payer HUD into the deduction gold card", () => {
   assert.match(performanceEntrySource, /event\?\.reason === "EVENT"/);
   assert.match(performanceEntrySource, /prepareEventLossDisplay/);
   assert.match(performanceEntrySource, /sourceElement: payerCard/);
-  assert.match(performanceEntrySource, /destinationElement: display\.balanceHost/);
+  assert.match(performanceEntrySource, /destinationElement: display\.deductionHost/);
   assert.match(performanceEntrySource, /host: display\.modal/);
   assert.match(performanceEntrySource, /EVENT_BALANCE_COUNT_DOWN_MS = 760/);
+});
+
+test("viewer TAX loss moves coins from payer HUD into the existing gold-change card", () => {
+  assert.match(performanceEntrySource, /event\?\.reason === "TAX"/);
+  assert.match(performanceEntrySource, /pendingTaxLosses/);
+  assert.match(performanceEntrySource, /findGoldChangeDisplay/);
+  assert.match(performanceEntrySource, /=== "골드 변화"/);
+  assert.match(performanceEntrySource, /destinationElement: display\.goldChangeHost/);
+  assert.match(performanceEntrySource, /deferTaxLoss\(event\)/);
 });
 
 test("local Marble play marks the active event player as the presentation viewer", () => {
@@ -45,12 +60,6 @@ test("purchase transfer layer survives the choice modal closing after click", ()
   assert.match(performanceEntrySource, /documentObject\.body\.append\(layer\)/);
   assert.match(performanceEntrySource, /addEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
   assert.match(performanceEntrySource, /removeEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
-});
-
-test("TAX keeps the existing centered loss presentation while EVENT uses the payment wrapper", () => {
-  assert.match(timingSource, /\["EVENT", "TAX"\]\.includes\(event\?\.reason\)/);
-  assert.match(performanceEntrySource, /event\?\.reason === "EVENT"/);
-  assert.doesNotMatch(performanceEntrySource, /event\?\.reason === "TAX"/);
 });
 
 test("REST arrival skips celebration and only the later skipped turn uses it", () => {
