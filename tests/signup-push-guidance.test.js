@@ -96,11 +96,14 @@ test("signup guidance explains that notification intent is saved and activation 
   );
 });
 
-test("signup submit synchronizes the stored push choice after the review step detaches the checkbox", () => {
-  assert.match(signupGuidanceSource, /document\.addEventListener\("submit", handleSignupSubmit, true\)/);
-  assert.match(signupGuidanceSource, /const draftValue = readDraftValue\(\)/);
-  assert.match(signupGuidanceSource, /typeof draftValue !== "boolean"/);
-  assert.match(signupGuidanceSource, /syncSignupPushOptInMetadata\(draftValue\)/);
+test("signup submit prefers the form-scoped push choice after the review step detaches the checkbox", () => {
+  assert.match(signupGuidanceSource, /const PUSH_OPT_IN_FORM_VALUE_KEY = "pushOptInValue"/);
+  assert.match(signupGuidanceSource, /input\.form\?\.matches\("form\.signup-flow"\)/);
+  assert.match(signupGuidanceSource, /input\.form\.dataset\[PUSH_OPT_IN_FORM_VALUE_KEY\] = String\(value\)/);
+  assert.match(signupGuidanceSource, /rememberFormPushOptInValue\(input\)/);
+  assert.match(signupGuidanceSource, /const pushOptInValue = readFormPushOptInValue\(form\)/);
+  assert.match(signupGuidanceSource, /typeof pushOptInValue !== "boolean"/);
+  assert.match(signupGuidanceSource, /syncSignupPushOptInMetadata\(pushOptInValue\)/);
   assert.doesNotMatch(signupGuidanceSource, /form\.querySelector\(PUSH_OPT_IN_SELECTOR\)/);
   assert.match(signupGuidanceSource, /supabase\.auth\.updateUser\(\{/);
   assert.match(signupGuidanceSource, /signup_push_opt_in/);

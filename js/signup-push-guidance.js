@@ -3,6 +3,7 @@ const GUIDANCE_ENHANCED_KEY = "pushGuidanceEnhanced";
 const GUIDANCE_BOUND_KEY = "pushGuidanceBound";
 const SIGNUP_PUSH_OPT_IN_DRAFT_KEY = "cheongpa:signup-push-opt-in-draft";
 const SIGNUP_PUSH_METADATA_KEY = "signup_push_opt_in";
+const PUSH_OPT_IN_FORM_VALUE_KEY = "pushOptInValue";
 
 export function resolveSignupPushCapability({
   windowObject = globalThis.window,
@@ -100,6 +101,20 @@ function writeDraftValue(value) {
   }
 }
 
+function rememberFormPushOptInValue(input) {
+  const value = Boolean(input.checked);
+  if (input.form?.matches("form.signup-flow")) {
+    input.form.dataset[PUSH_OPT_IN_FORM_VALUE_KEY] = String(value);
+  }
+  writeDraftValue(value);
+}
+
+function readFormPushOptInValue(form) {
+  const raw = form.dataset[PUSH_OPT_IN_FORM_VALUE_KEY];
+  if (raw === "true" || raw === "false") return raw === "true";
+  return readDraftValue();
+}
+
 async function syncSignupPushOptInMetadata(value) {
   const { supabase } = await import("./supabaseClient.js");
   if (!supabase) return;
@@ -122,14 +137,14 @@ function handleSignupSubmit(event) {
     return;
   }
 
-  const draftValue = readDraftValue();
-  if (typeof draftValue !== "boolean") return;
+  const pushOptInValue = readFormPushOptInValue(form);
+  if (typeof pushOptInValue !== "boolean") return;
 
   event.preventDefault();
   event.stopImmediatePropagation();
   form.dataset.pushOptInMetadataSyncing = "true";
 
-  void syncSignupPushOptInMetadata(draftValue)
+  void syncSignupPushOptInMetadata(pushOptInValue)
     .catch((error) => {
       console.warn("Signup push preference metadata sync failed; local fallback remains available.", error);
     })
@@ -148,7 +163,8 @@ function enhancePushOptIn(input) {
   if (input.dataset[GUIDANCE_BOUND_KEY] !== "true") {
     const draftValue = readDraftValue();
     if (typeof draftValue === "boolean") input.checked = draftValue;
-    input.addEventListener("change", () => writeDraftValue(input.checked));
+    rememberFormPushOptInValue(input);
+    input.addEventListener("change", () => rememberFormPushOptInValue(input));
     input.dataset[GUIDANCE_BOUND_KEY] = "true";
   }
 
