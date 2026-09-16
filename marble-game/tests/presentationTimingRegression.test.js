@@ -6,6 +6,10 @@ const timingSource = readFileSync(
   new URL("../js/renderer/threeClassicPresentationTiming.js", import.meta.url),
   "utf8",
 );
+const performanceEntrySource = readFileSync(
+  new URL("../js/renderer/threeClassicPerformanceEntry.js", import.meta.url),
+  "utf8",
+);
 
 test("toll presentation keeps payer and creditor balances deferred until modal counting settles", () => {
   assert.match(timingSource, /if \(!pendingTolls\.includes\(entry\) \|\| entry\.flushing\) return;/);
@@ -26,6 +30,15 @@ test("viewer modal losses count current gold down instead of running the HUD los
   assert.match(timingSource, /prepareTileModalLossDisplay/);
   assert.match(timingSource, /prepareTollModalLossDisplay/);
   assert.doesNotMatch(timingSource, /playLossBurst\?\.\(entry\.event\)/);
+});
+
+test("local Marble play marks the active event player as the presentation viewer", () => {
+  assert.match(performanceEntrySource, /mode === "local-play" \|\| mode === "full"/);
+  assert.match(performanceEntrySource, /markLocalPresentationViewer/);
+  assert.match(performanceEntrySource, /\.player-hud-card\[data-viewer="true"\]/);
+  assert.match(performanceEntrySource, /\.player-hud-card\[data-seat=/);
+  assert.match(performanceEntrySource, /markLocalPresentationViewer\(documentObject, latestState, event\?\.playerId\)/);
+  assert.match(performanceEntrySource, /return renderer\.playEvent\(event\)/);
 });
 
 test("REST arrival skips celebration and only the later skipped turn uses it", () => {
