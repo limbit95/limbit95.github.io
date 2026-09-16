@@ -76,18 +76,46 @@ function elementCenter(element) {
   return { x: left + (width / 2), y: top + (height / 2) };
 }
 
+function resolveTransferArc(flight) {
+  const endX = Number(flight?.endX) || 0;
+  const endY = Number(flight?.endY) || 0;
+  const midX = Number(flight?.midX) || (endX * 0.5);
+  const midY = Number(flight?.midY) || (endY * 0.5);
+  const lift = Math.max(42, (endY * 0.5) - midY);
+  const side = Math.min(22, Math.abs(endX) * 0.04) * (endX >= 0 ? 1 : -1);
+  return {
+    q1X: (endX * 0.28) - side,
+    q1Y: (endY * 0.28) - (lift * 0.72),
+    midX,
+    midY,
+    q3X: (endX * 0.76) + (side * 0.35),
+    q3Y: (endY * 0.76) - (lift * 0.42),
+  };
+}
+
 function transferFrames(flight) {
+  const arc = resolveTransferArc(flight);
   return [
     { opacity: 0, transform: "translate(-50%, -50%) scale(0.68) rotate(0deg)" },
-    { offset: 0.12, opacity: 1, transform: "translate(-50%, -50%) scale(0.98) rotate(70deg)" },
+    { offset: 0.1, opacity: 1, transform: "translate(-50%, -50%) scale(0.98) rotate(70deg)" },
     {
-      offset: 0.52,
+      offset: 0.3,
       opacity: 1,
-      transform: `translate(calc(-50% + ${Math.round(flight.midX)}px), calc(-50% + ${Math.round(flight.midY)}px)) scale(1.18) rotate(250deg)`,
+      transform: `translate(calc(-50% + ${Math.round(arc.q1X)}px), calc(-50% + ${Math.round(arc.q1Y)}px)) scale(1.08) rotate(150deg)`,
+    },
+    {
+      offset: 0.56,
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(arc.midX)}px), calc(-50% + ${Math.round(arc.midY)}px)) scale(1.14) rotate(300deg)`,
+    },
+    {
+      offset: 0.82,
+      opacity: 1,
+      transform: `translate(calc(-50% + ${Math.round(arc.q3X)}px), calc(-50% + ${Math.round(arc.q3Y)}px)) scale(0.96) rotate(470deg)`,
     },
     {
       opacity: 1,
-      transform: `translate(calc(-50% + ${Math.round(flight.endX)}px), calc(-50% + ${Math.round(flight.endY)}px)) scale(0.84) rotate(560deg)`,
+      transform: `translate(calc(-50% + ${Math.round(flight.endX)}px), calc(-50% + ${Math.round(flight.endY)}px)) scale(0.82) rotate(620deg)`,
     },
   ];
 }
@@ -407,21 +435,9 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     display.remainingHost.dataset.moneyLossCounting = "true";
 
     const stateForTransfer = latestState ?? entry.state;
-    const payerCard = findHudCard(documentObject, stateForTransfer, entry.event?.playerId);
     const transferPromise = kind === "TOLL"
       ? playHudToHudTransfer(entry.event, stateForTransfer, display.modal)
-      : payerCard
-        ? playCoinTransfer({
-          documentObject,
-          sourceElement: payerCard,
-          destinationElement: display.deductionHost,
-          destinationCard: display.deductionHost,
-          amount,
-          host: display.modal,
-          reducedMotion,
-          wait,
-        })
-        : Promise.resolve();
+      : Promise.resolve();
 
     await Promise.all([
       animateBalance({
@@ -577,7 +593,8 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
       if (
         event?.type === "MONEY_PAID"
-        && event?.reason === "TAX"
+        && event?.reason !== "EVENT"
+        && !event?.creditorId
         && isPresentationViewer(documentObject, latestState, event.playerId)
       ) {
         deferTaxLoss(event);
