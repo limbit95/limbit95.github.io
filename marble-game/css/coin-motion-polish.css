@@ -1,0 +1,45 @@
+.money-transfer-coin {
+  animation: marble-money-transfer-pop-spin 820ms cubic-bezier(0.18, 0.8, 0.2, 1) both;
+  will-change: transform, translate, rotate, scale, opacity;
+}
+
+@keyframes marble-money-transfer-pop-spin {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+    scale: 0.9;
+  }
+
+  18% {
+    translate: 0 -118px;
+    rotate: 170deg;
+    scale: 1.2;
+  }
+
+  45% {
+    translate: 0 -132px;
+    rotate: 390deg;
+    scale: 1.12;
+  }
+
+  72% {
+    translate: 0 -66px;
+    rotate: 590deg;
+    scale: 1.02;
+  }
+
+  100% {
+    translate: 0 0;
+    rotate: 720deg;
+    scale: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-transfer-coin {
+    animation: none !important;
+    translate: none;
+    rotate: none;
+    scale: 1;
+  }
+}
