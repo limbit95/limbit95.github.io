@@ -15,6 +15,48 @@
   animation: marble-money-burst-source 520ms ease-out both;
 }
 
+.toll-notice-modal__balance {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.toll-notice-modal__balance > div:last-child {
+  display: none;
+}
+
+[data-money-loss-balance="true"],
+[data-money-loss-deduction="true"] {
+  transform-origin: center;
+}
+
+.tile-info-modal__stats [data-money-loss-balance="true"] {
+  border-color: rgba(255, 205, 135, 0.34);
+  background: linear-gradient(145deg, rgba(255, 210, 132, 0.15), rgba(149, 190, 209, 0.1));
+}
+
+.tile-info-modal__stats [data-money-loss-deduction="true"] {
+  border-color: rgba(255, 148, 130, 0.34);
+  background: linear-gradient(145deg, rgba(255, 110, 92, 0.16), rgba(149, 190, 209, 0.08));
+}
+
+[data-money-loss-balance="true"] dd,
+[data-money-loss-balance="true"] strong {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-money-loss-deduction="true"] dd,
+[data-money-loss-deduction="true"] strong,
+[data-money-loss-deduction="true"] {
+  color: #ffb0a3;
+}
+
+[data-money-loss-balance="true"][data-money-loss-counting="true"] {
+  animation: marble-modal-money-loss-balance 760ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+[data-money-loss-deduction="true"][data-money-loss-counting="true"] {
+  animation: marble-modal-money-loss-deduction 760ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
 .rest-turn-celebration {
   position: fixed;
   inset: 0;
@@ -104,6 +146,44 @@
   100% { transform: scale(1); }
 }
 
+@keyframes marble-modal-money-loss-balance {
+  0% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+  32% {
+    transform: scale(1.07);
+    background-color: rgba(255, 205, 105, 0.16);
+  }
+  68% {
+    transform: scale(1.025);
+    background-color: rgba(255, 122, 102, 0.13);
+  }
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+@keyframes marble-modal-money-loss-deduction {
+  0% {
+    opacity: 0.25;
+    transform: translateY(8px) scale(0.82);
+  }
+  24% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.14);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes marble-rest-turn-card-in {
   0% {
     opacity: 0;
@@ -136,6 +216,7 @@
 @media (prefers-reduced-motion: reduce) {
   .money-burst-coin,
   .player-hud-layer .player-card[data-money-burst="true"],
+  [data-money-loss-counting="true"],
   .rest-turn-celebration,
   .rest-turn-celebration-card {
     animation: none;
