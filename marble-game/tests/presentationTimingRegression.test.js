@@ -11,25 +11,24 @@ const performanceEntrySource = readFileSync(
   "utf8",
 );
 
-test("toll presentation keeps payer and creditor balances deferred until modal counting settles", () => {
-  assert.match(timingSource, /if \(!pendingTolls\.includes\(entry\) \|\| entry\.flushing\) return;/);
-  assert.match(timingSource, /entry\.flushing = true;/);
-  assert.match(timingSource, /const entry = \{ event, timerId: null, flushing: false \};/);
-  assert.match(timingSource, /presentModalLoss\(entry\.event\)/);
-  assert.match(timingSource, /playTollCreditorGain\(entry\.event\)/);
-  assert.match(
-    timingSource,
-    /Promise\.all\(\[[\s\S]*presentModalLoss\(entry\.event\)[\s\S]*playTollCreditorGain\(entry\.event\)[\s\S]*\]\)[\s\S]*\.finally\(\(\) => removePendingEntry\(pendingTolls, entry\)\)/,
-  );
+test("toll modal counts up first, then slowly deducts while coins move HUD to HUD", () => {
+  assert.match(performanceEntrySource, /TOLL_BALANCE_COUNT_UP_MS = 900/);
+  assert.match(performanceEntrySource, /TOLL_BALANCE_SETTLE_MS = 280/);
+  assert.match(performanceEntrySource, /TOLL_BALANCE_COUNT_DOWN_MS = 1450/);
+  assert.match(performanceEntrySource, /fromValue: 0,[\s\S]*toValue: balanceBefore/);
+  assert.match(performanceEntrySource, /fromValue: balanceBefore,[\s\S]*toValue: balanceAfter/);
+  assert.match(performanceEntrySource, /playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)/);
+  assert.match(performanceEntrySource, /deductionElement\.hidden = true/);
+  assert.match(performanceEntrySource, /deductionElement\.textContent = ""/);
 });
 
-test("viewer modal losses count current gold down instead of running the HUD loss presenter", () => {
-  assert.match(timingSource, /async function presentModalLoss\(event\)/);
-  assert.match(timingSource, /async function animateModalLossBalance/);
-  assert.match(timingSource, /interpolateMoneyBalance\(fromValue, toValue, progress\)/);
-  assert.match(timingSource, /prepareTileModalLossDisplay/);
-  assert.match(timingSource, /prepareTollModalLossDisplay/);
-  assert.doesNotMatch(timingSource, /playLossBurst\?\.\(entry\.event\)/);
+test("viewer EVENT loss moves coins from payer HUD into the centered modal gold card", () => {
+  assert.match(performanceEntrySource, /event\?\.reason === "EVENT"/);
+  assert.match(performanceEntrySource, /prepareEventLossDisplay/);
+  assert.match(performanceEntrySource, /sourceElement: payerCard/);
+  assert.match(performanceEntrySource, /destinationElement: display\.balanceHost/);
+  assert.match(performanceEntrySource, /host: display\.modal/);
+  assert.match(performanceEntrySource, /EVENT_BALANCE_COUNT_DOWN_MS = 760/);
 });
 
 test("local Marble play marks the active event player as the presentation viewer", () => {
@@ -38,7 +37,6 @@ test("local Marble play marks the active event player as the presentation viewer
   assert.match(performanceEntrySource, /\.player-hud-card\[data-viewer="true"\]/);
   assert.match(performanceEntrySource, /\.player-hud-card\[data-seat=/);
   assert.match(performanceEntrySource, /markLocalPresentationViewer\(documentObject, latestState, event\?\.playerId\)/);
-  assert.match(performanceEntrySource, /return renderer\.playEvent\(event\)/);
 });
 
 test("purchase transfer layer survives the choice modal closing after click", () => {
@@ -47,6 +45,12 @@ test("purchase transfer layer survives the choice modal closing after click", ()
   assert.match(performanceEntrySource, /documentObject\.body\.append\(layer\)/);
   assert.match(performanceEntrySource, /addEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
   assert.match(performanceEntrySource, /removeEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
+});
+
+test("TAX keeps the existing centered loss presentation while EVENT uses the payment wrapper", () => {
+  assert.match(timingSource, /\["EVENT", "TAX"\]\.includes\(event\?\.reason\)/);
+  assert.match(performanceEntrySource, /event\?\.reason === "EVENT"/);
+  assert.doesNotMatch(performanceEntrySource, /event\?\.reason === "TAX"/);
 });
 
 test("REST arrival skips celebration and only the later skipped turn uses it", () => {
