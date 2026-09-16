@@ -3,6 +3,8 @@
 기준일: 2026-08-25  
 기준 브랜치: `main`에서 분기한 `feature/site-foundation-cleanup`
 
+> 후속 상태 정정 (2026-09-16): 초기 개발 단계의 날짜 투표 기능은 현재 서비스 범위에서 제거되었습니다. 아래 날짜 투표 관련 migration과 인덱스 설명은 2026-08-25 당시의 이력 기록으로만 유지하며, 현재 구조는 `supabase/README.md`와 최신 migration을 기준으로 합니다.
+
 ## 1. 범위
 
 이번 정리는 청파 같이 본 사이트의 유지보수 기반, DB 이력, 공통 UI와 프론트 구조를 정돈하는 작업입니다.
@@ -10,7 +12,7 @@
 포함:
 
 - 홈
-- 활동/참여/날짜 투표
+- 활동/참여
 - 공지사항
 - 기도 제목/댓글
 - 프로필
@@ -111,7 +113,6 @@ js/api/
 ├── activities.js
 ├── boards.js
 ├── admin.js
-├── polls.js
 └── notifications.js
 ```
 
@@ -123,7 +124,6 @@ js/api/
 
 - `activities/listView.js`
 - `activities/calendarView.js`
-- `activities/pollView.js`
 
 `activities.js`는 route/query, 필터와 화면 조립만 담당합니다.
 
@@ -162,7 +162,7 @@ js/api/
 - CSS 중괄호 기본 구조
 - 제거된 `theme.css` 참조 재발 방지
 - API 도메인 모듈/facade 구조 유지 확인
-- 활동 목록/달력/투표 모듈 연결 확인
+- 활동 목록/달력 모듈 연결 확인
 - 관리자 5개 섹션 모듈 연결 확인
 - 핵심 Route 존재 확인
 - 활동 카드가 JS 강제 hash 이동 방식으로 회귀하지 않는지 확인
@@ -188,14 +188,14 @@ js/api/
 7. `20260825090540_add_date_poll_fk_covering_indexes`
 8. `20260825103805_add_public_member_profiles_by_ids`
 
-### 날짜투표 FK 인덱스
+### 날짜투표 FK 인덱스 (과거 이력)
 
-Performance Advisor가 지적한 다음 FK에 covering index를 추가했습니다.
+2026-08-25 당시 Performance Advisor가 지적한 다음 FK에 covering index를 추가했습니다.
 
 - `date_poll_votes(option_id, poll_id)`
 - `date_polls(selected_option_id, id)`
 
-운영 적용 후 해당 `unindexed_foreign_keys` 경고가 사라진 것을 확인했습니다.
+당시 운영 적용 후 해당 `unindexed_foreign_keys` 경고가 사라진 것을 확인했습니다. 날짜 투표 객체는 이후 `20260916100000_remove_date_poll_feature.sql`에서 제거합니다.
 
 ### 공개 프로필 범위 최적화
 
@@ -230,9 +230,6 @@ Performance Advisor가 지적한 다음 FK에 covering index를 추가했습니�
 - `events`
 - `event_series`
 - `event_participants`
-- `date_polls`
-- `date_poll_options`
-- `date_poll_votes`
 - `posts`
 - `comments`
 - `notifications`
