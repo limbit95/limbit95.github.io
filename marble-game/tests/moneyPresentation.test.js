@@ -304,7 +304,7 @@ test("bonus, tax and REST landings use the shared result information modal", () 
   assert.match(wrapperSource, /\.\.\/tileInfo\.js\?v=20260912-r21/);
   assert.match(tileInfoSource, /typeLabel: "보너스"[\s\S]*label: "골드 변화"/);
   assert.match(tileInfoSource, /typeLabel: "비용"[\s\S]*label: "골드 변화"/);
-  assert.match(tileInfoSource, /typeLabel: "무인도"/);
+  assert.match(tileInfoSource, /typeLabel: "휴식"/);
 });
 
 test("money transfer VFX resolves board points and keeps the visible larger coin styling", () => {
