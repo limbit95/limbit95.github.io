@@ -34,11 +34,15 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   let latestState = null;
   let choiceActionButton = null;
 
+  function handleChoiceTransferCapture() {
+    preserveChoiceTransferLayer(documentObject);
+  }
+
   return Object.freeze({
     async mount(targetElement) {
       const value = await renderer.mount(targetElement);
       choiceActionButton = documentObject?.querySelector?.("[data-tile-info-action]") ?? null;
-      choiceActionButton?.addEventListener?.("click", () => preserveChoiceTransferLayer(documentObject), true);
+      choiceActionButton?.addEventListener?.("click", handleChoiceTransferCapture, true);
       return value;
     },
 
@@ -58,6 +62,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     },
 
     dispose() {
+      choiceActionButton?.removeEventListener?.("click", handleChoiceTransferCapture, true);
       choiceActionButton = null;
       latestState = null;
       renderer.dispose();
