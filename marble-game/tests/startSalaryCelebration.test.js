@@ -34,7 +34,7 @@ test("non-START money pacing shortens pre-transfer waits without changing START 
 
 test("START celebration is presentation-only and keeps the base money transfer implementation", () => {
   assert.match(wrapperSource, /createBaseHudMoneyPresenter/);
-  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260915-r25-impl/);
+  assert.match(wrapperSource, /moneyPresentation\.js\?v=20260916-r1-impl/);
   assert.doesNotMatch(wrapperSource, /balanceByPlayerId\.set/);
   assert.doesNotMatch(wrapperSource, /PROPERTY_BOUGHT|PROPERTY_BUILT|MONEY_PAID|MONEY_RECEIVED/);
 });
@@ -60,6 +60,6 @@ test("START celebration has visible center-screen styling and reduced-motion fal
 test("Marble import map routes the existing money presenter import through the current START wrapper", () => {
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r1/);
-  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260915-r2/);
-  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260916-r1/);
+  assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260916-r1/);
+  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260916-r2/);
 });
