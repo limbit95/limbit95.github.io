@@ -15,7 +15,7 @@ const moneyCssSource = readFileSync(
   "utf8",
 );
 
-test("TOLL, EVENT and TAX share one before-minus-cost-equals-remaining loss flow", () => {
+test("TOLL, EVENT and cost payments share one before-minus-cost-equals-remaining loss flow", () => {
   assert.match(performanceEntrySource, /function createPaymentLossFlow/);
   assert.match(performanceEntrySource, /"차감 전"/);
   assert.match(performanceEntrySource, /minus\.textContent = "−"/);
@@ -35,12 +35,30 @@ test("all payment losses count only the remaining balance down with a proportion
   assert.doesNotMatch(performanceEntrySource, /fromValue: 0,[\s\S]*toValue: balanceBefore/);
 });
 
-test("TOLL moves coins payer HUD to owner HUD while EVENT and TAX impact the deduction card", () => {
-  assert.match(performanceEntrySource, /kind === "TOLL"[\s\S]*playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)/);
-  assert.match(performanceEntrySource, /destinationElement: display\.deductionHost/);
-  assert.match(performanceEntrySource, /destinationCard: display\.deductionHost/);
+test("EVENT and cost modals keep the deduction flow focused without coin transfers", () => {
+  assert.match(performanceEntrySource, /const transferPromise = kind === "TOLL"[\s\S]*playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)[\s\S]*: Promise\.resolve\(\)/);
+  assert.doesNotMatch(performanceEntrySource, /destinationElement: display\.deductionHost/);
   assert.match(performanceEntrySource, /kind === "EVENT" \? "이벤트 비용" : "이용 비용"/);
   assert.match(performanceEntrySource, /deductionLabel: "지불 통행료"/);
+});
+
+test("generic non-creditor MONEY_PAID costs use the same cost modal flow", () => {
+  assert.match(performanceEntrySource, /event\?\.type === "MONEY_PAID"/);
+  assert.match(performanceEntrySource, /event\?\.reason !== "EVENT"/);
+  assert.match(performanceEntrySource, /!event\?\.creditorId/);
+  assert.match(performanceEntrySource, /deferTaxLoss\(event\)/);
+});
+
+test("toll coin transfer uses a low multi-point arc instead of a single straight midpoint", () => {
+  assert.match(performanceEntrySource, /function resolveTransferArc/);
+  assert.match(performanceEntrySource, /q1X:/);
+  assert.match(performanceEntrySource, /q1Y:/);
+  assert.match(performanceEntrySource, /q3X:/);
+  assert.match(performanceEntrySource, /q3Y:/);
+  assert.match(performanceEntrySource, /offset: 0\.3/);
+  assert.match(performanceEntrySource, /offset: 0\.56/);
+  assert.match(performanceEntrySource, /offset: 0\.82/);
+  assert.match(performanceEntrySource, /rotate\(620deg\)/);
 });
 
 test("unified deduction visual emphasizes source cost countdown and settled result", () => {
