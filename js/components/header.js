@@ -36,7 +36,7 @@ function navLink(href, label, currentPath) {
 function notificationTarget(notification) {
   if (notification.target_path) return notification.target_path;
   if (notification.event_id) return `#/activities/${notification.event_id}`;
-  return "#/activities?view=polls";
+  return "#/activities";
 }
 
 function shouldRefreshCurrentActivity(notification) {

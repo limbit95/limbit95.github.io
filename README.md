@@ -20,7 +20,6 @@
 
 - 활동 목록/검색/카테고리 필터
 - 월간 달력
-- 날짜 후보 투표
 - 활동 상세
 - 참여/대기 신청 및 취소
 - 정원 초과 시 대기 등록
@@ -112,7 +111,6 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │   │   ├── activities.js
 │   │   ├── boards.js
 │   │   ├── admin.js
-│   │   ├── polls.js
 │   │   └── notifications.js
 │   ├── notifications.js
 │   ├── ui.js
@@ -131,8 +129,7 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 │       ├── activities.js           # 라우트/필터 조립
 │       ├── activities/
 │       │   ├── listView.js
-│       │   ├── calendarView.js
-│       │   └── pollView.js
+│       │   └── calendarView.js
 │       ├── admin.js                # 관리자 섹션 조립
 │       ├── admin/
 │       │   ├── dashboard.js
@@ -185,7 +182,6 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 
 - `#/activities?view=list`
 - `#/activities?view=calendar`
-- `#/activities?view=polls`
 
 과거 `#/community...` 주소는 현재 기도 제목 `#/prayer...`로 리다이렉트합니다.
 
@@ -218,7 +214,6 @@ DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`sup
 
 현재 본 사이트의 후속 최적화에는 다음이 포함됩니다.
 
-- 날짜투표 FK covering index 보완
 - 게시글/댓글/활동 참여자/담당자 프로필을 **필요한 사용자 ID 집합만** 조회하는 RPC 추가
 
 핵심 원칙:
@@ -336,18 +331,17 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 
 1. 본 사이트 DB baseline/seed 복원
 2. 운영 migration 이력 복원
-3. 날짜투표 FK covering index 보완 및 Advisor 재검증
-4. 공통 모달 접근성/스타일 정리
-5. 모바일 쪽지 액션 회귀 수정
-6. CSS override 계층 제거 및 역할별 파일 정리
-7. 승인 회원용 Persistent App Shell 적용
-8. GitHub Actions 기반 static check 도입 및 구조 회귀 검사 강화
-9. `api.js`를 도메인별 모듈로 분리하고 기존 facade 호환 유지
-10. `activities.js`를 목록/달력/날짜투표 하위 모듈로 분리
-11. `admin.js`를 대시보드/승인/회원/담당자/카테고리 하위 모듈로 분리
-12. 공개 프로필 조회 범위를 필요한 사용자 ID 집합으로 최적화
-13. 활동 카드 탐색을 실제 링크 기반 구조로 변경
-14. 모바일 관리자 내비게이션에서 마이페이지 접근성 보완
+3. 공통 모달 접근성/스타일 정리
+4. 모바일 쪽지 액션 회귀 수정
+5. CSS override 계층 제거 및 역할별 파일 정리
+6. 승인 회원용 Persistent App Shell 적용
+7. GitHub Actions 기반 static check 도입 및 구조 회귀 검사 강화
+8. `api.js`를 도메인별 모듈로 분리하고 기존 facade 호환 유지
+9. `activities.js`를 목록/달력 하위 모듈로 분리
+10. `admin.js`를 대시보드/승인/회원/담당자/카테고리 하위 모듈로 분리
+11. 공개 프로필 조회 범위를 필요한 사용자 ID 집합으로 최적화
+12. 활동 카드 탐색을 실제 링크 기반 구조로 변경
+13. 모바일 관리자 내비게이션에서 마이페이지 접근성 보완
 
 남은 기반 개선은 영향도가 낮은 항목 중심입니다.
 

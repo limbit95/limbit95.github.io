@@ -6,7 +6,7 @@
 
 ## 1. 현재 Source of Truth
 
-2026-08-25 기준으로 청파 같이 본 사이트의 DB 이력을 다음 구조로 확보했습니다.
+2026-09-16 기준으로 청파 같이 본 사이트의 DB 이력을 다음 구조로 확보했습니다.
 
 - 초기 구조: `supabase/site/baseline/00_setup.sql` ~ `12_avatar_storage.sql`
 - 초기 카테고리: `supabase/site/seed.sql`
@@ -17,13 +17,14 @@
 
 기존 `notification_messaging_patch.sql`은 알림·쪽지 기능을 추가할 때 사용한 통합 패치 기록으로 보존합니다. 실제 운영 migration의 개별 버전 파일은 `site/migrations/`를 기준으로 합니다.
 
+날짜 투표는 초기 개발 이력으로만 보존하며 현재 서비스 범위에서는 제거합니다. 기존 baseline/migration 기록은 재현성을 위해 유지하고, 최종 스키마 제거는 `20260916100000_remove_date_poll_feature.sql`을 기준으로 합니다.
+
 ## 2. 청파 같이 본 사이트 범위
 
 현재 본 사이트의 핵심 DB 영역은 다음과 같습니다.
 
 - 회원/승인: `profiles`, `join_requests`, `profile_interests`
 - 활동: `activity_categories`, `category_managers`, `events`, `event_series`, `event_participants`
-- 날짜 투표: `date_polls`, `date_poll_options`, `date_poll_votes`
 - 게시판: `posts`, `comments`
 - 알림/쪽지: `notifications`, `direct_messages`
 
@@ -67,7 +68,6 @@
 현재 본 사이트에서 계속 추적할 항목은 다음과 같습니다.
 
 - Supabase Auth의 Leaked Password Protection 설정
-- 날짜 투표 영역 일부 FK covering index 필요성
 - 본 사이트 `SECURITY DEFINER` RPC의 내부 권한 검증 유지
 
 ## 6. 게임 영역 보호 규칙

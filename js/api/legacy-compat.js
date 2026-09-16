@@ -42,7 +42,6 @@ const NOTIFICATION_COLUMNS = [
   "title",
   "body",
   "event_id",
-  "poll_id",
   "is_read",
   "read_at",
   "created_at",
