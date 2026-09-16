@@ -41,6 +41,14 @@ test("local Marble play marks the active event player as the presentation viewer
   assert.match(performanceEntrySource, /return renderer\.playEvent\(event\)/);
 });
 
+test("purchase transfer layer survives the choice modal closing after click", () => {
+  assert.match(performanceEntrySource, /function preserveChoiceTransferLayer/);
+  assert.match(performanceEntrySource, /\[data-tile-info-modal\] \.money-transfer-layer/);
+  assert.match(performanceEntrySource, /documentObject\.body\.append\(layer\)/);
+  assert.match(performanceEntrySource, /addEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
+  assert.match(performanceEntrySource, /removeEventListener\?\.\("click", handleChoiceTransferCapture, true\)/);
+});
+
 test("REST arrival skips celebration and only the later skipped turn uses it", () => {
   assert.match(timingSource, /function isRestEvent\(event\) \{\s*return event\?\.type === "TURN_SKIPPED";/);
   assert.doesNotMatch(timingSource, /무인도 도착!/);
