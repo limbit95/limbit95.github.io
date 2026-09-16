@@ -10,40 +10,49 @@ const performanceEntrySource = readFileSync(
   new URL("../js/renderer/threeClassicPerformanceEntry.js", import.meta.url),
   "utf8",
 );
-const timingCssSource = readFileSync(
-  new URL("../css/presentation-timing.css", import.meta.url),
+const moneyCssSource = readFileSync(
+  new URL("../css/money-presentation.css", import.meta.url),
   "utf8",
 );
 
-test("toll modal only counts the remaining balance down while coins move HUD to HUD", () => {
-  assert.doesNotMatch(performanceEntrySource, /TOLL_BALANCE_COUNT_UP_MS/);
-  assert.doesNotMatch(performanceEntrySource, /TOLL_BALANCE_SETTLE_MS/);
-  assert.match(performanceEntrySource, /TOLL_BALANCE_COUNT_DOWN_MS = 1450/);
+test("TOLL, EVENT and TAX share one before-minus-cost-equals-remaining loss flow", () => {
+  assert.match(performanceEntrySource, /function createPaymentLossFlow/);
+  assert.match(performanceEntrySource, /"차감 전"/);
+  assert.match(performanceEntrySource, /minus\.textContent = "−"/);
+  assert.match(performanceEntrySource, /equals\.textContent = "="/);
+  assert.match(performanceEntrySource, /"남은 골드"/);
+  assert.match(performanceEntrySource, /presentUnifiedLoss\(entry, "TOLL"\)/);
+  assert.match(performanceEntrySource, /presentUnifiedLoss\(entry, "EVENT"\)/);
+  assert.match(performanceEntrySource, /presentUnifiedLoss\(entry, "TAX"\)/);
+});
+
+test("all payment losses count only the remaining balance down with a proportional meter", () => {
+  assert.match(performanceEntrySource, /PAYMENT_LOSS_COUNT_DOWN_MS = 1450/);
+  assert.match(performanceEntrySource, /element: display\.remainingElement/);
   assert.match(performanceEntrySource, /fromValue: balanceBefore,[\s\S]*toValue: balanceAfter/);
-  assert.match(performanceEntrySource, /playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)/);
-  assert.match(performanceEntrySource, /ensureTollFlowLayout/);
-  assert.match(performanceEntrySource, /balanceLabel\.textContent = "보유 골드"/);
-  assert.match(performanceEntrySource, /arrow\.textContent = "→"/);
-  assert.match(timingCssSource, /\.toll-notice-modal__payment-flow/);
-  assert.match(timingCssSource, /animation-duration: 1450ms/);
+  assert.match(performanceEntrySource, /value \/ balanceBefore/);
+  assert.match(performanceEntrySource, /--payment-loss-ratio/);
+  assert.doesNotMatch(performanceEntrySource, /fromValue: 0,[\s\S]*toValue: balanceBefore/);
 });
 
-test("viewer EVENT loss moves coins from payer HUD into the deduction gold card", () => {
-  assert.match(performanceEntrySource, /event\?\.reason === "EVENT"/);
-  assert.match(performanceEntrySource, /prepareEventLossDisplay/);
-  assert.match(performanceEntrySource, /sourceElement: payerCard/);
+test("TOLL moves coins payer HUD to owner HUD while EVENT and TAX impact the deduction card", () => {
+  assert.match(performanceEntrySource, /kind === "TOLL"[\s\S]*playHudToHudTransfer\(entry\.event, stateForTransfer, display\.modal\)/);
   assert.match(performanceEntrySource, /destinationElement: display\.deductionHost/);
-  assert.match(performanceEntrySource, /host: display\.modal/);
-  assert.match(performanceEntrySource, /EVENT_BALANCE_COUNT_DOWN_MS = 760/);
+  assert.match(performanceEntrySource, /destinationCard: display\.deductionHost/);
+  assert.match(performanceEntrySource, /kind === "EVENT" \? "이벤트 비용" : "이용 비용"/);
+  assert.match(performanceEntrySource, /deductionLabel: "지불 통행료"/);
 });
 
-test("viewer TAX loss moves coins from payer HUD into the existing gold-change card", () => {
-  assert.match(performanceEntrySource, /event\?\.reason === "TAX"/);
-  assert.match(performanceEntrySource, /pendingTaxLosses/);
-  assert.match(performanceEntrySource, /findGoldChangeDisplay/);
-  assert.match(performanceEntrySource, /=== "골드 변화"/);
-  assert.match(performanceEntrySource, /destinationElement: display\.goldChangeHost/);
-  assert.match(performanceEntrySource, /deferTaxLoss\(event\)/);
+test("unified deduction visual emphasizes source cost countdown and settled result", () => {
+  assert.match(moneyCssSource, /\.payment-loss-flow \{/);
+  assert.match(moneyCssSource, /grid-template-columns: minmax\(0, 1fr\) auto minmax\(0, 0\.92fr\) auto minmax\(0, 1fr\)/);
+  assert.match(moneyCssSource, /\.payment-loss-flow__card\[data-role="before"\]/);
+  assert.match(moneyCssSource, /\.payment-loss-flow__card\[data-role="deduction"\]/);
+  assert.match(moneyCssSource, /\.payment-loss-flow__card\[data-role="remaining"\]/);
+  assert.match(moneyCssSource, /marble-payment-loss-deduction-impact/);
+  assert.match(moneyCssSource, /marble-payment-loss-count-focus/);
+  assert.match(moneyCssSource, /marble-payment-loss-settle/);
+  assert.match(moneyCssSource, /scaleX\(var\(--payment-loss-ratio, 1\)\)/);
 });
 
 test("local Marble play marks the active event player as the presentation viewer", () => {
