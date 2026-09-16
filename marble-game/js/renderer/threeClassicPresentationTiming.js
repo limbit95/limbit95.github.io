@@ -13,6 +13,9 @@ import {
 } from "./threeClassicMoneyPresentation.js?v=20260915-r1";
 import {
   createHudMoneyPresenter,
+  formatClassicMoneyBalance,
+  formatClassicMoneyDelta,
+  interpolateMoneyBalance,
   syncHudMoneyBalances,
 } from "../presentation/moneyPresentation.js?v=20260912-r21";
 
@@ -30,6 +33,7 @@ export {
 
 const START_PATH_STEP_MS = 165;
 const MODAL_MONEY_FALLBACK_MS = 1400;
+const MODAL_LOSS_COUNT_MS = 760;
 const CHOICE_TRANSFER_PREVIEW_TIMEOUT_MS = 3200;
 const REST_CELEBRATION_HOLD_MS = 2000;
 
@@ -42,7 +46,7 @@ export function resolveStartCrossingDelay(path, startNodeIds, { reducedMotion = 
 }
 
 function isRestEvent(event) {
-  return event?.type === "REST_ASSIGNED" || event?.type === "TURN_SKIPPED";
+  return event?.type === "TURN_SKIPPED";
 }
 
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
@@ -60,6 +64,9 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   const pendingTolls = [];
   const reducedMotion = windowObject?.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
   const wait = (ms) => new Promise((resolve) => (windowObject?.setTimeout ?? globalThis.setTimeout)(resolve, ms));
+  const requestFrame = typeof windowObject?.requestAnimationFrame === "function"
+    ? windowObject.requestAnimationFrame.bind(windowObject)
+    : null;
   let rendererTarget = null;
   let latestState = null;
   let boardLayoutByNodeId = new Map();
@@ -94,9 +101,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     resolveBoardPoint: resolveBoardTransferPoint,
     reducedMotion,
     wait,
-    requestFrame: typeof windowObject?.requestAnimationFrame === "function"
-      ? windowObject.requestAnimationFrame.bind(windowObject)
-      : null,
+    requestFrame,
   });
 
   function reportPresentationError(error, eventType) {
@@ -142,11 +147,136 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     if (entry?.timerId !== null && entry?.timerId !== undefined) clearTimeoutFn?.(entry.timerId);
   }
 
+  function createModalLossRow(label, value, attributeName) {
+    const row = documentObject.createElement("div");
+    row.setAttribute(attributeName, "true");
+    const term = documentObject.createElement("dt");
+    const description = documentObject.createElement("dd");
+    term.textContent = label;
+    description.textContent = value;
+    row.append(term, description);
+    return { row, valueElement: description };
+  }
+
+  function prepareTileModalLossDisplay(balanceBefore, amount) {
+    const stats = documentObject?.querySelector?.("[data-tile-info-stats]");
+    if (!stats?.append || !documentObject?.createElement) return null;
+
+    for (const row of [...(stats.children ?? [])]) {
+      const label = row.querySelector?.("dt")?.textContent?.trim?.();
+      if (["골드 변화", "내 보유 골드", "차감 골드"].includes(label)) row.remove();
+    }
+
+    const balance = createModalLossRow(
+      "내 보유 골드",
+      formatClassicMoneyBalance(balanceBefore),
+      "data-money-loss-balance",
+    );
+    const deduction = createModalLossRow(
+      "차감 골드",
+      formatClassicMoneyDelta(-amount),
+      "data-money-loss-deduction",
+    );
+    stats.append(balance.row, deduction.row);
+    return {
+      balanceElement: balance.valueElement,
+      balanceHost: balance.row,
+      deductionHost: deduction.row,
+    };
+  }
+
+  function prepareTollModalLossDisplay(balanceBefore, amount) {
+    const balanceElement = documentObject?.querySelector?.("[data-toll-balance-before]");
+    const deductionElement = documentObject?.querySelector?.("[data-toll-deduction]");
+    if (!balanceElement || !deductionElement) return null;
+
+    const afterElement = documentObject?.querySelector?.("[data-toll-balance-after]");
+    if (afterElement?.parentElement) afterElement.parentElement.hidden = true;
+    balanceElement.textContent = formatClassicMoneyBalance(balanceBefore);
+    deductionElement.textContent = formatClassicMoneyDelta(-amount);
+    const balanceHost = balanceElement.parentElement;
+    balanceHost?.setAttribute?.("data-money-loss-balance", "true");
+    deductionElement.setAttribute?.("data-money-loss-deduction", "true");
+    return {
+      balanceElement,
+      balanceHost,
+      deductionHost: deductionElement,
+    };
+  }
+
+  async function animateModalLossBalance(element, fromValue, toValue) {
+    if (!element) return;
+    element.textContent = formatClassicMoneyBalance(fromValue);
+    if (reducedMotion || fromValue === toValue || typeof requestFrame !== "function") {
+      element.textContent = formatClassicMoneyBalance(toValue);
+      if (reducedMotion) await wait(180);
+      return;
+    }
+
+    await new Promise((resolve) => {
+      let startedAt = null;
+      function frame(timestamp) {
+        const currentTimestamp = Number(timestamp);
+        const safeTimestamp = Number.isFinite(currentTimestamp) ? currentTimestamp : (startedAt ?? 0);
+        if (startedAt === null) startedAt = safeTimestamp;
+        const progress = Math.min(1, Math.max(0, (safeTimestamp - startedAt) / MODAL_LOSS_COUNT_MS));
+        element.textContent = formatClassicMoneyBalance(
+          interpolateMoneyBalance(fromValue, toValue, progress),
+        );
+        if (progress >= 1) {
+          resolve();
+          return;
+        }
+        requestFrame(frame);
+      }
+      requestFrame(frame);
+    });
+  }
+
+  async function presentModalLoss(event) {
+    const amount = Math.max(0, Number(event?.amount) || 0);
+    if (!amount || !event?.playerId) return;
+
+    const eventBalanceBefore = Number(event?.balanceBefore);
+    const trackedBalance = Number(playerBalanceById.get(event.playerId));
+    const authoritativeBalance = Number(
+      latestState?.players?.find?.((player) => player.id === event.playerId)?.money,
+    );
+    const balanceBefore = Number.isFinite(eventBalanceBefore)
+      ? eventBalanceBefore
+      : Number.isFinite(trackedBalance)
+        ? trackedBalance
+        : Number.isFinite(authoritativeBalance)
+          ? authoritativeBalance + amount
+          : amount;
+    const balanceAfter = Math.max(0, balanceBefore - amount);
+    const display = event.reason === "TOLL"
+      ? prepareTollModalLossDisplay(balanceBefore, amount)
+      : prepareTileModalLossDisplay(balanceBefore, amount);
+
+    if (display) {
+      display.balanceHost?.setAttribute?.("data-money-loss-counting", "true");
+      display.deductionHost?.setAttribute?.("data-money-loss-counting", "true");
+      await animateModalLossBalance(display.balanceElement, balanceBefore, balanceAfter);
+      display.balanceHost?.removeAttribute?.("data-money-loss-counting");
+      display.deductionHost?.removeAttribute?.("data-money-loss-counting");
+    }
+
+    playerBalanceById.set(event.playerId, balanceAfter);
+    syncHudMoneyBalances({ documentObject, seatByPlayerId: playerSeatById, balanceByPlayerId: playerBalanceById });
+  }
+
   function flushEventLoss(entry) {
-    if (!pendingEventLosses.includes(entry)) return;
-    removePendingEntry(pendingEventLosses, entry);
-    void moneyPresenter.playLossBurst?.(entry.event)
-      .catch((error) => reportPresentationError(error, entry.event?.type));
+    if (!pendingEventLosses.includes(entry) || entry.flushing) return;
+    entry.flushing = true;
+    const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+    if (entry.timerId !== null && entry.timerId !== undefined) {
+      clearTimeoutFn?.(entry.timerId);
+      entry.timerId = null;
+    }
+    void presentModalLoss(entry.event)
+      .catch((error) => reportPresentationError(error, entry.event?.type))
+      .finally(() => removePendingEntry(pendingEventLosses, entry));
   }
 
   function flushOpenEventLosses() {
@@ -157,10 +287,20 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
   function deferEventLoss(event) {
     const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
-    const entry = { event, timerId: null };
+    const entry = { event, timerId: null, flushing: false };
     pendingEventLosses.push(entry);
     entry.timerId = setTimeoutFn?.(() => flushEventLoss(entry), MODAL_MONEY_FALLBACK_MS) ?? null;
     flushOpenEventLosses();
+  }
+
+  function playTollCreditorGain(event) {
+    if (!event?.creditorId || !event?.amount) return Promise.resolve();
+    return moneyPresenter.play({
+      type: "MONEY_RECEIVED",
+      playerId: event.creditorId,
+      amount: event.amount,
+      reason: "TOLL",
+    });
   }
 
   function flushToll(entry) {
@@ -171,7 +311,10 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       clearTimeoutFn?.(entry.timerId);
       entry.timerId = null;
     }
-    void moneyPresenter.play(entry.event)
+    void Promise.all([
+      presentModalLoss(entry.event),
+      playTollCreditorGain(entry.event),
+    ])
       .catch((error) => reportPresentationError(error, entry.event?.type))
       .finally(() => removePendingEntry(pendingTolls, entry));
   }
@@ -287,17 +430,15 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
     const eyebrow = documentObject.createElement("span");
     eyebrow.className = "rest-turn-celebration-eyebrow";
-    eyebrow.textContent = event?.type === "TURN_SKIPPED" ? "REST TURN" : "ISLAND REST";
+    eyebrow.textContent = "REST TURN";
 
     const title = documentObject.createElement("strong");
     title.className = "rest-turn-celebration-title";
-    title.textContent = event?.type === "TURN_SKIPPED" ? "무인도 휴식 턴" : "무인도 도착!";
+    title.textContent = "무인도 휴식 턴";
 
     const detail = documentObject.createElement("b");
     detail.className = "rest-turn-celebration-detail";
-    detail.textContent = event?.type === "REST_ASSIGNED"
-      ? `${Math.max(1, Number(event?.skipTurns) || 1)}턴 동안 쉬어갑니다`
-      : "이번 턴은 이동 없이 휴식합니다";
+    detail.textContent = "이번 턴은 이동 없이 휴식합니다";
 
     const player = latestState?.players?.find?.((candidate) => candidate.id === event?.playerId);
     const caption = documentObject.createElement("span");
@@ -349,7 +490,11 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         deferToll(event);
         return undefined;
       }
-      if (event?.type === "MONEY_PAID" && event?.reason === "EVENT" && isViewerPlayer(event.playerId)) {
+      if (
+        event?.type === "MONEY_PAID"
+        && ["EVENT", "TAX"].includes(event?.reason)
+        && isViewerPlayer(event.playerId)
+      ) {
         deferEventLoss(event);
         return undefined;
       }
