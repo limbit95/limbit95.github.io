@@ -1,6 +1,6 @@
 import {
   createHudMoneyPresenter as createBaseHudMoneyPresenter,
-} from "./moneyPresentation.js?v=20260915-r25-impl";
+} from "./moneyPresentation.js?v=20260916-r1-impl";
 
 export {
   createMoneyPresentationPlan,
@@ -12,7 +12,7 @@ export {
   resolveMoneyTransferCoinCount,
   resolveMoneyTransferFlight,
   syncHudMoneyBalances,
-} from "./moneyPresentation.js?v=20260915-r25-impl";
+} from "./moneyPresentation.js?v=20260916-r1-impl";
 
 const PACED_MONEY_COUNT_DURATION_MS = 360;
 const PACED_MONEY_WAIT_MS = Object.freeze(new Map([
