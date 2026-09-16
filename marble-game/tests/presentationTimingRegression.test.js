@@ -7,24 +7,31 @@ const timingSource = readFileSync(
   "utf8",
 );
 
-test("toll presentation keeps payer and creditor balances deferred until presentation settles", () => {
+test("toll presentation keeps payer and creditor balances deferred until modal counting settles", () => {
   assert.match(timingSource, /if \(!pendingTolls\.includes\(entry\) \|\| entry\.flushing\) return;/);
   assert.match(timingSource, /entry\.flushing = true;/);
   assert.match(timingSource, /const entry = \{ event, timerId: null, flushing: false \};/);
+  assert.match(timingSource, /presentModalLoss\(entry\.event\)/);
+  assert.match(timingSource, /playTollCreditorGain\(entry\.event\)/);
   assert.match(
     timingSource,
-    /moneyPresenter\.play\(entry\.event\)[\s\S]*\.finally\(\(\) => removePendingEntry\(pendingTolls, entry\)\)/,
+    /Promise\.all\(\[[\s\S]*presentModalLoss\(entry\.event\)[\s\S]*playTollCreditorGain\(entry\.event\)[\s\S]*\]\)[\s\S]*\.finally\(\(\) => removePendingEntry\(pendingTolls, entry\)\)/,
   );
-
-  const flushStart = timingSource.indexOf("function flushToll(entry)");
-  const flushEnd = timingSource.indexOf("function flushOpenTolls()", flushStart);
-  const flushSource = timingSource.slice(flushStart, flushEnd);
-  assert.ok(flushStart >= 0 && flushEnd > flushStart);
-  assert.equal(flushSource.includes("removePendingEntry(pendingTolls, entry);\n    void moneyPresenter.play"), false);
 });
 
-test("rest notification keeps the readable hold duration under reduced motion", () => {
+test("viewer modal losses count current gold down instead of running the HUD loss presenter", () => {
+  assert.match(timingSource, /async function presentModalLoss\(event\)/);
+  assert.match(timingSource, /async function animateModalLossBalance/);
+  assert.match(timingSource, /interpolateMoneyBalance\(fromValue, toValue, progress\)/);
+  assert.match(timingSource, /prepareTileModalLossDisplay/);
+  assert.match(timingSource, /prepareTollModalLossDisplay/);
+  assert.doesNotMatch(timingSource, /playLossBurst\?\.\(entry\.event\)/);
+});
+
+test("REST arrival skips celebration and only the later skipped turn uses it", () => {
+  assert.match(timingSource, /function isRestEvent\(event\) \{\s*return event\?\.type === "TURN_SKIPPED";/);
+  assert.doesNotMatch(timingSource, /무인도 도착!/);
+  assert.match(timingSource, /무인도 휴식 턴/);
   assert.match(timingSource, /REST_CELEBRATION_HOLD_MS = 2000/);
   assert.match(timingSource, /await wait\(REST_CELEBRATION_HOLD_MS\);/);
-  assert.doesNotMatch(timingSource, /reducedMotion \? 900 : REST_CELEBRATION_HOLD_MS/);
 });
