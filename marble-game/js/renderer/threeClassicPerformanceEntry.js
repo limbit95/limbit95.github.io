@@ -14,8 +14,6 @@ installClassicShadowUpdatePolicy(THREE);
 export * from "./threeClassicPresentationTiming.js?v=20260916-r1";
 
 const PAYMENT_MODAL_FALLBACK_MS = 1600;
-const TOLL_BALANCE_COUNT_UP_MS = 900;
-const TOLL_BALANCE_SETTLE_MS = 280;
 const TOLL_BALANCE_COUNT_DOWN_MS = 1450;
 const EVENT_BALANCE_COUNT_DOWN_MS = 760;
 const PAYMENT_TRANSFER_DURATION_MS = 780;
@@ -241,24 +239,43 @@ function prepareEventLossDisplay(documentObject, balanceBefore, amount) {
   };
 }
 
-function hideTollDeduction(documentObject) {
-  const deductionElement = documentObject?.querySelector?.("[data-toll-deduction]");
-  if (!deductionElement) return;
-  deductionElement.hidden = true;
-  deductionElement.textContent = "";
+function findGoldChangeDisplay(documentObject) {
+  const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+  const rows = [...(documentObject?.querySelectorAll?.("[data-tile-info-stats] > div") ?? [])];
+  const goldChangeHost = rows.find((row) => row.querySelector?.("dt")?.textContent?.trim?.() === "골드 변화") ?? null;
+  return modal && goldChangeHost ? { modal, goldChangeHost } : null;
 }
 
-function prepareTollDisplay(documentObject) {
+function ensureTollFlowLayout(documentObject) {
   const modal = documentObject?.querySelector?.("[data-toll-notice-modal]");
+  const amountCard = documentObject?.querySelector?.(".toll-notice-modal__amount");
+  const balanceContainer = documentObject?.querySelector?.(".toll-notice-modal__balance");
   const balanceElement = documentObject?.querySelector?.("[data-toll-balance-before]");
-  const afterElement = documentObject?.querySelector?.("[data-toll-balance-after]");
-  if (!modal || !balanceElement) return null;
+  const balanceCard = balanceElement?.parentElement;
+  if (!modal || !amountCard || !balanceContainer || !balanceCard || !documentObject?.createElement) return null;
 
-  hideTollDeduction(documentObject);
-  if (afterElement?.parentElement) afterElement.parentElement.hidden = true;
-  const balanceHost = balanceElement.parentElement;
-  balanceHost?.setAttribute?.("data-money-loss-balance", "true");
-  return { modal, balanceElement, balanceHost };
+  const balanceLabel = balanceCard.querySelector?.("span");
+  if (balanceLabel) balanceLabel.textContent = "보유 골드";
+  amountCard.classList?.add?.("toll-notice-modal__flow-card");
+  amountCard.dataset.role = "toll";
+  balanceCard.classList?.add?.("toll-notice-modal__flow-card");
+  balanceCard.setAttribute?.("data-money-loss-balance", "true");
+
+  let flow = documentObject?.querySelector?.("[data-toll-payment-flow]");
+  if (!flow) {
+    flow = documentObject.createElement("div");
+    flow.className = "toll-notice-modal__payment-flow";
+    flow.setAttribute("data-toll-payment-flow", "true");
+    const arrow = documentObject.createElement("span");
+    arrow.className = "toll-notice-modal__flow-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+    amountCard.before(flow);
+    flow.append(amountCard, arrow, balanceCard);
+  }
+
+  balanceContainer.classList?.add?.("toll-notice-modal__legacy-balance");
+  return { modal, balanceElement, balanceHost: balanceCard };
 }
 
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
@@ -276,6 +293,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     : null;
   const pendingTolls = [];
   const pendingEventLosses = [];
+  const pendingTaxLosses = [];
   let latestState = null;
   let choiceActionButton = null;
   let tollModalObserver = null;
@@ -309,7 +327,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   }
 
   async function presentToll(entry) {
-    const display = prepareTollDisplay(documentObject);
+    const display = ensureTollFlowLayout(documentObject);
     if (!display) {
       await playHudToHudTransfer(entry.event, latestState ?? entry.state);
       return;
@@ -318,17 +336,8 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     const amount = Math.max(0, Number(entry.event?.amount) || 0);
     const balanceBefore = Math.max(0, Number(entry.balanceBefore) || 0);
     const balanceAfter = Math.max(0, balanceBefore - amount);
+    display.balanceElement.textContent = formatClassicMoneyBalance(balanceBefore);
     display.balanceHost?.setAttribute?.("data-money-loss-counting", "true");
-    await animateBalance({
-      element: display.balanceElement,
-      fromValue: 0,
-      toValue: balanceBefore,
-      durationMs: TOLL_BALANCE_COUNT_UP_MS,
-      reducedMotion,
-      requestFrame,
-      wait,
-    });
-    await wait(reducedMotion ? 80 : TOLL_BALANCE_SETTLE_MS);
 
     const stateForTransfer = latestState ?? entry.state;
     await Promise.all([
@@ -370,7 +379,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         ? playCoinTransfer({
           documentObject,
           sourceElement: payerCard,
-          destinationElement: display.balanceHost,
+          destinationElement: display.deductionHost,
           amount,
           host: display.modal,
           reducedMotion,
@@ -380,6 +389,22 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     ]);
     display.balanceHost?.removeAttribute?.("data-money-loss-counting");
     display.deductionHost?.removeAttribute?.("data-money-loss-counting");
+  }
+
+  async function presentTaxLoss(entry) {
+    const display = findGoldChangeDisplay(documentObject);
+    if (!display) return;
+    const payerCard = findHudCard(documentObject, latestState ?? entry.state, entry.event?.playerId);
+    if (!payerCard) return;
+    await playCoinTransfer({
+      documentObject,
+      sourceElement: payerCard,
+      destinationElement: display.goldChangeHost,
+      amount: entry.event.amount,
+      host: display.modal,
+      reducedMotion,
+      wait,
+    });
   }
 
   function flushToll(entry) {
@@ -398,6 +423,14 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       .finally(() => removePending(pendingEventLosses, entry));
   }
 
+  function flushTaxLoss(entry) {
+    if (!pendingTaxLosses.includes(entry) || entry.flushing) return;
+    entry.flushing = true;
+    void presentTaxLoss(entry)
+      .catch((error) => reportPaymentPresentationError(error, entry.event?.type))
+      .finally(() => removePending(pendingTaxLosses, entry));
+  }
+
   function flushOpenTolls() {
     const modal = documentObject?.querySelector?.("[data-toll-notice-modal]");
     if (!modal?.open && !modal?.hasAttribute?.("open")) return;
@@ -408,6 +441,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
     if (!modal?.open && !modal?.hasAttribute?.("open")) return;
     for (const entry of [...pendingEventLosses]) flushEventLoss(entry);
+    for (const entry of [...pendingTaxLosses]) flushTaxLoss(entry);
   }
 
   function deferToll(event) {
@@ -438,6 +472,19 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     flushOpenEventLosses();
   }
 
+  function deferTaxLoss(event) {
+    const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
+    const entry = {
+      event,
+      state: latestState,
+      timerId: null,
+      flushing: false,
+    };
+    pendingTaxLosses.push(entry);
+    entry.timerId = setTimeoutFn?.(() => flushTaxLoss(entry), PAYMENT_MODAL_FALLBACK_MS) ?? null;
+    flushOpenEventLosses();
+  }
+
   function installPaymentObservers() {
     if (typeof MutationObserverObject !== "function") return;
     const tollModal = documentObject?.querySelector?.("[data-toll-notice-modal]");
@@ -461,7 +508,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       const value = await renderer.mount(targetElement);
       choiceActionButton = documentObject?.querySelector?.("[data-tile-info-action]") ?? null;
       choiceActionButton?.addEventListener?.("click", handleChoiceTransferCapture, true);
-      hideTollDeduction(documentObject);
+      ensureTollFlowLayout(documentObject);
       installPaymentObservers();
       return value;
     },
@@ -497,6 +544,15 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         return undefined;
       }
 
+      if (
+        event?.type === "MONEY_PAID"
+        && event?.reason === "TAX"
+        && isPresentationViewer(documentObject, latestState, event.playerId)
+      ) {
+        deferTaxLoss(event);
+        return undefined;
+      }
+
       return renderer.playEvent(event);
     },
 
@@ -509,6 +565,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       eventModalObserver = null;
       for (const entry of [...pendingTolls]) removePending(pendingTolls, entry);
       for (const entry of [...pendingEventLosses]) removePending(pendingEventLosses, entry);
+      for (const entry of [...pendingTaxLosses]) removePending(pendingTaxLosses, entry);
       latestState = null;
       renderer.dispose();
     },
