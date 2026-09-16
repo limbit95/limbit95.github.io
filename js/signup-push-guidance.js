@@ -1,5 +1,9 @@
 const PUSH_OPT_IN_SELECTOR = 'input[name="push_opt_in"]';
 const GUIDANCE_ENHANCED_KEY = "pushGuidanceEnhanced";
+const GUIDANCE_BOUND_KEY = "pushGuidanceBound";
+const SIGNUP_PUSH_OPT_IN_DRAFT_KEY = "cheongpa:signup-push-opt-in-draft";
+const SIGNUP_PUSH_METADATA_KEY = "signup_push_opt_in";
+const PUSH_OPT_IN_FORM_VALUE_KEY = "pushOptInValue";
 
 export function resolveSignupPushCapability({
   windowObject = globalThis.window,
@@ -37,30 +41,30 @@ export function resolveSignupPushGuidance(capability) {
   if (!capability?.supported) {
     return {
       status: "unsupported",
-      message: "현재 브라우저에서는 푸시 알림을 사용할 수 없어요. 가입 승인 후 지원되는 브라우저에서 알림을 켤 수 있어요.",
+      message: "체크하면 알림 수신 의사는 저장돼요. 현재 브라우저에서는 푸시 알림을 사용할 수 없어 가입 승인 후 지원되는 브라우저에서 설정할 수 있어요.",
     };
   }
   if (capability.requiresIosInstall) {
     return {
       status: "needs-install",
-      message: "iPhone/iPad에서는 청파 같이를 홈 화면에 추가해야 푸시 알림을 사용할 수 있어요. 현재 선택만으로 알림이 바로 켜지지는 않으며, 가입 승인 후 실제 알림을 활성화할 수 있어요.",
+      message: "체크하면 알림 수신 의사가 저장돼요. iPhone/iPad에서는 가입 승인 후 청파 같이를 홈 화면에 추가한 뒤 알림을 켤 수 있어요.",
     };
   }
   if (capability.permission === "denied") {
     return {
       status: "permission-denied",
-      message: "현재 브라우저에서 알림이 차단되어 있어요. 가입 승인 후 기기 또는 브라우저 설정에서 알림 권한을 허용한 뒤 다시 켜주세요.",
+      message: "체크하면 알림 수신 의사는 저장되지만 현재 브라우저 알림이 차단되어 있어요. 가입 승인 후 기기 또는 브라우저 설정에서 알림 권한을 허용해주세요.",
     };
   }
   if (capability.permission === "granted") {
     return {
       status: "ready",
-      message: "이 기기에서는 푸시 알림을 사용할 수 있어요. 현재 선택만으로 알림이 바로 켜지지는 않으며, 가입 승인 후 마이페이지에서 실제 알림을 활성화할 수 있어요.",
+      message: "체크하면 알림 수신 의사가 저장돼요. 가입 승인 후 이 기기에서 실제 푸시 알림을 연결할 수 있어요.",
     };
   }
   return {
     status: "needs-permission",
-    message: "푸시 알림을 사용하려면 브라우저 알림 권한 허용이 필요해요. 권한 요청은 가입 승인 후 알림을 켤 때 진행됩니다.",
+    message: "체크하면 알림 수신 의사가 저장돼요. 가입 승인 후 알림을 켤 때 브라우저 알림 권한을 요청합니다.",
   };
 }
 
@@ -68,10 +72,101 @@ function currentGuidance() {
   return resolveSignupPushGuidance(resolveSignupPushCapability());
 }
 
+function readDraftValue() {
+  try {
+    const raw = window.sessionStorage.getItem(SIGNUP_PUSH_OPT_IN_DRAFT_KEY);
+    if (raw === "true" || raw === "false") return raw === "true";
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.value === "boolean" ? parsed.value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDraftValue(value) {
+  try {
+    const raw = window.sessionStorage.getItem(SIGNUP_PUSH_OPT_IN_DRAFT_KEY);
+    let userId = null;
+    if (raw && raw !== "true" && raw !== "false") {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed?.userId === "string") userId = parsed.userId;
+    }
+    window.sessionStorage.setItem(SIGNUP_PUSH_OPT_IN_DRAFT_KEY, JSON.stringify({
+      value: Boolean(value),
+      userId,
+    }));
+  } catch {
+    // This is only a signup-flow UX aid; server persistence does not depend on it.
+  }
+}
+
+function rememberFormPushOptInValue(input) {
+  const value = Boolean(input.checked);
+  if (input.form?.matches("form.signup-flow")) {
+    input.form.dataset[PUSH_OPT_IN_FORM_VALUE_KEY] = String(value);
+  }
+  writeDraftValue(value);
+}
+
+function readFormPushOptInValue(form) {
+  const raw = form.dataset[PUSH_OPT_IN_FORM_VALUE_KEY];
+  if (raw === "true" || raw === "false") return raw === "true";
+  return readDraftValue();
+}
+
+async function syncSignupPushOptInMetadata(value) {
+  const { supabase } = await import("./supabaseClient.js");
+  if (!supabase) return;
+  const { error } = await supabase.auth.updateUser({
+    data: { [SIGNUP_PUSH_METADATA_KEY]: Boolean(value) },
+  });
+  if (error) throw error;
+}
+
+function handleSignupSubmit(event) {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement) || !form.matches("form.signup-flow")) return;
+  if (form.dataset.pushOptInMetadataSynced === "true") {
+    delete form.dataset.pushOptInMetadataSynced;
+    return;
+  }
+  if (form.dataset.pushOptInMetadataSyncing === "true") {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  const pushOptInValue = readFormPushOptInValue(form);
+  if (typeof pushOptInValue !== "boolean") return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  form.dataset.pushOptInMetadataSyncing = "true";
+
+  void syncSignupPushOptInMetadata(pushOptInValue)
+    .catch((error) => {
+      console.warn("Signup push preference metadata sync failed; local fallback remains available.", error);
+    })
+    .finally(() => {
+      delete form.dataset.pushOptInMetadataSyncing;
+      form.dataset.pushOptInMetadataSynced = "true";
+      form.requestSubmit();
+    });
+}
+
 function enhancePushOptIn(input) {
   const checkbox = input.closest("label.checkbox");
   const help = checkbox?.querySelector(".small.subtle");
   if (!help) return;
+
+  if (input.dataset[GUIDANCE_BOUND_KEY] !== "true") {
+    const draftValue = readDraftValue();
+    if (typeof draftValue === "boolean") input.checked = draftValue;
+    rememberFormPushOptInValue(input);
+    input.addEventListener("change", () => rememberFormPushOptInValue(input));
+    input.dataset[GUIDANCE_BOUND_KEY] = "true";
+  }
 
   const guidance = currentGuidance();
   help.textContent = ` ${guidance.message}`;
@@ -85,6 +180,8 @@ function enhancePushGuidance(root = document) {
 }
 
 if (typeof document !== "undefined") {
+  document.addEventListener("submit", handleSignupSubmit, true);
+
   const app = document.getElementById("app");
   if (app) {
     enhancePushGuidance(app);
