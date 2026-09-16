@@ -28,13 +28,13 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("brand gateway boots first and Together enters the existing login flow", async ({ page }) => {
+test("brand gateway B boots first and Together enters the existing login flow", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   await expect(page).toHaveURL(/#\/gateway$/);
-  await expect(page.getByRole("heading", { name: /같이 닮고.*가치를 나누며.*함께 살아갑니다/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /같이라는 말에는.*세 가지 방향이.*있습니다/ })).toBeVisible();
   await expect(page.getByRole("link", { name: "Like — 같이 닮다" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Value — 가치를 나누다" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Together — 같이 하다" })).toBeVisible();
