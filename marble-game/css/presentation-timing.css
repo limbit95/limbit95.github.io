@@ -15,12 +15,56 @@
   animation: marble-money-burst-source 520ms ease-out both;
 }
 
-.toll-notice-modal__balance {
-  grid-template-columns: minmax(0, 1fr) auto;
+.toll-notice-modal__payment-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  margin: 16px 0;
 }
 
-.toll-notice-modal__balance > div:last-child {
-  display: none;
+.toll-notice-modal__flow-card {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  text-align: center;
+}
+
+.toll-notice-modal__flow-card > span {
+  color: #b9c6d2;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.toll-notice-modal__flow-card > strong {
+  color: #f8fbff;
+  font-size: clamp(1rem, 2.8vw, 1.3rem);
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.toll-notice-modal__flow-card[data-role="toll"] > strong {
+  color: #ffb0a3;
+}
+
+.toll-notice-modal__flow-arrow {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  color: #ffd36d;
+  font-size: 1.45rem;
+  font-weight: 1000;
+  text-shadow: 0 0 16px rgba(255, 205, 92, 0.28);
+}
+
+.toll-notice-modal__legacy-balance {
+  display: none !important;
 }
 
 [data-money-loss-balance="true"],
@@ -51,6 +95,10 @@
 
 [data-money-loss-balance="true"][data-money-loss-counting="true"] {
   animation: marble-modal-money-loss-balance 760ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+.toll-notice-modal__flow-card[data-money-loss-balance="true"][data-money-loss-counting="true"] {
+  animation-duration: 1450ms;
 }
 
 [data-money-loss-deduction="true"][data-money-loss-counting="true"] {
@@ -207,6 +255,19 @@
 }
 
 @media (max-width: 640px) {
+  .toll-notice-modal__payment-flow {
+    gap: 8px;
+  }
+
+  .toll-notice-modal__flow-card {
+    padding: 13px 10px;
+  }
+
+  .toll-notice-modal__flow-arrow {
+    min-width: 20px;
+    font-size: 1.15rem;
+  }
+
   .rest-turn-celebration-card {
     min-width: min(88vw, 340px);
     padding: 20px 22px 19px;
