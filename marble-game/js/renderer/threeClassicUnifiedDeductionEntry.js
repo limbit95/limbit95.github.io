@@ -462,9 +462,9 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
         return;
       }
       entry.flushing = true;
-      void renderer.playEvent(entry.event)
-        .catch?.((error) => reportError(error, entry.event?.type))
-        .finally?.(() => removePending(entry));
+      Promise.resolve(renderer.playEvent(entry.event))
+        .catch((error) => reportError(error, entry.event?.type))
+        .finally(() => removePending(entry));
     }, DEDUCTION_MODAL_FALLBACK_MS) ?? null;
     flushEntry(entry);
   }
