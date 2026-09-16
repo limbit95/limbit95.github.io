@@ -28,10 +28,20 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("brand gateway boots first and Together enters the existing login flow", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "하나의 공동체, 세 개의 방향." })).toBeVisible();
+  await expect(page.getByText("닮고, 나누고, 함께 살아가는 청파청년부의 세 가지 ‘같이’를 탐색해 보세요.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Like — 같이 닮다" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Value — 가치를 나누다" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Together — 같이 하다" })).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Like · Value · Together");
+
+  await page.getByRole("link", { name: "Together — 같이 하다" }).click();
 
   await expectHealthyLoginBoot(page, observed);
   await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
