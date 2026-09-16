@@ -22,14 +22,24 @@ function markLocalPresentationViewer(documentObject, state, playerId) {
   if (card?.dataset) card.dataset.viewer = "true";
 }
 
+function preserveChoiceTransferLayer(documentObject) {
+  const layer = documentObject?.querySelector?.("[data-tile-info-modal] .money-transfer-layer");
+  if (!layer || !documentObject?.body?.append) return;
+  documentObject.body.append(layer);
+}
+
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
   const documentObject = runtime.documentObject ?? globalThis.document;
   const renderer = presentationTiming.createClassicThreePrototypeRenderer(options, runtime);
   let latestState = null;
+  let choiceActionButton = null;
 
   return Object.freeze({
-    mount(targetElement) {
-      return renderer.mount(targetElement);
+    async mount(targetElement) {
+      const value = await renderer.mount(targetElement);
+      choiceActionButton = documentObject?.querySelector?.("[data-tile-info-action]") ?? null;
+      choiceActionButton?.addEventListener?.("click", () => preserveChoiceTransferLayer(documentObject), true);
+      return value;
     },
 
     renderState(state) {
@@ -48,6 +58,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     },
 
     dispose() {
+      choiceActionButton = null;
       latestState = null;
       renderer.dispose();
     },
