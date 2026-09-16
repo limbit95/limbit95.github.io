@@ -59,7 +59,7 @@ test("START celebration has visible center-screen styling and reduced-motion fal
 
 test("Marble import map routes the existing money presenter import through the current START wrapper", () => {
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
-  assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r1/);
+  assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r2/);
   assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260916-r1/);
-  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260916-r3/);
+  assert.match(indexHtml, /threeClassicPerformanceEntry\.js\?v=20260916-r4/);
 });
