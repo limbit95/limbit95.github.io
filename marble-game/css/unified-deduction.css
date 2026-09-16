@@ -1,0 +1,208 @@
+.deduction-feedback__mount {
+  margin: 16px 0 14px;
+}
+
+.tile-info-modal__stats > .deduction-feedback {
+  grid-column: 1 / -1;
+}
+
+.deduction-feedback {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.92fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  margin: 12px 0 4px;
+}
+
+.deduction-feedback__card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 92px;
+  padding: 13px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.025));
+  text-align: center;
+  transform-origin: center;
+}
+
+.deduction-feedback__label {
+  color: #aebdca;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.deduction-feedback__value {
+  color: #f9fcff;
+  font-size: clamp(0.98rem, 2.65vw, 1.34rem);
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.deduction-feedback__card--before {
+  border-color: rgba(255, 211, 115, 0.3);
+  background: linear-gradient(145deg, rgba(255, 211, 115, 0.13), rgba(255, 255, 255, 0.025));
+}
+
+.deduction-feedback__card--before .deduction-feedback__value {
+  color: #ffe8a4;
+}
+
+.deduction-feedback__card--cost {
+  border-color: rgba(255, 128, 111, 0.36);
+  background: linear-gradient(145deg, rgba(255, 100, 82, 0.18), rgba(255, 255, 255, 0.025));
+  box-shadow: 0 0 0 1px rgba(255, 137, 116, 0.05) inset;
+}
+
+.deduction-feedback__card--cost .deduction-feedback__label,
+.deduction-feedback__card--cost .deduction-feedback__value {
+  color: #ffb5aa;
+}
+
+.deduction-feedback__card--remaining {
+  overflow: hidden;
+  border-color: rgba(133, 211, 255, 0.28);
+  background: linear-gradient(145deg, rgba(89, 179, 229, 0.13), rgba(255, 255, 255, 0.025));
+}
+
+.deduction-feedback__operator {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  color: #90a3b4;
+  font-size: 1.15rem;
+  font-weight: 1000;
+  line-height: 1;
+}
+
+.deduction-feedback__meter {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin-top: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.deduction-feedback__meter-fill {
+  --deduction-meter-progress: 1;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f7d56e, #7fd7ef);
+  transform: scaleX(var(--deduction-meter-progress));
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.deduction-feedback[data-state="ready"] .deduction-feedback__card--cost {
+  animation: marble-deduction-ready 240ms ease-out both;
+}
+
+.deduction-feedback[data-state="deducting"] .deduction-feedback__card--before {
+  opacity: 0.76;
+  transition: opacity 220ms ease;
+}
+
+.deduction-feedback[data-state="deducting"] .deduction-feedback__card--cost {
+  animation: marble-deduction-cost-impact 560ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+.deduction-feedback[data-state="deducting"] .deduction-feedback__card--remaining {
+  animation: marble-deduction-result-focus 1600ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+.deduction-feedback[data-state="deducting"] .deduction-feedback__card--remaining .deduction-feedback__value {
+  color: #fff0b8;
+  text-shadow: 0 0 16px rgba(255, 206, 92, 0.24);
+}
+
+.deduction-feedback[data-state="settled"] .deduction-feedback__card--remaining {
+  border-color: rgba(122, 219, 184, 0.42);
+  background: linear-gradient(145deg, rgba(79, 190, 151, 0.15), rgba(255, 255, 255, 0.025));
+  animation: marble-deduction-settle 320ms ease-out both;
+}
+
+.deduction-feedback[data-state="settled"] .deduction-feedback__card--remaining .deduction-feedback__value {
+  color: #d6ffeb;
+}
+
+[data-deduction-cost-card="true"][data-money-transfer-impact="true"] {
+  animation: marble-deduction-coin-impact 360ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+@keyframes marble-deduction-ready {
+  0% { opacity: 0.6; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes marble-deduction-cost-impact {
+  0% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 103, 83, 0); }
+  28% { transform: scale(1.08); box-shadow: 0 0 28px rgba(255, 103, 83, 0.23); }
+  58% { transform: scale(0.985); box-shadow: 0 0 16px rgba(255, 103, 83, 0.12); }
+  100% { transform: scale(1); box-shadow: 0 0 0 rgba(255, 103, 83, 0); }
+}
+
+@keyframes marble-deduction-result-focus {
+  0% { transform: scale(1); border-color: rgba(133, 211, 255, 0.28); }
+  18% { transform: scale(1.035); border-color: rgba(255, 206, 92, 0.48); }
+  82% { transform: scale(1.015); border-color: rgba(255, 145, 118, 0.44); }
+  100% { transform: scale(1); border-color: rgba(133, 211, 255, 0.28); }
+}
+
+@keyframes marble-deduction-settle {
+  0% { transform: scale(1); }
+  48% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+@keyframes marble-deduction-coin-impact {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+
+@media (max-width: 640px) {
+  .deduction-feedback {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 0.9fr) auto minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .deduction-feedback__card {
+    min-height: 82px;
+    padding: 11px 8px;
+    border-radius: 13px;
+  }
+
+  .deduction-feedback__label {
+    font-size: 0.59rem;
+  }
+
+  .deduction-feedback__value {
+    font-size: clamp(0.78rem, 3vw, 1rem);
+  }
+
+  .deduction-feedback__operator {
+    min-width: 12px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deduction-feedback__card,
+  [data-deduction-cost-card="true"] {
+    animation: none !important;
+    transition: none !important;
+  }
+}
