@@ -20,6 +20,7 @@ const NOTIFICATION_COLUMNS = [
 
 const PUSH_NOTIFICATION_PREFERENCE_COLUMNS = [
   "user_id",
+  "push_opt_in",
   "new_activity_scope",
   "created_activity_participation_enabled",
   "joined_activity_updates_enabled",
@@ -29,6 +30,7 @@ const PUSH_NOTIFICATION_PREFERENCE_COLUMNS = [
 ].join(",");
 
 export const DEFAULT_PUSH_NOTIFICATION_PREFERENCES = Object.freeze({
+  push_opt_in: false,
   new_activity_scope: "interest_only",
   created_activity_participation_enabled: true,
   joined_activity_updates_enabled: true,
@@ -108,6 +110,18 @@ export async function getPushNotificationPreferences(userId) {
     ...DEFAULT_PUSH_NOTIFICATION_PREFERENCES,
     ...(data ?? {}),
   };
+}
+
+export async function updatePushOptInPreference(userId, enabled) {
+  return unwrap(await supabase
+    .from("push_notification_preferences")
+    .upsert({
+      user_id: userId,
+      push_opt_in: Boolean(enabled),
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" })
+    .select(PUSH_NOTIFICATION_PREFERENCE_COLUMNS)
+    .single());
 }
 
 export async function updatePushNotificationPreferences(userId, preferences) {

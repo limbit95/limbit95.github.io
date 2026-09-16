@@ -1,6 +1,23 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const isCI = Boolean(process.env.CI);
+const e2eMemberUserId = process.env.E2E_MEMBER_USER_ID;
+const authenticatedStorageState = e2eMemberUserId
+  ? {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://127.0.0.1:4173",
+          localStorage: [
+            {
+              name: `cheongpa:push-onboarding:${e2eMemberUserId}:first-activity:v1`,
+              value: "shown",
+            },
+          ],
+        },
+      ],
+    }
+  : undefined;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,6 +34,7 @@ export default defineConfig({
     : "list",
   use: {
     baseURL: "http://127.0.0.1:4173",
+    storageState: authenticatedStorageState,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
