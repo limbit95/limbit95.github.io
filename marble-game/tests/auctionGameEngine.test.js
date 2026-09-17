@@ -106,6 +106,7 @@ test("an explicit request is recorded and the auction starts only when the reque
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.deepEqual(state.pendingChoice.requestedByPlayerIds, ["b"]);
+  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["b"]);
   assert.deepEqual(state.pendingChoice.auction.eligiblePlayerIds, ["b", "c"]);
   assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_REQUEST_CLOSED"), true);
   assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_STARTED"), true);
@@ -126,6 +127,19 @@ test("the declining player cannot request the auction and duplicate requests are
   );
 });
 
+test("an auction requester cannot pass before placing a bid", () => {
+  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
+  state = openAuction(state, "b");
+
+  assert.throws(
+    () => auction(state, "b", { pass: true }),
+    /must place a bid before passing/,
+  );
+
+  state = auction(state, "c", { pass: true });
+  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["c"]);
+});
+
 test("auction bid and final pass settle ownership and winner gold after a request", () => {
   let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
   state = openAuction(state, "b");
@@ -134,6 +148,7 @@ test("auction bid and final pass settle ownership and winner gold after a reques
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
   assert.equal(state.pendingChoice.auction.highestBidderId, "b");
   assert.equal(state.pendingChoice.auction.highestBid, 260);
+  assert.deepEqual(state.pendingChoice.auction.bidPlayerIds, ["b"]);
 
   state = auction(state, "c", { pass: true });
 
@@ -149,19 +164,33 @@ test("auction bid and final pass settle ownership and winner gold after a reques
   )), true);
 });
 
-test("all eligible players can still pass after a requested auction opens", () => {
+test("non-requesters may pass after a requested auction opens", () => {
   let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
   state = openAuction(state, "b");
-  state = auction(state, "b", { pass: true });
   state = auction(state, "c", { pass: true });
 
-  assert.equal(state.phase, TURN_PHASES.TURN_END);
-  assert.equal(state.pendingChoice, null);
+  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
+  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["c"]);
   assert.equal(state.boardState.properties.singapore.ownerId, null);
-  assert.equal(state.lastEvents.some((event) => (
-    event.type === "AUCTION_ENDED"
-    && event.winnerPlayerId === null
-  )), true);
+});
+
+test("multiple requesters each carry the bid commitment into the auction", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a");
+  state = requestAuction(state, "b");
+  state = requestAuction(state, "c");
+  state = closeAuctionRequest(state);
+
+  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["b", "c"]);
+  assert.throws(
+    () => auction(state, "c", { pass: true }),
+    /must place a bid before passing/,
+  );
+
+  state = auction(state, "b", { amount: 260 });
+  state = auction(state, "c", { amount: 261 });
+  state = auction(state, "b", { pass: true });
+  assert.deepEqual(state.pendingChoice.auction.bidPlayerIds, ["b", "c"]);
+  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["b"]);
 });
 
 test("a sole eligible bidder wins after requesting and placing the opening bid", () => {
