@@ -91,6 +91,12 @@ function createCostLossFlow(documentObject, stats, balanceBefore, amount) {
   };
 }
 
+function hasLegacyCostRow(stats) {
+  return [...(stats?.children ?? [])].some((row) => (
+    row?.querySelector?.("dt")?.textContent?.trim?.() === "골드 변화"
+  ));
+}
+
 function openCostTileModal(documentObject, stateBefore, event) {
   if (event?.type !== "TILE_LANDED" || event?.tileType !== "TAX") return null;
   if (!isViewerPlayer(documentObject, stateBefore, event.playerId)) return null;
@@ -184,9 +190,66 @@ async function animateCostLoss(windowObject, display) {
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
   const documentObject = runtime.documentObject ?? globalThis.document;
   const windowObject = runtime.windowObject ?? globalThis.window;
+  const MutationObserverObject = runtime.MutationObserverObject
+    ?? windowObject?.MutationObserver
+    ?? globalThis.MutationObserver;
   const renderer = createBaseClassicThreePrototypeRenderer(options, runtime);
   let latestState = null;
   let costModalTimer = null;
+  let costStatsObserver = null;
+  let pendingCostContext = null;
+  let costPresentationRunning = false;
+
+  function rememberCostContext(event) {
+    if (event?.type !== "TILE_LANDED" || event?.tileType !== "TAX") return;
+    const stateBefore = latestState;
+    const player = findPlayer(stateBefore, event.playerId);
+    const node = findNode(stateBefore, event.nodeId);
+    if (!player || node?.type !== "TAX") return;
+    if (!isLocalPresentationMode(documentObject) && !isViewerPlayer(documentObject, stateBefore, event.playerId)) return;
+    pendingCostContext = {
+      event,
+      balanceBefore: Math.max(0, Number(player.money) || 0),
+      amount: Math.max(0, Number(node.amount) || 0),
+    };
+  }
+
+  function presentRenderedLegacyCost() {
+    if (!pendingCostContext || costPresentationRunning) return;
+    const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+    const stats = documentObject?.querySelector?.("[data-tile-info-stats]");
+    const type = documentObject?.querySelector?.("[data-tile-info-type]");
+    if (!modal || !stats || type?.textContent?.trim?.() !== "비용") return;
+    if (!modal.open && !modal.hasAttribute?.("open")) return;
+    if (!hasLegacyCostRow(stats)) return;
+
+    const context = pendingCostContext;
+    pendingCostContext = null;
+    const display = createCostLossFlow(
+      documentObject,
+      stats,
+      context.balanceBefore,
+      context.amount,
+    );
+    if (!display) return;
+
+    costPresentationRunning = true;
+    void animateCostLoss(windowObject, display)
+      .finally(() => {
+        costPresentationRunning = false;
+      });
+  }
+
+  function installFinalCostGuard() {
+    if (typeof MutationObserverObject !== "function" || costStatsObserver) return;
+    const stats = documentObject?.querySelector?.("[data-tile-info-stats]");
+    const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+    if (!stats || !modal) return;
+
+    costStatsObserver = new MutationObserverObject(() => presentRenderedLegacyCost());
+    costStatsObserver.observe(stats, { childList: true, subtree: true });
+    costStatsObserver.observe(modal, { attributes: true, attributeFilter: ["open"] });
+  }
 
   function scheduleCostTileModal(event) {
     if (isLocalPresentationMode(documentObject)) return;
@@ -196,6 +259,7 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     const run = () => {
       costModalTimer = null;
       const display = openCostTileModal(documentObject, stateBefore, event);
+      if (display) pendingCostContext = null;
       void animateCostLoss(windowObject, display);
     };
     if (typeof setTimeoutFn !== "function") {
@@ -209,7 +273,9 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
 
   return Object.freeze({
     async mount(targetElement) {
-      return renderer.mount(targetElement);
+      const value = await renderer.mount(targetElement);
+      installFinalCostGuard();
+      return value;
     },
 
     renderState(state) {
@@ -218,6 +284,10 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     },
 
     async playEvent(event) {
+      if (event?.type === "TILE_LANDED" && event?.tileType === "TAX") {
+        rememberCostContext(event);
+      }
+
       if (
         !isLocalPresentationMode(documentObject)
         && event?.type === "MONEY_PAID"
@@ -238,6 +308,10 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
       const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
       if (costModalTimer !== null) clearTimeoutFn?.(costModalTimer);
       costModalTimer = null;
+      costStatsObserver?.disconnect?.();
+      costStatsObserver = null;
+      pendingCostContext = null;
+      costPresentationRunning = false;
       latestState = null;
       renderer.dispose();
     },
