@@ -28,13 +28,46 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("AD keeps the P layout while presenting O copy", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "같이", exact: true })).toBeVisible();
+  await expect(page.getByText("닮고, 나누고, 함께 살아가는 청파청년부.")).toBeVisible();
+  await expect(page.getByText("약한 이의 곁에 서고 평화를 사랑하는 마음을, 오늘의 삶과 공동체 안에서 이어갑니다.")).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Value · Like · Together");
+
+  const chapters = page.locator(".brand-p-chapter");
+  await expect(chapters).toHaveCount(3);
+  await expect(chapters.nth(0)).toContainText("VALUE");
+  await expect(chapters.nth(0)).toContainText("중요하게 여기는 것을 말하고, 세상과 나눕니다.");
+  await expect(chapters.nth(1)).toContainText("LIKE");
+  await expect(chapters.nth(1)).toContainText("같은 방향을 바라보고, 삶으로 닮아갑니다.");
+  await expect(chapters.nth(2)).toContainText("TOGETHER");
+  await expect(chapters.nth(2)).toContainText("함께 모이고 움직이며, 공동체의 오늘을 만듭니다.");
+  expect(observed.pageErrors).toEqual([]);
+});
+
+test("AD Value chapter uses O detail copy and continues to Like", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/#/value", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "가치를 나누다" })).toBeVisible();
+  await expect(page.getByText("사람의 경험과 생각을 기록하고, 돌봄과 평화를 구체적인 프로젝트와 실천으로 확장합니다.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /NEXT CHAPTER 02 \/ LIKE/ })).toContainText("02 / LIKE");
+  expect(observed.pageErrors).toEqual([]);
+});
+
+test("AD Together chapter hands off to the existing community login", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.locator(".brand-p-chapter--together a").click();
+
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
