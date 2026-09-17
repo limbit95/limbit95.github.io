@@ -28,13 +28,30 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("AA three-door gateway loads and exposes all three public meanings", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: /같이 살아가고, 같이 만들어가며/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "LIKE — 같이 닮다" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "TOGETHER — 같이 하다" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "VALUE — 가치를 나누다" })).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Like · Together · Value");
+  expect(observed.pageErrors).toEqual([]);
+  expect(observed.failedScripts).toEqual([]);
+});
+
+test("Together opens a public chapter before entering the community app", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/#/together", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "같이 하다", exact: true })).toBeVisible();
+  await expect(page.getByText(/청년부의 소식과 모임, 활동을 한곳에서 만나고/)).toBeVisible();
+  await page.getByRole("link", { name: "커뮤니티 들어가기" }).click();
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
