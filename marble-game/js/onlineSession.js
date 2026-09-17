@@ -202,6 +202,12 @@ export async function createOnlineClassicSession({
     }
   }
 
+  async function notifyCurrentState() {
+    if (disposed) return state;
+    await onRemoteState?.(state);
+    return state;
+  }
+
   function markTransportRecovery(error) {
     realtimeHealthy = false;
     subscriptionReconciled = false;
@@ -369,6 +375,7 @@ export async function createOnlineClassicSession({
       return () => stateListeners.delete(listener);
     },
     refresh,
+    notifyCurrentState,
     roll() {
       return run(rollAction);
     },
