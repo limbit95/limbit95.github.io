@@ -34,7 +34,7 @@ export {
 
 const MODAL_MONEY_LEAD_IN_MS = 520;
 const MODAL_MONEY_FALLBACK_MS = 1400;
-const MODAL_LANDING_TILE_TYPES = new Set(["BONUS", "TAX", "REST"]);
+const MODAL_LANDING_TILE_TYPES = new Set(["BONUS", "REST"]);
 
 function subtractVector(a, b) {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
