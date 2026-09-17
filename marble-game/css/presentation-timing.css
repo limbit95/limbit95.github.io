@@ -1,0 +1,285 @@
+.money-burst-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483001;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.money-burst-coin[data-money-burst-fallback="true"] {
+  animation: marble-money-burst-flight 620ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+  animation-delay: var(--money-burst-delay, 0ms);
+}
+
+.player-hud-layer .player-card[data-money-burst="true"] {
+  animation: marble-money-burst-source 520ms ease-out both;
+}
+
+.toll-notice-modal__payment-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.toll-notice-modal__flow-card {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 15px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.055);
+  text-align: center;
+}
+
+.toll-notice-modal__flow-card > span {
+  color: #b9c6d2;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.toll-notice-modal__flow-card > strong {
+  color: #f8fbff;
+  font-size: clamp(1rem, 2.8vw, 1.3rem);
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.toll-notice-modal__flow-card[data-role="toll"] > strong {
+  color: #ffb0a3;
+}
+
+.toll-notice-modal__flow-arrow {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  color: #ffd36d;
+  font-size: 1.45rem;
+  font-weight: 1000;
+  text-shadow: 0 0 16px rgba(255, 205, 92, 0.28);
+}
+
+.toll-notice-modal__legacy-balance {
+  display: none !important;
+}
+
+[data-money-loss-balance="true"],
+[data-money-loss-deduction="true"] {
+  transform-origin: center;
+}
+
+.tile-info-modal__stats [data-money-loss-balance="true"] {
+  border-color: rgba(255, 205, 135, 0.34);
+  background: linear-gradient(145deg, rgba(255, 210, 132, 0.15), rgba(149, 190, 209, 0.1));
+}
+
+.tile-info-modal__stats [data-money-loss-deduction="true"] {
+  border-color: rgba(255, 148, 130, 0.34);
+  background: linear-gradient(145deg, rgba(255, 110, 92, 0.16), rgba(149, 190, 209, 0.08));
+}
+
+[data-money-loss-balance="true"] dd,
+[data-money-loss-balance="true"] strong {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-money-loss-deduction="true"] dd,
+[data-money-loss-deduction="true"] strong,
+[data-money-loss-deduction="true"] {
+  color: #ffb0a3;
+}
+
+[data-money-loss-balance="true"][data-money-loss-counting="true"] {
+  animation: marble-modal-money-loss-balance 760ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+.toll-notice-modal__flow-card[data-money-loss-balance="true"][data-money-loss-counting="true"] {
+  animation-duration: 1450ms;
+}
+
+[data-money-loss-deduction="true"][data-money-loss-counting="true"] {
+  animation: marble-modal-money-loss-deduction 760ms cubic-bezier(0.16, 0.82, 0.24, 1) both;
+}
+
+.rest-turn-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482992;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(97, 209, 225, 0.18), transparent 34%),
+    radial-gradient(circle at 50% 60%, rgba(87, 180, 127, 0.12), transparent 48%);
+  pointer-events: none;
+}
+
+.rest-turn-celebration[data-state="exit"] {
+  animation: marble-rest-turn-layer-out 180ms ease-in both;
+}
+
+.rest-turn-celebration-card {
+  display: grid;
+  min-width: min(82vw, 360px);
+  gap: 6px;
+  padding: 22px 28px 21px;
+  border: 1px solid rgba(135, 226, 224, 0.56);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(86, 199, 191, 0.2), transparent 58%),
+    linear-gradient(145deg, rgba(25, 49, 54, 0.97), rgba(13, 28, 39, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(118, 222, 206, 0.12) inset,
+    0 22px 56px rgba(3, 13, 22, 0.46),
+    0 0 42px rgba(80, 190, 183, 0.2);
+  text-align: center;
+  animation: marble-rest-turn-card-in 520ms cubic-bezier(0.16, 0.88, 0.26, 1.12) both;
+}
+
+.rest-turn-celebration-eyebrow {
+  color: #9cebe3;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+}
+
+.rest-turn-celebration-title {
+  color: #f4ffff;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  font-weight: 1000;
+  letter-spacing: -0.04em;
+}
+
+.rest-turn-celebration-detail {
+  margin-top: 3px;
+  color: #b8f0c9;
+  font-size: clamp(1rem, 2.8vw, 1.3rem);
+  font-weight: 950;
+}
+
+.rest-turn-celebration-caption {
+  margin-top: 4px;
+  color: #b9cbd3;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+@keyframes marble-money-burst-flight {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.52) rotate(0deg);
+  }
+  16% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.12) rotate(70deg);
+  }
+  58% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--money-burst-apex-x)), calc(-50% + var(--money-burst-apex-y))) scale(0.98) rotate(var(--money-burst-apex-rotation));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--money-burst-end-x)), calc(-50% + var(--money-burst-end-y))) scale(0.62) rotate(var(--money-burst-rotation));
+  }
+}
+
+@keyframes marble-money-burst-source {
+  0% { transform: scale(1); }
+  34% { transform: scale(1.055); }
+  58% { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+
+@keyframes marble-modal-money-loss-balance {
+  0% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+  32% {
+    transform: scale(1.07);
+    background-color: rgba(255, 205, 105, 0.16);
+  }
+  68% {
+    transform: scale(1.025);
+    background-color: rgba(255, 122, 102, 0.13);
+  }
+  100% {
+    transform: scale(1);
+    background-color: transparent;
+  }
+}
+
+@keyframes marble-modal-money-loss-deduction {
+  0% {
+    opacity: 0.25;
+    transform: translateY(8px) scale(0.82);
+  }
+  24% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.14);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(0) scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes marble-rest-turn-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  68% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.035);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes marble-rest-turn-layer-out {
+  to {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+}
+
+@media (max-width: 640px) {
+  .toll-notice-modal__payment-flow {
+    gap: 8px;
+  }
+
+  .toll-notice-modal__flow-card {
+    padding: 13px 10px;
+  }
+
+  .toll-notice-modal__flow-arrow {
+    min-width: 20px;
+    font-size: 1.15rem;
+  }
+
+  .rest-turn-celebration-card {
+    min-width: min(88vw, 340px);
+    padding: 20px 22px 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-burst-coin,
+  .player-hud-layer .player-card[data-money-burst="true"],
+  [data-money-loss-counting="true"],
+  .rest-turn-celebration,
+  .rest-turn-celebration-card {
+    animation: none;
+  }
+}

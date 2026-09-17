@@ -110,7 +110,7 @@ test("Classic dice and movement use the shared presentation queue without changi
   assert.match(diceStageLazySource, /DICE_ROLLED/);
   assert.match(diceStageLazySource, /stage\.playRoll\(event\.dice, event\.rollOptions\)/);
   assert.match(diceStageLazySource, /diceStage\.js\?implementation=20260911-r12/);
-  assert.match(rendererSource, /for \(const nodeId of event\.path\)/);
+  assert.match(rendererSource, /for \(const \[index, nodeId\] of path\.entries\(\)\)/);
   assert.match(rendererSource, /tweenToken\(token, destination, reducedMotion \? 0 : 165\)/);
 });
 
