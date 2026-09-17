@@ -9,6 +9,7 @@ const workRoot = path.join(repositoryRoot, workdirName, "supabase");
 const migrationsRoot = path.join(workRoot, "migrations");
 const siteRoot = path.join(repositoryRoot, "supabase", "site");
 const liarRoot = path.join(repositoryRoot, "supabase", "liar-game");
+const theGameRoot = path.join(repositoryRoot, "supabase", "the-game");
 const marbleRoot = path.join(repositoryRoot, "supabase", "marble");
 
 const liarPostCanonicalMigrations = [
@@ -53,6 +54,7 @@ function syntheticTimestamp(baseIso, index) {
 await assertDirectory(path.join(siteRoot, "baseline"));
 await assertDirectory(path.join(siteRoot, "migrations"));
 await assertDirectory(path.join(liarRoot, "migrations"));
+await assertDirectory(theGameRoot);
 await assertDirectory(marbleRoot);
 await assertDirectory(workRoot);
 
@@ -108,6 +110,20 @@ for (const [index, filename] of liarPostCanonicalMigrations.entries()) {
   await copyFile(source, path.join(migrationsRoot, migrationName));
 }
 
+// The Game keeps its historical SQL files directly under supabase/the-game.
+// Replay every checked-in migration in filename order against the disposable DB.
+const theGameMigrations = (await readdir(theGameRoot))
+  .filter((name) => /^\d{14}_.+\.sql$/u.test(name))
+  .sort((a, b) => a.localeCompare(b));
+
+for (const [index, filename] of theGameMigrations.entries()) {
+  const migrationName = `${syntheticTimestamp("2097-06-01T00:00:00Z", index)}_the_game_${filename.replace(/^\d{14}_/u, "")}`;
+  await copyFile(
+    path.join(theGameRoot, filename),
+    path.join(migrationsRoot, migrationName),
+  );
+}
+
 // Marble is still under active development. The harness only replays its checked-in
 // additive migrations into a disposable database; it does not alter Marble runtime code.
 const marbleMigrations = (await readdir(marbleRoot))
@@ -137,5 +153,5 @@ await writeFile(
 await copyFile(path.join(siteRoot, "seed.sql"), path.join(workRoot, "seed.sql"));
 
 console.log(
-  `Prepared game DB integration schema: ${baselineFiles.length} site baseline + ${operatingMigrations.length} site migrations + 1 Liar canonical baseline + ${liarPostCanonicalMigrations.length} post-canonical Liar migrations + ${marbleMigrations.length} Marble migrations.`,
+  `Prepared game DB integration schema: ${baselineFiles.length} site baseline + ${operatingMigrations.length} site migrations + 1 Liar canonical baseline + ${liarPostCanonicalMigrations.length} post-canonical Liar migrations + ${theGameMigrations.length} The Game migrations + ${marbleMigrations.length} Marble migrations.`,
 );
