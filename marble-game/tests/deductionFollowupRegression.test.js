@@ -10,7 +10,10 @@ const costEntrySource = readFileSync(
   new URL("../js/renderer/threeClassicCostPresentationEntry.js", import.meta.url),
   "utf8",
 );
-const coinCssSource = readFileSync(new URL("../css/coin-motion-polish.css", import.meta.url), "utf8");
+const tollLayoutCssSource = readFileSync(
+  new URL("../css/toll-loss-layout-polish.css", import.meta.url),
+  "utf8",
+);
 const indexHtml = readFileSync(new URL("../index.html", import.meta.url), "utf8");
 
 test("owned property still offers BUILD_PROPERTY when current gold is below build cost", () => {
@@ -58,13 +61,15 @@ test("cost landing entry explicitly opens TAX tile modal before shared deduction
   assert.match(costEntrySource, /threeClassicPerformanceEntry\.js\?v=20260917-r5-base/);
 });
 
-test("coin transfers use a strong hop and full spin while keeping reduced-motion fallback", () => {
-  assert.match(coinCssSource, /translate: 0 -118px/);
-  assert.match(coinCssSource, /translate: 0 -132px/);
-  assert.match(coinCssSource, /rotate: 390deg/);
-  assert.match(coinCssSource, /rotate: 720deg/);
-  assert.match(coinCssSource, /prefers-reduced-motion: reduce/);
-  assert.match(indexHtml, /coin-motion-polish\.css\?v=20260917-r1/);
+test("toll deduction cards use equal columns and centered symmetric spacing", () => {
+  assert.match(tollLayoutCssSource, /width: min\(540px, calc\(100vw - 32px\)\)/);
+  assert.match(tollLayoutCssSource, /grid-template-columns: minmax\(0, 1fr\) 20px minmax\(0, 1fr\) 20px minmax\(0, 1fr\)/);
+  assert.match(tollLayoutCssSource, /padding: 14px 10px 13px/);
+  assert.match(tollLayoutCssSource, /justify-items: center/);
+  assert.match(tollLayoutCssSource, /text-align: center/);
+  assert.match(tollLayoutCssSource, /white-space: nowrap/);
+  assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
+  assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r6/);
-  assert.match(indexHtml, /data-marble-build="20260917-r6"/);
+  assert.match(indexHtml, /data-marble-build="20260917-r7"/);
 });
