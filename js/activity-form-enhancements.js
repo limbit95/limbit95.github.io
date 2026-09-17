@@ -1,5 +1,3 @@
-import { enhanceActivityDetails } from "./activity-detail-map.js";
-
 const FORM_SELECTOR = ".activity-form";
 const NOTICE_SELECTOR = ".activity-form-notice";
 const DESCRIPTION_SELECTOR = ".activity-form-page-header .page-description";
@@ -108,24 +106,12 @@ function enhanceActivityForm(form) {
 }
 
 function enhanceForms(root = document) {
-  if (root instanceof Element && root.matches(FORM_SELECTOR)) enhanceActivityForm(root);
-  root.querySelectorAll?.(FORM_SELECTOR).forEach(enhanceActivityForm);
+  if (root?.matches?.(FORM_SELECTOR)) enhanceActivityForm(root);
+  root?.querySelectorAll?.(FORM_SELECTOR).forEach(enhanceActivityForm);
 }
 
-function enhanceApp(root = document) {
-  enhanceForms(root);
-  enhanceActivityDetails(root);
-}
+window.addEventListener("app:page-rendered", (event) => {
+  enhanceForms(event.detail?.root ?? document);
+});
 
-const app = document.getElementById("app");
-if (app) {
-  enhanceApp(app);
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      mutation.addedNodes.forEach((node) => {
-        if (node instanceof Element) enhanceApp(node);
-      });
-    }
-  });
-  observer.observe(app, { childList: true, subtree: true });
-}
+enhanceForms(document);
