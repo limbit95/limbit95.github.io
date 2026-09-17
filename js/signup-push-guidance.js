@@ -185,18 +185,11 @@ if (typeof document !== "undefined") {
   const app = document.getElementById("app");
   if (app) {
     enhancePushGuidance(app);
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        mutation.addedNodes.forEach((node) => {
-          if (node instanceof Element) enhancePushGuidance(node);
-        });
-      }
-    });
-    observer.observe(app, { childList: true, subtree: true });
 
-    if (typeof window !== "undefined") {
-      window.addEventListener("focus", () => enhancePushGuidance(app));
-      window.addEventListener("pageshow", () => enhancePushGuidance(app));
-    }
+    window.addEventListener("app:page-rendered", (event) => {
+      enhancePushGuidance(event.detail?.root ?? app);
+    });
+    window.addEventListener("focus", () => enhancePushGuidance(app));
+    window.addEventListener("pageshow", () => enhancePushGuidance(app));
   }
 }
