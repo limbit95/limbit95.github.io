@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-IAWBOPQW.js",
+  "entry": "assets/build/app-TXXXURQP.js",
   "outputs": [
-    "assets/build/app-IAWBOPQW.js",
+    "assets/build/app-TXXXURQP.js",
     "assets/build/chunks/activities-GJ66LUSL.js",
     "assets/build/chunks/activityDetail-77RJEV3F.js",
     "assets/build/chunks/activityForm-OPNY73FH.js",
@@ -32,7 +32,7 @@
     "assets/build/chunks/dashboard-5KGALUHG.js",
     "assets/build/chunks/errors-PM4CZS5B.js",
     "assets/build/chunks/games-MHLJPEC3.js",
-    "assets/build/chunks/home-C42IYGQG.js",
+    "assets/build/chunks/home-PDB2FNLV.js",
     "assets/build/chunks/login-GZ5U43KM.js",
     "assets/build/chunks/managers-FM3HCAAU.js",
     "assets/build/chunks/members-2MDMA7TR.js",
