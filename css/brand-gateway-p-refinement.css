@@ -1,0 +1,170 @@
+/* P refinement: viewport-led passage color and calmer closing composition. */
+.brand-p-chapter {
+  transition:
+    opacity .8s ease,
+    transform .8s ease,
+    background .9s cubic-bezier(.2,.7,.2,1),
+    color .75s ease;
+}
+
+.brand-p-chapter--like:hover,
+.brand-p-chapter--like:focus-within,
+.brand-p-chapter--value:hover,
+.brand-p-chapter--value:focus-within,
+.brand-p-chapter--together:hover,
+.brand-p-chapter--together:focus-within {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.brand-p-chapter:hover .brand-p-chapter__number,
+.brand-p-chapter:hover .brand-p-chapter__body,
+.brand-p-chapter:focus-within .brand-p-chapter__number,
+.brand-p-chapter:focus-within .brand-p-chapter__body {
+  border-color: var(--line);
+}
+
+.brand-p-chapter:hover .brand-p-chapter__ghost,
+.brand-p-chapter:focus-within .brand-p-chapter__ghost {
+  transform: none;
+  -webkit-text-stroke-color: rgba(31, 38, 34, .1);
+}
+
+/* LIKE uses green, TOGETHER uses blue. */
+.brand-p-chapter--like[data-active="true"] {
+  background: #7f9585;
+  color: #f7f5ef;
+}
+
+.brand-p-chapter--value[data-active="true"] {
+  background: var(--clay);
+  color: #fff6ef;
+}
+
+.brand-p-chapter--together[data-active="true"] {
+  background: #234d78;
+  color: #f4f1e9;
+}
+
+.brand-p-chapter[data-active="true"] .brand-p-chapter__number,
+.brand-p-chapter[data-active="true"] .brand-p-chapter__body {
+  border-color: rgba(255, 255, 255, .3);
+}
+
+.brand-p-chapter[data-active="true"] .brand-p-chapter__ghost {
+  transform: translateX(-1.25vw);
+  -webkit-text-stroke-color: rgba(255, 255, 255, .18);
+}
+
+.brand-p-statement {
+  min-height: 92vh;
+  display: grid;
+  grid-template-columns: 13vw minmax(0, 1fr) 23vw;
+  grid-template-rows: auto 1fr auto;
+  column-gap: 4.5vw;
+  padding: 12vh 4vw 9vh 3vw;
+  align-items: start;
+}
+
+.brand-p-statement__index {
+  grid-column: 1;
+  grid-row: 1;
+  padding-top: 7px;
+}
+
+.brand-p-statement__copy {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  max-width: 1040px;
+  padding: 5vh 0 7vh;
+}
+
+.brand-p-statement__copy p {
+  margin: 0;
+  padding-left: 0 !important;
+  font-size: clamp(50px, 5.9vw, 108px);
+  line-height: 1.035;
+  letter-spacing: -.045em;
+}
+
+.brand-p-statement__copy p + p {
+  margin-top: .14em;
+}
+
+.brand-p-statement__note {
+  grid-column: 3;
+  grid-row: 2 / 4;
+  align-self: end;
+  margin-bottom: 1vh;
+  padding-top: 16px;
+  border-top: 1px solid var(--ink);
+}
+
+.brand-p-statement__note span {
+  display: block;
+  margin-bottom: 26px;
+}
+
+.brand-p-statement__note p {
+  max-width: 340px;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.brand-p-statement::after {
+  content: "CHEONGPA GACHI / COMMON GROUND";
+  grid-column: 2;
+  grid-row: 3;
+  align-self: end;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  font-size: 9px;
+  letter-spacing: .16em;
+  color: rgba(31, 38, 34, .66);
+}
+
+@media (max-width: 900px) {
+  .brand-p-statement {
+    min-height: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    padding: 88px 20px 80px;
+  }
+
+  .brand-p-statement__index {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 56px;
+  }
+
+  .brand-p-statement__copy {
+    grid-column: 1;
+    grid-row: 2;
+    max-width: none;
+    padding: 0;
+  }
+
+  .brand-p-statement__copy p {
+    font-size: 13vw;
+    line-height: 1.055;
+  }
+
+  .brand-p-statement__note {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 64px 0 0;
+    max-width: 390px;
+  }
+
+  .brand-p-statement::after {
+    grid-column: 1;
+    grid-row: 4;
+    margin-top: 54px;
+  }
+
+  .brand-p-chapter[data-active="true"] .brand-p-chapter__ghost {
+    transform: translateX(-.8vw);
+  }
+}

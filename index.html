@@ -30,9 +30,24 @@
     <link rel="stylesheet" href="./css/activity-form-cards.css">
     <link rel="stylesheet" href="./css/activity-form-enhancements.css">
     <link rel="stylesheet" href="./css/admin-permissions.css">
+    <link rel="stylesheet" href="./css/brand-gateway.css">
+    <link rel="stylesheet" href="./css/brand-gateway-p-refinement.css">
+    <script>
+      (() => {
+        if (!window.location.hash) {
+          window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#/gateway`);
+        }
+        const path = (window.location.hash.slice(1).split("?")[0] || "/gateway")
+          .replace(/\/+$/, "") || "/";
+        if (path === "/gateway" || path === "/like" || path === "/value") {
+          document.documentElement.dataset.brandPublic = "true";
+        }
+      })();
+    </script>
   </head>
   <body>
     <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="brand-gateway-root" hidden></div>
     <div id="app" class="app-shell">
       <div class="app-initial-loading" role="status" aria-live="polite">
         <img src="./assets/images/logo.svg" alt="" width="64" height="64">
@@ -44,6 +59,7 @@
     <noscript>
       <div class="noscript-message">이 서비스를 이용하려면 JavaScript를 활성화해 주세요.</div>
     </noscript>
+    <script src="./js/brand-gateway.js" onerror="document.documentElement.removeAttribute('data-brand-public')"></script>
     <script>
       (() => {
         function showBootError(message) {
@@ -82,6 +98,17 @@
     <script type="module" src="./js/activity-form-enhancements.js"></script>
     <script type="module" src="./js/activity-share-route-marker.js"></script>
     <script type="module" src="./js/signup-push-guidance.js"></script>
-    <script type="module" src="./assets/build/app-27K35GBM.js"></script>
+    <script type="module">
+  let communityAppPromise;
+  const loadCommunityApp = () => {
+    communityAppPromise ||= import("./assets/build/app-27K35GBM.js");
+    return communityAppPromise;
+  };
+  if (document.documentElement.dataset.brandPublic === "true") {
+    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
+  } else {
+    loadCommunityApp();
+  }
+</script>
   </body>
 </html>
