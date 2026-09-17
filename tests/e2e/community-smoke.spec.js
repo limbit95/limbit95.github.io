@@ -28,10 +28,19 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("public board gateway boots first and Together enters the existing login flow", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: /같이.*GACHI/i })).toBeVisible();
+  await expect(page.getByText("닮고, 나누고, 함께. 서로 다른 세 방향이 하나의 청파를 만듭니다.")).toBeVisible();
+  await expect(page.locator('a[href="#/like"]').first()).toBeVisible();
+  await expect(page.locator('a[href="#/value"]').first()).toBeVisible();
+  await expect(page.locator('a[href="#/login"]').first()).toBeVisible();
+
+  await page.locator('a[href="#/login"]').first().click();
 
   await expectHealthyLoginBoot(page, observed);
   await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
