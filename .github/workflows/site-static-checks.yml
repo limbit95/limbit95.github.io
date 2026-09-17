@@ -62,6 +62,9 @@ jobs:
       - name: Test activity permissions
         run: npm run test:activity-permissions
 
+      - name: Test Game Platform foundation
+        run: npm run test:game-platform
+
       - name: Test The Game rules engine
         run: npm run test:the-game
 
