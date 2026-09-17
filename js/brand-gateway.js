@@ -5,8 +5,18 @@
 
   const directions = [
     {
-      key: "like",
+      key: "value",
       number: "01",
+      english: "VALUE",
+      korean: "가치를 나누다",
+      summary: "사람의 이야기와 생각을 기록하고, 중요하게 여기는 가치를 삶의 실천으로 이어갑니다.",
+      meta: "이야기 · 칼럼 · 프로젝트",
+      href: "#/value",
+      accent: "#9b867b",
+    },
+    {
+      key: "like",
+      number: "02",
       english: "LIKE",
       korean: "같이 닮다",
       summary: "예배와 말씀 안에서 같은 방향을 바라보고, 삶으로 천천히 닮아갑니다.",
@@ -16,7 +26,7 @@
     },
     {
       key: "together",
-      number: "02",
+      number: "03",
       english: "TOGETHER",
       korean: "같이 하다",
       summary: "소식과 모임, 활동을 통해 서로의 오늘에 자리를 내어주며 함께 살아갑니다.",
@@ -24,21 +34,11 @@
       href: "#/together",
       accent: "#89979d",
     },
-    {
-      key: "value",
-      number: "03",
-      english: "VALUE",
-      korean: "가치를 나누다",
-      summary: "사람의 이야기와 생각을 기록하고, 중요하게 여기는 가치를 삶의 실천으로 이어갑니다.",
-      meta: "이야기 · 칼럼 · 프로젝트",
-      href: "#/value",
-      accent: "#9b867b",
-    },
   ];
 
   const details = {
     like: {
-      number: "01",
+      number: "02",
       english: "LIKE",
       title: "같이 닮다",
       lead: "예배와 말씀 안에서 예수님의 마음을 배우고, 청파가 걸어온 신앙의 방향을 오늘의 삶으로 이어갑니다.",
@@ -52,7 +52,7 @@
       nextLabel: "TOGETHER",
     },
     together: {
-      number: "02",
+      number: "03",
       english: "TOGETHER",
       title: "같이 하다",
       lead: "청파의 오늘을 서로 나누고, 실제 모임과 활동 안에서 함께 살아가는 공간입니다.",
@@ -67,7 +67,7 @@
       community: true,
     },
     value: {
-      number: "03",
+      number: "01",
       english: "VALUE",
       title: "가치를 나누다",
       lead: "목회자와 청년들의 이야기, 질문과 생각, 프로젝트를 통해 우리가 중요하게 여기는 가치를 세상과 나눕니다.",
@@ -150,7 +150,7 @@
 
     if (!("IntersectionObserver" in window)) {
       notes.forEach((note) => { note.dataset.visible = "true"; });
-      setActive("like");
+      setActive("value");
     } else {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
@@ -161,7 +161,7 @@
         });
       }, { threshold: [.15, .48, .72] });
       notes.forEach((note) => observer.observe(note));
-      setActive("like");
+      setActive("value");
     }
 
     if (!reduced) {
@@ -186,38 +186,38 @@
         el("div", { className: "brand-ab-hero__word" }, [
           el("span", { className: "brand-ab-hero__roman", text: "GACHI", "aria-hidden": "true" }),
           el("h1", { id: "brand-ab-title", text: "같이" }),
-          el("small", { text: "[같이]  함께 · 닮음 · 같은 가치" }),
+          el("small", { text: "[같이]  같은 가치 · 닮음 · 함께" }),
         ]),
         el("div", { className: "brand-ab-hero__copy" }, [
-          el("p", { text: "같이 살아가고, 같이 만들어가며, 같은 가치를 바라보는 청파청년부." }),
+          el("p", { text: "같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부." }),
           el("span", { text: "한 단어 안에 담긴 세 가지 방향을 천천히 읽어보세요." }),
         ]),
         el("div", { className: "brand-ab-hero__mark", "aria-hidden": "true" }, [el("i"), el("i"), el("i"), el("span", { text: "03" })]),
         el("a", { className: "brand-ab-scroll", href: "#brand-ab-dictionary" }, [el("span", { text: "READ THE THREE MEANINGS" }), el("b", { text: "↓", "aria-hidden": "true" })]),
       ]),
       el("section", { id: "brand-ab-dictionary", className: "brand-ab-dictionary", "aria-labelledby": "brand-ab-dictionary-title" }, [
-        el("div", { className: "brand-ab-dictionary__sticky", dataset: { active: "like" }, style: "--active-accent:#8e988a" }, [
+        el("div", { className: "brand-ab-dictionary__sticky", dataset: { active: "value" }, style: "--active-accent:#9b867b" }, [
           el("span", { className: "brand-ab-dictionary__eyebrow", text: "A WORD WITH THREE DIRECTIONS" }),
           el("div", { className: "brand-ab-dictionary__headword" }, [
             el("span", { className: "brand-ab-dictionary__index", text: "01", dataset: { activeIndex: "" } }),
             el("h2", { id: "brand-ab-dictionary-title", text: "같이" }),
             el("p", { text: "청파 같이에서 ‘같이’는 단지 함께 있다는 뜻만이 아닙니다." }),
           ]),
-          el("div", { className: "brand-ab-dictionary__active" }, [el("span", { text: "NOW READING" }), el("strong", { text: "같이 닮다", dataset: { activeLabel: "" } })]),
+          el("div", { className: "brand-ab-dictionary__active" }, [el("span", { text: "NOW READING" }), el("strong", { text: "가치를 나누다", dataset: { activeLabel: "" } })]),
         ]),
         el("div", { className: "brand-ab-notes" }, directions.map(directionNote)),
       ]),
       el("section", { className: "brand-ab-manifesto" }, [
         el("span", { text: "ONE COMMUNITY / THREE DIRECTIONS" }),
         el("div", { className: "brand-ab-manifesto__lines" }, [
+          el("p", {}, [el("em", { text: "나누며," }), " 우리가 믿는 가치를 살아냅니다."]),
           el("p", {}, [el("em", { text: "닮고," }), " 서로의 삶을 바라봅니다."]),
           el("p", {}, [el("em", { text: "함께하고," }), " 오늘을 같이 만듭니다."]),
-          el("p", {}, [el("em", { text: "나누며," }), " 우리가 믿는 가치를 살아냅니다."]),
         ]),
         el("a", { href: "#/together" }, [el("span", { text: "청파의 오늘로 들어가기" }), el("b", { text: "↗", "aria-hidden": "true" })]),
       ]),
       el("footer", { className: "brand-ab-footer" }, [
-        el("div", {}, [el("strong", { text: "CHUNGPA GACHI" }), el("span", { text: "LIKE · TOGETHER · VALUE" })]),
+        el("div", {}, [el("strong", { text: "CHUNGPA GACHI" }), el("span", { text: "VALUE · LIKE · TOGETHER" })]),
         el("p", { text: "chungpagachi.kr" }),
         el("span", { text: "© 2026 CHEONGPA YOUTH COMMUNITY" }),
       ]),
@@ -270,7 +270,7 @@
     if (path === "/like") { document.title = "같이 닮다 | 청파 같이"; renderDetail("like"); }
     else if (path === "/together") { document.title = "같이 하다 | 청파 같이"; renderDetail("together"); }
     else if (path === "/value") { document.title = "가치를 나누다 | 청파 같이"; renderDetail("value"); }
-    else { document.title = "청파 같이 | Like · Together · Value"; renderGateway(); }
+    else { document.title = "청파 같이 | Value · Like · Together"; renderGateway(); }
   }
 
   root.addEventListener("click", (event) => {
