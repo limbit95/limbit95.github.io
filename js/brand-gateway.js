@@ -325,9 +325,20 @@
   }
 
   root.addEventListener("click", (event) => {
-    const anchor = event.target.closest("a[href^='#/']");
+    const anchor = event.target.closest("a[href]");
     if (!anchor) return;
     const href = anchor.getAttribute("href");
+
+    if (href?.startsWith("#brand-ac-")) {
+      const target = document.querySelector(href);
+      if (!target) return;
+      event.preventDefault();
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      target.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+      return;
+    }
+
+    if (!href?.startsWith("#/")) return;
     const nextPath = routePath(href);
     if (!PUBLIC_ROUTES.has(nextPath)) return;
     event.preventDefault();
