@@ -14,10 +14,12 @@
 - `20260828215256_the_game_blank_starting_cards`
 - `20260828215438_the_game_blank_card_snapshot_markers`
 - `20260829064240_the_game_stats_mvp`
+- `20260829122605_the_game_mischievous_mvp`
 
 재현성 기준:
 - 저장소에서 누락되어 있던 초기 6개 migration은 2026-09-18 기준 운영 DB의 `supabase_migrations.schema_migrations`에 보존된 적용 SQL을 원문 그대로 복구했습니다.
 - 위 6개는 이미 운영 DB에 적용된 이력입니다. 운영 DB에 수동으로 다시 적용하지 않고, fresh-install 및 disposable 통합 테스트의 재현성 기준으로 사용합니다.
+- 기존 저장소에 `20260829123000_the_game_mischievous_mvp`로 남아 있던 파일은 운영 migration history의 실제 version인 `20260829122605`에 맞춰 파일명을 정정했습니다. SQL 로직은 동일하고 차이는 줄바꿈·포맷뿐이므로 운영 DB에는 다시 적용하지 않습니다.
 
 현재 온라인 구현은 대기방, 게임 시작/배분, 비공개 손패, 카드 제출, 오름/내림 및 ±10 검증, 최소 제출 수, 턴 종료/손패 보충, 턴 순환, 덱 소진 규칙, 승패 판정, Realtime 동기화, 중복 요청 방지까지 포함합니다.
 
