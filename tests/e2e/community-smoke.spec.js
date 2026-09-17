@@ -28,13 +28,44 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("AC O-P hybrid gateway opens before the community app", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "같이", exact: true })).toBeVisible();
+  await expect(page.getByText("AC / O × P")).toBeVisible();
+  await expect(page.getByText("같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부.")).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Value · Like · Together");
+
+  const indexRows = page.locator(".brand-ac-index__row");
+  await expect(indexRows).toHaveCount(3);
+  await expect(indexRows.nth(0)).toContainText("VALUE");
+  await expect(indexRows.nth(1)).toContainText("LIKE");
+  await expect(indexRows.nth(2)).toContainText("TOGETHER");
+  expect(observed.pageErrors).toEqual([]);
+});
+
+test("AC public chapters keep the Value-Like-Together narrative", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/#/value", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "VALUE" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "가치를 나누다" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "NEXT CHAPTER" })).toContainText("02 / LIKE");
+  expect(observed.pageErrors).toEqual([]);
+});
+
+test("Together public chapter hands off to the existing login app", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/#/together", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "같이 하다" })).toBeVisible();
+  await expect(page.getByText("읽는 ‘같이’에서, 실제 ‘같이’로.")).toBeVisible();
+  await page.getByRole("link", { name: "커뮤니티 들어가기" }).click();
+
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
