@@ -16,6 +16,7 @@ import {
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
+const ACTIVE_ONLINE_SESSIONS = new Map();
 
 function freezeProperties(properties = {}) {
   return Object.freeze(Object.fromEntries(
@@ -107,6 +108,11 @@ export function isOnlineViewerTurn(state, viewerPlayerId) {
   return state.players[state.currentPlayerIndex]?.id === viewerPlayerId;
 }
 
+export function getActiveOnlineClassicSession(roomId) {
+  if (!roomId) return null;
+  return ACTIVE_ONLINE_SESSIONS.get(String(roomId)) ?? null;
+}
+
 export function isRetryableOnlineActionError(error) {
   const name = String(error?.name ?? "");
   const message = String(error?.message ?? error ?? "");
@@ -146,12 +152,26 @@ export async function createOnlineClassicSession({
   let realtimeHealthy = false;
   let snapshotRecoveryPending = false;
   let subscriptionReconciled = false;
+  let sessionApi = null;
+  const stateListeners = new Set();
+
+  function notifyStateListeners(nextState) {
+    stateListeners.forEach((listener) => {
+      try {
+        listener(nextState);
+      } catch (error) {
+        console.warn("Marble online state listener failed", error);
+      }
+    });
+  }
 
   function accept(nextSnapshot) {
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
+    const changed = nextState.version > state.version;
     snapshot = nextSnapshot;
     state = nextState;
+    if (changed) notifyStateListeners(state);
     return state;
   }
 
@@ -334,7 +354,7 @@ export async function createOnlineClassicSession({
   window.addEventListener("offline", handleOffline);
   visibilityDocument?.addEventListener?.("visibilitychange", handleVisibilityChange);
 
-  return Object.freeze({
+  sessionApi = Object.freeze({
     isOnline: true,
     roomId,
     getState() {
@@ -342,6 +362,11 @@ export async function createOnlineClassicSession({
     },
     getViewerPlayerId() {
       return snapshot.viewerPlayerId ?? null;
+    },
+    subscribeState(listener) {
+      if (typeof listener !== "function") throw new Error("STATE_LISTENER_REQUIRED");
+      stateListeners.add(listener);
+      return () => stateListeners.delete(listener);
     },
     refresh,
     roll() {
@@ -378,9 +403,15 @@ export async function createOnlineClassicSession({
       clearRecoveryTimer();
       unsubscribe?.();
       unsubscribe = null;
+      stateListeners.clear();
+      if (ACTIVE_ONLINE_SESSIONS.get(String(roomId)) === sessionApi) {
+        ACTIVE_ONLINE_SESSIONS.delete(String(roomId));
+      }
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       visibilityDocument?.removeEventListener?.("visibilitychange", handleVisibilityChange);
     },
   });
+  ACTIVE_ONLINE_SESSIONS.set(String(roomId), sessionApi);
+  return sessionApi;
 }
