@@ -116,7 +116,7 @@ test("activity read paths skip participation summaries when the screen does not 
   assert.match(activityApi, /includeParticipation = true/);
   assert.match(activityApi, /if \(!includeParticipation\) return events\.map\(normalizeEventOrganizer\)/);
   assert.match(activityCalendar, /includeParticipation: false/);
-  assert.match(activityApi, /supabase\.rpc\("get_event_detail_core",\s*\{\s*p_event_id: numericEventId/);
+  assert.match(activityApi, /supabase\.rpc\(\s*"get_event_detail_core",\s*\{\s*p_event_id: numericEventId/);
   assert.match(activityApi, /supabase\.rpc\(\s*"get_activity_detail_supplement",\s*\{\s*p_event_id: numericEventId/);
   assert.doesNotMatch(activityApi, /getPublicProfiles/);
 });
