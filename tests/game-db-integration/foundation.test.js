@@ -14,6 +14,10 @@ const password = "Cheongpa-Game-DB-E2E-2026!";
 const createdUserIds = [];
 let alice;
 let bob;
+let pendingUser;
+let rejectedUser;
+let suspendedUser;
+let revokedUser;
 
 function jsonHeaders({ key = anonKey, token = key } = {}) {
   return {
@@ -59,20 +63,23 @@ async function expectOk(result, label) {
   return result.data;
 }
 
-function expectDenied(result, label) {
+function expectDenied(result, label, expectedPattern) {
   assert.equal(
     result.response.ok,
     false,
     `${label} unexpectedly succeeded: ${result.text}`,
   );
   assert.ok(result.response.status >= 400, `${label} returned an unexpected status.`);
+  if (expectedPattern) assert.match(result.text, expectedPattern, `${label} returned the wrong error.`);
 }
 
-async function createApprovedUser(label) {
+async function createTestUser(label, status = "approved") {
   const suffix = randomUUID().slice(0, 8);
   const email = `game-db-${label}-${suffix}@example.com`;
   const displayName = `게임DB ${label}`;
   const approvedAt = new Date().toISOString();
+  const approvedLike = status === "approved" || status === "suspended";
+  const joinStatus = status === "pending" ? "pending" : status === "rejected" ? "rejected" : "approved";
 
   const created = await expectOk(await request("/auth/v1/admin/users", {
     method: "POST",
@@ -111,11 +118,11 @@ async function createApprovedUser(label) {
       real_name: displayName,
       birth_year: 1990,
       age_visibility: "private",
-      status: "approved",
-      approved_at: approvedAt,
+      status,
+      approved_at: approvedLike ? approvedAt : null,
       role: "member",
     },
-  }), `approve ${label} profile`);
+  }), `set ${label} profile status`);
 
   await expectOk(await request("/rest/v1/join_requests?on_conflict=user_id", {
     method: "POST",
@@ -128,13 +135,13 @@ async function createApprovedUser(label) {
       real_name: displayName,
       church_group: "E2E",
       request_message: "게임 DB 통합 테스트",
-      status: "approved",
+      status: joinStatus,
       privacy_consent_at: approvedAt,
       privacy_policy_version: "2026-08",
       rules_consent_at: approvedAt,
       community_rules_version: "2026-09",
     },
-  }), `approve ${label} join request`);
+  }), `set ${label} join request status`);
 
   const session = await expectOk(await request("/auth/v1/token?grant_type=password", {
     method: "POST",
@@ -143,6 +150,19 @@ async function createApprovedUser(label) {
 
   assert.ok(session?.access_token, `${label} sign-in did not return an access token.`);
   return { id: created.id, email, accessToken: session.access_token };
+}
+
+async function setProfileStatus(userId, status) {
+  const approvedAt = status === "approved" ? new Date().toISOString() : undefined;
+  const body = { status };
+  if (approvedAt) body.approved_at = approvedAt;
+  await expectOk(await request(`/rest/v1/profiles?id=eq.${userId}`, {
+    method: "PATCH",
+    key: serviceRoleKey,
+    token: serviceRoleKey,
+    headers: { Prefer: "return=minimal" },
+    body,
+  }), `set profile ${userId} to ${status}`);
 }
 
 async function rpc(name, body, token = anonKey) {
@@ -154,8 +174,12 @@ async function rpc(name, body, token = anonKey) {
 }
 
 before(async () => {
-  alice = await createApprovedUser("alice");
-  bob = await createApprovedUser("bob");
+  alice = await createTestUser("alice");
+  bob = await createTestUser("bob");
+  pendingUser = await createTestUser("pending", "pending");
+  rejectedUser = await createTestUser("rejected", "rejected");
+  suspendedUser = await createTestUser("suspended", "suspended");
+  revokedUser = await createTestUser("revoked");
 });
 
 after(async () => {
@@ -186,10 +210,10 @@ test("anonymous callers cannot create Liar or Marble rooms", async () => {
   expectDenied(marbleResult, "anonymous marble_create_room");
 });
 
-test("approved Liar member can create a room and player-key possession protects its snapshot", async () => {
-  const playerKey = randomUUID();
+test("Liar entry and resume RPCs require an approved community member", async () => {
+  const ownerKey = randomUUID();
   const created = await expectOk(await rpc("liar_create_room", {
-    p_player_key: playerKey,
+    p_player_key: ownerKey,
     p_nickname: "Alice",
     p_selected_categories: ["음식"],
     p_difficulty: "all",
@@ -199,11 +223,53 @@ test("approved Liar member can create a room and player-key possession protects 
 
   const roomRow = Array.isArray(created) ? created[0] : created;
   assert.ok(roomRow?.room_id, "Liar room creation did not return room_id.");
+  assert.ok(roomRow?.room_code, "Liar room creation did not return room_code.");
+
+  for (const [label, user] of [
+    ["pending", pendingUser],
+    ["rejected", rejectedUser],
+    ["suspended", suspendedUser],
+  ]) {
+    const createResult = await rpc("liar_create_room", {
+      p_player_key: randomUUID(),
+      p_nickname: label,
+      p_selected_categories: ["음식"],
+      p_difficulty: "all",
+      p_liar_count: 1,
+      p_guess_limit: 1,
+    }, user.accessToken);
+    expectDenied(createResult, `${label} liar_create_room`, /AUTH_REQUIRED/u);
+
+    const joinResult = await rpc("liar_join_room", {
+      p_room_code: roomRow.room_code,
+      p_player_key: randomUUID(),
+      p_nickname: label,
+    }, user.accessToken);
+    expectDenied(joinResult, `${label} liar_join_room`, /AUTH_REQUIRED/u);
+  }
+
+  const revokedKey = randomUUID();
+  await expectOk(await rpc("liar_join_room", {
+    p_room_code: roomRow.room_code,
+    p_player_key: revokedKey,
+    p_nickname: "Revoked",
+  }, revokedUser.accessToken), "approved member joins before suspension");
+
+  await setProfileStatus(revokedUser.id, "suspended");
+
+  const activeRooms = await expectOk(await rpc("liar_get_my_active_rooms", {}, revokedUser.accessToken), "suspended liar_get_my_active_rooms");
+  assert.deepEqual(activeRooms, [], "suspended member must not discover an active Liar room");
+
+  const resumeResult = await rpc("liar_resume_room", {
+    p_room_id: roomRow.room_id,
+    p_player_key: revokedKey,
+  }, revokedUser.accessToken);
+  expectDenied(resumeResult, "suspended liar_resume_room", /AUTH_REQUIRED/u);
 
   const snapshot = await rpc("liar_get_room_snapshot", {
-    p_player_key: playerKey,
+    p_player_key: ownerKey,
   }, alice.accessToken);
-  await expectOk(snapshot, "liar_get_room_snapshot with owned player key");
+  await expectOk(snapshot, "approved liar_get_room_snapshot with owned player key");
 
   const wrongKeySnapshot = await rpc("liar_get_room_snapshot", {
     p_player_key: randomUUID(),
@@ -233,5 +299,3 @@ test("Marble lobby enforces membership and optimistic room versions", async () =
   expectDenied(staleReady, "stale marble_set_ready");
   assert.match(staleReady.text, /VERSION_CONFLICT/u);
 });
-
-test.todo("pending/rejected/suspended users are rejected by Liar and Marble entry RPCs (Phase 2-C)");
