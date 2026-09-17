@@ -4,10 +4,7 @@ function observeBootFailures(page) {
   const pageErrors = [];
   const failedScripts = [];
 
-  page.on("pageerror", (error) => {
-    pageErrors.push(error.message);
-  });
-
+  page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("requestfailed", (request) => {
     const url = request.url();
     if (request.resourceType() === "script" || url.includes("/js/")) {
@@ -28,31 +25,33 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("P brand gateway exposes the three architectural passages and enters Together", async ({ page }) => {
   const observed = observeBootFailures(page);
-
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "같이" })).toBeVisible();
+  await expect(page.getByText("A COMMUNITY IN THREE DIRECTIONS")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "LIKE" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "VALUE" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "TOGETHER" })).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Like · Value · Together");
+
+  await page.getByRole("link", { name: "같이 하다 열기" }).click();
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
   const observed = observeBootFailures(page);
-
   await page.goto("/#/mypage", { waitUntil: "domcontentloaded" });
-
   await expectHealthyLoginBoot(page, observed);
 });
 
 test("login form exposes client-side validation without leaving the page", async ({ page }) => {
   const observed = observeBootFailures(page);
-
   await page.goto("/#/login", { waitUntil: "domcontentloaded" });
   await expectHealthyLoginBoot(page, observed);
-
   await page.getByRole("button", { name: "이메일로 로그인" }).click();
-
   await expect(page.getByText("올바른 이메일 주소를 입력해 주세요.")).toBeVisible();
   await expect(page.getByText("비밀번호는 8자 이상 입력해 주세요.")).toBeVisible();
   await expect(page).toHaveURL(/#\/login$/);
