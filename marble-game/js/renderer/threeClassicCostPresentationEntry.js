@@ -21,8 +21,10 @@ function openCostTileModal(documentObject, state, event) {
   if (!isViewerPlayer(documentObject, state, event.playerId)) return;
 
   const modal = documentObject?.querySelector?.("[data-tile-info-modal]");
+  if (!modal || modal.open || modal.hasAttribute?.("open")) return;
+
   const info = createClassicTileInfo(state, event.nodeId);
-  if (!modal || !info) return;
+  if (!info) return;
 
   const type = documentObject.querySelector?.("[data-tile-info-type]");
   const title = documentObject.querySelector?.("[data-tile-info-title]");
@@ -57,16 +59,30 @@ function openCostTileModal(documentObject, state, event) {
     action.dataset.action = "";
   }
 
-  if (!modal.open) {
-    if (typeof modal.showModal === "function") modal.showModal();
-    else modal.setAttribute("open", "");
-  }
+  if (typeof modal.showModal === "function") modal.showModal();
+  else modal.setAttribute("open", "");
 }
 
 export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) {
   const documentObject = runtime.documentObject ?? globalThis.document;
+  const windowObject = runtime.windowObject ?? globalThis.window;
   const renderer = createBaseClassicThreePrototypeRenderer(options, runtime);
   let latestState = null;
+  let costModalTimer = null;
+
+  function scheduleCostTileModal(event) {
+    const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
+    if (typeof setTimeoutFn !== "function") {
+      openCostTileModal(documentObject, latestState, event);
+      return;
+    }
+    const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+    if (costModalTimer !== null) clearTimeoutFn?.(costModalTimer);
+    costModalTimer = setTimeoutFn(() => {
+      costModalTimer = null;
+      openCostTileModal(documentObject, latestState, event);
+    }, 0);
+  }
 
   return Object.freeze({
     async mount(targetElement) {
@@ -81,12 +97,15 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     async playEvent(event) {
       const value = await renderer.playEvent(event);
       if (event?.type === "TILE_LANDED" && event?.tileType === "TAX") {
-        openCostTileModal(documentObject, latestState, event);
+        scheduleCostTileModal(event);
       }
       return value;
     },
 
     dispose() {
+      const clearTimeoutFn = windowObject?.clearTimeout ?? globalThis.clearTimeout;
+      if (costModalTimer !== null) clearTimeoutFn?.(costModalTimer);
+      costModalTimer = null;
       latestState = null;
       renderer.dispose();
     },
