@@ -97,6 +97,17 @@
     <script type="module" src="./js/activity-form-enhancements.js"></script>
     <script type="module" src="./js/activity-share-route-marker.js"></script>
     <script type="module" src="./js/signup-push-guidance.js"></script>
-    <script type="module" src="./assets/build/app-27K35GBM.js"></script>
+    <script type="module">
+  let communityAppPromise;
+  const loadCommunityApp = () => {
+    communityAppPromise ||= import("./assets/build/app-27K35GBM.js");
+    return communityAppPromise;
+  };
+  if (document.documentElement.dataset.brandPublic === "true") {
+    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
+  } else {
+    loadCommunityApp();
+  }
+</script>
   </body>
 </html>
