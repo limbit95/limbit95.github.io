@@ -53,6 +53,26 @@ test("AE gateway keeps the narrative order VALUE then LIKE then TOGETHER", async
   await expect(stops.nth(2).getByText("TOGETHER", { exact: true })).toBeVisible();
 });
 
+test("AE path activation follows VALUE LIKE TOGETHER at the viewport reading line", async ({ page }) => {
+  await page.goto("/#/gateway", { waitUntil: "domcontentloaded" });
+
+  const shell = page.locator(".brand-ae-shell");
+  const stops = page.locator(".brand-ae-stop");
+  const directions = ["value", "like", "together"];
+
+  for (let index = 0; index < directions.length; index += 1) {
+    await stops.nth(index).evaluate((stop) => {
+      const node = stop.querySelector(".brand-ae-stop__node") || stop;
+      const rect = node.getBoundingClientRect();
+      const documentCenter = window.scrollY + rect.top + rect.height / 2;
+      window.scrollTo(0, Math.max(0, documentCenter - window.innerHeight * .52));
+    });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve())));
+    await expect(shell).toHaveAttribute("data-active-direction", directions[index]);
+    await expect(stops.nth(index)).toHaveAttribute("data-active", "true");
+  }
+});
+
 test("Together public path hands off to the existing login app", async ({ page }) => {
   const observed = observeBootFailures(page);
 
