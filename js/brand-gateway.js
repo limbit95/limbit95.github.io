@@ -142,7 +142,8 @@
       });
     }
 
-    main.querySelectorAll("[data-chapter]").forEach((node) => {
+    const chapterNodes = [...main.querySelectorAll("[data-chapter]")];
+    chapterNodes.forEach((node) => {
       if (!reduced) {
         node.addEventListener("pointermove", (event) => {
           const rect = node.getBoundingClientRect();
@@ -152,6 +153,37 @@
         node.addEventListener("pointerleave", () => node.style.removeProperty("--beam"));
       }
     });
+
+    let activeFrame = 0;
+    const updateActiveChapter = () => {
+      activeFrame = 0;
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+      let best = null;
+
+      chapterNodes.forEach((node) => {
+        const rect = node.getBoundingClientRect();
+        const visibleHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+        const visibleRatio = visibleHeight / Math.max(1, Math.min(rect.height, viewportHeight));
+        const centerDistance = Math.abs((rect.top + rect.bottom) / 2 - viewportHeight / 2);
+        if (visibleRatio < .46) return;
+        if (!best || visibleRatio > best.visibleRatio + .02 || (Math.abs(visibleRatio - best.visibleRatio) <= .02 && centerDistance < best.centerDistance)) {
+          best = { node, visibleRatio, centerDistance };
+        }
+      });
+
+      chapterNodes.forEach((node) => {
+        node.dataset.active = String(node === best?.node);
+      });
+    };
+
+    const scheduleActiveChapter = () => {
+      if (activeFrame) return;
+      activeFrame = window.requestAnimationFrame(updateActiveChapter);
+    };
+
+    window.addEventListener("scroll", scheduleActiveChapter, { passive: true });
+    window.addEventListener("resize", scheduleActiveChapter);
+    scheduleActiveChapter();
 
     const observed = [...main.querySelectorAll("[data-reveal], [data-chapter]")];
     if (!("IntersectionObserver" in window) || reduced) {
