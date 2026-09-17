@@ -9,7 +9,6 @@ const templatePath = path.join(root, "index.template.html");
 const indexPath = path.join(root, "index.html");
 const configPath = path.join(root, "js", "config.js");
 
-// Deployment bundles are committed so main-targeted PRs can verify source and assets stay in sync.
 await rm(outdir, { recursive: true, force: true });
 await mkdir(outdir, { recursive: true });
 
@@ -28,31 +27,24 @@ const result = await build({
   entryNames: "[name]-[hash]",
   chunkNames: "chunks/[name]-[hash]",
   assetNames: "assets/[name]-[hash]",
-  plugins: [
-    {
-      name: "external-community-runtime-config",
-      setup(ctx) {
-        ctx.onResolve({ filter: /config\.js(?:\?.*)?$/ }, (args) => {
-          const cleanPath = args.path.split("?")[0].split("#")[0];
-          const resolved = path.resolve(args.resolveDir, cleanPath);
-          if (resolved === configPath) {
-            return { path: "/js/config.js", external: true };
-          }
-          return null;
-        });
-      },
+  plugins: [{
+    name: "external-community-runtime-config",
+    setup(ctx) {
+      ctx.onResolve({ filter: /config\.js(?:\?.*)?$/ }, (args) => {
+        const cleanPath = args.path.split("?")[0].split("#")[0];
+        const resolved = path.resolve(args.resolveDir, cleanPath);
+        if (resolved === configPath) return { path: "/js/config.js", external: true };
+        return null;
+      });
     },
-  ],
+  }],
 });
 
 const entry = Object.entries(result.metafile.outputs).find(([, meta]) => {
   if (!meta.entryPoint) return false;
   return path.resolve(root, meta.entryPoint) === path.join(root, "js", "app.js");
 });
-
-if (!entry) {
-  throw new Error("Hashed community app entry was not emitted.");
-}
+if (!entry) throw new Error("Hashed community app entry was not emitted.");
 
 const [entryOutput] = entry;
 const entryRelative = path.relative(root, path.resolve(root, entryOutput)).replaceAll(path.sep, "/");
@@ -62,24 +54,15 @@ if (!entryRelative.startsWith("assets/build/app-") || !entryRelative.endsWith(".
 
 const template = await readFile(templatePath, "utf8");
 const marker = "<!-- COMMUNITY_BUNDLE_ENTRY -->";
-if (!template.includes(marker)) {
-  throw new Error(`Missing ${marker} in index.template.html`);
-}
+if (!template.includes(marker)) throw new Error(`Missing ${marker} in index.template.html`);
 
-const index = template.replace(
-  marker,
-  `<script type="module" src="./${entryRelative}"></script>`,
-);
+const entryTag = `<script type="module">\n  let communityAppPromise;\n  const loadCommunityApp = () => {\n    communityAppPromise ||= import("./${entryRelative}");\n    return communityAppPromise;\n  };\n  if (document.documentElement.dataset.brandPublic === "true") {\n    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });\n  } else {\n    loadCommunityApp();\n  }\n</script>`;
+const index = template.replace(marker, entryTag);
 await writeFile(indexPath, index, "utf8");
 
 const outputs = Object.keys(result.metafile.outputs)
   .map((output) => path.relative(root, path.resolve(root, output)).replaceAll(path.sep, "/"))
   .sort();
 
-await writeFile(
-  path.join(outdir, "manifest.json"),
-  `${JSON.stringify({ entry: entryRelative, outputs }, null, 2)}\n`,
-  "utf8",
-);
-
+await writeFile(path.join(outdir, "manifest.json"), `${JSON.stringify({ entry: entryRelative, outputs }, null, 2)}\n`, "utf8");
 console.log(`Built hashed community entry: ${entryRelative}`);
