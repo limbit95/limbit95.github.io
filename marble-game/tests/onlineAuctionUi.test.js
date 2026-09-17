@@ -136,7 +136,7 @@ test("minimal auction UI keeps purchase decline separate from build decline and 
   assert.match(uiSource, /dataset\.auctionStage/);
   assert.match(uiSource, /requestButton\.textContent\s*=/);
   assert.match(uiSource, /bidButton\.textContent\s*=/);
-  assert.match(uiSource, /data-auction-bid-input/);
+  assert.match(uiSource, /bidInput\.dataset\.auctionBidInput/);
   assert.match(uiSource, /session\.auctionPass\(\)/);
   assert.doesNotMatch(uiSource, /setTimeout/);
   assert.doesNotMatch(uiSource, /5000/);
