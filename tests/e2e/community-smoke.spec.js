@@ -36,9 +36,9 @@ test("AB quiet editorial gateway loads before the community app", async ({ page 
   await expect(page).toHaveURL(/#\/gateway$/);
   await expect(page.getByRole("heading", { name: "같이", exact: true })).toBeVisible();
   await expect(page.getByText("AB / QUIET EDITORIAL")).toBeVisible();
-  await expect(page.getByText("같이 살아가고, 같이 만들어가며, 같은 가치를 바라보는 청파청년부.")).toBeVisible();
-  await expect(page).toHaveTitle("청파 같이 | Like · Together · Value");
-  await expect(page.getByRole("link", { name: "같이 하다 자세히 보기" })).toBeVisible();
+  await expect(page.getByText("같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부.")).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Value · Like · Together");
+  await expect(page.getByRole("link", { name: "가치를 나누다 자세히 보기" })).toBeVisible();
   expect(observed.pageErrors).toEqual([]);
 });
 
