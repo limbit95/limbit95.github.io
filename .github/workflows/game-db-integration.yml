@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - "supabase/liar-game/**"
+      - "supabase/the-game/**"
       - "supabase/marble/**"
       - "scripts/prepare-game-db-e2e.mjs"
       - "tests/game-db-integration/**"
