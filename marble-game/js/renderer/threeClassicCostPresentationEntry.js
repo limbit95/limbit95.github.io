@@ -30,6 +30,11 @@ function isViewerPlayer(documentObject, state, playerId) {
   return Boolean(viewerCard && Number(viewerCard.dataset.seat) === Number(player.seat));
 }
 
+function isLocalPresentationMode(documentObject) {
+  const mode = documentObject?.body?.dataset?.marbleBootstrapMode;
+  return mode === "local-play" || mode === "full";
+}
+
 function createLossCard(documentObject, label, value, role) {
   const card = documentObject.createElement("div");
   card.className = "payment-loss-flow__card";
@@ -184,6 +189,8 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
   let costModalTimer = null;
 
   function scheduleCostTileModal(event) {
+    if (isLocalPresentationMode(documentObject)) return;
+
     const stateBefore = latestState;
     const setTimeoutFn = windowObject?.setTimeout ?? globalThis.setTimeout;
     const run = () => {
@@ -211,7 +218,12 @@ export function createClassicThreePrototypeRenderer(options = {}, runtime = {}) 
     },
 
     async playEvent(event) {
-      if (event?.type === "MONEY_PAID" && event?.reason === "TAX" && !event?.creditorId) {
+      if (
+        !isLocalPresentationMode(documentObject)
+        && event?.type === "MONEY_PAID"
+        && event?.reason === "TAX"
+        && !event?.creditorId
+      ) {
         return undefined;
       }
 
