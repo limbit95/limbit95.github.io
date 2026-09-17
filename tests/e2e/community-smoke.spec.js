@@ -35,7 +35,7 @@ test("AE woven path gateway loads before the community app", async ({ page }) =>
 
   await expect(page).toHaveURL(/#\/gateway$/);
   await expect(page.getByRole("heading", { name: "같이", level: 1 })).toBeVisible();
-  await expect(page.getByText("AE / WOVEN PATH")).toBeVisible();
+  await expect(page.locator(".brand-ae-weave")).toBeVisible();
   await expect(page.getByText("같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부.")).toBeVisible();
   await expect(page.locator(".brand-ae-shell")).toBeVisible();
   await expect(page.getByRole("heading", { name: "다시 만나 반가워요" })).toHaveCount(0);
