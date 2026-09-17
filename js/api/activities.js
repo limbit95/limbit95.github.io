@@ -187,7 +187,10 @@ export async function getEvent(eventId) {
     .select(EVENT_DETAIL_COLUMNS)
     .eq("id", Number(eventId))
     .single());
-  const withSummary = normalizeEventOrganizer(event);
+  const withSummary = {
+    ...event,
+    organizer_id: event.organizer_id ?? event.created_by,
+  };
   const [summarizedEvents, [organizer]] = await Promise.all([
     attachEventParticipationSummaries([withSummary]),
     getPublicProfiles([withSummary.organizer_id]),
