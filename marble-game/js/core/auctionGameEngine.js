@@ -169,6 +169,7 @@ function closePropertyAuctionRequest(state, action) {
     nodeId: request.nodeId,
     openingBid: request.openingBid,
     declinedByPlayerId: request.declinedByPlayerId,
+    requestedByPlayerIds: request.requestedByPlayerIds,
     players: state.players,
   });
 
