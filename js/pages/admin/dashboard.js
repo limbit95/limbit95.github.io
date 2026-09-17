@@ -43,7 +43,7 @@ export async function renderAdminDashboard() {
     el("section", { className: "admin-grid", "aria-label": "관리 메뉴" }, [
       canMembers ? adminMenu("👋", "가입 신청 관리", `${pending}건 확인 필요`, "#/admin/approvals") : null,
       canMembers ? adminMenu("👥", "회원 관리", `승인 ${approved}명`, "#/admin/members") : null,
-      auth.isSystemAdmin ? adminMenu("🕒", "접속 관리", "회원별 마지막 접속 확인", "#/admin/access") : null,
+      auth.isSystemAdmin ? adminMenu("🕒", "접속 관리", "회원별 마지막 접속 확인", "#/admin?view=access") : null,
       canOperations ? adminMenu("🧭", "활동 담당자 관리", `${managerRows.length}명 지정`, "#/admin/managers") : null,
       canOperations ? adminMenu("📜", "활동 주최자 변경 이력", "최초 지정·변경 기록 조회", "#/admin/managers?view=organizer-history") : null,
       canContent ? adminMenu("🌈", "활동 카테고리 관리", `${categoryRows.filter((item) => item.is_active).length}개 활성`, "#/admin/categories") : null,
