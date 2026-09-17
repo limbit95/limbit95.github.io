@@ -7,6 +7,13 @@ export async function renderAdmin(route) {
   const organizerHistoryView = section === "managers"
     && route.query.get("view") === "organizer-history";
   const auth = getAuthState();
+  if (section === "access" && !auth.isSystemAdmin) {
+    return pageContainer(el("div", { className: "state-box" }, [
+      el("h1", { text: "접근 권한이 없습니다." }),
+      el("p", { className: "subtle", text: "접속 관리는 최고 관리자만 이용할 수 있습니다." }),
+      el("a", { className: "button", href: "#/admin", text: "관리자 대시보드" }),
+    ]));
+  }
   const requiredPermission = {
     approvals: ADMIN_PERMISSION.MEMBERS,
     members: ADMIN_PERMISSION.MEMBERS,
@@ -42,6 +49,9 @@ export async function renderAdmin(route) {
   } else if (section === "members") {
     const { renderMembers } = await import("./admin/members.js");
     root.append(await renderMembers());
+  } else if (section === "access") {
+    const { renderMemberAccess } = await import("./admin/access.js");
+    root.append(await renderMemberAccess());
   } else if (section === "managers" && organizerHistoryView) {
     const { renderOrganizerHistory } = await import("./admin/organizerHistory.js");
     root.append(await renderOrganizerHistory());
@@ -66,6 +76,7 @@ function adminTitle(section) {
     dashboard: "관리자 대시보드",
     approvals: "가입 신청 관리",
     members: "회원 관리",
+    access: "회원 접속 현황",
     managers: "활동 담당자 관리",
     categories: "활동 카테고리 관리",
     errors: "오류 로그",
