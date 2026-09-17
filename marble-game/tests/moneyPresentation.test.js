@@ -297,8 +297,8 @@ test("only skipped REST turns use a center celebration while REST landing stays 
   assert.match(timingSource, /REST_CELEBRATION_HOLD_MS = 2000/);
 });
 
-test("bonus, tax and REST landings use the shared result information modal", () => {
-  assert.match(wrapperSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "TAX", "REST"\]\)/);
+test("bonus and REST landings use the shared result information modal while TAX stays app-owned", () => {
+  assert.match(wrapperSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "REST"\]\)/);
   assert.match(wrapperSource, /populateLandingMoneyModal/);
   assert.match(wrapperSource, /createClassicTileInfo/);
   assert.match(wrapperSource, /\.\.\/tileInfo\.js\?v=20260912-r21/);
