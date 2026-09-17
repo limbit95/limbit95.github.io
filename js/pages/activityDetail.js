@@ -6,10 +6,8 @@ import {
   attachEventParticipationSummaries,
   cancelEventOrganizerTransferRequest,
   cancelEventParticipation,
-  getEvent,
-  getEventOrganizerTransferRequest,
+  getActivityDetail,
   joinEvent,
-  listEventOrganizerHistory,
   listEventParticipants,
   removeEvent,
   requestEventOrganizerTransfer,
@@ -39,12 +37,12 @@ import {
 
 export async function renderActivityDetail(route) {
   const auth = getAuthState();
-  const event = await getEvent(route.params.id);
-  const [participants, organizerHistory, organizerTransferRequest] = await Promise.all([
-    listEventParticipants(event.id),
-    listEventOrganizerHistory(event.id),
-    getEventOrganizerTransferRequest(event.id),
-  ]);
+  const {
+    event,
+    participants,
+    organizerHistory,
+    organizerTransferRequest,
+  } = await getActivityDetail(route.params.id);
   const counts = participationCounts(event);
   const mine = getMyParticipation(event, auth.user.id);
   const canEdit = canEditActivityFor(auth, event);
