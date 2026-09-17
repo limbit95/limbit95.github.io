@@ -28,13 +28,19 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("S spatial editorial gateway loads and Together enters login", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "같이", exact: true })).toBeVisible();
+  await expect(page.getByText("THREE DIRECTIONS")).toBeVisible();
+  await expect(page).toHaveTitle("청파 같이 | Like · Value · Together");
+
+  await page.getByRole("link", { name: "같이 하다 열기" }).click();
+
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
