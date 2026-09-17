@@ -12,6 +12,18 @@ const permissionMigration = readFileSync(
   new URL("../supabase/site/migrations/20260908090000_add_admin_permission_system.sql", import.meta.url),
   "utf8",
 );
+const dashboardMigration = readFileSync(
+  new URL("../supabase/site/migrations/20260917072000_admin_dashboard_aggregate.sql", import.meta.url),
+  "utf8",
+);
+const adminDashboardPage = readFileSync(
+  new URL("../js/pages/admin/dashboard.js", import.meta.url),
+  "utf8",
+);
+const adminApi = readFileSync(
+  new URL("../js/api/admin.js", import.meta.url),
+  "utf8",
+);
 
 function policySql(name) {
   return permissionMigration.match(new RegExp(`create policy ${name} [\\s\\S]*?;`))?.[0];
@@ -141,4 +153,38 @@ test("creator identity protection keeps community and operations boundaries sepa
 
   assert.ok(permissionHelper, "permission helper must exist");
   assert.match(permissionHelper, /select private\.is_system_admin\(\) or/);
+});
+
+test("admin dashboard counts are loaded through the aggregate read model", () => {
+  assert.match(adminApi, /export async function getAdminDashboardStats\(fromDate\)/);
+  assert.match(adminApi, /supabase\.rpc\("get_admin_dashboard_stats"/);
+  assert.match(adminDashboardPage, /getAdminDashboardStats\(today\)/);
+
+  for (const legacyCall of [
+    "listAllMembers",
+    "listJoinRequests",
+    "listEvents",
+    "listCategories",
+    "listCategoryManagers",
+  ]) {
+    assert.doesNotMatch(adminDashboardPage, new RegExp(`\\b${legacyCall}\\b`));
+  }
+});
+
+test("admin dashboard aggregate keeps permission boundaries in the database", () => {
+  assert.match(dashboardMigration, /security definer/);
+  assert.match(dashboardMigration, /set search_path = ''/);
+  assert.match(dashboardMigration, /private\.has_admin_permission\('members'\)/);
+  assert.match(dashboardMigration, /private\.has_admin_permission\('operations'\)/);
+  assert.match(dashboardMigration, /private\.has_admin_permission\('content'\)/);
+  assert.match(dashboardMigration, /from public\.join_requests/);
+  assert.match(dashboardMigration, /from public\.profiles/);
+  assert.match(dashboardMigration, /from public\.events/);
+  assert.match(dashboardMigration, /from public\.activity_categories/);
+  assert.match(dashboardMigration, /from public\.category_managers/);
+  assert.match(dashboardMigration, /revoke all on function public\.get_admin_dashboard_stats\(date\)/);
+  assert.match(
+    dashboardMigration,
+    /grant execute on function public\.get_admin_dashboard_stats\(date\)[\s\S]*to authenticated/,
+  );
 });
