@@ -4,11 +4,13 @@ import test from "node:test";
 
 const migrationPath = new URL("../supabase/site/migrations/20260917041000_activity_detail_read_model.sql", import.meta.url);
 const apiPath = new URL("../js/api/activities.js", import.meta.url);
+const detailPagePath = new URL("../js/pages/activityDetail.js", import.meta.url);
 
 async function readSources() {
   return Promise.all([
     readFile(migrationPath, "utf8"),
     readFile(apiPath, "utf8"),
+    readFile(detailPagePath, "utf8"),
   ]);
 }
 
@@ -43,4 +45,17 @@ test("activity API loads detail through two read-model RPCs without stale supple
   assert.doesNotMatch(api, /getPublicProfiles/);
   assert.doesNotMatch(api, /get_event_organizer_transfer_request/);
   assert.doesNotMatch(api, /list_event_organizer_history/);
+});
+
+test("activity detail page starts core and supplement read models together", async () => {
+  const [, api, detailPage] = await readSources();
+
+  assert.match(api, /export async function getActivityDetail\(eventId\)/);
+  assert.match(api, /const \[event, supplement\] = await Promise\.all\(\[/);
+  assert.match(api, /supabase\.rpc\("get_event_detail_core", \{ p_event_id: numericEventId \}\)/);
+  assert.match(api, /getActivityDetailSupplement\(numericEventId\)/);
+  assert.match(detailPage, /await getActivityDetail\(route\.params\.id\)/);
+  assert.doesNotMatch(detailPage, /const event = await getEvent\(route\.params\.id\)/);
+  assert.doesNotMatch(detailPage, /listEventOrganizerHistory\(event\.id\)/);
+  assert.doesNotMatch(detailPage, /getEventOrganizerTransferRequest\(event\.id\)/);
 });
