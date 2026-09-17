@@ -53,48 +53,155 @@ function requirePurchaseDecline(state, action) {
   return current;
 }
 
-function beginPropertyAuction(state, action) {
+function openPropertyAuctionRequest(state, action) {
   const current = requirePurchaseDecline(state, action);
   const node = getBoardNode(state.board, state.pendingChoice.nodeId);
   if (!node || node.type !== "PROPERTY") throw new Error("Auction property is missing.");
   if (state.boardState.properties[node.id]?.ownerId) throw new Error("Property is already owned.");
 
-  const auction = createPropertyAuction({
+  const candidateAuction = createPropertyAuction({
     nodeId: node.id,
     openingBid: state.pendingChoice.price,
     declinedByPlayerId: current.id,
     players: state.players,
   });
-  const events = [
-    { type: "CHOICE_DECLINED", playerId: current.id, choiceType: "BUY_PROPERTY" },
-    {
-      type: "AUCTION_STARTED",
-      playerId: current.id,
+  const declinedEvent = { type: "CHOICE_DECLINED", playerId: current.id, choiceType: "BUY_PROPERTY" };
+
+  if (candidateAuction.eligiblePlayerIds.length === 0) {
+    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
+    return withVersion(state, {
+      phase,
+      pendingChoice: null,
+      lastEvents: freezeEvents([
+        declinedEvent,
+        {
+          type: "AUCTION_REQUEST_CLOSED",
+          nodeId: node.id,
+          requestedByPlayerIds: [],
+          reason: "NO_ELIGIBLE_PLAYERS",
+        },
+      ]),
+    }, action);
+  }
+
+  return withVersion(state, {
+    pendingChoice: Object.freeze({
+      type: "AUCTION_REQUEST",
       nodeId: node.id,
-      openingBid: auction.openingBid,
-      eligiblePlayerIds: auction.eligiblePlayerIds,
-    },
-  ];
+      openingBid: candidateAuction.openingBid,
+      declinedByPlayerId: current.id,
+      eligiblePlayerIds: Object.freeze([...candidateAuction.eligiblePlayerIds]),
+      requestedByPlayerIds: Object.freeze([]),
+    }),
+    lastEvents: freezeEvents([
+      declinedEvent,
+      {
+        type: "AUCTION_REQUEST_OPENED",
+        nodeId: node.id,
+        openingBid: candidateAuction.openingBid,
+        declinedByPlayerId: current.id,
+        eligiblePlayerIds: candidateAuction.eligiblePlayerIds,
+      },
+    ]),
+  }, action);
+}
+
+function requireAuctionRequestWindow(state) {
+  if (state.status !== GAME_STATUS.PLAYING || state.phase !== TURN_PHASES.WAITING_CHOICE) {
+    throw new Error(`Auction request is not allowed during ${state.phase}.`);
+  }
+  if (state.pendingChoice?.type !== "AUCTION_REQUEST") {
+    throw new Error("There is no auction request window to resolve.");
+  }
+  return state.pendingChoice;
+}
+
+function requestPropertyAuction(state, action) {
+  const request = requireAuctionRequestWindow(state);
+  if (!request.eligiblePlayerIds.includes(action.playerId)) {
+    throw new Error("Player is not eligible to request this auction.");
+  }
+  if (request.requestedByPlayerIds.includes(action.playerId)) {
+    throw new Error("Player already requested this auction.");
+  }
+
+  const requestedByPlayerIds = Object.freeze([
+    ...request.requestedByPlayerIds,
+    action.playerId,
+  ]);
+
+  return withVersion(state, {
+    pendingChoice: Object.freeze({
+      ...request,
+      requestedByPlayerIds,
+    }),
+    lastEvents: freezeEvents([{
+      type: "AUCTION_REQUESTED",
+      playerId: action.playerId,
+      nodeId: request.nodeId,
+    }]),
+  }, action);
+}
+
+function closePropertyAuctionRequest(state, action) {
+  const request = requireAuctionRequestWindow(state);
+  if (action.playerId !== null && action.playerId !== undefined) {
+    throw new Error("AUCTION_REQUEST_CLOSE must be performed by the game authority.");
+  }
+
+  const closeEvent = {
+    type: "AUCTION_REQUEST_CLOSED",
+    nodeId: request.nodeId,
+    requestedByPlayerIds: request.requestedByPlayerIds,
+    reason: request.requestedByPlayerIds.length > 0 ? "REQUESTED" : "NO_REQUESTS",
+  };
+
+  if (request.requestedByPlayerIds.length === 0) {
+    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
+    return withVersion(state, {
+      phase,
+      pendingChoice: null,
+      lastEvents: freezeEvents([closeEvent]),
+    }, action);
+  }
+
+  const auction = createPropertyAuction({
+    nodeId: request.nodeId,
+    openingBid: request.openingBid,
+    declinedByPlayerId: request.declinedByPlayerId,
+    players: state.players,
+  });
 
   if (auction.status === "UNSOLD") {
-    const advanced = reduceGameAction(state, action);
-    return Object.freeze({
-      ...advanced,
+    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
+    return withVersion(state, {
+      phase,
+      pendingChoice: null,
       lastEvents: freezeEvents([
-        ...events,
-        { type: "AUCTION_ENDED", nodeId: node.id, winnerPlayerId: null, amount: 0 },
+        closeEvent,
+        { type: "AUCTION_ENDED", nodeId: request.nodeId, winnerPlayerId: null, amount: 0 },
       ]),
-    });
+    }, action);
   }
 
   return withVersion(state, {
     pendingChoice: Object.freeze({
       type: "PROPERTY_AUCTION",
-      nodeId: node.id,
+      nodeId: request.nodeId,
       openingBid: auction.openingBid,
+      requestedByPlayerIds: Object.freeze([...request.requestedByPlayerIds]),
       auction,
     }),
-    lastEvents: freezeEvents(events),
+    lastEvents: freezeEvents([
+      closeEvent,
+      {
+        type: "AUCTION_STARTED",
+        nodeId: request.nodeId,
+        openingBid: auction.openingBid,
+        requestedByPlayerIds: request.requestedByPlayerIds,
+        eligiblePlayerIds: auction.eligiblePlayerIds,
+      },
+    ]),
   }, action);
 }
 
@@ -166,7 +273,15 @@ export function reducePhase7GameAction(state, action) {
     && state?.phase === TURN_PHASES.WAITING_CHOICE
     && state?.pendingChoice?.type === "BUY_PROPERTY"
   ) {
-    return beginPropertyAuction(state, action);
+    return openPropertyAuctionRequest(state, action);
+  }
+
+  if (action?.type === ACTION_TYPES.AUCTION_REQUEST) {
+    return requestPropertyAuction(state, action);
+  }
+
+  if (action?.type === ACTION_TYPES.AUCTION_REQUEST_CLOSE) {
+    return closePropertyAuctionRequest(state, action);
   }
 
   if (action?.type === ACTION_TYPES.AUCTION_BID) {
