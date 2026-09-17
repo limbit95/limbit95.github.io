@@ -166,15 +166,19 @@ test("organizer request and completion pushes bypass my-page category preference
   assert.match(pushFunction, /if \(REQUIRED_PUSH_TYPES\.has\(type\)\) return true/);
 });
 
-test("activity API exposes request, response, cancellation, and history calls", () => {
+test("activity API exposes organizer transfer mutations while detail reads use the consolidated supplement", () => {
   assert.match(api, /"created_by",\s*"organizer_id"/);
   assert.match(api, /original_created_by: event\.created_by/);
   assert.match(api, /created_by: event\.organizer_id \?\? event\.created_by/);
-  assert.match(api, /getPublicProfiles\(\[withSummary\.organizer_id\]\)/);
+  assert.match(api, /supabase\.rpc\("get_activity_detail_supplement"/);
+  assert.match(api, /supplement\.participants \?\? \[\]/);
+  assert.match(api, /supplement\.organizer_history \?\? \[\]/);
+  assert.match(api, /supplement\.organizer_transfer_request \?\? null/);
+  assert.doesNotMatch(api, /getPublicProfiles/);
+  assert.doesNotMatch(api, /supabase\.rpc\("get_event_organizer_transfer_request"/);
   assert.match(api, /export async function requestEventOrganizerTransfer/);
   assert.match(api, /supabase\.rpc\("request_event_organizer_transfer"/);
   assert.match(api, /export async function getEventOrganizerTransferRequest/);
-  assert.match(api, /supabase\.rpc\("get_event_organizer_transfer_request"/);
   assert.match(api, /export async function respondEventOrganizerTransfer/);
   assert.match(api, /supabase\.rpc\("respond_event_organizer_transfer"/);
   assert.match(api, /export async function cancelEventOrganizerTransferRequest/);
