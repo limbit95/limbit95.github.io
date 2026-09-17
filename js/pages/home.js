@@ -1,5 +1,6 @@
 import { getAuthState } from "../auth.js";
 import {
+  attachEventParticipationSummaries,
   cancelEventParticipation,
   joinEvent,
   listEvents,
@@ -125,11 +126,7 @@ export async function renderHome() {
   } else {
     const grid = el("div", { className: "activity-grid activity-grid--home" });
     events.slice(0, 4).forEach((event) => {
-      grid.append(createActivityCard(event, {
-        userId: auth.user.id,
-        onJoin: (target, button) => handleParticipation(root, target, "join", button),
-        onCancel: (target, _mine, button) => handleParticipation(root, target, "cancel", button),
-      }));
+      grid.append(createHomeActivityCard(event, auth));
     });
     upcomingSection.append(grid);
   }
@@ -166,6 +163,20 @@ export async function renderHome() {
   });
 
   return root;
+}
+
+function createHomeActivityCard(event, auth) {
+  let card;
+  const refreshCard = async () => {
+    const [updatedEvent] = await attachEventParticipationSummaries([event]);
+    card.replaceWith(createHomeActivityCard(updatedEvent, auth));
+  };
+  card = createActivityCard(event, {
+    userId: auth.user.id,
+    onJoin: (target, button) => handleParticipation(target, "join", refreshCard, button),
+    onCancel: (target, _mine, button) => handleParticipation(target, "cancel", refreshCard, button),
+  });
+  return card;
 }
 
 function createAppInstallCard() {
@@ -352,7 +363,7 @@ function dailyVerseIndex(dateKey) {
   return (hash >>> 0) % DAILY_VERSES.length;
 }
 
-async function handleParticipation(root, event, action, button) {
+async function handleParticipation(event, action, refresh, button) {
   const joining = action === "join";
   const confirmed = await confirmDialog({
     title: joining ? "이 활동에 참여할까요?" : "참여를 취소할까요?",
@@ -372,8 +383,7 @@ async function handleParticipation(root, event, action, button) {
         : "참여를 취소했습니다.",
       "success",
     );
-    const refreshed = await renderHome();
-    root.replaceWith(refreshed);
+    await refresh();
   } catch (error) {
     showToast(getErrorMessage(error), "error");
     setBusy(button, false);
