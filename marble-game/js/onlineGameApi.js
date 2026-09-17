@@ -69,6 +69,28 @@ export function endOnlineTurn(options) {
   return gameAction("marble_end_turn", options);
 }
 
+export function declineOnlinePropertyForAuction(options) {
+  return gameAction("marble_decline_property_for_auction", options);
+}
+
+export function requestOnlineAuction(options) {
+  return gameAction("marble_request_auction", options);
+}
+
+export function closeOnlineAuctionRequest(options) {
+  return gameAction("marble_close_auction_request", options);
+}
+
+export function bidOnlineAuction({ roomId, expectedVersion, clientActionId, amount = null, pass = false } = {}) {
+  return rpc("marble_auction_bid", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_amount: amount === null ? null : Number(amount),
+    p_pass: pass === true,
+  });
+}
+
 export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const client = requireClient();
   const channel = client
