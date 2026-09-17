@@ -28,13 +28,59 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("guest app boots and redirects to login without module failures", async ({ page }) => {
+test("AE woven path gateway loads before the community app", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.getByRole("heading", { name: "같이", level: 1 })).toBeVisible();
+  await expect(page.locator(".brand-ae-weave")).toBeVisible();
+  await expect(page.getByText("같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부.")).toBeVisible();
+  await expect(page.locator(".brand-ae-shell")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "다시 만나 반가워요" })).toHaveCount(0);
+  expect(observed.pageErrors).toEqual([]);
+  expect(observed.failedScripts).toEqual([]);
+});
+
+test("AE gateway keeps the narrative order VALUE then LIKE then TOGETHER", async ({ page }) => {
+  await page.goto("/#/gateway", { waitUntil: "domcontentloaded" });
+
+  const stops = page.locator(".brand-ae-stop");
+  await expect(stops).toHaveCount(3);
+  await expect(stops.nth(0).getByText("VALUE", { exact: true })).toBeVisible();
+  await expect(stops.nth(1).getByText("LIKE", { exact: true })).toBeVisible();
+  await expect(stops.nth(2).getByText("TOGETHER", { exact: true })).toBeVisible();
+});
+
+test("AE path activation follows VALUE LIKE TOGETHER at the viewport reading line", async ({ page }) => {
+  await page.goto("/#/gateway", { waitUntil: "domcontentloaded" });
+
+  const shell = page.locator(".brand-ae-shell");
+  const stops = page.locator(".brand-ae-stop");
+  const directions = ["value", "like", "together"];
+
+  for (let index = 0; index < directions.length; index += 1) {
+    await stops.nth(index).evaluate((stop) => {
+      const node = stop.querySelector(".brand-ae-stop__node") || stop;
+      const rect = node.getBoundingClientRect();
+      const documentCenter = window.scrollY + rect.top + rect.height / 2;
+      window.scrollTo(0, Math.max(0, documentCenter - window.innerHeight * .52));
+    });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve())));
+    await expect(shell).toHaveAttribute("data-active-direction", directions[index]);
+    await expect(stops.nth(index)).toHaveAttribute("data-active", "true");
+  }
+});
+
+test("Together public path hands off to the existing login app", async ({ page }) => {
+  const observed = observeBootFailures(page);
+
+  await page.goto("/#/together", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "같이 하다", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: /청파 같이 시작하기/ }).click();
+
   await expectHealthyLoginBoot(page, observed);
-  await expect(page).toHaveTitle(/로그인 \| 청파 같이/);
 });
 
 test("protected community route redirects an unauthenticated visitor to login", async ({ page }) => {
