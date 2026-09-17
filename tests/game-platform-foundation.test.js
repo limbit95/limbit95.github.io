@@ -19,6 +19,8 @@ test("game registry keeps stable legacy entries without migrating their runtime"
   assert.ok(GAME_REGISTRY.every((game) => game.platform === "legacy"));
   assert.ok(GAME_REGISTRY.every((game) => game.capabilities.online));
   assert.equal(getRegisteredGame("the-game")?.href, "./the-game/");
+  assert.equal(getRegisteredGame("the-game")?.capabilities.invite, true);
+  assert.equal(getRegisteredGame("marble")?.capabilities.presence, true);
   assert.equal(getRegisteredGame("missing"), null);
 
   const copy = listRegisteredGames();

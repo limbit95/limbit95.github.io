@@ -69,7 +69,7 @@ export const GAME_REGISTRY = Object.freeze([
     description: "1부터 100 사이의 네 더미를 함께 관리하며 모든 숫자 카드를 내려놓는 협력 카드 게임이에요.",
     href: "./the-game/",
     buttonText: "더 게임 시작",
-    capabilities: { online: true },
+    capabilities: { online: true, invite: true },
     platform: "legacy",
   }),
   defineGame({
@@ -79,7 +79,7 @@ export const GAME_REGISTRY = Object.freeze([
     description: "클래식부터 우주·바다·판타지까지 서로 다른 세계와 규칙을 선택해 즐기는 테마형 마블 게임이에요.",
     href: "./marble-game/",
     buttonText: "마블 월드 보기",
-    capabilities: { online: true },
+    capabilities: { online: true, presence: true },
     platform: "legacy",
   }),
 ]);
