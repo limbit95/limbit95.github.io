@@ -1,4 +1,5 @@
 import {
+  attachEventParticipationSummaries,
   cancelEventParticipation,
   joinEvent,
   listEvents,
@@ -19,18 +20,24 @@ export async function renderActivityList(categoryId, search, auth) {
     );
   }
   const grid = el("section", { className: "activity-grid activity-grid--list", "aria-label": "활동 목록" });
-  const refresh = async () => {
-    const updated = await renderActivityList(categoryId, search, auth);
-    grid.replaceWith(updated);
-  };
   events.forEach((event) => {
-    grid.append(createActivityCard(event, {
-      userId: auth.user.id,
-      onJoin: (target, button) => participationAction(target, "join", refresh, button),
-      onCancel: (target, _mine, button) => participationAction(target, "cancel", refresh, button),
-    }));
+    grid.append(createListActivityCard(event, auth));
   });
   return grid;
+}
+
+function createListActivityCard(event, auth) {
+  let card;
+  const refreshCard = async () => {
+    const [updatedEvent] = await attachEventParticipationSummaries([event]);
+    card.replaceWith(createListActivityCard(updatedEvent, auth));
+  };
+  card = createActivityCard(event, {
+    userId: auth.user.id,
+    onJoin: (target, button) => participationAction(target, "join", refreshCard, button),
+    onCancel: (target, _mine, button) => participationAction(target, "cancel", refreshCard, button),
+  });
+  return card;
 }
 
 async function participationAction(event, action, refresh, button) {

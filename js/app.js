@@ -119,6 +119,15 @@ function renderStandalone(content) {
   app.replaceChildren(content);
 }
 
+function notifyPageRendered(route, root) {
+  window.dispatchEvent(new CustomEvent("app:page-rendered", {
+    detail: {
+      route: route.path,
+      root,
+    },
+  }));
+}
+
 async function handleLogout() {
   const confirmed = await confirmDialog({
     title: "로그아웃할까요?",
@@ -145,8 +154,14 @@ async function renderPage(route, renderer, { shell = true } = {}) {
   try {
     const content = await renderer(route);
     if (sequence !== renderSequence) return;
-    if (shell) renderShellContent(route, content);
-    else renderStandalone(content);
+    let renderedRoot;
+    if (shell) {
+      renderedRoot = renderShellContent(route, content);
+    } else {
+      renderStandalone(content);
+      renderedRoot = app;
+    }
+    notifyPageRendered(route, renderedRoot);
     requestAnimationFrame(() => document.getElementById("main-content")?.focus({ preventScroll: true }));
     window.scrollTo({ top: 0, behavior: "auto" });
   } catch (error) {
