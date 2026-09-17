@@ -158,6 +158,7 @@ export async function listEvents({
   toDate = null,
   statuses = ["scheduled", "closed"],
   limit = 100,
+  includeParticipation = true,
 } = {}) {
   let query = supabase
     .from("events")
@@ -176,6 +177,7 @@ export async function listEvents({
   if (toDate) query = query.lte("event_date", toDate);
   if (statuses?.length) query = query.in("status", statuses);
   const events = unwrap(await query) ?? [];
+  if (!includeParticipation) return events.map(normalizeEventOrganizer);
   return attachEventParticipationSummaries(events);
 }
 
@@ -185,10 +187,13 @@ export async function getEvent(eventId) {
     .select(EVENT_DETAIL_COLUMNS)
     .eq("id", Number(eventId))
     .single());
-  const [withSummary] = await attachEventParticipationSummaries([event]);
-  const [organizer] = await getPublicProfiles([withSummary.organizer_id]);
+  const withSummary = normalizeEventOrganizer(event);
+  const [summarizedEvents, [organizer]] = await Promise.all([
+    attachEventParticipationSummaries([withSummary]),
+    getPublicProfiles([withSummary.organizer_id]),
+  ]);
   return {
-    ...withSummary,
+    ...summarizedEvents[0],
     organizer: organizer ?? null,
   };
 }

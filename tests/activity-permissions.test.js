@@ -16,6 +16,9 @@ const ownerDeleteMigration = read("../supabase/site/migrations/20260915002000_re
 const form = read("../js/pages/activityForm.js");
 const detail = read("../js/pages/activityDetail.js");
 const activities = read("../js/pages/activities.js");
+const activityApi = read("../js/api/activities.js");
+const activityCalendar = read("../js/pages/activities/calendarView.js");
+const activityEnhancements = read("../js/activity-form-enhancements.js");
 const app = read("../js/app.js");
 const authSource = read("../js/auth.js");
 
@@ -107,6 +110,22 @@ test("approved routes and activity UI expose ownership-aware single activity man
   assert.match(form, /form\.recurring\?\.checked === true/);
   assert.match(form, /category\.is_active === false \? " \(비활성\)"/);
   assert.doesNotMatch(authSource, /managerCategoryIds[\s\S]*\.eq\("is_active", true\)/);
+});
+
+test("activity read paths skip participation summaries when the screen does not need them", () => {
+  assert.match(activityApi, /includeParticipation = true/);
+  assert.match(activityApi, /if \(!includeParticipation\) return events\.map\(normalizeEventOrganizer\)/);
+  assert.match(activityCalendar, /includeParticipation: false/);
+  assert.match(activityApi, /Promise\.all\(\[/);
+  assert.match(activityApi, /attachEventParticipationSummaries\(\[withSummary\]\)/);
+  assert.match(activityApi, /getPublicProfiles\(\[withSummary\.organizer_id\]\)/);
+});
+
+test("activity form enhancements run from the page-render lifecycle instead of a subtree observer", () => {
+  assert.match(app, /app:page-rendered/);
+  assert.match(activityEnhancements, /app:page-rendered/);
+  assert.doesNotMatch(activityEnhancements, /MutationObserver/);
+  assert.doesNotMatch(activityEnhancements, /enhanceActivityDetails/);
 });
 
 test("member insert policy binds identity, active category, and recurring series integrity", () => {
