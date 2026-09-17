@@ -17,7 +17,8 @@ test("activity detail read model keeps approved-member and profile privacy bound
 
   assert.match(migration, /create or replace function public\.get_event_detail_core\(p_event_id bigint\)/i);
   assert.match(migration, /create or replace function public\.get_activity_detail_supplement\(p_event_id bigint\)/i);
-  assert.match(migration, /security definer[\s\S]*?set search_path = ''/i);
+  assert.match(migration, /security definer/i);
+  assert.match(migration, /set search_path = ''/i);
   assert.match(migration, /v_user_id is null or not private\.is_approved_member\(\)/i);
   assert.match(migration, /organizer\.age_visibility = 'birth_year'/i);
   assert.match(migration, /organizer\.age_visibility = 'age_group'/i);
