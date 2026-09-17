@@ -50,9 +50,7 @@ const entry = Object.entries(result.metafile.outputs).find(([, meta]) => {
   return path.resolve(root, meta.entryPoint) === path.join(root, "js", "app.js");
 });
 
-if (!entry) {
-  throw new Error("Hashed community app entry was not emitted.");
-}
+if (!entry) throw new Error("Hashed community app entry was not emitted.");
 
 const [entryOutput] = entry;
 const entryRelative = path.relative(root, path.resolve(root, entryOutput)).replaceAll(path.sep, "/");
@@ -62,24 +60,26 @@ if (!entryRelative.startsWith("assets/build/app-") || !entryRelative.endsWith(".
 
 const template = await readFile(templatePath, "utf8");
 const marker = "<!-- COMMUNITY_BUNDLE_ENTRY -->";
-if (!template.includes(marker)) {
-  throw new Error(`Missing ${marker} in index.template.html`);
-}
+if (!template.includes(marker)) throw new Error(`Missing ${marker} in index.template.html`);
 
-const index = template.replace(
-  marker,
-  `<script type="module" src="./${entryRelative}"></script>`,
-);
+const entryTag = `<script type="module">
+  let communityAppPromise;
+  const loadCommunityApp = () => {
+    communityAppPromise ||= import("./${entryRelative}");
+    return communityAppPromise;
+  };
+  if (document.documentElement.dataset.brandPublic === "true") {
+    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
+  } else {
+    loadCommunityApp();
+  }
+</script>`;
+const index = template.replace(marker, entryTag);
 await writeFile(indexPath, index, "utf8");
 
 const outputs = Object.keys(result.metafile.outputs)
   .map((output) => path.relative(root, path.resolve(root, output)).replaceAll(path.sep, "/"))
   .sort();
 
-await writeFile(
-  path.join(outdir, "manifest.json"),
-  `${JSON.stringify({ entry: entryRelative, outputs }, null, 2)}\n`,
-  "utf8",
-);
-
+await writeFile(path.join(outdir, "manifest.json"), `${JSON.stringify({ entry: entryRelative, outputs }, null, 2)}\n`, "utf8");
 console.log(`Built hashed community entry: ${entryRelative}`);
