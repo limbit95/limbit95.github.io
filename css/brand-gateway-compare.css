@@ -1,0 +1,341 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, Pretendard, "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #ece9e1;
+  color: #1f2521;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.9), transparent 30rem),
+    #ece9e1;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+.compare-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: end;
+  padding: 28px clamp(18px, 4vw, 56px) 24px;
+  border-bottom: 1px solid rgba(31, 37, 33, 0.16);
+  background: rgba(247, 245, 239, 0.88);
+}
+
+.compare-kicker,
+.compare-control-label,
+.compare-header__meta,
+.preview-card__slot {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.compare-kicker {
+  margin: 0 0 8px;
+  color: #677168;
+}
+
+.compare-header h1 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 46px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.compare-description {
+  margin: 12px 0 0;
+  max-width: 720px;
+  color: #667068;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.compare-header__meta {
+  display: grid;
+  gap: 7px;
+  justify-items: end;
+  color: #747c76;
+  text-align: right;
+}
+
+.compare-main {
+  padding: 0 clamp(12px, 2vw, 28px) 28px;
+}
+
+.compare-controls {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-columns: auto minmax(300px, 1fr) auto auto auto;
+  gap: 18px;
+  align-items: end;
+  padding: 16px 0;
+  background: rgba(236, 233, 225, 0.94);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(31, 37, 33, 0.12);
+}
+
+.compare-control-group {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.compare-control-label {
+  color: #6a736c;
+}
+
+.segmented-control,
+.variant-buttons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.segmented-control button,
+.variant-buttons button,
+.compare-action,
+.compare-select {
+  min-height: 38px;
+  border: 1px solid rgba(31, 37, 33, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.66);
+  transition: background 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.segmented-control button,
+.variant-buttons button,
+.compare-action {
+  cursor: pointer;
+}
+
+.segmented-control button,
+.variant-buttons button {
+  padding: 0 13px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.segmented-control button:hover,
+.variant-buttons button:hover,
+.compare-action:hover {
+  transform: translateY(-1px);
+  border-color: rgba(31, 37, 33, 0.48);
+}
+
+.segmented-control button[aria-pressed="true"],
+.variant-buttons button[aria-pressed="true"] {
+  background: #1f2521;
+  border-color: #1f2521;
+  color: #faf8f2;
+}
+
+.compare-select {
+  min-width: 240px;
+  padding: 0 36px 0 14px;
+  color: #1f2521;
+}
+
+.compare-actions {
+  align-self: end;
+}
+
+.compare-action {
+  padding: 0 15px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding-top: 18px;
+}
+
+.preview-grid[data-mode="compare"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.preview-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(31, 37, 33, 0.18);
+  border-radius: 18px;
+  background: #f8f6f0;
+  box-shadow: 0 18px 45px rgba(50, 48, 42, 0.07);
+}
+
+.preview-card__header {
+  min-height: 58px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(31, 37, 33, 0.12);
+}
+
+.preview-card__header > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.preview-card__slot {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #1f2521;
+  color: #f8f6f0;
+}
+
+.preview-card__header strong {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.preview-card__header code {
+  min-width: 0;
+  overflow: hidden;
+  color: #737b75;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-window {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  overflow: hidden;
+  background:
+    linear-gradient(45deg, #e9e6df 25%, transparent 25%) 0 0 / 18px 18px,
+    linear-gradient(-45deg, #e9e6df 25%, transparent 25%) 0 9px / 18px 18px,
+    linear-gradient(45deg, transparent 75%, #e9e6df 75%) 9px -9px / 18px 18px,
+    linear-gradient(-45deg, transparent 75%, #e9e6df 75%) -9px 0 / 18px 18px,
+    #f4f2ec;
+}
+
+.preview-canvas {
+  position: relative;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.preview-canvas iframe {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: block;
+  border: 0;
+  background: #fff;
+  transform-origin: top center;
+}
+
+.preview-status {
+  min-height: 34px;
+  margin: 0;
+  padding: 9px 14px 10px;
+  border-top: 1px solid rgba(31, 37, 33, 0.1);
+  color: #747c76;
+  font-size: 10px;
+}
+
+.preview-status[data-state="error"] {
+  color: #9b3b33;
+}
+
+.compare-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px clamp(18px, 4vw, 56px) 30px;
+  border-top: 1px solid rgba(31, 37, 33, 0.14);
+  color: #737b75;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.compare-footer p {
+  margin: 0;
+}
+
+.compare-footer code {
+  color: #3c4540;
+}
+
+@media (max-width: 1180px) {
+  .compare-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .compare-control-group--variants {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .compare-actions {
+    justify-self: end;
+  }
+}
+
+@media (max-width: 860px) {
+  .compare-header {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-header__meta {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .compare-controls {
+    position: relative;
+    grid-template-columns: 1fr;
+  }
+
+  .compare-control-group--variants {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .compare-actions {
+    justify-self: stretch;
+  }
+
+  .compare-action,
+  .compare-select {
+    width: 100%;
+  }
+
+  .preview-grid[data-mode="compare"] {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-footer {
+    flex-direction: column;
+  }
+}
