@@ -177,6 +177,20 @@ export async function getEvent(eventId) {
   return normalizeEventOrganizer(event);
 }
 
+export async function getActivityDetail(eventId) {
+  const numericEventId = Number(eventId);
+  const [event, supplement] = await Promise.all([
+    supabase.rpc("get_event_detail_core", { p_event_id: numericEventId }).then(unwrap),
+    getActivityDetailSupplement(numericEventId),
+  ]);
+  return {
+    event: normalizeEventOrganizer(event),
+    participants: supplement.participants ?? [],
+    organizerHistory: supplement.organizer_history ?? [],
+    organizerTransferRequest: supplement.organizer_transfer_request ?? null,
+  };
+}
+
 export async function createEvent(payload) {
   const locationPayload = await withLocationCoordinates(payload);
   return normalizeEventOrganizer(unwrap(await supabase
