@@ -8,7 +8,7 @@ import {
   createSquareRingLayout,
   getClassicTileVisual,
   resolveClassicRendererPixelRatio,
-} from "./threeClassicPrototype.js?implementation=20260911-r9";
+} from "./threeClassicPrototype.js?implementation=20260915-r1";
 import {
   isOnlineMarbleSession,
   logMarbleRenderStep,
@@ -19,6 +19,10 @@ import {
   createAnimationDirector,
   getSharedAnimationQueue,
 } from "../presentation/presentationFoundation.js?v=20260912-r13";
+import {
+  installClassicAdaptiveRenderPolicy,
+  installClassicRendererInstanceRenderPolicy,
+} from "./classicRenderPerformance.js?v=20260915-r1";
 
 const CLASSIC_SHADOW_POLICY = Symbol.for("marble.classic.shadow-policy");
 
@@ -34,37 +38,33 @@ export {
 };
 
 export function installClassicShadowUpdatePolicy(threeModule) {
-  const prototype = threeModule?.WebGLRenderer?.prototype;
-  if (!prototype || typeof prototype.render !== "function") return false;
-  if (prototype[CLASSIC_SHADOW_POLICY]) return true;
-
-  const render = prototype.render;
-  Object.defineProperty(prototype, CLASSIC_SHADOW_POLICY, {
-    configurable: false,
-    enumerable: false,
-    value: true,
-    writable: false,
+  const adaptiveInstalled = installClassicAdaptiveRenderPolicy(threeModule, {
+    resolveBasePixelRatio: resolveClassicRendererPixelRatio,
   });
+  if (!adaptiveInstalled) return false;
 
-  prototype.render = function renderClassicScene(...args) {
-    const canvas = this.domElement;
-    const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
+  return installClassicRendererInstanceRenderPolicy(
+    threeModule,
+    CLASSIC_SHADOW_POLICY,
+    (renderer, render) => function renderClassicScene(...args) {
+      const targetRenderer = this ?? renderer;
+      const canvas = targetRenderer?.domElement;
+      const classicCanvas = canvas?.classList?.contains?.("classic-three-canvas") === true;
 
-    if (classicCanvas && this.shadowMap) {
-      const refreshRequested = canvas?.dataset?.marbleShadowRefresh === "true";
-      if (this.shadowMap.autoUpdate !== false) {
-        this.shadowMap.autoUpdate = false;
-        this.shadowMap.needsUpdate = true;
-      } else if (refreshRequested) {
-        this.shadowMap.needsUpdate = true;
+      if (classicCanvas && targetRenderer.shadowMap) {
+        const refreshRequested = canvas?.dataset?.marbleShadowRefresh === "true";
+        if (targetRenderer.shadowMap.autoUpdate !== false) {
+          targetRenderer.shadowMap.autoUpdate = false;
+          targetRenderer.shadowMap.needsUpdate = true;
+        } else if (refreshRequested) {
+          targetRenderer.shadowMap.needsUpdate = true;
+        }
+        if (refreshRequested && canvas?.dataset) delete canvas.dataset.marbleShadowRefresh;
       }
-      if (refreshRequested && canvas?.dataset) delete canvas.dataset.marbleShadowRefresh;
-    }
 
-    return render.apply(this, args);
-  };
-
-  return true;
+      return render.apply(this, args);
+    },
+  );
 }
 
 function requestClassicShadowRefresh(targetElement) {

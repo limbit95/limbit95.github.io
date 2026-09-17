@@ -1,6 +1,6 @@
 import {
   createHudMoneyPresenter as createBaseHudMoneyPresenter,
-} from "./moneyPresentation.js?v=20260912-r23-impl";
+} from "./moneyPresentation.js?v=20260916-r1-impl";
 
 export {
   createMoneyPresentationPlan,
@@ -8,10 +8,11 @@ export {
   formatClassicMoneyBalance,
   formatClassicMoneyDelta,
   interpolateMoneyBalance,
+  resolveMoneyBurstVector,
   resolveMoneyTransferCoinCount,
   resolveMoneyTransferFlight,
   syncHudMoneyBalances,
-} from "./moneyPresentation.js?v=20260912-r23-impl";
+} from "./moneyPresentation.js?v=20260916-r1-impl";
 
 const PACED_MONEY_COUNT_DURATION_MS = 360;
 const PACED_MONEY_WAIT_MS = Object.freeze(new Map([
@@ -106,12 +107,22 @@ export function createHudMoneyPresenter(options = {}) {
 
   async function play(event) {
     if (event?.type === "START_PASSED") {
-      await presentStartSalaryCelebration(event);
-      await startPresenter.play(event);
+      await Promise.all([
+        presentStartSalaryCelebration(event),
+        startPresenter.play(event),
+      ]);
       return;
     }
     await pacedPresenter.play(event);
   }
 
-  return Object.freeze({ play });
+  function playTransfer(event) {
+    return pacedPresenter.playTransfer?.(event) ?? startPresenter.playTransfer?.(event);
+  }
+
+  function playLossBurst(event) {
+    return pacedPresenter.playLossBurst?.(event) ?? pacedPresenter.play(event);
+  }
+
+  return Object.freeze({ play, playTransfer, playLossBurst });
 }

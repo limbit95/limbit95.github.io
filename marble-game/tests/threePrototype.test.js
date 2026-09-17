@@ -6,6 +6,7 @@ import {
   CLASSIC_VISUAL_PROFILE,
   createOrthographicBounds,
   createSquareRingLayout,
+  createTokenPlacementMap,
   getClassicTileVisual,
   THREE_IMPORT_VERSION,
 } from "../js/renderer/threeClassicPrototype.js";
@@ -105,6 +106,67 @@ test("special Classic tiles have dedicated toy props", () => {
   assert.equal(getClassicTileVisual({ id: "tax", type: "TAX" }, 5).landmark, "airport");
   assert.equal(getClassicTileVisual({ id: "bonus", type: "BONUS" }, 13).landmark, "gift");
   assert.equal(getClassicTileVisual({ id: "rest", type: "REST" }, 8).landmark, "umbrella");
+});
+
+test("single token stays centered while shared tiles use visibly separated deterministic slots", () => {
+  const layout = createSquareRingLayout(nodes(32));
+  const layoutByNode = new Map(layout.map((entry) => [entry.nodeId, entry]));
+  const target = layoutByNode.get("node-1");
+  const solo = createTokenPlacementMap([
+    { id: "p3", seat: 2, positionNodeId: "node-1", bankrupt: false },
+  ], layoutByNode);
+
+  assert.deepEqual(solo.get("p3"), {
+    nodeId: "node-1",
+    x: target.x,
+    y: target.y + 0.62,
+    z: target.z,
+  });
+
+  const players = [
+    { id: "p4", seat: 3, positionNodeId: "node-1", bankrupt: false },
+    { id: "p2", seat: 1, positionNodeId: "node-1", bankrupt: false },
+    { id: "p1", seat: 0, positionNodeId: "node-1", bankrupt: false },
+    { id: "p3", seat: 2, positionNodeId: "node-1", bankrupt: false },
+  ];
+  const placements = createTokenPlacementMap(players, layoutByNode);
+  const unique = new Set(players.map((player) => {
+    const placement = placements.get(player.id);
+    return `${placement.x.toFixed(3)}:${placement.z.toFixed(3)}`;
+  }));
+  const distances = [];
+  for (let leftIndex = 0; leftIndex < players.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < players.length; rightIndex += 1) {
+      const left = placements.get(players[leftIndex].id);
+      const right = placements.get(players[rightIndex].id);
+      distances.push(Math.hypot(left.x - right.x, left.z - right.z));
+    }
+  }
+
+  assert.equal(unique.size, 4);
+  assert.ok(Math.min(...distances) >= 1.2);
+  assert.ok(placements.get("p1").x < placements.get("p2").x);
+  assert.ok(placements.get("p3").x < placements.get("p4").x);
+});
+
+test("token slots rotate with east and west tiles, stay visibly apart, and ignore bankrupt players", () => {
+  const layout = createSquareRingLayout(nodes(32));
+  const layoutByNode = new Map(layout.map((entry) => [entry.nodeId, entry]));
+  const east = layoutByNode.get("node-9");
+  const placements = createTokenPlacementMap([
+    { id: "p1", seat: 0, positionNodeId: "node-9", bankrupt: false },
+    { id: "p2", seat: 1, positionNodeId: "node-9", bankrupt: false },
+    { id: "p3", seat: 2, positionNodeId: "node-9", bankrupt: true },
+  ], layoutByNode);
+  const first = placements.get("p1");
+  const second = placements.get("p2");
+
+  assert.ok(Math.abs(first.x - east.x) < 0.2);
+  assert.ok(Math.abs(second.x - east.x) < 0.2);
+  assert.ok(first.z < east.z);
+  assert.ok(second.z > east.z);
+  assert.ok(Math.hypot(first.x - second.x, first.z - second.z) >= 1.3);
+  assert.equal(placements.has("p3"), false);
 });
 
 test("Three.js renderer is pinned to an explicit browser module version", () => {

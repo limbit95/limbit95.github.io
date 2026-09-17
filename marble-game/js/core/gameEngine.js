@@ -156,7 +156,7 @@ function resolveClassicLanding(draft, playerIndex, theme, events) {
       return;
     }
     if (propertyState.ownerId === player.id) {
-      if (propertyState.buildingLevel < node.maxBuildingLevel && player.money >= node.buildCost) {
+      if (propertyState.buildingLevel < node.maxBuildingLevel) {
         draft.phase = transitionPhase(draft.phase, TURN_PHASES.WAITING_CHOICE);
         draft.pendingChoice = Object.freeze({ type: "BUILD_PROPERTY", nodeId: node.id, cost: node.buildCost });
       } else finishOrTurnEnd(draft, events);
