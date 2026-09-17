@@ -179,45 +179,54 @@
       stops.forEach((stop) => { stop.dataset.active = String(stop.dataset.direction === item.key); });
     };
 
-    if (!("IntersectionObserver" in window)) {
-      stops.forEach((stop) => { stop.dataset.visible = "true"; });
-      activate("value");
-    } else {
-      const observer = new IntersectionObserver((entries) => {
-        let best = null;
+    if ("IntersectionObserver" in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.dataset.visible = "true";
-            if (!best || entry.intersectionRatio > best.intersectionRatio) best = entry;
-          }
+          if (entry.isIntersecting) entry.target.dataset.visible = "true";
         });
-        if (best && best.intersectionRatio > .42) activate(best.target.dataset.direction);
-      }, { threshold: [.15, .42, .66] });
-      stops.forEach((stop) => observer.observe(stop));
-      activate("value");
+      }, { threshold: .12, rootMargin: "0px 0px -8% 0px" });
+      stops.forEach((stop) => revealObserver.observe(stop));
+    } else {
+      stops.forEach((stop) => { stop.dataset.visible = "true"; });
     }
 
     let frame = 0;
-    const updateProgress = () => {
+    const updateScrollState = () => {
       frame = 0;
-      const rect = paths.getBoundingClientRect();
       const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      const activationLine = viewport * .52;
+      let closestStop = stops[0];
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      stops.forEach((stop) => {
+        const node = stop.querySelector(".brand-ae-stop__node") || stop;
+        const rect = node.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const distance = Math.abs(center - activationLine);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestStop = stop;
+        }
+      });
+      activate(closestStop.dataset.direction);
+
+      const rect = paths.getBoundingClientRect();
       const start = viewport * .48;
       const distance = Math.max(paths.offsetHeight - viewport * .55, 1);
       const progress = Math.min(1, Math.max(0, (start - rect.top) / distance));
       main.style.setProperty("--ae-progress", progress.toFixed(4));
     };
+
     const schedule = () => {
       if (frame) return;
-      frame = requestAnimationFrame(updateProgress);
+      frame = requestAnimationFrame(updateScrollState);
     };
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
-    updateProgress();
+    updateScrollState();
 
     if (!reduced) {
       stops.forEach((stop) => {
-        stop.addEventListener("pointerenter", () => activate(stop.dataset.direction));
         stop.addEventListener("focusin", () => activate(stop.dataset.direction));
       });
     }
