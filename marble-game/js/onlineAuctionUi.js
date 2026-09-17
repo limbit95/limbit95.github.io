@@ -258,8 +258,13 @@ export function setupOnlineAuctionUi({
     elements.passButton.textContent = model.passLabel;
   }
 
-  async function refreshControllerUi() {
-    await session.refresh({ forceNotify: true });
+  async function syncControllerUi() {
+    await session.notifyCurrentState();
+  }
+
+  async function recoverControllerUi() {
+    await session.refresh({ notify: false });
+    await syncControllerUi();
   }
 
   async function runAction(action, { closePurchaseModal = false } = {}) {
@@ -274,12 +279,12 @@ export function setupOnlineAuctionUi({
         if (modal?.open && typeof modal.close === "function") modal.close();
         else modal?.removeAttribute?.("open");
       }
-      await refreshControllerUi();
+      await syncControllerUi();
     } catch (error) {
       const message = String(error?.message ?? error ?? "");
       if (message.includes("VERSION_CONFLICT") || message.includes("AUCTION_") || message.includes("NOT_YOUR_TURN")) {
         try {
-          await refreshControllerUi();
+          await recoverControllerUi();
         } catch {
           // The session's existing recovery loop will keep retrying authoritative state.
         }
