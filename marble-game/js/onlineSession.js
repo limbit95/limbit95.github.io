@@ -1,11 +1,15 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { createClassicBoard } from "./themes/classic/board.js";
 import {
+  bidOnlineAuction,
   buildOnlineProperty,
   buyOnlineProperty,
+  closeOnlineAuctionRequest,
   createOnlineActionId,
+  declineOnlinePropertyForAuction,
   endOnlineTurn,
   getOnlineGameSnapshot,
+  requestOnlineAuction,
   rollOnlineDice,
   subscribeOnlineGame,
 } from "./onlineGameApi.js?v=20260910-r9";
@@ -25,6 +29,40 @@ function freezeProperties(properties = {}) {
         })];
       }),
   ));
+}
+
+function freezeStringList(value) {
+  return Object.freeze(Array.isArray(value) ? [...value] : []);
+}
+
+function freezeAuctionState(auction) {
+  if (!auction || typeof auction !== "object") return null;
+  return Object.freeze({
+    ...auction,
+    eligiblePlayerIds: freezeStringList(auction.eligiblePlayerIds),
+    requestedByPlayerIds: freezeStringList(auction.requestedByPlayerIds),
+    bidPlayerIds: freezeStringList(auction.bidPlayerIds),
+    passedPlayerIds: freezeStringList(auction.passedPlayerIds),
+  });
+}
+
+function freezePendingChoice(pendingChoice) {
+  if (!pendingChoice || typeof pendingChoice !== "object") return null;
+  if (pendingChoice.type === "AUCTION_REQUEST") {
+    return Object.freeze({
+      ...pendingChoice,
+      eligiblePlayerIds: freezeStringList(pendingChoice.eligiblePlayerIds),
+      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+    });
+  }
+  if (pendingChoice.type === "PROPERTY_AUCTION") {
+    return Object.freeze({
+      ...pendingChoice,
+      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+      auction: freezeAuctionState(pendingChoice.auction),
+    });
+  }
+  return Object.freeze({ ...pendingChoice });
 }
 
 export function mapOnlineGameSnapshot(snapshot) {
@@ -55,7 +93,7 @@ export function mapOnlineGameSnapshot(snapshot) {
     board: CLASSIC_BOARD,
     boardState: Object.freeze({ properties: freezeProperties(snapshot.properties) }),
     themeState: Object.freeze({}),
-    pendingChoice: snapshot.game.pendingChoice ?? null,
+    pendingChoice: freezePendingChoice(snapshot.game.pendingChoice),
     lastRoll: snapshot.game.lastRoll ?? null,
     lastEvents: Object.freeze(Array.isArray(snapshot.game.lastEvents) ? snapshot.game.lastEvents : []),
     winnerPlayerId: snapshot.game.winnerPlayerId ?? null,
@@ -92,6 +130,10 @@ export async function createOnlineClassicSession({
   const buyAction = api.buy ?? buyOnlineProperty;
   const buildAction = api.build ?? buildOnlineProperty;
   const endTurnAction = api.endTurn ?? endOnlineTurn;
+  const declinePropertyForAuctionAction = api.declinePropertyForAuction ?? declineOnlinePropertyForAuction;
+  const requestAuctionAction = api.requestAuction ?? requestOnlineAuction;
+  const closeAuctionRequestAction = api.closeAuctionRequest ?? closeOnlineAuctionRequest;
+  const bidAuctionAction = api.bidAuction ?? bidOnlineAuction;
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
@@ -313,6 +355,21 @@ export async function createOnlineClassicSession({
     },
     endTurn() {
       return run(endTurnAction);
+    },
+    declinePropertyForAuction() {
+      return run(declinePropertyForAuctionAction);
+    },
+    requestAuction() {
+      return run(requestAuctionAction);
+    },
+    closeAuctionRequest() {
+      return run(closeAuctionRequestAction);
+    },
+    auctionBid(amount) {
+      return run((request) => bidAuctionAction({ ...request, amount, pass: false }));
+    },
+    auctionPass() {
+      return run((request) => bidAuctionAction({ ...request, amount: null, pass: true }));
     },
     dispose() {
       disposed = true;
