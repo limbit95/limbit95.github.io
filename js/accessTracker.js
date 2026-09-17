@@ -2,16 +2,42 @@ let trackerStarted = false;
 let lastTrackedLocation = null;
 let pendingLocation = null;
 let trackingPromise = null;
+let supabaseLibraryPromise = null;
 
 function locationKey() {
   if (typeof window === "undefined") return "";
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }
 
+function ensureSupabaseLibrary() {
+  if (window.supabase?.createClient) return Promise.resolve();
+  if (supabaseLibraryPromise) return supabaseLibraryPromise;
+
+  supabaseLibraryPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src*="@supabase/supabase-js@2"]');
+    const script = existing ?? document.createElement("script");
+    const onLoad = () => resolve();
+    const onError = () => reject(new Error("Supabase library load failed."));
+    script.addEventListener("load", onLoad, { once: true });
+    script.addEventListener("error", onError, { once: true });
+    if (!existing) {
+      script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+      document.head.append(script);
+    }
+  });
+  return supabaseLibraryPromise;
+}
+
 async function loadClient() {
-  const module = await import("./supabaseClient.js");
-  if (!module.isSupabaseClientReady() || !module.supabase) return null;
-  return module.supabase;
+  try {
+    await ensureSupabaseLibrary();
+    const module = await import("./supabaseClient.js");
+    if (!module.isSupabaseClientReady() || !module.supabase) return null;
+    return module.supabase;
+  } catch (error) {
+    console.warn("Member access client initialization failed.", error);
+    return null;
+  }
 }
 
 async function flushPendingAccess() {
