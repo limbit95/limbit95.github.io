@@ -199,7 +199,7 @@ test("admin organizer history is exposed from the operations admin surface", () 
 });
 
 test("activity detail shows organizer history only when transfers exist", () => {
-  assert.match(detail, /listEventOrganizerHistory/);
+  assert.match(detail, /await getActivityDetail\(route\.params\.id\)/);
   assert.match(detail, /organizerHistory\.length \? el\("button"/);
   assert.match(detail, /text: "주최자 이력"/);
   assert.match(detail, /title: "주최자 변경 이력 보기"/);
@@ -209,7 +209,7 @@ test("activity detail shows organizer history only when transfers exist", () => 
 });
 
 test("activity detail exposes pending request acceptance, rejection, and cancellation", () => {
-  assert.match(detail, /getEventOrganizerTransferRequest/);
+  assert.match(detail, /organizerTransferRequest,/);
   assert.match(detail, /organizerTransferRequestPanel/);
   assert.match(detail, /text: "거절"/);
   assert.match(detail, /text: "수락"/);
