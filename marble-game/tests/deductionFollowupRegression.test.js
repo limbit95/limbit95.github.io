@@ -54,10 +54,12 @@ test("owned property still offers BUILD_PROPERTY when current gold is below buil
   assert.equal(next.players[0].money, 0);
 });
 
-test("cost landing entry explicitly opens TAX tile modal before shared deduction presentation", () => {
-  assert.match(costEntrySource, /event\?\.type !== "TILE_LANDED" \|\| event\?\.tileType !== "TAX"/);
-  assert.match(costEntrySource, /createClassicTileInfo\(state, event\.nodeId\)/);
-  assert.match(costEntrySource, /modal\.showModal\(\)/);
+test("TAX modal opening is deferred and never overwrites a modal already opened by normal landing UI", () => {
+  assert.match(costEntrySource, /function scheduleCostTileModal\(event\)/);
+  assert.match(costEntrySource, /setTimeoutFn\(\(\) => \{[\s\S]*openCostTileModal\(documentObject, latestState, event\);[\s\S]*\}, 0\)/);
+  assert.match(costEntrySource, /if \(!modal \|\| modal\.open \|\| modal\.hasAttribute\?\.\("open"\)\) return;/);
+  assert.match(costEntrySource, /event\?\.type === "TILE_LANDED" && event\?\.tileType === "TAX"/);
+  assert.match(costEntrySource, /scheduleCostTileModal\(event\)/);
   assert.match(costEntrySource, /threeClassicPerformanceEntry\.js\?v=20260917-r5-base/);
 });
 
@@ -70,6 +72,6 @@ test("toll deduction cards use equal columns and centered symmetric spacing", ()
   assert.match(tollLayoutCssSource, /white-space: nowrap/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
-  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r6/);
-  assert.match(indexHtml, /data-marble-build="20260917-r7"/);
+  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r7/);
+  assert.match(indexHtml, /data-marble-build="20260917-r8"/);
 });
