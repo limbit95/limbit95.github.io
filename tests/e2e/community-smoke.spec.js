@@ -28,7 +28,7 @@ async function expectHealthyLoginBoot(page, observed) {
   expect(observed.failedScripts).toEqual([]);
 }
 
-test("AB quiet editorial gateway loads before the community app", async ({ page }) => {
+test("AB quiet editorial gateway loads with Value Like Together narrative order", async ({ page }) => {
   const observed = observeBootFailures(page);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
@@ -38,8 +38,25 @@ test("AB quiet editorial gateway loads before the community app", async ({ page 
   await expect(page.getByText("AB / QUIET EDITORIAL")).toBeVisible();
   await expect(page.getByText("같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부.")).toBeVisible();
   await expect(page).toHaveTitle("청파 같이 | Value · Like · Together");
+
+  const navLinks = page.locator(".brand-ab-nav > a");
+  await expect(navLinks).toHaveCount(3);
+  await expect(navLinks.nth(0)).toContainText("VALUE");
+  await expect(navLinks.nth(1)).toContainText("LIKE");
+  await expect(navLinks.nth(2)).toContainText("TOGETHER");
   await expect(page.getByRole("link", { name: "가치를 나누다 자세히 보기" })).toBeVisible();
   expect(observed.pageErrors).toEqual([]);
+});
+
+test("Value Like Together detail pages keep the intended next meaning flow", async ({ page }) => {
+  await page.goto("/#/value", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "가치를 나누다" })).toBeVisible();
+  await expect(page.locator(".brand-ab-detail__next")).toContainText("LIKE");
+
+  await page.locator(".brand-ab-detail__next").click();
+  await expect(page).toHaveURL(/#\/like$/);
+  await expect(page.getByRole("heading", { name: "같이 닮다" })).toBeVisible();
+  await expect(page.locator(".brand-ab-detail__next")).toContainText("TOGETHER");
 });
 
 test("Together public chapter hands off to the existing login app", async ({ page }) => {
