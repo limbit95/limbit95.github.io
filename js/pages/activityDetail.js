@@ -3,6 +3,7 @@ import { getSignedAvatarUrl } from "../api/profiles.js";
 import { enhanceActivityDetails } from "../activity-detail-map.js";
 import { enhanceActivityShare } from "../activity-share-enhancements.js";
 import {
+  attachEventParticipationSummaries,
   cancelEventOrganizerTransferRequest,
   cancelEventParticipation,
   getEvent,
@@ -369,6 +370,27 @@ function createParticipationPanel(event, mine, counts, participants, root, auth,
   ]);
 }
 
+async function refreshParticipationPanel({ event, root, auth, organizerTransferRequest }) {
+  const [summarizedEvents, participants] = await Promise.all([
+    attachEventParticipationSummaries([event]),
+    listEventParticipants(event.id),
+  ]);
+  const updatedEvent = summarizedEvents[0];
+  const counts = participationCounts(updatedEvent);
+  const mine = getMyParticipation(updatedEvent, auth.user.id);
+  const currentPanel = root.querySelector(".activity-detail__participation-panel");
+  if (!currentPanel) return;
+  currentPanel.replaceWith(createParticipationPanel(
+    updatedEvent,
+    mine,
+    counts,
+    participants,
+    root,
+    auth,
+    organizerTransferRequest,
+  ));
+}
+
 function createParticipationOverview(event, mine, counts, participants, deadline) {
   const countText = event.capacity
     ? `${counts.joined}/${event.capacity}명`
@@ -448,7 +470,11 @@ function createParticipationAction(event, mine, counts, participants, root, auth
         try {
           await cancelEventParticipation(event.id);
           showToast("참여를 취소했습니다.", "success");
-          root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
+          if (isOrganizer) {
+            root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
+          } else {
+            await refreshParticipationPanel({ event, root, auth, organizerTransferRequest });
+          }
         } catch (error) {
           showToast(getErrorMessage(error), "error");
           setBusy(clickEvent.currentTarget, false);
@@ -479,7 +505,7 @@ function createParticipationAction(event, mine, counts, participants, root, auth
         try {
           const result = await joinEvent(event.id);
           showToast(result === "waitlisted" ? "대기 명단에 등록되었습니다." : "참여 신청이 완료되었습니다.", "success");
-          root.replaceWith(await renderActivityDetail({ params: { id: String(event.id) } }));
+          await refreshParticipationPanel({ event, root, auth, organizerTransferRequest });
         } catch (error) {
           showToast(getErrorMessage(error), "error");
           setBusy(clickEvent.currentTarget, false);
