@@ -44,6 +44,10 @@ test("AC O-P hybrid gateway opens before the community app", async ({ page }) =>
   await expect(indexRows.nth(0)).toContainText("VALUE");
   await expect(indexRows.nth(1)).toContainText("LIKE");
   await expect(indexRows.nth(2)).toContainText("TOGETHER");
+
+  await indexRows.nth(1).click();
+  await expect(page).toHaveURL(/#\/gateway$/);
+  await expect(page.locator("#brand-ac-like").getByRole("heading", { name: "LIKE" })).toBeVisible();
   expect(observed.pageErrors).toEqual([]);
 });
 
