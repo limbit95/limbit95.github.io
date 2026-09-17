@@ -116,9 +116,9 @@ test("activity read paths skip participation summaries when the screen does not 
   assert.match(activityApi, /includeParticipation = true/);
   assert.match(activityApi, /if \(!includeParticipation\) return events\.map\(normalizeEventOrganizer\)/);
   assert.match(activityCalendar, /includeParticipation: false/);
-  assert.match(activityApi, /Promise\.all\(\[/);
-  assert.match(activityApi, /attachEventParticipationSummaries\(\[withSummary\]\)/);
-  assert.match(activityApi, /getPublicProfiles\(\[withSummary\.organizer_id\]\)/);
+  assert.match(activityApi, /supabase\.rpc\("get_event_detail_core",\s*\{\s*p_event_id: Number\(eventId\)/);
+  assert.match(activityApi, /supabase\.rpc\("get_activity_detail_supplement",\s*\{\s*p_event_id: numericEventId/);
+  assert.doesNotMatch(activityApi, /getPublicProfiles/);
 });
 
 test("activity form enhancements run from the page-render lifecycle instead of a subtree observer", () => {
