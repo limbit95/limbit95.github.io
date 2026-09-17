@@ -49,7 +49,7 @@ test("generic non-creditor MONEY_PAID costs use the same cost modal flow", () =>
   assert.match(performanceEntrySource, /deferTaxLoss\(event\)/);
 });
 
-test("toll coin transfer uses a low multi-point arc instead of a single straight midpoint", () => {
+test("toll coin transfer keeps the prior low multi-point arc motion", () => {
   assert.match(performanceEntrySource, /function resolveTransferArc/);
   assert.match(performanceEntrySource, /q1X:/);
   assert.match(performanceEntrySource, /q1Y:/);
