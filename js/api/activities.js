@@ -1,6 +1,5 @@
 import { resolveActivityLocationCoordinates } from "../activity-location-resolution.js";
 import { isNaverMapUrl } from "../location-geocoding.js";
-import { getPublicProfiles } from "./profiles.js";
 import { compact, supabase, unwrap } from "./shared.js";
 
 const CATEGORY_COLUMNS = "id,name,icon,color,description,is_active,created_at,updated_at";
@@ -30,42 +29,11 @@ const EVENT_COLUMNS = [
   "created_at",
   "updated_at",
 ].join(",");
-const EVENT_SERIES_COLUMNS = [
-  "id",
-  "category_id",
-  "title",
-  "description",
-  "start_date",
-  "end_date",
-  "start_time",
-  "end_time",
-  "timezone",
-  "recurrence_rule",
-  "location_name",
-  "location_url",
-  "location_latitude",
-  "location_longitude",
-  "capacity",
-  "fee_text",
-  "difficulty",
-  "preparation",
-  "beginner_friendly",
-  "participant_notice",
-  "status",
-  "created_by",
-  "created_at",
-  "updated_at",
-].join(",");
-const EVENT_PARTICIPANT_COLUMNS = "event_id,user_id,status,joined_at,waitlisted_at,cancelled_at,created_at,updated_at";
 const EVENT_WITH_CATEGORY_COLUMNS = `
   ${EVENT_COLUMNS},
   category:activity_categories(${CATEGORY_COLUMNS})
 `;
-const EVENT_DETAIL_COLUMNS = `
-  ${EVENT_COLUMNS},
-  category:activity_categories(${CATEGORY_COLUMNS}),
-  series:event_series(${EVENT_SERIES_COLUMNS})
-`;
+const activityDetailSupplementRequests = new Map();
 
 // The database now keeps created_by immutable as the original creator. Existing
 // activity UI code historically treats created_by as the current activity owner,
@@ -77,6 +45,27 @@ function normalizeEventOrganizer(event) {
     original_created_by: event.created_by,
     created_by: event.organizer_id ?? event.created_by,
   };
+}
+
+async function getActivityDetailSupplement(eventId) {
+  const numericEventId = Number(eventId);
+  const existingRequest = activityDetailSupplementRequests.get(numericEventId);
+  if (existingRequest) return existingRequest;
+
+  const request = (async () => (
+    unwrap(await supabase.rpc("get_activity_detail_supplement", {
+      p_event_id: numericEventId,
+    })) ?? {}
+  ))();
+  activityDetailSupplementRequests.set(numericEventId, request);
+
+  try {
+    return await request;
+  } finally {
+    if (activityDetailSupplementRequests.get(numericEventId) === request) {
+      activityDetailSupplementRequests.delete(numericEventId);
+    }
+  }
 }
 
 async function withLocationCoordinates(payload) {
@@ -182,23 +171,10 @@ export async function listEvents({
 }
 
 export async function getEvent(eventId) {
-  const event = unwrap(await supabase
-    .from("events")
-    .select(EVENT_DETAIL_COLUMNS)
-    .eq("id", Number(eventId))
-    .single());
-  const withSummary = {
-    ...event,
-    organizer_id: event.organizer_id ?? event.created_by,
-  };
-  const [summarizedEvents, [organizer]] = await Promise.all([
-    attachEventParticipationSummaries([withSummary]),
-    getPublicProfiles([withSummary.organizer_id]),
-  ]);
-  return {
-    ...summarizedEvents[0],
-    organizer: organizer ?? null,
-  };
+  const event = unwrap(await supabase.rpc("get_event_detail_core", {
+    p_event_id: Number(eventId),
+  }));
+  return normalizeEventOrganizer(event);
 }
 
 export async function createEvent(payload) {
@@ -273,10 +249,8 @@ export async function transferEventOrganizer(eventId, newOrganizerId, options = 
 }
 
 export async function getEventOrganizerTransferRequest(eventId) {
-  const rows = unwrap(await supabase.rpc("get_event_organizer_transfer_request", {
-    p_event_id: Number(eventId),
-  })) ?? [];
-  return rows[0] ?? null;
+  const supplement = await getActivityDetailSupplement(eventId);
+  return supplement.organizer_transfer_request ?? null;
 }
 
 export async function respondEventOrganizerTransfer(requestId, accept) {
@@ -293,25 +267,13 @@ export async function cancelEventOrganizerTransferRequest(requestId) {
 }
 
 export async function listEventOrganizerHistory(eventId) {
-  return unwrap(await supabase.rpc("list_event_organizer_history", {
-    p_event_id: Number(eventId),
-  })) ?? [];
+  const supplement = await getActivityDetailSupplement(eventId);
+  return supplement.organizer_history ?? [];
 }
 
 export async function listEventParticipants(eventId) {
-  const participants = unwrap(await supabase
-    .from("event_participants")
-    .select(EVENT_PARTICIPANT_COLUMNS)
-    .eq("event_id", Number(eventId))
-    .in("status", ["joined", "waitlisted"])
-    .order("joined_at", { ascending: true, nullsFirst: false })
-    .order("waitlisted_at", { ascending: true, nullsFirst: false })) ?? [];
-  const profiles = await getPublicProfiles(participants.map((participant) => participant.user_id));
-  const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
-  return participants.map((participant) => ({
-    ...participant,
-    profile: profileMap.get(participant.user_id) ?? null,
-  }));
+  const supplement = await getActivityDetailSupplement(eventId);
+  return supplement.participants ?? [];
 }
 
 export async function getMyParticipationOverview({
