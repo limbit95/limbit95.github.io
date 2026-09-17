@@ -10,6 +10,10 @@ const costEntrySource = readFileSync(
   new URL("../js/renderer/threeClassicCostPresentationEntry.js", import.meta.url),
   "utf8",
 );
+const moneyRendererSource = readFileSync(
+  new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url),
+  "utf8",
+);
 const tollLayoutCssSource = readFileSync(
   new URL("../css/toll-loss-layout-polish.css", import.meta.url),
   "utf8",
@@ -64,6 +68,12 @@ test("local TAX presentation leaves modal ownership to app and forwards MONEY_PA
   assert.match(costEntrySource, /threeClassicPerformanceEntry\.js\?v=20260917-r8-base/);
 });
 
+test("TAX is not opened early by the inner money renderer", () => {
+  assert.match(moneyRendererSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "REST"\]\)/);
+  assert.doesNotMatch(moneyRendererSource, /MODAL_LANDING_TILE_TYPES = new Set\(\[[^\]]*"TAX"/);
+  assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260917-r2/);
+});
+
 test("toll deduction cards use equal columns and centered symmetric spacing", () => {
   assert.match(tollLayoutCssSource, /width: min\(540px, calc\(100vw - 32px\)\)/);
   assert.match(tollLayoutCssSource, /grid-template-columns: minmax\(0, 1fr\) 20px minmax\(0, 1fr\) 20px minmax\(0, 1fr\)/);
@@ -73,6 +83,6 @@ test("toll deduction cards use equal columns and centered symmetric spacing", ()
   assert.match(tollLayoutCssSource, /white-space: nowrap/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
-  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r10/);
-  assert.match(indexHtml, /data-marble-build="20260917-r10"/);
+  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r11/);
+  assert.match(indexHtml, /data-marble-build="20260917-r11"/);
 });
