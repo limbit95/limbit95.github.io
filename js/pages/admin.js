@@ -3,9 +3,12 @@ import { getAuthState } from "../auth.js";
 import { ADMIN_PERMISSION, hasAdminPermission } from "../permissions.js";
 
 export async function renderAdmin(route) {
-  const section = route.path.split("/")[2] || "dashboard";
+  const requestedView = route.query.get("view");
+  const section = route.path === "/admin" && requestedView === "access"
+    ? "access"
+    : route.path.split("/")[2] || "dashboard";
   const organizerHistoryView = section === "managers"
-    && route.query.get("view") === "organizer-history";
+    && requestedView === "organizer-history";
   const auth = getAuthState();
   if (section === "access" && !auth.isSystemAdmin) {
     return pageContainer(el("div", { className: "state-box" }, [
