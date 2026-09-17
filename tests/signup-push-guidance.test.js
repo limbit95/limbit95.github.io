@@ -111,6 +111,13 @@ test("signup submit prefers the form-scoped push choice after the review step de
   assert.match(signupGuidanceSource, /form\.requestSubmit\(\)/);
 });
 
+test("signup push guidance follows the explicit page-rendered lifecycle without a subtree observer", () => {
+  assert.match(signupGuidanceSource, /addEventListener\("app:page-rendered"/);
+  assert.match(signupGuidanceSource, /event\.detail\?\.root \?\? app/);
+  assert.doesNotMatch(signupGuidanceSource, /new MutationObserver/);
+  assert.doesNotMatch(signupGuidanceSource, /observer\.observe\(app/);
+});
+
 test("signup RPC persists synchronized push intent in the same transaction as profile and join request creation", () => {
   assert.match(persistenceMigration, /raw_user_meta_data ->> 'signup_push_opt_in'/);
   assert.match(persistenceMigration, /insert into public\.push_notification_preferences\(user_id, push_opt_in, updated_at\)/);
