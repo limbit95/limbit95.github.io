@@ -1,0 +1,355 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const originalWindow = globalThis.window;
+globalThis.window = globalThis.window ?? {};
+const { createOnlineClassicSession } = await import("../js/onlineSession.js");
+const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
+globalThis.window = originalWindow;
+
+const authoritySql = readFileSync(
+  new URL("../../supabase/marble/20260917213000_marble_phase7a_auction_authority.sql", import.meta.url),
+  "utf8",
+);
+
+function requestChoice(requestedByPlayerIds = []) {
+  return {
+    type: "AUCTION_REQUEST",
+    nodeId: "tokyo",
+    openingBid: 240,
+    declinedByPlayerId: "p1",
+    eligiblePlayerIds: ["p2", "p3"],
+    requestedByPlayerIds,
+  };
+}
+
+function auctionChoice({
+  bidPlayerIds = [],
+  passedPlayerIds = [],
+  highestBid = 0,
+  highestBidderId = null,
+} = {}) {
+  return {
+    type: "PROPERTY_AUCTION",
+    nodeId: "tokyo",
+    openingBid: 240,
+    requestedByPlayerIds: ["p2"],
+    auction: {
+      type: "PROPERTY_AUCTION",
+      nodeId: "tokyo",
+      openingBid: 240,
+      declinedByPlayerId: "p1",
+      eligiblePlayerIds: ["p2", "p3"],
+      requestedByPlayerIds: ["p2"],
+      bidPlayerIds,
+      passedPlayerIds,
+      highestBid,
+      highestBidderId,
+      status: "OPEN",
+      winnerPlayerId: null,
+      winningBid: 0,
+    },
+  };
+}
+
+function installFakeBrowser() {
+  const previousWindow = globalThis.window;
+  const previousDocument = globalThis.document;
+  globalThis.window = {
+    setTimeout: () => 1,
+    clearTimeout() {},
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  globalThis.document = {
+    visibilityState: "visible",
+    addEventListener() {},
+    removeEventListener() {},
+  };
+  return () => {
+    globalThis.window = previousWindow;
+    globalThis.document = previousDocument;
+  };
+}
+
+function flush() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
+function createHarness() {
+  const changes = new Map();
+  const snapshotOverrides = new Map();
+  const actionCalls = [];
+  let actionSequence = 0;
+  const server = {
+    version: 3,
+    phase: "WAITING_CHOICE",
+    currentSeat: 0,
+    pendingChoice: { type: "BUY_PROPERTY", nodeId: "tokyo", price: 240 },
+    ownerId: null,
+    players: [
+      { id: "p1", userId: "u1", name: "A", seat: 0, positionNodeId: "tokyo", money: 1500, bankrupt: false, skipTurns: 0 },
+      { id: "p2", userId: "u2", name: "B", seat: 1, positionNodeId: "start", money: 1200, bankrupt: false, skipTurns: 0 },
+      { id: "p3", userId: "u3", name: "C", seat: 2, positionNodeId: "start", money: 1100, bankrupt: false, skipTurns: 0 },
+    ],
+  };
+
+  function clone(value) {
+    return value === null || value === undefined ? value : JSON.parse(JSON.stringify(value));
+  }
+
+  function snapshotFor(viewerPlayerId) {
+    const snapshot = {
+      room: { id: "room-1", roomCode: "ABC123", status: "playing", currentGameId: "game-1" },
+      game: {
+        id: "game-1",
+        status: "playing",
+        phase: server.phase,
+        turn: 3,
+        currentSeat: server.currentSeat,
+        version: server.version,
+        pendingChoice: clone(server.pendingChoice),
+        lastRoll: null,
+        lastEvents: [],
+        winnerPlayerId: null,
+        rulesetVersion: 1,
+      },
+      players: clone(server.players),
+      properties: {
+        tokyo: {
+          ownerId: server.ownerId,
+          ownerSeat: server.ownerId === "p2" ? 1 : null,
+          buildingLevel: 0,
+        },
+      },
+      viewerUserId: server.players.find((player) => player.id === viewerPlayerId)?.userId ?? null,
+      viewerPlayerId,
+    };
+    return snapshot;
+  }
+
+  function assertExpectedVersion(request) {
+    assert.equal(request.roomId, "room-1");
+    assert.equal(request.expectedVersion, server.version);
+    assert.match(request.clientActionId, /^action-/);
+    actionCalls.push({ ...request });
+  }
+
+  function apiFor(viewerPlayerId) {
+    return {
+      createActionId() {
+        actionSequence += 1;
+        return `action-${viewerPlayerId}-${actionSequence}`;
+      },
+      async getSnapshot() {
+        return snapshotOverrides.get(viewerPlayerId) ?? snapshotFor(viewerPlayerId);
+      },
+      subscribeGame(_roomId, { onChange }) {
+        changes.set(viewerPlayerId, onChange);
+        return () => changes.delete(viewerPlayerId);
+      },
+      async declinePropertyForAuction(request) {
+        assert.equal(viewerPlayerId, "p1");
+        assertExpectedVersion(request);
+        server.version += 1;
+        server.pendingChoice = requestChoice();
+        return snapshotFor(viewerPlayerId);
+      },
+      async requestAuction(request) {
+        assert.equal(viewerPlayerId, "p2");
+        assertExpectedVersion(request);
+        server.version += 1;
+        server.pendingChoice = requestChoice(["p2"]);
+        return snapshotFor(viewerPlayerId);
+      },
+      async closeAuctionRequest(request) {
+        assert.equal(viewerPlayerId, "p1");
+        assertExpectedVersion(request);
+        server.version += 1;
+        server.pendingChoice = server.pendingChoice.requestedByPlayerIds.length > 0
+          ? auctionChoice()
+          : null;
+        server.phase = server.pendingChoice ? "WAITING_CHOICE" : "TURN_END";
+        return snapshotFor(viewerPlayerId);
+      },
+      async bidAuction(request) {
+        assertExpectedVersion(request);
+        if (viewerPlayerId === "p2" && request.pass === true && !server.pendingChoice.auction.bidPlayerIds.includes("p2")) {
+          throw new Error("AUCTION_REQUESTER_BID_REQUIRED");
+        }
+        if (viewerPlayerId === "p2") {
+          assert.equal(request.pass, false);
+          assert.equal(request.amount, 240);
+          server.version += 1;
+          server.pendingChoice = auctionChoice({
+            bidPlayerIds: ["p2"],
+            highestBid: 240,
+            highestBidderId: "p2",
+          });
+          return snapshotFor(viewerPlayerId);
+        }
+        assert.equal(viewerPlayerId, "p3");
+        assert.equal(request.pass, true);
+        assert.equal(request.amount, null);
+        server.version += 1;
+        server.phase = "TURN_END";
+        server.pendingChoice = null;
+        server.ownerId = "p2";
+        server.players.find((player) => player.id === "p2").money -= 240;
+        return snapshotFor(viewerPlayerId);
+      },
+    };
+  }
+
+  async function broadcast(...viewerPlayerIds) {
+    viewerPlayerIds.forEach((playerId) => changes.get(playerId)?.());
+    await flush();
+  }
+
+  return {
+    actionCalls,
+    apiFor,
+    broadcast,
+    changes,
+    server,
+    snapshotFor,
+    snapshotOverrides,
+  };
+}
+
+test("three online clients preserve the request-gated auction flow through authoritative actions and realtime refreshes", async () => {
+  const restore = installFakeBrowser();
+  const harness = createHarness();
+  const sessions = [];
+
+  try {
+    for (const viewerPlayerId of ["p1", "p2", "p3"]) {
+      sessions.push(await createOnlineClassicSession({
+        roomId: "room-1",
+        initialSnapshot: harness.snapshotFor(viewerPlayerId),
+        api: harness.apiFor(viewerPlayerId),
+      }));
+    }
+    const [decliner, requester, otherBidder] = sessions;
+
+    await decliner.declinePropertyForAuction();
+    assert.equal(decliner.getState().version, 4);
+    assert.equal(decliner.getState().pendingChoice.type, "AUCTION_REQUEST");
+    await harness.broadcast("p2", "p3");
+    assert.equal(requester.getState().pendingChoice.type, "AUCTION_REQUEST");
+    assert.equal(otherBidder.getState().pendingChoice.type, "AUCTION_REQUEST");
+
+    await requester.requestAuction();
+    assert.deepEqual(requester.getState().pendingChoice.requestedByPlayerIds, ["p2"]);
+    await harness.broadcast("p1", "p3");
+    assert.deepEqual(decliner.getState().pendingChoice.requestedByPlayerIds, ["p2"]);
+
+    await decliner.closeAuctionRequest();
+    assert.equal(decliner.getState().version, 6);
+    assert.equal(decliner.getState().pendingChoice.type, "PROPERTY_AUCTION");
+    await harness.broadcast("p2", "p3");
+
+    const requesterUi = createOnlineAuctionUiModel(requester.getState(), "p2");
+    const declinerUi = createOnlineAuctionUiModel(decliner.getState(), "p1");
+    assert.equal(requesterUi.minimumBid, 240);
+    assert.equal(requesterUi.canPass, false);
+    assert.equal(requesterUi.requesterNeedsFirstBid, true);
+    assert.equal(declinerUi.eligible, false);
+    assert.equal(declinerUi.canBid, false);
+
+    await assert.rejects(() => requester.auctionPass(), /AUCTION_REQUESTER_BID_REQUIRED/);
+    assert.equal(requester.getState().version, 6);
+
+    await requester.auctionBid(240);
+    assert.equal(requester.getState().version, 7);
+    assert.equal(requester.getState().pendingChoice.auction.highestBidderId, "p2");
+    const staleRequesterSnapshot = harness.snapshotFor("p2");
+    await harness.broadcast("p1", "p3");
+
+    const otherUi = createOnlineAuctionUiModel(otherBidder.getState(), "p3");
+    assert.equal(otherUi.minimumBid, 241);
+    assert.equal(otherUi.canPass, true);
+
+    await otherBidder.auctionPass();
+    assert.equal(otherBidder.getState().version, 8);
+    assert.equal(otherBidder.getState().phase, "TURN_END");
+    assert.equal(otherBidder.getState().pendingChoice, null);
+    assert.equal(otherBidder.getState().boardState.properties.tokyo.ownerId, "p2");
+    assert.equal(otherBidder.getState().players.find((player) => player.id === "p2").money, 960);
+    await harness.broadcast("p1", "p2");
+    assert.equal(requester.getState().version, 8);
+    assert.equal(requester.getState().boardState.properties.tokyo.ownerId, "p2");
+    assert.equal(decliner.getState().phase, "TURN_END");
+
+    harness.snapshotOverrides.set("p2", staleRequesterSnapshot);
+    await harness.broadcast("p2");
+    assert.equal(requester.getState().version, 8);
+    assert.equal(requester.getState().boardState.properties.tokyo.ownerId, "p2");
+
+    assert.deepEqual(harness.actionCalls.map((call) => call.expectedVersion), [3, 4, 5, 6, 6, 7]);
+    assert.equal(new Set(harness.actionCalls.map((call) => call.clientActionId)).size, harness.actionCalls.length);
+  } finally {
+    sessions.forEach((session) => session.dispose());
+    restore();
+  }
+});
+
+test("a reconnecting client reconstructs AUCTION_REQUEST and PROPERTY_AUCTION UI from snapshots alone", async () => {
+  const restore = installFakeBrowser();
+  const harness = createHarness();
+  const sessions = [];
+
+  try {
+    harness.server.version = 4;
+    harness.server.pendingChoice = requestChoice(["p2"]);
+    const requestSession = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: harness.snapshotFor("p3"),
+      api: harness.apiFor("p3"),
+    });
+    sessions.push(requestSession);
+    const requestUi = createOnlineAuctionUiModel(requestSession.getState(), "p3");
+    assert.equal(requestUi.stage, "request");
+    assert.equal(requestUi.canRequest, true);
+    assert.equal(requestUi.requestCount, 1);
+    requestSession.dispose();
+
+    harness.server.version = 7;
+    harness.server.pendingChoice = auctionChoice({
+      bidPlayerIds: ["p2"],
+      highestBid: 260,
+      highestBidderId: "p2",
+    });
+    const auctionSession = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: harness.snapshotFor("p3"),
+      api: harness.apiFor("p3"),
+    });
+    sessions.push(auctionSession);
+    const auctionUi = createOnlineAuctionUiModel(auctionSession.getState(), "p3");
+    assert.equal(auctionUi.stage, "auction");
+    assert.equal(auctionUi.highestBid, 260);
+    assert.equal(auctionUi.minimumBid, 261);
+    assert.equal(auctionUi.highestBidderName, "B");
+    assert.equal(auctionUi.canPass, true);
+  } finally {
+    sessions.forEach((session) => session.dispose());
+    restore();
+  }
+});
+
+test("authoritative SQL keeps the multiplayer restrictions exercised by the regression suite", () => {
+  assert.match(authoritySql, /gp\.seat<>v_actor\.seat/);
+  assert.match(authoritySql, /jsonb_array_length\(v_requested\)=0/);
+  assert.match(authoritySql, /set phase='TURN_END', pending_choice=null/);
+  assert.match(authoritySql, /'type','PROPERTY_AUCTION'/);
+  assert.match(authoritySql, /v_minimum := case when v_highest>0 then v_highest\+1 else v_opening end/);
+  assert.match(authoritySql, /AUCTION_BID_TOO_LOW/);
+  assert.match(authoritySql, /AUCTION_HIGHEST_BIDDER_CANNOT_PASS/);
+  assert.match(authoritySql, /\(v_requested \? v_player_id\) and not \(v_bids \? v_player_id\).*AUCTION_REQUESTER_BID_REQUIRED/s);
+  assert.match(authoritySql, /private\.marble_action_replay/);
+  assert.match(authoritySql, /VERSION_CONFLICT/);
+  assert.match(authoritySql, /update public\.marble_game_players set money=money-v_highest/);
+  assert.match(authoritySql, /update public\.marble_game_properties set owner_seat=v_winner\.seat, building_level=0/);
+});
