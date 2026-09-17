@@ -1,11 +1,5 @@
 export const BRAND_GATEWAY_VARIANTS = Object.freeze([
   {
-    id: "gateway-20260916",
-    label: "Original",
-    branch: "feature/brand-gateway-20260916",
-    commit: "464309a9b4e6c4eae8439ad324aac6305a7862e5",
-  },
-  {
     id: "gateway-c",
     label: "C",
     branch: "feature/brand-gateway-c-20260916",
@@ -18,28 +12,10 @@ export const BRAND_GATEWAY_VARIANTS = Object.freeze([
     commit: "3a9b68e701581c5e367c0c2529ec0449add75a22",
   },
   {
-    id: "gateway-e",
-    label: "E",
-    branch: "feature/brand-gateway-e-20260917",
-    commit: "38776952d5ef612567dfbfc378f1f3a07464b45e",
-  },
-  {
-    id: "gateway-g",
-    label: "G",
-    branch: "feature/brand-gateway-g-20260917",
-    commit: "07f6d4301d81f934bca761945613bbdd14c80e1f",
-  },
-  {
     id: "gateway-h",
     label: "H",
     branch: "feature/brand-gateway-h-20260917",
     commit: "87d7e03f7de34965b16cda7dd938714bf63a92de",
-  },
-  {
-    id: "gateway-k",
-    label: "K",
-    branch: "feature/brand-gateway-k-20260917",
-    commit: "96b1d02f377fa2c5096be17f079ba6885de8e217",
   },
   {
     id: "gateway-o",
@@ -63,9 +39,9 @@ export const BRAND_GATEWAY_VARIANTS = Object.freeze([
 
 const RAW_ROOT = "https://raw.githubusercontent.com/limbit95/limbit95.github.io";
 const VIEWPORT_HEIGHTS = new Map([
-  [1440, 900],
-  [1024, 820],
-  [390, 844],
+  [1440, 1100],
+  [1024, 900],
+  [390, 900],
 ]);
 const assetCache = new Map();
 const previewObjectUrls = new Set();
@@ -242,7 +218,7 @@ function sizePreviewCard(card, width) {
   const iframe = card.querySelector("iframe");
   if (!previewWindow || !canvas || !iframe) return;
 
-  const targetHeight = VIEWPORT_HEIGHTS.get(width) ?? 900;
+  const targetHeight = VIEWPORT_HEIGHTS.get(width) ?? 1100;
   const availableWidth = Math.max(1, previewWindow.clientWidth);
   const scale = Math.min(1, availableWidth / width);
 
