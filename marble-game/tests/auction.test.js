@@ -84,6 +84,45 @@ test("passed players cannot re-enter and the highest bidder cannot pass", () => 
   );
 });
 
+test("an auction requester must place a bid before voluntarily passing", () => {
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 260,
+    declinedByPlayerId: "a",
+    requestedByPlayerIds: ["b"],
+    players: players(),
+  });
+
+  assert.deepEqual(initial.requestedByPlayerIds, ["b"]);
+  assert.deepEqual(initial.bidPlayerIds, []);
+  assert.throws(
+    () => reducePropertyAuction(initial, players(), { playerId: "b", pass: true }),
+    /must place a bid before passing/i,
+  );
+
+  const first = reducePropertyAuction(initial, players(), { playerId: "b", amount: 260 });
+  assert.deepEqual(first.auction.bidPlayerIds, ["b"]);
+  const second = reducePropertyAuction(first.auction, players(), { playerId: "c", amount: 300 });
+  const third = reducePropertyAuction(second.auction, players(), { playerId: "b", pass: true });
+  assert.deepEqual(third.auction.passedPlayerIds, ["b"]);
+});
+
+test("a requester may pass without a first bid if another bid moved beyond their balance", () => {
+  const participantState = players({ b: { money: 260 } });
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 260,
+    declinedByPlayerId: "a",
+    requestedByPlayerIds: ["b"],
+    players: participantState,
+  });
+
+  const first = reducePropertyAuction(initial, participantState, { playerId: "c", amount: 300 });
+  const second = reducePropertyAuction(first.auction, participantState, { playerId: "b", pass: true });
+  assert.deepEqual(second.auction.passedPlayerIds, ["b"]);
+  assert.deepEqual(second.auction.bidPlayerIds, ["c"]);
+});
+
 test("auction resolves to the highest bidder after every rival passes", () => {
   const initial = createPropertyAuction({
     nodeId: "singapore",
