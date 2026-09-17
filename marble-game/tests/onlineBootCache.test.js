@@ -16,7 +16,7 @@ const costEntrySource = readFileSync(new URL("../js/renderer/threeClassicCostPre
 const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260917-r11"/);
+  assert.match(indexHtml, /data-marble-build="20260917-r12"/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260915-r1/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
@@ -47,12 +47,12 @@ test("online recovery and Classic renderer entries bypass stale modules while un
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
-  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r11/);
+  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r12/);
   assert.match(indexHtml, /threeClassicPrototypeDiagnostics\.js\?v=20260912-r13\": \"\.\/js\/renderer\/threeClassicPrototypeDiagnostics\.js\?v=20260915-r1/);
   assert.match(indexHtml, /moneyPresentation\.js\?v=20260912-r21\": \"\.\/js\/presentation\/startSalaryMoneyPresentation\.js\?v=20260916-r1/);
   assert.match(indexHtml, /threeClassicMoneyPresentation\.js\?v=20260915-r1\": \"\.\/js\/renderer\/threeClassicMoneyPresentation\.js\?v=20260917-r2/);
   assert.match(costEntrySource, /threeClassicPerformanceEntry\.js\?v=20260917-r8-base/);
-  assert.match(costEntrySource, /scheduleCostTileModal/);
+  assert.match(costEntrySource, /installFinalCostGuard/);
   assert.match(performanceEntrySource, /threeClassicPrototypeDiagnostics\.js\?v=20260915-r1/);
   assert.match(performanceEntrySource, /threeClassicPresentationTiming\.js\?v=20260916-r1/);
   assert.match(diagnosticsSource, /threeClassicPrototype\.js\?implementation=20260915-r1/);
