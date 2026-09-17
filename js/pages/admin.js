@@ -8,7 +8,7 @@ export async function renderAdmin(route) {
     ? "access"
     : route.path.split("/")[2] || "dashboard";
   const organizerHistoryView = section === "managers"
-    && requestedView === "organizer-history";
+    && route.query.get("view") === "organizer-history";
   const auth = getAuthState();
   if (section === "access" && !auth.isSystemAdmin) {
     return pageContainer(el("div", { className: "state-box" }, [
