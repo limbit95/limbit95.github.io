@@ -68,6 +68,17 @@ test("local TAX presentation leaves modal ownership to app and forwards MONEY_PA
   assert.match(costEntrySource, /threeClassicPerformanceEntry\.js\?v=20260917-r8-base/);
 });
 
+test("final TAX modal guard replaces any legacy gold-change row with shared deduction flow", () => {
+  assert.match(costEntrySource, /function hasLegacyCostRow\(stats\)/);
+  assert.match(costEntrySource, /=== "골드 변화"/);
+  assert.match(costEntrySource, /function presentRenderedLegacyCost\(\)/);
+  assert.match(costEntrySource, /type\?\.textContent\?\.trim\?\.\(\) !== "비용"/);
+  assert.match(costEntrySource, /createCostLossFlow\([\s\S]*context\.balanceBefore,[\s\S]*context\.amount/);
+  assert.match(costEntrySource, /costStatsObserver\.observe\(stats, \{ childList: true, subtree: true \}\)/);
+  assert.match(costEntrySource, /costStatsObserver\.observe\(modal, \{ attributes: true, attributeFilter: \["open"\] \}\)/);
+  assert.match(costEntrySource, /installFinalCostGuard\(\)/);
+});
+
 test("TAX is not opened early by the inner money renderer", () => {
   assert.match(moneyRendererSource, /MODAL_LANDING_TILE_TYPES = new Set\(\["BONUS", "REST"\]\)/);
   assert.doesNotMatch(moneyRendererSource, /MODAL_LANDING_TILE_TYPES = new Set\(\[[^\]]*"TAX"/);
@@ -83,6 +94,6 @@ test("toll deduction cards use equal columns and centered symmetric spacing", ()
   assert.match(tollLayoutCssSource, /white-space: nowrap/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
-  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r11/);
-  assert.match(indexHtml, /data-marble-build="20260917-r11"/);
+  assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r12/);
+  assert.match(indexHtml, /data-marble-build="20260917-r12"/);
 });
