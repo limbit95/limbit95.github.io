@@ -66,10 +66,20 @@ if (!template.includes(marker)) {
   throw new Error(`Missing ${marker} in index.template.html`);
 }
 
-const index = template.replace(
-  marker,
-  `<script type="module" src="./${entryRelative}"></script>`,
-);
+const entryTag = `<script type="module">
+  let communityAppPromise;
+  const loadCommunityApp = () => {
+    communityAppPromise ||= import("./${entryRelative}");
+    return communityAppPromise;
+  };
+  if (document.documentElement.dataset.brandPublic === "true") {
+    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
+  } else {
+    loadCommunityApp();
+  }
+</script>`;
+
+const index = template.replace(marker, entryTag);
 await writeFile(indexPath, index, "utf8");
 
 const outputs = Object.keys(result.metafile.outputs)
