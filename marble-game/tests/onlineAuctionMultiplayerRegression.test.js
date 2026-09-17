@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const originalWindow = globalThis.window;
 globalThis.window = globalThis.window ?? {};
 const { createOnlineClassicSession } = await import("../js/onlineSession.js");
+const { createOnlineGameApi } = await import("../js/onlineGameApi.js");
 const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 globalThis.window = originalWindow;
 
@@ -81,7 +82,6 @@ function createHarness() {
   const changes = new Map();
   const snapshotOverrides = new Map();
   const actionCalls = [];
-  let actionSequence = 0;
   const server = {
     version: 3,
     phase: "WAITING_CHOICE",
@@ -129,77 +129,107 @@ function createHarness() {
     return snapshot;
   }
 
-  function assertExpectedVersion(request) {
-    assert.equal(request.roomId, "room-1");
-    assert.equal(request.expectedVersion, server.version);
-    assert.match(request.clientActionId, /^action-/);
-    actionCalls.push({ ...request });
+  function assertExpectedVersion(params) {
+    assert.equal(params.p_room_id, "room-1");
+    assert.equal(params.p_expected_version, server.version);
+    assert.equal(typeof params.p_client_action_id, "string");
+    assert.ok(params.p_client_action_id.length > 0);
+    actionCalls.push({ ...params });
+  }
+
+  async function executeRpc(viewerPlayerId, name, params = {}) {
+    if (name === "marble_get_game_snapshot") {
+      assert.equal(params.p_room_id, "room-1");
+      return snapshotOverrides.get(viewerPlayerId) ?? snapshotFor(viewerPlayerId);
+    }
+
+    assertExpectedVersion(params);
+    if (name === "marble_decline_property_for_auction") {
+      assert.equal(viewerPlayerId, "p1");
+      server.version += 1;
+      server.pendingChoice = requestChoice();
+      return snapshotFor(viewerPlayerId);
+    }
+    if (name === "marble_request_auction") {
+      assert.equal(viewerPlayerId, "p2");
+      server.version += 1;
+      server.pendingChoice = requestChoice(["p2"]);
+      return snapshotFor(viewerPlayerId);
+    }
+    if (name === "marble_close_auction_request") {
+      assert.equal(viewerPlayerId, "p1");
+      server.version += 1;
+      server.pendingChoice = server.pendingChoice.requestedByPlayerIds.length > 0
+        ? auctionChoice()
+        : null;
+      server.phase = server.pendingChoice ? "WAITING_CHOICE" : "TURN_END";
+      return snapshotFor(viewerPlayerId);
+    }
+    if (name === "marble_auction_bid") {
+      if (
+        viewerPlayerId === "p2"
+        && params.p_pass === true
+        && !server.pendingChoice.auction.bidPlayerIds.includes("p2")
+      ) {
+        throw new Error("AUCTION_REQUESTER_BID_REQUIRED");
+      }
+      if (viewerPlayerId === "p2") {
+        assert.equal(params.p_pass, false);
+        assert.equal(params.p_amount, 240);
+        server.version += 1;
+        server.pendingChoice = auctionChoice({
+          bidPlayerIds: ["p2"],
+          highestBid: 240,
+          highestBidderId: "p2",
+        });
+        return snapshotFor(viewerPlayerId);
+      }
+      assert.equal(viewerPlayerId, "p3");
+      assert.equal(params.p_pass, true);
+      assert.equal(params.p_amount, null);
+      server.version += 1;
+      server.phase = "TURN_END";
+      server.pendingChoice = null;
+      server.ownerId = "p2";
+      server.players.find((player) => player.id === "p2").money -= 240;
+      return snapshotFor(viewerPlayerId);
+    }
+
+    throw new Error(`UNEXPECTED_RPC:${name}`);
+  }
+
+  function clientFor(viewerPlayerId) {
+    return {
+      async rpc(name, params) {
+        try {
+          return { data: await executeRpc(viewerPlayerId, name, params), error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
+      },
+      channel() {
+        let changeHandler = null;
+        const channel = {
+          on(type, _filter, handler) {
+            if (type === "postgres_changes") changeHandler = handler;
+            return channel;
+          },
+          subscribe(statusHandler) {
+            changes.set(viewerPlayerId, () => changeHandler?.());
+            statusHandler?.("SUBSCRIBED");
+            return channel;
+          },
+        };
+        return channel;
+      },
+      removeChannel() {
+        changes.delete(viewerPlayerId);
+      },
+    };
   }
 
   function apiFor(viewerPlayerId) {
-    return {
-      createActionId() {
-        actionSequence += 1;
-        return `action-${viewerPlayerId}-${actionSequence}`;
-      },
-      async getSnapshot() {
-        return snapshotOverrides.get(viewerPlayerId) ?? snapshotFor(viewerPlayerId);
-      },
-      subscribeGame(_roomId, { onChange }) {
-        changes.set(viewerPlayerId, onChange);
-        return () => changes.delete(viewerPlayerId);
-      },
-      async declinePropertyForAuction(request) {
-        assert.equal(viewerPlayerId, "p1");
-        assertExpectedVersion(request);
-        server.version += 1;
-        server.pendingChoice = requestChoice();
-        return snapshotFor(viewerPlayerId);
-      },
-      async requestAuction(request) {
-        assert.equal(viewerPlayerId, "p2");
-        assertExpectedVersion(request);
-        server.version += 1;
-        server.pendingChoice = requestChoice(["p2"]);
-        return snapshotFor(viewerPlayerId);
-      },
-      async closeAuctionRequest(request) {
-        assert.equal(viewerPlayerId, "p1");
-        assertExpectedVersion(request);
-        server.version += 1;
-        server.pendingChoice = server.pendingChoice.requestedByPlayerIds.length > 0
-          ? auctionChoice()
-          : null;
-        server.phase = server.pendingChoice ? "WAITING_CHOICE" : "TURN_END";
-        return snapshotFor(viewerPlayerId);
-      },
-      async bidAuction(request) {
-        assertExpectedVersion(request);
-        if (viewerPlayerId === "p2" && request.pass === true && !server.pendingChoice.auction.bidPlayerIds.includes("p2")) {
-          throw new Error("AUCTION_REQUESTER_BID_REQUIRED");
-        }
-        if (viewerPlayerId === "p2") {
-          assert.equal(request.pass, false);
-          assert.equal(request.amount, 240);
-          server.version += 1;
-          server.pendingChoice = auctionChoice({
-            bidPlayerIds: ["p2"],
-            highestBid: 240,
-            highestBidderId: "p2",
-          });
-          return snapshotFor(viewerPlayerId);
-        }
-        assert.equal(viewerPlayerId, "p3");
-        assert.equal(request.pass, true);
-        assert.equal(request.amount, null);
-        server.version += 1;
-        server.phase = "TURN_END";
-        server.pendingChoice = null;
-        server.ownerId = "p2";
-        server.players.find((player) => player.id === "p2").money -= 240;
-        return snapshotFor(viewerPlayerId);
-      },
-    };
+    return createOnlineGameApi({ client: clientFor(viewerPlayerId) });
   }
 
   async function broadcast(...viewerPlayerIds) {
@@ -227,7 +257,6 @@ test("three online clients preserve the request-gated auction flow through autho
     for (const viewerPlayerId of ["p1", "p2", "p3"]) {
       sessions.push(await createOnlineClassicSession({
         roomId: "room-1",
-        initialSnapshot: harness.snapshotFor(viewerPlayerId),
         api: harness.apiFor(viewerPlayerId),
       }));
     }
@@ -287,8 +316,11 @@ test("three online clients preserve the request-gated auction flow through autho
     assert.equal(requester.getState().version, 8);
     assert.equal(requester.getState().boardState.properties.tokyo.ownerId, "p2");
 
-    assert.deepEqual(harness.actionCalls.map((call) => call.expectedVersion), [3, 4, 5, 6, 6, 7]);
-    assert.equal(new Set(harness.actionCalls.map((call) => call.clientActionId)).size, harness.actionCalls.length);
+    assert.deepEqual(harness.actionCalls.map((call) => call.p_expected_version), [3, 4, 5, 6, 6, 7]);
+    assert.equal(
+      new Set(harness.actionCalls.map((call) => call.p_client_action_id)).size,
+      harness.actionCalls.length,
+    );
   } finally {
     sessions.forEach((session) => session.dispose());
     restore();
@@ -305,7 +337,6 @@ test("a reconnecting client reconstructs AUCTION_REQUEST and PROPERTY_AUCTION UI
     harness.server.pendingChoice = requestChoice(["p2"]);
     const requestSession = await createOnlineClassicSession({
       roomId: "room-1",
-      initialSnapshot: harness.snapshotFor("p3"),
       api: harness.apiFor("p3"),
     });
     sessions.push(requestSession);
@@ -323,7 +354,6 @@ test("a reconnecting client reconstructs AUCTION_REQUEST and PROPERTY_AUCTION UI
     });
     const auctionSession = await createOnlineClassicSession({
       roomId: "room-1",
-      initialSnapshot: harness.snapshotFor("p3"),
       api: harness.apiFor("p3"),
     });
     sessions.push(auctionSession);
@@ -337,6 +367,19 @@ test("a reconnecting client reconstructs AUCTION_REQUEST and PROPERTY_AUCTION UI
     sessions.forEach((session) => session.dispose());
     restore();
   }
+});
+
+test("production RPC adapters keep the authoritative procedure names and parameter contract", () => {
+  const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
+  assert.match(apiSource, /createOnlineGameApi/);
+  assert.match(apiSource, /marble_decline_property_for_auction/);
+  assert.match(apiSource, /marble_request_auction/);
+  assert.match(apiSource, /marble_close_auction_request/);
+  assert.match(apiSource, /marble_auction_bid/);
+  assert.match(apiSource, /p_expected_version/);
+  assert.match(apiSource, /p_client_action_id/);
+  assert.match(apiSource, /p_amount/);
+  assert.match(apiSource, /p_pass/);
 });
 
 test("authoritative SQL keeps the multiplayer restrictions exercised by the regression suite", () => {
