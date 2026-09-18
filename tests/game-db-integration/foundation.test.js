@@ -18,6 +18,8 @@ let pendingUser;
 let rejectedUser;
 let suspendedUser;
 let revokedUser;
+let tradeAlice;
+let tradeBob;
 
 function jsonHeaders({ key = anonKey, token = key } = {}) {
   return {
@@ -180,6 +182,8 @@ before(async () => {
   rejectedUser = await createTestUser("rejected", "rejected");
   suspendedUser = await createTestUser("suspended", "suspended");
   revokedUser = await createTestUser("revoked");
+  tradeAlice = await createTestUser("trade-alice");
+  tradeBob = await createTestUser("trade-bob");
 });
 
 after(async () => {
@@ -298,4 +302,156 @@ test("Marble lobby enforces membership and optimistic room versions", async () =
   }, alice.accessToken);
   expectDenied(staleReady, "stale marble_set_ready");
   assert.match(staleReady.text, /VERSION_CONFLICT/u);
+});
+
+
+test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and replay", async () => {
+  const anonymousOffer = await rpc("marble_trade_offer", {
+    p_room_id: randomUUID(),
+    p_expected_version: 1,
+    p_client_action_id: randomUUID(),
+    p_offer_id: randomUUID(),
+    p_recipient_player_id: randomUUID(),
+    p_terms: { offered: { gold: 1 }, requested: {} },
+  });
+  expectDenied(anonymousOffer, "anonymous marble_trade_offer");
+
+  const created = await expectOk(await rpc("marble_create_room", {
+    p_nickname: "Trade Alice",
+    p_max_players: 2,
+  }, tradeAlice.accessToken), "trade marble_create_room");
+
+  const joined = await expectOk(await rpc("marble_join_room", {
+    p_room_code: created.room.roomCode,
+    p_nickname: "Trade Bob",
+  }, tradeBob.accessToken), "trade marble_join_room");
+
+  const ready = await expectOk(await rpc("marble_set_ready", {
+    p_room_id: created.room.id,
+    p_ready: true,
+    p_expected_version: Number(joined.room.version),
+  }, tradeBob.accessToken), "trade marble_set_ready");
+
+  const started = await expectOk(await rpc("marble_start_game", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(ready.room.version),
+  }, tradeAlice.accessToken), "trade marble_start_game");
+
+  const alicePlayer = started.players.find((player) => player.userId === tradeAlice.id);
+  const bobPlayer = started.players.find((player) => player.userId === tradeBob.id);
+  assert.ok(alicePlayer?.id, "trade Alice player id missing");
+  assert.ok(bobPlayer?.id, "trade Bob player id missing");
+  assert.equal(started.game.phase, "WAITING_ROLL");
+
+  await expectOk(await request(
+    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.singapore`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: { owner_seat: alicePlayer.seat, building_level: 0 },
+    },
+  ), "fixture Singapore ownership");
+
+  await expectOk(await request(
+    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.seoul`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: { owner_seat: bobPlayer.seat, building_level: 0 },
+    },
+  ), "fixture Seoul ownership");
+
+  const offerActionId = randomUUID();
+  const offerId = randomUUID();
+  const offered = await expectOk(await rpc("marble_trade_offer", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(started.game.version),
+    p_client_action_id: offerActionId,
+    p_offer_id: offerId,
+    p_recipient_player_id: bobPlayer.id,
+    p_terms: {
+      offered: { propertyIds: ["singapore"], gold: 100 },
+      requested: { propertyIds: ["seoul"], gold: 50 },
+    },
+  }, tradeAlice.accessToken), "trade marble_trade_offer");
+
+  assert.equal(offered.game.pendingTrade?.offerId, offerId);
+  assert.equal(offered.game.pendingTrade?.proposerPlayerId, alicePlayer.id);
+  assert.equal(offered.game.pendingTrade?.recipientPlayerId, bobPlayer.id);
+  assert.equal(offered.game.phase, "WAITING_ROLL");
+
+  const blockedRoll = await rpc("marble_roll_dice", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(offered.game.version),
+    p_client_action_id: randomUUID(),
+  }, tradeAlice.accessToken);
+  expectDenied(blockedRoll, "roll while trade is open", /TRADE_PENDING/u);
+
+  const acceptActionId = randomUUID();
+  const accepted = await expectOk(await rpc("marble_trade_accept", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(offered.game.version),
+    p_client_action_id: acceptActionId,
+    p_offer_id: offerId,
+  }, tradeBob.accessToken), "trade marble_trade_accept");
+
+  assert.equal(accepted.game.pendingTrade, null);
+  assert.equal(accepted.game.phase, "WAITING_ROLL");
+  assert.equal(accepted.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(accepted.properties.seoul.ownerId, alicePlayer.id);
+  assert.equal(
+    accepted.players.find((player) => player.id === alicePlayer.id)?.money,
+    1450,
+  );
+  assert.equal(
+    accepted.players.find((player) => player.id === bobPlayer.id)?.money,
+    1550,
+  );
+  assert.deepEqual(accepted.game.lastEvents.map((event) => event.type), [
+    "TRADE_ACCEPTED",
+    "TRADE_SETTLED",
+  ]);
+
+  const replayedAccept = await expectOk(await rpc("marble_trade_accept", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(offered.game.version),
+    p_client_action_id: acceptActionId,
+    p_offer_id: offerId,
+  }, tradeBob.accessToken), "trade accept replay");
+
+  assert.equal(replayedAccept.game.version, accepted.game.version);
+  assert.equal(replayedAccept.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(
+    replayedAccept.players.find((player) => player.id === alicePlayer.id)?.money,
+    1450,
+  );
+
+  const rejectOfferId = randomUUID();
+  const secondOffer = await expectOk(await rpc("marble_trade_offer", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(accepted.game.version),
+    p_client_action_id: randomUUID(),
+    p_offer_id: rejectOfferId,
+    p_recipient_player_id: bobPlayer.id,
+    p_terms: {
+      offered: { propertyIds: ["seoul"] },
+      requested: { gold: 75 },
+    },
+  }, tradeAlice.accessToken), "second trade offer");
+
+  const rejected = await expectOk(await rpc("marble_trade_reject", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(secondOffer.game.version),
+    p_client_action_id: randomUUID(),
+    p_offer_id: rejectOfferId,
+  }, tradeBob.accessToken), "trade marble_trade_reject");
+
+  assert.equal(rejected.game.pendingTrade, null);
+  assert.equal(rejected.game.phase, "WAITING_ROLL");
+  assert.deepEqual(rejected.game.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
+  assert.equal(rejected.properties.seoul.ownerId, alicePlayer.id);
 });
