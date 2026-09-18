@@ -42,9 +42,10 @@
 ## Validation
 
 - Completed: 원본 규칙 PDF, Board Game Arena, BoardGameGeek 및 column 자료를 교차 확인
-- Pending: `npm run test:game-platform` (현재 실행 환경에서 GitHub 네트워크 clone이 불가해 PR CI로 검증)
-- Pending: Game Platform Governance Guard PR CI
-- Pending: PR CI
+- Completed: `npm run test:game-platform` — Game Platform governance run #7 SUCCESS
+- Completed: Game Platform Governance Guard — run #7 SUCCESS
+- Completed: Site static checks — run #2990 SUCCESS
+- Pending: 없음 (bootstrap 범위)
 
 ## Known Issues / Deferred
 
