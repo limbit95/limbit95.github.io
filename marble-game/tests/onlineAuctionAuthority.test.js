@@ -6,6 +6,13 @@ const migration = readFileSync(
   new URL("../../supabase/marble/20260918220000_marble_auction_v2.sql", import.meta.url),
   "utf8",
 );
+const legacyCompatMigration = readFileSync(
+  new URL(
+    "../../supabase/marble/20260918224500_marble_auction_v2_legacy_request_compat.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 
 test("Auction v2 authority exposes server time and defines the 150 percent request and recruitment lifecycle", () => {
@@ -67,4 +74,17 @@ test("online API exposes Auction v2 RPC adapters without replacing stable game a
   assert.match(apiSource, /marble_auction_bid/);
   assert.match(apiSource, /marble_roll_dice/);
   assert.match(apiSource, /marble_end_turn/);
+});
+
+
+test("Auction v2 legacy request compatibility upgrades only pre-v2 unrequested windows", () => {
+  assert.match(legacyCompatMigration, /pending_choice->>'type' = 'AUCTION_REQUEST'/);
+  assert.match(legacyCompatMigration, /not \(pending_choice \? 'basePrice'\)/);
+  assert.match(legacyCompatMigration, /not \(pending_choice \? 'deadlineAt'\)/);
+  assert.match(legacyCompatMigration, /requestedByPlayerIds/);
+  assert.match(legacyCompatMigration, /jsonb_array_length/);
+  assert.match(legacyCompatMigration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
+  assert.match(legacyCompatMigration, /interval '10 seconds'/);
+  assert.match(legacyCompatMigration, /gp\.money >= v_opening_bid/);
+  assert.match(legacyCompatMigration, /version = version \+ 1/);
 });
