@@ -51,6 +51,7 @@ declare
   v_height integer;
   v_position integer;
   v_has_runner boolean;
+  v_runner_count integer;
 begin
   if v_active_player is null then
     return null;
@@ -75,7 +76,11 @@ begin
       return null;
     end if;
 
-    if not v_has_runner and jsonb_object_length(v_runners) >= 3 then
+    select count(*)::integer
+    into v_runner_count
+    from jsonb_object_keys(v_runners);
+
+    if not v_has_runner and v_runner_count >= 3 then
       return null;
     end if;
 
