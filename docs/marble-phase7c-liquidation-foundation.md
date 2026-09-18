@@ -114,12 +114,20 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
   - 토지/건물 환급 분리 계산
   - 정수 floor rounding
   - building level / board drift fail-closed
+- `marble-game/js/core/debtRecoverySettlement.js`
+  - `settleConfirmedDebtRecovery()`
 - `marble-game/tests/debtRecoveryLifecycle.test.js`
   - OPEN / READY / CONFIRMED / IMPOSSIBLE lifecycle
   - insufficient selection guard
   - confirmed selection immutability
   - over-liquidation leftover cash
   - creditor / bank debt settlement metadata
+- `marble-game/tests/debtRecoverySettlement.test.js`
+  - property release + creditor full payment
+  - bank debt payment
+  - stale cash / ownership / building level / refund drift guard
+  - bankrupt creditor guard
+  - input state immutability
 
 ## 의도적으로 아직 하지 않는 것
 
@@ -130,8 +138,7 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
 - Realtime 변경
 - UI 추가
 - 다른 테마의 매각 환급률 결정
-- creditor settlement 변경
-- 실제 property ownership 해제
+- 기존 `gameEngine.js` payment path 연결
 
 ### Debt recovery lifecycle
 
@@ -158,9 +165,37 @@ OPEN
 - payment 전 현금
 - payment 후 남는 현금
 
+### Debt recovery settlement
+
+`debtRecoverySettlement.js`는 CONFIRMED lifecycle을 실제 게임 state 변경 결과로 변환합니다.
+
+정산 직전에 다음을 다시 검증합니다.
+
+- debtor가 여전히 active인지
+- debtor cash가 recovery 시작 시점과 동일한지
+- creditor가 있다면 여전히 active인지
+- 선택 자산을 debtor가 여전히 소유하는지
+- 선택 자산의 building level이 바뀌지 않았는지
+- catalog refund 합계가 confirmed settlement와 동일한지
+
+검증이 통과하면 하나의 deterministic 결과에서:
+
+- 선택한 도시 owner를 `null`로 반환
+- 해당 도시 building level을 0으로 초기화
+- debtor에게 refund를 반영한 뒤 amount due 전액 지불
+- creditor가 있으면 amount due 전액을 creditor에게 지급
+- creditor가 없으면 TAX/EVENT payment처럼 circulation에서 제거
+- 남은 cash는 debtor가 보유
+
+생성 이벤트:
+
+- `PROPERTY_LIQUIDATED`
+- `MONEY_PAID`
+- `DEBT_RECOVERED`
+
 ## 다음 설계 결정
 
-다음 단계에서는 **실제 property ownership 해제와 payment settlement 순서**를 deterministic하게 고정합니다.
+다음 단계에서는 이 settlement를 **실제 ROLL_DICE / TOLL / TAX / EVENT 파산 경로에 연결하는 Game Engine integration**을 진행합니다.
 
 이 두 규칙을 고정한 뒤:
 
