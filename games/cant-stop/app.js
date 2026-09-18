@@ -267,12 +267,53 @@ function createGameplaySidebar(view) {
       el("li", {
         text: "실제 주사위와 모든 이동 결과는 서버 snapshot을 기준으로 표시합니다.",
       }),
+      view.isGameOver
+        ? el("li", {
+          text: view.isHost
+            ? "방장은 같은 방에서 재대결을 준비하거나 방을 나갈 수 있어요."
+            : "방장이 재대결을 준비하면 같은 방의 대기실로 돌아갑니다. 원하면 바로 방을 나갈 수도 있어요.",
+        })
+        : null,
     ]),
   ]);
 }
 
 function createGameplayActions(view, state) {
   const actions = [];
+
+  if (view.isGameOver) {
+    if (view.canRematch) {
+      actions.push(el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: state.busy ? "재대결 준비 중…" : "같은 방에서 재대결",
+        disabled: state.busy,
+        onClick: async () => {
+          try {
+            await lobbyController.rematchRoom();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }));
+    }
+
+    if (view.canLeaveAfterGame) {
+      actions.push(el("button", {
+        className: "game-platform-shell__button game-platform-shell__button--danger",
+        type: "button",
+        text: state.busy ? "나가는 중…" : "방 나가기",
+        disabled: state.busy,
+        onClick: async () => {
+          try {
+            await lobbyController.leaveRoom();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }));
+    }
+  }
 
   if (view.canRoll) {
     actions.push(el("button", {
