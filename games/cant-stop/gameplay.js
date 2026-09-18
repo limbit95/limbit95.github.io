@@ -19,6 +19,19 @@ function requireVersion(value) {
   return value;
 }
 
+function requireColumns(value, field, { exactLength = null } = {}) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 2) {
+    throw new TypeError(`Can't Stop gameplay ${field} must contain one or two columns.`);
+  }
+  if (exactLength !== null && value.length !== exactLength) {
+    throw new TypeError(`Can't Stop gameplay ${field} must contain exactly ${exactLength} columns.`);
+  }
+  if (!value.every((column) => Number.isInteger(column) && column >= 2 && column <= 12)) {
+    throw new TypeError(`Can't Stop gameplay ${field} columns must be integers from 2 to 12.`);
+  }
+  return [...value];
+}
+
 async function callRpc(client, name, args) {
   const { data, error } = await client.rpc(name, args);
   if (error) throw error;
@@ -36,6 +49,22 @@ export function createCantStopGameplayAdapter({ client } = {}) {
     }) {
       return callRpc(supabase, "cant_stop_roll_dice", {
         p_room_id: requireText(roomId, "roomId"),
+        p_expected_version: requireVersion(expectedVersion),
+        p_client_action_id: requireText(clientActionId, "clientActionId"),
+      });
+    },
+
+    async choosePairing({
+      roomId,
+      sums,
+      columns,
+      expectedVersion,
+      clientActionId,
+    }) {
+      return callRpc(supabase, "cant_stop_choose_pairing", {
+        p_room_id: requireText(roomId, "roomId"),
+        p_sums: requireColumns(sums, "sums", { exactLength: 2 }),
+        p_columns: requireColumns(columns, "columns"),
         p_expected_version: requireVersion(expectedVersion),
         p_client_action_id: requireText(clientActionId, "clientActionId"),
       });
