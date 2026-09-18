@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-push-stop
+- Active branch: feature/game-platform-phase4-cant-stop-gameplay-ui
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -67,16 +67,23 @@
 - 같은 `PUSH_OR_STOP` version에 continue/stop이 동시에 들어오면 하나만 commit되고 다른 하나는 `VERSION_CONFLICT`가 되도록 DB regression을 추가했다.
 - gameplay adapter에 `continueTurn()`, `stopTurn()` intent를 추가했다.
 - disposable Supabase fixture를 사용해 JS `continueTurn()/stopTurn()` parity, permanent progress commit, claim, 상대 progress 제거, 3번째 claim 승리를 결정적으로 검증한다.
+- gameplay adapter를 기존 lobby controller에 주입해 `rollDice / choosePairing / continueTurn / stopTurn`을 같은 busy/error/snapshot 흐름으로 연결했다.
+- authoritative gameplay view model을 추가해 UI가 규칙을 다시 계산하지 않고 server snapshot의 dice, legal pairings, runners, permanent progress, claims, winner를 렌더링하게 했다.
+- 실제 board에 네 주사위, legal pairing/plan 선택, temporary runner, player별 permanent marker, claimed column을 표시한다.
+- `TURN_ROLL`에서는 active player에게 서버 주사위 굴리기, `PUSH_OR_STOP`에서는 한 번 더 굴리기/멈추기 action을 노출한다.
+- `GAME_OVER`에서는 authoritative winner와 최종 claim 상태를 표시한다.
+- legal pairing이 하나만 있어도 자동 commit하지 않고 사용자가 명시적으로 이동 plan 버튼을 눌러 확정하도록 초기 UX를 고정했다.
+- runtime/controller 단위 테스트에 gameplay view mapping과 versioned gameplay command wiring을 추가했다.
 
 ## Current Work
 
-- authoritative `continue_turn` / `stop_turn`과 permanent progress / claim / win transition을 disposable Supabase에서 검증한다.
+- authoritative gameplay snapshot을 실제 board/action UI에 연결하고 전체 Game Platform 회귀를 검증한다.
 
 ## Next Work
 
-- gameplay controller/UI에 `roll_dice → choose_pairing → continue_turn/stop_turn` authoritative flow를 연결한다.
-- board에 latest dice, legal pairing 선택, temporary runner, permanent progress, claimed column, winner 표현을 연결한다.
 - GAME_OVER 이후 방 나가기 / 재매칭 lifecycle을 설계해 완료된 게임이 사용자를 active room에 영구 고정하지 않도록 한다.
+- 실제 멀티클라이언트에서 roll/pairing/continue/stop/reconnect UI 흐름을 회귀 검증한다.
+- online core 안정화 후 platform-native Invite 연결을 진행한다.
 - 운영 Supabase migration 적용 및 실제 배포 검증 전까지 Registry `online` capability는 false로 유지한다.
 
 ## Decisions
@@ -102,22 +109,23 @@
 - `continue_turn`은 현재 turn의 runner를 유지하고 공개된 dice/pairing만 초기화한 뒤 같은 active player가 다시 roll하게 한다.
 - `stop_turn`은 runner 위치를 permanent progress로 commit한 뒤 claim/win을 계산하며 승자가 없으면 다음 player의 `TURN_ROLL`로 넘긴다.
 - 3번째 claim 승리 시 room status는 당장 닫지 않고 `game.phase = GAME_OVER`를 authoritative final state로 유지해 reconnect가 최종 결과를 복구할 수 있게 한다.
+- gameplay UI는 authoritative snapshot을 표시할 뿐 dice/pairing/runner 결과를 client에서 재계산해 truth로 사용하지 않는다.
+- legal pairing이 정확히 하나여도 자동 적용하지 않고 active player가 명시적으로 plan을 선택해 commit한다.
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice / choose-pairing 검증
-- Completed: choose-pairing authority/parity DB integration — run #81 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks run #3064 SUCCESS
-- Completed: Game Platform Governance Guard — run #62 SUCCESS
-- Completed: Site static checks — run #3064 SUCCESS
-- Completed: Game DB integration continue/stop/claim/win contract — run #94 SUCCESS
-- Pending: 없음 (push-stop 범위)
+- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice / choose-pairing / push-stop 검증
+- Completed: push-stop Game DB integration — run #95 SUCCESS
+- Pending: `npm run test:game-platform` on gameplay-ui PR
+- Pending: Game Platform Governance Guard on gameplay-ui PR
+- Pending: Site static checks on gameplay-ui PR
+- Pending: Game DB integration regression on gameplay-ui PR
 
 ## Known Issues / Deferred
 
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- authoritative core action인 `roll_dice`, `choose_pairing`, `continue_turn`, `stop_turn`은 구현됐지만 아직 gameplay UI가 이를 호출하지 않는다.
+- authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
 - GAME_OVER final snapshot은 유지되지만 완료된 게임에서 나가 새 방을 만들 수 있는 post-game lifecycle은 아직 구현하지 않았다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
-- legal pairing이 정확히 하나일 때 UI가 자동 적용할지 확인 버튼을 보여줄지는 후속 UX 단계에서 결정한다.
+- GAME_OVER 이후 방 나가기/재매칭 lifecycle은 아직 구현하지 않았다.
