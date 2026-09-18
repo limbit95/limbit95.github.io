@@ -45,6 +45,12 @@ function freezeStringList(value) {
   return Object.freeze(Array.isArray(value) ? [...value] : []);
 }
 
+function getServerClockOffsetMs(snapshot, clientNowMs = Date.now()) {
+  const serverNowMs = Date.parse(String(snapshot?.serverNow ?? ""));
+  if (!Number.isFinite(serverNowMs)) return null;
+  return serverNowMs - Number(clientNowMs);
+}
+
 function freezeAuctionState(auction) {
   if (!auction || typeof auction !== "object") return null;
   return Object.freeze({
@@ -211,6 +217,7 @@ export async function createOnlineClassicSession({
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
+  let serverClockOffsetMs = getServerClockOffsetMs(snapshot) ?? 0;
   let unsubscribe = null;
   let disposed = false;
   let refreshing = false;
@@ -237,6 +244,8 @@ export async function createOnlineClassicSession({
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
     const changed = nextState.version > state.version;
+    const nextClockOffsetMs = getServerClockOffsetMs(nextSnapshot);
+    if (nextClockOffsetMs !== null) serverClockOffsetMs = nextClockOffsetMs;
     snapshot = nextSnapshot;
     state = nextState;
     if (changed) notifyStateListeners(state);
@@ -436,6 +445,9 @@ export async function createOnlineClassicSession({
     },
     getViewerPlayerId() {
       return snapshot.viewerPlayerId ?? null;
+    },
+    getServerNowMs() {
+      return Date.now() + serverClockOffsetMs;
     },
     subscribeState(listener) {
       if (typeof listener !== "function") throw new Error("STATE_LISTENER_REQUIRED");
