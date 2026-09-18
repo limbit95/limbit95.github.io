@@ -84,7 +84,16 @@ begin
   where p.room_id = p_room_id
     and (
       p.membership_status = 'active'
-      or v_include_history
+      or (
+        v_include_history
+        and exists (
+          select 1
+          from jsonb_array_elements_text(
+            coalesce(v_room.game_state -> 'turnOrder', '[]'::jsonb)
+          ) as participant(user_id)
+          where participant.user_id = p.user_id::text
+        )
+      )
     );
 
   return jsonb_build_object(
