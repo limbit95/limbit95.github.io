@@ -45,10 +45,14 @@ function freezeStringList(value) {
   return Object.freeze(Array.isArray(value) ? [...value] : []);
 }
 
-function getServerClockOffsetMs(snapshot, clientNowMs = Date.now()) {
+function monotonicNowMs() {
+  const value = globalThis.performance?.now?.();
+  return Number.isFinite(value) ? Number(value) : Date.now();
+}
+
+function getSnapshotServerNowMs(snapshot) {
   const serverNowMs = Date.parse(String(snapshot?.serverNow ?? ""));
-  if (!Number.isFinite(serverNowMs)) return null;
-  return serverNowMs - Number(clientNowMs);
+  return Number.isFinite(serverNowMs) ? serverNowMs : null;
 }
 
 function freezeAuctionState(auction) {
@@ -217,7 +221,8 @@ export async function createOnlineClassicSession({
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
-  let serverClockOffsetMs = getServerClockOffsetMs(snapshot) ?? 0;
+  let serverClockAnchorMs = getSnapshotServerNowMs(snapshot);
+  let monotonicClockAnchorMs = monotonicNowMs();
   let unsubscribe = null;
   let disposed = false;
   let refreshing = false;
@@ -244,8 +249,11 @@ export async function createOnlineClassicSession({
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
     const changed = nextState.version > state.version;
-    const nextClockOffsetMs = getServerClockOffsetMs(nextSnapshot);
-    if (nextClockOffsetMs !== null) serverClockOffsetMs = nextClockOffsetMs;
+    const nextServerNowMs = getSnapshotServerNowMs(nextSnapshot);
+    if (nextServerNowMs !== null) {
+      serverClockAnchorMs = nextServerNowMs;
+      monotonicClockAnchorMs = monotonicNowMs();
+    }
     snapshot = nextSnapshot;
     state = nextState;
     if (changed) notifyStateListeners(state);
@@ -447,7 +455,8 @@ export async function createOnlineClassicSession({
       return snapshot.viewerPlayerId ?? null;
     },
     getServerNowMs() {
-      return Date.now() + serverClockOffsetMs;
+      if (serverClockAnchorMs === null) return Date.now();
+      return serverClockAnchorMs + (monotonicNowMs() - monotonicClockAnchorMs);
     },
     subscribeState(listener) {
       if (typeof listener !== "function") throw new Error("STATE_LISTENER_REQUIRED");
