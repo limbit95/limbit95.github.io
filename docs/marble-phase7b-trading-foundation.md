@@ -118,11 +118,22 @@ requested:
   - improved property guard
   - 기존 Phase 7A auction delegate 회귀
 
+## Local runtime 연결
+
+`createLocalClassicSession()`은 기존 API를 유지하면서 다음 거래 메서드를 additive하게 제공합니다.
+
+- `offerTrade(recipientPlayerId, terms, offerId)`
+- `acceptTrade(playerId)`
+- `rejectTrade(playerId)`
+
+로컬 세션 역시 `reducePhase7TradingGameAction()`을 사용하므로 Game Engine과 동일한 pre-roll 거래 규칙, open trade action lock, deterministic settlement를 따릅니다.
+
+회귀 테스트에서는 기존 구매/경매 흐름을 유지하면서 실제 로컬 세션에서 지역 + 골드 거래의 수락/거절을 검증합니다.
+
 ## 다음 단계
 
 ```text
-local runtime
-→ authoritative Supabase RPC
+authoritative Supabase RPC
 → Realtime / reconnect
 → UI
 → multiplayer regression
