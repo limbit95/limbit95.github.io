@@ -355,7 +355,7 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
   ), "fixture Singapore ownership");
 
   await expectOk(await request(
-    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.seoul`,
+    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.tokyo`,
     {
       method: "PATCH",
       key: serviceRoleKey,
@@ -363,7 +363,7 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
       headers: { Prefer: "return=minimal" },
       body: { owner_seat: bobPlayer.seat, building_level: 0 },
     },
-  ), "fixture Seoul ownership");
+  ), "fixture Tokyo ownership");
 
   const offerActionId = randomUUID();
   const offerId = randomUUID();
@@ -375,7 +375,7 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
     p_recipient_player_id: bobPlayer.id,
     p_terms: {
       offered: { propertyIds: ["singapore"], gold: 100 },
-      requested: { propertyIds: ["seoul"], gold: 50 },
+      requested: { propertyIds: ["tokyo"], gold: 50 },
     },
   }, tradeAlice.accessToken), "trade marble_trade_offer");
 
@@ -402,7 +402,7 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
   assert.equal(accepted.game.pendingTrade, null);
   assert.equal(accepted.game.phase, "WAITING_ROLL");
   assert.equal(accepted.properties.singapore.ownerId, bobPlayer.id);
-  assert.equal(accepted.properties.seoul.ownerId, alicePlayer.id);
+  assert.equal(accepted.properties.tokyo.ownerId, alicePlayer.id);
   assert.equal(
     accepted.players.find((player) => player.id === alicePlayer.id)?.money,
     1450,
@@ -438,7 +438,7 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
     p_offer_id: rejectOfferId,
     p_recipient_player_id: bobPlayer.id,
     p_terms: {
-      offered: { propertyIds: ["seoul"] },
+      offered: { propertyIds: ["tokyo"] },
       requested: { gold: 75 },
     },
   }, tradeAlice.accessToken), "second trade offer");
@@ -453,5 +453,5 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
   assert.equal(rejected.game.pendingTrade, null);
   assert.equal(rejected.game.phase, "WAITING_ROLL");
   assert.deepEqual(rejected.game.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
-  assert.equal(rejected.properties.seoul.ownerId, alicePlayer.id);
+  assert.equal(rejected.properties.tokyo.ownerId, alicePlayer.id);
 });
