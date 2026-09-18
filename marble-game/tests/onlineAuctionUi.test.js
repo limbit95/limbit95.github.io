@@ -150,6 +150,8 @@ test("Auction v2 UI owns timers, recruitment controls, and auto-purchase result"
   assert.match(cssSource, /transform: translate\(-50%, -50%\)/);
   assert.match(cssSource, /max-height: calc\(100dvh - 32px\)/);
   assert.match(cssSource, /overflow-y: auto/);
+  assert.match(uiSource, /const modalHost = documentObject\.body \?\? dock/);
+  assert.match(uiSource, /modalHost\.prepend\(panel\)/);
 });
 
 test("legacy controls and end-turn RPC cannot bypass any Auction v2 stage", () => {
