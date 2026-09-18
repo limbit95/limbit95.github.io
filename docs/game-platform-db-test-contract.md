@@ -1,17 +1,10 @@
 # Game Platform DB/Test Contract
 
-## 결론
+이 문서는 신규 online platform-native 게임의 **현재 정식 DB/RPC 품질 계약**이다.
 
-Phase 3E에서는 공통 게임 DB 스키마나 공통 게임 RPC를 만들지 않는다.
+게임별 테이블 구조, RPC 이름, 규칙 상태 머신은 각 게임에 남겨 두되, 모든 신규 온라인 게임은 아래 서버 경계와 테스트 시나리오를 만족해야 한다.
 
-대신 앞으로 추가되는 platform-native 멀티플레이 게임이 반드시 검증해야 할 서버 경계를 **공통 테스트 계약**으로 고정한다.
-
-이 결정의 이유는 다음과 같다.
-
-- 인증/승인회원/멤버십/버전/동시성/재접속 경계는 게임 규칙과 무관하게 반복된다.
-- 실제 테이블 구조와 RPC 인자, 상태 머신은 게임마다 다르므로 지금 공통 SQL을 만들면 과도한 추상화가 된다.
-- 현재 Legacy 게임을 새 DB 규격으로 마이그레이션할 필요가 없다.
-- Can’t Stop이 첫 실제 platform-native 게임이므로, 그 SQL/RPC를 만들 때 이 테스트 계약을 첫 소비자로 연결하면 된다.
+공통 게임 DB 스키마나 공통 gameplay RPC를 강제하지 않는다. 공통화 대상은 SQL 구현 자체가 아니라 **반드시 검증해야 하는 안전성 계약**이다.
 
 ## 필수 계약
 
@@ -121,7 +114,7 @@ client_action_id
 
 `Game DB integration` workflow는 관련 DB/harness 파일이 변경된 PR에서만 실행한다.
 
-Phase 3E부터 workflow는 `tests/game-db-integration/*.test.js` 전체를 실행하므로, 신규 게임이 계약 테스트 파일을 추가하면 별도 workflow를 만들 필요가 없다.
+workflow는 `tests/game-db-integration/*.test.js` 전체를 실행하므로, 신규 게임이 계약 테스트 파일을 추가하면 별도 workflow를 만들 필요가 없다.
 
 GitHub Actions 사용량을 줄이기 위해 일반 feature push마다 DB integration을 실행하지 않는다.
 
@@ -131,4 +124,4 @@ GitHub Actions 사용량을 줄이기 위해 일반 feature push마다 DB integr
 
 Legacy는 현재 동작을 보호하는 회귀 테스트를 유지한다.
 
-공통 계약은 Can’t Stop부터 시작하는 신규 platform-native 게임의 기본 품질 게이트로 사용한다.
+공통 계약은 모든 신규 online platform-native 게임의 기본 품질 게이트로 사용한다.

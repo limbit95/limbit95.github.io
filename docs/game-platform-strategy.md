@@ -1,5 +1,7 @@
 # Game Platform Strategy
 
+> **문서 성격:** 이 문서는 Game Platform을 구축한 전략과 단계별 결정 배경을 보존하는 참고 문서다. 신규 platform-native 게임의 현재 실행 규칙은 `docs/game-platform-development-rules.md`를 따르며, 실제 계약은 `games/shared/` 코드와 테스트를 기준으로 확인한다.
+
 ## 1. 목적
 
 청파 같이의 Game Platform 작업은 기존 게임 코드를 예쁘게 정리하는 프로젝트가 아니다.
@@ -63,6 +65,8 @@ Legacy 변경은 실제 장애, 보안, 데이터 손상, 동기화 오류 등 �
 ## 4. 신규 게임의 기본 구조
 
 Can’t Stop을 시작으로 신규 게임은 Game Platform 위에 구현한다.
+
+신규 게임의 실제 구현 절차와 MUST / MUST NOT 규칙은 `docs/game-platform-development-rules.md`를 실행 기준으로 사용한다.
 
 플랫폼이 담당할 후보:
 

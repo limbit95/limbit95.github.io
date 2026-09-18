@@ -49,6 +49,14 @@ fix/marble-stability-phase3-ci
 - 문서끼리 충돌하거나 어느 설명이 현재 기준인지 불명확하면 추측으로 하나를 선택하지 않고 기존 내용을 유지한 채 불일치와 확인 필요 사항을 보고합니다.
 - 문서 이동, 삭제, 통합과 대규모 표현 통일은 별도 범위의 작업으로 취급합니다.
 
+## Game Platform 신규 게임 필수 규칙
+
+- `games/<game-id>/` 아래 신규 platform-native 게임을 생성하거나 수정하기 전에 반드시 `docs/game-platform-development-rules.md`를 읽고 따릅니다.
+- 사용자가 매번 Game Platform 규칙을 다시 명시하지 않아도 해당 문서를 신규 게임 작업의 기본 전제로 적용합니다.
+- `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
+- `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
+- Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
+
 ## 작업 전 확인
 
 - 작업 대상과 연관된 기존 코드와 주변 호출부를 먼저 확인합니다.

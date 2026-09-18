@@ -1,5 +1,7 @@
 # Game Platform Invite Analysis
 
+> **문서 성격:** 이 문서는 Phase 3D 당시 기존 Invite 구조를 조사하고 platform-native Invite 방향을 결정한 분석 기록이다. 신규 게임의 현재 Invite 구현 규칙은 `docs/game-platform-development-rules.md`와 `games/shared/gameInvite.js`를 기준으로 한다. 이 문서는 필수 선행 계약 문서가 아니다.
+
 ## 목적
 
 Phase 3D는 기존 게임 초대를 그대로 플랫폼 표준으로 승격하지 않는다.
