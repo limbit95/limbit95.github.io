@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 
+import { enumeratePairings } from "../../games/cant-stop/rules.js";
 import { registerPlatformGameDbContract } from "./platformContract.js";
 
 const supabaseUrl = process.env.E2E_LOCAL_SUPABASE_URL;
@@ -443,6 +444,10 @@ test("cant-stop: active player roll is server-generated and idempotent", async (
   );
   assert.equal(Array.isArray(rolled.game.legalPairings), true);
   assert.ok(rolled.game.legalPairings.length >= 1);
+  assert.deepEqual(
+    rolled.game.legalPairings.map((pairing) => pairing.sums),
+    enumeratePairings(rolled.game.latestDice),
+  );
   for (const pairing of rolled.game.legalPairings) {
     assert.equal(Array.isArray(pairing.sums), true);
     assert.equal(pairing.sums.length, 2);
