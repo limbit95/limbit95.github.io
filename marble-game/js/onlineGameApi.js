@@ -151,6 +151,28 @@ export function cancelOnlineTrade(options) {
   return resolveTradeWithRpc(rpc, "marble_trade_cancel", options);
 }
 
+function selectLiquidationWithRpc(callRpc, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  assetIds = [],
+} = {}) {
+  return callRpc("marble_liquidation_select", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_asset_ids: Array.isArray(assetIds) ? assetIds : [],
+  });
+}
+
+export function selectOnlineLiquidation(options) {
+  return selectLiquidationWithRpc(rpc, options);
+}
+
+export function confirmOnlineLiquidation(options) {
+  return gameActionWithRpc(rpc, "marble_liquidation_confirm", options);
+}
+
 function subscribeOnlineGameWithClient(client, roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const channel = client
     .channel(`marble-game:${roomId}:${channelScope}:${createOnlineActionId()}`)
@@ -201,6 +223,12 @@ export function createOnlineGameApi({ client } = {}) {
     },
     cancelTrade(options) {
       return resolveTradeWithRpc(callRpc, "marble_trade_cancel", options);
+    },
+    selectLiquidation(options) {
+      return selectLiquidationWithRpc(callRpc, options);
+    },
+    confirmLiquidation(options) {
+      return gameActionWithRpc(callRpc, "marble_liquidation_confirm", options);
     },
     subscribeGame(roomId, options) {
       return subscribeOnlineGameWithClient(client, roomId, options);
