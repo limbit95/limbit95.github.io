@@ -187,6 +187,8 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성한다.
 - permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다.
 - 현재 roll의 네 주사위와 가능한 pairing 선택지를 함께 보여준다.
+- legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
+- temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
 - bust 시 이번 턴에 잃은 임시 진척이 명확히 보이도록 짧은 피드백을 제공한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
@@ -264,6 +266,6 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 ## Open Questions / Deferred
 
-- legal pairing이 정확히 하나일 때 서버가 자동 적용할지 UI에서 확인 선택을 받을지는 UX 단계에서 결정한다. 규칙 엔진은 둘 다 표현할 수 있게 한다.
+- GAME_OVER 이후 방 나가기, 같은 멤버 재대결, 새 방 생성 lifecycle은 online gameplay UI가 안정된 뒤 설계한다.
 - Invite는 online core가 먼저 안정된 후 연결한다.
 - 초기 board의 최종 시각 테마와 애니메이션 품질은 core rules/authority 검증 이후 확정한다.
