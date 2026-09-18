@@ -28,3 +28,58 @@ test("local Classic session can start, buy a property, and advance turn", () => 
   assert.equal(state.currentPlayerIndex, 1);
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
+
+test("local Classic session completes the request-gated auction flow and advances turn", () => {
+  const values = [0, 0.2];
+  let index = 0;
+  const session = createLocalClassicSession({ random: () => values[index++ % values.length] });
+
+  let state = session.start();
+  state = session.roll();
+  assert.equal(state.pendingChoice.type, "BUY_PROPERTY");
+
+  state = session.endTurn();
+  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
+  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, []);
+
+  state = session.requestAuction("player-b");
+  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, ["player-b"]);
+
+  state = session.closeAuctionRequest();
+  assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
+  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["player-b"]);
+
+  state = session.auctionBid("player-b", 260);
+  assert.equal(state.pendingChoice.auction.highestBidderId, "player-b");
+
+  state = session.auctionPass("player-c");
+  state = session.auctionPass("player-d");
+  assert.equal(state.phase, TURN_PHASES.TURN_END);
+  assert.equal(state.pendingChoice, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, "player-b");
+  assert.equal(state.players[1].money, 1240);
+
+  state = session.endTurn();
+  assert.equal(state.currentPlayerIndex, 1);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+});
+
+test("local Classic session ends the turn without opening an auction when nobody requests it", () => {
+  const values = [0, 0.2];
+  let index = 0;
+  const session = createLocalClassicSession({ random: () => values[index++ % values.length] });
+
+  let state = session.start();
+  state = session.roll();
+  state = session.endTurn();
+  state = session.closeAuctionRequest();
+
+  assert.equal(state.phase, TURN_PHASES.TURN_END);
+  assert.equal(state.pendingChoice, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, null);
+
+  state = session.endTurn();
+  assert.equal(state.currentPlayerIndex, 1);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+});
