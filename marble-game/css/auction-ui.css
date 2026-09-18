@@ -15,7 +15,14 @@
   display: none;
 }
 
-.auction-action-panel[data-auction-stage="request"] {
+.auction-action-panel[data-auction-stage="request"],
+.auction-action-panel[data-auction-stage="recruitment"] {
+  position: fixed;
+  z-index: 1200;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(calc(100vw - 32px), 520px);
   border-style: dashed;
 }
 
@@ -35,6 +42,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.auction-action-panel__timer {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .auction-action-panel__badge {
@@ -135,4 +149,30 @@
   .auction-action-panel__bid input {
     grid-column: 1 / -1;
   }
+}
+
+
+.auction-result-modal {
+  width: min(calc(100vw - 32px), 420px);
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  background: rgba(17, 24, 39, 0.98);
+  color: #fff;
+  text-align: center;
+}
+
+.auction-result-modal::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.auction-result-modal strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+}
+
+.auction-result-modal p {
+  margin: 0 0 16px;
+  opacity: 0.84;
 }
