@@ -78,6 +78,18 @@ export function createLocalClassicSession({
     auctionTimeout() {
       return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
     },
+    advanceAuctionDeadline() {
+      if (state.pendingChoice?.type === "AUCTION_REQUEST") {
+        return dispatch(ACTION_TYPES.AUCTION_REQUEST_CLOSE, {}, null);
+      }
+      if (state.pendingChoice?.type === "AUCTION_RECRUITMENT") {
+        return dispatch(ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, {}, null);
+      }
+      if (state.pendingChoice?.type === "PROPERTY_AUCTION") {
+        return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
+      }
+      throw new Error("AUCTION_DEADLINE_NOT_ACTIVE");
+    },
     offerTrade(recipientPlayerId, terms, offerId) {
       return dispatch(ACTION_TYPES.TRADE_OFFER, {
         offerId,
