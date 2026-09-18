@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260918-r11";
 import { setupOnlinePresenceHud } from "./onlinePresenceHud.js?v=20260910-r8";
 import { getOnlineRoomId } from "./onlinePlayRoute.js";
 import { runOptionalEnhancement, withOnlineStartupTimeout } from "./onlineStartup.js?v=20260910-r8";
