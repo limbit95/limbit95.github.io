@@ -267,5 +267,7 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 ## Open Questions / Deferred
 
 - GAME_OVER 이후 방 나가기, 같은 멤버 재대결, 새 방 생성 lifecycle은 online gameplay UI가 안정된 뒤 설계한다.
+- GAME_OVER에서는 모든 player가 방을 나갈 수 있고, 방장은 같은 room을 waiting으로 되돌려 재대결 준비를 시작할 수 있다.
+- 재대결 준비는 기존 active members / seats / room code를 유지하고 ready 상태만 초기화한 뒤 기존 ready/start 흐름을 재사용한다.
 - Invite는 online core가 먼저 안정된 후 연결한다.
 - 초기 board의 최종 시각 테마와 애니메이션 품질은 core rules/authority 검증 이후 확정한다.
