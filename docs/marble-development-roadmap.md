@@ -166,7 +166,11 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 현재 요청창의 자동 deadline / 고정 시간 제한은 아직 확정된 제품 규칙이 아니므로 임의로 추가하지 않습니다.
 
-2026-09-18 실제 플레이테스트 결과, Phase 7A의 서버 권위 경매 기반은 유지하되 **현재 경매 UI와 플레이 흐름은 후속 UX 재검토가 필요**한 상태로 기록합니다. 구체적인 변경안은 [Auction Playtest UX Review](./marble-auction-ux-review.md)에서 별도로 정의합니다.
+2026-09-18 실제 플레이테스트 결과, Phase 7A의 서버 권위 경매 기반은 유지하되 **현재 경매 UI와 플레이 흐름 및 시작가 규칙을 Auction v2로 재정의**하기로 했습니다.
+
+현재 확정된 v2 핵심은 10초 경매 요청 → 10초 참가자 모집 → 단독 참가 시 자동 매입 / 2명 이상 시 경쟁 경매, 시작 경매가 150%, 최초 요청자 자동 첫 입찰입니다.
+
+아직 자금 자격, 입찰 순서, 경쟁 입찰 timer, disconnect 등 예외 규칙은 미확정이며 실제 구현은 시작하지 않았습니다. 기준 문서는 [Auction v2 Requirements](./marble-auction-v2-requirements.md)입니다.
 
 ### Phase 7B — Trading / Negotiation
 
@@ -266,3 +270,4 @@ Classic의 장기 기능 후보는 [Classic Feature & Presentation Candidate Bac
 - [Phase 7C Debt Recovery / Asset Liquidation](./marble-phase7c-liquidation-foundation.md)
 - [Classic Feature & Presentation Candidate Backlog](./marble-classic-feature-candidates.md)
 - [Auction Playtest UX Review](./marble-auction-ux-review.md)
+- [Auction v2 Requirements](./marble-auction-v2-requirements.md)
