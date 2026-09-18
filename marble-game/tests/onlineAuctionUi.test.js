@@ -136,6 +136,7 @@ test("competitive UI only enables bid and pass for the server-selected turn", ()
 
 test("Auction v2 UI owns timers, recruitment controls, and auto-purchase result", () => {
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
+  assert.match(uiSource, /session\.getServerNowMs\?\.\(\)/);
   assert.match(uiSource, /session\.joinAuction\(\)/);
   assert.match(uiSource, /session\.withdrawAuction\(\)/);
   assert.match(uiSource, /session\.auctionPass\(\)/);
