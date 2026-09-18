@@ -266,6 +266,8 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 ## Open Questions / Deferred
 
-- GAME_OVER 이후 방 나가기, 같은 멤버 재대결, 새 방 생성 lifecycle은 online gameplay UI가 안정된 뒤 설계한다.
+- GAME_OVER에서는 각 player가 자유롭게 방을 나갈 수 있고 host는 같은 room code/남은 active members로 rematch를 준비할 수 있다.
+- rematch는 room을 waiting으로 되돌리고 host ready=true, 나머지 ready=false로 초기화한 뒤 기존 ready/start 흐름을 재사용한다.
+- GAME_OVER에서 먼저 나간 player는 final snapshot history에 disconnected 상태로 남겨 winner/claim 표시를 보존한다.
 - Invite는 online core가 먼저 안정된 후 연결한다.
 - 초기 board의 최종 시각 테마와 애니메이션 품질은 core rules/authority 검증 이후 확정한다.
