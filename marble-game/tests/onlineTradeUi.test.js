@@ -86,7 +86,7 @@ test("trade UI keeps authority in the session and does not add client-side settl
   assert.match(uiSource, /session\.offerTrade\(recipientPlayerId, terms\)/);
   assert.match(uiSource, /session\.acceptTrade\(\)/);
   assert.match(uiSource, /session\.rejectTrade\(\)/);
-  assert.doesNotMatch(uiSource, /ownerId\s*=/);
+  assert.doesNotMatch(uiSource, /ownerId\s*=(?!=)/);
   assert.doesNotMatch(uiSource, /player\.money\s*[+-]=/);
   assert.match(uiSource, /buildingLevel \?\? 0\) === 0/);
 });
