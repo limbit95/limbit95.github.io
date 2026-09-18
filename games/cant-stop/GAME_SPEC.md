@@ -162,6 +162,17 @@ Can’t Stop에는 상대에게 숨겨야 하는 hand/role 같은 gameplay priva
 
 Realtime은 snapshot 교체 데이터가 아니라 invalidation 신호로만 사용한다.
 
+Room/Lobby foundation은 다음 game-local DB 객체를 사용한다.
+
+- `public.cant_stop_rooms`: room identity, host, status, max players, authoritative `version`, game state
+- `public.cant_stop_room_players`: room membership, seat, nickname, ready state
+- `public.cant_stop_room_actions`: `client_action_id` 기반 lobby action replay/idempotency 기록
+- public RPC: `cant_stop_create_room`, `cant_stop_join_room`, `cant_stop_get_my_active_room`, `cant_stop_get_lobby_snapshot`, `cant_stop_set_ready`, `cant_stop_leave_room`, `cant_stop_start_game`
+
+브라우저에는 위 테이블의 직접 쓰기 권한을 주지 않는다. 승인회원 RPC가 권한, membership, host, phase, expected version을 검증하고 room row lock 안에서 변경한다. `set_ready`와 `start_game`은 `client_action_id`를 기록해 재전송 시 같은 authoritative snapshot을 반환한다.
+
+Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation으로 구독하고, 실제 렌더 상태는 `cant_stop_get_lobby_snapshot` 또는 후속 authoritative snapshot RPC로 다시 읽는다.
+
 ## UI / UX Direction
 
 - Common Game Shell로 제목, 방 정보, 연결 상태, roster, 공통 action 영역을 제공한다.
