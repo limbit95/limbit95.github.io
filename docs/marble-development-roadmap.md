@@ -190,7 +190,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7C — Debt Recovery / Asset Liquidation
 
-상태: **진행 중 — Classic liquidation policy**
+상태: **진행 중 — debt recovery lifecycle**
 
 Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
 
@@ -204,6 +204,9 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - 건물 단계는 자산 metadata로 보존
 - `liquidationPolicy.js`에서 토지/건물 환급률을 basis point로 주입하는 deterministic 계산 엔진 추가
 - Classic v1 환급률을 도시 원가 50% + 누적 건설비 50%로 고정
+- debt recovery lifecycle을 OPEN / READY / CONFIRMED / IMPOSSIBLE로 고정
+- 자산 선택이 부족하면 OPEN 유지, debt 충족 시에만 확정 가능
+- 확정 후에도 아직 실제 property ownership / money state는 변경하지 않음
 
 의도적으로 아직 확정하지 않는 규칙:
 
@@ -213,7 +216,7 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
 - 매각 후에도 부족할 경우 최종 파산 전환 시점
 
-다음 단계에서는 **debt recovery lifecycle과 실제 자산 해제/지불 정산 순서**를 고정한 뒤 기존 지불/파산 경로에 연결합니다.
+다음 단계에서는 **실제 자산 해제/지불 정산 순서**를 고정한 뒤 기존 지불/파산 경로에 연결합니다.
 
 ## 이후 Advanced Gameplay 후보
 
