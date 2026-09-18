@@ -84,23 +84,6 @@ function openPropertyAuctionRequest(state, action, options) {
   });
   const declinedEvent = { type: "CHOICE_DECLINED", playerId: current.id, choiceType: "BUY_PROPERTY" };
 
-  if (eligiblePlayerIds.length === 0) {
-    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
-    return withVersion(state, {
-      phase,
-      pendingChoice: null,
-      lastEvents: freezeEvents([
-        declinedEvent,
-        {
-          type: "AUCTION_REQUEST_CLOSED",
-          nodeId: node.id,
-          requestedByPlayerIds: [],
-          reason: "NO_ELIGIBLE_PLAYERS",
-        },
-      ]),
-    }, action);
-  }
-
   const requestDeadlineAt = deadlineAt(options, AUCTION_TIMING.requestMs);
   return withVersion(state, {
     pendingChoice: Object.freeze({
