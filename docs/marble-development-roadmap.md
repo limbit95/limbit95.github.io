@@ -190,7 +190,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7C — Debt Recovery / Asset Liquidation
 
-상태: **진행 중 — Game Engine integration**
+상태: **진행 중 — authoritative RPC**
 
 Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
 
@@ -222,7 +222,7 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
 - 매각 후에도 부족할 경우 최종 파산 전환 시점
 
-다음 단계에서는 검증된 Phase 7C reducer를 **local Classic runtime**에 연결합니다.
+local Classic runtime 연결을 완료했고, 현재 기존 roll RPC를 재정의하지 않는 Phase 7C authoritative liquidation RPC를 연결합니다.
 
 ## 이후 Advanced Gameplay 후보
 
