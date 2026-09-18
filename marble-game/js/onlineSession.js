@@ -252,11 +252,11 @@ export async function createOnlineClassicSession({
     monotonicClockAnchorMs = monotonicNowMs();
   }
 
-  function accept(nextSnapshot) {
+  function accept(nextSnapshot, { syncClock = false } = {}) {
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
     const changed = nextState.version > state.version;
-    syncServerClock(nextSnapshot);
+    if (syncClock) syncServerClock(nextSnapshot);
     snapshot = nextSnapshot;
     state = nextState;
     if (changed) notifyStateListeners(state);
@@ -279,7 +279,7 @@ export async function createOnlineClassicSession({
         if (notify && forceNotify) await onRemoteState?.(state);
         return state;
       }
-      const nextState = accept(nextSnapshot);
+      const nextState = accept(nextSnapshot, { syncClock: true });
       if (notify) await onRemoteState?.(nextState);
       return nextState;
     } finally {
@@ -333,7 +333,9 @@ export async function createOnlineClassicSession({
     try {
       const latestSnapshot = await getSnapshot(roomId);
       const latestVersion = Number(latestSnapshot?.game?.version) || 0;
-      if (latestVersion > Number(expectedVersion)) return accept(latestSnapshot);
+      if (latestVersion > Number(expectedVersion)) {
+        return accept(latestSnapshot, { syncClock: true });
+      }
     } catch {
       // Keep the original action error as the user-facing failure and let recovery polling retry.
     }
