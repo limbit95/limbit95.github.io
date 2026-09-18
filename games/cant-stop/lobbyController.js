@@ -10,6 +10,21 @@ export const CANT_STOP_LOBBY_VIEW = Object.freeze({
   PLAYING: "playing",
 });
 
+function requireGameplayAdapter(adapter) {
+  const methods = [
+    "rollDice",
+    "choosePairing",
+    "continueTurn",
+    "stopTurn",
+  ];
+  for (const method of methods) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Can't Stop lobby controller requires gameplayAdapter.${method}().`);
+    }
+  }
+  return adapter;
+}
+
 function requireAdapter(adapter) {
   const methods = [
     "createRoom",
@@ -42,6 +57,7 @@ function freezeState(state) {
 
 export function createCantStopLobbyController({
   adapter,
+  gameplayAdapter = null,
   idFactory = createClientActionId,
   onState = () => {},
   onError = () => {},
@@ -49,6 +65,7 @@ export function createCantStopLobbyController({
   documentTarget = globalThis.document,
 } = {}) {
   const roomLobby = requireAdapter(adapter);
+  const gameplay = gameplayAdapter == null ? null : requireGameplayAdapter(gameplayAdapter);
   if (typeof idFactory !== "function") {
     throw new TypeError("Can't Stop lobby controller requires idFactory().");
   }
@@ -229,6 +246,46 @@ export function createCantStopLobbyController({
     });
   }
 
+  function requireGameplay() {
+    if (!gameplay) {
+      throw new Error("Can't Stop gameplay adapter is not configured.");
+    }
+    return gameplay;
+  }
+
+  async function gameplayCommand(method, payload = {}) {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id || snapshot.room.status !== "playing") {
+        throw new Error("Can’t Stop game is not active.");
+      }
+      const next = await requireGameplay()[method]({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
+        ...payload,
+      });
+      applySnapshot(next, { connection: "connected" });
+      return next;
+    });
+  }
+
+  function rollDice() {
+    return gameplayCommand("rollDice");
+  }
+
+  function choosePairing({ sums, columns }) {
+    return gameplayCommand("choosePairing", { sums, columns });
+  }
+
+  function continueTurn() {
+    return gameplayCommand("continueTurn");
+  }
+
+  function stopTurn() {
+    return gameplayCommand("stopTurn");
+  }
+
   async function refresh(reason = "manual") {
     if (!coordinator) {
       const snapshot = await roomLobby.getMyActiveRoom();
@@ -257,6 +314,10 @@ export function createCantStopLobbyController({
     setReady,
     startGame,
     leaveRoom,
+    rollDice,
+    choosePairing,
+    continueTurn,
+    stopTurn,
     refresh,
     current,
     dispose,
