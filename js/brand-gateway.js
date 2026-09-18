@@ -90,7 +90,7 @@
 
   const routePath = (hash = window.location.hash) => {
     const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
-    return (`/${raw.split("?")[0]}`).replace(/\\+/g, "/").replace(/\/$/, "") || "/";
+    return (`/${raw.split("?")[0]}`).replace(/\/+/g, "/").replace(/\/$/, "") || "/";
   };
 
   const el = (tag, attrs = {}, children = []) => {
