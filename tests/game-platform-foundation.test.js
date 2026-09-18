@@ -11,21 +11,34 @@ import {
   resolveApprovedMemberAccess,
 } from "../games/shared/index.js";
 
-test("game registry keeps legacy entries descriptive without migrating their runtime", () => {
+test("game registry keeps legacy entries intact and registers Can't Stop without premature capabilities", () => {
   assert.deepEqual(
     GAME_REGISTRY.map((game) => game.id),
-    ["liar", "the-game", "marble"],
+    ["liar", "the-game", "marble", "cant-stop"],
   );
-  assert.ok(GAME_REGISTRY.every((game) => game.platform === "legacy"));
-  assert.ok(GAME_REGISTRY.every((game) => game.capabilities.online));
+
+  const legacyGames = GAME_REGISTRY.filter((game) => game.platform === "legacy");
+  assert.deepEqual(legacyGames.map((game) => game.id), ["liar", "the-game", "marble"]);
+  assert.ok(legacyGames.every((game) => game.capabilities.online));
+
   assert.equal(getRegisteredGame("the-game")?.href, "./the-game/");
   assert.equal(getRegisteredGame("the-game")?.capabilities.invite, true);
   assert.equal(getRegisteredGame("marble")?.capabilities.presence, true);
+
+  const cantStop = getRegisteredGame("cant-stop");
+  assert.equal(cantStop?.platform, "shared");
+  assert.equal(cantStop?.href, "./games/cant-stop/");
+  assert.deepEqual(cantStop?.capabilities, {
+    online: false,
+    local: false,
+    invite: false,
+    presence: false,
+  });
   assert.equal(getRegisteredGame("missing"), null);
 
   const copy = listRegisteredGames();
   copy.pop();
-  assert.equal(GAME_REGISTRY.length, 3);
+  assert.equal(GAME_REGISTRY.length, 4);
   assert.ok(Object.isFrozen(GAME_REGISTRY));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0]));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0].capabilities));
