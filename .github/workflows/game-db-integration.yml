@@ -63,8 +63,8 @@ jobs:
           echo "E2E_LOCAL_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
-      - name: Run game DB integration foundation
-        run: node --test tests/game-db-integration/foundation.test.js
+      - name: Run game DB integration tests
+        run: node --test tests/game-db-integration/*.test.js
 
       - name: Stop isolated Supabase services
         if: always()
