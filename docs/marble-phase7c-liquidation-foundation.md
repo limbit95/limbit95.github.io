@@ -116,6 +116,10 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
   - building level / board drift fail-closed
 - `marble-game/js/core/debtRecoverySettlement.js`
   - `settleConfirmedDebtRecovery()`
+- `marble-game/js/core/liquidationGameEngine.js`
+  - recoverable insolvency → DEBT_RECOVERY
+  - LIQUIDATION_SELECT / LIQUIDATION_CONFIRM
+  - unrecoverable insolvency → legacy bankruptcy fallback
 - `marble-game/tests/debtRecoveryLifecycle.test.js`
   - OPEN / READY / CONFIRMED / IMPOSSIBLE lifecycle
   - insufficient selection guard
@@ -128,6 +132,13 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
   - stale cash / ownership / building level / refund drift guard
   - bankrupt creditor guard
   - input state immutability
+- `marble-game/tests/liquidationGameEngine.test.js`
+  - recoverable toll debt
+  - legacy reducer compatibility
+  - selection / confirm settlement
+  - action lock / non-debtor guard
+  - unrecoverable legacy bankruptcy fallback
+  - TAX / EVENT debt recovery
 
 ## 의도적으로 아직 하지 않는 것
 
@@ -193,9 +204,27 @@ OPEN
 - `MONEY_PAID`
 - `DEBT_RECOVERED`
 
-## 다음 설계 결정
+### Game Engine integration
 
-다음 단계에서는 이 settlement를 **실제 ROLL_DICE / TOLL / TAX / EVENT 파산 경로에 연결하는 Game Engine integration**을 진행합니다.
+`liquidationGameEngine.js`를 Phase 7B trading reducer 위의 additive wrapper로 추가합니다.
+
+핵심 원칙:
+
+- 기존 `reduceGameAction()`의 기본 동작은 그대로 즉시 파산 유지
+- Phase 7C wrapper만 `deferDebtRecovery` option을 아래 reducer에 전달
+- TOLL / TAX / EVENT TAX에서 현금 부족 시 `DEBT_PAYMENT_REQUIRED` + `DEBT_RECOVERY` pending choice 생성
+- recoverable이면 플레이어가 자산을 선택할 때까지 WAITING_CHOICE 유지
+- `LIQUIDATION_SELECT`로 선택 변경
+- 선택 refund가 debt를 충족하면 READY
+- `LIQUIDATION_CONFIRM`에서 deterministic settlement 실행 후 TURN_END
+- recovery 중 일반 game action 차단
+- 전체 자산을 팔아도 부족하면 동일 deterministic action을 기존 reducer로 재실행해 기존 파산 semantics 유지
+
+이 방식으로 Phase 6/7A/7B의 기존 reducer를 전면 교체하지 않고 opt-in layer로 확장합니다.
+
+## 다음 단계
+
+다음 단계에서는 이 reducer를 **local Classic runtime**에 연결합니다.
 
 이 두 규칙을 고정한 뒤:
 
