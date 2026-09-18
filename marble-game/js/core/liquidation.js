@@ -1,6 +1,7 @@
 export const DEBT_RECOVERY_STATUS = Object.freeze({
   OPEN: "OPEN",
   READY: "READY",
+  CONFIRMED: "CONFIRMED",
   IMPOSSIBLE: "IMPOSSIBLE",
 });
 
