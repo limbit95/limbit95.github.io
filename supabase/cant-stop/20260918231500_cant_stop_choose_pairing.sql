@@ -126,14 +126,14 @@ begin
     select 1
     from jsonb_array_elements(
       coalesce(v_game_state -> 'legalPairings', '[]'::jsonb)
-    ) as pairing
-    where pairing -> 'sums' = to_jsonb(p_sums)
+    ) as pairing(value)
+    where pairing.value -> 'sums' = to_jsonb(p_sums)
       and exists (
         select 1
         from jsonb_array_elements(
-          coalesce(pairing -> 'plans', '[]'::jsonb)
-        ) as plan
-        where plan = to_jsonb(p_columns)
+          coalesce(pairing.value -> 'plans', '[]'::jsonb)
+        ) as plan(value)
+        where plan.value = to_jsonb(p_columns)
       )
   )
   into v_is_legal;
