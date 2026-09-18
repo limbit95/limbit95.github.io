@@ -68,6 +68,7 @@ npm ci
 ```bash
 npm run build:assets
 npm run test:e2e
+npm run test:game-platform
 npm run test:the-game
 npm run test:marble
 ```
