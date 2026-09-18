@@ -21,12 +21,12 @@ Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
 └─ Phase 7B Trading / Negotiation                완료
-└─ Phase 7C Debt Recovery / Asset Liquidation   구현 완료 (main 통합 검증 중)
+└─ Phase 7C Debt Recovery / Asset Liquidation   완료
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 구현 완료 및 main 통합 검증 중**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 완료**입니다.
 
 ## Phase 1 — Foundation
 
@@ -166,6 +166,8 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 현재 요청창의 자동 deadline / 고정 시간 제한은 아직 확정된 제품 규칙이 아니므로 임의로 추가하지 않습니다.
 
+2026-09-18 실제 플레이테스트 결과, Phase 7A의 서버 권위 경매 기반은 유지하되 **현재 경매 UI와 플레이 흐름은 후속 UX 재검토가 필요**한 상태로 기록합니다. 구체적인 변경안은 [Auction Playtest UX Review](./marble-auction-ux-review.md)에서 별도로 정의합니다.
+
 ### Phase 7B — Trading / Negotiation
 
 상태: **완료**
@@ -190,7 +192,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7C — Debt Recovery / Asset Liquidation
 
-상태: **구현 완료 — main 통합 검증 중**
+상태: **완료**
 
 Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
 
@@ -222,19 +224,28 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
 - 매각 후에도 부족할 경우 최종 파산 전환 시점
 
-local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realtime / reconnect, 온라인 자산 매각 UI, 3클라이언트 멀티플레이 회귀 검증까지 완료했고 현재 최신 main 대상 통합 검증을 진행합니다.
+local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realtime / reconnect, 온라인 자산 매각 UI, 3클라이언트 멀티플레이 회귀 검증, PR #281 main 통합, 운영 Supabase 활성화와 rollback smoke test까지 완료했습니다.
 
 ## 이후 Advanced Gameplay 후보
 
-초기 Classic Core 단계에서 장기 확장 후보로 기록된 항목에는 다음이 있습니다.
+Classic의 장기 기능 후보는 [Classic Feature & Presentation Candidate Backlog](./marble-classic-feature-candidates.md)에 통합 관리합니다.
+
+현재 주요 Gameplay 후보:
 
 - 운 조절
 - 개인 비밀 목표
 - 반응 카드
 - 공동 이벤트
-- 자산 매각 기반 파산 회피 — **Phase 7C로 착수**
+- 지역 독점 효과 강화
+- 랜드마크 / 최종 건설 단계
+- EVENT 다양화 / 선택형 EVENT
+- 게임 템포 preset
+- 승리 조건 다양화
+- 자산 매각 기반 파산 회피 — **Phase 7C 완료**
 
-이 항목들의 정확한 Phase 번호와 구현 순서는 각 단계 착수 전에 별도로 확정합니다.
+또한 현재 절차적 도형과 기본 모델은 최종 그래픽이 아니며, 도시별 랜드마크 / 캐릭터 / 건설 단계 / Money / Dice / EVENT / Camera / VFX / Sound 고도화 후보도 같은 문서에서 별도 축으로 관리합니다.
+
+후보의 정확한 Phase 번호, 실제 구현 여부와 순서는 각 단계 착수 전에 별도로 확정합니다.
 
 ## 개발 안전 원칙
 
@@ -252,3 +263,6 @@ local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realt
 - [Marble README](../marble-game/README.md)
 - [Animation & Presentation Design](../marble-game/ANIMATION_DESIGN.md)
 - [Phase 7A Auction Foundation](./marble-phase7a-auction-foundation.md)
+- [Phase 7C Debt Recovery / Asset Liquidation](./marble-phase7c-liquidation-foundation.md)
+- [Classic Feature & Presentation Candidate Backlog](./marble-classic-feature-candidates.md)
+- [Auction Playtest UX Review](./marble-auction-ux-review.md)
