@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-gameplay-ui
+- Active branch: feature/game-platform-phase4-cant-stop-postgame
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -74,17 +74,23 @@
 - `GAME_OVER`에서는 authoritative winner와 최종 claim 상태를 표시한다.
 - legal pairing이 하나만 있어도 자동 commit하지 않고 사용자가 명시적으로 이동 plan 버튼을 눌러 확정하도록 초기 UX를 고정했다.
 - runtime/controller 단위 테스트에 gameplay view mapping과 versioned gameplay command wiring을 추가했다.
+- GAME_OVER에서 모든 active player가 방을 나갈 수 있도록 `cant_stop_leave_room`을 확장하되 진행 중 gameplay에서는 leave를 계속 차단한다.
+- GAME_OVER snapshot에서는 이미 나간 player도 final result history로 유지하고 `connected: false`로 표시해 winner/claim 이름이 사라지지 않게 했다.
+- 방장 전용 `cant_stop_rematch_room`을 추가해 같은 room code와 active members를 유지한 채 `waiting`으로 되돌리고 game state를 초기화한다.
+- 재대결 준비 시 host만 ready=true, 나머지는 ready=false로 돌아가 기존 ready/start flow를 그대로 재사용한다.
+- 재대결 RPC도 expectedVersion/clientActionId replay 계약을 사용하며 같은 action 재전송은 동일 waiting snapshot을 반환한다.
+- GAME_OVER UI에 방장용 `같은 방에서 재대결`과 전원용 `방 나가기` action을 추가했다.
+- 종료 후 leave한 사용자는 active-room 제약에서 즉시 해제되어 새 방을 만들거나 다른 waiting room에 참가할 수 있다.
 
 ## Current Work
 
-- authoritative gameplay snapshot을 실제 board/action UI에 연결하고 전체 Game Platform 회귀를 검증한다.
+- GAME_OVER 이후 leave/rematch/restart lifecycle을 disposable Supabase와 runtime UI에서 검증한다.
 
 ## Next Work
 
-- GAME_OVER 이후 방 나가기 / 재매칭 lifecycle을 설계해 완료된 게임이 사용자를 active room에 영구 고정하지 않도록 한다.
-- 실제 멀티클라이언트에서 roll/pairing/continue/stop/reconnect UI 흐름을 회귀 검증한다.
+- 실제 멀티클라이언트에서 create/join/start → gameplay → GAME_OVER → rematch/leave/reconnect 전 흐름을 회귀 검증한다.
 - online core 안정화 후 platform-native Invite 연결을 진행한다.
-- 운영 Supabase migration 적용 및 실제 배포 검증 전까지 Registry `online` capability는 false로 유지한다.
+- 운영 Supabase migration 적용 및 실제 배포 smoke test를 통과한 뒤 Registry `online` capability와 게임 목록 노출을 활성화한다.
 
 ## Decisions
 
@@ -111,21 +117,22 @@
 - 3번째 claim 승리 시 room status는 당장 닫지 않고 `game.phase = GAME_OVER`를 authoritative final state로 유지해 reconnect가 최종 결과를 복구할 수 있게 한다.
 - gameplay UI는 authoritative snapshot을 표시할 뿐 dice/pairing/runner 결과를 client에서 재계산해 truth로 사용하지 않는다.
 - legal pairing이 정확히 하나여도 자동 적용하지 않고 active player가 명시적으로 plan을 선택해 commit한다.
+- GAME_OVER room은 final snapshot을 유지하며 각 player는 자유롭게 leave할 수 있고, host는 남은 active members로 같은 room에서 rematch를 준비할 수 있다.
+- rematch는 즉시 새 게임을 시작하지 않고 waiting/ready 단계로 되돌려 모든 참가자가 다시 준비 의사를 확인하게 한다.
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice / choose-pairing / push-stop 검증
-- Completed: push-stop Game DB integration — run #95 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks run #3067 SUCCESS
-- Completed: Game Platform Governance Guard — run #64 SUCCESS
-- Completed: Site static checks — run #3067 SUCCESS
-- Not triggered: Game DB integration — gameplay-ui PR은 DB/RPC/migration 변경이 없어 workflow path filter 대상이 아니며 직전 push-stop run #95 SUCCESS를 유지한다.
-- Pending: 없음 (gameplay-ui 범위)
+- Completed: 이전 gameplay-ui 포함 Phase 4 누적 검증
+- Completed: gameplay-ui Site static checks #3068 / Governance #65 SUCCESS
+- Pending: `npm run test:game-platform` on postgame PR
+- Pending: Game Platform Governance Guard on postgame PR
+- Pending: Site static checks on postgame PR
+- Pending: Game DB integration GAME_OVER leave/rematch/restart tests on disposable Supabase
 
 ## Known Issues / Deferred
 
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
 - authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- GAME_OVER final snapshot은 유지되지만 완료된 게임에서 나가 새 방을 만들거나 재매칭하는 post-game lifecycle은 아직 구현하지 않았다.
+- 소스 기준 post-game lifecycle은 구현됐지만 운영 Supabase에는 아직 migration을 적용하지 않았다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
