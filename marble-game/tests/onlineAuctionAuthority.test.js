@@ -8,7 +8,8 @@ const migration = readFileSync(
 );
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 
-test("Auction v2 authority defines the 150 percent request and recruitment lifecycle", () => {
+test("Auction v2 authority exposes server time and defines the 150 percent request and recruitment lifecycle", () => {
+  assert.match(migration, /'serverNow', now\(\)/);
   assert.match(migration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
   assert.match(migration, /'type','AUCTION_REQUEST'/);
   assert.match(migration, /'type','AUCTION_RECRUITMENT'/);
