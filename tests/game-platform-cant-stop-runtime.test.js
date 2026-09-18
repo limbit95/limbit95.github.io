@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { GAME_ACCESS_REASON } from "../games/shared/accessGate.js";
 import {
@@ -53,4 +57,25 @@ test("Can't Stop runtime shell player falls back without exposing account email"
   });
   assert.equal(player.displayName, "플레이어");
   assert.equal(JSON.stringify(player).includes("private@example.com"), false);
+});
+
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+test("Can't Stop runtime entry module has valid JavaScript syntax", () => {
+  assert.doesNotThrow(() => {
+    execFileSync(process.execPath, [
+      "--check",
+      path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    ], { stdio: "pipe" });
+  });
+});
+
+test("Can't Stop runtime HTML opts into the Common Game Shell stylesheet and app module", () => {
+  const html = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "index.html"),
+    "utf8",
+  );
+  assert.match(html, /\.\.\/shared\/game-shell\.css/u);
+  assert.match(html, /type="module" src="\.\/app\.js"/u);
 });
