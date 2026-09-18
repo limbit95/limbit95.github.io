@@ -218,3 +218,24 @@ test("Can't Stop gameplay push/stop intents reject invalid versions before RPC",
 
   assert.equal(client.calls.length, 0);
 });
+
+
+test("Can't Stop gameplay prepareRematch sends only the versioned post-game intent", async () => {
+  const client = fakeClient({ result: { version: 21, room: { status: "waiting" }, game: null } });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  const snapshot = await adapter.prepareRematch({
+    roomId: "room-1",
+    expectedVersion: 20,
+    clientActionId: "rematch-1",
+  });
+
+  assert.equal(snapshot.version, 21);
+  assert.deepEqual(client.calls, [
+    ["cant_stop_prepare_rematch", {
+      p_room_id: "room-1",
+      p_expected_version: 20,
+      p_client_action_id: "rematch-1",
+    }],
+  ]);
+});
