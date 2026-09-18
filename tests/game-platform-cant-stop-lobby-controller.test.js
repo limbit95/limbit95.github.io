@@ -177,6 +177,15 @@ function fakeGameplayAdapter() {
         playerProgress: { bob: { 3: 1, 7: 1 } },
       });
     },
+    async rematchRoom(input) {
+      calls.push(["rematchRoom", input]);
+      return snapshot({
+        version: input.expectedVersion + 1,
+        status: "waiting",
+        canStart: false,
+        ready: false,
+      });
+    },
   };
 }
 
@@ -356,4 +365,48 @@ test("Can't Stop lobby controller rejects gameplay commands without an active pl
     /game is not active/u,
   );
   assert.equal(gameplay.calls.length, 0);
+});
+
+
+test("Can't Stop lobby controller returns GAME_OVER room to waiting through rematch", async () => {
+  const activeSnapshot = {
+    ...snapshot({
+      version: 20,
+      status: "playing",
+      canStart: true,
+      ready: true,
+    }),
+    room: {
+      ...snapshot({ version: 20, status: "playing" }).room,
+      hostUserId: "bob",
+      status: "playing",
+      version: 20,
+    },
+    game: {
+      phase: "GAME_OVER",
+      activePlayerId: "bob",
+      winnerId: "bob",
+    },
+  };
+  const adapter = fakeAdapter({ activeSnapshot });
+  const gameplay = fakeGameplayAdapter();
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => "rematch-action",
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.rematchRoom();
+
+  assert.deepEqual(gameplay.calls.at(-1), ["rematchRoom", {
+    roomId: "room-1",
+    expectedVersion: 20,
+    clientActionId: "rematch-action",
+  }]);
+  assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.WAITING);
+  assert.equal(controller.current().snapshot.game, null);
+  assert.equal(controller.current().snapshot.version, 21);
 });
