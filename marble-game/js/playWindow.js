@@ -193,6 +193,13 @@ async function bootstrapOnlineGame(onlineRoomId) {
     );
     const disposeAuctionUi = auctionUiModule.setupOnlineAuctionUi({ roomId: onlineRoomId });
     window.addEventListener("beforeunload", disposeAuctionUi, { once: true });
+
+    const tradeUiModule = await withBootTimeout(
+      import(versionedModuleUrl("./onlineTradeUi.js")),
+      "ONLINE_TRADE_UI_MODULE",
+    );
+    const disposeTradeUi = tradeUiModule.setupOnlineTradeUi({ roomId: onlineRoomId });
+    window.addEventListener("beforeunload", disposeTradeUi, { once: true });
     document.body.dataset.onlineBootStage = "controller-ready";
   } catch (error) {
     console.error("Marble online boot failed", error);
@@ -206,6 +213,8 @@ async function bootstrapOnlineGame(onlineRoomId) {
       onlineBootMessage(`게임 화면 모듈 연결이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
     } else if (message.includes("ONLINE_AUCTION_UI_MODULE_TIMEOUT")) {
       onlineBootMessage(`경매 화면 모듈 연결이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
+    } else if (message.includes("ONLINE_TRADE_UI_MODULE_TIMEOUT")) {
+      onlineBootMessage(`거래 화면 모듈 연결이 지연되고 있습니다 · ${ONLINE_BOOT_REVISION}`, "error");
     } else if (message.includes("AUTH_REQUIRED") || message.includes("Auth session missing")) {
       onlineBootMessage(`로그인 세션을 확인할 수 없습니다 · ${ONLINE_BOOT_REVISION}`, "error");
     } else if (message.includes("NOT_ROOM_MEMBER")) {
