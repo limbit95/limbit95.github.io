@@ -185,6 +185,20 @@ async function setReady(user, snapshot, ready, actionId = randomUUID()) {
   }, user.accessToken), "cant_stop_set_ready");
 }
 
+async function startTwoPlayerGame(label) {
+  const host = await createTestUser(`${label}-host`);
+  const guest = await createTestUser(`${label}-guest`);
+  const created = await createRoom(host);
+  const joined = await joinRoom(guest, created);
+  const ready = await setReady(guest, joined, true);
+  const started = await expectOk(await rpc("cant_stop_start_game", {
+    p_room_id: ready.room.id,
+    p_expected_version: Number(ready.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), `${label} cant_stop_start_game`);
+  return { host, guest, started };
+}
+
 registerPlatformGameDbContract({
   gameId: "cant-stop",
 
@@ -393,6 +407,7 @@ registerPlatformGameDbContract({
           "latestDice",
           "legalPairings",
           "phase",
+          "playerProgress",
           "runners",
           "turnIndex",
           "turnOrder",
@@ -405,3 +420,69 @@ registerPlatformGameDbContract({
     },
   },
 }, { before, after, test });
+
+
+test("cant-stop: active player roll is server-generated and idempotent", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("roll-authority");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+  const actionId = randomUUID();
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "active player cant_stop_roll_dice");
+
+  assert.equal(Number(rolled.version), Number(started.version) + 1);
+  assert.equal(rolled.game.phase, "PAIRING_SELECTION");
+  assert.equal(Array.isArray(rolled.game.latestDice), true);
+  assert.equal(rolled.game.latestDice.length, 4);
+  assert.equal(
+    rolled.game.latestDice.every((die) => Number.isInteger(die) && die >= 1 && die <= 6),
+    true,
+  );
+  assert.equal(Array.isArray(rolled.game.legalPairings), true);
+  assert.ok(rolled.game.legalPairings.length >= 1);
+  for (const pairing of rolled.game.legalPairings) {
+    assert.equal(Array.isArray(pairing.sums), true);
+    assert.equal(pairing.sums.length, 2);
+    assert.equal(Array.isArray(pairing.plans), true);
+    assert.ok(pairing.plans.length >= 1);
+  }
+
+  const replay = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "replayed cant_stop_roll_dice");
+
+  assert.equal(Number(replay.version), Number(rolled.version));
+  assert.deepEqual(replay.game.latestDice, rolled.game.latestDice);
+  assert.deepEqual(replay.game.legalPairings, rolled.game.legalPairings);
+});
+
+test("cant-stop: non-active player cannot roll dice", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("roll-turn");
+  const inactiveUser = started.game.activePlayerId === host.id ? guest : host;
+
+  const result = await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, inactiveUser.accessToken);
+
+  expectDenied(result, "inactive player cant_stop_roll_dice", /TURN_REQUIRED/u);
+});
+
+test("cant-stop: stale roll version is rejected before dice commit", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("roll-stale");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+
+  const result = await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version) + 1,
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken);
+
+  expectDenied(result, "stale cant_stop_roll_dice", /VERSION_CONFLICT/u);
+});
