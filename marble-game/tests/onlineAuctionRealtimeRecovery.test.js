@@ -310,7 +310,18 @@ test("online session exposes an authoritative server clock independent of local 
       },
     });
 
-    assert.equal(session.getServerNowMs(), Date.parse("2026-09-18T12:00:00Z"));
+    const firstServerNow = session.getServerNowMs();
+    assert.ok(
+      Math.abs(firstServerNow - Date.parse("2026-09-18T12:00:00Z")) < 100,
+      "server clock should be anchored to snapshot serverNow",
+    );
+
+    Date.now = () => Date.parse("2030-01-01T00:00:00Z");
+    const afterLocalClockJump = session.getServerNowMs();
+    assert.ok(
+      Math.abs(afterLocalClockJump - firstServerNow) < 100,
+      "server clock should ignore local device clock jumps",
+    );
     session.dispose();
   } finally {
     Date.now = realDateNow;
