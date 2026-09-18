@@ -63,11 +63,29 @@
   opacity: 0.78;
 }
 
+.auction-action-panel__participant,
 .auction-action-panel__request,
 .auction-action-panel__bid {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.auction-action-panel__participant {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.auction-action-panel__participant select {
+  min-width: 0;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
 }
 
 .auction-action-panel__request[hidden],
@@ -94,7 +112,8 @@
 }
 
 .auction-action-panel button:disabled,
-.auction-action-panel input:disabled {
+.auction-action-panel input:disabled,
+.auction-action-panel select:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
@@ -106,6 +125,7 @@
     border-radius: 14px;
   }
 
+  .auction-action-panel__participant,
   .auction-action-panel__request,
   .auction-action-panel__bid {
     display: grid;
