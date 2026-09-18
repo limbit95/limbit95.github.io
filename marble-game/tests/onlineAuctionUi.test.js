@@ -14,6 +14,11 @@ globalThis.window = originalWindow;
 const uiSource = readFileSync(new URL("../js/onlineAuctionUi.js", import.meta.url), "utf8");
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
 const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
+const controller2dSource = readFileSync(new URL("../js/onlineGameController2d.js", import.meta.url), "utf8");
+const endTurnGuardSql = readFileSync(
+  new URL("../../supabase/marble/20260918105000_marble_phase7a_end_turn_auction_guard.sql", import.meta.url),
+  "utf8",
+);
 const cssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
 
 function state(pendingChoice, overrides = {}) {
@@ -143,6 +148,24 @@ test("minimal auction UI keeps purchase decline separate from build decline and 
   assert.match(cssSource, /data-auction-stage="request"/);
   assert.match(cssSource, /data-auction-stage="auction"/);
   assert.match(cssSource, /@media \(max-width: 640px\)/);
+});
+
+test("legacy 2D controls and end-turn RPC cannot bypass an active auction", () => {
+  assert.match(controller2dSource, /function isAuctionChoice\(state\)/);
+  assert.match(controller2dSource, /\["AUCTION_REQUEST", "PROPERTY_AUCTION"\]\.includes\(state\.pendingChoice\?\.type\)/);
+  assert.match(
+    controller2dSource,
+    /if \(isAuctionChoice\(currentState\) && \["decline", "endTurn"\]\.includes\(actionName\)\) return;/,
+  );
+  assert.match(
+    controller2dSource,
+    /if \(isAuctionChoice\(state\)\)[\s\S]*?primaryActionButton\.hidden = true;[\s\S]*?secondaryActionButton\) secondaryActionButton\.hidden = true;/,
+  );
+  assert.match(
+    endTurnGuardSql,
+    /pending_choice->>'type',''\) in \('AUCTION_REQUEST','PROPERTY_AUCTION'\)[\s\S]*?raise exception 'END_TURN_NOT_ALLOWED'/,
+  );
+  assert.match(endTurnGuardSql, /v_game\.phase not in \('TURN_END','WAITING_CHOICE'\)/);
 });
 
 test("online boot attaches the auction adapter only after the existing game controller is ready", () => {
