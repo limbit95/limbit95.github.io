@@ -2,6 +2,7 @@ export const TRADE_STATUS = Object.freeze({
   OPEN: "OPEN",
   ACCEPTED: "ACCEPTED",
   REJECTED: "REJECTED",
+  CANCELLED: "CANCELLED",
 });
 
 function freezeValue(value) {
@@ -84,6 +85,7 @@ export function reduceTradeProposal(proposal, players, {
   playerId,
   accept = false,
   reject = false,
+  cancel = false,
 } = {}) {
   if (proposal?.type !== "PLAYER_TRADE") {
     throw new Error("A player trade proposal is required.");
@@ -94,9 +96,31 @@ export function reduceTradeProposal(proposal, players, {
   if (!Array.isArray(players)) {
     throw new Error("Trade players are required.");
   }
-  if (accept === reject) {
-    throw new Error("Trade response must accept or reject exactly once.");
+  const decisionCount = [accept, reject, cancel].filter(Boolean).length;
+  if (decisionCount !== 1) {
+    throw new Error("Trade response must accept, reject, or cancel exactly once.");
   }
+
+  if (cancel) {
+    if (playerId !== proposal.proposerPlayerId) {
+      throw new Error("Only the trade proposer can cancel this proposal.");
+    }
+    requireActivePlayer(players, proposal.proposerPlayerId, "proposer");
+    return Object.freeze({
+      proposal: freezeProposal({
+        ...proposal,
+        status: TRADE_STATUS.CANCELLED,
+        resolvedByPlayerId: playerId,
+      }),
+      events: Object.freeze([Object.freeze({
+        type: "TRADE_CANCELLED",
+        offerId: proposal.offerId,
+        proposerPlayerId: proposal.proposerPlayerId,
+        recipientPlayerId: proposal.recipientPlayerId,
+      })]),
+    });
+  }
+
   if (playerId !== proposal.recipientPlayerId) {
     throw new Error("Only the trade recipient can accept or reject this proposal.");
   }
