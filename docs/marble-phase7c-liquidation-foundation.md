@@ -104,11 +104,22 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
   - unowned / duplicate / invalid refund 차단
   - 선택 자산으로 debt 충족 여부 계산
   - 기존 state 비변경 확인
+- `marble-game/js/core/debtRecoveryLifecycle.js`
+  - `createDebtRecoveryLifecycle()`
+  - `selectDebtRecoveryAssets()`
+  - `confirmDebtRecovery()`
+  - `getDebtRecoverySettlement()`
 - `marble-game/tests/liquidationPolicy.test.js`
   - basis point 정책 검증
   - 토지/건물 환급 분리 계산
   - 정수 floor rounding
   - building level / board drift fail-closed
+- `marble-game/tests/debtRecoveryLifecycle.test.js`
+  - OPEN / READY / CONFIRMED / IMPOSSIBLE lifecycle
+  - insufficient selection guard
+  - confirmed selection immutability
+  - over-liquidation leftover cash
+  - creditor / bank debt settlement metadata
 
 ## 의도적으로 아직 하지 않는 것
 
@@ -122,12 +133,34 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
 - creditor settlement 변경
 - 실제 property ownership 해제
 
+### Debt recovery lifecycle
+
+`debtRecoveryLifecycle.js`는 자산 선택과 확정 흐름을 별도 immutable state machine으로 관리합니다.
+
+```text
+OPEN
+→ 자산 선택
+→ 부족하면 OPEN 유지
+→ 충분하면 READY
+→ 확정하면 CONFIRMED
+```
+
+전체 매각 후보를 사용해도 debt를 갚을 수 없으면 즉시 `IMPOSSIBLE`입니다.
+
+자동으로 자산을 선택하거나 강제 매각하지 않습니다. 플레이어가 선택한 자산 조합이 debt를 충족할 때만 확정할 수 있습니다.
+
+확정 시에는 아직 실제 게임 state를 변경하지 않고 다음 settlement instruction만 생성합니다.
+
+- liquidated asset ids
+- refund total
+- payment amount
+- creditor / reason
+- payment 전 현금
+- payment 후 남는 현금
+
 ## 다음 설계 결정
 
-다음 단계에서 먼저 아래 두 가지를 결정합니다.
-
-1. **Debt recovery lifecycle**
-2. **실제 property ownership 해제 및 payment settlement 순서**
+다음 단계에서는 **실제 property ownership 해제와 payment settlement 순서**를 deterministic하게 고정합니다.
 
 이 두 규칙을 고정한 뒤:
 
