@@ -156,20 +156,19 @@ test("insufficient selection remains open and cannot be confirmed", () => {
     ownedAssetId: "tokyo",
     money: 1,
   });
-  let state = roll(prepared, [1, 2]);
 
-  // Tokyo refund is 120, so use a manually lower-value selection scenario by
-  // raising the toll through the creditor property building level.
+  // Tokyo alone refunds 120, while Tokyo + London can cover the 210 toll.
   const higherTollState = Object.freeze({
     ...prepared,
     boardState: Object.freeze({
       properties: Object.freeze({
         ...prepared.boardState.properties,
         singapore: Object.freeze({ ownerId: "a", buildingLevel: 3 }),
+        london: Object.freeze({ ownerId: "b", buildingLevel: 0 }),
       }),
     }),
   });
-  state = roll(higherTollState, [1, 2]);
+  let state = roll(higherTollState, [1, 2]);
   assert.equal(state.pendingChoice.lifecycle.debtCase.amountDue, 210);
 
   state = reducePhase7LiquidationGameAction(
