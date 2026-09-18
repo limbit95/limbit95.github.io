@@ -360,3 +360,216 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+
+.cant-stop-dice {
+  padding: .85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cant-stop-dice__label {
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 800;
+}
+
+.cant-stop-dice__values {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .45rem;
+}
+
+.cant-stop-die {
+  width: 42px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid #bfd8e0;
+  border-radius: .7rem;
+  background: linear-gradient(180deg, #fff, #edf7fa);
+  color: var(--forest-900);
+  font-size: 1.15rem;
+  font-weight: 900;
+  box-shadow: var(--shadow-sm);
+}
+
+.cant-stop-pairings {
+  display: grid;
+  gap: .7rem;
+}
+
+.cant-stop-pairings__heading {
+  display: grid;
+  gap: .2rem;
+  color: var(--forest-900);
+}
+
+.cant-stop-pairings__heading span {
+  color: var(--muted);
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.cant-stop-pairings__grid {
+  display: grid;
+  gap: .65rem;
+}
+
+.cant-stop-pairing-card {
+  padding: .8rem;
+  display: grid;
+  gap: .55rem;
+  border: 1px solid #bfd8e0;
+  border-radius: var(--radius-sm);
+  background: #f9fdfe;
+}
+
+.cant-stop-pairing-card__sums {
+  color: var(--forest-900);
+  font-size: .98rem;
+}
+
+.cant-stop-pairing-card__plans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.cant-stop-plan-button {
+  min-height: 38px;
+  padding: .55rem .72rem;
+  border: 1px solid #8eb8c7;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--forest-900);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cant-stop-plan-button:hover:not(:disabled) {
+  background: #edf7fa;
+}
+
+.cant-stop-plan-button:focus-visible {
+  outline: 3px solid rgba(159, 207, 223, .35);
+  outline-offset: 2px;
+}
+
+.cant-stop-plan-button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.cant-stop-column {
+  position: relative;
+}
+
+.cant-stop-column--claimed .cant-stop-column__number {
+  box-shadow: inset 0 0 0 2px rgba(72, 104, 117, .28);
+}
+
+.cant-stop-column__claim {
+  min-height: 30px;
+  display: grid;
+  place-items: center;
+  padding: .28rem .35rem;
+  border-radius: var(--radius-sm);
+  background: var(--forest-100);
+  color: var(--forest-900);
+  font-size: .66rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.cant-stop-column__cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.cant-stop-marker {
+  position: absolute;
+  width: 12px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(20, 37, 43, .28);
+}
+
+.cant-stop-marker--permanent {
+  border: 2px solid #fff;
+}
+
+.cant-stop-marker--runner {
+  width: 18px;
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 2px currentColor,
+    0 2px 6px rgba(20, 37, 43, .3);
+}
+
+.cant-stop-marker--player-0 {
+  background: #486875;
+  color: #486875;
+}
+
+.cant-stop-marker--player-1 {
+  background: #c86f5b;
+  color: #c86f5b;
+}
+
+.cant-stop-marker--player-2 {
+  background: #66815f;
+  color: #66815f;
+}
+
+.cant-stop-marker--player-3 {
+  background: #9b7a4b;
+  color: #9b7a4b;
+}
+
+.cant-stop-column__cell .cant-stop-marker--permanent:nth-child(1) {
+  transform: translate(-7px, 7px);
+}
+
+.cant-stop-column__cell .cant-stop-marker--permanent:nth-child(2) {
+  transform: translate(7px, 7px);
+}
+
+.cant-stop-column__cell .cant-stop-marker--permanent:nth-child(3) {
+  transform: translate(-7px, -7px);
+}
+
+.cant-stop-column__cell .cant-stop-marker--permanent:nth-child(4) {
+  transform: translate(7px, -7px);
+}
+
+.cant-stop-marker--runner {
+  transform: translateY(-1px);
+}
+
+@media (min-width: 680px) {
+  .cant-stop-pairings__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 679px) {
+  .cant-stop-dice {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cant-stop-dice__values {
+    justify-content: flex-start;
+  }
+}
