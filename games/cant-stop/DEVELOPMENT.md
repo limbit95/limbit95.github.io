@@ -134,10 +134,11 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 검증
 - Completed: multi-client lifecycle Governance #81 / Site static #3097 / Game DB integration #116 SUCCESS
-- Pending: `npm run test:game-platform` on invite PR
-- Pending: Game Platform Governance Guard on invite PR
-- Pending: Site static checks on invite PR
-- Pending: Game DB integration invite join tests on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks #3100 SUCCESS
+- Completed: Game Platform Governance Guard — run #83 SUCCESS
+- Completed: Site static checks — run #3100 SUCCESS
+- Completed: Game DB integration Invite join/security contract — run #118 SUCCESS
+- Pending: 없음 (Invite 소스 연결 범위)
 
 ## Known Issues / Deferred
 
