@@ -173,3 +173,190 @@ body {
     min-height: 360px;
   }
 }
+
+
+.cant-stop-entry {
+  display: grid;
+  gap: 1rem;
+}
+
+.cant-stop-entry__intro {
+  display: grid;
+  gap: .35rem;
+}
+
+.cant-stop-entry__grid {
+  display: grid;
+  gap: .9rem;
+}
+
+.cant-stop-entry-card {
+  padding: 1rem;
+  display: grid;
+  gap: .75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cant-stop-entry-card__eyebrow {
+  margin: 0;
+  color: var(--coral-700);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.cant-stop-entry-card__title {
+  margin: 0;
+  color: var(--forest-900);
+  font-size: 1.1rem;
+}
+
+.cant-stop-entry-card__description {
+  margin: 0;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.cant-stop-field {
+  display: grid;
+  gap: .35rem;
+}
+
+.cant-stop-field__label {
+  color: var(--forest-900);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.cant-stop-input {
+  width: 100%;
+  min-height: 44px;
+  padding: .7rem .8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.cant-stop-input:focus {
+  outline: 3px solid rgba(159, 207, 223, .26);
+  border-color: #7eaab9;
+}
+
+.cant-stop-input--code {
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  font-weight: 900;
+}
+
+.cant-stop-entry-card__submit {
+  width: 100%;
+  margin-top: .15rem;
+}
+
+.cant-stop-inline-error {
+  padding: .75rem .85rem;
+  border: 1px solid rgba(190, 83, 74, .24);
+  border-radius: var(--radius-sm);
+  background: rgba(190, 83, 74, .08);
+  color: #8d4039;
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.cant-stop-lobby {
+  display: grid;
+  gap: 1rem;
+}
+
+.cant-stop-lobby__hero {
+  display: grid;
+  gap: .4rem;
+}
+
+.cant-stop-lobby__title {
+  margin: 0;
+  color: var(--forest-900);
+  font-size: 1.35rem;
+}
+
+.cant-stop-lobby__description {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.cant-stop-room-code {
+  padding: 1.2rem;
+  display: grid;
+  justify-items: center;
+  gap: .25rem;
+  border: 1px solid #bfd8e0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, #f9fdfe, #edf7fa);
+  text-align: center;
+}
+
+.cant-stop-room-code__label,
+.cant-stop-lobby__status-label {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.cant-stop-room-code__value {
+  color: var(--forest-900);
+  font-size: clamp(1.8rem, 6vw, 2.7rem);
+  letter-spacing: .14em;
+}
+
+.cant-stop-room-code__meta {
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.cant-stop-lobby__status-grid {
+  display: grid;
+  gap: .65rem;
+}
+
+.cant-stop-lobby__status-card {
+  padding: .9rem 1rem;
+  display: grid;
+  gap: .2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.cant-stop-lobby__status-value {
+  color: var(--forest-900);
+  font-size: .94rem;
+}
+
+.game-platform-shell__button:disabled,
+.cant-stop-entry-card button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.game-platform-shell__button--danger {
+  border: 1px solid rgba(190, 83, 74, .28);
+  background: #fff;
+  color: #9b4b44;
+}
+
+@media (min-width: 680px) {
+  .cant-stop-entry__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cant-stop-lobby__status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
