@@ -20,12 +20,12 @@ Phase 5   Online Multiplayer Foundation          완료
 Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
-└─ Phase 7B Trading / Negotiation                다음 개발 단계
+└─ Phase 7B Trading / Negotiation                진행 중 (foundation)
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 진입 전**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 foundation 진행 중**입니다.
 
 ## Phase 1 — Foundation
 
@@ -167,11 +167,13 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7B — Trading / Negotiation
 
-상태: **다음 개발 단계**
+상태: **진행 중 — foundation**
 
-현재 문서에서 확정하는 것은 개발 위치와 큰 기능 범위까지입니다.
+현재 foundation에서는 거래 자산/턴 정책을 임의로 확정하지 않고 거래 제안 lifecycle만 독립 규칙으로 고정합니다.
 
-- 플레이어 간 거래 / 협상 기능을 Phase 7의 다음 단계로 진행
+- 플레이어 간 거래 / 협상 기능을 Phase 7B로 진행
+- `trade.js`에서 제안 생성 및 수락/거절 lifecycle foundation을 분리 구현
+- 실제 자산 의미와 정산은 아직 Game Engine에 연결하지 않음
 - Phase 7A에서 검증한 서버 권위, version, idempotency, Realtime / reconnect 원칙을 유지
 - 기존 구매 / 건설 / 경매 / 턴 진행을 깨지 않도록 독립 규칙부터 설계
 - 거래 가능 자산, 골드 포함 여부, 제안 / 수정 / 거절 / 취소 / 만료, 턴 제한 등 세부 제품 규칙은 구현 전에 별도로 확정
