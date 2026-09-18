@@ -39,6 +39,14 @@ Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
   - `createTradeProposal()`
   - `reduceTradeProposal()`
   - `TRADE_STATUS`
+- `marble-game/js/core/tradeSettlement.js`
+  - accepted proposal 전용 deterministic settlement
+  - `offered` = 제안자가 수신자에게 주는 자산
+  - `requested` = 수신자가 제안자에게 주는 자산
+  - 각 측의 `propertyIds` + `gold`를 정규화
+  - 정산 시 현재 소유권 / 골드 / 파산 여부를 다시 검증
+  - 검증 완료 후 골드와 소유권을 하나의 결과로 계산
+  - 기존 state를 직접 mutate하지 않음
 - `marble-game/tests/trade.test.js`
   - 제안 생성
   - self trade / unknown player / bankrupt player 차단
@@ -46,6 +54,13 @@ Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
   - 수신자 전용 accept/reject
   - 중복 resolve 차단
   - stale bankrupt proposal 차단
+- `marble-game/tests/tradeSettlement.test.js`
+  - terms 정규화
+  - 빈 거래 / 중복 지역 / 양쪽 중복 지역 차단
+  - property + gold 양방향 정산
+  - 수락 전 정산 차단
+  - stale ownership / stale balance / stale bankrupt 재검증
+  - 기존 입력 state immutability
 
 기존 `ACTION_TYPES`에 예약되어 있던 다음 액션은 유지합니다.
 
@@ -57,13 +72,27 @@ TRADE_REJECT
 
 이번 foundation에서는 이 액션들을 아직 Game Engine에 연결하지 않습니다.
 
-## 다음 단계
+## 현재 settlement 경계
 
-제품 규칙을 먼저 확정한 뒤 다음 순서로 진행합니다.
+정산 terms는 다음 최소 형태만 해석합니다.
 
 ```text
-Trade asset/turn rules
-→ deterministic settlement
+offered:
+  propertyIds: proposer → recipient
+  gold: proposer → recipient
+
+requested:
+  propertyIds: recipient → proposer
+  gold: recipient → proposer
+```
+
+건물이 올라간 지역(`buildingLevel > 0`)은 최종 제품 규칙이 정해질 때까지 거래를 차단합니다. 이는 최종 게임 규칙 확정이 아니라 복잡한 건물 가치/해체/그룹 규칙을 임의로 만들지 않기 위한 foundation 안전 경계입니다.
+
+## 다음 단계
+
+```text
+Trade timing / improved-property / negotiation rules
+→ Game Engine integration
 → local runtime
 → authoritative Supabase RPC
 → Realtime / reconnect
