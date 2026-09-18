@@ -1,5 +1,6 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "../config.js";
 import { buildLoginHref, currentReturnTarget, rememberReturnTarget } from "../auth-return.js";
+import { GAME_ROOM_INVITE_TARGET, buildGameRoomInviteDestination } from "../../games/shared/gameInvite.js";
 import { createInviteClient } from "./inviteApi.js";
 import { dispatchInvite, registerInviteHandler } from "./inviteRegistry.js";
 
@@ -17,6 +18,7 @@ function friendlyError(error) {
   if (text.includes("AUTH_REQUIRED")) return "승인된 청파 같이 회원만 초대 링크를 사용할 수 있어요.";
   if (text.includes("INVITE_NOT_FOUND_OR_EXPIRED")) return "초대 링크가 만료되었거나 더 이상 사용할 수 없어요.";
   if (text.includes("UNSUPPORTED_INVITE_TARGET")) return "아직 지원하지 않는 초대 링크예요.";
+  if (text.includes("GAME_INVITE_")) return "아직 지원하지 않는 게임 초대 링크예요.";
   return "초대 링크를 확인하지 못했습니다. 다시 시도해 주세요.";
 }
 
@@ -31,6 +33,13 @@ registerInviteHandler("the_game_room", async (_invite, { token }) => {
   const target = new URL("/the-game/", window.location.origin);
   target.searchParams.set("invite", token);
   window.location.replace(target.href);
+});
+
+registerInviteHandler(GAME_ROOM_INVITE_TARGET, async (invite, { token }) => {
+  const target = buildGameRoomInviteDestination(invite, token, {
+    origin: window.location.origin,
+  });
+  window.location.replace(target);
 });
 
 async function boot() {
