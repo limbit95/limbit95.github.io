@@ -38,6 +38,7 @@
 - bootstrap 상태에서는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두고 Registry에 노출하지 않는다.
 - game-specific dice/pairing/runner 규칙은 `games/shared/`로 올리지 않는다.
 - online gameplay의 주사위 결과와 상태 전이는 최종적으로 서버가 authoritative하게 결정한다.
+- 첫 플레이어는 사전 주사위 없이 게임 시작 RPC가 서버에서 turn order를 무작위로 한 번 확정하고 authoritative state에 저장하는 방식으로 결정한다.
 
 ## Validation
 
@@ -49,6 +50,5 @@
 
 ## Known Issues / Deferred
 
-- 첫 플레이어 결정 방식을 원본의 사전 dice roll로 유지할지 server-random turn order로 단순화할지 아직 확정하지 않았다.
 - rules engine/runtime/DB/UI는 아직 구현하지 않았다.
 - Game Registry 등록과 capability 선언은 runtime 구현 시작 시점까지 의도적으로 보류한다.
