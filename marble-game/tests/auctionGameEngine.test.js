@@ -6,209 +6,180 @@ import { createInitialGameState } from "../js/core/gameEngine.js";
 import { reducePhase7GameAction } from "../js/core/auctionGameEngine.js";
 import { TURN_PHASES } from "../js/core/turnMachine.js";
 
+function reduce(state, type, playerId = null, payload = {}, nowMs = 1_000) {
+  return reducePhase7GameAction(
+    state,
+    createAction({ type, playerId, payload }),
+    { nowMs },
+  );
+}
+
 function start(players = ["a", "b", "c"]) {
-  return reducePhase7GameAction(
+  return reduce(
     createInitialGameState({ players }),
-    createAction({ type: ACTION_TYPES.START_GAME }),
+    ACTION_TYPES.START_GAME,
   );
 }
 
-function roll(state, playerId, dice) {
-  return reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.ROLL_DICE, playerId, payload: { dice } }),
-  );
+function roll(state, playerId, dice, nowMs = 1_000) {
+  return reduce(state, ACTION_TYPES.ROLL_DICE, playerId, { dice }, nowMs);
 }
 
-function declinePurchase(state, playerId) {
-  return reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.END_TURN, playerId }),
-  );
+function declinePurchase(state, playerId, nowMs = 1_000) {
+  return reduce(state, ACTION_TYPES.END_TURN, playerId, {}, nowMs);
 }
 
-function requestAuction(state, playerId) {
-  return reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.AUCTION_REQUEST, playerId }),
-  );
-}
-
-function closeAuctionRequest(state) {
-  return reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.AUCTION_REQUEST_CLOSE }),
-  );
-}
-
-function openAuction(state, requesterId = "b") {
-  return closeAuctionRequest(requestAuction(state, requesterId));
-}
-
-function auction(state, playerId, payload) {
-  return reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.AUCTION_BID, playerId, payload }),
-  );
-}
-
-test("declining an unowned property opens an auction request window without starting the auction", () => {
+test("purchase decline opens a 10 second request window at 150 percent price", () => {
   let state = roll(start(), "a", [1, 2]);
-  assert.equal(state.pendingChoice.type, "BUY_PROPERTY");
-
-  state = declinePurchase(state, "a");
+  state = declinePurchase(state, "a", 5_000);
 
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.equal(state.currentPlayerIndex, 0);
   assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
   assert.equal(state.pendingChoice.nodeId, "singapore");
-  assert.equal(state.pendingChoice.openingBid, 260);
+  assert.equal(state.pendingChoice.basePrice, 260);
+  assert.equal(state.pendingChoice.openingBid, 390);
+  assert.equal(state.pendingChoice.deadlineAt, 15_000);
   assert.deepEqual(state.pendingChoice.eligiblePlayerIds, ["b", "c"]);
-  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, []);
-  assert.equal(state.lastEvents.some((event) => event.type === "CHOICE_DECLINED"), true);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_REQUEST_OPENED"), true);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_STARTED"), false);
+  assert.equal(state.pendingChoice.declinedByPlayerId, "a");
 });
 
-test("closing an auction request window without requests ends the turn without opening an auction", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
-  state = closeAuctionRequest(state);
+test("requester immediately opens recruitment and later concurrent requests become ordered participants", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a", 1_000);
 
-  assert.equal(state.phase, TURN_PHASES.TURN_END);
-  assert.equal(state.currentPlayerIndex, 0);
-  assert.equal(state.pendingChoice, null);
-  assert.equal(state.boardState.properties.singapore.ownerId, null);
-  assert.equal(state.lastEvents.some((event) => (
-    event.type === "AUCTION_REQUEST_CLOSED"
-    && event.reason === "NO_REQUESTS"
-  )), true);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_STARTED"), false);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "b", {}, 2_000);
+  assert.equal(state.pendingChoice.type, "AUCTION_RECRUITMENT");
+  assert.equal(state.pendingChoice.requesterPlayerId, "b");
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["b"]);
+  assert.equal(state.pendingChoice.deadlineAt, 12_000);
 
-  state = reducePhase7GameAction(
-    state,
-    createAction({ type: ACTION_TYPES.END_TURN, playerId: "a" }),
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "c", {}, 2_100);
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["b", "c"]);
+  assert.equal(state.lastEvents[0].source, "CONCURRENT_REQUEST");
+
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "d", {}, 2_200);
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["b", "c", "d"]);
+});
+
+test("normal participants may withdraw during recruitment but requester may not", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "b", {}, 2_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
+
+  assert.throws(
+    () => reduce(state, ACTION_TYPES.AUCTION_WITHDRAW, "b", {}, 2_200),
+    /requester cannot withdraw/i,
   );
-  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
-  assert.equal(state.currentPlayerIndex, 1);
+
+  state = reduce(state, ACTION_TYPES.AUCTION_WITHDRAW, "c", {}, 2_200);
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["b"]);
 });
 
-test("an explicit request is recorded and the auction starts only when the request window closes", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
-  state = requestAuction(state, "b");
+test("request window still lasts 10 seconds when nobody can afford the opening bid", () => {
+  let state = roll(start(["a", "b"]), "a", [1, 2]);
+  state = Object.freeze({
+    ...state,
+    players: Object.freeze([
+      state.players[0],
+      Object.freeze({ ...state.players[1], money: 100 }),
+    ]),
+  });
+  state = declinePurchase(state, "a", 1_000);
 
   assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
-  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, ["b"]);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_REQUESTED"), true);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_STARTED"), false);
+  assert.deepEqual(state.pendingChoice.eligiblePlayerIds, []);
+  assert.equal(state.pendingChoice.deadlineAt, 11_000);
 
-  state = closeAuctionRequest(state);
-
-  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, ["b"]);
-  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["b"]);
-  assert.deepEqual(state.pendingChoice.auction.eligiblePlayerIds, ["b", "c"]);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_REQUEST_CLOSED"), true);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_STARTED"), true);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST_CLOSE, null, {}, 11_000);
+  assert.equal(state.phase, TURN_PHASES.TURN_END);
+  assert.equal(state.pendingChoice, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, null);
 });
 
-test("the declining player cannot request the auction and duplicate requests are rejected", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
+test("request deadline with no request ends the auction flow and keeps the property unsold", () => {
+  let state = declinePurchase(roll(start(), "a", [1, 2]), "a", 1_000);
 
   assert.throws(
-    () => requestAuction(state, "a"),
-    /not eligible to request this auction/,
+    () => reduce(state, ACTION_TYPES.AUCTION_REQUEST_CLOSE, null, {}, 10_999),
+    /deadline has not expired/i,
   );
 
-  state = requestAuction(state, "b");
-  assert.throws(
-    () => requestAuction(state, "b"),
-    /already requested this auction/,
-  );
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST_CLOSE, null, {}, 11_000);
+  assert.equal(state.phase, TURN_PHASES.TURN_END);
+  assert.equal(state.pendingChoice, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, null);
 });
 
-test("an auction requester cannot pass before placing a bid", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
-  state = openAuction(state, "b");
+test("sole recruitment participant automatically buys at opening bid with normal purchase event", () => {
+  let state = declinePurchase(roll(start(["a", "b"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "b", {}, 2_000);
 
-  assert.throws(
-    () => auction(state, "b", { pass: true }),
-    /must place a bid before passing/,
-  );
-
-  state = auction(state, "c", { pass: true });
-  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["c"]);
-});
-
-test("auction bid and final pass settle ownership and winner gold after a request", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
-  state = openAuction(state, "b");
-  state = auction(state, "b", { amount: 260 });
-
-  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.equal(state.pendingChoice.auction.highestBidderId, "b");
-  assert.equal(state.pendingChoice.auction.highestBid, 260);
-  assert.deepEqual(state.pendingChoice.auction.bidPlayerIds, ["b"]);
-
-  state = auction(state, "c", { pass: true });
+  state = reduce(state, ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, null, {}, 12_000);
 
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
   assert.equal(state.boardState.properties.singapore.ownerId, "b");
-  assert.equal(state.players.find((player) => player.id === "b").money, 1240);
-  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_WON"), true);
+  assert.equal(state.players[1].money, 1110);
+  assert.equal(state.lastEvents.some((event) => event.type === "AUCTION_AUTO_PURCHASED"), true);
   assert.equal(state.lastEvents.some((event) => (
     event.type === "PROPERTY_BOUGHT"
     && event.playerId === "b"
+    && event.amount === 390
     && event.reason === "AUCTION"
   )), true);
 });
 
-test("non-requesters may pass after a requested auction opens", () => {
-  let state = declinePurchase(roll(start(), "a", [1, 2]), "a");
-  state = openAuction(state, "b");
-  state = auction(state, "c", { pass: true });
+test("competitive recruitment starts with requester auto-bid and participant join order", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "b", {}, 2_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "d", {}, 2_200);
 
-  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["c"]);
-  assert.equal(state.boardState.properties.singapore.ownerId, null);
+  state = reduce(state, ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, null, {}, 12_000);
+
+  assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
+  assert.equal(state.pendingChoice.auction.highestBidderId, "b");
+  assert.equal(state.pendingChoice.auction.highestBid, 390);
+  assert.deepEqual(state.pendingChoice.auction.participantPlayerIds, ["b", "c", "d"]);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 22_000);
+
+  state = reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 13_000);
+  assert.equal(state.pendingChoice.auction.highestBidderId, "c");
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "d");
+  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 23_000);
 });
 
-test("multiple requesters each carry the bid commitment into the auction", () => {
-  let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a");
-  state = requestAuction(state, "b");
-  state = requestAuction(state, "c");
-  state = closeAuctionRequest(state);
+test("bid timeout automatically passes the current participant", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST, "b", {}, 2_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
+  state = reduce(state, ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, null, {}, 12_000);
 
-  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["b", "c"]);
   assert.throws(
-    () => auction(state, "c", { pass: true }),
-    /must place a bid before passing/,
+    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 21_999),
+    /deadline has not expired/i,
   );
 
-  state = auction(state, "b", { amount: 260 });
-  state = auction(state, "c", { amount: 261 });
-  state = auction(state, "b", { pass: true });
-  assert.deepEqual(state.pendingChoice.auction.bidPlayerIds, ["b", "c"]);
-  assert.deepEqual(state.pendingChoice.auction.passedPlayerIds, ["b"]);
-});
-
-test("a sole eligible bidder wins after requesting and placing the opening bid", () => {
-  let state = roll(start(["a", "b"]), "a", [1, 2]);
-  state = declinePurchase(state, "a");
-
-  assert.deepEqual(state.pendingChoice.eligiblePlayerIds, ["b"]);
-
-  state = requestAuction(state, "b");
-  state = closeAuctionRequest(state);
-  state = auction(state, "b", { amount: 260 });
-
+  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_000);
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.boardState.properties.singapore.ownerId, "b");
-  assert.equal(state.players[1].money, 1240);
+  assert.equal(state.lastEvents.some((event) => (
+    event.type === "AUCTION_AUTO_PASSED"
+    && event.playerId === "c"
+    && event.reason === "TIMEOUT"
+  )), true);
 });
 
-test("non-auction actions keep delegating to the stable Phase 6 reducer", () => {
+test("declining player never becomes eligible for request, recruitment, or bidding", () => {
+  let state = declinePurchase(roll(start(), "a", [1, 2]), "a", 1_000);
+  assert.deepEqual(state.pendingChoice.eligiblePlayerIds, ["b", "c"]);
+  assert.throws(
+    () => reduce(state, ACTION_TYPES.AUCTION_REQUEST, "a", {}, 2_000),
+    /not eligible/i,
+  );
+});
+
+test("non-auction actions keep delegating to the stable reducer", () => {
   const state = start(["a", "b"]);
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
   assert.equal(state.currentPlayerIndex, 0);

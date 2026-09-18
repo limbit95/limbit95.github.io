@@ -2,7 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  calculateAuctionOpeningBid,
   createPropertyAuction,
+  getPropertyAuctionMinimumBid,
   getPropertyAuctionSettlement,
   reducePropertyAuction,
 } from "../js/core/auction.js";
@@ -17,167 +19,133 @@ function players(overrides = {}) {
   }));
 }
 
-test("property auction excludes the declining, bankrupt and unaffordable players", () => {
+test("auction v2 opening bid is 150 percent with integer rounding", () => {
+  assert.equal(calculateAuctionOpeningBid(260), 390);
+  assert.equal(calculateAuctionOpeningBid(333), 500);
+});
+
+test("auction starts with requester auto-bid and participant join order", () => {
   const auction = createPropertyAuction({
     nodeId: "singapore",
-    openingBid: 260,
+    openingBid: 390,
     declinedByPlayerId: "a",
-    players: players({ c: { bankrupt: true }, d: { money: 200 } }),
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b", "c", "d"],
+    players: players(),
+    turnDeadlineAt: 20_000,
   });
 
-  assert.equal(auction.type, "PROPERTY_AUCTION");
   assert.equal(auction.status, "OPEN");
-  assert.deepEqual(auction.eligiblePlayerIds, ["b"]);
-  assert.equal(auction.openingBid, 260);
+  assert.deepEqual(auction.participantPlayerIds, ["b", "c", "d"]);
+  assert.equal(auction.highestBid, 390);
+  assert.equal(auction.highestBidderId, "b");
+  assert.deepEqual(auction.bidPlayerIds, ["b"]);
+  assert.equal(auction.turnPlayerId, "c");
+  assert.equal(auction.turnDeadlineAt, 20_000);
+  assert.equal(getPropertyAuctionMinimumBid(auction), 391);
 });
 
-test("auction bid enforces opening price, current high bid and player balance", () => {
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    players: players(),
-  });
-
-  assert.throws(
-    () => reducePropertyAuction(initial, players(), { playerId: "a", amount: 300 }),
-    /not eligible/i,
-  );
-  assert.throws(
-    () => reducePropertyAuction(initial, players(), { playerId: "b", amount: 259 }),
-    /at least 260/i,
-  );
-
-  const first = reducePropertyAuction(initial, players(), { playerId: "b", amount: 300 });
-  assert.equal(first.auction.highestBid, 300);
-  assert.equal(first.auction.highestBidderId, "b");
-  assert.equal(first.events[0].type, "AUCTION_BID_PLACED");
-
-  assert.throws(
-    () => reducePropertyAuction(first.auction, players(), { playerId: "c", amount: 300 }),
-    /at least 301/i,
-  );
-  assert.throws(
-    () => reducePropertyAuction(first.auction, players({ c: { money: 320 } }), { playerId: "c", amount: 400 }),
-    /cannot afford/i,
-  );
-});
-
-test("passed players cannot re-enter and the highest bidder cannot pass", () => {
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    players: players(),
-  });
-  const first = reducePropertyAuction(initial, players(), { playerId: "b", amount: 300 });
-  const second = reducePropertyAuction(first.auction, players(), { playerId: "c", pass: true });
-
-  assert.deepEqual(second.auction.passedPlayerIds, ["c"]);
-  assert.throws(
-    () => reducePropertyAuction(second.auction, players(), { playerId: "c", amount: 350 }),
-    /already passed/i,
-  );
-  assert.throws(
-    () => reducePropertyAuction(second.auction, players(), { playerId: "b", pass: true }),
-    /highest bidder cannot pass/i,
-  );
-});
-
-test("an auction requester must place a bid before voluntarily passing", () => {
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    requestedByPlayerIds: ["b"],
-    players: players(),
-  });
-
-  assert.deepEqual(initial.requestedByPlayerIds, ["b"]);
-  assert.deepEqual(initial.bidPlayerIds, []);
-  assert.throws(
-    () => reducePropertyAuction(initial, players(), { playerId: "b", pass: true }),
-    /must place a bid before passing/i,
-  );
-
-  const first = reducePropertyAuction(initial, players(), { playerId: "b", amount: 260 });
-  assert.deepEqual(first.auction.bidPlayerIds, ["b"]);
-  const second = reducePropertyAuction(first.auction, players(), { playerId: "c", amount: 300 });
-  const third = reducePropertyAuction(second.auction, players(), { playerId: "b", pass: true });
-  assert.deepEqual(third.auction.passedPlayerIds, ["b"]);
-});
-
-test("a requester may pass without a first bid if another bid moved beyond their balance", () => {
-  const participantState = players({ b: { money: 260 } });
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    requestedByPlayerIds: ["b"],
-    players: participantState,
-  });
-
-  const first = reducePropertyAuction(initial, participantState, { playerId: "c", amount: 300 });
-  const second = reducePropertyAuction(first.auction, participantState, { playerId: "b", pass: true });
-  assert.deepEqual(second.auction.passedPlayerIds, ["b"]);
-  assert.deepEqual(second.auction.bidPlayerIds, ["c"]);
-});
-
-test("auction resolves to the highest bidder after every rival passes", () => {
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    players: players(),
-  });
-  const first = reducePropertyAuction(initial, players(), { playerId: "b", amount: 300 });
-  const second = reducePropertyAuction(first.auction, players(), { playerId: "c", pass: true });
-  const final = reducePropertyAuction(second.auction, players(), { playerId: "d", pass: true });
-
-  assert.equal(final.auction.status, "WON");
-  assert.equal(final.auction.winnerPlayerId, "b");
-  assert.equal(final.auction.winningBid, 300);
-  assert.equal(final.events.at(-1).type, "AUCTION_WON");
-  assert.deepEqual(getPropertyAuctionSettlement(final.auction), {
-    nodeId: "singapore",
-    winnerPlayerId: "b",
-    amount: 300,
-  });
-});
-
-test("auction ends unsold when every eligible player passes before a bid", () => {
-  const participantState = players({ d: { money: 200 } });
-  const initial = createPropertyAuction({
-    nodeId: "singapore",
-    openingBid: 260,
-    declinedByPlayerId: "a",
-    players: participantState,
-  });
-  const first = reducePropertyAuction(initial, participantState, { playerId: "b", pass: true });
-  const final = reducePropertyAuction(first.auction, participantState, { playerId: "c", pass: true });
-
-  assert.equal(final.auction.status, "UNSOLD");
-  assert.equal(final.events.at(-1).type, "AUCTION_ENDED");
-  assert.deepEqual(getPropertyAuctionSettlement(final.auction), {
-    nodeId: "singapore",
-    winnerPlayerId: null,
-    amount: 0,
-  });
-});
-
-test("auction with no eligible bidders is immediately unsold", () => {
-  const participantState = players({ b: { money: 100 }, c: { bankrupt: true }, d: { money: 200 } });
+test("sole requester wins immediately at the opening bid", () => {
   const auction = createPropertyAuction({
     nodeId: "singapore",
-    openingBid: 260,
+    openingBid: 390,
     declinedByPlayerId: "a",
-    players: participantState,
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b"],
+    players: players(),
   });
 
-  assert.equal(auction.status, "UNSOLD");
+  assert.equal(auction.status, "WON");
+  assert.equal(auction.winnerPlayerId, "b");
+  assert.equal(auction.winningBid, 390);
   assert.deepEqual(getPropertyAuctionSettlement(auction), {
     nodeId: "singapore",
-    winnerPlayerId: null,
-    amount: 0,
+    winnerPlayerId: "b",
+    amount: 390,
   });
+});
+
+test("only the current auction turn player may bid or pass", () => {
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 390,
+    declinedByPlayerId: "a",
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b", "c", "d"],
+    players: players(),
+  });
+
+  assert.throws(
+    () => reducePropertyAuction(initial, players(), { playerId: "d", amount: 400 }),
+    /not this player's auction turn/i,
+  );
+
+  const first = reducePropertyAuction(initial, players(), { playerId: "c", amount: 400 });
+  assert.equal(first.auction.highestBidderId, "c");
+  assert.equal(first.auction.highestBid, 400);
+  assert.equal(first.auction.turnPlayerId, "d");
+  assert.equal(first.events[0].type, "AUCTION_BID_PLACED");
+});
+
+test("pass removes a participant and the fixed order continues", () => {
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 390,
+    declinedByPlayerId: "a",
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b", "c", "d"],
+    players: players(),
+  });
+
+  const first = reducePropertyAuction(initial, players(), { playerId: "c", pass: true });
+  assert.deepEqual(first.auction.passedPlayerIds, ["c"]);
+  assert.equal(first.auction.turnPlayerId, "d");
+
+  const final = reducePropertyAuction(first.auction, players(), { playerId: "d", pass: true });
+  assert.equal(final.auction.status, "WON");
+  assert.equal(final.auction.winnerPlayerId, "b");
+  assert.equal(final.auction.winningBid, 390);
+});
+
+test("players who cannot afford the next minimum bid are auto-passed", () => {
+  const participantState = players({ d: { money: 400 } });
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 390,
+    declinedByPlayerId: "a",
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b", "c", "d"],
+    players: participantState,
+  });
+
+  const first = reducePropertyAuction(initial, participantState, { playerId: "c", amount: 400 });
+  assert.deepEqual(first.auction.passedPlayerIds, ["d"]);
+  assert.equal(first.auction.turnPlayerId, "b");
+  assert.equal(first.events.some((event) => (
+    event.type === "AUCTION_AUTO_PASSED"
+    && event.playerId === "d"
+    && event.reason === "INSUFFICIENT_GOLD"
+  )), true);
+});
+
+test("timeout pass uses the same irreversible pass rule", () => {
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 390,
+    declinedByPlayerId: "a",
+    requesterPlayerId: "b",
+    participantPlayerIds: ["b", "c"],
+    players: players(),
+  });
+
+  const result = reducePropertyAuction(initial, players(), {
+    playerId: "c",
+    pass: true,
+    timeout: true,
+  });
+
+  assert.equal(result.auction.status, "WON");
+  assert.equal(result.auction.winnerPlayerId, "b");
+  assert.equal(result.events[0].type, "AUCTION_AUTO_PASSED");
+  assert.equal(result.events[0].reason, "TIMEOUT");
 });

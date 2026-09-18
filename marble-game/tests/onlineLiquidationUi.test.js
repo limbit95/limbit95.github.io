@@ -110,8 +110,7 @@ test("liquidation UI delegates selection and confirmation to the online session 
 });
 
 test("liquidation UI shares canonical onlineSession singleton with the online controllers", () => {
-  assert.match(uiSource, /from "\.\/onlineSession\.js\?v=20260910-r8"/);
-  assert.doesNotMatch(uiSource, /onlineSession\.js\?v=20260918-r2/);
+  assert.match(uiSource, /from "\.\/onlineSession\.js\?v=20260918-r11"/);
 });
 
 test("online boot attaches liquidation UI after auction and trade adapters", () => {
