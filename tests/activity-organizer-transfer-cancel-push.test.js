@@ -5,7 +5,7 @@ import test from "node:test";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const approvalMigration = read("../supabase/site/migrations/20260915043318_activity_organizer_history_and_push.sql");
 const notificationPolicyMigration = read("../supabase/site/migrations/20260915050200_refine_organizer_transfer_notifications.sql");
-const cancellationMigration = read("../supabase/site/migrations/20260915065000_organizer_transfer_cancel_push.sql");
+const cancellationMigration = read("../supabase/site/migrations/20260915092819_organizer_transfer_cancel_push.sql");
 const routingMigration = read("../supabase/site/migrations/20260915104625_organizer_notification_routing_stability.sql");
 const pushFunction = read("../supabase/functions/send-web-push/index.ts");
 const header = read("../js/components/header.js");
