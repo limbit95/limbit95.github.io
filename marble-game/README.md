@@ -4,24 +4,22 @@ Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5
 
 ## 설계 기록
 
+- [Marble Development Roadmap](../docs/marble-development-roadmap.md) — 현재 개발 위치와 Phase별 완료 상태, 다음 개발 단계를 확인하는 기준 문서입니다.
 - [Animation & Presentation Design](./ANIMATION_DESIGN.md) — 돈의 이동, 도시 건설, 캐릭터 반응, 자동 카메라, VFX/Sound, Animation Director/Queue, 테마별 presentation 확장과 향후 개발 순서를 기록합니다.
 
 ## 현재 단계
 
-### Phase 4 — Classic 2.5D Visual Foundation
+### Phase 7 — Classic Advanced Gameplay
 
-현재 Classic은 하나의 공용 게임 엔진 위에 고정 Orthographic 쿼터뷰 Renderer를 연결한 상태입니다.
+현재 개발 위치는 **Phase 7A 경매 완료, Phase 7B 거래/협상 진입 전**입니다.
 
-이번 단계의 시각 원칙은 다음과 같습니다.
+Phase 4의 고정 Orthographic 쿼터뷰 2.5D 비주얼 기반은 그대로 유지하면서, Phase 5의 온라인 멀티플레이와 Phase 6의 Realtime/재접속/복구 안정화 위에 고급 플레이어 상호작용을 추가하고 있습니다.
 
-- 사용자가 직접 카메라를 회전하거나 줌하지 않는 고정 쿼터뷰
-- 전체 보드를 한눈에 읽을 수 있는 2.5D 디오라마형 구성
-- 최종 Classic 보드는 30칸 이상 유지하며 현재 32칸 사용
-- 외곽 타일을 크게 사용하고 중앙 장식 공간은 보조 요소로 제한
-- 도시별 랜드마크/특수 칸 오브젝트는 타일 위에 세우는 3D 상징물
-- 도시명은 별도 표지판이 아니라 타일 표면에 직접 인쇄된 것처럼 표현
-- 구매가, 통행료, 소유자, 건물 단계, 특수 효과 등 상세 정보는 타일 클릭 또는 플레이어 도착 시 모달로 확인
-- 캐릭터 말과 랜드마크는 현재 배치/비율 검증용 모델이며 이후 고품질 모델과 애니메이션으로 교체 예정
+Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하고 참여할 수 있는 request-gated 경매를 로컬/온라인 양쪽에 연결했습니다. 서버 권위 RPC, version/idempotency, Realtime refresh, reconnect, stale snapshot 방어와 멀티플레이 회귀 검증까지 완료되어 main에 통합된 상태입니다.
+
+다음 개발 단계는 **Phase 7B — Trading / Negotiation**입니다. 거래 가능 자산과 제안/수정/거절/취소/만료, 턴 제한 등 세부 제품 규칙은 구현 전에 별도로 확정합니다.
+
+세부 Phase 이력과 현재 상태는 [Marble Development Roadmap](../docs/marble-development-roadmap.md)을 기준으로 합니다.
 
 ## 구조
 
@@ -62,12 +60,15 @@ Renderer는 게임 상태와 이벤트를 시각화할 뿐 게임 규칙을 결�
 Classic 플레이 창에서 다음을 확인할 수 있습니다.
 
 - 32칸 고정 쿼터뷰 보드
-- 2인 로컬 규칙 플레이
+- 로컬 Classic 규칙 플레이
+- 2~4인 온라인 대기실 및 서버 권위 멀티플레이
 - 주사위 및 `PLAYER_MOVED.path` 기반 말 이동
 - 타일 클릭/터치 선택
 - 도착 타일 자동 정보 모달
 - 도시 구매/소유권/건설 1~3단계 반영
 - START / EVENT / TAX / BONUS / REST 특수 칸
+- Realtime 동기화 및 재접속/snapshot 복구
+- 구매 거절 후 경매 요청/입찰/패스/낙찰 흐름
 - 3D 로드 실패 시 2D 상태 보드 fallback
 
 ## 수동 검토 포인트
