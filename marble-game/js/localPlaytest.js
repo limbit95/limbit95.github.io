@@ -10,9 +10,16 @@ export const DEFAULT_PLAYERS = Object.freeze([
   Object.freeze({ id: "player-d", name: "플레이어 D" }),
 ]);
 
-export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = Math.random } = {}) {
+export function createLocalClassicSession({
+  players = DEFAULT_PLAYERS,
+  random = Math.random,
+  clock = Date.now,
+} = {}) {
   if (typeof random !== "function") {
     throw new TypeError("Local playtest random source must be a function.");
+  }
+  if (typeof clock !== "function") {
+    throw new TypeError("Local playtest clock must be a function.");
   }
 
   let state = createInitialGameState({ themeId: "classic", players });
@@ -23,7 +30,7 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
       type,
       playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
-    }));
+    }), { nowMs: Number(clock()) });
     return state;
   }
 
@@ -53,11 +60,23 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
     closeAuctionRequest() {
       return dispatch(ACTION_TYPES.AUCTION_REQUEST_CLOSE, {}, null);
     },
+    joinAuction(playerId) {
+      return dispatch(ACTION_TYPES.AUCTION_JOIN, {}, playerId);
+    },
+    withdrawAuction(playerId) {
+      return dispatch(ACTION_TYPES.AUCTION_WITHDRAW, {}, playerId);
+    },
+    closeAuctionRecruitment() {
+      return dispatch(ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, {}, null);
+    },
     auctionBid(playerId, amount) {
       return dispatch(ACTION_TYPES.AUCTION_BID, { amount }, playerId);
     },
     auctionPass(playerId) {
       return dispatch(ACTION_TYPES.AUCTION_BID, { pass: true }, playerId);
+    },
+    auctionTimeout() {
+      return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
     },
     offerTrade(recipientPlayerId, terms, offerId) {
       return dispatch(ACTION_TYPES.TRADE_OFFER, {
