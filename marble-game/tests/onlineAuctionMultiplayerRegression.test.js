@@ -166,6 +166,9 @@ function createHarness() {
       return snapshotFor(viewerPlayerId);
     }
     if (name === "marble_auction_bid") {
+      if (viewerPlayerId === "p1") {
+        throw new Error("AUCTION_PLAYER_NOT_ELIGIBLE");
+      }
       if (
         viewerPlayerId === "p2"
         && params.p_pass === true
@@ -323,6 +326,68 @@ test("three online clients preserve the request-gated auction flow through autho
     );
   } finally {
     sessions.forEach((session) => session.dispose());
+    restore();
+  }
+});
+
+test("closing an unrequested auction window propagates TURN_END without starting an auction", async () => {
+  const restore = installFakeBrowser();
+  const harness = createHarness();
+  const sessions = [];
+
+  try {
+    const decliner = await createOnlineClassicSession({
+      roomId: "room-1",
+      api: harness.apiFor("p1"),
+    });
+    const observer = await createOnlineClassicSession({
+      roomId: "room-1",
+      api: harness.apiFor("p2"),
+    });
+    sessions.push(decliner, observer);
+
+    await decliner.declinePropertyForAuction();
+    await harness.broadcast("p2");
+    assert.equal(observer.getState().pendingChoice.type, "AUCTION_REQUEST");
+    assert.deepEqual(observer.getState().pendingChoice.requestedByPlayerIds, []);
+
+    await decliner.closeAuctionRequest();
+    assert.equal(decliner.getState().version, 5);
+    assert.equal(decliner.getState().phase, "TURN_END");
+    assert.equal(decliner.getState().pendingChoice, null);
+    assert.equal(decliner.getState().boardState.properties.tokyo.ownerId, null);
+
+    await harness.broadcast("p2");
+    assert.equal(observer.getState().version, 5);
+    assert.equal(observer.getState().phase, "TURN_END");
+    assert.equal(observer.getState().pendingChoice, null);
+    assert.equal(observer.getState().boardState.properties.tokyo.ownerId, null);
+  } finally {
+    sessions.forEach((session) => session.dispose());
+    restore();
+  }
+});
+
+test("the declining player remains ineligible for authoritative auction bids", async () => {
+  const restore = installFakeBrowser();
+  const harness = createHarness();
+  let session = null;
+
+  try {
+    harness.server.version = 6;
+    harness.server.pendingChoice = auctionChoice();
+    session = await createOnlineClassicSession({
+      roomId: "room-1",
+      api: harness.apiFor("p1"),
+    });
+
+    const model = createOnlineAuctionUiModel(session.getState(), "p1");
+    assert.equal(model.eligible, false);
+    assert.equal(model.canBid, false);
+    await assert.rejects(() => session.auctionBid(240), /AUCTION_PLAYER_NOT_ELIGIBLE/);
+    assert.equal(session.getState().version, 6);
+  } finally {
+    session?.dispose();
     restore();
   }
 });
