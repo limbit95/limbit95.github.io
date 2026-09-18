@@ -147,17 +147,36 @@ Shell은 게임 화면 전체 디자인을 고정하는 템플릿이 아니다.
 
 연결 상태 UI 역시 Realtime 자체를 신뢰하는 표시가 아니라 authoritative snapshot refresh 상태를 사용자에게 보여주는 역할에 집중한다.
 
-## 8. 기존 초대 기능 정책
+## 8. Platform-native Invite 원칙
 
 기존 게임별 초대 구현은 새 Game Platform의 호환 기준이 아니다.
 
-현재 Legacy 초대 기능의 사용 가치가 낮고 새 플랫폼에서 공통 기능으로 재설계할 계획이므로, 기존 초대 기능은 별도 Read-only 영향 분석 후 안전하게 제거할 수 있다.
+Read-only 영향 분석 결과 사이트에는 이미 `private.site_invites`, `site_invite_create/resolve/revoke`, `/invite.html`, `js/invites/`로 구성된 게임 비종속 공통 초대 기반이 있다. 이 기반은 재사용하고 Game Platform이 같은 기능을 다시 구현하지 않는다.
 
-새 초대 기능은 향후 Game Platform의 공식 공통 기능으로 다시 설계한다.
+신규 게임은 게임별 target type을 늘리지 않고 다음 표준을 사용한다.
 
-Legacy 게임이 새 공통 Invite 기능을 적용하기 어렵다면 적용하지 않아도 된다.
+```text
+target_type = game_room
+target_id   = <game-specific room id>
+metadata    = {
+  game_id: "<Game Registry id>",
+  platform_version: 1
+}
+```
 
-기존 초대 링크를 영구적으로 보존하기 위해 새 플랫폼 설계를 복잡하게 만들지 않는다.
+platform-native Invite 대상 게임은 반드시 다음 조건을 만족해야 한다.
+
+- `platform === "shared"`
+- `capabilities.online === true`
+- `capabilities.invite === true`
+
+초대 metadata에 redirect URL을 저장하거나 신뢰하지 않는다. `game_id`를 Registry에서 확인한 뒤 Registry의 site-relative `href`만 목적지로 사용한다.
+
+초대 토큰 해석은 방 입장 권한을 부여하지 않는다. 최종 참가 여부는 각 게임의 Room/Lobby 서버 RPC가 승인회원, 멤버십, 정원, 방 상태 등의 정책을 다시 검증해서 결정한다.
+
+현재 Legacy 소비자는 The Game의 `the_game_room` 흐름이며 Phase 3D에서 제거하거나 마이그레이션하지 않는다. Legacy 초대 제거가 필요하면 별도 작은 작업으로 진행한다.
+
+상세 영향 범위와 제거 경계는 `docs/game-platform-invite-analysis.md`에 기록한다.
 
 ## 9. 추후 Remaster 전략
 
@@ -179,13 +198,13 @@ Stable Legacy stabilization
 → Phase 3A: Registry + Access Gate
 → Phase 3B: Room/Lobby + Snapshot/Reconnect + Versioned Action contracts
 → Phase 3C: Common Game Shell + connection/player UI contract
-→ Phase 3D: platform-native Invite + legacy invite impact analysis
+→ Phase 3D: platform-native game_room Invite + legacy invite impact analysis
 → Phase 3E: reusable DB/test contract template if needed
 → Phase 4: Can’t Stop 신규 구현 및 실제 플랫폼 검증
 → 이후 신규 게임 확장
 → 필요 시 Legacy Remaster
 ```
 
-Phase 3C까지의 공통 기반은 아직 기존 게임 런타임에 연결하지 않는다.
+Phase 3D까지의 공통 기반은 Legacy 게임 런타임에 강제로 연결하지 않는다. The Game의 기존 초대 흐름은 별도 Legacy 경로로 유지한다.
 
 Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업이 아니라, Phase 4에서 `games/cant-stop/` 아래에 처음부터 생성하는 첫 platform-native 게임이다.
