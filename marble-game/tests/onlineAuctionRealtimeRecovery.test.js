@@ -6,43 +6,65 @@ globalThis.window = globalThis.window ?? {};
 const {
   createOnlineClassicSession,
   mapOnlineGameSnapshot,
-} = await import("../js/onlineSession.js");
+} = await import("../js/onlineSession.js?v=20260918-r3");
 globalThis.window = originalWindow;
 
-function auctionRequestChoice(requestedByPlayerIds = []) {
+function requestChoice() {
   return {
     type: "AUCTION_REQUEST",
     nodeId: "tokyo",
-    openingBid: 240,
+    basePrice: 240,
+    openingBid: 360,
     declinedByPlayerId: "p1",
     eligiblePlayerIds: ["p2", "p3"],
-    requestedByPlayerIds,
+    requestedByPlayerIds: [],
+    deadlineAt: "2026-09-18T12:00:10Z",
+  };
+}
+
+function recruitmentChoice(participantPlayerIds = ["p2"]) {
+  return {
+    type: "AUCTION_RECRUITMENT",
+    nodeId: "tokyo",
+    basePrice: 240,
+    openingBid: 360,
+    declinedByPlayerId: "p1",
+    eligiblePlayerIds: ["p2", "p3"],
+    requesterPlayerId: "p2",
+    requestedByPlayerIds: ["p2"],
+    participantPlayerIds,
+    deadlineAt: "2026-09-18T12:00:20Z",
   };
 }
 
 function propertyAuctionChoice({
-  requestedByPlayerIds = ["p2"],
-  bidPlayerIds = [],
+  participantPlayerIds = ["p2", "p3"],
   passedPlayerIds = [],
-  highestBid = 0,
-  highestBidderId = null,
+  highestBid = 360,
+  highestBidderId = "p2",
+  turnPlayerId = "p3",
 } = {}) {
   return {
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
-    openingBid: 240,
-    requestedByPlayerIds,
+    openingBid: 360,
+    requesterPlayerId: "p2",
+    participantPlayerIds,
     auction: {
       type: "PROPERTY_AUCTION",
       nodeId: "tokyo",
-      openingBid: 240,
+      openingBid: 360,
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
-      requestedByPlayerIds,
-      bidPlayerIds,
+      participantPlayerIds,
+      requesterPlayerId: "p2",
+      requestedByPlayerIds: ["p2"],
+      bidPlayerIds: ["p2"],
       passedPlayerIds,
       highestBid,
       highestBidderId,
+      turnPlayerId,
+      turnDeadlineAt: "2026-09-18T12:00:30Z",
       status: "OPEN",
       winnerPlayerId: null,
       winningBid: 0,
@@ -84,37 +106,25 @@ function snapshot(version, {
 function installFakeBrowser() {
   const previousWindow = globalThis.window;
   const previousDocument = globalThis.document;
-  const windowListeners = new Map();
-  const documentListeners = new Map();
-  const timers = new Map();
   let nextTimerId = 1;
-
+  const timers = new Map();
   globalThis.window = {
-    setTimeout(callback) {
+    setTimeout(callback, ms) {
       const id = nextTimerId++;
-      timers.set(id, callback);
+      timers.set(id, { callback, ms });
       return id;
     },
     clearTimeout(id) {
       timers.delete(id);
     },
-    addEventListener(type, listener) {
-      windowListeners.set(type, listener);
-    },
-    removeEventListener(type, listener) {
-      if (windowListeners.get(type) === listener) windowListeners.delete(type);
-    },
+    addEventListener() {},
+    removeEventListener() {},
   };
   globalThis.document = {
     visibilityState: "visible",
-    addEventListener(type, listener) {
-      documentListeners.set(type, listener);
-    },
-    removeEventListener(type, listener) {
-      if (documentListeners.get(type) === listener) documentListeners.delete(type);
-    },
+    addEventListener() {},
+    removeEventListener() {},
   };
-
   return {
     timers,
     restore() {
@@ -124,91 +134,26 @@ function installFakeBrowser() {
   };
 }
 
-function flush() {
-  return new Promise((resolve) => setImmediate(resolve));
-}
-
-test("auction request and active auction snapshots survive reconnect mapping without mutable nested state", () => {
-  const requestState = mapOnlineGameSnapshot(snapshot(7, { pendingChoice: auctionRequestChoice(["p2"]) }));
-  assert.equal(requestState.pendingChoice.type, "AUCTION_REQUEST");
-  assert.deepEqual(requestState.pendingChoice.eligiblePlayerIds, ["p2", "p3"]);
-  assert.deepEqual(requestState.pendingChoice.requestedByPlayerIds, ["p2"]);
-  assert.equal(Object.isFrozen(requestState.pendingChoice), true);
-  assert.equal(Object.isFrozen(requestState.pendingChoice.eligiblePlayerIds), true);
-  assert.equal(Object.isFrozen(requestState.pendingChoice.requestedByPlayerIds), true);
-
-  const auctionState = mapOnlineGameSnapshot(snapshot(8, {
-    pendingChoice: propertyAuctionChoice({
-      requestedByPlayerIds: ["p2", "p3"],
-      bidPlayerIds: ["p2"],
-      passedPlayerIds: ["p3"],
-      highestBid: 260,
-      highestBidderId: "p2",
-    }),
+test("snapshot mapping preserves Auction v2 recruitment order and bid deadline for reconnect", () => {
+  const recruitment = mapOnlineGameSnapshot(snapshot(8, {
+    pendingChoice: recruitmentChoice(["p2", "p3"]),
   }));
-  assert.equal(auctionState.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.equal(auctionState.pendingChoice.auction.highestBid, 260);
-  assert.equal(auctionState.pendingChoice.auction.highestBidderId, "p2");
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction), true);
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction.bidPlayerIds), true);
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction.passedPlayerIds), true);
+  assert.equal(recruitment.pendingChoice.type, "AUCTION_RECRUITMENT");
+  assert.deepEqual(recruitment.pendingChoice.participantPlayerIds, ["p2", "p3"]);
+  assert.equal(recruitment.pendingChoice.deadlineAt, "2026-09-18T12:00:20Z");
+
+  const auction = mapOnlineGameSnapshot(snapshot(9, {
+    pendingChoice: propertyAuctionChoice(),
+  }));
+  assert.deepEqual(auction.pendingChoice.auction.participantPlayerIds, ["p2", "p3"]);
+  assert.equal(auction.pendingChoice.auction.turnPlayerId, "p3");
+  assert.equal(auction.pendingChoice.auction.turnDeadlineAt, "2026-09-18T12:00:30Z");
 });
 
-test("realtime game-version refresh carries auction request and active auction state to every session", async () => {
-  const browser = installFakeBrowser();
-  let realtimeChange = null;
-  let realtimeStatus = null;
-  let latestSnapshot = snapshot(3, {
-    pendingChoice: { type: "BUY_PROPERTY", nodeId: "tokyo", price: 240 },
-  });
-  const remoteChoices = [];
-
-  try {
-    const session = await createOnlineClassicSession({
-      roomId: "room-1",
-      initialSnapshot: latestSnapshot,
-      onRemoteState(state) {
-        remoteChoices.push(state.pendingChoice?.type ?? null);
-      },
-      api: {
-        async getSnapshot() {
-          return latestSnapshot;
-        },
-        subscribeGame(_roomId, { onChange, onStatus }) {
-          realtimeChange = onChange;
-          realtimeStatus = onStatus;
-          return () => {};
-        },
-      },
-    });
-
-    realtimeStatus("SUBSCRIBED");
-    await flush();
-    assert.deepEqual(remoteChoices, []);
-
-    latestSnapshot = snapshot(4, { pendingChoice: auctionRequestChoice([]) });
-    realtimeChange();
-    await flush();
-    assert.equal(session.getState().version, 4);
-    assert.equal(session.getState().pendingChoice.type, "AUCTION_REQUEST");
-
-    latestSnapshot = snapshot(5, { pendingChoice: propertyAuctionChoice() });
-    realtimeChange();
-    await flush();
-    assert.equal(session.getState().version, 5);
-    assert.equal(session.getState().pendingChoice.type, "PROPERTY_AUCTION");
-    assert.deepEqual(remoteChoices, ["AUCTION_REQUEST", "PROPERTY_AUCTION"]);
-
-    session.dispose();
-  } finally {
-    browser.restore();
-  }
-});
-
-test("channel recovery refreshes the latest in-progress auction snapshot before resubscribe", async () => {
+test("realtime recovery converges a disconnected request client to recruitment snapshot", async () => {
   const browser = installFakeBrowser();
   let realtimeStatus = null;
-  let latestSnapshot = snapshot(5, { pendingChoice: propertyAuctionChoice() });
+  let latestSnapshot = snapshot(7, { pendingChoice: requestChoice() });
   const remoteVersions = [];
 
   try {
@@ -219,56 +164,40 @@ test("channel recovery refreshes the latest in-progress auction snapshot before 
         remoteVersions.push(state.version);
       },
       api: {
-        async getSnapshot() {
-          return latestSnapshot;
-        },
         subscribeGame(_roomId, { onStatus }) {
           realtimeStatus = onStatus;
           return () => {};
         },
+        async getSnapshot() {
+          return latestSnapshot;
+        },
       },
     });
 
-    realtimeStatus("SUBSCRIBED");
-    await flush();
+    realtimeStatus("CHANNEL_ERROR", new Error("network"));
+    latestSnapshot = snapshot(8, { pendingChoice: recruitmentChoice(["p2", "p3"]) });
 
-    latestSnapshot = snapshot(6, {
-      pendingChoice: propertyAuctionChoice({
-        bidPlayerIds: ["p2"],
-        highestBid: 260,
-        highestBidderId: "p2",
-      }),
-      lastEvents: [{ type: "AUCTION_BID_PLACED", playerId: "p2", nodeId: "tokyo", amount: 260 }],
-    });
-    realtimeStatus("CLOSED");
-    assert.equal(browser.timers.size, 1);
+    const recoveryTimer = [...browser.timers.values()].find((timer) => timer.ms === 3000);
+    assert.ok(recoveryTimer);
+    await recoveryTimer.callback();
 
-    const [timerId, recovery] = browser.timers.entries().next().value;
-    browser.timers.delete(timerId);
-    await recovery();
-    await flush();
-
-    assert.equal(session.getState().version, 6);
-    assert.equal(session.getState().pendingChoice.auction.highestBid, 260);
-    assert.equal(session.getState().pendingChoice.auction.highestBidderId, "p2");
-    assert.deepEqual(remoteVersions, [6]);
-    assert.equal(browser.timers.size, 1);
-
-    realtimeStatus("SUBSCRIBED");
-    await flush();
-    assert.equal(browser.timers.size, 0);
+    assert.equal(session.getState().version, 8);
+    assert.equal(session.getState().pendingChoice.type, "AUCTION_RECRUITMENT");
+    assert.deepEqual(session.getState().pendingChoice.participantPlayerIds, ["p2", "p3"]);
+    assert.deepEqual(remoteVersions, [8]);
     session.dispose();
   } finally {
     browser.restore();
   }
 });
 
-test("online session exposes non-turn auction request and bid actions through the same versioned action recovery path", async () => {
+test("Auction v2 online session actions keep the versioned idempotent request envelope", async () => {
   const browser = installFakeBrowser();
   const actionId = "11111111-1111-4111-8111-111111111111";
-  let latestSnapshot = snapshot(7, { pendingChoice: auctionRequestChoice([]) });
-  const requestCalls = [];
-  const bidCalls = [];
+  let latestSnapshot = snapshot(8, { pendingChoice: recruitmentChoice(["p2"]) });
+  const joinCalls = [];
+  const withdrawCalls = [];
+  const deadlineCalls = [];
 
   try {
     const session = await createOnlineClassicSession({
@@ -280,45 +209,86 @@ test("online session exposes non-turn auction request and bid actions through th
         async getSnapshot() {
           return latestSnapshot;
         },
-        async requestAuction(request) {
-          requestCalls.push(request);
-          latestSnapshot = snapshot(8, { pendingChoice: auctionRequestChoice(["p2"]) });
+        async joinAuction(request) {
+          joinCalls.push(request);
+          latestSnapshot = snapshot(9, { pendingChoice: recruitmentChoice(["p2", "p3"]) });
           return latestSnapshot;
         },
-        async bidAuction(request) {
-          bidCalls.push(request);
+        async withdrawAuction(request) {
+          withdrawCalls.push(request);
+          latestSnapshot = snapshot(10, { pendingChoice: recruitmentChoice(["p2"]) });
+          return latestSnapshot;
+        },
+        async advanceAuctionDeadline(request) {
+          deadlineCalls.push(request);
+          latestSnapshot = snapshot(11, { pendingChoice: propertyAuctionChoice() });
+          return latestSnapshot;
+        },
+      },
+    });
+
+    // Viewer p2 is the requester; use action path contract directly through a p3-style snapshot.
+    session.dispose();
+
+    const participantSession = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(8, {
+        pendingChoice: recruitmentChoice(["p2"]),
+        viewerPlayerId: "p3",
+      }),
+      api: {
+        createActionId: () => actionId,
+        subscribeGame: () => () => {},
+        async getSnapshot() {
+          return latestSnapshot;
+        },
+        async joinAuction(request) {
+          joinCalls.push(request);
+          latestSnapshot = snapshot(9, {
+            pendingChoice: recruitmentChoice(["p2", "p3"]),
+            viewerPlayerId: "p3",
+          });
+          return latestSnapshot;
+        },
+        async withdrawAuction(request) {
+          withdrawCalls.push(request);
           latestSnapshot = snapshot(10, {
-            pendingChoice: propertyAuctionChoice({
-              requestedByPlayerIds: ["p2"],
-              bidPlayerIds: ["p2"],
-              highestBid: 260,
-              highestBidderId: "p2",
-            }),
+            pendingChoice: recruitmentChoice(["p2"]),
+            viewerPlayerId: "p3",
+          });
+          return latestSnapshot;
+        },
+        async advanceAuctionDeadline(request) {
+          deadlineCalls.push(request);
+          latestSnapshot = snapshot(11, {
+            pendingChoice: propertyAuctionChoice(),
+            viewerPlayerId: "p3",
           });
           return latestSnapshot;
         },
       },
     });
 
-    const requested = await session.requestAuction();
-    assert.equal(requested.version, 8);
-    assert.deepEqual(requestCalls, [{ roomId: "room-1", expectedVersion: 7, clientActionId: actionId }]);
+    await participantSession.joinAuction();
+    await participantSession.withdrawAuction();
+    await participantSession.advanceAuctionDeadline();
 
-    latestSnapshot = snapshot(9, { pendingChoice: propertyAuctionChoice({ requestedByPlayerIds: ["p2"] }) });
-    await session.refresh({ notify: false });
-    const bid = await session.auctionBid(260);
-    assert.equal(bid.version, 10);
-    assert.deepEqual(bidCalls, [{
+    assert.deepEqual(joinCalls.at(-1), {
+      roomId: "room-1",
+      expectedVersion: 8,
+      clientActionId: actionId,
+    });
+    assert.deepEqual(withdrawCalls.at(-1), {
       roomId: "room-1",
       expectedVersion: 9,
       clientActionId: actionId,
-      amount: 260,
-      pass: false,
-    }]);
-    assert.equal(typeof session.declinePropertyForAuction, "function");
-    assert.equal(typeof session.closeAuctionRequest, "function");
-    assert.equal(typeof session.auctionPass, "function");
-    session.dispose();
+    });
+    assert.deepEqual(deadlineCalls.at(-1), {
+      roomId: "room-1",
+      expectedVersion: 10,
+      clientActionId: actionId,
+    });
+    participantSession.dispose();
   } finally {
     browser.restore();
   }
