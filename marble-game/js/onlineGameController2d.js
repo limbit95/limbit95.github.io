@@ -44,6 +44,13 @@ function viewerCanAct(state) {
   return Boolean(session && isOnlineViewerTurn(state, session.getViewerPlayerId()));
 }
 
+function isAuctionChoice(state) {
+  return (
+    state?.phase === TURN_PHASES.WAITING_CHOICE
+    && ["AUCTION_REQUEST", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
+  );
+}
+
 function boardGridMetrics(count) {
   const sideLength = Math.ceil(count / 4);
   return { sideLength, gridSize: sideLength + 1 };
@@ -186,6 +193,14 @@ function renderActionControls(state) {
     return;
   }
 
+  if (isAuctionChoice(state)) {
+    choiceDeclinedPending = false;
+    primaryActionButton.hidden = true;
+    if (secondaryActionButton) secondaryActionButton.hidden = true;
+    gameMessage.textContent = "경매 패널에서 요청·입찰·패스를 진행해 주세요.";
+    return;
+  }
+
   if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
     gameMessage.textContent = "선택을 건너뛰었습니다. 다음 턴으로 넘겨 주세요.";
     primaryActionButton.textContent = "다음 턴";
@@ -271,10 +286,13 @@ function connectionStatus(status) {
 }
 
 async function runAction(actionName) {
-  if (!session || interactionLocked || !viewerCanAct(session.getState())) return;
+  if (!session || interactionLocked) return;
+  const currentState = session.getState();
+  if (!viewerCanAct(currentState)) return;
+  if (isAuctionChoice(currentState) && ["decline", "endTurn"].includes(actionName)) return;
   if (actionName === "decline") {
     choiceDeclinedPending = true;
-    renderActionControls(session.getState());
+    renderActionControls(currentState);
     return;
   }
 
