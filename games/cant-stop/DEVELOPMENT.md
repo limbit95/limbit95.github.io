@@ -52,9 +52,10 @@
 - Completed: 원본 규칙 PDF, Board Game Arena, BoardGameGeek 및 column 자료를 교차 확인
 - Completed: bootstrap PR Game Platform governance / Site static checks
 - Completed: Node 22 isolated rules unit test — 13/13 PASS
-- Pending: `npm run test:game-platform` on stacked PR
-- Pending: Game Platform Governance Guard on stacked PR
-- Pending: Site static checks on stacked PR
+- Completed: `npm run test:game-platform` — Site static checks run #2994 SUCCESS
+- Completed: Game Platform Governance Guard — run #11 SUCCESS
+- Completed: Site static checks — run #2994 SUCCESS
+- Pending: 없음 (rules-engine 범위)
 
 ## Known Issues / Deferred
 
