@@ -240,6 +240,7 @@ async function createPendingMember(token) {
       password: "Cheongpa-Pending-E2E-2026!",
       email_confirm: true,
       user_metadata: {
+        signup_flow: "auth_otp",
         display_name: realName,
         real_name: realName,
         birth_year: "1995",

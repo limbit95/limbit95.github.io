@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const migrationPath = new URL("../supabase/site/migrations/20260917041000_activity_detail_read_model.sql", import.meta.url);
+const migrationPath = new URL("../supabase/site/migrations/20260917120353_activity_detail_read_model.sql", import.meta.url);
 const apiPath = new URL("../js/api/activities.js", import.meta.url);
 const detailPagePath = new URL("../js/pages/activityDetail.js", import.meta.url);
 
