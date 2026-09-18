@@ -8,8 +8,8 @@
 
 ### A.1 저장소와 배포 구조
 
-- 루트 `index.html`이 기존 사이트의 진입점인 정적 GitHub Pages 애플리케이션이다.
-- npm 빌드 없이 HTML, CSS, Vanilla JavaScript ES Modules로 실행된다.
+- 루트 `index.html`이 기존 사이트의 GitHub Pages 진입점이다.
+- 루트 커뮤니티 앱은 `npm run build:assets`에서 `index.template.html`과 `js/app.js`를 기준으로 content-hashed asset과 `index.html`을 생성한다. 라이어게임의 `liar-game/index.html`은 이 커뮤니티 번들과 별도인 독립 정적 진입점으로 유지된다.
 - Supabase JavaScript Client v2를 CDN 전역 스크립트로 로드한 뒤 `js/app.js`를 실행한다.
 - `.nojekyll`이 있으며 기존 앱은 실제 URL path가 아닌 `#/...` 해시 라우팅을 사용한다.
 
@@ -31,7 +31,7 @@
 - 기존 일반 페이지는 Auth 세션뿐 아니라 `profiles.status`가 `approved`인지도 확인한다.
 - 로그인 화면은 물리 `/login`이 아니라 루트 SPA의 `#/login`이다.
 
-라이어게임의 접근 조건은 **유효한 Supabase Auth 로그인 세션 존재**로 확정한다. `profiles.status='approved'`를 비롯한 기존 `profiles` 데이터는 조회하거나 접근 조건으로 사용하지 않는다. 세션이 없으면 접근을 차단하고, 세션이 있으면 라이어게임에 접근할 수 있다.
+라이어게임 클라이언트는 **유효한 Supabase Auth 로그인 세션 존재**를 먼저 확인한다. 다만 방 생성·참가·활성 방 조회·복구 RPC는 서버에서 `private.is_approved_member()`를 다시 검증하여 승인 회원만 게임 입장/복구 경계를 통과하도록 한다. 클라이언트가 `profiles.status`를 직접 조회해 권한을 판정하지 않으며, pending/rejected/suspended 회원은 해당 RPC에서 거부된다.
 
 ### A.4 Router, App, 메뉴
 
@@ -52,7 +52,7 @@
 | `auth.js` | 직접 의존하지 않음 | profiles 및 기존 이벤트와 결합 |
 | `router.js`, `app.js` | 사용하지 않음 | 독립 경로 앱 |
 | 기존 CSS/UI/API | 사용하지 않음 | 스타일·데이터 경계 유지 |
-| 기존 profiles/게시판/활동 데이터 | 사용하지 않음 | 기존 서비스 보호 |
+| 기존 profiles/게시판/활동 데이터 | 클라이언트 직접 사용하지 않음 | 승인 회원 판정은 입장/복구 RPC의 서버 helper를 통해 재검증하고, 그 외 기존 서비스 데이터와는 분리 |
 
 ## B. 전체 아키텍처
 
@@ -607,7 +607,7 @@ round participant가 있으면 해당 화면, membership만 있으면 관전자,
 
 ### P.1 결정 완료
 
-1. **접근 권한:** 유효한 Supabase Auth session만 확인하며 `profiles`에는 의존하지 않는다.
+1. **접근 권한:** 클라이언트는 유효한 Supabase Auth session을 확인하고, 방 생성·참가·활성 방 조회·복구 RPC는 서버의 `private.is_approved_member()`로 승인 회원 여부를 재검증한다.
 2. **계정별 active room:** 한 Auth 계정에는 active membership을 하나만 허용한다.
 3. **진행 중 명시적 이탈:** 일반 참가자는 membership만 left로 바꾸고 round snapshot을 보존한다. host의 나가기는 방 전체 soft-close, 진행 game/round 강제 종료, 모든 membership 해제를 한 트랜잭션으로 수행한다.
 4. **역할 확인:** current round participant 전원의 `role_checked_at` 확인 전에는 SPEAKING으로 전이할 수 없다.
