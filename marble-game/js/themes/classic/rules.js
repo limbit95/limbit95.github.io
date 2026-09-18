@@ -6,6 +6,10 @@ export const CLASSIC_RULES = Object.freeze({
     symbol: "G",
     label: "골드",
   }),
+  liquidation: Object.freeze({
+    propertyRefundBps: 5000,
+    buildingRefundBps: 5000,
+  }),
   events: Object.freeze([
     Object.freeze({ id: "travel-grant", type: "BONUS", amount: 120, label: "여행 지원금을 받았습니다." }),
     Object.freeze({ id: "lost-baggage", type: "TAX", amount: 90, label: "수하물 문제로 비용이 발생했습니다." }),
