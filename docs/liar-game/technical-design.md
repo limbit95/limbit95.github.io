@@ -461,7 +461,7 @@ DB mutation
 
 동일 Supabase URL/key와 기본 Auth storage를 쓰는 독립 client를 만든다. `getSession()`에서 user가 없으면 로그인 안내를 표시한다. 로그인 버튼은 root SPA의 `#/login`으로 이동해야 하며 project page base path를 계산한다.
 
-접근 guard는 Supabase Auth session 존재만 확인한다. `profiles` 테이블이나 `profiles.status='approved'`는 어떤 화면, recovery, command에서도 접근 조건으로 조회하지 않는다.
+클라이언트 접근 guard 자체는 Supabase Auth session 존재만 확인하며 `profiles` 테이블이나 `profiles.status='approved'`를 직접 조회하지 않는다. 다만 방 생성·참가·활성 방 조회·복구 command가 호출하는 서버 RPC는 `private.is_approved_member()`를 재검증하므로 승인되지 않은 회원은 게임 입장/복구 경계를 통과할 수 없다.
 
 ### J.2 조작 직전 guard
 
