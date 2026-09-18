@@ -308,4 +308,16 @@ foundation
 → latest main integration validation
 ```
 
-운영 Supabase migration 적용과 main 병합은 최종 integration PR 검증 이후 별도로 진행합니다.
+PR #281을 통해 최신 `main` 통합을 완료했고 GitHub Pages 배포와 Site static checks 성공을 확인했습니다.
+
+운영 Supabase에는 Phase 7C migration 이력이 이미 존재하므로 migration 전체를 재적용하지 않고, dormant 상태였던 `private.marble_charge_player()`만 repository의 Phase 7C 정의와 일치하도록 활성화했습니다.
+
+활성화 후 다음을 확인했습니다.
+
+- 진행 중 Marble 방 수 유지
+- 활성화 직후 `DEBT_RECOVERY` 상태 방 없음
+- `marble_liquidation_select / confirm`은 anon EXECUTE 차단, authenticated EXECUTE 허용 유지
+- `DEBT_RECOVERY → 자산 선택 READY → LIQUIDATION_CONFIRM → 자산 반환 / 채무 정산 → TURN_END` rollback smoke test 성공
+- smoke test 변경은 최종 ROLLBACK되어 운영 게임 데이터에 영구 변경 없음
+
+따라서 Phase 7C는 **main 통합 및 운영 활성화까지 완료**된 상태입니다.
