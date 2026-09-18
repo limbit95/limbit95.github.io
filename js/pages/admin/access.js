@@ -41,7 +41,7 @@ export async function renderMemberAccess() {
   const loadRows = async () => {
     const sequence = ++requestSequence;
     tableBody.replaceChildren(el("tr", {}, el("td", {
-      colspan: "4",
+      colspan: "5",
       text: "접속 현황을 불러오는 중입니다…",
     })));
     previousButton.disabled = true;
@@ -66,7 +66,7 @@ export async function renderMemberAccess() {
       tableBody.replaceChildren();
       if (!result.items.length) {
         tableBody.append(el("tr", {}, el("td", {
-          colspan: "4",
+          colspan: "5",
           text: state.search || state.recency !== "all" ? "조건에 맞는 회원이 없습니다." : "등록된 회원이 없습니다.",
         })));
       } else {
@@ -80,7 +80,7 @@ export async function renderMemberAccess() {
     } catch (error) {
       if (sequence !== requestSequence) return;
       tableBody.replaceChildren(el("tr", {}, el("td", {
-        colspan: "4",
+        colspan: "5",
         text: getErrorMessage(error, "접속 현황을 불러오지 못했습니다."),
       })));
       countChip.textContent = "조회 실패";
@@ -114,8 +114,8 @@ export async function renderMemberAccess() {
 
   wrapper.append(
     el("div", { className: "notice-box" }, [
-      el("strong", { text: "회원별 마지막 접속 시각만 저장합니다." }),
-      el("p", { className: "small subtle", text: "사이트 내 URL 접근 시 최신 시각으로 덮어쓰며 과거 접속 이력이나 방문 URL은 보관하지 않습니다." }),
+      el("strong", { text: "회원별 마지막 접속 시각과 위치만 저장합니다." }),
+      el("p", { className: "small subtle", text: "사이트 접근 시 최신 값으로 덮어쓰며 과거 접속 이력은 보관하지 않습니다. 검색어 등 URL 쿼리 값은 접속 위치에 저장하지 않습니다." }),
     ]),
     el("div", { className: "card search-bar" }, [search, recency, countChip]),
     el("div", { className: "table-wrap" }, el("table", {}, [
@@ -124,6 +124,7 @@ export async function renderMemberAccess() {
         el("th", { text: "상태" }),
         el("th", { text: "권한" }),
         el("th", { text: "마지막 접속" }),
+        el("th", { text: "마지막 접속 위치" }),
       ])),
       tableBody,
     ])),
@@ -149,6 +150,11 @@ function accessRow(member) {
       el("strong", { text: formatSeoulDateTime(member.last_accessed_at) }),
       el("span", { className: "small subtle", text: relativeTime(member.last_accessed_at), style: { display: "block" } }),
     ] : el("span", { className: "small subtle", text: "접속 기록 없음" })),
+    el("td", {
+      className: "small",
+      text: member.last_accessed_path || (member.last_accessed_at ? "위치 기록 없음" : "-"),
+      style: { wordBreak: "break-all" },
+    }),
   ]);
 }
 
