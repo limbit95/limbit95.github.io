@@ -45,8 +45,7 @@ begin
   if not private.cant_stop_is_room_member(p_room_id) then
     raise exception 'NOT_ROOM_MEMBER' using errcode = 'P0001';
   end if;
-  if p_sums is null
-    or array_length(p_sums, 1) <> 2
+  if coalesce(cardinality(p_sums), 0) <> 2
     or exists (
       select 1
       from unnest(p_sums) as value
@@ -55,8 +54,7 @@ begin
   then
     raise exception 'INVALID_PAIRING' using errcode = 'P0001';
   end if;
-  if p_columns is null
-    or array_length(p_columns, 1) not between 1 and 2
+  if coalesce(cardinality(p_columns), 0) not between 1 and 2
     or exists (
       select 1
       from unnest(p_columns) as value
