@@ -15,6 +15,7 @@ import {
   offerOnlineTrade,
   acceptOnlineTrade,
   rejectOnlineTrade,
+  cancelOnlineTrade,
 } from "./onlineGameApi.js?v=20260918-r1";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
@@ -171,6 +172,7 @@ export async function createOnlineClassicSession({
   const offerTradeAction = api.offerTrade ?? offerOnlineTrade;
   const acceptTradeAction = api.acceptTrade ?? acceptOnlineTrade;
   const rejectTradeAction = api.rejectTrade ?? rejectOnlineTrade;
+  const cancelTradeAction = api.cancelTrade ?? cancelOnlineTrade;
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
@@ -452,6 +454,11 @@ export async function createOnlineClassicSession({
       const offerId = state.pendingTrade?.offerId;
       if (!offerId) throw new Error("TRADE_NOT_OPEN");
       return run((request) => rejectTradeAction({ ...request, offerId }));
+    },
+    cancelTrade() {
+      const offerId = state.pendingTrade?.offerId;
+      if (!offerId) throw new Error("TRADE_NOT_OPEN");
+      return run((request) => cancelTradeAction({ ...request, offerId }));
     },
     dispose() {
       disposed = true;
