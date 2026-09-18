@@ -116,10 +116,11 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice / choose-pairing / push-stop 검증
 - Completed: push-stop Game DB integration — run #95 SUCCESS
-- Pending: `npm run test:game-platform` on gameplay-ui PR
-- Pending: Game Platform Governance Guard on gameplay-ui PR
-- Pending: Site static checks on gameplay-ui PR
-- Pending: Game DB integration regression on gameplay-ui PR
+- Completed: `npm run test:game-platform` — Site static checks run #3067 SUCCESS
+- Completed: Game Platform Governance Guard — run #64 SUCCESS
+- Completed: Site static checks — run #3067 SUCCESS
+- Not triggered: Game DB integration — gameplay-ui PR은 DB/RPC/migration 변경이 없어 workflow path filter 대상이 아니며 직전 push-stop run #95 SUCCESS를 유지한다.
+- Pending: 없음 (gameplay-ui 범위)
 
 ## Known Issues / Deferred
 
