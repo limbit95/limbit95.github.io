@@ -21,7 +21,9 @@ import {
   CANT_STOP_LOBBY_VIEW,
   createCantStopLobbyController,
 } from "./lobbyController.js";
+import { createInviteShareDialog } from "../../js/invites/inviteShare.js";
 import { createCantStopGameplayAdapter } from "./gameplay.js";
+import { createCantStopInviteAdapter } from "./invite.js";
 import { createCantStopRoomLobbyAdapter } from "./roomLobby.js";
 
 const root = document.getElementById("cant-stop-app");
@@ -33,8 +35,22 @@ const accessGate = createGameAccessGate({
 });
 
 let lobbyController = null;
+let inviteAdapter = null;
+let inviteShareSession = null;
 let accessUnsubscribe = null;
 let bootEpoch = 0;
+
+function inviteTokenFromLocation() {
+  return new URLSearchParams(window.location.search).get("invite")?.trim() ?? "";
+}
+
+function clearInviteQuery() {
+  const token = inviteTokenFromLocation();
+  if (!token) return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("invite");
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
 
 function createAccessPage({
   title,
@@ -552,7 +568,7 @@ function createLobbyPanel(view, state) {
   ]);
 }
 
-function createLobbyActions(view, state) {
+function createLobbyActions(view, state, { inviteEnabled = false } = {}) {
   const actions = [];
 
   if (!view.isHost) {
@@ -585,6 +601,20 @@ function createLobbyActions(view, state) {
         } catch {
           // Controller state renders the authoritative error.
         }
+      },
+    }));
+  }
+
+  if (inviteEnabled) {
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary",
+      type: "button",
+      text: "초대 링크 · QR",
+      disabled: state.busy,
+      onClick: () => {
+        void openRoomInvite(view.roomId).catch((error) => {
+          console.warn("Can’t Stop invite share failed.", error);
+        });
       },
     }));
   }
@@ -626,6 +656,44 @@ function createLobbySidebar(view) {
       el("li", { text: "다른 플레이어의 변경은 최신 서버 snapshot으로 다시 불러와요." }),
     ]),
   ]);
+}
+
+async function openRoomInvite(roomId) {
+  if (!inviteAdapter?.enabled) {
+    throw new Error("GAME_INVITE_UNSUPPORTED_GAME");
+  }
+
+  if (!inviteShareSession || inviteShareSession.roomId !== roomId) {
+    const created = await inviteAdapter.createRoomInvite({ roomId });
+    inviteShareSession?.dialog?.destroy?.();
+    inviteShareSession = {
+      roomId,
+      dialog: createInviteShareDialog({
+        token: created.token,
+        title: "Can’t Stop 방 초대",
+        description: "로그인 후 이 Can’t Stop 방으로 바로 연결됩니다.",
+      }),
+    };
+  }
+
+  await inviteShareSession.dialog.open();
+}
+
+async function acceptInviteIfReady() {
+  const token = inviteTokenFromLocation();
+  if (!token || !inviteAdapter?.enabled || !lobbyController) return false;
+
+  try {
+    await lobbyController.joinInvite({
+      token,
+      nickname: profileNickname(),
+    });
+    clearInviteQuery();
+    return true;
+  } catch (error) {
+    console.warn("Can’t Stop invite join failed.", error);
+    return false;
+  }
 }
 
 function connectionFor(state) {
@@ -700,7 +768,9 @@ function renderApprovedRuntime(state) {
     } else {
       main = createLobbyPanel(view, state);
       sidebar = createLobbySidebar(view);
-      actions = createLobbyActions(view, state);
+      actions = createLobbyActions(view, state, {
+        inviteEnabled: inviteAdapter?.enabled === true,
+      });
     }
   }
 
@@ -726,6 +796,9 @@ function renderApprovedRuntime(state) {
 function disposeLobby() {
   lobbyController?.dispose();
   lobbyController = null;
+  inviteShareSession?.dialog?.destroy?.();
+  inviteShareSession = null;
+  inviteAdapter = null;
 }
 
 async function enterApprovedRuntime(epoch) {
@@ -734,9 +807,11 @@ async function enterApprovedRuntime(epoch) {
   try {
     const adapter = createCantStopRoomLobbyAdapter({ client: supabase });
     const gameplayAdapter = createCantStopGameplayAdapter({ client: supabase });
+    inviteAdapter = createCantStopInviteAdapter({ client: supabase });
     lobbyController = createCantStopLobbyController({
       adapter,
       gameplayAdapter,
+      inviteAdapter,
       onState: renderApprovedRuntime,
       onError: (error) => {
         console.warn("Can’t Stop lobby request failed.", error);
@@ -745,6 +820,7 @@ async function enterApprovedRuntime(epoch) {
 
     renderApprovedRuntime(lobbyController.current());
     await lobbyController.initialize();
+    await acceptInviteIfReady();
   } catch (error) {
     console.error("Can't Stop lobby boot failed.", error);
     disposeLobby();
