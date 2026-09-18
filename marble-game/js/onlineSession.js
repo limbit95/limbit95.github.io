@@ -5,6 +5,9 @@ import {
   buildOnlineProperty,
   buyOnlineProperty,
   closeOnlineAuctionRequest,
+  joinOnlineAuction,
+  withdrawOnlineAuction,
+  advanceOnlineAuctionDeadline,
   createOnlineActionId,
   declineOnlinePropertyForAuction,
   endOnlineTurn,
@@ -18,7 +21,7 @@ import {
   cancelOnlineTrade,
   selectOnlineLiquidation,
   confirmOnlineLiquidation,
-} from "./onlineGameApi.js?v=20260918-r2";
+} from "./onlineGameApi.js?v=20260918-r11";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
@@ -42,12 +45,23 @@ function freezeStringList(value) {
   return Object.freeze(Array.isArray(value) ? [...value] : []);
 }
 
+function monotonicNowMs() {
+  const value = globalThis.performance?.now?.();
+  return Number.isFinite(value) ? Number(value) : Date.now();
+}
+
+function getSnapshotServerNowMs(snapshot) {
+  const serverNowMs = Date.parse(String(snapshot?.serverNow ?? ""));
+  return Number.isFinite(serverNowMs) ? serverNowMs : null;
+}
+
 function freezeAuctionState(auction) {
   if (!auction || typeof auction !== "object") return null;
   return Object.freeze({
     ...auction,
     eligiblePlayerIds: freezeStringList(auction.eligiblePlayerIds),
     requestedByPlayerIds: freezeStringList(auction.requestedByPlayerIds),
+    participantPlayerIds: freezeStringList(auction.participantPlayerIds),
     bidPlayerIds: freezeStringList(auction.bidPlayerIds),
     passedPlayerIds: freezeStringList(auction.passedPlayerIds),
   });
@@ -94,10 +108,19 @@ function freezePendingChoice(pendingChoice) {
       requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
     });
   }
+  if (pendingChoice.type === "AUCTION_RECRUITMENT") {
+    return Object.freeze({
+      ...pendingChoice,
+      eligiblePlayerIds: freezeStringList(pendingChoice.eligiblePlayerIds),
+      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+      participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
+    });
+  }
   if (pendingChoice.type === "PROPERTY_AUCTION") {
     return Object.freeze({
       ...pendingChoice,
       requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+      participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
       auction: freezeAuctionState(pendingChoice.auction),
     });
   }
@@ -185,6 +208,9 @@ export async function createOnlineClassicSession({
   const declinePropertyForAuctionAction = api.declinePropertyForAuction ?? declineOnlinePropertyForAuction;
   const requestAuctionAction = api.requestAuction ?? requestOnlineAuction;
   const closeAuctionRequestAction = api.closeAuctionRequest ?? closeOnlineAuctionRequest;
+  const joinAuctionAction = api.joinAuction ?? joinOnlineAuction;
+  const withdrawAuctionAction = api.withdrawAuction ?? withdrawOnlineAuction;
+  const advanceAuctionDeadlineAction = api.advanceAuctionDeadline ?? advanceOnlineAuctionDeadline;
   const bidAuctionAction = api.bidAuction ?? bidOnlineAuction;
   const offerTradeAction = api.offerTrade ?? offerOnlineTrade;
   const acceptTradeAction = api.acceptTrade ?? acceptOnlineTrade;
@@ -195,6 +221,8 @@ export async function createOnlineClassicSession({
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
+  let serverClockAnchorMs = getSnapshotServerNowMs(snapshot);
+  let monotonicClockAnchorMs = monotonicNowMs();
   let unsubscribe = null;
   let disposed = false;
   let refreshing = false;
@@ -217,10 +245,18 @@ export async function createOnlineClassicSession({
     });
   }
 
-  function accept(nextSnapshot) {
+  function syncServerClock(nextSnapshot) {
+    const nextServerNowMs = getSnapshotServerNowMs(nextSnapshot);
+    if (nextServerNowMs === null) return;
+    serverClockAnchorMs = nextServerNowMs;
+    monotonicClockAnchorMs = monotonicNowMs();
+  }
+
+  function accept(nextSnapshot, { syncClock = false } = {}) {
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
     const changed = nextState.version > state.version;
+    if (syncClock) syncServerClock(nextSnapshot);
     snapshot = nextSnapshot;
     state = nextState;
     if (changed) notifyStateListeners(state);
@@ -238,11 +274,16 @@ export async function createOnlineClassicSession({
       const nextSnapshot = await getSnapshot(roomId);
       const nextVersion = Number(nextSnapshot?.game?.version) || 0;
       const currentVersion = Number(snapshot?.game?.version) || 0;
-      if (nextVersion <= currentVersion) {
+      if (nextVersion < currentVersion) {
         if (notify && forceNotify) await onRemoteState?.(state);
         return state;
       }
-      const nextState = accept(nextSnapshot);
+      if (nextVersion === currentVersion) {
+        syncServerClock(nextSnapshot);
+        if (notify && forceNotify) await onRemoteState?.(state);
+        return state;
+      }
+      const nextState = accept(nextSnapshot, { syncClock: true });
       if (notify) await onRemoteState?.(nextState);
       return nextState;
     } finally {
@@ -296,7 +337,9 @@ export async function createOnlineClassicSession({
     try {
       const latestSnapshot = await getSnapshot(roomId);
       const latestVersion = Number(latestSnapshot?.game?.version) || 0;
-      if (latestVersion > Number(expectedVersion)) return accept(latestSnapshot);
+      if (latestVersion > Number(expectedVersion)) {
+        return accept(latestSnapshot, { syncClock: true });
+      }
     } catch {
       // Keep the original action error as the user-facing failure and let recovery polling retry.
     }
@@ -421,6 +464,10 @@ export async function createOnlineClassicSession({
     getViewerPlayerId() {
       return snapshot.viewerPlayerId ?? null;
     },
+    getServerNowMs() {
+      if (serverClockAnchorMs === null) return Date.now();
+      return serverClockAnchorMs + (monotonicNowMs() - monotonicClockAnchorMs);
+    },
     subscribeState(listener) {
       if (typeof listener !== "function") throw new Error("STATE_LISTENER_REQUIRED");
       stateListeners.add(listener);
@@ -448,6 +495,15 @@ export async function createOnlineClassicSession({
     },
     closeAuctionRequest() {
       return run(closeAuctionRequestAction);
+    },
+    joinAuction() {
+      return run(joinAuctionAction);
+    },
+    withdrawAuction() {
+      return run(withdrawAuctionAction);
+    },
+    advanceAuctionDeadline() {
+      return run(advanceAuctionDeadlineAction);
     },
     auctionBid(amount) {
       return run((request) => bidAuctionAction({ ...request, amount, pass: false }));

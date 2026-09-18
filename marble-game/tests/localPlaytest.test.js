@@ -29,10 +29,14 @@ test("local Classic session can start, buy a property, and advance turn", () => 
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
 
-test("local Classic session completes the request-gated auction flow and advances turn", () => {
+test("local Classic session completes Auction v2 recruitment and requester auto-bid flow", () => {
   const values = [0, 0.2];
   let index = 0;
-  const session = createLocalClassicSession({ random: () => values[index++ % values.length] });
+  let now = 1_000;
+  const session = createLocalClassicSession({
+    random: () => values[index++ % values.length],
+    clock: () => now,
+  });
 
   let state = session.start();
   state = session.roll();
@@ -41,39 +45,54 @@ test("local Classic session completes the request-gated auction flow and advance
   state = session.endTurn();
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
   assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
-  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, []);
+  assert.equal(state.pendingChoice.openingBid, 390);
+  assert.equal(state.pendingChoice.deadlineAt, 11_000);
 
+  now = 2_000;
   state = session.requestAuction("player-b");
-  assert.deepEqual(state.pendingChoice.requestedByPlayerIds, ["player-b"]);
+  assert.equal(state.pendingChoice.type, "AUCTION_RECRUITMENT");
+  assert.equal(state.pendingChoice.requesterPlayerId, "player-b");
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b"]);
+  assert.equal(state.pendingChoice.deadlineAt, 12_000);
 
-  state = session.closeAuctionRequest();
+  now = 3_000;
+  state = session.joinAuction("player-c");
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b", "player-c"]);
+
+  now = 12_000;
+  state = session.advanceAuctionDeadline();
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.deepEqual(state.pendingChoice.auction.requestedByPlayerIds, ["player-b"]);
-
-  state = session.auctionBid("player-b", 260);
   assert.equal(state.pendingChoice.auction.highestBidderId, "player-b");
+  assert.equal(state.pendingChoice.auction.highestBid, 390);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "player-c");
 
   state = session.auctionPass("player-c");
-  state = session.auctionPass("player-d");
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
   assert.equal(state.boardState.properties.singapore.ownerId, "player-b");
-  assert.equal(state.players[1].money, 1240);
+  assert.equal(state.players[1].money, 1110);
 
   state = session.endTurn();
   assert.equal(state.currentPlayerIndex, 1);
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
 
-test("local Classic session ends the turn without opening an auction when nobody requests it", () => {
+test("local Classic session ends the turn when the 10 second request window expires without a request", () => {
   const values = [0, 0.2];
   let index = 0;
-  const session = createLocalClassicSession({ random: () => values[index++ % values.length] });
+  let now = 1_000;
+  const session = createLocalClassicSession({
+    random: () => values[index++ % values.length],
+    clock: () => now,
+  });
 
   let state = session.start();
   state = session.roll();
   state = session.endTurn();
-  state = session.closeAuctionRequest();
+  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+
+  now = 11_000;
+  state = session.advanceAuctionDeadline();
 
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
