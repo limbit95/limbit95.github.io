@@ -74,9 +74,11 @@ test("open trade is visible to all active players but only the recipient may res
   assert.equal(proposer.mode, "pending");
   assert.equal(proposer.isProposer, true);
   assert.equal(proposer.canAccept, false);
+  assert.equal(proposer.canCancel, true);
   assert.equal(recipient.canAccept, true);
   assert.equal(recipient.canReject, true);
   assert.equal(observer.canAccept, false);
+  assert.equal(observer.canCancel, false);
   assert.match(recipient.offeredLabel, /싱가포르/);
   assert.match(recipient.offeredLabel, /100/);
   assert.match(recipient.requestedLabel, /도쿄/);
@@ -86,6 +88,7 @@ test("trade UI keeps authority in the session and does not add client-side settl
   assert.match(uiSource, /session\.offerTrade\(recipientPlayerId, terms\)/);
   assert.match(uiSource, /session\.acceptTrade\(\)/);
   assert.match(uiSource, /session\.rejectTrade\(\)/);
+  assert.match(uiSource, /session\.cancelTrade\(\)/);
   assert.doesNotMatch(uiSource, /ownerId\s*=(?!=)/);
   assert.doesNotMatch(uiSource, /player\.money\s*[+-]=/);
   assert.match(uiSource, /buildingLevel \?\? 0\) === 0/);
@@ -108,4 +111,9 @@ test("trade panel includes responsive composer and pending response states", () 
   assert.match(cssSource, /trade-action-panel__pending/);
   assert.match(cssSource, /trade-action-panel__responses/);
   assert.match(cssSource, /@media \(max-width: 640px\)/);
+});
+
+test("trade UI shares the same canonical onlineSession module instance as controllers", () => {
+  assert.match(uiSource, /from "\.\/onlineSession\.js\?v=20260910-r8"/);
+  assert.doesNotMatch(uiSource, /onlineSession\.js\?v=20260918-r1/);
 });
