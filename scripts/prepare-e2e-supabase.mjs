@@ -6,6 +6,9 @@ const repositoryRoot = process.cwd();
 const sourceRoot = path.join(repositoryRoot, "supabase", "site");
 const workRoot = path.join(repositoryRoot, ".e2e-supabase", "supabase");
 const migrationsRoot = path.join(workRoot, "migrations");
+const productionPendingSiteMigrations = new Set([
+  "20260909124500_enforce_native_auth_otp_signup.sql",
+]);
 
 async function assertDirectory(directory) {
   const info = await stat(directory).catch(() => null);
@@ -34,8 +37,9 @@ for (const [index, filename] of baselineFiles.entries()) {
   );
 }
 
+// Keep disposable E2E aligned with production: planned-but-unapplied migrations stay checked in but are not replayed.
 const operatingMigrations = (await readdir(path.join(sourceRoot, "migrations")))
-  .filter((name) => /^\d{14}_.+\.sql$/.test(name))
+  .filter((name) => /^\d{14}_.+\.sql$/.test(name) && !productionPendingSiteMigrations.has(name))
   .sort((a, b) => a.localeCompare(b));
 
 for (const filename of operatingMigrations) {

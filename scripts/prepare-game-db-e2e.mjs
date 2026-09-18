@@ -11,6 +11,9 @@ const siteRoot = path.join(repositoryRoot, "supabase", "site");
 const liarRoot = path.join(repositoryRoot, "supabase", "liar-game");
 const theGameRoot = path.join(repositoryRoot, "supabase", "the-game");
 const marbleRoot = path.join(repositoryRoot, "supabase", "marble");
+const productionPendingSiteMigrations = new Set([
+  "20260909124500_enforce_native_auth_otp_signup.sql",
+]);
 
 const liarPostCanonicalMigrations = [
   "20260827_custom_word_packs.sql",
@@ -74,8 +77,9 @@ for (const [index, filename] of baselineFiles.entries()) {
   );
 }
 
+// Keep the shared site baseline aligned with production; pending site migrations are not replayed here.
 const operatingMigrations = (await readdir(path.join(siteRoot, "migrations")))
-  .filter((name) => /^\d{14}_.+\.sql$/u.test(name))
+  .filter((name) => /^\d{14}_.+\.sql$/u.test(name) && !productionPendingSiteMigrations.has(name))
   .sort((a, b) => a.localeCompare(b));
 
 for (const filename of operatingMigrations) {
