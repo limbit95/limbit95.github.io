@@ -1,0 +1,36 @@
+name: Game Platform governance
+
+on:
+  pull_request:
+    paths:
+      - "games/**"
+      - "tests/game-platform-*.test.js"
+      - "tests/game-db-integration/**"
+      - "scripts/check-game-platform-governance.mjs"
+      - "docs/game-platform-*.md"
+      - "AGENTS.md"
+      - ".github/workflows/game-platform-governance.yml"
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test Game Platform contracts
+        run: npm run test:game-platform
+
+      - name: Guard Game Platform boundaries
+        run: >-
+          node scripts/check-game-platform-governance.mjs
+          --base "${{ github.event.pull_request.base.sha }}"
+          --head "${{ github.event.pull_request.head.sha }}"
