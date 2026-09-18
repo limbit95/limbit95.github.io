@@ -12,6 +12,7 @@ import { el } from "../../js/ui.js";
 import {
   CANT_STOP_ACCESS_VIEW,
   createCantStopBoardColumns,
+  createCantStopGameplayViewModel,
   createCantStopLobbyViewModel,
   createCantStopShellPlayer,
   getCantStopLobbyErrorMessage,
@@ -21,6 +22,7 @@ import {
   CANT_STOP_LOBBY_VIEW,
   createCantStopLobbyController,
 } from "./lobbyController.js";
+import { createCantStopGameplayAdapter } from "./gameplay.js";
 import { createCantStopRoomLobbyAdapter } from "./roomLobby.js";
 
 const root = document.getElementById("cant-stop-app");
@@ -63,8 +65,107 @@ function createAccessPage({
   ]);
 }
 
-function createBoard({ started = false } = {}) {
-  const columns = createCantStopBoardColumns();
+function gameplayHeading(view) {
+  if (view.isGameOver) {
+    return {
+      eyebrow: "GAME OVER",
+      title: view.winnerName ? `${view.winnerName} 승리!` : "게임 종료",
+      description: "세 개의 열을 먼저 완주해 승리했습니다. 최종 결과는 서버 snapshot에 확정되어 있어요.",
+    };
+  }
+  if (view.phase === "TURN_ROLL") {
+    return {
+      eyebrow: "ROLL",
+      title: view.isMyTurn ? "주사위를 굴려 주세요" : `${view.activePlayerName}님의 턴`,
+      description: view.isMyTurn
+        ? "현재 runner를 유지한 채 네 개의 주사위를 서버에서 굴립니다."
+        : "상대 플레이어의 선택을 기다리고 있어요.",
+    };
+  }
+  if (view.phase === "PAIRING_SELECTION") {
+    return {
+      eyebrow: "CHOOSE",
+      title: view.isMyTurn ? "이동 조합을 선택하세요" : `${view.activePlayerName}님이 조합을 고르는 중`,
+      description: "서버가 계산한 legal pairing과 이동 plan만 선택할 수 있어요.",
+    };
+  }
+  return {
+    eyebrow: "PUSH OR STOP",
+    title: view.isMyTurn ? "한 번 더 갈까요, 여기서 멈출까요?" : `${view.activePlayerName}님이 선택하는 중`,
+    description: view.isMyTurn
+      ? "더 굴리면 현재 runner는 유지되고, 멈추면 지금 위치가 permanent progress로 확정됩니다."
+      : "상대 플레이어의 결정을 기다리고 있어요.",
+  };
+}
+
+function pairingPlanLabel(columns) {
+  if (columns.length === 2 && columns[0] === columns[1]) {
+    return `${columns[0]}열 2칸 이동`;
+  }
+  return columns.length === 2
+    ? `${columns[0]}열 + ${columns[1]}열 이동`
+    : `${columns[0]}열 이동`;
+}
+
+function createDicePanel(view) {
+  if (!view.latestDice) return null;
+  return el("section", {
+    className: "cant-stop-dice",
+    "aria-label": "현재 주사위 결과",
+  }, [
+    el("span", { className: "cant-stop-dice__label", text: "주사위 결과" }),
+    el("div", { className: "cant-stop-dice__values" },
+      view.latestDice.map((die, index) => el("span", {
+        className: "cant-stop-die",
+        text: String(die),
+        "aria-label": `${index + 1}번째 주사위 ${die}`,
+      }))),
+  ]);
+}
+
+function createPairingPanel(view, state) {
+  if (view.phase !== "PAIRING_SELECTION" || !view.legalPairings.length) return null;
+
+  return el("section", { className: "cant-stop-pairings" }, [
+    el("div", { className: "cant-stop-pairings__heading" }, [
+      el("strong", { text: "이동 조합" }),
+      el("span", {
+        text: view.isMyTurn
+          ? "사용할 pairing과 이동 plan을 선택해 주세요."
+          : "현재 플레이어가 조합을 선택하고 있어요.",
+      }),
+    ]),
+    el("div", { className: "cant-stop-pairings__grid" },
+      view.legalPairings.map((pairing) => el("article", {
+        className: "cant-stop-pairing-card",
+      }, [
+        el("strong", {
+          className: "cant-stop-pairing-card__sums",
+          text: `${pairing.sums[0]} + ${pairing.sums[1]}`,
+        }),
+        el("div", { className: "cant-stop-pairing-card__plans" },
+          pairing.plans.map((columns) => el("button", {
+            className: "cant-stop-plan-button",
+            type: "button",
+            text: pairingPlanLabel(columns),
+            disabled: state.busy || !view.canChoosePairing,
+            onClick: async () => {
+              try {
+                await lobbyController.choosePairing({
+                  sums: [...pairing.sums],
+                  columns: [...columns],
+                });
+              } catch {
+                // Controller state renders the authoritative error.
+              }
+            },
+          }))),
+      ]))),
+  ]);
+}
+
+function createBoard(view, state) {
+  const heading = gameplayHeading(view);
 
   return el("section", {
     className: "cant-stop-board",
@@ -73,37 +174,166 @@ function createBoard({ started = false } = {}) {
     el("div", { className: "cant-stop-board__intro" }, [
       el("p", {
         className: "cant-stop-board__eyebrow",
-        text: started ? "GAME STARTED" : "BOARD FOUNDATION",
+        text: heading.eyebrow,
       }),
       el("h2", {
         className: "cant-stop-board__title",
-        text: started ? "게임이 시작됐어요" : "2부터 12까지의 등반 열",
+        text: heading.title,
       }),
       el("p", {
         className: "cant-stop-board__description",
-        text: started
-          ? "턴 순서는 서버에서 확정됐습니다. 주사위와 runner 동작은 다음 gameplay 단계에서 연결합니다."
-          : "2부터 12까지 11개 열을 오르며 세 개의 열을 먼저 완주하면 승리합니다.",
+        text: heading.description,
       }),
     ]),
+    state.error
+      ? el("div", {
+        className: "cant-stop-inline-error",
+        role: "alert",
+        text: getCantStopLobbyErrorMessage(state.error),
+      })
+      : null,
+    createDicePanel(view),
+    createPairingPanel(view, state),
     el("div", { className: "cant-stop-board__tracks" },
-      columns.map((column) => el("section", {
-        className: "cant-stop-column",
+      view.columns.map((column) => el("section", {
+        className: [
+          "cant-stop-column",
+          column.claimedById ? "cant-stop-column--claimed" : "",
+        ].filter(Boolean).join(" "),
         dataset: { column: String(column.number) },
-        "aria-label": String(column.number) + " 열 " + String(column.height) + "칸",
+        "aria-label": column.claimedByName
+          ? `${column.number} 열 ${column.claimedByName} 완주`
+          : `${column.number} 열 ${column.height}칸`,
       }, [
+        column.claimedByName
+          ? el("span", {
+            className: "cant-stop-column__claim",
+            text: `${column.claimedByName} 완주`,
+          })
+          : null,
         el("div", { className: "cant-stop-column__cells" },
-          Array.from({ length: column.height }, (_, index) => el("span", {
-            className: "cant-stop-column__cell",
-            dataset: { position: String(column.height - index) },
-            "aria-hidden": "true",
-          }))),
+          Array.from({ length: column.height }, (_, index) => {
+            const position = column.height - index;
+            const permanent = column.permanentMarkers
+              .filter((marker) => marker.position === position);
+            const runner = column.runner?.position === position
+              ? column.runner
+              : null;
+            return el("span", {
+              className: "cant-stop-column__cell",
+              dataset: { position: String(position) },
+              "aria-label": `${column.number} 열 ${position}칸`,
+            }, [
+              ...permanent.map((marker) => el("span", {
+                className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
+                title: `${marker.displayName} 영구 진척`,
+                "aria-label": `${marker.displayName} 영구 진척`,
+              })),
+              runner
+                ? el("span", {
+                  className: `cant-stop-marker cant-stop-marker--runner cant-stop-marker--player-${runner.playerIndex % 4}`,
+                  title: `${runner.displayName} 현재 runner`,
+                  "aria-label": `${runner.displayName} 현재 runner`,
+                })
+                : null,
+            ]);
+          })),
         el("strong", {
           className: "cant-stop-column__number",
           text: String(column.number),
         }),
       ]))),
   ]);
+}
+
+function createGameplaySidebar(view) {
+  const claimed = view.columns.filter((column) => column.claimedByName);
+  return el("section", { className: "cant-stop-runtime-notes" }, [
+    el("h2", {
+      className: "cant-stop-runtime-notes__title",
+      text: view.isGameOver ? "최종 결과" : "현재 턴",
+    }),
+    el("ul", { className: "cant-stop-runtime-notes__list" }, [
+      el("li", {
+        text: view.isGameOver
+          ? `승자: ${view.winnerName ?? "확정 중"}`
+          : `진행 중: ${view.activePlayerName}`,
+      }),
+      el("li", { text: `게임 상태 버전: ${view.version}` }),
+      el("li", {
+        text: claimed.length
+          ? `완주 열: ${claimed.map((column) => `${column.number}(${column.claimedByName})`).join(", ")}`
+          : "아직 완주된 열이 없어요.",
+      }),
+      el("li", {
+        text: "실제 주사위와 모든 이동 결과는 서버 snapshot을 기준으로 표시합니다.",
+      }),
+    ]),
+  ]);
+}
+
+function createGameplayActions(view, state) {
+  const actions = [];
+
+  if (view.canRoll) {
+    actions.push(el("button", {
+      className: "game-platform-shell__button",
+      type: "button",
+      text: state.busy ? "주사위 굴리는 중…" : "주사위 굴리기",
+      disabled: state.busy,
+      onClick: async () => {
+        try {
+          await lobbyController.rollDice();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+  }
+
+  if (view.canContinue) {
+    actions.push(el("button", {
+      className: "game-platform-shell__button",
+      type: "button",
+      text: state.busy ? "처리 중…" : "한 번 더 굴리기",
+      disabled: state.busy,
+      onClick: async () => {
+        try {
+          await lobbyController.continueTurn();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+  }
+
+  if (view.canStop) {
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary",
+      type: "button",
+      text: state.busy ? "처리 중…" : "여기서 멈추기",
+      disabled: state.busy,
+      onClick: async () => {
+        try {
+          await lobbyController.stopTurn();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+  }
+
+  actions.push(el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "상태 새로고침",
+    disabled: state.busy,
+    onClick: () => {
+      void lobbyController.refresh("manual-gameplay").catch(() => {});
+    },
+  }));
+
+  return actions;
 }
 
 function createField(label, control) {
@@ -432,14 +662,10 @@ function renderApprovedRuntime(state) {
     roomLabel = "#" + view.roomCode;
 
     if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING) {
-      main = createBoard({ started: true });
-      sidebar = el("section", { className: "cant-stop-runtime-notes" }, [
-        el("h2", { className: "cant-stop-runtime-notes__title", text: "게임 시작 완료" }),
-        el("ul", { className: "cant-stop-runtime-notes__list" }, [
-          el("li", { text: "서버에서 플레이어 순서를 무작위로 확정했어요." }),
-          el("li", { text: "이제 authoritative 주사위/action 연결 단계로 이어집니다." }),
-        ]),
-      ]);
+      const gameplay = createCantStopGameplayViewModel(state.snapshot, auth.user?.id);
+      main = createBoard(gameplay, state);
+      sidebar = createGameplaySidebar(gameplay);
+      actions = createGameplayActions(gameplay, state);
     } else {
       main = createLobbyPanel(view, state);
       sidebar = createLobbySidebar(view);
@@ -476,8 +702,10 @@ async function enterApprovedRuntime(epoch) {
 
   try {
     const adapter = createCantStopRoomLobbyAdapter({ client: supabase });
+    const gameplayAdapter = createCantStopGameplayAdapter({ client: supabase });
     lobbyController = createCantStopLobbyController({
       adapter,
+      gameplayAdapter,
       onState: renderApprovedRuntime,
       onError: (error) => {
         console.warn("Can’t Stop lobby request failed.", error);
