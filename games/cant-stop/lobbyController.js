@@ -16,6 +16,7 @@ function requireGameplayAdapter(adapter) {
     "choosePairing",
     "continueTurn",
     "stopTurn",
+    "prepareRematch",
   ];
   for (const method of methods) {
     if (typeof adapter?.[method] !== "function") {
@@ -286,6 +287,10 @@ export function createCantStopLobbyController({
     return gameplayCommand("stopTurn");
   }
 
+  function prepareRematch() {
+    return gameplayCommand("prepareRematch");
+  }
+
   async function refresh(reason = "manual") {
     if (!coordinator) {
       const snapshot = await roomLobby.getMyActiveRoom();
@@ -318,6 +323,7 @@ export function createCantStopLobbyController({
     choosePairing,
     continueTurn,
     stopTurn,
+    prepareRematch,
     refresh,
     current,
     dispose,
