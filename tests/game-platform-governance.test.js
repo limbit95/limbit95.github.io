@@ -16,12 +16,28 @@ function game({
   return { id, href, platform, capabilities: { online } };
 }
 
+function gameSpecDocument() {
+  return [
+    "## Game Overview",
+    "## Rules and Sources",
+    "## Product Scope",
+    "## State Machine",
+    "## Domain Model",
+    "## Platform Boundary",
+    "## Authority and Persistence",
+    "## UI / UX Direction",
+    "## Implementation Plan",
+    "## Validation Plan",
+    "## Open Questions / Deferred",
+  ].join("\n");
+}
+
 function developmentDocument() {
   return [
     "## Current Status",
-    "Phase: Phase 4A",
+    "Phase: Phase 4",
     "Status: IN_PROGRESS",
-    "Active branch: feature/game-platform-phase4a-cant-stop-foundation",
+    "Active branch: feature/game-platform-phase4-cant-stop-bootstrap",
     "## Completed",
     "## Current Work",
     "## Next Work",
@@ -37,13 +53,48 @@ test("platform game path extraction excludes shared infrastructure", () => {
   assert.equal(platformGameIdFromPath("liar-game/index.html"), null);
 });
 
-test("repository state requires each platform game directory to be registered", () => {
+test("repository state allows a documentation-only bootstrap game before Registry registration", () => {
+  assert.deepEqual(validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [],
+    dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
+    developmentDocuments: { "cant-stop": developmentDocument() },
+  }), []);
+});
+
+test("repository state requires Registry registration once a platform game has runtime files", () => {
   const errors = validateRepositoryState({
     gameDirectories: ["cant-stop"],
     registry: [],
     dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
+    developmentDocuments: { "cant-stop": developmentDocument() },
   });
-  assert.match(errors.join("\n"), /missing a shared Game Registry entry/u);
+  assert.match(errors.join("\n"), /runtime files but is missing a shared Game Registry entry/u);
+});
+
+test("repository state requires a game specification for each platform game", () => {
+  const missing = validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "index.html"] },
+    developmentDocuments: { "cant-stop": developmentDocument() },
+  });
+  assert.match(missing.join("\n"), /requires games\/cant-stop\/GAME_SPEC\.md/u);
+
+  const incomplete = validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": "## Game Overview" },
+    developmentDocuments: { "cant-stop": developmentDocument() },
+  });
+  assert.match(incomplete.join("\n"), /GAME_SPEC\.md is missing required section/u);
 });
 
 test("repository state requires a development handoff document for each platform game", () => {
@@ -51,6 +102,8 @@ test("repository state requires a development handoff document for each platform
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop", online: false })],
     dbTestFiles: [],
+    gameFiles: { "cant-stop": ["GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
   });
   assert.match(missing.join("\n"), /requires games\/cant-stop\/DEVELOPMENT\.md/u);
 
@@ -58,6 +111,8 @@ test("repository state requires a development handoff document for each platform
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop", online: false })],
     dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
     developmentDocuments: { "cant-stop": "## Current Status" },
   });
   assert.match(incomplete.join("\n"), /missing required section/u);
@@ -66,6 +121,8 @@ test("repository state requires a development handoff document for each platform
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop", online: false })],
     dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
     developmentDocuments: { "cant-stop": developmentDocument() },
   }), []);
 });
@@ -75,6 +132,8 @@ test("repository state requires online shared games to provide a DB contract tes
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop" })],
     dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
     developmentDocuments: { "cant-stop": developmentDocument() },
   });
   assert.match(errors.join("\n"), /cant-stop\.test\.js/u);
@@ -83,6 +142,8 @@ test("repository state requires online shared games to provide a DB contract tes
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop" })],
     dbTestFiles: ["cant-stop.test.js"],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
     developmentDocuments: { "cant-stop": developmentDocument() },
   }), []);
 });
@@ -131,9 +192,22 @@ test("pull request guard blocks Legacy and Game Platform runtime changes in the 
   assert.match(errors.join("\n"), /Do not mix Legacy runtime changes/u);
 });
 
-test("pull request guard requires Registry update when a new platform game directory appears", () => {
+test("pull request guard allows bootstrap documents without Registry and requires Registry for runtime", () => {
+  assert.deepEqual(validatePullRequestChanges({
+    changedFiles: [
+      { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+    ],
+    baseGameDirectories: [],
+    headGameDirectories: ["cant-stop"],
+  }), []);
+
   const errors = validatePullRequestChanges({
-    changedFiles: [{ status: "A", path: "games/cant-stop/index.html" }],
+    changedFiles: [
+      { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/index.html" },
+    ],
     baseGameDirectories: [],
     headGameDirectories: ["cant-stop"],
   });
@@ -141,6 +215,8 @@ test("pull request guard requires Registry update when a new platform game direc
 
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
+      { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
       { status: "A", path: "games/cant-stop/index.html" },
       { status: "M", path: "games/shared/registry.js" },
     ],
