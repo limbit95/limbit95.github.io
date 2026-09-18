@@ -69,5 +69,29 @@ export function createCantStopGameplayAdapter({ client } = {}) {
         p_client_action_id: requireText(clientActionId, "clientActionId"),
       });
     },
+
+    async continueTurn({
+      roomId,
+      expectedVersion,
+      clientActionId,
+    }) {
+      return callRpc(supabase, "cant_stop_continue_turn", {
+        p_room_id: requireText(roomId, "roomId"),
+        p_expected_version: requireVersion(expectedVersion),
+        p_client_action_id: requireText(clientActionId, "clientActionId"),
+      });
+    },
+
+    async stopTurn({
+      roomId,
+      expectedVersion,
+      clientActionId,
+    }) {
+      return callRpc(supabase, "cant_stop_stop_turn", {
+        p_room_id: requireText(roomId, "roomId"),
+        p_expected_version: requireVersion(expectedVersion),
+        p_client_action_id: requireText(clientActionId, "clientActionId"),
+      });
+    },
   });
 }
