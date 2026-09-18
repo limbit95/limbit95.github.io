@@ -11,7 +11,7 @@ Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5
 
 ### Phase 7 — Classic Advanced Gameplay
 
-현재 개발 위치는 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 구현 완료 및 main 통합 검증 중**입니다.
+현재 개발 위치는 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 완료**입니다.
 
 Phase 4의 고정 Orthographic 쿼터뷰 2.5D 비주얼 기반은 그대로 유지하면서, Phase 5의 온라인 멀티플레이와 Phase 6의 Realtime/재접속/복구 안정화 위에 고급 플레이어 상호작용을 추가하고 있습니다.
 
@@ -19,7 +19,7 @@ Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하�
 
 **Phase 7B — Trading / Negotiation**은 거래 lifecycle, 정산, 서버 권위 RPC, Realtime/재접속, 온라인 UI, 멀티플레이 회귀 검증과 main/운영 DB 통합까지 완료했습니다. 거래 상태는 `pendingTrade` authoritative snapshot을 기준으로 하며, 응답 대기 중 제안자는 자신의 제안을 취소해 게임 진행 잠금을 해제할 수 있습니다.
 
-현재는 **Phase 7C — Debt Recovery / Asset Liquidation**의 foundation, Classic v1 50% 환급 정책, lifecycle, deterministic settlement, Game Engine wrapper, local runtime, authoritative liquidation RPC, isolated DB 검증, Realtime/reconnect, 온라인 자산 매각 UI, 멀티플레이 회귀 검증까지 완료했고 최신 main 대상 최종 통합 검증을 진행하고 있습니다.
+**Phase 7C — Debt Recovery / Asset Liquidation**은 foundation, Classic v1 50% 환급 정책, lifecycle, deterministic settlement, Game Engine wrapper, local runtime, authoritative liquidation RPC, isolated DB 검증, Realtime/reconnect, 온라인 자산 매각 UI, 멀티플레이 회귀 검증, PR #281 main 통합과 운영 Supabase 활성화까지 완료했습니다.
 
 세부 Phase 이력과 현재 상태는 [Marble Development Roadmap](../docs/marble-development-roadmap.md)을 기준으로 합니다.
 
@@ -71,6 +71,7 @@ Classic 플레이 창에서 다음을 확인할 수 있습니다.
 - START / EVENT / TAX / BONUS / REST 특수 칸
 - Realtime 동기화 및 재접속/snapshot 복구
 - 구매 거절 후 경매 요청/입찰/패스/낙찰 흐름
+- 현금 부족 시 자산 선택 매각을 통한 debt recovery 및 채무 정산 흐름
 - 3D 로드 실패 시 2D 상태 보드 fallback
 
 ## 수동 검토 포인트
