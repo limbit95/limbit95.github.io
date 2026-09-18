@@ -9,7 +9,9 @@ import { GAME_ACCESS_REASON } from "../games/shared/accessGate.js";
 import {
   CANT_STOP_ACCESS_VIEW,
   createCantStopBoardColumns,
+  createCantStopLobbyViewModel,
   createCantStopShellPlayer,
+  getCantStopLobbyErrorMessage,
   resolveCantStopAccessView,
 } from "../games/cant-stop/runtimeModel.js";
 
@@ -78,4 +80,70 @@ test("Can't Stop runtime HTML opts into the Common Game Shell stylesheet and app
   );
   assert.match(html, /\.\.\/shared\/game-shell\.css/u);
   assert.match(html, /type="module" src="\.\/app\.js"/u);
+});
+
+
+test("Can't Stop lobby view model derives host, ready, and roster from authoritative snapshot", () => {
+  const view = createCantStopLobbyViewModel({
+    version: 7,
+    room: {
+      id: "room-1",
+      roomCode: "ABC234",
+      hostUserId: "alice",
+      status: "waiting",
+      maxPlayers: 4,
+      playerCount: 2,
+      canStart: true,
+    },
+    players: [
+      {
+        userId: "alice",
+        displayName: "Alice",
+        seat: 0,
+        isReady: true,
+        connected: true,
+      },
+      {
+        userId: "bob",
+        displayName: "Bob",
+        seat: 1,
+        isReady: true,
+        connected: true,
+      },
+    ],
+    viewerUserId: "bob",
+  }, "bob");
+
+  assert.equal(view.roomCode, "ABC234");
+  assert.equal(view.version, 7);
+  assert.equal(view.isHost, false);
+  assert.equal(view.isReady, true);
+  assert.equal(view.canStart, true);
+  assert.deepEqual(view.players, [
+    {
+      id: "alice",
+      displayName: "Alice",
+      ready: true,
+      connected: true,
+      seat: 0,
+    },
+    {
+      id: "bob",
+      displayName: "Bob",
+      ready: true,
+      connected: true,
+      seat: 1,
+    },
+  ]);
+});
+
+test("Can't Stop lobby errors provide game-specific recovery messages", () => {
+  assert.match(
+    getCantStopLobbyErrorMessage({ message: "VERSION_CONFLICT" }),
+    /최신 상태/u,
+  );
+  assert.match(
+    getCantStopLobbyErrorMessage({ message: "ROOM_FULL" }),
+    /인원이 모두 찼/u,
+  );
 });
