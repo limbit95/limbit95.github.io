@@ -1,12 +1,23 @@
 let trackerStarted = false;
 let lastTrackedLocation = null;
-let pendingLocation = null;
+let pendingAccess = null;
 let trackingPromise = null;
 let supabaseLibraryPromise = null;
 
 function locationKey() {
   if (typeof window === "undefined") return "";
   return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function accessPath() {
+  if (typeof window === "undefined") return null;
+  const pathname = window.location.pathname || "/";
+  const hash = window.location.hash || "";
+  if (!hash.startsWith("#/")) return pathname.slice(0, 500);
+
+  const hashPath = hash.slice(1).split("?")[0] || "/";
+  const path = pathname === "/" ? hashPath : `${pathname}${hashPath}`;
+  return path.slice(0, 500);
 }
 
 function ensureSupabaseLibrary() {
@@ -44,9 +55,9 @@ async function flushPendingAccess() {
   const supabase = await loadClient();
   if (!supabase) return;
 
-  while (pendingLocation) {
-    const targetLocation = pendingLocation;
-    pendingLocation = null;
+  while (pendingAccess) {
+    const targetAccess = pendingAccess;
+    pendingAccess = null;
 
     const { data, error } = await supabase.auth.getSession();
     if (error) {
@@ -58,12 +69,14 @@ async function flushPendingAccess() {
       continue;
     }
 
-    const { error: touchError } = await supabase.rpc("touch_my_member_access");
+    const { error: touchError } = await supabase.rpc("touch_my_member_access", {
+      p_path: targetAccess.path,
+    });
     if (touchError) {
       console.warn("Member access tracking failed.", touchError);
       continue;
     }
-    lastTrackedLocation = targetLocation;
+    lastTrackedLocation = targetAccess.key;
   }
 }
 
@@ -71,11 +84,16 @@ export function trackMemberAccess({ force = false } = {}) {
   if (typeof window === "undefined") return Promise.resolve();
   const currentLocation = locationKey();
   if (!force && currentLocation === lastTrackedLocation) return trackingPromise ?? Promise.resolve();
-  pendingLocation = currentLocation;
+
+  pendingAccess = {
+    key: currentLocation,
+    path: accessPath(),
+  };
   if (trackingPromise) return trackingPromise;
+
   trackingPromise = flushPendingAccess().finally(() => {
     trackingPromise = null;
-    if (pendingLocation && pendingLocation !== lastTrackedLocation) void trackMemberAccess();
+    if (pendingAccess && pendingAccess.key !== lastTrackedLocation) void trackMemberAccess();
   });
   return trackingPromise;
 }
