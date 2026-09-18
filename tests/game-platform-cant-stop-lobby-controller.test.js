@@ -404,3 +404,92 @@ test("Can't Stop lobby controller prepares a rematch with the current authoritat
   assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.WAITING);
   assert.equal(controller.current().snapshot.version, 31);
 });
+
+
+test("Can't Stop reconnect refresh recovers a remote GAME_OVER to rematch-lobby transition", async () => {
+  const active = snapshot({
+    version: 40,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "GAME_OVER",
+    activePlayerId: "alice",
+    winnerId: "alice",
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const gameplay = fakeGameplayAdapter();
+  const windowTarget = new EventTarget();
+  const documentTarget = new FakeDocument();
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => "reconnect-action",
+    windowTarget,
+    documentTarget,
+  });
+
+  await controller.initialize();
+
+  adapter.setSnapshot(snapshot({
+    version: 41,
+    status: "waiting",
+    canStart: false,
+    ready: false,
+  }));
+
+  documentTarget.visibilityState = "visible";
+  documentTarget.dispatchEvent(new Event("visibilitychange"));
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.WAITING);
+  assert.equal(controller.current().snapshot.version, 41);
+  assert.equal(controller.current().snapshot.game, null);
+  assert.equal(controller.current().connection, "connected");
+  assert.equal(
+    adapter.calls.some(([name]) => name === "getLobbySnapshot"),
+    true,
+  );
+});
+
+test("Can't Stop remote GAME_OVER host leave is recovered through invalidation", async () => {
+  const active = snapshot({
+    version: 50,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "GAME_OVER",
+    activePlayerId: "alice",
+    winnerId: "alice",
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const controller = createController(adapter, [], fakeGameplayAdapter());
+
+  await controller.initialize();
+
+  adapter.setSnapshot({
+    ...active,
+    version: 51,
+    room: {
+      ...active.room,
+      version: 51,
+      hostUserId: "bob",
+    },
+    players: [active.players[1]],
+  });
+  adapter.invalidate();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.PLAYING);
+  assert.equal(controller.current().snapshot.version, 51);
+  assert.equal(controller.current().snapshot.room.hostUserId, "bob");
+  assert.equal(controller.current().snapshot.players.length, 1);
+  assert.equal(controller.current().snapshot.players[0].userId, "bob");
+  assert.equal(controller.current().snapshot.game.phase, "GAME_OVER");
+});
