@@ -1,6 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
+import { setupLocalAuctionUi } from "./localAuctionUi.js";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -60,6 +61,7 @@ const MOVE_COUNT_HOLD_MS = 1200;
 
 let selectedThemeId = "classic";
 let localSession = null;
+let localAuctionUi = null;
 let eventHistory = [];
 let threeRenderer = null;
 let threeRendererReady = false;
@@ -487,6 +489,7 @@ function renderPlaytest({ renderThree = true } = {}) {
   renderPlayers(state);
   renderActionControls(state);
   renderEventLog();
+  localAuctionUi?.render(state);
   if (renderThree && threeRendererReady) threeRenderer.renderState(state);
 }
 
@@ -660,11 +663,21 @@ function startLocalPlaytest() {
   closeTileInfo({ force: true });
   closeTollNotice();
   diceStage?.hide();
+  localAuctionUi?.dispose();
+  localAuctionUi = null;
   localSession = createLocalClassicSession();
   eventHistory = [];
   choiceDeclinedPending = false;
   localSession.start();
   appendEvents(localSession.getState());
+  localAuctionUi = setupLocalAuctionUi({
+    session: localSession,
+    onStateChange(state) {
+      choiceDeclinedPending = false;
+      appendEvents(state);
+      renderPlaytest();
+    },
+  });
   playtestSection.hidden = false;
   renderPlaytest();
   void ensureThreeRenderer();
