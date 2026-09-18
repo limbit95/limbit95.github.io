@@ -11,7 +11,7 @@ language plpgsql
 stable
 security definer
 set search_path = public, private, pg_temp
-as $
+as $$
 declare
   v_room public.marble_rooms%rowtype;
   v_game public.marble_games%rowtype;
@@ -110,7 +110,7 @@ begin
     'viewerPlayerId', v_viewer_player_id
   );
 end;
-$;
+$$;
 
 create or replace function private.marble_auction_v2_next_turn(
   p_participants jsonb,
