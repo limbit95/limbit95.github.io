@@ -241,7 +241,7 @@ export function setupOnlineAuctionUi({
   roomId,
   session = getActiveOnlineClassicSession(roomId),
   documentObject = document,
-  clock = Date.now,
+  clock = null,
   setTimeoutFn = globalThis.setTimeout,
   clearTimeoutFn = globalThis.clearTimeout,
 } = {}) {
@@ -259,6 +259,12 @@ export function setupOnlineAuctionUi({
   let tickerTimer = null;
   const shownResultKeys = new Set();
 
+  function nowMs() {
+    if (typeof clock === "function") return nowMs();
+    const serverNow = Number(session.getServerNowMs?.());
+    return Number.isFinite(serverNow) ? serverNow : Date.now();
+  }
+
   function clearTimers() {
     if (deadlineTimer !== null) clearTimeoutFn?.(deadlineTimer);
     if (tickerTimer !== null) clearTimeoutFn?.(tickerTimer);
@@ -272,14 +278,14 @@ export function setupOnlineAuctionUi({
       elements.timer.textContent = "";
       return;
     }
-    const seconds = Math.max(0, Math.ceil((deadline - Number(clock())) / 1000));
+    const seconds = Math.max(0, Math.ceil((deadline - nowMs()) / 1000));
     elements.timer.textContent = `${seconds}초`;
   }
 
   function scheduleDeadline(model) {
     clearTimers();
     if (!Number.isFinite(Number(model?.deadlineAt))) return;
-    const delay = Math.max(0, Number(model.deadlineAt) - Number(clock()));
+    const delay = Math.max(0, Number(model.deadlineAt) - nowMs());
     deadlineTimer = setTimeoutFn?.(() => {
       deadlineTimer = null;
       if (disposed || busy) return;
@@ -290,7 +296,7 @@ export function setupOnlineAuctionUi({
       if (disposed) return;
       const current = createOnlineAuctionUiModel(session.getState(), session.getViewerPlayerId());
       updateTimer(current);
-      if (current && Number(current.deadlineAt) > Number(clock())) {
+      if (current && Number(current.deadlineAt) > nowMs()) {
         tickerTimer = setTimeoutFn?.(tick, 250) ?? null;
       }
     };
