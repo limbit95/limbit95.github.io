@@ -20,6 +20,8 @@ let suspendedUser;
 let revokedUser;
 let tradeAlice;
 let tradeBob;
+let liquidationAlice;
+let liquidationBob;
 
 function jsonHeaders({ key = anonKey, token = key } = {}) {
   return {
@@ -184,6 +186,8 @@ before(async () => {
   revokedUser = await createTestUser("revoked");
   tradeAlice = await createTestUser("trade-alice");
   tradeBob = await createTestUser("trade-bob");
+  liquidationAlice = await createTestUser("liquidation-alice");
+  liquidationBob = await createTestUser("liquidation-bob");
 });
 
 after(async () => {
@@ -493,5 +497,168 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
   assert.equal(
     cancelled.players.find((player) => player.id === bobPlayer.id)?.money,
     1550,
+  );
+});
+
+
+test("Marble Phase 7C liquidation RPCs enforce debtor authority, action lock, settlement, and replay", async () => {
+  const anonymousSelect = await rpc("marble_liquidation_select", {
+    p_room_id: randomUUID(),
+    p_expected_version: 1,
+    p_client_action_id: randomUUID(),
+    p_asset_ids: ["singapore"],
+  });
+  expectDenied(anonymousSelect, "anonymous marble_liquidation_select");
+
+  const created = await expectOk(await rpc("marble_create_room", {
+    p_nickname: "Liquidation Alice",
+    p_max_players: 2,
+  }, liquidationAlice.accessToken), "liquidation marble_create_room");
+
+  const joined = await expectOk(await rpc("marble_join_room", {
+    p_room_code: created.room.roomCode,
+    p_nickname: "Liquidation Bob",
+  }, liquidationBob.accessToken), "liquidation marble_join_room");
+
+  const ready = await expectOk(await rpc("marble_set_ready", {
+    p_room_id: created.room.id,
+    p_ready: true,
+    p_expected_version: Number(joined.room.version),
+  }, liquidationBob.accessToken), "liquidation marble_set_ready");
+
+  const started = await expectOk(await rpc("marble_start_game", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(ready.room.version),
+  }, liquidationAlice.accessToken), "liquidation marble_start_game");
+
+  const alicePlayer = started.players.find((player) => player.userId === liquidationAlice.id);
+  const bobPlayer = started.players.find((player) => player.userId === liquidationBob.id);
+  assert.ok(alicePlayer?.id, "liquidation Alice player id missing");
+  assert.ok(bobPlayer?.id, "liquidation Bob player id missing");
+
+  await expectOk(await request(
+    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.singapore`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: { owner_seat: alicePlayer.seat, building_level: 0 },
+    },
+  ), "fixture liquidation Singapore ownership");
+
+  await expectOk(await request(
+    `/rest/v1/marble_game_players?id=eq.${alicePlayer.id}`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: { money: 50 },
+    },
+  ), "fixture liquidation debtor cash");
+
+  const debtChoice = {
+    type: "DEBT_RECOVERY",
+    status: "OPEN",
+    playerId: alicePlayer.id,
+    creditorId: bobPlayer.id,
+    amountDue: 150,
+    reason: "TOLL",
+    cash: 50,
+    shortfall: 100,
+    catalog: [
+      { assetId: "singapore", refund: 130, buildingLevel: 0 },
+    ],
+    selectedAssetIds: [],
+    refundTotal: 0,
+    remainingShortfall: 100,
+    ready: false,
+  };
+
+  await expectOk(await request(
+    `/rest/v1/marble_games?id=eq.${started.game.id}`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: {
+        phase: "WAITING_CHOICE",
+        current_seat: alicePlayer.seat,
+        pending_choice: debtChoice,
+      },
+    },
+  ), "fixture liquidation debt choice");
+
+  const debtSnapshot = await expectOk(await rpc("marble_get_game_snapshot", {
+    p_room_id: created.room.id,
+  }, liquidationAlice.accessToken), "liquidation debt snapshot");
+
+  assert.equal(debtSnapshot.game.pendingChoice?.type, "DEBT_RECOVERY");
+  assert.equal(debtSnapshot.game.pendingChoice?.ready, false);
+
+  const recipientSelect = await rpc("marble_liquidation_select", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(debtSnapshot.game.version),
+    p_client_action_id: randomUUID(),
+    p_asset_ids: ["singapore"],
+  }, liquidationBob.accessToken);
+  expectDenied(recipientSelect, "non-debtor liquidation select", /DEBT_RECOVERY_DEBTOR_REQUIRED/u);
+
+  const selected = await expectOk(await rpc("marble_liquidation_select", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(debtSnapshot.game.version),
+    p_client_action_id: randomUUID(),
+    p_asset_ids: ["singapore"],
+  }, liquidationAlice.accessToken), "marble_liquidation_select");
+
+  assert.equal(selected.game.pendingChoice?.status, "READY");
+  assert.equal(selected.game.pendingChoice?.ready, true);
+  assert.equal(selected.game.pendingChoice?.refundTotal, 130);
+  assert.equal(selected.game.pendingChoice?.remainingShortfall, 0);
+
+  const blockedEndTurn = await rpc("marble_end_turn", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(selected.game.version),
+    p_client_action_id: randomUUID(),
+  }, liquidationAlice.accessToken);
+  expectDenied(blockedEndTurn, "end turn during debt recovery", /DEBT_RECOVERY_PENDING/u);
+
+  const confirmActionId = randomUUID();
+  const confirmed = await expectOk(await rpc("marble_liquidation_confirm", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(selected.game.version),
+    p_client_action_id: confirmActionId,
+  }, liquidationAlice.accessToken), "marble_liquidation_confirm");
+
+  assert.equal(confirmed.game.pendingChoice, null);
+  assert.equal(confirmed.game.phase, "TURN_END");
+  assert.equal(confirmed.properties.singapore.ownerId, null);
+  assert.equal(confirmed.properties.singapore.buildingLevel, 0);
+  assert.equal(
+    confirmed.players.find((player) => player.id === alicePlayer.id)?.money,
+    30,
+  );
+  assert.equal(
+    confirmed.players.find((player) => player.id === bobPlayer.id)?.money,
+    1650,
+  );
+  assert.deepEqual(confirmed.game.lastEvents.map((event) => event.type), [
+    "PROPERTY_LIQUIDATED",
+    "MONEY_PAID",
+    "DEBT_RECOVERED",
+  ]);
+
+  const replayed = await expectOk(await rpc("marble_liquidation_confirm", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(selected.game.version),
+    p_client_action_id: confirmActionId,
+  }, liquidationAlice.accessToken), "liquidation confirm replay");
+
+  assert.equal(replayed.game.version, confirmed.game.version);
+  assert.equal(
+    replayed.players.find((player) => player.id === alicePlayer.id)?.money,
+    30,
   );
 });
