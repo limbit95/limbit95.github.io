@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-lobby-ui
+- Active branch: feature/game-platform-phase4-cant-stop-roll-dice
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -45,16 +45,24 @@
 - online/pageshow/visibility 복귀 시 authoritative lobby snapshot을 다시 불러오도록 reconnect refresh trigger를 연결했다.
 - 게임 시작 snapshot을 받으면 서버 확정 turn order 상태를 유지한 채 기존 보드 골격 화면으로 전환한다.
 - 운영 Supabase에는 migration을 적용하지 않았으므로 Registry `online` capability와 게임 목록 노출은 계속 보류한다.
+- authoritative gameplay 첫 slice로 `cant_stop_roll_dice` RPC를 추가했다.
+- 클라이언트는 dice 값을 전달하지 않고 room/version/action id intent만 보내며 서버가 4d6를 생성한다.
+- 서버가 현재 claimed column / runner / permanent progress를 기준으로 legal pairing과 legal move plan을 계산한다.
+- 첫 roll SQL 결과를 JS rules engine `enumeratePairings()`와 대조하는 DB parity 검증을 추가했다.
+- 동일 `client_action_id` roll 재전송은 최초 dice/pairing snapshot을 그대로 반환하며 version을 다시 증가시키지 않는다.
+- non-active player roll과 stale version roll을 서버에서 거부하도록 검증했다.
+- game start state에 플레이어별 permanent progress를 위한 `playerProgress` authoritative 필드를 추가했다.
+- gameplay client adapter `createCantStopGameplayAdapter`를 추가했으며 client가 임의 dice/random 값을 전달하지 못하는 계약 테스트를 추가했다.
 
 ## Current Work
 
-- Room/Lobby 실제 사용자 흐름과 snapshot/reconnect 연결에 대한 Game Platform 회귀 검증을 진행한다.
+- authoritative `roll_dice` RPC와 server/client rules parity를 disposable Supabase에서 검증한다.
 
 ## Next Work
 
-- authoritative gameplay RPC의 첫 slice로 서버 주사위 생성과 `roll_dice` action을 설계/구현한다.
-- 그 다음 `choose_pairing` / `stop_turn`을 versioned/idempotent action으로 연결한다.
-- gameplay snapshot과 보드 runner/permanent marker UI를 연결한다.
+- `choose_pairing`을 versioned/idempotent server action으로 구현해 서버 legal move plan만 적용되도록 한다.
+- 이어서 `stop_turn` / bust 이후 turn 전환과 permanent progress / claim / win persistence를 연결한다.
+- 그 다음 gameplay snapshot을 실제 dice/runner/permanent marker UI에 연결한다.
 - 운영 Supabase migration 적용 및 실제 배포 검증 전까지 Registry `online` capability는 false로 유지한다.
 
 ## Decisions
@@ -78,17 +86,17 @@
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby DB foundation 검증
-- Completed: Game DB integration 10-scenario Can’t Stop contract — run #39 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks run #3017 SUCCESS
-- Completed: Game Platform Governance Guard — run #18 SUCCESS
-- Completed: Site static checks — run #3017 SUCCESS
-- Pending: 없음 (lobby-ui 범위; DB 파일 변경 없음)
+- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui 검증
+- Completed: Room/Lobby DB contract — disposable Supabase run #39 SUCCESS
+- Pending: `npm run test:game-platform` on roll-dice PR
+- Pending: Game Platform Governance Guard on roll-dice PR
+- Pending: Site static checks on roll-dice PR
+- Pending: Game DB integration roll authority/parity tests on disposable Supabase
 
 ## Known Issues / Deferred
 
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- 주사위/runner/permanent marker authoritative gameplay RPC는 아직 구현하지 않았다.
+- `roll_dice`는 구현됐지만 `choose_pairing` / `stop_turn` 및 runner/permanent marker persistence는 아직 구현하지 않았다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
 - legal pairing이 정확히 하나일 때 UI가 자동 적용할지 확인 버튼을 보여줄지는 후속 UX 단계에서 결정한다.
