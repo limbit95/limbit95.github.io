@@ -103,6 +103,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
   const activePlayer = playerMap.get(activePlayerId) ?? null;
   const winnerId = game.winnerId == null ? null : String(game.winnerId);
   const winner = winnerId ? playerMap.get(winnerId) ?? null : null;
+  const hostUserId = String(snapshot.room.hostUserId ?? "");
   const playerProgress = game.playerProgress ?? {};
   const claimedColumns = game.claimedColumns ?? {};
   const runners = game.runners ?? {};
@@ -166,6 +167,8 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     isMyTurn: viewerId !== "" && viewerId === activePlayerId,
     winnerId,
     winnerName: winner?.displayName ?? null,
+    hostUserId,
+    isHost: viewerId !== "" && viewerId === hostUserId,
     latestDice,
     legalPairings,
     columns: Object.freeze(columns),
@@ -174,6 +177,8 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     canContinue: phase === CANT_STOP_PHASE.PUSH_OR_STOP && viewerId === activePlayerId,
     canStop: phase === CANT_STOP_PHASE.PUSH_OR_STOP && viewerId === activePlayerId,
     isGameOver: phase === CANT_STOP_PHASE.GAME_OVER,
+    canRematch: phase === CANT_STOP_PHASE.GAME_OVER && viewerId !== "" && viewerId === hostUserId,
+    canLeaveAfterGame: phase === CANT_STOP_PHASE.GAME_OVER && viewerId !== "",
   });
 }
 
@@ -193,6 +198,8 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ILLEGAL_PAIRING_CHOICE", "선택한 주사위 조합이 더 이상 유효하지 않아요. 최신 상태를 확인해 주세요."],
   ["ACTION_ID_CONFLICT", "같은 요청이 다른 내용으로 재사용됐어요. 다시 시도해 주세요."],
   ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
+  ["GAME_NOT_OVER", "게임이 끝난 뒤에 재대결을 시작할 수 있어요."],
+  ["ROOM_NOT_LEAVABLE", "진행 중인 게임에서는 방을 나갈 수 없어요."],
 ]);
 
 export function getCantStopLobbyErrorMessage(error) {
