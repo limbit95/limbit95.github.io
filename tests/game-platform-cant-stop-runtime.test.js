@@ -260,3 +260,41 @@ test("Can't Stop gameplay view exposes push/stop and game-over states from serve
   assert.equal(finished.canContinue, false);
   assert.equal(finished.canStop, false);
 });
+
+
+test("Can't Stop gameplay view exposes host-only rematch and post-game leave", () => {
+  const base = {
+    version: 30,
+    room: { id: "room-1", status: "playing", hostUserId: "alice" },
+    players: [
+      { userId: "alice", displayName: "Alice" },
+      { userId: "bob", displayName: "Bob" },
+    ],
+    game: {
+      phase: "GAME_OVER",
+      activePlayerId: "alice",
+      playerProgress: { alice: {}, bob: {} },
+      runners: {},
+      claimedColumns: { 2: "alice", 3: "alice", 4: "alice" },
+      latestDice: null,
+      legalPairings: [],
+      winnerId: "alice",
+    },
+  };
+
+  const hostView = createCantStopGameplayViewModel({
+    ...base,
+    viewerUserId: "alice",
+  }, "alice");
+  assert.equal(hostView.isHost, true);
+  assert.equal(hostView.canRematch, true);
+  assert.equal(hostView.canLeaveAfterGame, true);
+
+  const guestView = createCantStopGameplayViewModel({
+    ...base,
+    viewerUserId: "bob",
+  }, "bob");
+  assert.equal(guestView.isHost, false);
+  assert.equal(guestView.canRematch, false);
+  assert.equal(guestView.canLeaveAfterGame, true);
+});
