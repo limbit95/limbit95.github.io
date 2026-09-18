@@ -41,6 +41,14 @@ fix/marble-stability-phase3-ci
 - 외부 의존성 추가는 꼭 필요한 경우에만 하며, 기존 방식으로 해결할 수 있는지 먼저 확인합니다.
 - GitHub Actions 워크플로 수정이나 불필요한 CI 실행을 유발하는 변경은 요청이 없는 한 하지 않습니다.
 
+## 문서 점검 및 변경 안전 원칙
+
+- 문서 정리를 이유로 기존 아키텍처 결정, 게임 규칙, DB 계약, 진행 중인 Phase 정의를 임의로 변경하지 않습니다.
+- 기준일, 기준 브랜치 또는 release version이 명시된 audit, plan, release 문서는 해당 시점의 이력으로 보존하며 현재 상태에 맞추기 위해 내용을 전면 재작성하지 않습니다.
+- 루트 README나 영역별 README처럼 현재 상태를 설명하는 문서는 실제 코드, 테스트, workflow, migration 등으로 명백한 불일치가 확인된 경우에만 필요한 문구를 최소 수정합니다.
+- 문서끼리 충돌하거나 어느 설명이 현재 기준인지 불명확하면 추측으로 하나를 선택하지 않고 기존 내용을 유지한 채 불일치와 확인 필요 사항을 보고합니다.
+- 문서 이동, 삭제, 통합과 대규모 표현 통일은 별도 범위의 작업으로 취급합니다.
+
 ## 작업 전 확인
 
 - 작업 대상과 연관된 기존 코드와 주변 호출부를 먼저 확인합니다.
@@ -60,6 +68,7 @@ npm ci
 ```bash
 npm run build:assets
 npm run test:e2e
+npm run test:game-platform
 npm run test:the-game
 npm run test:marble
 ```
