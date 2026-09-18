@@ -156,6 +156,8 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 
 `roll_dice`는 클라이언트가 dice 값을 전달하지 않는다. 서버 RPC가 네 개의 d6를 생성하고 현재 authoritative `claimedColumns`, `runners`, `playerProgress`를 기준으로 legal pairing / legal move plan을 계산한다. legal pairing이 하나도 없으면 같은 transaction 안에서 bust 처리와 다음 turn 전환까지 수행한다.
 
+`choose_pairing`은 클라이언트가 `sums`와 실제 적용할 `columns` plan을 선택해 보내되, 서버가 직전 roll snapshot에 저장한 `legalPairings[].plans`와 정확히 일치하는 선택만 허용한다. 서버는 선택된 plan을 다시 simulation해 runner 위치를 계산하고 `PUSH_OR_STOP`으로 전환한다. 같은 `clientActionId`를 다른 pairing payload로 재사용하면 replay로 인정하지 않고 conflict로 거부한다.
+
 state-changing action은 공통 envelope의 `expectedVersion`과 `clientActionId`를 사용한다. 동일 action 재전송은 두 번 적용되지 않아야 하고 같은 version을 기준으로 충돌하는 action은 하나만 authoritative commit되어야 한다.
 
 authoritative snapshot에는 보드, 모든 플레이어의 공개 진척, 현재 runner, 공개된 dice, 현재 phase, turn, claimed columns, winner와 `version`을 포함한다.
@@ -169,7 +171,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용한다.
 - `public.cant_stop_rooms`: room identity, host, status, max players, authoritative `version`, game state
 - `public.cant_stop_room_players`: room membership, seat, nickname, ready state
 - `public.cant_stop_room_actions`: `client_action_id` 기반 lobby action replay/idempotency 기록
-- public RPC: `cant_stop_create_room`, `cant_stop_join_room`, `cant_stop_get_my_active_room`, `cant_stop_get_lobby_snapshot`, `cant_stop_set_ready`, `cant_stop_leave_room`, `cant_stop_start_game`
+- public RPC: `cant_stop_create_room`, `cant_stop_join_room`, `cant_stop_get_my_active_room`, `cant_stop_get_lobby_snapshot`, `cant_stop_set_ready`, `cant_stop_leave_room`, `cant_stop_start_game`, `cant_stop_roll_dice`, `cant_stop_choose_pairing`
 
 브라우저에는 위 테이블의 직접 쓰기 권한을 주지 않는다. 승인회원 RPC가 권한, membership, host, phase, expected version을 검증하고 room row lock 안에서 변경한다. `set_ready`와 `start_game`은 `client_action_id`를 기록해 재전송 시 같은 authoritative snapshot을 반환한다.
 
