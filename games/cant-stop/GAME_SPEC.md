@@ -90,7 +90,7 @@ TURN_ROLL
 ```
 
 - `TURN_ROLL`: 현재 플레이어만 roll intent를 보낼 수 있다.
-- `PAIRING_SELECTION`: 서버가 주사위 결과에서 계산한 legal pairing만 선택 가능하다.
+- `PAIRING_SELECTION`: 서버가 주사위 결과에서 계산한 legal pairing과 그 pairing에 속한 legal move plan만 선택 가능하다.
 - `PUSH_OR_STOP`: pairing 적용 이후 현재 플레이어가 다시 roll하거나 stop한다.
 - `COMMIT_PROGRESS`: 임시 runner를 permanent progress로 확정하고 claim/win을 계산한다.
 - `BUST`: 임시 진척을 폐기하고 permanent state는 유지한다.
@@ -100,10 +100,12 @@ TURN_ROLL
 
 - `columns`: number, height, claimedBy
 - `players`: player id, 서버가 게임 시작 시 무작위로 확정한 turn order, column별 permanent progress, claimed columns
-- `turn`: activePlayerId, 최대 세 개의 runner positions, latest dice, legal pairings, phase
+- `turn`: activePlayerId, 최대 세 개의 runner positions, latest dice, legal pairings + legal move plans, phase
 - `game`: status, version, winnerId, turn index
 
 pairing은 주사위 인덱스 조합보다 최종 두 합을 canonical form으로 저장한다. 동일한 합 조합은 선택지에서 중복 제거하되, 같은 합 두 개는 `[7, 7]`처럼 두 번의 이동 가능성을 보존한다.
+
+pairing 하나가 항상 하나의 이동 결과를 뜻하지는 않는다. neutral runner 자리가 하나만 남았는데 두 합이 모두 새 열인 경우처럼 두 합을 모두 사용할 수 없지만 각각 하나씩은 사용할 수 있다면, 해당 pairing은 `plans: [[sumA], [sumB]]`처럼 여러 legal move plan을 가진다. 두 합을 모두 사용할 수 있다면 반드시 두 이동을 적용하는 plan만 허용한다.
 
 게임 규칙 계산은 pure deterministic function 중심으로 분리해 같은 입력 snapshot + action이 같은 결과를 만들게 한다.
 
