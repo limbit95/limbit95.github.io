@@ -561,10 +561,24 @@ test("cant-stop: illegal pairing choice is rejected without advancing version", 
     p_client_action_id: randomUUID(),
   }, activeUser.accessToken), "choose-illegal cant_stop_roll_dice");
 
+  const legalKeys = new Set(
+    rolled.game.legalPairings.map((pairing) => pairing.sums.join(":")),
+  );
+  let illegalSums = null;
+  for (let first = 2; first <= 12 && !illegalSums; first += 1) {
+    for (let second = first; second <= 12; second += 1) {
+      if (!legalKeys.has(`${first}:${second}`)) {
+        illegalSums = [first, second];
+        break;
+      }
+    }
+  }
+  assert.ok(illegalSums, "an unavailable pairing must exist");
+
   const result = await rpc("cant_stop_choose_pairing", {
     p_room_id: rolled.room.id,
-    p_sums: [2, 12],
-    p_columns: [2, 12],
+    p_sums: illegalSums,
+    p_columns: [illegalSums[0]],
     p_expected_version: Number(rolled.version),
     p_client_action_id: randomUUID(),
   }, activeUser.accessToken);
