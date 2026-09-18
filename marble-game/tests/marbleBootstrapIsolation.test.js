@@ -29,7 +29,7 @@ test("dedicated local play loads only local gameplay modules", async () => {
   assert.equal(mode, "local-play");
   assert.deepEqual(imports, [
     "./app.js?v=20260919-r12",
-    "./diceCharge.js?v=20260919-r12",
+    "./diceCharge.js?v=20260910-r7",
     "./playWindow.js?v=20260919-r12",
     "./ownershipVisualLoader.js?v=20260910-r10",
   ]);
