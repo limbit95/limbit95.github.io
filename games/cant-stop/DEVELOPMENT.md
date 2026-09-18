@@ -125,10 +125,11 @@
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / gameplay action / gameplay-ui 검증
 - Completed: gameplay-ui Site static checks #3068 / Governance #65 SUCCESS
 - Completed: push-stop Game DB integration — run #95 SUCCESS
-- Pending: `npm run test:game-platform` on post-game PR
-- Pending: Game Platform Governance Guard on post-game PR
-- Pending: Site static checks on post-game PR
-- Pending: Game DB integration post-game lifecycle on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks #3095 SUCCESS
+- Completed: Game Platform Governance Guard — run #79 SUCCESS
+- Completed: Site static checks — run #3095 SUCCESS
+- Completed: Game DB integration post-game lifecycle — run #114 SUCCESS
+- Pending: 없음 (post-game 범위)
 
 ## Known Issues / Deferred
 
