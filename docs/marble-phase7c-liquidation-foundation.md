@@ -241,3 +241,26 @@ liquidation policy
 순서로 진행합니다.
 
 Phase 7A 경매와 Phase 7B 거래의 기존 서버 권위 / version / idempotency 원칙은 그대로 유지합니다.
+
+## Authoritative RPC
+
+Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지 않습니다.
+
+- live와 repository 정의가 일치하는 `private.marble_charge_player()`만 확장
+- 현금 부족 시 Classic v1 50% 환급 catalog로 회수 가능성 계산
+- 회수 가능하면 즉시 파산 대신 `DEBT_RECOVERY` pending choice 생성
+- 회수 불가능하면 기존 즉시 파산 semantics 유지
+- `marble_liquidation_select`
+  - debtor-only
+  - asset selection / refund / remaining shortfall / ready 계산
+- `marble_liquidation_confirm`
+  - cash / creditor / ownership / building level / refund drift 재검증
+  - 선택 자산 ownership 해제 + building level 0
+  - creditor가 있으면 full debt 지급
+  - bank debt는 circulation에서 제거
+  - `PROPERTY_LIQUIDATED / MONEY_PAID / DEBT_RECOVERED` event
+- `expected_version + client_action_id` replay/idempotency 유지
+- `marble_guard_debt_recovery_progress` trigger로 debt recovery 중 end-turn 등 우회 차단
+- public / anon RPC 실행 권한 제거, authenticated만 허용
+
+현재 단계에서는 online session / Realtime / UI 연결은 아직 하지 않습니다.
