@@ -1,5 +1,5 @@
 import { ACTION_TYPES, createAction } from "./core/actions.js";
-import { reducePhase7GameAction } from "./core/auctionGameEngine.js";
+import { reducePhase7TradingGameAction } from "./core/tradeGameEngine.js";
 import { rollDice } from "./core/dice.js";
 import { createInitialGameState } from "./core/gameEngine.js";
 
@@ -19,7 +19,7 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
 
   function dispatch(type, payload = {}, playerId = undefined) {
     const current = state.currentPlayerIndex === null ? null : state.players[state.currentPlayerIndex];
-    state = reducePhase7GameAction(state, createAction({
+    state = reducePhase7TradingGameAction(state, createAction({
       type,
       playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
@@ -58,6 +58,22 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
     },
     auctionPass(playerId) {
       return dispatch(ACTION_TYPES.AUCTION_BID, { pass: true }, playerId);
+    },
+    offerTrade(recipientPlayerId, terms, offerId) {
+      return dispatch(ACTION_TYPES.TRADE_OFFER, {
+        offerId,
+        recipientPlayerId,
+        terms,
+      });
+    },
+    acceptTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_ACCEPT, {}, playerId);
+    },
+    rejectTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_REJECT, {}, playerId);
+    },
+    cancelTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_CANCEL, {}, playerId);
     },
   });
 }

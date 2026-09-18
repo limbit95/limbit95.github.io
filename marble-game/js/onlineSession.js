@@ -12,7 +12,11 @@ import {
   requestOnlineAuction,
   rollOnlineDice,
   subscribeOnlineGame,
-} from "./onlineGameApi.js?v=20260910-r9";
+  offerOnlineTrade,
+  acceptOnlineTrade,
+  rejectOnlineTrade,
+  cancelOnlineTrade,
+} from "./onlineGameApi.js?v=20260918-r1";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
@@ -44,6 +48,30 @@ function freezeAuctionState(auction) {
     requestedByPlayerIds: freezeStringList(auction.requestedByPlayerIds),
     bidPlayerIds: freezeStringList(auction.bidPlayerIds),
     passedPlayerIds: freezeStringList(auction.passedPlayerIds),
+  });
+}
+
+function freezeTradeSide(side) {
+  if (!side || typeof side !== "object") {
+    return Object.freeze({ propertyIds: Object.freeze([]), gold: 0 });
+  }
+  return Object.freeze({
+    propertyIds: freezeStringList(side.propertyIds),
+    gold: Number(side.gold) || 0,
+  });
+}
+
+function freezePendingTrade(pendingTrade) {
+  if (!pendingTrade || typeof pendingTrade !== "object") return null;
+  const terms = pendingTrade.terms && typeof pendingTrade.terms === "object"
+    ? Object.freeze({
+      offered: freezeTradeSide(pendingTrade.terms.offered),
+      requested: freezeTradeSide(pendingTrade.terms.requested),
+    })
+    : null;
+  return Object.freeze({
+    ...pendingTrade,
+    terms,
   });
 }
 
@@ -95,6 +123,7 @@ export function mapOnlineGameSnapshot(snapshot) {
     boardState: Object.freeze({ properties: freezeProperties(snapshot.properties) }),
     themeState: Object.freeze({}),
     pendingChoice: freezePendingChoice(snapshot.game.pendingChoice),
+    pendingTrade: freezePendingTrade(snapshot.game.pendingTrade),
     lastRoll: snapshot.game.lastRoll ?? null,
     lastEvents: Object.freeze(Array.isArray(snapshot.game.lastEvents) ? snapshot.game.lastEvents : []),
     winnerPlayerId: snapshot.game.winnerPlayerId ?? null,
@@ -140,6 +169,10 @@ export async function createOnlineClassicSession({
   const requestAuctionAction = api.requestAuction ?? requestOnlineAuction;
   const closeAuctionRequestAction = api.closeAuctionRequest ?? closeOnlineAuctionRequest;
   const bidAuctionAction = api.bidAuction ?? bidOnlineAuction;
+  const offerTradeAction = api.offerTrade ?? offerOnlineTrade;
+  const acceptTradeAction = api.acceptTrade ?? acceptOnlineTrade;
+  const rejectTradeAction = api.rejectTrade ?? rejectOnlineTrade;
+  const cancelTradeAction = api.cancelTrade ?? cancelOnlineTrade;
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
@@ -402,6 +435,30 @@ export async function createOnlineClassicSession({
     },
     auctionPass() {
       return run((request) => bidAuctionAction({ ...request, amount: null, pass: true }));
+    },
+    offerTrade(recipientPlayerId, terms, offerId = undefined) {
+      if (!recipientPlayerId) throw new Error("TRADE_RECIPIENT_REQUIRED");
+      return run((request) => offerTradeAction({
+        ...request,
+        recipientPlayerId,
+        terms,
+        offerId,
+      }));
+    },
+    acceptTrade() {
+      const offerId = state.pendingTrade?.offerId;
+      if (!offerId) throw new Error("TRADE_NOT_OPEN");
+      return run((request) => acceptTradeAction({ ...request, offerId }));
+    },
+    rejectTrade() {
+      const offerId = state.pendingTrade?.offerId;
+      if (!offerId) throw new Error("TRADE_NOT_OPEN");
+      return run((request) => rejectTradeAction({ ...request, offerId }));
+    },
+    cancelTrade() {
+      const offerId = state.pendingTrade?.offerId;
+      if (!offerId) throw new Error("TRADE_NOT_OPEN");
+      return run((request) => cancelTradeAction({ ...request, offerId }));
     },
     dispose() {
       disposed = true;

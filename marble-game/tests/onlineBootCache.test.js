@@ -8,6 +8,7 @@ const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta
 const twoDControllerSource = readFileSync(new URL("../js/onlineGameController2d.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
+const tradeUiSource = readFileSync(new URL("../js/onlineTradeUi.js", import.meta.url), "utf8");
 const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
 const diceStageLazySource = readFileSync(new URL("../js/diceStageOnlineLazy.js", import.meta.url), "utf8");
 const moneyRendererSource = readFileSync(new URL("../js/renderer/threeClassicMoneyPresentation.js", import.meta.url), "utf8");
@@ -40,10 +41,12 @@ test("online recovery and Classic renderer entries bypass stale modules while un
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
   assert.match(twoDControllerSource, /onlineSession\.js\?v=20260910-r8/);
+  assert.match(tradeUiSource, /onlineSession\.js\?v=20260910-r8/);
+  assert.doesNotMatch(tradeUiSource, /onlineSession\.js\?v=20260918-r1/);
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
-  assert.match(sessionSource, /onlineGameApi\.js\?v=20260910-r9/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260918-r1/);
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
-  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r9/g) ?? []).length, 1);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260918-r1/g) ?? []).length, 1);
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);

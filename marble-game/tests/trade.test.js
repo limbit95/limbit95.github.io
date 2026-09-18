@@ -102,16 +102,32 @@ test("recipient can reject an open trade proposal", () => {
   assert.equal(result.events[0].type, "TRADE_REJECTED");
 });
 
+test("proposer can cancel an open trade proposal without recipient activity", () => {
+  const result = reduceTradeProposal(
+    proposal(),
+    players({ b: { bankrupt: true } }),
+    { playerId: "a", cancel: true },
+  );
+
+  assert.equal(result.proposal.status, TRADE_STATUS.CANCELLED);
+  assert.equal(result.proposal.resolvedByPlayerId, "a");
+  assert.equal(result.events[0].type, "TRADE_CANCELLED");
+  assert.throws(
+    () => reduceTradeProposal(proposal(), players(), { playerId: "b", cancel: true }),
+    /Only the trade proposer/i,
+  );
+});
+
 test("trade response requires exactly one decision and cannot resolve twice", () => {
   const trade = proposal();
 
   assert.throws(
     () => reduceTradeProposal(trade, players(), { playerId: "b" }),
-    /accept or reject exactly once/i,
+    /accept, reject, or cancel exactly once/i,
   );
   assert.throws(
     () => reduceTradeProposal(trade, players(), { playerId: "b", accept: true, reject: true }),
-    /accept or reject exactly once/i,
+    /accept, reject, or cancel exactly once/i,
   );
 
   const accepted = reduceTradeProposal(trade, players(), { playerId: "b", accept: true }).proposal;
