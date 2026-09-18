@@ -52,8 +52,26 @@ seoul     → 180 gold
 - 토지 원가와 건물 투자액을 분리해 계산
 - 각 환급률은 0~10000 basis point 정수로 주입
 - 골드 결과는 `FLOOR` 정수 반올림으로 결정
-- Classic 실제 환급률은 아직 theme/product rule로 확정하지 않음
-- 테스트의 5000 bps 값은 계산 예시일 뿐 실제 게임 기본값이 아님
+- Classic 실제 환급률은 theme rule로 별도 주입 가능
+
+### Classic v1 liquidation policy
+
+Classic 첫 적용 규칙은 다음으로 고정합니다.
+
+- 도시 원가 환급: **50%**
+- 누적 건설비 환급: **50%**
+- 계산 단위: basis point `5000 / 10000`
+- 결과 골드: 소수점 버림(`FLOOR`)
+
+예를 들어 싱가포르(도시 원가 260, 건설비 130)에 건물 2단계가 있다면:
+
+```text
+도시 환급 130
++ 건설 투자 260의 50% = 130
+= 총 260 골드
+```
+
+이 비율은 Classic v1 밸런스 규칙이며, 계산 엔진과 분리되어 있어 후속 밸런싱에서 비율만 변경할 수 있습니다.
 
 ### Liquidation plan
 
@@ -100,8 +118,7 @@ seoul     → 180 gold
 - Supabase migration / RPC 추가
 - Realtime 변경
 - UI 추가
-- 매각 환급률 하드코딩
-- 건물 환급 공식 결정
+- 다른 테마의 매각 환급률 결정
 - creditor settlement 변경
 - 실제 property ownership 해제
 
@@ -109,8 +126,8 @@ seoul     → 180 gold
 
 다음 단계에서 먼저 아래 두 가지를 결정합니다.
 
-1. **Classic 실제 환급률 및 건물 매각 제품 규칙**
-2. **Debt recovery lifecycle**
+1. **Debt recovery lifecycle**
+2. **실제 property ownership 해제 및 payment settlement 순서**
 
 이 두 규칙을 고정한 뒤:
 
