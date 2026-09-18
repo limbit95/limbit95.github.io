@@ -2,7 +2,7 @@
 
 Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
 
-Phase 7B는 거래 lifecycle과 deterministic settlement를 독립 규칙으로 고정한 뒤, 현재 동일 계약을 **서버 권위 Supabase RPC**까지 확장하고 있습니다.
+Phase 7B는 거래 lifecycle과 deterministic settlement를 독립 규칙으로 고정하고 서버 권위 Supabase RPC / Realtime·재접속을 연결한 뒤, 현재 **온라인 거래 UI**를 연결하고 있습니다.
 
 ## 현재 확정 범위
 
@@ -149,12 +149,25 @@ requested:
 
 운영 Supabase에는 이 단계에서 바로 적용하지 않고, repository migration을 isolated Game DB integration에서 먼저 검증합니다.
 
+## Realtime / reconnect
+
+- snapshot의 `pendingTrade`를 immutable state로 복원합니다.
+- 기존 `marble_games.version` Realtime refresh 경로를 재사용합니다.
+- channel recovery polling에서도 open trade를 authoritative snapshot으로 복원합니다.
+- offer / accept / reject는 기존 shared action retry와 동일한 `client_action_id`를 유지합니다.
+
+## Online UI
+
+- 현재 플레이어의 `WAITING_ROLL`에서 거래 작성 패널을 노출합니다.
+- 활성 상대 플레이어를 선택하고 건물이 없는 소유 도시와 골드를 양방향 조건으로 구성합니다.
+- open trade는 모든 활성 플레이어에게 표시하되 수신자만 수락/거절할 수 있습니다.
+- UI는 소유권/골드를 직접 변경하지 않고 online session RPC만 호출합니다.
+
 ## 다음 단계
 
 ```text
-Realtime / reconnect
-→ UI
-→ multiplayer regression
+multiplayer regression
+→ 최종 main 통합
 ```
 
 Phase 7A의 안정화된 구매/건설/경매/턴 흐름과 기존 roll RPC는 직접 수정하지 않습니다.
