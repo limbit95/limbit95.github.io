@@ -78,6 +78,7 @@ function snapshot(version, {
   lastEvents = [],
 } = {}) {
   return {
+    serverNow: "2026-09-18T12:00:00Z",
     room: { id: "room-1", roomCode: "ABC123", status: "playing", currentGameId: "game-1" },
     game: {
       id: "game-1",
@@ -291,5 +292,28 @@ test("Auction v2 online session actions keep the versioned idempotent request en
     participantSession.dispose();
   } finally {
     browser.restore();
+  }
+});
+
+
+test("online session exposes an authoritative server clock independent of local device time", async () => {
+  const restore = installFakeBrowser();
+  const realDateNow = Date.now;
+  try {
+    Date.now = () => Date.parse("2026-09-18T11:58:00Z");
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(7, { pendingChoice: requestChoice() }),
+      api: {
+        subscribeGame: () => () => {},
+        getSnapshot: async () => snapshot(7, { pendingChoice: requestChoice() }),
+      },
+    });
+
+    assert.equal(session.getServerNowMs(), Date.parse("2026-09-18T12:00:00Z"));
+    session.dispose();
+  } finally {
+    Date.now = realDateNow;
+    restore.restore();
   }
 });
