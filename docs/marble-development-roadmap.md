@@ -190,7 +190,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7C — Debt Recovery / Asset Liquidation
 
-상태: **진행 중 — deterministic settlement**
+상태: **진행 중 — Game Engine integration**
 
 Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
 
@@ -209,6 +209,10 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - CONFIRMED recovery를 실제 property release + money settlement 결과로 계산하는 독립 settlement 추가
 - settlement 직전 cash / ownership / building / refund drift 재검증
 - creditor debt는 전액 지급, bank debt는 circulation에서 제거
+- 기존 reducer는 default 즉시 파산 동작 유지
+- Phase 7C wrapper에서만 TOLL / TAX / EVENT insolvency를 DEBT_RECOVERY로 defer
+- LIQUIDATION_SELECT / LIQUIDATION_CONFIRM action 추가
+- recovery 불가능 시 동일 action을 legacy path로 재실행해 기존 bankruptcy semantics 유지
 
 의도적으로 아직 확정하지 않는 규칙:
 
@@ -218,7 +222,7 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
 - 매각 후에도 부족할 경우 최종 파산 전환 시점
 
-다음 단계에서는 deterministic settlement를 기존 지불/파산 경로에 연결하는 **Game Engine integration**을 진행합니다.
+다음 단계에서는 검증된 Phase 7C reducer를 **local Classic runtime**에 연결합니다.
 
 ## 이후 Advanced Gameplay 후보
 
