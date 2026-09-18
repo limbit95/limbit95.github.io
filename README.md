@@ -310,7 +310,7 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 - content-hashed 커뮤니티 자산 재빌드 및 커밋된 산출물 최신 상태 확인
 - 본 사이트와 Liar Game, The Game, Marble JavaScript 문법 검사
 - Web Push, 회원가입, 관리자 권한, 활동 권한 테스트
-- The Game 규칙 엔진 및 Marble foundation 테스트
+- Game Platform 공용 계약, The Game 규칙 엔진 및 Marble foundation 테스트
 - 커뮤니티 API 경계/ES Module/select 검사
 - Liar Game ES Module 및 canonical SQL baseline 검사
 - 사이트 파일 무결성 검사
