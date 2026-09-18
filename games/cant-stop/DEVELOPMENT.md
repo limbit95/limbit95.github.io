@@ -126,6 +126,5 @@
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
 - authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- GAME_OVER final snapshot은 유지되지만 완료된 게임에서 나가 새 방을 만들 수 있는 post-game lifecycle은 아직 구현하지 않았다.
+- GAME_OVER final snapshot은 유지되지만 완료된 게임에서 나가 새 방을 만들거나 재매칭하는 post-game lifecycle은 아직 구현하지 않았다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
-- GAME_OVER 이후 방 나가기/재매칭 lifecycle은 아직 구현하지 않았다.
