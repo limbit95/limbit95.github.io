@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
 
-import { enumeratePairings } from "../../games/cant-stop/rules.js";
+import {
+  applyPairingChoice,
+  createInitialGameState,
+  enumeratePairings,
+  resolveRoll,
+} from "../../games/cant-stop/rules.js";
 import { registerPlatformGameDbContract } from "./platformContract.js";
 
 const supabaseUrl = process.env.E2E_LOCAL_SUPABASE_URL;
@@ -493,4 +498,166 @@ test("cant-stop: stale roll version is rejected before dice commit", async () =>
   }, activeUser.accessToken);
 
   expectDenied(result, "stale cant_stop_roll_dice", /VERSION_CONFLICT/u);
+});
+
+
+test("cant-stop: active player can choose only a server-issued legal pairing plan", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("choose-authority");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "choose-authority cant_stop_roll_dice");
+
+  const pairing = rolled.game.legalPairings[0];
+  const plan = pairing.plans[0];
+  const actionId = randomUUID();
+
+  const chosen = await expectOk(await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: plan,
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "active player cant_stop_choose_pairing");
+
+  const localInitial = createInitialGameState({
+    playerIds: [host.id, guest.id],
+    turnOrder: started.game.turnOrder,
+  });
+  const localRolled = resolveRoll(localInitial, rolled.game.latestDice);
+  const localChosen = applyPairingChoice(localRolled, {
+    sums: pairing.sums,
+    columns: plan,
+  });
+
+  assert.equal(Number(chosen.version), Number(rolled.version) + 1);
+  assert.equal(chosen.game.phase, "PUSH_OR_STOP");
+  assert.deepEqual(chosen.game.runners, localChosen.runners);
+  assert.deepEqual(chosen.game.legalPairings, []);
+  assert.deepEqual(chosen.game.latestDice, rolled.game.latestDice);
+
+  const replay = await expectOk(await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: plan,
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "replayed cant_stop_choose_pairing");
+
+  assert.equal(Number(replay.version), Number(chosen.version));
+  assert.deepEqual(replay.game.runners, chosen.game.runners);
+});
+
+test("cant-stop: illegal pairing choice is rejected without advancing version", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("choose-illegal");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "choose-illegal cant_stop_roll_dice");
+
+  const result = await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: [2, 12],
+    p_columns: [2, 12],
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken);
+
+  expectDenied(result, "illegal cant_stop_choose_pairing", /ILLEGAL_PAIRING_CHOICE/u);
+
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: rolled.room.id,
+  }, activeUser.accessToken), "snapshot after illegal pairing");
+  assert.equal(Number(snapshot.version), Number(rolled.version));
+  assert.equal(snapshot.game.phase, "PAIRING_SELECTION");
+});
+
+test("cant-stop: pairing action id cannot be replayed with a different payload", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("choose-conflict");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "choose-conflict cant_stop_roll_dice");
+
+  const pairing = rolled.game.legalPairings[0];
+  const plan = pairing.plans[0];
+  const actionId = randomUUID();
+
+  await expectOk(await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: plan,
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "initial cant_stop_choose_pairing");
+
+  const changedColumns = plan.length === 2
+    ? [...plan].reverse()
+    : [plan[0] === 2 ? 3 : 2];
+
+  const conflict = await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: changedColumns,
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken);
+
+  expectDenied(conflict, "conflicting pairing replay", /ACTION_ID_CONFLICT/u);
+});
+
+test("cant-stop: non-active player cannot choose a pairing", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("choose-turn");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+  const inactiveUser = started.game.activePlayerId === host.id ? guest : host;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "choose-turn cant_stop_roll_dice");
+
+  const pairing = rolled.game.legalPairings[0];
+
+  const result = await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: pairing.plans[0],
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: randomUUID(),
+  }, inactiveUser.accessToken);
+
+  expectDenied(result, "inactive player cant_stop_choose_pairing", /TURN_REQUIRED/u);
+});
+
+test("cant-stop: stale pairing version is rejected before runner commit", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("choose-stale");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "choose-stale cant_stop_roll_dice");
+
+  const pairing = rolled.game.legalPairings[0];
+
+  const result = await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: pairing.plans[0],
+    p_expected_version: Number(rolled.version) + 1,
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken);
+
+  expectDenied(result, "stale cant_stop_choose_pairing", /VERSION_CONFLICT/u);
 });
