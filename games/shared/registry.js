@@ -82,6 +82,16 @@ export const GAME_REGISTRY = Object.freeze([
     capabilities: { online: true, presence: true },
     platform: "legacy",
   }),
+  defineGame({
+    id: "cant-stop",
+    icon: "🎲",
+    title: "Can’t Stop",
+    description: "주사위 조합을 선택해 열을 오르고 멈출 타이밍을 겨루는 push-your-luck 게임이에요.",
+    href: "./games/cant-stop/",
+    buttonText: "Can’t Stop",
+    capabilities: {},
+    platform: "shared",
+  }),
 ]);
 
 export function listRegisteredGames() {
