@@ -1,4 +1,3 @@
-import { supabase as defaultSupabase } from "../../js/supabaseClient.js";
 import { defineRoomLobbyAdapter } from "../shared/index.js";
 
 function requireClient(client) {
@@ -32,14 +31,14 @@ async function callRpc(client, name, args = {}) {
 }
 
 export function createCantStopRoomLobbyAdapter({
-  client = defaultSupabase,
+  client,
 } = {}) {
   const supabase = requireClient(client);
   let activeRoomId = null;
 
   function rememberRoom(snapshot) {
     const roomId = snapshot?.room?.id;
-    activeRoomId = typeof roomId === "string" && roomId.trim() ? roomId.trim() : activeRoomId;
+    activeRoomId = typeof roomId === "string" && roomId.trim() ? roomId.trim() : null;
     return snapshot;
   }
 
