@@ -1089,3 +1089,114 @@ test("cant-stop: host leaving GAME_OVER transfers rematch control to the next pl
   assert.equal(waiting.room.hostUserId, guest.id);
   assert.equal(waiting.game, null);
 });
+
+
+test("cant-stop: disconnected guest reconnects into the authoritative rematch lobby and restarted game", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("lifecycle-reconnect");
+  const finalVersion = 400;
+  const finalState = {
+    ...started.game,
+    phase: "GAME_OVER",
+    winnerId: host.id,
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+  };
+  await setAuthoritativeGameState(started.room.id, finalState, finalVersion);
+
+  const waiting = await expectOk(await rpc("cant_stop_prepare_rematch", {
+    p_room_id: started.room.id,
+    p_expected_version: finalVersion,
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), "host prepares rematch while guest is disconnected");
+
+  const guestReconnected = await expectOk(await rpc(
+    "cant_stop_get_my_active_room",
+    {},
+    guest.accessToken,
+  ), "guest reconnects to rematch lobby");
+
+  assert.equal(guestReconnected.room.id, waiting.room.id);
+  assert.equal(guestReconnected.room.roomCode, waiting.room.roomCode);
+  assert.equal(guestReconnected.room.status, "waiting");
+  assert.equal(Number(guestReconnected.version), Number(waiting.version));
+  assert.equal(guestReconnected.game, null);
+  assert.equal(
+    guestReconnected.players.find((player) => player.userId === host.id)?.isReady,
+    true,
+  );
+  assert.equal(
+    guestReconnected.players.find((player) => player.userId === guest.id)?.isReady,
+    false,
+  );
+
+  const ready = await setReady(guest, guestReconnected, true);
+  const restarted = await expectOk(await rpc("cant_stop_start_game", {
+    p_room_id: ready.room.id,
+    p_expected_version: Number(ready.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), "host restarts game after guest reconnect");
+
+  const guestAfterRestart = await expectOk(await rpc(
+    "cant_stop_get_my_active_room",
+    {},
+    guest.accessToken,
+  ), "guest reconnects after rematch start");
+
+  assert.equal(guestAfterRestart.room.id, restarted.room.id);
+  assert.equal(guestAfterRestart.room.status, "playing");
+  assert.equal(Number(guestAfterRestart.version), Number(restarted.version));
+  assert.equal(guestAfterRestart.game.phase, "TURN_ROLL");
+  assert.equal(guestAfterRestart.game.winnerId, null);
+  assert.deepEqual(
+    new Set(guestAfterRestart.game.turnOrder),
+    new Set([host.id, guest.id]),
+  );
+});
+
+test("cant-stop: reconnect after peer leaves GAME_OVER restores host succession and active roster", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("lifecycle-host-succession");
+  const finalVersion = 410;
+  const finalState = {
+    ...started.game,
+    phase: "GAME_OVER",
+    winnerId: guest.id,
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+  };
+  await setAuthoritativeGameState(started.room.id, finalState, finalVersion);
+
+  await expectOk(await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: finalVersion,
+  }, host.accessToken), "host leaves final room while guest is disconnected");
+
+  const guestReconnected = await expectOk(await rpc(
+    "cant_stop_get_my_active_room",
+    {},
+    guest.accessToken,
+  ), "guest reconnects after host succession");
+
+  assert.equal(guestReconnected.room.hostUserId, guest.id);
+  assert.equal(guestReconnected.room.status, "playing");
+  assert.equal(guestReconnected.game.phase, "GAME_OVER");
+  assert.equal(guestReconnected.players.length, 1);
+  assert.equal(guestReconnected.players[0].userId, guest.id);
+  assert.equal(
+    guestReconnected.players.some((player) => player.userId === host.id),
+    false,
+  );
+
+  const waiting = await expectOk(await rpc("cant_stop_prepare_rematch", {
+    p_room_id: guestReconnected.room.id,
+    p_expected_version: Number(guestReconnected.version),
+    p_client_action_id: randomUUID(),
+  }, guest.accessToken), "successor prepares rematch after reconnect");
+
+  assert.equal(waiting.room.status, "waiting");
+  assert.equal(waiting.room.hostUserId, guest.id);
+  assert.equal(waiting.players.length, 1);
+  assert.equal(waiting.players[0].isReady, true);
+  assert.equal(waiting.game, null);
+});
