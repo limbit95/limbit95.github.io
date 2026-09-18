@@ -403,6 +403,7 @@ test("Marble Auction v2 RPCs enforce recruitment, stale concurrent request absor
     p_client_action_id: randomUUID(),
   }, auctionAlice.accessToken), "auction decline property");
 
+  assert.ok(Number.isFinite(Date.parse(String(declined.serverNow))), "Auction v2 snapshot must expose serverNow");
   assert.equal(declined.game.pendingChoice?.type, "AUCTION_REQUEST");
   assert.equal(declined.game.pendingChoice?.basePrice, 260);
   assert.equal(declined.game.pendingChoice?.openingBid, 390);
