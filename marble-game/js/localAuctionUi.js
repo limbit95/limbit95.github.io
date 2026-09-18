@@ -197,7 +197,8 @@ function createPanel(documentObject, dock) {
   bidRow.append(bidInput, bidButton, passButton);
 
   panel.append(heading, status, detail, participantRow, requestRow, bidRow);
-  dock.prepend(panel);
+  const modalHost = documentObject.body ?? dock;
+  modalHost.prepend(panel);
   return {
     panel, badge, title, timer, status, detail, participantRow, playerSelect,
     requestRow, primaryButton, secondaryButton, bidRow, bidInput, bidButton, passButton,
