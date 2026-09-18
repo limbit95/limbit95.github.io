@@ -1,5 +1,8 @@
 import { GAME_ACCESS_REASON } from "../shared/accessGate.js";
-import { CANT_STOP_COLUMN_HEIGHTS } from "./rules.js";
+import {
+  CANT_STOP_COLUMN_HEIGHTS,
+  CANT_STOP_PHASE,
+} from "./rules.js";
 
 export const CANT_STOP_ACCESS_VIEW = Object.freeze({
   READY: "ready",
@@ -78,6 +81,102 @@ export function createCantStopLobbyViewModel(snapshot, currentUserId) {
   });
 }
 
+
+function gameplayPlayerId(player) {
+  return String(player?.userId ?? player?.id ?? "");
+}
+
+export function createCantStopGameplayViewModel(snapshot, currentUserId) {
+  if (!snapshot?.room || !snapshot?.game || !Array.isArray(snapshot.players)) {
+    throw new TypeError("Can't Stop gameplay view requires an authoritative playing snapshot.");
+  }
+
+  const game = snapshot.game;
+  const viewerId = String(snapshot.viewerUserId ?? currentUserId ?? "");
+  const players = snapshot.players.map((player, index) => Object.freeze({
+    id: gameplayPlayerId(player),
+    displayName: String(player.displayName ?? player.nickname ?? `플레이어 ${index + 1}`),
+    index,
+  }));
+  const playerMap = new Map(players.map((player) => [player.id, player]));
+  const activePlayerId = String(game.activePlayerId ?? "");
+  const activePlayer = playerMap.get(activePlayerId) ?? null;
+  const winnerId = game.winnerId == null ? null : String(game.winnerId);
+  const winner = winnerId ? playerMap.get(winnerId) ?? null : null;
+  const playerProgress = game.playerProgress ?? {};
+  const claimedColumns = game.claimedColumns ?? {};
+  const runners = game.runners ?? {};
+
+  const columns = createCantStopBoardColumns().map((column) => {
+    const permanentMarkers = players.flatMap((player) => {
+      const rawPosition = playerProgress?.[player.id]?.[column.number];
+      const position = Number(rawPosition ?? 0);
+      if (!Number.isInteger(position) || position < 1 || position > column.height) return [];
+      return [Object.freeze({
+        playerId: player.id,
+        displayName: player.displayName,
+        playerIndex: player.index,
+        position,
+      })];
+    });
+    const rawRunnerPosition = Number(runners?.[column.number] ?? 0);
+    const runner = Number.isInteger(rawRunnerPosition)
+      && rawRunnerPosition >= 1
+      && rawRunnerPosition <= column.height
+      && activePlayer
+      ? Object.freeze({
+        playerId: activePlayer.id,
+        displayName: activePlayer.displayName,
+        playerIndex: activePlayer.index,
+        position: rawRunnerPosition,
+      })
+      : null;
+    const claimedById = claimedColumns?.[column.number] == null
+      ? null
+      : String(claimedColumns[column.number]);
+    const claimedBy = claimedById ? playerMap.get(claimedById) ?? null : null;
+
+    return Object.freeze({
+      ...column,
+      permanentMarkers: Object.freeze(permanentMarkers),
+      runner,
+      claimedById,
+      claimedByName: claimedBy?.displayName ?? null,
+    });
+  });
+
+  const latestDice = Array.isArray(game.latestDice)
+    ? Object.freeze(game.latestDice.map(Number))
+    : null;
+  const legalPairings = Object.freeze(
+    (Array.isArray(game.legalPairings) ? game.legalPairings : []).map((pairing) => Object.freeze({
+      sums: Object.freeze((pairing.sums ?? []).map(Number)),
+      plans: Object.freeze((pairing.plans ?? []).map((plan) =>
+        Object.freeze(plan.map(Number)))),
+    })),
+  );
+  const phase = String(game.phase ?? "");
+
+  return Object.freeze({
+    version: Number(snapshot.version),
+    phase,
+    currentUserId: viewerId,
+    activePlayerId,
+    activePlayerName: activePlayer?.displayName ?? "플레이어",
+    isMyTurn: viewerId !== "" && viewerId === activePlayerId,
+    winnerId,
+    winnerName: winner?.displayName ?? null,
+    latestDice,
+    legalPairings,
+    columns: Object.freeze(columns),
+    canRoll: phase === CANT_STOP_PHASE.TURN_ROLL && viewerId === activePlayerId,
+    canChoosePairing: phase === CANT_STOP_PHASE.PAIRING_SELECTION && viewerId === activePlayerId,
+    canContinue: phase === CANT_STOP_PHASE.PUSH_OR_STOP && viewerId === activePlayerId,
+    canStop: phase === CANT_STOP_PHASE.PUSH_OR_STOP && viewerId === activePlayerId,
+    isGameOver: phase === CANT_STOP_PHASE.GAME_OVER,
+  });
+}
+
 const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ROOM_NOT_FOUND", "방을 찾을 수 없거나 이미 시작된 방이에요."],
   ["ROOM_FULL", "방 인원이 모두 찼어요."],
@@ -89,6 +188,11 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ROOM_NOT_WAITING", "이미 시작되었거나 종료된 방이에요."],
   ["NOT_ROOM_MEMBER", "현재 이 방의 참여자가 아니에요."],
   ["AUTH_REQUIRED", "승인회원만 Can’t Stop 온라인 방을 이용할 수 있어요."],
+  ["TURN_REQUIRED", "현재 내 턴이 아니에요. 최신 게임 상태를 확인해 주세요."],
+  ["INVALID_GAME_PHASE", "지금은 이 행동을 할 수 없는 단계예요."],
+  ["ILLEGAL_PAIRING_CHOICE", "선택한 주사위 조합이 더 이상 유효하지 않아요. 최신 상태를 확인해 주세요."],
+  ["ACTION_ID_CONFLICT", "같은 요청이 다른 내용으로 재사용됐어요. 다시 시도해 주세요."],
+  ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
 ]);
 
 export function getCantStopLobbyErrorMessage(error) {
