@@ -11,13 +11,13 @@ Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5
 
 ### Phase 7 — Classic Advanced Gameplay
 
-현재 개발 위치는 **Phase 7A 경매 완료, Phase 7B 거래/협상 온라인 UI 진행 중**입니다.
+현재 개발 위치는 **Phase 7A 경매 완료, Phase 7B 거래/협상 멀티플레이 회귀 검증 진행 중**입니다.
 
 Phase 4의 고정 Orthographic 쿼터뷰 2.5D 비주얼 기반은 그대로 유지하면서, Phase 5의 온라인 멀티플레이와 Phase 6의 Realtime/재접속/복구 안정화 위에 고급 플레이어 상호작용을 추가하고 있습니다.
 
 Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하고 참여할 수 있는 request-gated 경매를 로컬/온라인 양쪽에 연결했습니다. 서버 권위 RPC, version/idempotency, Realtime refresh, reconnect, stale snapshot 방어와 멀티플레이 회귀 검증까지 완료되어 main에 통합된 상태입니다.
 
-현재 **Phase 7B — Trading / Negotiation**에서 서버 권위 거래와 Realtime/재접속 복구를 바탕으로 온라인 거래 UI를 연결하고 있습니다. 거래 상태는 `pendingTrade` snapshot을 기준으로 하며 UI는 소유권이나 골드를 직접 변경하지 않습니다.
+현재 **Phase 7B — Trading / Negotiation**에서 서버 권위 거래, Realtime/재접속 복구, 온라인 거래 UI 연결을 완료하고 3클라이언트 멀티플레이 회귀 검증을 진행하고 있습니다. 거래 상태는 `pendingTrade` authoritative snapshot을 기준으로 합니다.
 
 세부 Phase 이력과 현재 상태는 [Marble Development Roadmap](../docs/marble-development-roadmap.md)을 기준으로 합니다.
 
