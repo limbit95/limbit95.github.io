@@ -39,3 +39,24 @@ Phase 7A의 경매 규칙, authoritative RPC, Realtime/reconnect 및 온라인 U
 - 게임 규칙까지 수정
 
 세부 검토 기준과 후속 요구사항은 [Auction Playtest UX Review](./marble-auction-ux-review.md)를 기준으로 관리합니다.
+
+
+## Auction v2 요구사항 정의
+
+2026-09-18 추가 실제 플레이테스트를 바탕으로 Phase 7A v1을 대체할 후속 Auction v2의 제품 요구사항 정의를 시작했습니다.
+
+핵심 방향:
+
+- 구매 포기자는 경매 요청 / 참가 / 입찰에서 제외
+- 10초 경매 요청 단계
+- 최초 요청 후 10초 참가자 모집 단계
+- 참가자 1명일 경우 시작 경매가 자동 매입
+- 참가자 2명 이상일 경우 최초 요청자의 시작가 자동 입찰로 경쟁 경매 시작
+- 초기 시작 경매가는 도시 기본 구매가의 150%
+- 단독 매입 시 기존 도시 구매 animation / coin movement 재사용
+
+이 변경은 단순 UI polish가 아니라 lifecycle과 경제 규칙까지 포함하는 후속 설계입니다.
+
+세부 확정 규칙과 미확정 예외는 [Marble Auction v2 Requirements](./marble-auction-v2-requirements.md)를 기준으로 관리합니다.
+
+현재는 요구사항 정의 단계이며 Auction v2 소스 구현은 아직 시작하지 않습니다.

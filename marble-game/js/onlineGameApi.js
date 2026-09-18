@@ -88,6 +88,18 @@ export function closeOnlineAuctionRequest(options) {
   return gameAction("marble_close_auction_request", options);
 }
 
+export function joinOnlineAuction(options) {
+  return gameAction("marble_join_auction", options);
+}
+
+export function withdrawOnlineAuction(options) {
+  return gameAction("marble_withdraw_auction", options);
+}
+
+export function advanceOnlineAuctionDeadline(options) {
+  return gameAction("marble_advance_auction_deadline", options);
+}
+
 function bidAuctionWithRpc(callRpc, { roomId, expectedVersion, clientActionId, amount = null, pass = false } = {}) {
   return callRpc("marble_auction_bid", {
     p_room_id: roomId,
@@ -208,6 +220,15 @@ export function createOnlineGameApi({ client } = {}) {
     },
     closeAuctionRequest(options) {
       return gameActionWithRpc(callRpc, "marble_close_auction_request", options);
+    },
+    joinAuction(options) {
+      return gameActionWithRpc(callRpc, "marble_join_auction", options);
+    },
+    withdrawAuction(options) {
+      return gameActionWithRpc(callRpc, "marble_withdraw_auction", options);
+    },
+    advanceAuctionDeadline(options) {
+      return gameActionWithRpc(callRpc, "marble_advance_auction_deadline", options);
     },
     bidAuction(options) {
       return bidAuctionWithRpc(callRpc, options);
