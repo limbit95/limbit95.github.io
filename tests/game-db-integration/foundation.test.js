@@ -454,4 +454,44 @@ test("Marble Phase 7B trade RPCs enforce authority, action lock, settlement, and
   assert.equal(rejected.game.phase, "WAITING_ROLL");
   assert.deepEqual(rejected.game.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
   assert.equal(rejected.properties.tokyo.ownerId, alicePlayer.id);
+
+  const cancelOfferId = randomUUID();
+  const cancellable = await expectOk(await rpc("marble_trade_offer", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(rejected.game.version),
+    p_client_action_id: randomUUID(),
+    p_offer_id: cancelOfferId,
+    p_recipient_player_id: bobPlayer.id,
+    p_terms: {
+      offered: { gold: 25 },
+      requested: {},
+    },
+  }, tradeAlice.accessToken), "cancellable trade offer");
+
+  const recipientCancel = await rpc("marble_trade_cancel", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(cancellable.game.version),
+    p_client_action_id: randomUUID(),
+    p_offer_id: cancelOfferId,
+  }, tradeBob.accessToken);
+  expectDenied(recipientCancel, "recipient trade cancel", /TRADE_PROPOSER_REQUIRED/u);
+
+  const cancelled = await expectOk(await rpc("marble_trade_cancel", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(cancellable.game.version),
+    p_client_action_id: randomUUID(),
+    p_offer_id: cancelOfferId,
+  }, tradeAlice.accessToken), "trade marble_trade_cancel");
+
+  assert.equal(cancelled.game.pendingTrade, null);
+  assert.equal(cancelled.game.phase, "WAITING_ROLL");
+  assert.deepEqual(cancelled.game.lastEvents.map((event) => event.type), ["TRADE_CANCELLED"]);
+  assert.equal(
+    cancelled.players.find((player) => player.id === alicePlayer.id)?.money,
+    1450,
+  );
+  assert.equal(
+    cancelled.players.find((player) => player.id === bobPlayer.id)?.money,
+    1550,
+  );
 });

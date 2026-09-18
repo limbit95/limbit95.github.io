@@ -377,3 +377,35 @@ test("trade reject uses the current pending offer id and stale snapshots cannot 
     browser.restore();
   }
 });
+
+test("trade proposer cancel uses the current offer id and clears the authoritative pending trade", async () => {
+  const browser = installFakeBrowser();
+  const cancelCalls = [];
+
+  try {
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(60, {
+        viewerPlayerId: "p1",
+        pendingTrade: trade({ offerId: "trade-cancel", proposerPlayerId: "p1", recipientPlayerId: "p2" }),
+      }),
+      api: {
+        createActionId: () => "44444444-4444-4444-8444-444444444444",
+        subscribeGame: () => () => {},
+        async cancelTrade(request) {
+          cancelCalls.push(request);
+          return snapshot(61, { viewerPlayerId: "p1", pendingTrade: null });
+        },
+      },
+    });
+
+    await session.cancelTrade();
+    assert.equal(session.getState().version, 61);
+    assert.equal(session.getState().pendingTrade, null);
+    assert.equal(cancelCalls[0].offerId, "trade-cancel");
+
+    session.dispose();
+  } finally {
+    browser.restore();
+  }
+});

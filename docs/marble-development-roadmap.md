@@ -178,7 +178,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 - 로컬 runtime까지 동일 거래 reducer를 연결 완료
 - `pending_trade` snapshot + `expected_version` + `client_action_id` 기반 authoritative RPC와 isolated DB 검증 완료
 - Realtime / reconnect snapshot 복구 연결 완료
-- 온라인 거래 작성/수락/거절 UI adapter 연결 완료
+- 온라인 거래 작성/수락/거절/제안자 취소 UI adapter 연결 완료
 - 3클라이언트 authoritative/Realtime/stale snapshot/reconnect 멀티플레이 회귀 검증 완료
 - 현재 최신 main 대상 최종 integration 검증 진행 중
 - Phase 7A에서 검증한 서버 권위, version, idempotency, Realtime / reconnect 원칙을 유지

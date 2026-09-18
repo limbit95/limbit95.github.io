@@ -1,4 +1,4 @@
-import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260918-r1";
+import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260910-r8";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -67,6 +67,7 @@ export function createOnlineTradeUiModel(state, viewerPlayerId) {
       requestedLabel: describeSide(state, pendingTrade.terms?.requested),
       canAccept: pendingTrade.recipientPlayerId === viewerPlayerId,
       canReject: pendingTrade.recipientPlayerId === viewerPlayerId,
+      canCancel: pendingTrade.proposerPlayerId === viewerPlayerId,
       isProposer: pendingTrade.proposerPlayerId === viewerPlayerId,
     });
   }
@@ -223,7 +224,12 @@ function createPanel(documentObject, dock) {
   rejectButton.className = "secondary-button";
   rejectButton.dataset.tradeReject = "";
   rejectButton.textContent = "거절";
-  responseRow.append(acceptButton, rejectButton);
+  const cancelButton = documentObject.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "secondary-button";
+  cancelButton.dataset.tradeCancel = "";
+  cancelButton.textContent = "제안 취소";
+  responseRow.append(acceptButton, rejectButton, cancelButton);
   pending.append(terms, responseRow);
 
   panel.append(heading, status, compose, pending);
@@ -245,6 +251,7 @@ function createPanel(documentObject, dock) {
     responseRow,
     acceptButton,
     rejectButton,
+    cancelButton,
   };
 }
 
@@ -306,9 +313,13 @@ export function setupOnlineTradeUi({
           : model.proposerName + "과 " + model.recipientName + "이 거래 협상 중입니다.");
       elements.terms.textContent = model.proposerName + " 제공: " + model.offeredLabel
         + " · " + model.recipientName + " 제공: " + model.requestedLabel;
-      elements.responseRow.hidden = !model.canAccept;
+      elements.responseRow.hidden = !model.canAccept && !model.canCancel;
+      elements.acceptButton.hidden = !model.canAccept;
+      elements.rejectButton.hidden = !model.canReject;
+      elements.cancelButton.hidden = !model.canCancel;
       elements.acceptButton.disabled = busy || !model.canAccept;
       elements.rejectButton.disabled = busy || !model.canReject;
+      elements.cancelButton.disabled = busy || !model.canCancel;
       return;
     }
 
@@ -403,6 +414,9 @@ export function setupOnlineTradeUi({
   });
   elements.rejectButton.addEventListener("click", () => {
     void runAction(() => session.rejectTrade());
+  });
+  elements.cancelButton.addEventListener("click", () => {
+    void runAction(() => session.cancelTrade());
   });
 
   const unsubscribeState = session.subscribeState((state) => {

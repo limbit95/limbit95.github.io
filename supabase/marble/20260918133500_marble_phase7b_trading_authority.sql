@@ -703,13 +703,107 @@ begin
 end;
 $$;
 
+
+create or replace function public.marble_trade_cancel(
+  p_room_id uuid,
+  p_expected_version bigint,
+  p_client_action_id uuid,
+  p_offer_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, private, pg_temp
+as $trade_cancel$
+declare
+  v_user uuid := auth.uid();
+  v_room public.marble_rooms%rowtype;
+  v_game public.marble_games%rowtype;
+  v_actor public.marble_game_players%rowtype;
+  v_trade jsonb;
+  v_request jsonb;
+  v_replay jsonb;
+  v_response jsonb;
+  v_before bigint;
+begin
+  if v_user is null then raise exception 'AUTH_REQUIRED'; end if;
+  if p_client_action_id is null or p_offer_id is null then raise exception 'INVALID_ACTION_ID'; end if;
+
+  v_request := jsonb_build_object('action', 'trade_cancel', 'offerId', p_offer_id::text);
+
+  select * into v_room
+  from public.marble_rooms
+  where id = p_room_id
+  for update;
+
+  if not found or v_room.current_game_id is null then raise exception 'GAME_NOT_FOUND'; end if;
+
+  select * into v_game
+  from public.marble_games
+  where id = v_room.current_game_id
+    and room_id = p_room_id
+  for update;
+
+  if not found then raise exception 'GAME_NOT_FOUND'; end if;
+
+  v_replay := private.marble_action_replay(
+    v_game.id, v_user, p_client_action_id, 'trade_cancel', v_request
+  );
+  if v_replay is not null then return v_replay; end if;
+
+  if v_room.status <> 'playing' or v_game.status <> 'playing' then raise exception 'GAME_NOT_PLAYING'; end if;
+  if v_game.version <> p_expected_version then raise exception 'VERSION_CONFLICT'; end if;
+  if v_game.phase <> 'WAITING_ROLL' then raise exception 'TRADE_NOT_ALLOWED'; end if;
+
+  v_trade := v_game.pending_trade;
+  if v_trade is null or v_trade->>'type' <> 'PLAYER_TRADE' or v_trade->>'status' <> 'OPEN' then
+    raise exception 'TRADE_NOT_OPEN';
+  end if;
+  if v_trade->>'offerId' <> p_offer_id::text then raise exception 'TRADE_OFFER_MISMATCH'; end if;
+
+  select * into v_actor
+  from public.marble_game_players
+  where game_id = v_game.id
+    and user_id = v_user
+  for update;
+
+  if not found then raise exception 'NOT_ROOM_MEMBER'; end if;
+  if v_actor.room_player_id::text <> v_trade->>'proposerPlayerId' then
+    raise exception 'TRADE_PROPOSER_REQUIRED';
+  end if;
+  if v_actor.bankrupt then raise exception 'PLAYER_BANKRUPT'; end if;
+
+  v_before := v_game.version;
+
+  update public.marble_games
+  set pending_trade = null,
+      last_events = jsonb_build_array(jsonb_build_object(
+        'type', 'TRADE_CANCELLED',
+        'offerId', p_offer_id::text,
+        'proposerPlayerId', v_trade->>'proposerPlayerId',
+        'recipientPlayerId', v_trade->>'recipientPlayerId'
+      )),
+      version = version + 1,
+      updated_at = now()
+  where id = v_game.id;
+
+  v_response := private.marble_game_snapshot(p_room_id);
+  perform private.marble_record_action(
+    v_game.id, v_user, p_client_action_id, 'trade_cancel', v_request, v_before, v_response
+  );
+  return v_response;
+end;
+$trade_cancel$;
+
 revoke all on function private.marble_normalize_trade_terms(jsonb) from public, anon, authenticated;
 revoke all on function private.marble_guard_open_trade_progress() from public, anon, authenticated;
 
 revoke all on function public.marble_trade_offer(uuid,bigint,uuid,uuid,uuid,jsonb) from public, anon;
 revoke all on function public.marble_trade_accept(uuid,bigint,uuid,uuid) from public, anon;
 revoke all on function public.marble_trade_reject(uuid,bigint,uuid,uuid) from public, anon;
+revoke all on function public.marble_trade_cancel(uuid,bigint,uuid,uuid) from public, anon;
 
 grant execute on function public.marble_trade_offer(uuid,bigint,uuid,uuid,uuid,jsonb) to authenticated;
 grant execute on function public.marble_trade_accept(uuid,bigint,uuid,uuid) to authenticated;
 grant execute on function public.marble_trade_reject(uuid,bigint,uuid,uuid) to authenticated;
+grant execute on function public.marble_trade_cancel(uuid,bigint,uuid,uuid) to authenticated;

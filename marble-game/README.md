@@ -17,7 +17,7 @@ Phase 4의 고정 Orthographic 쿼터뷰 2.5D 비주얼 기반은 그대로 유�
 
 Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하고 참여할 수 있는 request-gated 경매를 로컬/온라인 양쪽에 연결했습니다. 서버 권위 RPC, version/idempotency, Realtime refresh, reconnect, stale snapshot 방어와 멀티플레이 회귀 검증까지 완료되어 main에 통합된 상태입니다.
 
-현재 **Phase 7B — Trading / Negotiation**의 거래 lifecycle, 정산, 서버 권위 RPC, Realtime/재접속, 온라인 UI, 멀티플레이 회귀 검증까지 완료했으며 최신 main 대상 최종 통합 검증을 진행하고 있습니다. 거래 상태는 `pendingTrade` authoritative snapshot을 기준으로 합니다.
+현재 **Phase 7B — Trading / Negotiation**의 거래 lifecycle, 정산, 서버 권위 RPC, Realtime/재접속, 온라인 UI, 멀티플레이 회귀 검증까지 완료했으며 최신 main 대상 최종 통합 검증을 진행하고 있습니다. 거래 상태는 `pendingTrade` authoritative snapshot을 기준으로 하며, 응답 대기 중 제안자는 자신의 제안을 취소해 게임 진행 잠금을 해제할 수 있습니다.
 
 세부 Phase 이력과 현재 상태는 [Marble Development Roadmap](../docs/marble-development-roadmap.md)을 기준으로 합니다.
 

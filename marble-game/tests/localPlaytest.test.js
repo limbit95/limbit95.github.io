@@ -147,3 +147,25 @@ test("local Classic session rejects a trade and resumes the same pre-roll turn",
   assert.equal(state.currentPlayerIndex, 0);
   assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
 });
+
+test("local Classic proposer can cancel an unanswered trade and continue the turn", () => {
+  const session = createLocalClassicSession();
+
+  let state = session.start();
+  state = session.offerTrade(
+    "player-b",
+    { offered: { gold: 50 } },
+    "local-trade-cancel",
+  );
+
+  assert.throws(
+    () => session.cancelTrade("player-b"),
+    /Only the trade proposer/i,
+  );
+
+  state = session.cancelTrade("player-a");
+  assert.equal(state.pendingTrade, null);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(state.currentPlayerIndex, 0);
+  assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_CANCELLED"]);
+});
