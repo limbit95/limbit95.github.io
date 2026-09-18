@@ -5,6 +5,9 @@ import {
   buildOnlineProperty,
   buyOnlineProperty,
   closeOnlineAuctionRequest,
+  joinOnlineAuction,
+  withdrawOnlineAuction,
+  advanceOnlineAuctionDeadline,
   createOnlineActionId,
   declineOnlinePropertyForAuction,
   endOnlineTurn,
@@ -48,6 +51,7 @@ function freezeAuctionState(auction) {
     ...auction,
     eligiblePlayerIds: freezeStringList(auction.eligiblePlayerIds),
     requestedByPlayerIds: freezeStringList(auction.requestedByPlayerIds),
+    participantPlayerIds: freezeStringList(auction.participantPlayerIds),
     bidPlayerIds: freezeStringList(auction.bidPlayerIds),
     passedPlayerIds: freezeStringList(auction.passedPlayerIds),
   });
@@ -94,10 +98,19 @@ function freezePendingChoice(pendingChoice) {
       requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
     });
   }
+  if (pendingChoice.type === "AUCTION_RECRUITMENT") {
+    return Object.freeze({
+      ...pendingChoice,
+      eligiblePlayerIds: freezeStringList(pendingChoice.eligiblePlayerIds),
+      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+      participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
+    });
+  }
   if (pendingChoice.type === "PROPERTY_AUCTION") {
     return Object.freeze({
       ...pendingChoice,
       requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
+      participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
       auction: freezeAuctionState(pendingChoice.auction),
     });
   }
@@ -185,6 +198,9 @@ export async function createOnlineClassicSession({
   const declinePropertyForAuctionAction = api.declinePropertyForAuction ?? declineOnlinePropertyForAuction;
   const requestAuctionAction = api.requestAuction ?? requestOnlineAuction;
   const closeAuctionRequestAction = api.closeAuctionRequest ?? closeOnlineAuctionRequest;
+  const joinAuctionAction = api.joinAuction ?? joinOnlineAuction;
+  const withdrawAuctionAction = api.withdrawAuction ?? withdrawOnlineAuction;
+  const advanceAuctionDeadlineAction = api.advanceAuctionDeadline ?? advanceOnlineAuctionDeadline;
   const bidAuctionAction = api.bidAuction ?? bidOnlineAuction;
   const offerTradeAction = api.offerTrade ?? offerOnlineTrade;
   const acceptTradeAction = api.acceptTrade ?? acceptOnlineTrade;
@@ -448,6 +464,15 @@ export async function createOnlineClassicSession({
     },
     closeAuctionRequest() {
       return run(closeAuctionRequestAction);
+    },
+    joinAuction() {
+      return run(joinAuctionAction);
+    },
+    withdrawAuction() {
+      return run(withdrawAuctionAction);
+    },
+    advanceAuctionDeadline() {
+      return run(advanceAuctionDeadlineAction);
     },
     auctionBid(amount) {
       return run((request) => bidAuctionAction({ ...request, amount, pass: false }));
