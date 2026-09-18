@@ -4,7 +4,7 @@ import test from "node:test";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const migration = read("../supabase/site/migrations/20260914151803_activity_creator_auto_participation.sql");
-const removalCompatMigration = read("../supabase/site/migrations/20260914125500_activity_creator_auto_participation_removal_compat.sql");
+const removalCompatMigration = read("../supabase/site/migrations/20260914151812_activity_creator_auto_participation_removal_compat.sql");
 const ownerDeleteMigration = read("../supabase/site/migrations/20260914154042_restore_activity_owner_clean_delete.sql");
 const participationRpc = read("../supabase/site/baseline/10_participation_rpc.sql");
 
