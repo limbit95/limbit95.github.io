@@ -59,9 +59,10 @@
 
 - Completed: 이전 bootstrap / rules-engine Game Platform governance 및 Site static checks
 - Completed: rules engine unit test — 13/13 PASS
-- Pending: `npm run test:game-platform` on runtime-shell PR
-- Pending: Game Platform Governance Guard on runtime-shell PR
-- Pending: Site static checks on runtime-shell PR
+- Completed: `npm run test:game-platform` — Site static checks run #2998 SUCCESS
+- Completed: Game Platform Governance Guard — run #13 SUCCESS
+- Completed: Site static checks — run #2998 SUCCESS
+- Pending: 없음 (runtime-shell 범위)
 
 ## Known Issues / Deferred
 
