@@ -199,7 +199,7 @@ Stable Legacy stabilization
 → Phase 3B: Room/Lobby + Snapshot/Reconnect + Versioned Action contracts
 → Phase 3C: Common Game Shell + connection/player UI contract
 → Phase 3D: platform-native game_room Invite + legacy invite impact analysis
-→ Phase 3E: reusable DB/test contract template if needed
+→ Phase 3E: reusable DB/test contract gate
 → Phase 4: Can’t Stop 신규 구현 및 실제 플랫폼 검증
 → 이후 신규 게임 확장
 → 필요 시 Legacy Remaster
@@ -207,4 +207,6 @@ Stable Legacy stabilization
 
 Phase 3D까지의 공통 기반은 Legacy 게임 런타임에 강제로 연결하지 않는다. The Game의 기존 초대 흐름은 별도 Legacy 경로로 유지한다.
 
-Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업이 아니라, Phase 4에서 `games/cant-stop/` 아래에 처음부터 생성하는 첫 platform-native 게임이다.
+Phase 3E에서는 공통 게임 DB 스키마나 공통 RPC를 만들지 않는다. 대신 신규 온라인 게임이 반드시 검증해야 할 승인회원, 멤버십, host 권한, stale version, idempotency, 동시성, reconnect snapshot, private-state 노출 방지 시나리오를 공통 테스트 계약으로 고정한다. 상세 기준은 `docs/game-platform-db-test-contract.md`를 따른다.
+
+Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업이 아니라, Phase 4에서 `games/cant-stop/` 아래에 처음부터 생성하는 첫 platform-native 게임이며 Phase 3E DB 계약의 첫 실제 소비자가 된다.
