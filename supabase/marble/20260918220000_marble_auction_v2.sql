@@ -380,42 +380,29 @@ begin
     'choiceType','BUY_PROPERTY'
   ));
 
-  if jsonb_array_length(v_eligible)=0 then
-    v_events := v_events || jsonb_build_array(jsonb_build_object(
-      'type','AUCTION_REQUEST_CLOSED',
-      'nodeId',v_node_id,
-      'requestedByPlayerIds','[]'::jsonb,
-      'reason','NO_ELIGIBLE_PLAYERS'
-    ));
-    update public.marble_games
-    set phase='TURN_END', pending_choice=null, last_events=v_events,
-        version=version+1, updated_at=now()
-    where id=v_game.id;
-  else
-    v_events := v_events || jsonb_build_array(jsonb_build_object(
-      'type','AUCTION_REQUEST_OPENED',
-      'nodeId',v_node_id,
-      'openingBid',v_opening_bid,
-      'declinedByPlayerId',v_actor.room_player_id::text,
-      'eligiblePlayerIds',v_eligible,
-      'deadlineAt',v_deadline
-    ));
-    update public.marble_games
-    set pending_choice=jsonb_build_object(
-      'type','AUCTION_REQUEST',
-      'nodeId',v_node_id,
-      'basePrice',v_base_price,
-      'openingBid',v_opening_bid,
-      'declinedByPlayerId',v_actor.room_player_id::text,
-      'eligiblePlayerIds',v_eligible,
-      'requestedByPlayerIds','[]'::jsonb,
-      'deadlineAt',v_deadline
-    ),
-    last_events=v_events,
-    version=version+1,
-    updated_at=now()
-    where id=v_game.id;
-  end if;
+  v_events := v_events || jsonb_build_array(jsonb_build_object(
+    'type','AUCTION_REQUEST_OPENED',
+    'nodeId',v_node_id,
+    'openingBid',v_opening_bid,
+    'declinedByPlayerId',v_actor.room_player_id::text,
+    'eligiblePlayerIds',v_eligible,
+    'deadlineAt',v_deadline
+  ));
+  update public.marble_games
+  set pending_choice=jsonb_build_object(
+    'type','AUCTION_REQUEST',
+    'nodeId',v_node_id,
+    'basePrice',v_base_price,
+    'openingBid',v_opening_bid,
+    'declinedByPlayerId',v_actor.room_player_id::text,
+    'eligiblePlayerIds',v_eligible,
+    'requestedByPlayerIds','[]'::jsonb,
+    'deadlineAt',v_deadline
+  ),
+  last_events=v_events,
+  version=version+1,
+  updated_at=now()
+  where id=v_game.id;
 
   v_response := private.marble_game_snapshot(p_room_id);
   perform private.marble_record_action(v_game.id,v_user,p_client_action_id,'auction_decline_v2',v_request,v_before,v_response);
