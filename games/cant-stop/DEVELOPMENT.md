@@ -96,10 +96,11 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice 검증
 - Completed: authoritative roll/parity DB integration — run #71 SUCCESS
-- Pending: `npm run test:game-platform` on choose-pairing PR
-- Pending: Game Platform Governance Guard on choose-pairing PR
-- Pending: Site static checks on choose-pairing PR
-- Pending: Game DB integration choose-pairing authority/parity tests on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks run #3044 SUCCESS
+- Completed: Game Platform Governance Guard — run #45 SUCCESS
+- Completed: Site static checks — run #3044 SUCCESS
+- Completed: Game DB integration choose-pairing authority/parity contract — run #80 SUCCESS
+- Pending: 없음 (choose-pairing 범위)
 
 ## Known Issues / Deferred
 
