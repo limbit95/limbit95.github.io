@@ -22,6 +22,8 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260919-r12/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
+  assert.match(indexHtml, /auction-ui\.css\?v=20260919-r2/);
+  assert.match(indexHtml, /data-auction-style data-online-auction-style/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r2/);
