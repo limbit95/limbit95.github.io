@@ -101,6 +101,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
   const playerMap = new Map(players.map((player) => [player.id, player]));
   const activePlayerId = String(game.activePlayerId ?? "");
   const activePlayer = playerMap.get(activePlayerId) ?? null;
+  const hostUserId = String(snapshot.room.hostUserId ?? "");
   const winnerId = game.winnerId == null ? null : String(game.winnerId);
   const winner = winnerId ? playerMap.get(winnerId) ?? null : null;
   const playerProgress = game.playerProgress ?? {};
@@ -161,6 +162,8 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     version: Number(snapshot.version),
     phase,
     currentUserId: viewerId,
+    hostUserId,
+    isHost: viewerId !== "" && viewerId === hostUserId,
     activePlayerId,
     activePlayerName: activePlayer?.displayName ?? "플레이어",
     isMyTurn: viewerId !== "" && viewerId === activePlayerId,
@@ -193,6 +196,8 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ILLEGAL_PAIRING_CHOICE", "선택한 주사위 조합이 더 이상 유효하지 않아요. 최신 상태를 확인해 주세요."],
   ["ACTION_ID_CONFLICT", "같은 요청이 다른 내용으로 재사용됐어요. 다시 시도해 주세요."],
   ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
+  ["GAME_NOT_OVER", "게임이 종료된 뒤에만 재대결을 준비할 수 있어요."],
+  ["ROOM_NOT_LEAVABLE", "진행 중인 게임에서는 방을 나갈 수 없어요."],
 ]);
 
 export function getCantStopLobbyErrorMessage(error) {
