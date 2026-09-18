@@ -359,3 +359,42 @@ test("equal-version refresh still resynchronizes the authoritative server clock"
     restore.restore();
   }
 });
+
+
+test("action or replay responses do not rewind the authoritative server clock", async () => {
+  const restore = installFakeBrowser();
+  try {
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: {
+        ...snapshot(7, { pendingChoice: requestChoice() }),
+        serverNow: "2026-09-18T12:00:00Z",
+      },
+      api: {
+        createActionId: () => "22222222-2222-4222-8222-222222222222",
+        subscribeGame: () => () => {},
+        getSnapshot: async () => ({
+          ...snapshot(7, { pendingChoice: requestChoice() }),
+          serverNow: "2026-09-18T12:00:00Z",
+        }),
+        requestAuction: async () => ({
+          ...snapshot(8, { pendingChoice: recruitmentChoice() }),
+          serverNow: "2026-09-18T11:55:00Z",
+        }),
+      },
+    });
+
+    const before = session.getServerNowMs();
+    await session.requestAuction();
+    const after = session.getServerNowMs();
+
+    assert.ok(
+      Math.abs(after - before) < 200,
+      "action/replay response must not rewind the session server clock",
+    );
+    assert.equal(session.getState().pendingChoice.type, "AUCTION_RECRUITMENT");
+    session.dispose();
+  } finally {
+    restore.restore();
+  }
+});
