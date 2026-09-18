@@ -493,3 +493,39 @@ test("Can't Stop remote GAME_OVER host leave is recovered through invalidation",
   assert.equal(controller.current().snapshot.players[0].userId, "bob");
   assert.equal(controller.current().snapshot.game.phase, "GAME_OVER");
 });
+
+
+test("Can't Stop lobby controller tracks authoritative snapshot after invite join", async () => {
+  const adapter = fakeAdapter();
+  const inviteCalls = [];
+  const inviteAdapter = {
+    async joinRoomFromInvite(input) {
+      inviteCalls.push(input);
+      return snapshot({ version: 7 });
+    },
+  };
+  const controller = createCantStopLobbyController({
+    adapter,
+    inviteAdapter,
+    idFactory: () => "invite-action",
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.joinInvite({
+    token: "a".repeat(64),
+    nickname: "Alice",
+  });
+
+  assert.deepEqual(inviteCalls, [{
+    token: "a".repeat(64),
+    nickname: "Alice",
+  }]);
+  assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.WAITING);
+  assert.equal(controller.current().snapshot.version, 7);
+  assert.equal(
+    adapter.calls.some(([name]) => name === "subscribeInvalidation"),
+    true,
+  );
+});
