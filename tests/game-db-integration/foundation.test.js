@@ -22,6 +22,9 @@ let tradeAlice;
 let tradeBob;
 let liquidationAlice;
 let liquidationBob;
+let auctionAlice;
+let auctionBob;
+let auctionCarol;
 
 function jsonHeaders({ key = anonKey, token = key } = {}) {
   return {
@@ -188,6 +191,9 @@ before(async () => {
   tradeBob = await createTestUser("trade-bob");
   liquidationAlice = await createTestUser("liquidation-alice");
   liquidationBob = await createTestUser("liquidation-bob");
+  auctionAlice = await createTestUser("auction-alice");
+  auctionBob = await createTestUser("auction-bob");
+  auctionCarol = await createTestUser("auction-carol");
 });
 
 after(async () => {
@@ -306,6 +312,232 @@ test("Marble lobby enforces membership and optimistic room versions", async () =
   }, alice.accessToken);
   expectDenied(staleReady, "stale marble_set_ready");
   assert.match(staleReady.text, /VERSION_CONFLICT/u);
+});
+
+
+
+test("Marble Auction v2 RPCs enforce recruitment, stale concurrent request absorption, ordered bidding, and settlement", async () => {
+  const anonymousJoin = await rpc("marble_join_auction", {
+    p_room_id: randomUUID(),
+    p_expected_version: 1,
+    p_client_action_id: randomUUID(),
+  });
+  expectDenied(anonymousJoin, "anonymous marble_join_auction");
+
+  const created = await expectOk(await rpc("marble_create_room", {
+    p_nickname: "Auction Alice",
+    p_max_players: 3,
+  }, auctionAlice.accessToken), "auction marble_create_room");
+
+  const joinedBob = await expectOk(await rpc("marble_join_room", {
+    p_room_code: created.room.roomCode,
+    p_nickname: "Auction Bob",
+  }, auctionBob.accessToken), "auction Bob joins");
+
+  const joinedCarol = await expectOk(await rpc("marble_join_room", {
+    p_room_code: created.room.roomCode,
+    p_nickname: "Auction Carol",
+  }, auctionCarol.accessToken), "auction Carol joins");
+
+  const readyBob = await expectOk(await rpc("marble_set_ready", {
+    p_room_id: created.room.id,
+    p_ready: true,
+    p_expected_version: Number(joinedCarol.room.version),
+  }, auctionBob.accessToken), "auction Bob ready");
+
+  const readyCarol = await expectOk(await rpc("marble_set_ready", {
+    p_room_id: created.room.id,
+    p_ready: true,
+    p_expected_version: Number(readyBob.room.version),
+  }, auctionCarol.accessToken), "auction Carol ready");
+
+  const started = await expectOk(await rpc("marble_start_game", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(readyCarol.room.version),
+  }, auctionAlice.accessToken), "auction marble_start_game");
+
+  const alicePlayer = started.players.find((player) => player.userId === auctionAlice.id);
+  const bobPlayer = started.players.find((player) => player.userId === auctionBob.id);
+  const carolPlayer = started.players.find((player) => player.userId === auctionCarol.id);
+  assert.ok(alicePlayer?.id, "auction Alice player id missing");
+  assert.ok(bobPlayer?.id, "auction Bob player id missing");
+  assert.ok(carolPlayer?.id, "auction Carol player id missing");
+
+  await expectOk(await request(
+    `/rest/v1/marble_games?id=eq.${started.game.id}`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: {
+        phase: "WAITING_CHOICE",
+        current_seat: alicePlayer.seat,
+        pending_choice: {
+          type: "BUY_PROPERTY",
+          nodeId: "singapore",
+          price: 260,
+        },
+      },
+    },
+  ), "fixture Auction v2 purchase choice");
+
+  await expectOk(await request(
+    `/rest/v1/marble_game_properties?game_id=eq.${started.game.id}&node_id=eq.singapore`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: { owner_seat: null, building_level: 0 },
+    },
+  ), "fixture Auction v2 Singapore available");
+
+  const purchaseChoice = await expectOk(await rpc("marble_get_game_snapshot", {
+    p_room_id: created.room.id,
+  }, auctionAlice.accessToken), "auction purchase choice snapshot");
+
+  const declined = await expectOk(await rpc("marble_decline_property_for_auction", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(purchaseChoice.game.version),
+    p_client_action_id: randomUUID(),
+  }, auctionAlice.accessToken), "auction decline property");
+
+  assert.ok(Number.isFinite(Date.parse(String(declined.serverNow))), "Auction v2 snapshot must expose serverNow");
+  assert.equal(declined.game.pendingChoice?.type, "AUCTION_REQUEST");
+  assert.equal(declined.game.pendingChoice?.basePrice, 260);
+  assert.equal(declined.game.pendingChoice?.openingBid, 390);
+  assert.equal(
+    declined.game.pendingChoice?.eligiblePlayerIds.includes(alicePlayer.id),
+    false,
+    "purchase decliner must not be auction eligible",
+  );
+  assert.deepEqual(
+    declined.game.pendingChoice?.eligiblePlayerIds,
+    [bobPlayer.id, carolPlayer.id],
+  );
+
+  const requestVersion = Number(declined.game.version);
+  const requested = await expectOk(await rpc("marble_request_auction", {
+    p_room_id: created.room.id,
+    p_expected_version: requestVersion,
+    p_client_action_id: randomUUID(),
+  }, auctionBob.accessToken), "auction Bob requests");
+
+  assert.equal(requested.game.pendingChoice?.type, "AUCTION_RECRUITMENT");
+  assert.equal(requested.game.pendingChoice?.requesterPlayerId, bobPlayer.id);
+  assert.deepEqual(requested.game.pendingChoice?.participantPlayerIds, [bobPlayer.id]);
+
+  const concurrentJoined = await expectOk(await rpc("marble_request_auction", {
+    p_room_id: created.room.id,
+    p_expected_version: requestVersion,
+    p_client_action_id: randomUUID(),
+  }, auctionCarol.accessToken), "stale concurrent request becomes join");
+
+  assert.deepEqual(
+    concurrentJoined.game.pendingChoice?.participantPlayerIds,
+    [bobPlayer.id, carolPlayer.id],
+  );
+  assert.equal(
+    concurrentJoined.game.lastEvents?.some((event) => (
+      event.type === "AUCTION_PARTICIPANT_JOINED"
+      && event.playerId === carolPlayer.id
+      && event.source === "CONCURRENT_REQUEST"
+    )),
+    true,
+  );
+
+  const withdrawn = await expectOk(await rpc("marble_withdraw_auction", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(concurrentJoined.game.version),
+    p_client_action_id: randomUUID(),
+  }, auctionCarol.accessToken), "auction Carol withdraws");
+
+  assert.deepEqual(withdrawn.game.pendingChoice?.participantPlayerIds, [bobPlayer.id]);
+
+  const rejoined = await expectOk(await rpc("marble_join_auction", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(withdrawn.game.version),
+    p_client_action_id: randomUUID(),
+  }, auctionCarol.accessToken), "auction Carol rejoins");
+
+  assert.deepEqual(
+    rejoined.game.pendingChoice?.participantPlayerIds,
+    [bobPlayer.id, carolPlayer.id],
+  );
+
+  await expectOk(await request(
+    `/rest/v1/marble_games?id=eq.${started.game.id}`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body: {
+        pending_choice: {
+          ...rejoined.game.pendingChoice,
+          deadlineAt: "2000-01-01T00:00:00Z",
+        },
+      },
+    },
+  ), "expire Auction v2 recruitment deadline");
+
+  const opened = await expectOk(await rpc("marble_advance_auction_deadline", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(rejoined.game.version),
+    p_client_action_id: randomUUID(),
+  }, auctionAlice.accessToken), "advance Auction v2 recruitment deadline");
+
+  assert.equal(opened.game.pendingChoice?.type, "PROPERTY_AUCTION");
+  assert.equal(opened.game.pendingChoice?.auction?.requesterPlayerId, bobPlayer.id);
+  assert.equal(opened.game.pendingChoice?.auction?.highestBidderId, bobPlayer.id);
+  assert.equal(opened.game.pendingChoice?.auction?.highestBid, 390);
+  assert.deepEqual(
+    opened.game.pendingChoice?.auction?.participantPlayerIds,
+    [bobPlayer.id, carolPlayer.id],
+  );
+  assert.equal(opened.game.pendingChoice?.auction?.turnPlayerId, carolPlayer.id);
+
+  const passActionId = randomUUID();
+  const settled = await expectOk(await rpc("marble_auction_bid", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(opened.game.version),
+    p_client_action_id: passActionId,
+    p_amount: null,
+    p_pass: true,
+  }, auctionCarol.accessToken), "auction Carol passes");
+
+  assert.equal(settled.game.phase, "TURN_END");
+  assert.equal(settled.game.pendingChoice, null);
+  assert.equal(settled.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(
+    settled.players.find((player) => player.id === bobPlayer.id)?.money,
+    1110,
+  );
+  assert.equal(
+    settled.game.lastEvents?.some((event) => (
+      event.type === "PROPERTY_BOUGHT"
+      && event.playerId === bobPlayer.id
+      && event.amount === 390
+      && event.reason === "AUCTION"
+    )),
+    true,
+  );
+
+  const replayedPass = await expectOk(await rpc("marble_auction_bid", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(opened.game.version),
+    p_client_action_id: passActionId,
+    p_amount: null,
+    p_pass: true,
+  }, auctionCarol.accessToken), "auction pass replay");
+
+  assert.equal(replayedPass.game.version, settled.game.version);
+  assert.equal(replayedPass.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(
+    replayedPass.players.find((player) => player.id === bobPlayer.id)?.money,
+    1110,
+  );
 });
 
 
