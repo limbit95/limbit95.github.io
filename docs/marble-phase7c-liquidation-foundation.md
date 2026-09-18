@@ -274,3 +274,19 @@ Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지
 - `selectLiquidation / confirmLiquidation`은 기존 shared action retry를 사용해 같은 `client_action_id`로 재시도합니다.
 - stale snapshot은 기존 version guard에 의해 settled state를 되돌리지 못합니다.
 - 거래/경매와 동일하게 별도 liquidation Realtime channel은 만들지 않습니다.
+
+## Online UI
+
+- `DEBT_RECOVERY` pending choice가 있을 때 board action dock에 자산 매각 패널을 노출합니다.
+- 채무자는 서버 snapshot의 liquidation catalog에서 매각할 도시를 선택합니다.
+- 선택 결과는 `selectLiquidation()`으로 서버에 반영하며 클라이언트가 refund를 직접 계산하지 않습니다.
+- 서버 snapshot이 `ready=true`를 반환한 경우에만 `confirmLiquidation()`을 활성화합니다.
+- 제3자는 채무자의 recovery 진행 상태를 볼 수 있지만 선택/확정할 수 없습니다.
+- 거래 UI와 동일한 canonical `onlineSession.js?v=20260910-r8` specifier를 사용해 단일 online session instance를 공유합니다.
+
+## 다음 단계
+
+```text
+multiplayer regression
+→ 최신 main 최종 integration
+```
