@@ -141,6 +141,7 @@ test("Auction v2 UI owns timers, recruitment controls, and auto-purchase result"
   assert.match(uiSource, /session\.withdrawAuction\(\)/);
   assert.match(uiSource, /session\.auctionPass\(\)/);
   assert.match(uiSource, /매입에 성공하셨습니다/);
+  assert.match(uiSource, /event\.playerId !== viewerPlayerId/);
   assert.match(cssSource, /data-auction-stage="request"/);
   assert.match(cssSource, /data-auction-stage="recruitment"/);
   assert.match(cssSource, /position: fixed/);
