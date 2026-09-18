@@ -72,5 +72,8 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
     rejectTrade(playerId) {
       return dispatch(ACTION_TYPES.TRADE_REJECT, {}, playerId);
     },
+    cancelTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_CANCEL, {}, playerId);
+    },
   });
 }
