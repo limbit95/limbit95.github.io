@@ -2,7 +2,7 @@
 
 Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
 
-Phase 7B는 거래 lifecycle과 deterministic settlement를 독립 규칙으로 고정하고 서버 권위 Supabase RPC / Realtime·재접속을 연결한 뒤, 현재 **온라인 거래 UI**를 연결하고 있습니다.
+Phase 7B는 거래 lifecycle과 deterministic settlement, 서버 권위 RPC, Realtime·재접속, 온라인 UI를 연결했고 현재 **멀티플레이 회귀 검증**을 진행하고 있습니다.
 
 ## 현재 확정 범위
 
@@ -163,11 +163,23 @@ requested:
 - open trade는 모든 활성 플레이어에게 표시하되 수신자만 수락/거절할 수 있습니다.
 - UI는 소유권/골드를 직접 변경하지 않고 online session RPC만 호출합니다.
 
+## Multiplayer regression
+
+3개 온라인 세션을 공유 authoritative backend에 연결해 다음 흐름을 검증합니다.
+
+- 제안자의 거래 생성과 다른 클라이언트 Realtime 전파
+- 수신자만 수락/거절할 수 있는 UI 상태
+- 수락 시 양쪽 골드와 지역 소유권의 동일 결과 전파
+- 거절 시 자산 상태 불변
+- 오래된 snapshot이 최신 정산 결과를 되돌리지 못하는지 확인
+- 재접속 시 open trade를 snapshot만으로 복원
+- expected version / client action id / offer id 계약 유지
+
 ## 다음 단계
 
 ```text
-multiplayer regression
-→ 최종 main 통합
+Phase 7B 최종 통합 검토
+→ main 대상 integration PR
 ```
 
 Phase 7A의 안정화된 구매/건설/경매/턴 흐름과 기존 roll RPC는 직접 수정하지 않습니다.
