@@ -216,7 +216,7 @@ test("Can't Stop gameplay view maps authoritative progress, runners, claims, dic
 test("Can't Stop gameplay view exposes push/stop and game-over states from server phase", () => {
   const base = {
     version: 20,
-    room: { id: "room-1", status: "playing" },
+    room: { id: "room-1", status: "playing", hostUserId: "alice" },
     players: [
       { userId: "alice", displayName: "Alice" },
       { userId: "bob", displayName: "Bob" },
