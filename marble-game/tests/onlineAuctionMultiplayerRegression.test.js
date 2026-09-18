@@ -454,10 +454,15 @@ test("authoritative SQL keeps the multiplayer restrictions exercised by the regr
   assert.match(authoritySql, /'type','PROPERTY_AUCTION'/);
   assert.match(authoritySql, /v_minimum := case when v_highest>0 then v_highest\+1 else v_opening end/);
   assert.match(authoritySql, /AUCTION_BID_TOO_LOW/);
+  assert.match(authoritySql, /INSUFFICIENT_GOLD/);
   assert.match(authoritySql, /AUCTION_HIGHEST_BIDDER_CANNOT_PASS/);
   assert.match(authoritySql, /\(v_requested \? v_player_id\) and not \(v_bids \? v_player_id\).*AUCTION_REQUESTER_BID_REQUIRED/s);
   assert.match(authoritySql, /private\.marble_action_replay/);
   assert.match(authoritySql, /VERSION_CONFLICT/);
+  const replayBeforeVersionChecks = authoritySql.match(
+    /private\.marble_action_replay[\s\S]*?VERSION_CONFLICT/g,
+  ) ?? [];
+  assert.equal(replayBeforeVersionChecks.length, 4);
   assert.match(authoritySql, /update public\.marble_game_players set money=money-v_highest/);
   assert.match(authoritySql, /update public\.marble_game_properties set owner_seat=v_winner\.seat, building_level=0/);
 });
