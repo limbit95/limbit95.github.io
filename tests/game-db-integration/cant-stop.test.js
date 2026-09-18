@@ -935,3 +935,167 @@ test("cant-stop: concurrent continue and stop intents allow only one authoritati
   assert.equal(Number(snapshot.version), expectedVersion + 1);
   assert.ok(["TURN_ROLL"].includes(snapshot.game.phase));
 });
+
+
+test("cant-stop: active gameplay room cannot be left before GAME_OVER", async () => {
+  const { host, started } = await startTwoPlayerGame("postgame-leave-guard");
+
+  const result = await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+  }, host.accessToken);
+
+  expectDenied(result, "leave active gameplay room", /ROOM_NOT_LEAVABLE/u);
+});
+
+test("cant-stop: GAME_OVER player can leave and immediately create another room", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("postgame-leave");
+  const version = 300;
+  const fixture = {
+    ...started.game,
+    phase: "GAME_OVER",
+    playerProgress: {
+      [host.id]: {},
+      [guest.id]: { 2: 3, 3: 5, 4: 7 },
+    },
+    claimedColumns: {
+      2: guest.id,
+      3: guest.id,
+      4: guest.id,
+    },
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: guest.id,
+    activePlayerId: guest.id,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  await expectOk(await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+  }, guest.accessToken), "guest leaves GAME_OVER room");
+
+  const guestActive = await expectOk(
+    await rpc("cant_stop_get_my_active_room", {}, guest.accessToken),
+    "guest active room after GAME_OVER leave",
+  );
+  assert.equal(guestActive, null);
+
+  const hostSnapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: started.room.id,
+  }, host.accessToken), "host sees final snapshot after winner leaves");
+  const departedWinner = hostSnapshot.players.find((player) => player.userId === guest.id);
+  assert.equal(hostSnapshot.game.winnerId, guest.id);
+  assert.equal(departedWinner?.displayName, guest.nickname);
+  assert.equal(departedWinner?.connected, false);
+  assert.equal(departedWinner?.membershipStatus, "left");
+
+  const nextRoom = await createRoom(guest);
+  assert.notEqual(nextRoom.room.id, started.room.id);
+  assert.equal(nextRoom.room.status, "waiting");
+});
+
+test("cant-stop: host rematch preserves room and members but resets game to waiting", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("postgame-rematch");
+  const version = 400;
+  const roomCode = started.room.roomCode;
+  const fixture = {
+    ...started.game,
+    phase: "GAME_OVER",
+    playerProgress: {
+      [host.id]: { 2: 3, 3: 5, 4: 7 },
+      [guest.id]: { 6: 2 },
+    },
+    claimedColumns: {
+      2: host.id,
+      3: host.id,
+      4: host.id,
+    },
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: host.id,
+    activePlayerId: host.id,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const actionId = randomUUID();
+  const rematch = await expectOk(await rpc("cant_stop_rematch_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+    p_client_action_id: actionId,
+  }, host.accessToken), "host cant_stop_rematch_room");
+
+  assert.equal(rematch.room.id, started.room.id);
+  assert.equal(rematch.room.roomCode, roomCode);
+  assert.equal(rematch.room.status, "waiting");
+  assert.equal(Number(rematch.version), version + 1);
+  assert.equal(rematch.game, null);
+  assert.equal(rematch.players.length, 2);
+  assert.equal(rematch.players.find((player) => player.userId === host.id)?.isReady, true);
+  assert.equal(rematch.players.find((player) => player.userId === guest.id)?.isReady, false);
+
+  const replay = await expectOk(await rpc("cant_stop_rematch_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+    p_client_action_id: actionId,
+  }, host.accessToken), "replayed cant_stop_rematch_room");
+  assert.equal(Number(replay.version), Number(rematch.version));
+
+  const ready = await setReady(guest, rematch, true);
+  const restarted = await expectOk(await rpc("cant_stop_start_game", {
+    p_room_id: ready.room.id,
+    p_expected_version: Number(ready.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), "restart after rematch");
+
+  assert.equal(restarted.room.id, started.room.id);
+  assert.equal(restarted.room.status, "playing");
+  assert.equal(restarted.game.phase, "TURN_ROLL");
+  assert.deepEqual(restarted.game.claimedColumns, {});
+  assert.deepEqual(restarted.game.runners, {});
+  assert.equal(restarted.game.winnerId, null);
+  assert.deepEqual(
+    Object.keys(restarted.game.playerProgress).sort(),
+    [host.id, guest.id].sort(),
+  );
+});
+
+test("cant-stop: only host can rematch and rematch requires GAME_OVER", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("postgame-rematch-guard");
+
+  const early = await rpc("cant_stop_rematch_room", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken);
+  expectDenied(early, "rematch before GAME_OVER", /GAME_NOT_OVER/u);
+
+  const version = 500;
+  await setAuthoritativeGameState(started.room.id, {
+    ...started.game,
+    phase: "GAME_OVER",
+    playerProgress: {
+      [host.id]: {},
+      [guest.id]: {},
+    },
+    claimedColumns: {
+      2: host.id,
+      3: host.id,
+      4: host.id,
+    },
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: host.id,
+    activePlayerId: host.id,
+  }, version);
+
+  const guestAttempt = await rpc("cant_stop_rematch_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+    p_client_action_id: randomUUID(),
+  }, guest.accessToken);
+  expectDenied(guestAttempt, "guest cant_stop_rematch_room", /HOST_REQUIRED/u);
+});
