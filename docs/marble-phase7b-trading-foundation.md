@@ -2,7 +2,7 @@
 
 Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
 
-이번 foundation은 거래 자산 종류나 턴 제한을 먼저 하드코딩하지 않고, 서버 권위 거래로 확장할 수 있는 **거래 제안 lifecycle 규칙**만 독립 모듈로 고정합니다.
+Phase 7B는 거래 lifecycle과 deterministic settlement를 독립 규칙으로 고정한 뒤, 현재 동일 계약을 **서버 권위 Supabase RPC**까지 확장하고 있습니다.
 
 ## 현재 확정 범위
 
@@ -31,7 +31,7 @@ Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
 - 동시에 여러 제안 허용 여부
 - 거래 수락 시 실제 골드/소유권 정산 순서
 
-이 규칙들이 확정되기 전에는 Game Engine 상태, Supabase RPC, Realtime, UI에 거래를 연결하지 않습니다.
+확정되지 않은 counter offer / 제안자 취소 / 자동 만료 / 건물 포함 거래 등은 여전히 임의로 추가하지 않습니다. 현재 서버 권위 단계는 이미 확정한 pre-roll 거래와 property/gold 정산 계약만 구현합니다.
 
 ## 구현
 
@@ -130,13 +130,31 @@ requested:
 
 회귀 테스트에서는 기존 구매/경매 흐름을 유지하면서 실제 로컬 세션에서 지역 + 골드 거래의 수락/거절을 검증합니다.
 
+## Authoritative Supabase RPC
+
+온라인 거래는 기존 Marble action contract를 그대로 사용합니다.
+
+- `expected_version`으로 stale client action 차단
+- `client_action_id`로 retry / replay idempotency 유지
+- `offer_id`를 거래 accept/reject 요청에도 포함하여 다른 거래에 동일 action id가 재사용되는 것을 방어
+- room / game / player / property row lock 후 현재 상태 재검증
+- `marble_games.pending_trade`를 authoritative 거래 상태로 사용
+- snapshot에 `pendingTrade`를 포함해 reconnect 시 이벤트 재생 없이 복원 가능
+- `marble_trade_offer / marble_trade_accept / marble_trade_reject` RPC만 신규 추가
+- 기존 `marble_roll_dice`는 live/repository drift를 보존하기 위해 재정의하지 않음
+- open trade 중 phase/current seat/pending choice/last roll 진행을 DB trigger가 `TRADE_PENDING`으로 차단
+- public / anon RPC 실행 권한은 제거하고 authenticated만 허용
+
+거래 수락 시 property ownership과 양쪽 gold를 같은 DB transaction에서 정산하고, 현재 ownership / balance / bankrupt / building 상태를 다시 확인합니다.
+
+운영 Supabase에는 이 단계에서 바로 적용하지 않고, repository migration을 isolated Game DB integration에서 먼저 검증합니다.
+
 ## 다음 단계
 
 ```text
-authoritative Supabase RPC
-→ Realtime / reconnect
+Realtime / reconnect
 → UI
 → multiplayer regression
 ```
 
-Phase 7A의 안정화된 구매/건설/경매/턴 흐름은 직접 수정하지 않습니다.
+Phase 7A의 안정화된 구매/건설/경매/턴 흐름과 기존 roll RPC는 직접 수정하지 않습니다.
