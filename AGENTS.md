@@ -10,6 +10,27 @@
 - 변경사항은 작업 브랜치에 commit한 뒤 Pull Request로 제출합니다.
 - 사용자의 명시적 승인 없이 Pull Request를 `main`에 merge하지 않습니다.
 
+## 브랜치 명명 규칙
+
+- 기본 형식은 `<type>/<root-slug>-phase<N>-<detail>`을 사용합니다.
+- `feature`, `fix`, `refactor`, `chore` 등 `type`은 실제 작업 성격에 맞게 선택합니다.
+- 하나의 큰 작업이 시작되어 완료될 때까지 `root-slug`는 동일하게 유지합니다.
+- 세부 단계나 후속 작업은 `phase<N>`과 `detail`만 변경하여 구분합니다.
+- 기존 작업의 후속 브랜치에서 별도 `root-slug`를 임의로 만들지 않습니다. 새로운 `root-slug`는 완전히 별개의 작업을 시작할 때만 사용합니다.
+- 브랜치 정리, 삭제 대상 제안, 기존 작업 참조 시에는 `type`보다 `root-slug`를 우선 기준으로 삼습니다.
+- 삭제 대상 브랜치는 같은 `root-slug`끼리 묶어 검토하고, 현재 작업과 다른 `root-slug`의 브랜치를 작업 기준으로 혼용하거나 참조하지 않습니다.
+- 단계 구분이 불필요한 단일 작업은 `phase<N>`을 생략할 수 있지만, 여러 단계로 이어질 가능성이 있다면 처음부터 `phase<N>` 형식을 우선 사용합니다.
+
+예시:
+
+```text
+feature/marble-stability-phase1-foundation
+feature/marble-stability-phase2-room-sync
+fix/marble-stability-phase3-ci
+```
+
+위 예시처럼 `type`은 달라질 수 있어도 같은 작업 계보라면 `marble-stability`를 공통 `root-slug`로 유지합니다.
+
 ## 변경 원칙
 
 - 기존 아키텍처, 코딩 스타일, 데이터 구조와 기존 동작을 최대한 유지합니다.

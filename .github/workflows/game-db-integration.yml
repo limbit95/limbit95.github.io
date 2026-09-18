@@ -1,0 +1,70 @@
+name: Game DB integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/liar-game/**"
+      - "supabase/the-game/**"
+      - "supabase/marble/**"
+      - "scripts/prepare-game-db-e2e.mjs"
+      - "tests/game-db-integration/**"
+      - ".github/workflows/game-db-integration.yml"
+
+jobs:
+  game-db-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+
+      - name: Prepare isolated game database
+        shell: bash
+        run: |
+          rm -rf .game-db-e2e
+          mkdir -p .game-db-e2e
+          supabase init --workdir .game-db-e2e
+          node scripts/prepare-game-db-e2e.mjs
+
+      - name: Start isolated Supabase services
+        run: >-
+          supabase start --workdir .game-db-e2e
+          -x logflare,vector,mailpit,imgproxy,edge-runtime,postgres-meta,studio,supavisor
+
+      - name: Export isolated Supabase credentials
+        shell: bash
+        run: |
+          supabase status --workdir .game-db-e2e -o env > /tmp/cheongpa-game-db-e2e.env
+          set -a
+          source /tmp/cheongpa-game-db-e2e.env
+          set +a
+          : "${API_URL:?Missing API_URL from Supabase status}"
+          : "${ANON_KEY:?Missing ANON_KEY from Supabase status}"
+          : "${SERVICE_ROLE_KEY:?Missing SERVICE_ROLE_KEY from Supabase status}"
+          echo "::add-mask::$ANON_KEY"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "E2E_LOCAL_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "E2E_LOCAL_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+
+      - name: Run game DB integration foundation
+        run: node --test tests/game-db-integration/foundation.test.js
+
+      - name: Stop isolated Supabase services
+        if: always()
+        run: supabase stop --workdir .game-db-e2e --no-backup || true

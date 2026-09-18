@@ -1,3 +1,4 @@
+import "../../js/accessTracker.js";
 import { welcomeView } from "./views/welcome.js";
 
 const gameRoot = document.querySelector("#app");

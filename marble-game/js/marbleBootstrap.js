@@ -1,3 +1,5 @@
+import "../../js/accessTracker.js";
+
 const BOOTSTRAP_REVISION = "20260915-r1";
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";

@@ -1,3 +1,5 @@
+import "../../js/accessTracker.js";
+
 let lastResultKey = "";
 let syncQueued = false;
 
