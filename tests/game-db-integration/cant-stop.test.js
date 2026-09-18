@@ -600,9 +600,7 @@ test("cant-stop: pairing action id cannot be replayed with a different payload",
     p_client_action_id: actionId,
   }, activeUser.accessToken), "initial cant_stop_choose_pairing");
 
-  const changedColumns = plan.length === 2
-    ? [...plan].reverse()
-    : [plan[0] === 2 ? 3 : 2];
+  const changedColumns = [plan[0] === 2 ? 3 : 2];
 
   const conflict = await rpc("cant_stop_choose_pairing", {
     p_room_id: rolled.room.id,
