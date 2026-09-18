@@ -40,7 +40,7 @@
 14. 세 번째 열을 claim한 stop 처리와 함께 게임이 종료된다.
 15. 다른 플레이어의 permanent marker와 같은 칸을 공유하는 것은 허용한다.
 
-규칙 버전 차이 중 첫 플레이어 결정 방식은 판본마다 차이가 있으므로 제품 규칙으로 별도 결정한다.
+청파 같이 구현에서는 사전 주사위로 선 플레이어를 정하지 않는다. 게임 시작 RPC가 서버에서 플레이어 순서를 한 번 무작위로 확정하고 authoritative game state에 저장한다.
 
 ## Product Scope
 
@@ -99,7 +99,7 @@ TURN_ROLL
 ## Domain Model
 
 - `columns`: number, height, claimedBy
-- `players`: player id, turn order, column별 permanent progress, claimed columns
+- `players`: player id, 서버가 게임 시작 시 무작위로 확정한 turn order, column별 permanent progress, claimed columns
 - `turn`: activePlayerId, 최대 세 개의 runner positions, latest dice, legal pairings, phase
 - `game`: status, version, winnerId, turn index
 
@@ -146,6 +146,7 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 - stop commit
 - column claim
 - 승리
+- 게임 시작 시 최초 turn order 무작위 확정
 - turn 이동
 - room/game version 증가
 
@@ -239,7 +240,6 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 ## Open Questions / Deferred
 
-- 첫 플레이어 결정: 규칙서의 사전 dice roll을 그대로 구현할지 online room 시작 시 서버 무작위 turn order로 단순화할지 사용자 검토가 필요하다.
 - legal pairing이 정확히 하나일 때 서버가 자동 적용할지 UI에서 확인 선택을 받을지는 UX 단계에서 결정한다. 규칙 엔진은 둘 다 표현할 수 있게 한다.
 - Invite는 online core가 먼저 안정된 후 연결한다.
 - 초기 board의 최종 시각 테마와 애니메이션 품질은 core rules/authority 검증 이후 확정한다.
