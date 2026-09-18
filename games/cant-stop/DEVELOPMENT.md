@@ -160,3 +160,18 @@
 - Supabase advisor의 authenticated SECURITY DEFINER 경고는 authenticated 전용 authoritative RPC 설계로 인해 예상되는 항목이며, anon/PUBLIC EXECUTE는 모두 차단돼 있다.
 - `cant_stop_room_actions`는 RLS가 켜져 있고 direct SELECT/WRITE grant가 없는 action log라 policy가 없는 상태를 의도적으로 유지한다.
 
+## Development Progress Log
+
+### 2026-09-19 — Phase 4 운영 migration checkpoint
+
+- Can’t Stop Phase 4 전체 구현을 통합 PR #323으로 `main`에 병합했다.
+- 기존 stacked PR 체인을 정리하고 중복 post-game PR을 종료했다.
+- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 순서대로 적용했다.
+- 운영 DB에서 `cant_stop_rooms`, `cant_stop_room_players`, `cant_stop_room_actions` 생성과 RLS 활성화를 확인했다.
+- `cant_stop_rooms`, `cant_stop_room_players`가 `supabase_realtime` publication에 등록된 것을 확인했다.
+- Can’t Stop public RPC 13개가 anon/PUBLIC에는 실행 불가하고 authenticated에만 실행 가능함을 확인했다.
+- 모든 public RPC에 `auth.uid()`, `private.is_approved_member()`, 고정 `search_path` 검증이 포함된 것을 확인했다.
+- room/player 테이블은 authenticated SELECT만 허용하고 direct write는 차단하며, action log는 direct SELECT/WRITE 모두 차단된 상태를 확인했다.
+- Registry `online` / `invite` capability는 실제 멀티클라이언트 live smoke test가 끝날 때까지 비활성 상태를 유지한다.
+- 다음 체크포인트는 승인회원 계정 2~4개를 사용한 실제 브라우저 플레이 테스트다.
+
