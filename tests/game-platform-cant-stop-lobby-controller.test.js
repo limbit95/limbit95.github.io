@@ -126,9 +126,64 @@ function fakeAdapter({ activeSnapshot = null } = {}) {
   };
 }
 
-function createController(adapter, states = []) {
+function fakeGameplayAdapter() {
+  const calls = [];
+
+  function nextSnapshot(input, phase, gamePatch = {}) {
+    return {
+      ...snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        canStart: true,
+        ready: true,
+      }),
+      game: {
+        phase,
+        activePlayerId: "bob",
+        ...gamePatch,
+      },
+    };
+  }
+
+  return {
+    calls,
+    async rollDice(input) {
+      calls.push(["rollDice", input]);
+      return nextSnapshot(input, "PAIRING_SELECTION", {
+        latestDice: [1, 2, 3, 4],
+        legalPairings: [{ sums: [3, 7], plans: [[3, 7]] }],
+      });
+    },
+    async choosePairing(input) {
+      calls.push(["choosePairing", input]);
+      return nextSnapshot(input, "PUSH_OR_STOP", {
+        runners: { 3: 1, 7: 1 },
+        legalPairings: [],
+      });
+    },
+    async continueTurn(input) {
+      calls.push(["continueTurn", input]);
+      return nextSnapshot(input, "TURN_ROLL", {
+        runners: { 3: 1, 7: 1 },
+        latestDice: null,
+        legalPairings: [],
+      });
+    },
+    async stopTurn(input) {
+      calls.push(["stopTurn", input]);
+      return nextSnapshot(input, "TURN_ROLL", {
+        activePlayerId: "alice",
+        runners: {},
+        playerProgress: { bob: { 3: 1, 7: 1 } },
+      });
+    },
+  };
+}
+
+function createController(adapter, states = [], gameplayAdapter = null) {
   return createCantStopLobbyController({
     adapter,
+    gameplayAdapter,
     idFactory: () => "action-1",
     onState: (state) => states.push(state),
     windowTarget: new EventTarget(),
@@ -226,4 +281,79 @@ test("Can't Stop lobby controller leaves the room and disposes room subscription
   assert.equal(controller.current().view, CANT_STOP_LOBBY_VIEW.ENTRY);
   assert.equal(controller.current().snapshot, null);
   assert.equal(adapter.unsubscribed(), 1);
+});
+
+
+test("Can't Stop lobby controller sends versioned authoritative gameplay actions", async () => {
+  const adapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 10,
+      status: "playing",
+      canStart: true,
+      ready: true,
+    }),
+  });
+  const gameplay = fakeGameplayAdapter();
+  let actionCounter = 0;
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => `game-action-${++actionCounter}`,
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.rollDice();
+
+  assert.deepEqual(gameplay.calls[0], ["rollDice", {
+    roomId: "room-1",
+    expectedVersion: 10,
+    clientActionId: "game-action-1",
+  }]);
+  assert.equal(controller.current().snapshot.version, 11);
+  assert.equal(controller.current().snapshot.game.phase, "PAIRING_SELECTION");
+
+  await controller.choosePairing({
+    sums: [3, 7],
+    columns: [3, 7],
+  });
+  assert.deepEqual(gameplay.calls[1], ["choosePairing", {
+    roomId: "room-1",
+    expectedVersion: 11,
+    clientActionId: "game-action-2",
+    sums: [3, 7],
+    columns: [3, 7],
+  }]);
+  assert.equal(controller.current().snapshot.game.phase, "PUSH_OR_STOP");
+
+  await controller.continueTurn();
+  assert.deepEqual(gameplay.calls[2], ["continueTurn", {
+    roomId: "room-1",
+    expectedVersion: 12,
+    clientActionId: "game-action-3",
+  }]);
+  assert.equal(controller.current().snapshot.game.phase, "TURN_ROLL");
+
+  await controller.stopTurn();
+  assert.deepEqual(gameplay.calls[3], ["stopTurn", {
+    roomId: "room-1",
+    expectedVersion: 13,
+    clientActionId: "game-action-4",
+  }]);
+  assert.equal(controller.current().snapshot.version, 14);
+});
+
+test("Can't Stop lobby controller rejects gameplay commands without an active playing room", async () => {
+  const adapter = fakeAdapter({ activeSnapshot: snapshot({ version: 3 }) });
+  const gameplay = fakeGameplayAdapter();
+  const controller = createController(adapter, [], gameplay);
+
+  await controller.initialize();
+
+  await assert.rejects(
+    () => controller.rollDice(),
+    /game is not active/u,
+  );
+  assert.equal(gameplay.calls.length, 0);
 });
