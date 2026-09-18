@@ -31,7 +31,7 @@
 - 기존 일반 페이지는 Auth 세션뿐 아니라 `profiles.status`가 `approved`인지도 확인한다.
 - 로그인 화면은 물리 `/login`이 아니라 루트 SPA의 `#/login`이다.
 
-라이어게임 클라이언트는 **유효한 Supabase Auth 로그인 세션 존재**를 먼저 확인한다. 다만 방 생성·참가·활성 방 조회·복구 RPC는 서버에서 `private.is_approved_member()`를 다시 검증하여 승인 회원만 게임 입장/복구 경계를 통과하도록 한다. 클라이언트가 `profiles.status`를 직접 조회해 권한을 판정하지 않으며, pending/rejected/suspended 회원은 해당 RPC에서 거부된다.
+라이어게임 클라이언트는 **유효한 Supabase Auth 로그인 세션 존재**를 먼저 확인한다. 서버에서는 방 생성·참가·복구 RPC가 `private.is_approved_member()`를 다시 검증하며 pending/rejected/suspended 회원에게 `AUTH_REQUIRED`를 반환한다. 활성 방 조회 RPC도 같은 승인 회원 조건을 적용하지만, 승인되지 않은 회원에게 오류를 내는 대신 성공 응답으로 빈 결과 `[]`을 반환한다. 클라이언트가 `profiles.status`를 직접 조회해 권한을 판정하지 않는 원칙은 유지한다.
 
 ### A.4 Router, App, 메뉴
 
