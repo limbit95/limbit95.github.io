@@ -2,9 +2,8 @@ name: Community hashed assets
 
 on:
   push:
-    branches:
-      - "feature/**"
-      - "integration/activity-registration-ready"
+    branches-ignore:
+      - main
     paths:
       - "js/**"
       - "index.template.html"
@@ -20,7 +19,7 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout feature branch
+      - name: Checkout work branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
