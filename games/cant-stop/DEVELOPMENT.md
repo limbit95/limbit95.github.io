@@ -91,13 +91,13 @@
 
 ## Current Work
 
-- platform-native Invite 생성/라우팅/서버 재검증/room 참가 경계를 disposable Supabase 및 Game Platform 회귀로 검증한다.
+- Phase 4 전체 구현은 통합 PR #323으로 main에 병합 완료했다.
+- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 순서대로 적용하고 production schema / RPC / RLS / grants를 검증한다.
 
 ## Next Work
 
-- Invite 검증 완료 후 운영 Supabase migration 적용 여부를 결정하고 실제 배포 smoke test를 준비한다.
-- 운영 migration + live smoke test가 완료되기 전까지 Registry `online/invite` capability는 false로 유지한다.
-- 운영 검증이 완료된 시점에 Registry capability와 게임 목록 노출을 별도 작은 변경으로 활성화한다.
+- 운영 migration 적용 후 실제 승인회원 계정 2~4개로 room/lobby/gameplay/reconnect/rematch/invite live smoke test를 수행한다.
+- live smoke test 통과 후 별도 활성화 PR에서 Registry `online` / `invite` capability와 게임 목록 노출을 활성화한다.
 
 ## Decisions
 
@@ -132,19 +132,18 @@
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 검증
+- Completed: bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 회귀
 - Completed: multi-client lifecycle Governance #81 / Site static #3097 / Game DB integration #116 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks #3100 SUCCESS
-- Completed: Game Platform Governance Guard — run #83 SUCCESS
-- Completed: Site static checks — run #3100 SUCCESS
-- Completed: Game DB integration Invite join/security contract — run #118 SUCCESS
-- Pending: 없음 (Invite 소스 연결 범위)
+- Completed: Invite source Governance #84 / Site static #3101 / Game DB integration #119 SUCCESS
+- Completed: Phase 4 통합 PR #323 main 병합
+- Completed: 통합 PR Game Platform Governance #86 SUCCESS
+- Completed: 통합 PR Site static checks #3104 SUCCESS
+- Completed: 통합 PR Game DB integration #120 SUCCESS
+- Pending: 운영 Supabase migration 6개 적용
+- Pending: 실제 2~4인 live smoke test
 
 ## Known Issues / Deferred
 
-- Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
-- Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
-- Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
+- Phase 4 소스 구현은 main에 병합됐지만 운영 Supabase migration 적용과 live smoke test가 아직 남아 있다.
+- Registry에는 platform identity만 등록했고 `online` / `invite` capability는 운영 migration + smoke test 전까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
