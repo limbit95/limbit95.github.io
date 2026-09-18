@@ -22,6 +22,7 @@ AGENTS.md
 
 ## 자동 차단하는 구조 위반
 
+- `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 인수인계 섹션이 빠진 경우
 - `games/<game-id>/` 디렉터리가 있는데 shared Game Registry 등록이 없는 경우
 - shared Game Registry에 등록했지만 실제 `games/<game-id>/` 디렉터리가 없는 경우
 - online shared 게임인데 `tests/game-db-integration/<game-id>.test.js`가 없는 경우
@@ -57,3 +58,8 @@ Governance Guard는 Liar Game, Drawing Spy, The Game, Marble을 새 플랫폼 �
 workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바뀐 경우에만 실행한다. 별도 `push` 실행이나 전체 사이트 workflow 복제는 하지 않는다.
 
 검증은 Node 기본 기능과 기존 Game Platform 테스트만 사용하므로 별도 `npm ci` 단계도 추가하지 않는다.
+## 개발 진행 기록 경계
+
+Governance Guard는 각 platform-native 게임에 `DEVELOPMENT.md`가 존재하고 표준 인수인계 섹션을 유지하는지 검사한다.
+
+문서가 실제 Phase 진행상황과 의미적으로 일치하는지는 자동 판정하지 않는다. Phase 완료 시 갱신과 사용자의 명시적 checkpoint 요청 시 즉시 기록하는 책임은 `docs/game-platform-development-rules.md`와 `AGENTS.md`의 작업 규칙으로 강제한다.

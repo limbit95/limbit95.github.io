@@ -16,6 +16,21 @@ function game({
   return { id, href, platform, capabilities: { online } };
 }
 
+function developmentDocument() {
+  return [
+    "## Current Status",
+    "Phase: Phase 4A",
+    "Status: IN_PROGRESS",
+    "Active branch: feature/game-platform-phase4a-cant-stop-foundation",
+    "## Completed",
+    "## Current Work",
+    "## Next Work",
+    "## Decisions",
+    "## Validation",
+    "## Known Issues / Deferred",
+  ].join("\n");
+}
+
 test("platform game path extraction excludes shared infrastructure", () => {
   assert.equal(platformGameIdFromPath("games/cant-stop/index.html"), "cant-stop");
   assert.equal(platformGameIdFromPath("games/shared/registry.js"), null);
@@ -31,11 +46,36 @@ test("repository state requires each platform game directory to be registered", 
   assert.match(errors.join("\n"), /missing a shared Game Registry entry/u);
 });
 
+test("repository state requires a development handoff document for each platform game", () => {
+  const missing = validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+  });
+  assert.match(missing.join("\n"), /requires games\/cant-stop\/DEVELOPMENT\.md/u);
+
+  const incomplete = validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+    developmentDocuments: { "cant-stop": "## Current Status" },
+  });
+  assert.match(incomplete.join("\n"), /missing required section/u);
+
+  assert.deepEqual(validateRepositoryState({
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+    developmentDocuments: { "cant-stop": developmentDocument() },
+  }), []);
+});
+
 test("repository state requires online shared games to provide a DB contract test", () => {
   const errors = validateRepositoryState({
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop" })],
     dbTestFiles: [],
+    developmentDocuments: { "cant-stop": developmentDocument() },
   });
   assert.match(errors.join("\n"), /cant-stop\.test\.js/u);
 
@@ -43,6 +83,7 @@ test("repository state requires online shared games to provide a DB contract tes
     gameDirectories: ["cant-stop"],
     registry: [game({ id: "cant-stop" })],
     dbTestFiles: ["cant-stop.test.js"],
+    developmentDocuments: { "cant-stop": developmentDocument() },
   }), []);
 });
 
@@ -51,6 +92,7 @@ test("repository state rejects shared registry entries without matching game dir
     gameDirectories: [],
     registry: [game({ id: "cant-stop" })],
     dbTestFiles: ["cant-stop.test.js"],
+    developmentDocuments: { "cant-stop": developmentDocument() },
   });
   assert.match(errors.join("\n"), /has no games\/cant-stop\/ directory/u);
 });

@@ -12,6 +12,8 @@
 - Drawing Spy는 Liar Game 내부 모드이므로 별도 루트로 이동하지 않습니다.
 - 기존 게임은 새 플랫폼 기능이나 공통 레이아웃을 강제로 적용하지 않습니다.
 - 새 게임은 가능한 한 `games/<game-id>/` 아래에 두고 `games/shared/`의 공통 계약을 사용합니다.
+- 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 두고 현재 Phase, active branch, 완료/진행 중 작업, 다음 작업, 결정사항, 검증, known issue를 기록합니다.
+- Phase 완료 시와 사용자가 중간 checkpoint 기록을 요청할 때 `DEVELOPMENT.md`를 갱신합니다.
 - 게임 규칙, 턴 상태 머신, 승패 조건, 게임별 애니메이션은 각 게임에 남겨 둡니다.
 
 ## Phase 3 foundation

@@ -9,6 +9,15 @@ import { GAME_REGISTRY } from "../games/shared/registry.js";
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
+const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
+  "## Current Status",
+  "## Completed",
+  "## Current Work",
+  "## Next Work",
+  "## Decisions",
+  "## Validation",
+  "## Known Issues / Deferred",
+]);
 
 function normalizePath(value) {
   return String(value).replaceAll("\\", "/").replace(/^\.\//u, "");
@@ -28,6 +37,7 @@ export function validateRepositoryState({
   gameDirectories,
   registry = GAME_REGISTRY,
   dbTestFiles,
+  developmentDocuments = {},
   documents = {},
 }) {
   const errors = [];
@@ -51,6 +61,17 @@ export function validateRepositoryState({
     if (!game) {
       errors.push(`Platform game directory games/${gameId}/ is missing a shared Game Registry entry.`);
       continue;
+    }
+
+    const development = developmentDocuments[gameId];
+    if (typeof development !== "string") {
+      errors.push(`Platform game ${gameId} requires games/${gameId}/DEVELOPMENT.md.`);
+    } else {
+      for (const section of DEVELOPMENT_REQUIRED_SECTIONS) {
+        if (!development.includes(section)) {
+          errors.push(`games/${gameId}/DEVELOPMENT.md is missing required section: ${section}`);
+        }
+      }
     }
     const expectedHrefs = new Set([`./games/${gameId}/`, `/games/${gameId}/`]);
     if (!expectedHrefs.has(game.href)) {
@@ -141,6 +162,13 @@ function readDbTestFiles(directory) {
   return readdirSync(directory).filter((name) => name.endsWith(".test.js")).sort();
 }
 
+function readDevelopmentDocuments(gamesDirectory, gameDirectories) {
+  return Object.fromEntries(gameDirectories.map((gameId) => {
+    const filename = path.join(gamesDirectory, gameId, "DEVELOPMENT.md");
+    return [gameId, readOptional(filename)];
+  }));
+}
+
 function readOptional(filename) {
   return existsSync(filename) ? readFileSync(filename, "utf8") : null;
 }
@@ -184,8 +212,10 @@ function parseArgs(argv) {
 }
 
 export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" }) {
-  const gameDirectories = readDirectoryNames(path.join(repositoryRoot, "games"));
+  const gamesDirectory = path.join(repositoryRoot, "games");
+  const gameDirectories = readDirectoryNames(gamesDirectory);
   const dbTestFiles = readDbTestFiles(path.join(repositoryRoot, "tests", "game-db-integration"));
+  const developmentDocuments = readDevelopmentDocuments(gamesDirectory, gameDirectories);
   const documents = Object.fromEntries([
     RULEBOOK_PATH,
     "AGENTS.md",
@@ -198,6 +228,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     gameDirectories,
     registry: GAME_REGISTRY,
     dbTestFiles,
+    developmentDocuments,
     documents,
   });
 

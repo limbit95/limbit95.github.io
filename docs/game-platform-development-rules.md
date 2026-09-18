@@ -52,6 +52,70 @@ games/<game-id>/
 
 `game-id`는 lowercase kebab-case를 사용하고 Game Registry에도 동일한 ID를 등록한다.
 
+## 3A. 게임별 개발 진행 기록과 채팅 연속성
+
+모든 platform-native 게임은 최초 구현 PR부터 게임 디렉터리 안에 다음 문서를 둔다.
+
+```text
+games/<game-id>/DEVELOPMENT.md
+```
+
+`DEVELOPMENT.md`는 긴 작업 일지나 commit changelog가 아니라 **다음 작업자가 현재 개발 상태를 즉시 복원하기 위한 단일 인수인계 문서**다.
+
+문서는 최소 다음 섹션을 유지한다.
+
+```text
+## Current Status
+## Completed
+## Current Work
+## Next Work
+## Decisions
+## Validation
+## Known Issues / Deferred
+```
+
+`Current Status`에는 최소한 현재 Phase, 상태(`IN_PROGRESS` / `COMPLETED` / `BLOCKED`), 현재 작업 브랜치를 기록한다.
+
+### MUST: 작업 시작과 이어서 진행할 때
+
+- 신규 게임의 첫 구현 단계에서 `DEVELOPMENT.md`를 함께 생성한다.
+- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽는다.
+- `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
+- 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
+- 게임별 Phase 브랜치명은 가능하면 game id를 포함해 `feature/game-platform-phase4a-cant-stop-foundation`처럼 다른 채팅에서도 검색 가능하게 유지한다.
+
+### MUST: Phase 완료 시
+
+- Phase 완료 PR에는 `DEVELOPMENT.md` 갱신을 포함한다.
+- 완료한 Phase와 검증 결과를 `Completed` / `Validation`에 반영한다.
+- 다음 Phase 또는 다음 첫 작업을 `Next Work`에 구체적으로 남긴다.
+- 완료되지 않은 항목을 완료한 것처럼 기록하지 않는다.
+
+### MUST: 사용자가 중간 진행 기록을 요청할 때
+
+사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 현재 진행상황 저장을 명시적으로 요청하면 **Phase가 끝나지 않았더라도 즉시 checkpoint를 기록한다.**
+
+이 경우:
+
+1. 현재 Phase 상태를 `IN_PROGRESS`로 유지한다.
+2. 마지막으로 실제 완료된 작업과 아직 완료되지 않은 작업을 구분한다.
+3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남긴다.
+4. 지금까지 실행한 테스트와 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
+5. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
+6. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
+
+중간 checkpoint를 남기기 위해 별도의 새 브랜치를 만들거나 Phase를 완료 처리하지 않는다.
+
+### SHOULD: 갱신 빈도
+
+`DEVELOPMENT.md`는 모든 작은 commit마다 갱신하지 않는다. 다음 시점에 갱신하는 것을 기본으로 한다.
+
+- Phase 시작 또는 작업 범위가 확정될 때
+- Phase 완료 시
+- 사용자가 명시적으로 중간 진행 기록을 요청할 때
+- 중요한 아키텍처/게임 규칙 결정이 바뀔 때
+- 다음 작업자에게 반드시 전달해야 할 blocker나 known issue가 생길 때
+
 ## 4. 플랫폼과 게임 규칙의 경계
 
 ### MUST: 플랫폼 책임을 우선 재사용한다
@@ -335,6 +399,7 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 신규 온라인 게임 PR을 완료하기 전에 다음을 확인한다.
 
 - [ ] `games/<game-id>/`에 게임이 독립적으로 위치한다.
+- [ ] `games/<game-id>/DEVELOPMENT.md`가 현재 Phase/브랜치/다음 작업/검증 상태를 반영한다.
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
 - [ ] 실제 구현된 capability만 선언되어 있다.
 - [ ] Approved Member / Access Gate를 사용한다.
