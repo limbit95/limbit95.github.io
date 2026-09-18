@@ -2,7 +2,9 @@
 
 이 디렉터리는 앞으로 추가되는 게임을 위한 공통 Game Platform 기반입니다.
 
-전체 전략과 Legacy 정책은 [Game Platform Strategy](../docs/game-platform-strategy.md)를 기준으로 합니다.
+신규 platform-native 게임을 구현하거나 수정할 때는 [Game Platform Development Rules](../docs/game-platform-development-rules.md)를 **필수 실행 기준**으로 먼저 확인합니다. 사용자가 매 작업마다 플랫폼 규칙을 다시 설명하지 않아도 이 문서를 기본 전제로 적용합니다.
+
+[Game Platform Strategy](../docs/game-platform-strategy.md)는 플랫폼 구축 배경과 Legacy 정책을 이해하기 위한 참고 문서이며, 신규 게임의 현재 실행 규칙보다 우선하지 않습니다.
 
 ## 경계
 
