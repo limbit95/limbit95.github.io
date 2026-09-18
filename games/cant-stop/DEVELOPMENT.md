@@ -88,10 +88,11 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui 검증
 - Completed: Room/Lobby DB contract — disposable Supabase run #39 SUCCESS
-- Pending: `npm run test:game-platform` on roll-dice PR
-- Pending: Game Platform Governance Guard on roll-dice PR
-- Pending: Site static checks on roll-dice PR
-- Pending: Game DB integration roll authority/parity tests on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks run #3032 SUCCESS
+- Completed: Game Platform Governance Guard — run #33 SUCCESS
+- Completed: Site static checks — run #3032 SUCCESS
+- Completed: Game DB integration authoritative roll/parity contract — run #68 SUCCESS
+- Pending: 없음 (roll-dice 범위)
 
 ## Known Issues / Deferred
 
