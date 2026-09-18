@@ -284,9 +284,21 @@ Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지
 - 제3자는 채무자의 recovery 진행 상태를 볼 수 있지만 선택/확정할 수 없습니다.
 - 거래 UI와 동일한 canonical `onlineSession.js?v=20260910-r8` specifier를 사용해 단일 online session instance를 공유합니다.
 
+## Multiplayer regression
+
+3개 온라인 세션을 동일 authoritative backend에 연결해 다음을 검증합니다.
+
+- 채무자의 자산 선택이 다른 클라이언트에 Realtime snapshot으로 전파
+- 채권자/제3자는 recovery 상태를 보지만 채무자 권한으로 조작할 수 없음
+- 선택이 READY가 된 뒤 confirm settlement가 모든 세션에 동일하게 반영
+- 매각 도시 ownership 해제와 building level 초기화
+- 채무자 잔액 / 채권자 지급액 / TURN_END 상태 일치
+- settled state 이후 stale snapshot rollback 방어
+- reconnect 시 open/ready debt recovery를 snapshot만으로 복원
+- expected version / client action id 계약 유지
+
 ## 다음 단계
 
 ```text
-multiplayer regression
-→ 최신 main 최종 integration
+최신 main 최종 integration
 ```
