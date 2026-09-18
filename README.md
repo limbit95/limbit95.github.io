@@ -2,9 +2,9 @@
 
 청년 공동체의 활동, 공지, 기도 제목, 프로필, 알림과 소통을 위한 모바일 우선 웹 애플리케이션입니다.
 
-프론트엔드는 HTML/CSS/Vanilla JavaScript ES Modules로 구성되고 GitHub Pages에서 별도 빌드 없이 실행됩니다. 인증·데이터·권한·Storage·Realtime은 Supabase가 담당합니다.
+프론트엔드는 HTML/CSS/Vanilla JavaScript ES Modules로 구성됩니다. 루트 커뮤니티 앱은 `npm run build:assets`로 `js/app.js`를 content-hashed asset으로 빌드해 `assets/build/`과 `index.html`을 갱신한 뒤 GitHub Pages에서 제공합니다. 인증·데이터·권한·Storage·Realtime은 Supabase가 담당합니다.
 
-> 이 README는 **청파 같이 본 사이트**를 설명합니다. Liar Game과 Splendor 등 게임 구현은 별도 영역으로 관리하며, 본 사이트 기반/구조 정리 작업에서는 게임 전용 소스·문서·DB 객체를 수정하지 않습니다.
+> 이 README는 **청파 같이 본 사이트**를 설명합니다. Liar Game, The Game, Marble 등 게임 구현은 별도 영역으로 관리하며, 본 사이트 기반/구조 정리 작업에서는 게임 전용 소스·문서·DB 객체를 임의로 수정하지 않습니다.
 
 ## 1. 현재 주요 기능
 
@@ -78,7 +78,7 @@ GitHub Pages
            └─ pg_cron
 ```
 
-npm 설치나 프론트 빌드 과정은 없습니다.
+루트 커뮤니티 앱의 배포 자산을 갱신할 때는 Node/npm 의존성을 설치한 뒤 `npm run build:assets`를 실행합니다. 이 빌드는 `index.template.html`과 `js/app.js`를 기준으로 content-hashed `assets/build/` 및 배포용 `index.html`을 생성합니다.
 
 ## 3. 주요 파일 구조
 
@@ -141,6 +141,10 @@ npm 설치나 프론트 빌드 과정은 없습니다.
 ├── scripts/
 │   └── check-site.mjs
 ├── .github/workflows/
+│   ├── community-authenticated-e2e.yml
+│   ├── community-e2e-smoke.yml
+│   ├── community-hashed-assets.yml
+│   ├── game-db-integration.yml
 │   └── site-static-checks.yml
 ├── docs/
 │   └── site-foundation-audit.md
@@ -212,9 +216,7 @@ export const SUPABASE_PUBLISHABLE_KEY = "<publishable-key>";
 
 DB 운영/변경 원칙은 [`supabase/README.md`](./supabase/README.md)와 [`supabase/site/README.md`](./supabase/site/README.md)를 따릅니다.
 
-현재 본 사이트의 후속 최적화에는 다음이 포함됩니다.
-
-- 게시글/댓글/활동 참여자/담당자 프로필을 **필요한 사용자 ID 집합만** 조회하는 RPC 추가
+현재 본 사이트에는 게시글/댓글/활동 참여자/담당자 프로필을 **필요한 사용자 ID 집합만** 조회하는 RPC가 적용되어 있습니다.
 
 핵심 원칙:
 
@@ -303,17 +305,17 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 
 ### 자동 검수
 
-`Site static checks` GitHub Actions가 `main`, `feature/**`, `main` 대상 PR에서 실행됩니다.
+`Site static checks` GitHub Actions는 현재 `main` 및 `feature/**` push와 `main` 대상 Pull Request에서 실행됩니다.
 
-- 본 사이트 JavaScript 문법 검사
-- 상대 import 경로 확인
-- `index.html`의 로컬 파일 참조 확인
-- CSS 기본 구조 검사
-- API/활동/관리자 모듈 분리 구조 유지 확인
-- 핵심 라우트 존재 확인
-- 활동 카드 링크 접근성 구조의 회귀 확인
+- content-hashed 커뮤니티 자산 재빌드 및 커밋된 산출물 최신 상태 확인
+- 본 사이트와 Liar Game, The Game, Marble JavaScript 문법 검사
+- Web Push, 회원가입, 관리자 권한, 활동 권한 테스트
+- Game Platform 공용 계약, The Game 규칙 엔진 및 Marble foundation 테스트
+- 커뮤니티 API 경계/ES Module/select 검사
+- Liar Game ES Module 및 canonical SQL baseline 검사
+- 사이트 파일 무결성 검사
 
-게임 구현 소스는 본 사이트 정리용 검사 대상에서도 제외합니다.
+브라우저 E2E는 `Community E2E smoke`, 인증·권한 흐름은 `Community authenticated E2E`, 게임 DB 재현성/경계 검증은 `Game DB integration` workflow가 별도로 담당합니다.
 
 ### 공통 접근성
 
@@ -346,7 +348,7 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 남은 기반 개선은 영향도가 낮은 항목 중심입니다.
 
 - 기존 `--forest-*`, `--coral-*` 등 색상 토큰을 의미 기반 이름으로 점진 전환
-- 실제 브라우저 상호작용까지 확인하는 smoke/e2e 테스트 도입 검토
+- 현재 smoke/authenticated E2E 범위의 지속적인 보강
 - 알림 장기 누적 시 pagination/보관 정책
 
 이후에는 쪽지함/답장, 알림 설정, 기도 제목 상태/카운트, 관심사 기반 홈 등 기능 확장 단계로 넘어갈 수 있습니다.

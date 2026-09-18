@@ -1,0 +1,271 @@
+.game-platform-shell {
+  --game-shell-surface: var(--surface, #fff);
+  --game-shell-ink: var(--ink, #405963);
+  --game-shell-muted: var(--muted, #7b929b);
+  --game-shell-line: var(--line, #dfecef);
+  --game-shell-primary: var(--forest-900, #486875);
+  width: min(100% - 2rem, 1280px);
+  min-height: 100vh;
+  margin-inline: auto;
+  padding: 1rem 0 2rem;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+  color: var(--game-shell-ink);
+}
+
+.game-platform-shell__header,
+.game-platform-status,
+.game-platform-shell__stage,
+.game-platform-players,
+.game-platform-shell__actions {
+  background: var(--game-shell-surface);
+  border: 1px solid var(--game-shell-line);
+  border-radius: var(--radius-lg, 24px);
+  box-shadow: var(--shadow-sm, 0 5px 18px rgba(78, 124, 143, .07));
+}
+
+.game-platform-shell__header {
+  padding: clamp(1rem, 3vw, 1.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.game-platform-shell__heading {
+  min-width: 0;
+  display: grid;
+  gap: .35rem;
+}
+
+.game-platform-shell__back {
+  width: fit-content;
+  color: var(--game-shell-muted);
+  font-weight: 750;
+}
+
+.game-platform-shell__eyebrow,
+.game-platform-shell__title,
+.game-platform-shell__description {
+  margin: 0;
+}
+
+.game-platform-shell__eyebrow {
+  color: var(--game-shell-muted);
+  font-size: .78rem;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+
+.game-platform-shell__title {
+  color: var(--game-shell-primary);
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  line-height: 1.15;
+}
+
+.game-platform-shell__description {
+  color: var(--game-shell-muted);
+}
+
+.game-platform-shell__room {
+  flex: 0 0 auto;
+  padding: .55rem .8rem;
+  border-radius: 999px;
+  background: var(--forest-100, #e6f3f7);
+  color: var(--game-shell-primary);
+  font-weight: 800;
+}
+
+.game-platform-status {
+  min-height: 64px;
+  padding: .8rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.game-platform-status__body {
+  min-width: 0;
+  display: grid;
+  gap: .1rem;
+}
+
+.game-platform-status__label {
+  font-size: .92rem;
+}
+
+.game-platform-status__message {
+  color: var(--game-shell-muted);
+  font-size: .86rem;
+}
+
+.game-platform-status--success {
+  border-color: color-mix(in srgb, var(--success, #73a89e) 36%, var(--game-shell-line));
+}
+
+.game-platform-status--warning {
+  border-color: color-mix(in srgb, var(--yellow-600, #b59a59) 36%, var(--game-shell-line));
+}
+
+.game-platform-status--danger {
+  border-color: color-mix(in srgb, var(--danger, #b76e76) 42%, var(--game-shell-line));
+}
+
+.game-platform-shell__content {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.game-platform-shell__stage {
+  min-width: 0;
+  min-height: min(68vh, 720px);
+  padding: clamp(1rem, 3vw, 1.5rem);
+  overflow: hidden;
+}
+
+.game-platform-shell__sidebar {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.game-platform-players {
+  padding: 1rem;
+  display: grid;
+  gap: .75rem;
+}
+
+.game-platform-players__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.game-platform-players__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.game-platform-players__count {
+  color: var(--game-shell-muted);
+  font-size: .85rem;
+  font-weight: 750;
+}
+
+.game-platform-players__list {
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: .5rem;
+  list-style: none;
+}
+
+.game-platform-player {
+  min-width: 0;
+  padding: .65rem;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 10px;
+  align-items: center;
+  gap: .7rem;
+  border: 1px solid var(--game-shell-line);
+  border-radius: var(--radius-md, 18px);
+}
+
+.game-platform-player__avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.game-platform-player__avatar--fallback {
+  display: grid;
+  place-items: center;
+  background: var(--forest-100, #e6f3f7);
+  color: var(--game-shell-primary);
+  font-weight: 900;
+}
+
+.game-platform-player__identity {
+  min-width: 0;
+  display: grid;
+  gap: .05rem;
+}
+
+.game-platform-player__name,
+.game-platform-player__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-platform-player__meta {
+  color: var(--game-shell-muted);
+  font-size: .78rem;
+}
+
+.game-platform-player__presence {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--success, #73a89e);
+}
+
+.game-platform-player[data-connected="false"] {
+  opacity: .68;
+}
+
+.game-platform-player[data-connected="false"] .game-platform-player__presence {
+  background: var(--muted, #7b929b);
+}
+
+.game-platform-shell__actions {
+  position: sticky;
+  bottom: max(.75rem, env(safe-area-inset-bottom));
+  z-index: 10;
+  padding: .75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .6rem;
+}
+
+.game-platform-shell__button {
+  min-height: 42px;
+  padding: .65rem .9rem;
+  border: 0;
+  border-radius: var(--radius-sm, 12px);
+  background: var(--game-shell-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.game-platform-shell__button--secondary {
+  border: 1px solid var(--game-shell-line);
+  background: var(--game-shell-surface);
+  color: var(--game-shell-primary);
+}
+
+@media (min-width: 900px) {
+  .game-platform-shell {
+    padding-top: 1.5rem;
+  }
+
+  .game-platform-shell__content {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    align-items: start;
+  }
+
+  .game-platform-shell__sidebar {
+    position: sticky;
+    top: 1rem;
+  }
+}

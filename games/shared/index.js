@@ -29,3 +29,15 @@ export {
 export {
   createReconnectRefreshTriggers,
 } from "./reconnectRefresh.js";
+
+export {
+  GAME_CONNECTION_STATE,
+  normalizeGamePlayers,
+  resolveGameConnectionState,
+} from "./gameShellState.js";
+
+export {
+  createGameConnectionBanner,
+  createGamePlayerRoster,
+  createGameShell,
+} from "./gameShell.js";
