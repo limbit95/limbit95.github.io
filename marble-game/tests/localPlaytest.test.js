@@ -83,3 +83,67 @@ test("local Classic session ends the turn without opening an auction when nobody
   assert.equal(state.currentPlayerIndex, 1);
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
+
+
+test("local Classic session can propose, accept, and settle a pre-roll trade", () => {
+  const values = [0, 0.2];
+  let index = 0;
+  const session = createLocalClassicSession({ random: () => values[index++ % values.length] });
+
+  let state = session.start();
+  state = session.roll();
+  state = session.buy();
+  state = session.endTurn();
+
+  assert.equal(state.currentPlayerIndex, 1);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(state.boardState.properties.singapore.ownerId, "player-a");
+
+  state = session.offerTrade(
+    "player-a",
+    {
+      offered: { gold: 100 },
+      requested: { propertyIds: ["singapore"] },
+    },
+    "local-trade-1",
+  );
+
+  assert.equal(state.pendingTrade.status, "OPEN");
+  assert.equal(state.pendingTrade.proposerPlayerId, "player-b");
+  assert.equal(state.pendingTrade.recipientPlayerId, "player-a");
+
+  state = session.acceptTrade("player-a");
+
+  assert.equal(state.pendingTrade, null);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(state.currentPlayerIndex, 1);
+  assert.equal(state.boardState.properties.singapore.ownerId, "player-b");
+  assert.equal(state.players.find((player) => player.id === "player-a").money, 1340);
+  assert.equal(state.players.find((player) => player.id === "player-b").money, 1400);
+  assert.deepEqual(state.lastEvents.map((event) => event.type), [
+    "TRADE_ACCEPTED",
+    "TRADE_SETTLED",
+  ]);
+});
+
+test("local Classic session rejects a trade and resumes the same pre-roll turn", () => {
+  const session = createLocalClassicSession();
+
+  let state = session.start();
+  state = session.offerTrade(
+    "player-b",
+    { offered: { gold: 100 } },
+    "local-trade-2",
+  );
+
+  assert.throws(
+    () => session.roll(),
+    /must be resolved before continuing/i,
+  );
+
+  state = session.rejectTrade("player-b");
+  assert.equal(state.pendingTrade, null);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(state.currentPlayerIndex, 0);
+  assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
+});
