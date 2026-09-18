@@ -1200,3 +1200,91 @@ test("cant-stop: reconnect after peer leaves GAME_OVER restores host succession 
   assert.equal(waiting.players[0].isReady, true);
   assert.equal(waiting.game, null);
 });
+
+
+test("cant-stop: approved member can join a waiting room through a valid platform invite", async () => {
+  const host = await createTestUser("invite-host");
+  const guest = await createTestUser("invite-guest");
+  const created = await createRoom(host);
+
+  const invite = await expectOk(await rpc("site_invite_create", {
+    p_target_type: "game_room",
+    p_target_id: created.room.id,
+    p_expires_in_minutes: 360,
+    p_metadata: {
+      game_id: "cant-stop",
+      platform_version: 1,
+      source: "cant-stop",
+    },
+  }, host.accessToken), "site_invite_create for Can’t Stop");
+
+  const joined = await expectOk(await rpc("cant_stop_join_room_by_invite", {
+    p_invite_token: invite.token,
+    p_nickname: "Guest",
+  }, guest.accessToken), "cant_stop_join_room_by_invite");
+
+  assert.equal(joined.room.id, created.room.id);
+  assert.equal(joined.room.roomCode, created.room.roomCode);
+  assert.equal(joined.room.status, "waiting");
+  assert.equal(
+    joined.players.some((player) => player.userId === guest.id),
+    true,
+  );
+});
+
+test("cant-stop: invite join rejects tokens for another game", async () => {
+  const host = await createTestUser("invite-mismatch-host");
+  const guest = await createTestUser("invite-mismatch-guest");
+  const created = await createRoom(host);
+
+  const invite = await expectOk(await rpc("site_invite_create", {
+    p_target_type: "game_room",
+    p_target_id: created.room.id,
+    p_expires_in_minutes: 360,
+    p_metadata: {
+      game_id: "other-game",
+      platform_version: 1,
+    },
+  }, host.accessToken), "site_invite_create mismatch");
+
+  const result = await rpc("cant_stop_join_room_by_invite", {
+    p_invite_token: invite.token,
+    p_nickname: "Guest",
+  }, guest.accessToken);
+
+  expectDenied(result, "mismatched cant_stop_join_room_by_invite", /GAME_INVITE_MISMATCH/u);
+});
+
+test("cant-stop: invite join rejects revoked tokens and does not add membership", async () => {
+  const host = await createTestUser("invite-revoke-host");
+  const guest = await createTestUser("invite-revoke-guest");
+  const created = await createRoom(host);
+
+  const invite = await expectOk(await rpc("site_invite_create", {
+    p_target_type: "game_room",
+    p_target_id: created.room.id,
+    p_expires_in_minutes: 360,
+    p_metadata: {
+      game_id: "cant-stop",
+      platform_version: 1,
+    },
+  }, host.accessToken), "site_invite_create revoke");
+
+  await expectOk(await rpc("site_invite_revoke", {
+    p_token: invite.token,
+  }, host.accessToken), "site_invite_revoke");
+
+  const result = await rpc("cant_stop_join_room_by_invite", {
+    p_invite_token: invite.token,
+    p_nickname: "Guest",
+  }, guest.accessToken);
+
+  expectDenied(result, "revoked cant_stop_join_room_by_invite", /INVITE_NOT_FOUND_OR_EXPIRED/u);
+
+  const active = await expectOk(await rpc(
+    "cant_stop_get_my_active_room",
+    {},
+    guest.accessToken,
+  ), "active room after revoked invite");
+  assert.equal(active, null);
+});
