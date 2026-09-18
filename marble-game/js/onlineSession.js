@@ -274,7 +274,11 @@ export async function createOnlineClassicSession({
       const nextSnapshot = await getSnapshot(roomId);
       const nextVersion = Number(nextSnapshot?.game?.version) || 0;
       const currentVersion = Number(snapshot?.game?.version) || 0;
-      if (nextVersion <= currentVersion) {
+      if (nextVersion < currentVersion) {
+        if (notify && forceNotify) await onRemoteState?.(state);
+        return state;
+      }
+      if (nextVersion === currentVersion) {
         syncServerClock(nextSnapshot);
         if (notify && forceNotify) await onRemoteState?.(state);
         return state;
