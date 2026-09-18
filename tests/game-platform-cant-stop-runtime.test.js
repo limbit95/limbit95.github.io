@@ -9,6 +9,7 @@ import { GAME_ACCESS_REASON } from "../games/shared/accessGate.js";
 import {
   CANT_STOP_ACCESS_VIEW,
   createCantStopBoardColumns,
+  createCantStopGameplayViewModel,
   createCantStopLobbyViewModel,
   createCantStopShellPlayer,
   getCantStopLobbyErrorMessage,
@@ -146,4 +147,116 @@ test("Can't Stop lobby errors provide game-specific recovery messages", () => {
     getCantStopLobbyErrorMessage({ message: "ROOM_FULL" }),
     /인원이 모두 찼/u,
   );
+});
+
+
+test("Can't Stop gameplay view maps authoritative progress, runners, claims, dice, and actions", () => {
+  const view = createCantStopGameplayViewModel({
+    version: 12,
+    room: {
+      id: "room-1",
+      status: "playing",
+    },
+    players: [
+      { userId: "alice", displayName: "Alice" },
+      { userId: "bob", displayName: "Bob" },
+    ],
+    viewerUserId: "alice",
+    game: {
+      phase: "PAIRING_SELECTION",
+      activePlayerId: "alice",
+      turnIndex: 0,
+      turnOrder: ["alice", "bob"],
+      playerProgress: {
+        alice: { 2: 2, 7: 4 },
+        bob: { 7: 4 },
+      },
+      runners: { 2: 3, 6: 1 },
+      claimedColumns: { 3: "bob" },
+      latestDice: [1, 2, 3, 4],
+      legalPairings: [
+        {
+          sums: [3, 7],
+          plans: [[3, 7]],
+        },
+        {
+          sums: [4, 6],
+          plans: [[4], [6]],
+        },
+      ],
+      winnerId: null,
+    },
+  }, "alice");
+
+  assert.equal(view.version, 12);
+  assert.equal(view.activePlayerName, "Alice");
+  assert.equal(view.isMyTurn, true);
+  assert.equal(view.canChoosePairing, true);
+  assert.equal(view.canRoll, false);
+  assert.deepEqual(view.latestDice, [1, 2, 3, 4]);
+  assert.deepEqual(view.legalPairings[1].plans, [[4], [6]]);
+
+  const column2 = view.columns.find((column) => column.number === 2);
+  assert.equal(column2.permanentMarkers[0].displayName, "Alice");
+  assert.equal(column2.permanentMarkers[0].position, 2);
+  assert.equal(column2.runner.displayName, "Alice");
+  assert.equal(column2.runner.position, 3);
+
+  const column3 = view.columns.find((column) => column.number === 3);
+  assert.equal(column3.claimedById, "bob");
+  assert.equal(column3.claimedByName, "Bob");
+
+  const column7 = view.columns.find((column) => column.number === 7);
+  assert.deepEqual(
+    column7.permanentMarkers.map((marker) => [marker.displayName, marker.position]),
+    [["Alice", 4], ["Bob", 4]],
+  );
+});
+
+test("Can't Stop gameplay view exposes push/stop and game-over states from server phase", () => {
+  const base = {
+    version: 20,
+    room: { id: "room-1", status: "playing" },
+    players: [
+      { userId: "alice", displayName: "Alice" },
+      { userId: "bob", displayName: "Bob" },
+    ],
+    viewerUserId: "alice",
+  };
+
+  const pushing = createCantStopGameplayViewModel({
+    ...base,
+    game: {
+      phase: "PUSH_OR_STOP",
+      activePlayerId: "alice",
+      playerProgress: { alice: {}, bob: {} },
+      runners: { 7: 2 },
+      claimedColumns: {},
+      latestDice: [3, 4, 3, 4],
+      legalPairings: [],
+      winnerId: null,
+    },
+  }, "alice");
+
+  assert.equal(pushing.canContinue, true);
+  assert.equal(pushing.canStop, true);
+
+  const finished = createCantStopGameplayViewModel({
+    ...base,
+    game: {
+      phase: "GAME_OVER",
+      activePlayerId: "alice",
+      playerProgress: { alice: {}, bob: {} },
+      runners: {},
+      claimedColumns: { 2: "alice", 3: "alice", 4: "alice" },
+      latestDice: null,
+      legalPairings: [],
+      winnerId: "alice",
+    },
+  }, "alice");
+
+  assert.equal(finished.isGameOver, true);
+  assert.equal(finished.winnerName, "Alice");
+  assert.equal(finished.canContinue, false);
+  assert.equal(finished.canStop, false);
 });
