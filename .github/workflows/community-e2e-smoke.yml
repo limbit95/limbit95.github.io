@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "feature/**"
     paths:
       - "index.html"
       - "index.template.html"
@@ -18,8 +17,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/community-e2e-smoke.yml"
   pull_request:
-    branches:
-      - main
     paths:
       - "index.html"
       - "index.template.html"
