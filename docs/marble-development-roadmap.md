@@ -20,12 +20,12 @@ Phase 5   Online Multiplayer Foundation          완료
 Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
-└─ Phase 7B Trading / Negotiation                진행 중 (online UI)
+└─ Phase 7B Trading / Negotiation                진행 중 (multiplayer regression)
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 온라인 UI 진행 중**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 멀티플레이 회귀 검증 진행 중**입니다.
 
 ## Phase 1 — Foundation
 
@@ -167,7 +167,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7B — Trading / Negotiation
 
-상태: **진행 중 — online UI**
+상태: **진행 중 — multiplayer regression**
 
 거래 lifecycle과 deterministic settlement를 고정한 뒤, 현재는 기존 Phase 7A reducer를 직접 수정하지 않는 additive Game Engine integration을 진행합니다.
 
@@ -178,7 +178,8 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 - 로컬 runtime까지 동일 거래 reducer를 연결 완료
 - `pending_trade` snapshot + `expected_version` + `client_action_id` 기반 authoritative RPC와 isolated DB 검증 완료
 - Realtime / reconnect snapshot 복구 연결 완료
-- 현재 온라인 거래 작성/수락/거절 UI adapter 연결 중
+- 온라인 거래 작성/수락/거절 UI adapter 연결 완료
+- 현재 3클라이언트 authoritative/Reatime/stale snapshot/reconnect 멀티플레이 회귀 검증 진행 중
 - Phase 7A에서 검증한 서버 권위, version, idempotency, Realtime / reconnect 원칙을 유지
 - 기존 구매 / 건설 / 경매 / 턴 진행을 깨지 않도록 독립 규칙부터 설계
 - 거래 가능 자산, 골드 포함 여부, 제안 / 수정 / 거절 / 취소 / 만료, 턴 제한 등 세부 제품 규칙은 구현 전에 별도로 확정
