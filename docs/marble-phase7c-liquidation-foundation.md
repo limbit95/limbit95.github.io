@@ -45,6 +45,16 @@ seoul     → 180 gold
 
 따라서 foundation은 외부 정책이 계산한 refund만 검증하고 사용합니다.
 
+### Liquidation value policy engine
+
+후속 stacked 단계에서 `liquidationPolicy.js`를 추가해 **환급률 숫자 자체가 아니라 계산 방식**을 고정합니다.
+
+- 토지 원가와 건물 투자액을 분리해 계산
+- 각 환급률은 0~10000 basis point 정수로 주입
+- 골드 결과는 `FLOOR` 정수 반올림으로 결정
+- Classic 실제 환급률은 아직 theme/product rule로 확정하지 않음
+- 테스트의 5000 bps 값은 계산 예시일 뿐 실제 게임 기본값이 아님
+
 ### Liquidation plan
 
 `evaluateLiquidationPlan()`은 선택한 자산들의 refund를 합산해 다음을 계산합니다.
@@ -64,6 +74,10 @@ seoul     → 180 gold
   - `evaluateLiquidationPlan()`
   - `canDebtBeRecovered()`
   - `DEBT_RECOVERY_STATUS`
+- `marble-game/js/core/liquidationPolicy.js`
+  - `createLiquidationValuePolicy()`
+  - `calculatePropertyLiquidationRefund()`
+  - `createBoardLiquidationCatalog()`
 - `marble-game/tests/liquidation.test.js`
   - 부족액 계산
   - 보유 자산 추출
@@ -72,6 +86,11 @@ seoul     → 180 gold
   - unowned / duplicate / invalid refund 차단
   - 선택 자산으로 debt 충족 여부 계산
   - 기존 state 비변경 확인
+- `marble-game/tests/liquidationPolicy.test.js`
+  - basis point 정책 검증
+  - 토지/건물 환급 분리 계산
+  - 정수 floor rounding
+  - building level / board drift fail-closed
 
 ## 의도적으로 아직 하지 않는 것
 
@@ -90,7 +109,7 @@ seoul     → 180 gold
 
 다음 단계에서 먼저 아래 두 가지를 결정합니다.
 
-1. **자산 매각 가치 정책**
+1. **Classic 실제 환급률 및 건물 매각 제품 규칙**
 2. **Debt recovery lifecycle**
 
 이 두 규칙을 고정한 뒤:
