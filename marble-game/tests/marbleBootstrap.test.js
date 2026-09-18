@@ -53,7 +53,7 @@ test("lobby route keeps the existing full module graph", async () => {
   assert.deepEqual(imports, [
     "./app.js?v=20260919-r12",
     "./multiplayerLobby.js?v=20260914-r8",
-    "./diceCharge.js?v=20260919-r12",
+    "./diceCharge.js?v=20260910-r7",
     "./playWindow.js?v=20260919-r12",
     "./onlineGameExit.js?v=20260910-r10",
     "./ownershipVisualLoader.js?v=20260910-r10",
