@@ -133,6 +133,19 @@ function rejectTradeProposal(state, action) {
   }, action);
 }
 
+function cancelTradeProposal(state, action) {
+  if (!state.pendingTrade) throw new Error("There is no open trade proposal.");
+  const resolved = reduceTradeProposal(state.pendingTrade, state.players, {
+    playerId: action.playerId,
+    cancel: true,
+  });
+
+  return withVersion(state, {
+    pendingTrade: null,
+    lastEvents: freezeEvents(resolved.events),
+  }, action);
+}
+
 export function reducePhase7TradingGameAction(state, action) {
   if (!state || typeof state !== "object") throw new TypeError("Game state is required.");
   if (!action || typeof action.type !== "string") throw new TypeError("A marble action is required.");
@@ -143,6 +156,10 @@ export function reducePhase7TradingGameAction(state, action) {
 
   if (action.type === ACTION_TYPES.TRADE_REJECT) {
     return rejectTradeProposal(state, action);
+  }
+
+  if (action.type === ACTION_TYPES.TRADE_CANCEL) {
+    return cancelTradeProposal(state, action);
   }
 
   if (state.pendingTrade && action.type !== ACTION_TYPES.END_GAME) {
