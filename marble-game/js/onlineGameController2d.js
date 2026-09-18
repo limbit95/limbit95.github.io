@@ -1,6 +1,6 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260918-r11";
 import { markOnlineVisualRuntime } from "./onlineVisualPolicy.js?v=20260910-r10";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
