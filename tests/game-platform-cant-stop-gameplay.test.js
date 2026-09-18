@@ -75,3 +75,80 @@ test("Can't Stop gameplay rollDice surfaces authoritative RPC errors", async () 
     /TURN_REQUIRED/u,
   );
 });
+
+
+test("Can't Stop gameplay choosePairing sends only the selected server-issued sums and plan", async () => {
+  const client = fakeClient({
+    result: {
+      version: 5,
+      game: {
+        phase: "PUSH_OR_STOP",
+        runners: { 3: 1, 7: 1 },
+      },
+    },
+  });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  const snapshot = await adapter.choosePairing({
+    roomId: "room-1",
+    sums: [3, 7],
+    columns: [3, 7],
+    expectedVersion: 4,
+    clientActionId: "pairing-1",
+  });
+
+  assert.equal(snapshot.version, 5);
+  assert.deepEqual(client.calls, [
+    ["cant_stop_choose_pairing", {
+      p_room_id: "room-1",
+      p_sums: [3, 7],
+      p_columns: [3, 7],
+      p_expected_version: 4,
+      p_client_action_id: "pairing-1",
+    }],
+  ]);
+});
+
+test("Can't Stop gameplay choosePairing accepts a single-column legal move plan", async () => {
+  const client = fakeClient({ result: { version: 6 } });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  await adapter.choosePairing({
+    roomId: "room-1",
+    sums: [4, 5],
+    columns: [4],
+    expectedVersion: 5,
+    clientActionId: "pairing-single",
+  });
+
+  assert.deepEqual(client.calls[0][1].p_columns, [4]);
+});
+
+test("Can't Stop gameplay choosePairing rejects malformed client plans before RPC", async () => {
+  const client = fakeClient();
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  await assert.rejects(
+    () => adapter.choosePairing({
+      roomId: "room-1",
+      sums: [3],
+      columns: [3],
+      expectedVersion: 4,
+      clientActionId: "bad-pairing",
+    }),
+    /exactly 2 columns/u,
+  );
+
+  await assert.rejects(
+    () => adapter.choosePairing({
+      roomId: "room-1",
+      sums: [3, 7],
+      columns: [1, 7],
+      expectedVersion: 4,
+      clientActionId: "bad-plan",
+    }),
+    /integers from 2 to 12/u,
+  );
+
+  assert.equal(client.calls.length, 0);
+});
