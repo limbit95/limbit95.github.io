@@ -27,3 +27,13 @@ The Game migration history is now replayed by `scripts/prepare-game-db-e2e.mjs` 
 The `Game DB integration` GitHub Actions workflow runs automatically only for relevant game DB/harness pull requests and can also be started manually. It intentionally does not run on every feature-branch push to conserve Actions usage.
 
 The workflow checks out full Git history because the Liar canonical installer resolves immutable pinned Git blobs.
+
+## Platform-native contract
+
+Phase 3E adds `platformContract.js` as the reusable server-boundary contract for new platform-native games.
+
+It intentionally does **not** define a shared game schema or shared game RPC implementation. Each game keeps its own tables, RPC names, rule state, and fixtures.
+
+A new online platform game should add its own `tests/game-db-integration/<game-id>.test.js` and register the ten mandatory scenarios documented in `docs/game-platform-db-test-contract.md`.
+
+The workflow now runs every `tests/game-db-integration/*.test.js` file in the same disposable Supabase instance, so adding a new game contract test does not require another workflow.
