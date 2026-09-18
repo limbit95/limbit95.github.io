@@ -1,4 +1,4 @@
-const PUBLIC_BRAND_ROUTES = new Set(["/gateway", "/like", "/value"]);
+const PUBLIC_BRAND_ROUTES = new Set(["/gateway", "/like", "/value", "/together"]);
 
 function routePath(hash) {
   const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
