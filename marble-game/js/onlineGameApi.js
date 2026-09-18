@@ -147,6 +147,10 @@ export function rejectOnlineTrade(options) {
   return resolveTradeWithRpc(rpc, "marble_trade_reject", options);
 }
 
+export function cancelOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_cancel", options);
+}
+
 function subscribeOnlineGameWithClient(client, roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const channel = client
     .channel(`marble-game:${roomId}:${channelScope}:${createOnlineActionId()}`)
@@ -194,6 +198,9 @@ export function createOnlineGameApi({ client } = {}) {
     },
     rejectTrade(options) {
       return resolveTradeWithRpc(callRpc, "marble_trade_reject", options);
+    },
+    cancelTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_cancel", options);
     },
     subscribeGame(roomId, options) {
       return subscribeOnlineGameWithClient(client, roomId, options);
