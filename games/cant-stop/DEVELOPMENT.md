@@ -80,10 +80,10 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby DB foundation 검증
 - Completed: Game DB integration 10-scenario Can’t Stop contract — run #39 SUCCESS
-- Pending: `npm run test:game-platform` on lobby-ui PR
-- Pending: Game Platform Governance Guard on lobby-ui PR
-- Pending: Site static checks on lobby-ui PR
-- Pending: Game DB integration regression on lobby-ui PR
+- Completed: `npm run test:game-platform` — Site static checks run #3017 SUCCESS
+- Completed: Game Platform Governance Guard — run #18 SUCCESS
+- Completed: Site static checks — run #3017 SUCCESS
+- Pending: 없음 (lobby-ui 범위; DB 파일 변경 없음)
 
 ## Known Issues / Deferred
 
