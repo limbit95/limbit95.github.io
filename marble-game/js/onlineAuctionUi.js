@@ -211,9 +211,9 @@ function isPurchaseDeclineTarget(target) {
   return secondary?.dataset?.action === "decline";
 }
 
-function showAutoPurchaseResult(documentObject, state, shownKeys) {
+function showAutoPurchaseResult(documentObject, state, shownKeys, viewerPlayerId) {
   const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_AUTO_PURCHASED");
-  if (!event) return;
+  if (!event || event.playerId !== viewerPlayerId) return;
   const key = `${state.version ?? "v"}:${event.nodeId}:${event.playerId}:${event.amount}`;
   if (shownKeys.has(key)) return;
   shownKeys.add(key);
@@ -305,7 +305,12 @@ export function setupOnlineAuctionUi({
 
   function render(state = session.getState()) {
     if (disposed) return;
-    showAutoPurchaseResult(documentObject, state, shownResultKeys);
+    showAutoPurchaseResult(
+      documentObject,
+      state,
+      shownResultKeys,
+      session.getViewerPlayerId(),
+    );
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
     if (!model) {
       clearTimers();
