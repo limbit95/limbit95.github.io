@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - "feature/**"
     paths:
       - "index.html"
       - "index.template.html"
@@ -12,7 +11,7 @@ on:
       - "css/**"
       - "assets/**"
       - "liar-game/**"
-      - "supabase/site/**"
+      - "supabase/site/**/*.sql"
       - "scripts/build-community-assets.mjs"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
@@ -23,8 +22,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/community-authenticated-e2e.yml"
   pull_request:
-    branches:
-      - main
     paths:
       - "index.html"
       - "index.template.html"
@@ -32,7 +29,7 @@ on:
       - "css/**"
       - "assets/**"
       - "liar-game/**"
-      - "supabase/site/**"
+      - "supabase/site/**/*.sql"
       - "scripts/build-community-assets.mjs"
       - "scripts/prepare-e2e-supabase.mjs"
       - "scripts/setup-e2e-member.mjs"
