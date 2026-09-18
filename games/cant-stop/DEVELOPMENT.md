@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-roll-dice
+- Active branch: feature/game-platform-phase4-cant-stop-choose-pairing
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -53,15 +53,21 @@
 - non-active player roll과 stale version roll을 서버에서 거부하도록 검증했다.
 - game start state에 플레이어별 permanent progress를 위한 `playerProgress` authoritative 필드를 추가했다.
 - gameplay client adapter `createCantStopGameplayAdapter`를 추가했으며 client가 임의 dice/random 값을 전달하지 못하는 계약 테스트를 추가했다.
+- authoritative `cant_stop_choose_pairing` RPC를 추가해 서버 snapshot의 `legalPairings[].plans`에 존재하는 선택만 허용한다.
+- 선택된 legal move plan을 서버 `cant_stop_simulate_plan`으로 다시 계산해 authoritative `runners`에 반영하고 phase를 `PUSH_OR_STOP`으로 전환한다.
+- `choose_pairing`도 room row lock + `expected_version` + `client_action_id` replay 계약을 적용했다.
+- pairing action에는 `request_payload`를 기록해 같은 action id를 다른 sums/plan으로 재사용하면 `ACTION_ID_CONFLICT`로 거부한다.
+- gameplay adapter에 `choosePairing()`을 추가하고 sums 2개 / plan 1~2개 / 2~12 범위를 client shape 경계에서 검증한다.
+- disposable Supabase 테스트에 JS rules engine `applyPairingChoice()`와 서버 runner 결과 parity, illegal choice 무변경, stale/non-active 거부, replay payload conflict 검증을 추가했다.
 
 ## Current Work
 
-- authoritative `roll_dice` RPC와 server/client rules parity를 disposable Supabase에서 검증한다.
+- authoritative `choose_pairing` RPC와 runner transition parity를 disposable Supabase에서 검증한다.
 
 ## Next Work
 
-- `choose_pairing`을 versioned/idempotent server action으로 구현해 서버 legal move plan만 적용되도록 한다.
-- 이어서 `stop_turn` / bust 이후 turn 전환과 permanent progress / claim / win persistence를 연결한다.
+- `continue_turn` 또는 roll-again intent와 `stop_turn`을 server action으로 연결해 `PUSH_OR_STOP` 이후 흐름을 완성한다.
+- `stop_turn`에서 permanent progress commit / column claim / 상대 progress 제거 / 3번째 claim 승리를 authoritative state에 반영한다.
 - 그 다음 gameplay snapshot을 실제 dice/runner/permanent marker UI에 연결한다.
 - 운영 Supabase migration 적용 및 실제 배포 검증 전까지 Registry `online` capability는 false로 유지한다.
 
@@ -83,21 +89,22 @@
 - Registry `online` capability는 소스 구현만으로 활성화하지 않고 운영 Supabase migration과 배포 smoke test까지 완료된 시점에 true로 전환한다.
 - lobby Realtime payload는 상태 자체로 렌더링하지 않고 Shared Snapshot Coordinator refresh trigger로만 사용한다.
 - 방 생성/참가/ready/start/leave 결과는 모두 RPC가 반환한 authoritative snapshot을 기준으로 렌더링한다.
+- `choose_pairing`은 client가 임의 이동을 제안하는 API가 아니라 서버가 이미 발행한 legal pairing + legal move plan 중 하나를 선택하는 intent다.
+- idempotency key가 같아도 action payload가 달라지면 같은 요청으로 간주하지 않고 conflict로 거부한다.
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui 검증
-- Completed: Room/Lobby DB contract — disposable Supabase run #39 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks run #3032 SUCCESS
-- Completed: Game Platform Governance Guard — run #33 SUCCESS
-- Completed: Site static checks — run #3032 SUCCESS
-- Completed: Game DB integration authoritative roll/parity contract — run #68 SUCCESS
-- Pending: 없음 (roll-dice 범위)
+- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / roll-dice 검증
+- Completed: authoritative roll/parity DB integration — run #71 SUCCESS
+- Pending: `npm run test:game-platform` on choose-pairing PR
+- Pending: Game Platform Governance Guard on choose-pairing PR
+- Pending: Site static checks on choose-pairing PR
+- Pending: Game DB integration choose-pairing authority/parity tests on disposable Supabase
 
 ## Known Issues / Deferred
 
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- `roll_dice`는 구현됐지만 `choose_pairing` / `stop_turn` 및 runner/permanent marker persistence는 아직 구현하지 않았다.
+- `roll_dice`와 `choose_pairing`은 구현됐지만 `continue_turn` / `stop_turn` 및 permanent marker commit/claim persistence는 아직 구현하지 않았다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
 - legal pairing이 정확히 하나일 때 UI가 자동 적용할지 확인 버튼을 보여줄지는 후속 UX 단계에서 결정한다.
