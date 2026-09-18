@@ -183,6 +183,9 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - bust 시 이번 턴에 잃은 임시 진척이 명확히 보이도록 짧은 피드백을 제공한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
 - 원본 상용판의 보드/말 그래픽은 복제하지 않고 청파 같이 고유 시각 디자인을 사용한다.
+- online entry는 방 만들기 또는 6자리 코드 참가로 시작하며, waiting room에서 준비 상태와 방장 시작 조건을 명확히 보여준다.
+- Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
+- 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
 
 ## Implementation Plan
 
