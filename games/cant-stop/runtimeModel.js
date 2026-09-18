@@ -198,6 +198,11 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
   ["GAME_NOT_OVER", "게임이 종료된 뒤에만 재대결을 준비할 수 있어요."],
   ["ROOM_NOT_LEAVABLE", "진행 중인 게임에서는 방을 나갈 수 없어요."],
+  ["INVALID_INVITE_TOKEN", "올바르지 않은 초대 링크예요."],
+  ["INVITE_NOT_FOUND_OR_EXPIRED", "초대 링크가 만료되었거나 취소되었어요."],
+  ["GAME_INVITE_MISMATCH", "Can’t Stop 방 초대 링크가 아니에요."],
+  ["GAME_INVITE_ROOM_MISMATCH", "초대 링크의 방 정보가 일치하지 않아요."],
+  ["GAME_INVITE_UNSUPPORTED_GAME", "Can’t Stop 초대 기능은 아직 운영 활성화 전이에요."],
 ]);
 
 export function getCantStopLobbyErrorMessage(error) {
