@@ -2,7 +2,7 @@
 
 Phase 7B는 Classic Advanced Gameplay의 거래/협상 단계입니다.
 
-Phase 7B는 거래 lifecycle과 deterministic settlement, 서버 권위 RPC, Realtime·재접속, 온라인 UI를 연결했고 현재 **멀티플레이 회귀 검증**을 진행하고 있습니다.
+Phase 7B는 거래 lifecycle과 deterministic settlement, 서버 권위 RPC, Realtime·재접속, 온라인 UI, 멀티플레이 회귀 검증까지 완료했고 현재 **최종 main 통합 검증** 단계입니다.
 
 ## 현재 확정 범위
 
@@ -175,11 +175,22 @@ requested:
 - 재접속 시 open trade를 snapshot만으로 복원
 - expected version / client action id / offer id 계약 유지
 
-## 다음 단계
+## 현재 상태
+
+Phase 7B 구현과 단계별 회귀 검증은 완료되었습니다.
 
 ```text
-Phase 7B 최종 통합 검토
-→ main 대상 integration PR
+trade lifecycle
+→ deterministic settlement
+→ Game Engine integration
+→ local runtime
+→ authoritative Supabase RPC
+→ Realtime / reconnect
+→ online UI
+→ multiplayer regression
+→ 최종 main 통합 검증
 ```
+
+main 반영은 최종 integration PR의 정적/DB 통합 검증을 확인한 뒤 사용자 명시 승인에 따라 진행합니다.
 
 Phase 7A의 안정화된 구매/건설/경매/턴 흐름과 기존 roll RPC는 직접 수정하지 않습니다.
