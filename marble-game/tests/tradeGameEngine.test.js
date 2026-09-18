@@ -138,6 +138,24 @@ test("recipient rejection clears the proposal without changing assets or turn", 
   assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_REJECTED"]);
 });
 
+test("proposer cancellation clears the proposal and resumes the same pre-roll turn", () => {
+  let state = start();
+  state = openTrade(state, {
+    terms: { offered: { gold: 100 } },
+  });
+
+  assert.throws(
+    () => dispatch(state, ACTION_TYPES.TRADE_CANCEL, "b"),
+    /Only the trade proposer/i,
+  );
+
+  state = dispatch(state, ACTION_TYPES.TRADE_CANCEL, "a");
+  assert.equal(state.pendingTrade, null);
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(state.currentPlayerIndex, 0);
+  assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_CANCELLED"]);
+});
+
 test("open trade blocks normal game actions and a second offer until resolved", () => {
   let state = start();
   state = withProperties(state, {
