@@ -264,3 +264,13 @@ Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지
 - public / anon RPC 실행 권한 제거, authenticated만 허용
 
 현재 단계에서는 online session / Realtime / UI 연결은 아직 하지 않습니다.
+
+## Realtime / reconnect
+
+- snapshot의 `DEBT_RECOVERY` pending choice를 immutable하게 복원합니다.
+- liquidation catalog / selected asset ids도 nested immutable state로 보존합니다.
+- 기존 `marble_games.version` Realtime refresh 경로를 그대로 재사용합니다.
+- channel CLOSED / TIMED_OUT / ERROR 후 recovery polling에서도 latest debt recovery를 snapshot으로 복원합니다.
+- `selectLiquidation / confirmLiquidation`은 기존 shared action retry를 사용해 같은 `client_action_id`로 재시도합니다.
+- stale snapshot은 기존 version guard에 의해 settled state를 되돌리지 못합니다.
+- 거래/경매와 동일하게 별도 liquidation Realtime channel은 만들지 않습니다.
