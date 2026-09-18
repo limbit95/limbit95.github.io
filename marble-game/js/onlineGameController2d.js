@@ -47,7 +47,7 @@ function viewerCanAct(state) {
 function isAuctionChoice(state) {
   return (
     state?.phase === TURN_PHASES.WAITING_CHOICE
-    && ["AUCTION_REQUEST", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
+    && ["AUCTION_REQUEST", "AUCTION_RECRUITMENT", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
   );
 }
 
