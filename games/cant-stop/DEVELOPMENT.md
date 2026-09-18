@@ -71,10 +71,11 @@
 
 - Completed: 이전 bootstrap / rules-engine / runtime-shell Game Platform governance 및 Site static checks
 - Completed: rules engine unit test — 13/13 PASS
-- Pending: `npm run test:game-platform` on Room/Lobby PR
-- Pending: Game Platform Governance Guard on Room/Lobby PR
-- Pending: Site static checks on Room/Lobby PR
-- Pending: Game DB integration 10-scenario Can’t Stop contract on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks run #3000 SUCCESS
+- Completed: Game Platform Governance Guard — run #15 SUCCESS
+- Completed: Site static checks — run #3000 SUCCESS
+- Completed: Game DB integration 10-scenario Can’t Stop contract — run #38 SUCCESS
+- Pending: 없음 (Room/Lobby DB foundation 범위)
 
 ## Known Issues / Deferred
 
