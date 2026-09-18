@@ -152,3 +152,69 @@ test("Can't Stop gameplay choosePairing rejects malformed client plans before RP
 
   assert.equal(client.calls.length, 0);
 });
+
+
+test("Can't Stop gameplay continueTurn sends only the versioned roll-again intent", async () => {
+  const client = fakeClient({ result: { version: 8, game: { phase: "TURN_ROLL" } } });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  const snapshot = await adapter.continueTurn({
+    roomId: "room-1",
+    expectedVersion: 7,
+    clientActionId: "continue-1",
+  });
+
+  assert.equal(snapshot.version, 8);
+  assert.deepEqual(client.calls, [
+    ["cant_stop_continue_turn", {
+      p_room_id: "room-1",
+      p_expected_version: 7,
+      p_client_action_id: "continue-1",
+    }],
+  ]);
+});
+
+test("Can't Stop gameplay stopTurn sends only the versioned stop intent", async () => {
+  const client = fakeClient({ result: { version: 9, game: { phase: "TURN_ROLL" } } });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  const snapshot = await adapter.stopTurn({
+    roomId: "room-1",
+    expectedVersion: 8,
+    clientActionId: "stop-1",
+  });
+
+  assert.equal(snapshot.version, 9);
+  assert.deepEqual(client.calls, [
+    ["cant_stop_stop_turn", {
+      p_room_id: "room-1",
+      p_expected_version: 8,
+      p_client_action_id: "stop-1",
+    }],
+  ]);
+});
+
+test("Can't Stop gameplay push/stop intents reject invalid versions before RPC", async () => {
+  const client = fakeClient();
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  await assert.rejects(
+    () => adapter.continueTurn({
+      roomId: "room-1",
+      expectedVersion: -1,
+      clientActionId: "continue-bad",
+    }),
+    /non-negative integer/u,
+  );
+
+  await assert.rejects(
+    () => adapter.stopTurn({
+      roomId: "room-1",
+      expectedVersion: -1,
+      clientActionId: "stop-bad",
+    }),
+    /non-negative integer/u,
+  );
+
+  assert.equal(client.calls.length, 0);
+});
