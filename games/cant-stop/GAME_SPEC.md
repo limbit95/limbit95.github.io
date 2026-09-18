@@ -268,5 +268,6 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 - GAME_OVER leave / host succession / 같은 방 재대결 lifecycle은 구현 및 회귀 검증을 완료했다.
 - platform-native Invite 및 server-authoritative invite join은 구현 및 회귀 검증을 완료했다.
-- 운영 Supabase migration과 실제 멀티클라이언트 live smoke test 통과 전까지 `online` / `invite` capability 활성화는 보류한다.
+- 운영 Supabase migration 6개 적용과 schema/RLS/grants/Realtime/RPC 권한 검증을 완료했다.
+- 실제 멀티클라이언트 live smoke test 통과 전까지 `online` / `invite` capability 활성화는 보류한다.
 - 초기 board의 최종 시각 테마와 애니메이션 품질은 실제 플레이 검증 이후 폴리싱 단계에서 확정한다.
