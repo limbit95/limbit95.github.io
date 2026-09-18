@@ -173,6 +173,20 @@ function createHarness() {
       return snapshotFor(viewerPlayerId);
     }
 
+    if (name === "marble_trade_cancel") {
+      assert.equal(viewerPlayerId, "p1");
+      assert.equal(server.pendingTrade?.offerId, params.p_offer_id);
+      const trade = server.pendingTrade;
+      server.pendingTrade = null;
+      bump([{
+        type: "TRADE_CANCELLED",
+        offerId: params.p_offer_id,
+        proposerPlayerId: trade.proposerPlayerId,
+        recipientPlayerId: trade.recipientPlayerId,
+      }]);
+      return snapshotFor(viewerPlayerId);
+    }
+
     throw new Error("UNEXPECTED_RPC:" + name);
   }
 
@@ -329,6 +343,38 @@ test("trade rejection propagates without changing balances or ownership", async 
     await harness.broadcast("p1");
     assert.equal(proposer.getState().pendingTrade, null);
     assert.equal(proposer.getState().version, 12);
+  } finally {
+    sessions.forEach((session) => session.dispose());
+    restore();
+  }
+});
+
+test("proposer cancellation propagates and releases the pre-roll action lock", async () => {
+  const restore = installFakeBrowser();
+  const harness = createHarness();
+  const sessions = [];
+
+  try {
+    const proposer = await createOnlineClassicSession({ roomId: "room-1", api: harness.apiFor("p1") });
+    const observer = await createOnlineClassicSession({ roomId: "room-1", api: harness.apiFor("p3") });
+    sessions.push(proposer, observer);
+
+    const offerId = "55555555-5555-4555-8555-555555555555";
+    await proposer.offerTrade("p2", {
+      offered: { gold: 50 },
+      requested: { gold: 0 },
+    }, offerId);
+    await harness.broadcast("p3");
+    assert.equal(observer.getState().pendingTrade?.offerId, offerId);
+
+    await proposer.cancelTrade();
+    assert.equal(proposer.getState().pendingTrade, null);
+    assert.equal(proposer.getState().phase, "WAITING_ROLL");
+    assert.deepEqual(proposer.getState().lastEvents.map((event) => event.type), ["TRADE_CANCELLED"]);
+
+    await harness.broadcast("p3");
+    assert.equal(observer.getState().pendingTrade, null);
+    assert.equal(observer.getState().version, 12);
   } finally {
     sessions.forEach((session) => session.dispose());
     restore();
