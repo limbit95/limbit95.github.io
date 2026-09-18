@@ -20,9 +20,9 @@ test("platform DB contract freezes the minimum multiplayer safety scenarios", ()
   assert.deepEqual(
     PLATFORM_GAME_DB_SCENARIOS.map(({ id }) => id),
     [
-      "anonymous_create_denied",
-      "unapproved_create_denied",
-      "approved_create_allowed",
+      "anonymous_entry_denied",
+      "unapproved_entry_denied",
+      "approved_entry_allowed",
       "non_member_snapshot_denied",
       "non_host_start_denied",
       "stale_version_rejected",

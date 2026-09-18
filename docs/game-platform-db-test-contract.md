@@ -17,9 +17,9 @@ Phase 3E에서는 공통 게임 DB 스키마나 공통 게임 RPC를 만들지 �
 
 모든 신규 온라인 platform-native 게임은 최소 다음 시나리오를 검증한다.
 
-1. 익명 사용자는 방을 생성할 수 없다.
-2. 승인되지 않은 회원은 방을 생성할 수 없다.
-3. 승인 회원은 정상적으로 방을 생성할 수 있다.
+1. 익명 사용자는 방을 생성하거나 참가할 수 없다.
+2. 승인되지 않은 회원은 방을 생성하거나 참가할 수 없다.
+3. 승인 회원은 정상적으로 방을 생성하고 다른 방에 참가할 수 있다.
 4. 방 멤버가 아닌 사용자는 방 snapshot을 읽을 수 없다.
 5. 방장이 아닌 사용자는 게임을 시작할 수 없다.
 6. 오래된 `expected_version` 명령은 거부된다.
@@ -62,9 +62,9 @@ registerPlatformGameDbContract({
     // test fixture cleanup
   },
   scenarios: {
-    anonymous_create_denied: async (context) => { /* game-specific RPC assertion */ },
-    unapproved_create_denied: async (context) => { /* ... */ },
-    approved_create_allowed: async (context) => { /* ... */ },
+    anonymous_entry_denied: async (context) => { /* create + join RPC assertions */ },
+    unapproved_entry_denied: async (context) => { /* create + join RPC assertions */ },
+    approved_entry_allowed: async (context) => { /* create + join RPC assertions */ },
     non_member_snapshot_denied: async (context) => { /* ... */ },
     non_host_start_denied: async (context) => { /* ... */ },
     stale_version_rejected: async (context) => { /* ... */ },
