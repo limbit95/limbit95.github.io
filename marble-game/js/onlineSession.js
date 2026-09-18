@@ -245,15 +245,18 @@ export async function createOnlineClassicSession({
     });
   }
 
+  function syncServerClock(nextSnapshot) {
+    const nextServerNowMs = getSnapshotServerNowMs(nextSnapshot);
+    if (nextServerNowMs === null) return;
+    serverClockAnchorMs = nextServerNowMs;
+    monotonicClockAnchorMs = monotonicNowMs();
+  }
+
   function accept(nextSnapshot) {
     const nextState = mapOnlineGameSnapshot(nextSnapshot);
     if (nextState.version < state.version) return state;
     const changed = nextState.version > state.version;
-    const nextServerNowMs = getSnapshotServerNowMs(nextSnapshot);
-    if (nextServerNowMs !== null) {
-      serverClockAnchorMs = nextServerNowMs;
-      monotonicClockAnchorMs = monotonicNowMs();
-    }
+    syncServerClock(nextSnapshot);
     snapshot = nextSnapshot;
     state = nextState;
     if (changed) notifyStateListeners(state);
@@ -272,6 +275,7 @@ export async function createOnlineClassicSession({
       const nextVersion = Number(nextSnapshot?.game?.version) || 0;
       const currentVersion = Number(snapshot?.game?.version) || 0;
       if (nextVersion <= currentVersion) {
+        syncServerClock(nextSnapshot);
         if (notify && forceNotify) await onRemoteState?.(state);
         return state;
       }
