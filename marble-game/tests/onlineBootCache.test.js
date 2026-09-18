@@ -40,16 +40,16 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
 test("online recovery and Classic renderer entries bypass stale modules while untouched imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260915-r1"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
-  assert.match(controllerSource, /onlineSession\.js\?v=20260919-r12/);
-  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260919-r12/);
-  assert.match(tradeUiSource, /onlineSession\.js\?v=20260919-r12/);
+  assert.match(controllerSource, /onlineSession\.js\?v=20260918-r11/);
+  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260918-r11/);
+  assert.match(tradeUiSource, /onlineSession\.js\?v=20260918-r11/);
   
-  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260919-r12/);
+  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260918-r11/);
   
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
-  assert.match(sessionSource, /onlineGameApi\.js\?v=20260919-r12/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260918-r11/);
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
-  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260919-r12/g) ?? []).length, 1);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260918-r11/g) ?? []).length, 1);
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
