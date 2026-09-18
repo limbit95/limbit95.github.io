@@ -21,12 +21,12 @@ Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
 └─ Phase 7B Trading / Negotiation                완료
-└─ Phase 7C Debt Recovery / Asset Liquidation   구현 완료 (main 통합 검증 중)
+└─ Phase 7C Debt Recovery / Asset Liquidation   완료
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 구현 완료 및 main 통합 검증 중**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 완료**입니다.
 
 ## Phase 1 — Foundation
 
@@ -190,7 +190,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7C — Debt Recovery / Asset Liquidation
 
-상태: **구현 완료 — main 통합 검증 중**
+상태: **완료**
 
 Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
 
@@ -222,7 +222,7 @@ Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉
 - creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
 - 매각 후에도 부족할 경우 최종 파산 전환 시점
 
-local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realtime / reconnect, 온라인 자산 매각 UI, 3클라이언트 멀티플레이 회귀 검증까지 완료했고 현재 최신 main 대상 통합 검증을 진행합니다.
+local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realtime / reconnect, 온라인 자산 매각 UI, 3클라이언트 멀티플레이 회귀 검증, PR #281 main 통합, 운영 Supabase 활성화와 rollback smoke test까지 완료했습니다.
 
 ## 이후 Advanced Gameplay 후보
 
@@ -232,7 +232,7 @@ local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realt
 - 개인 비밀 목표
 - 반응 카드
 - 공동 이벤트
-- 자산 매각 기반 파산 회피 — **Phase 7C로 착수**
+- 자산 매각 기반 파산 회피 — **Phase 7C 완료**
 
 이 항목들의 정확한 Phase 번호와 구현 순서는 각 단계 착수 전에 별도로 확정합니다.
 
@@ -252,3 +252,4 @@ local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realt
 - [Marble README](../marble-game/README.md)
 - [Animation & Presentation Design](../marble-game/ANIMATION_DESIGN.md)
 - [Phase 7A Auction Foundation](./marble-phase7a-auction-foundation.md)
+- [Phase 7C Debt Recovery / Asset Liquidation](./marble-phase7c-liquidation-foundation.md)
