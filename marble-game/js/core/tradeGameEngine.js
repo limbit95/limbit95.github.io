@@ -146,7 +146,7 @@ function cancelTradeProposal(state, action) {
   }, action);
 }
 
-export function reducePhase7TradingGameAction(state, action) {
+export function reducePhase7TradingGameAction(state, action, options = {}) {
   if (!state || typeof state !== "object") throw new TypeError("Game state is required.");
   if (!action || typeof action.type !== "string") throw new TypeError("A marble action is required.");
 
@@ -170,5 +170,5 @@ export function reducePhase7TradingGameAction(state, action) {
     return openTradeProposal(state, action);
   }
 
-  return reducePhase7GameAction(state, action);
+  return reducePhase7GameAction(state, action, options);
 }
