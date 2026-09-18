@@ -501,7 +501,9 @@ test("Can't Stop lobby controller tracks authoritative snapshot after invite joi
   const inviteAdapter = {
     async joinRoomFromInvite(input) {
       inviteCalls.push(input);
-      return snapshot({ version: 7 });
+      const joined = snapshot({ version: 7 });
+      adapter.setSnapshot(joined);
+      return joined;
     },
   };
   const controller = createCantStopLobbyController({
