@@ -93,5 +93,17 @@ export function createCantStopGameplayAdapter({ client } = {}) {
         p_client_action_id: requireText(clientActionId, "clientActionId"),
       });
     },
+
+    async rematchRoom({
+      roomId,
+      expectedVersion,
+      clientActionId,
+    }) {
+      return callRpc(supabase, "cant_stop_rematch_room", {
+        p_room_id: requireText(roomId, "roomId"),
+        p_expected_version: requireVersion(expectedVersion),
+        p_client_action_id: requireText(clientActionId, "clientActionId"),
+      });
+    },
   });
 }
