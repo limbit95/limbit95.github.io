@@ -74,6 +74,27 @@ test("normal participants may withdraw during recruitment but requester may not"
   assert.deepEqual(state.pendingChoice.participantPlayerIds, ["b"]);
 });
 
+test("request window still lasts 10 seconds when nobody can afford the opening bid", () => {
+  let state = roll(start(["a", "b"]), "a", [1, 2]);
+  state = Object.freeze({
+    ...state,
+    players: Object.freeze([
+      state.players[0],
+      Object.freeze({ ...state.players[1], money: 100 }),
+    ]),
+  });
+  state = declinePurchase(state, "a", 1_000);
+
+  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+  assert.deepEqual(state.pendingChoice.eligiblePlayerIds, []);
+  assert.equal(state.pendingChoice.deadlineAt, 11_000);
+
+  state = reduce(state, ACTION_TYPES.AUCTION_REQUEST_CLOSE, null, {}, 11_000);
+  assert.equal(state.phase, TURN_PHASES.TURN_END);
+  assert.equal(state.pendingChoice, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, null);
+});
+
 test("request deadline with no request ends the auction flow and keeps the property unsold", () => {
   let state = declinePurchase(roll(start(), "a", [1, 2]), "a", 1_000);
 
