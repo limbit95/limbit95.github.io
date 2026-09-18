@@ -26,6 +26,13 @@ function requireGameplayAdapter(adapter) {
   return adapter;
 }
 
+function requireInviteAdapter(adapter) {
+  if (typeof adapter?.joinRoomFromInvite !== "function") {
+    throw new TypeError("Can't Stop lobby controller requires inviteAdapter.joinRoomFromInvite().");
+  }
+  return adapter;
+}
+
 function requireAdapter(adapter) {
   const methods = [
     "createRoom",
@@ -59,6 +66,7 @@ function freezeState(state) {
 export function createCantStopLobbyController({
   adapter,
   gameplayAdapter = null,
+  inviteAdapter = null,
   idFactory = createClientActionId,
   onState = () => {},
   onError = () => {},
@@ -67,6 +75,7 @@ export function createCantStopLobbyController({
 } = {}) {
   const roomLobby = requireAdapter(adapter);
   const gameplay = gameplayAdapter == null ? null : requireGameplayAdapter(gameplayAdapter);
+  const invite = inviteAdapter == null ? null : requireInviteAdapter(inviteAdapter);
   if (typeof idFactory !== "function") {
     throw new TypeError("Can't Stop lobby controller requires idFactory().");
   }
@@ -204,6 +213,16 @@ export function createCantStopLobbyController({
     });
   }
 
+  async function joinInvite({ token, nickname }) {
+    return command(async () => {
+      if (!invite) {
+        throw new Error("Can't Stop invite adapter is not configured.");
+      }
+      const snapshot = await invite.joinRoomFromInvite({ token, nickname });
+      return trackRoom(snapshot);
+    });
+  }
+
   async function setReady(ready) {
     return command(async () => {
       const snapshot = state.snapshot;
@@ -316,6 +335,7 @@ export function createCantStopLobbyController({
     initialize,
     createRoom,
     joinRoom,
+    joinInvite,
     setReady,
     startGame,
     leaveRoom,
