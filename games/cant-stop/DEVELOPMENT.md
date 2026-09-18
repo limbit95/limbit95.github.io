@@ -6,7 +6,7 @@
 ## Current Status
 
 - Phase: Phase 4
-- Status: DEPLOYMENT_IN_PROGRESS
+- Status: PRODUCTION_MIGRATED_PENDING_LIVE_SMOKE
 - Active branch: feature/cant-stop-production-migration-20260919
 - Last checkpoint: 2026-09-19
 
@@ -92,11 +92,14 @@
 ## Current Work
 
 - Phase 4 전체 구현은 통합 PR #323으로 main에 병합 완료했다.
-- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 순서대로 적용하고 production schema / RPC / RLS / grants를 검증한다.
+- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 적용 완료했다.
+- production schema / RLS / grants / Realtime publication / RPC auth boundary 검증을 완료했다.
+- 다음 작업은 실제 승인회원 계정 2~4개를 사용하는 live smoke test다.
 
 ## Next Work
 
-- 운영 migration 적용 후 실제 승인회원 계정 2~4개로 room/lobby/gameplay/reconnect/rematch/invite live smoke test를 수행한다.
+- room 생성 → 코드/Invite 참가 → ready → start → roll/pairing/push/stop → GAME_OVER → reconnect → rematch/leave를 실제 브라우저 2~4개에서 검증한다.
+- PC/모바일 혼합 환경에서 Realtime invalidation과 reconnect 상태 복구를 확인한다.
 - live smoke test 통과 후 별도 활성화 PR에서 Registry `online` / `invite` capability와 게임 목록 노출을 활성화한다.
 
 ## Decisions
@@ -139,11 +142,21 @@
 - Completed: 통합 PR Game Platform Governance #86 SUCCESS
 - Completed: 통합 PR Site static checks #3104 SUCCESS
 - Completed: 통합 PR Game DB integration #120 SUCCESS
-- Pending: 운영 Supabase migration 6개 적용
-- Pending: 실제 2~4인 live smoke test
+- Completed: 운영 Supabase migration 6개 적용
+  - `20260918232621 cant_stop_room_lobby_foundation`
+  - `20260918232626 cant_stop_roll_dice`
+  - `20260918232629 cant_stop_choose_pairing`
+  - `20260918232633 cant_stop_push_stop`
+  - `20260918232636 cant_stop_post_game`
+  - `20260918232641 cant_stop_invite_join`
+- Completed: production RLS / grants / Realtime publication / RPC auth boundary 검증
+- Pending: 실제 승인회원 2~4인 live smoke test
 
 ## Known Issues / Deferred
 
-- Phase 4 소스 구현은 main에 병합됐지만 운영 Supabase migration 적용과 live smoke test가 아직 남아 있다.
-- Registry에는 platform identity만 등록했고 `online` / `invite` capability는 운영 migration + smoke test 전까지 false로 유지한다.
+- 운영 DB migration은 적용 완료됐지만 실제 브라우저 멀티클라이언트 live smoke test는 아직 수행하지 않았다.
+- Registry `online` / `invite` capability는 live smoke test 전까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
+- Supabase advisor의 authenticated SECURITY DEFINER 경고는 authenticated 전용 authoritative RPC 설계로 인해 예상되는 항목이며, anon/PUBLIC EXECUTE는 모두 차단돼 있다.
+- `cant_stop_room_actions`는 RLS가 켜져 있고 direct SELECT/WRITE grant가 없는 action log라 policy가 없는 상태를 의도적으로 유지한다.
+
