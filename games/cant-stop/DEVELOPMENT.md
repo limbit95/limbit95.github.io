@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-post-game
+- Active branch: feature/game-platform-phase4-cant-stop-invite
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -81,16 +81,23 @@
 - 재대결 준비 시 room expiry를 8시간 연장한다.
 - GAME_OVER UI에서 방장에게 `같은 방에서 재대결`, 모든 player에게 `방 나가기` action을 노출한다.
 - disposable Supabase 테스트에 GAME_OVER leave 후 새 방 생성, rematch reset/restart, active-game guard, host-only rematch, host succession을 추가했다.
+- 멀티클라이언트/reconnect 검증에서 GAME_OVER → rematch lobby → 재접속 → 재시작, host leave → host succession → 재접속 흐름을 추가 검증했고 DB integration run #116까지 통과했다.
+- platform-native Invite용 `createCantStopInviteAdapter`를 추가해 공용 `game_room` envelope과 Registry capability guard를 재사용한다.
+- Invite 공유는 사이트 공용 `site_invite_create` + `inviteShare` 링크/QR UI를 그대로 사용하도록 연결했다.
+- 초대 진입은 `?invite=<token>`을 다시 resolve하고 expected game id를 검증한 뒤 Can’t Stop 서버 참가 RPC로 넘긴다.
+- `cant_stop_join_room_by_invite` RPC는 서버에서 같은 token을 다시 `site_invite_resolve`하고 target type / game id / platform version / room id를 재검증한 뒤에만 waiting room 참가를 허용한다.
+- revoked/mismatched invite 및 server/client room parity를 테스트로 고정했다.
+- Registry `online/invite` capability가 false인 현재 상태에서는 초대 버튼/자동 참가가 노출되지 않으며, 운영 migration + smoke test 이후 capability 활성화 시 연결된 기능이 바로 켜지도록 구성했다.
 
 ## Current Work
 
-- GAME_OVER 이후 leave/rematch lifecycle과 기존 ready/start 재사용 경계를 disposable Supabase 및 runtime 회귀로 검증한다.
+- platform-native Invite 생성/라우팅/서버 재검증/room 참가 경계를 disposable Supabase 및 Game Platform 회귀로 검증한다.
 
 ## Next Work
 
-- 실제 멀티클라이언트에서 lobby → gameplay → GAME_OVER → rematch/leave → reconnect 전체 흐름을 회귀 검증한다.
-- online core 안정화 후 platform-native Invite 연결을 진행한다.
-- 운영 Supabase migration 적용 및 실제 배포 smoke test 전까지 Registry `online` capability는 false로 유지한다.
+- Invite 검증 완료 후 운영 Supabase migration 적용 여부를 결정하고 실제 배포 smoke test를 준비한다.
+- 운영 migration + live smoke test가 완료되기 전까지 Registry `online/invite` capability는 false로 유지한다.
+- 운영 검증이 완료된 시점에 Registry capability와 게임 목록 노출을 별도 작은 변경으로 활성화한다.
 
 ## Decisions
 
@@ -119,22 +126,24 @@
 - legal pairing이 정확히 하나여도 자동 적용하지 않고 active player가 명시적으로 plan을 선택해 commit한다.
 - 재대결은 즉시 새 게임을 강제 시작하지 않고 GAME_OVER room을 waiting으로 되돌린 뒤 기존 ready/start 계약을 다시 사용한다.
 - 진행 중인 게임에서는 기존처럼 방 나가기를 금지하며 GAME_OVER에서만 leave를 허용한다.
+- Invite는 반드시 shared `game_room` 계약을 사용하고 game-local target type을 새로 만들지 않는다.
+- client invite resolve는 라우팅/UX 검증이고 최종 room 참가 권한은 서버 `cant_stop_join_room_by_invite`가 token을 다시 검증해 결정한다.
+- Invite 소스가 구현되어도 Registry `online/invite` capability는 운영 migration + smoke test가 끝날 때까지 false로 유지한다.
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / lobby-ui / gameplay action / gameplay-ui 검증
-- Completed: gameplay-ui Site static checks #3068 / Governance #65 SUCCESS
-- Completed: push-stop Game DB integration — run #95 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks #3095 SUCCESS
-- Completed: Game Platform Governance Guard — run #79 SUCCESS
-- Completed: Site static checks — run #3095 SUCCESS
-- Completed: Game DB integration post-game lifecycle — run #114 SUCCESS
-- Pending: 없음 (post-game 범위)
+- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 검증
+- Completed: multi-client lifecycle Governance #81 / Site static #3097 / Game DB integration #116 SUCCESS
+- Pending: `npm run test:game-platform` on invite PR
+- Pending: Game Platform Governance Guard on invite PR
+- Pending: Site static checks on invite PR
+- Pending: Game DB integration invite join tests on disposable Supabase
 
 ## Known Issues / Deferred
 
 - Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
 - authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
 - Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- post-game leave/rematch 소스는 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
+- post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
+- Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
