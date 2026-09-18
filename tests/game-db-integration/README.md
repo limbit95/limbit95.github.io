@@ -6,12 +6,13 @@ Phase 2-A provides a disposable Supabase integration harness before any stabilit
 
 - site baseline and operating migrations required by shared membership helpers
 - Liar Game / Drawing Spy v1.0.0 canonical fresh-install baseline plus the checked-in post-canonical v1.1/v1.2/v1.3 migrations
+- current checked-in The Game migrations recovered from the operating migration history
 - current checked-in Marble additive migrations
-- HTTP-level RPC checks for anonymous access, approved-member Liar entry/resume access, room membership, player-key possession, and optimistic version rejection
+- HTTP-level RPC checks for anonymous access, approved-member Liar entry/resume access, room membership, player-key possession, and Marble optimistic version rejection
 
 Drawing Spy is covered by the Liar database baseline because it is a Liar game mode, not a separate application.
 
-The Game is intentionally excluded for now. Its README references initial multiplayer migrations that are not present in the repository, so adding it before the canonical baseline is recovered would create a false sense of reproducibility.
+The Game migration history is now replayed by `scripts/prepare-game-db-e2e.mjs` in the disposable database. The current foundation assertions still focus on the Liar / Drawing Spy access boundary and Marble lobby/version boundary, so dedicated The Game RPC assertions can be expanded separately without changing existing game behavior.
 
 ## Safety boundaries
 
