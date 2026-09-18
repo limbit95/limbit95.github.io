@@ -140,16 +140,12 @@ Classic 첫 적용 규칙은 다음으로 고정합니다.
   - unrecoverable legacy bankruptcy fallback
   - TAX / EVENT debt recovery
 
-## 의도적으로 아직 하지 않는 것
+## 유지하는 안전 경계
 
-- 기존 `gameEngine.js` 수정
-- 기존 `chargePlayer()` / `settleBankruptcy()` 수정
-- 새로운 turn phase 추가
-- Supabase migration / RPC 추가
-- Realtime 변경
-- UI 추가
-- 다른 테마의 매각 환급률 결정
-- 기존 `gameEngine.js` payment path 연결
+- 새로운 turn phase는 추가하지 않습니다.
+- 다른 테마의 매각 환급률은 Phase 7C에서 결정하지 않습니다.
+- 기존 즉시 파산 semantics는 recovery가 불가능할 때 fallback으로 유지합니다.
+- 기존 Phase 7A 경매 / Phase 7B 거래의 서버 권위와 version/idempotency 계약을 유지합니다.
 
 ### Debt recovery lifecycle
 
@@ -222,11 +218,9 @@ OPEN
 
 이 방식으로 Phase 6/7A/7B의 기존 reducer를 전면 교체하지 않고 opt-in layer로 확장합니다.
 
-## 다음 단계
+## 구현 진행 순서
 
-다음 단계에서는 이 reducer를 **local Classic runtime**에 연결합니다.
-
-이 두 규칙을 고정한 뒤:
+Phase 7C는 다음 순서로 구현 및 검증했습니다.
 
 ```text
 liquidation policy
@@ -236,9 +230,8 @@ liquidation policy
 → Realtime / reconnect
 → UI
 → multiplayer regression
+→ latest main integration validation
 ```
-
-순서로 진행합니다.
 
 Phase 7A 경매와 Phase 7B 거래의 기존 서버 권위 / version / idempotency 원칙은 그대로 유지합니다.
 
@@ -263,7 +256,7 @@ Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지
 - `marble_guard_debt_recovery_progress` trigger로 debt recovery 중 end-turn 등 우회 차단
 - public / anon RPC 실행 권한 제거, authenticated만 허용
 
-현재 단계에서는 online session / Realtime / UI 연결은 아직 하지 않습니다.
+authoritative RPC 이후 online session / Realtime / UI까지 동일 snapshot 계약으로 연결했습니다.
 
 ## Realtime / reconnect
 
@@ -297,8 +290,22 @@ Phase 7C 온라인 권위 처리는 기존 `marble_roll_dice`를 재정의하지
 - reconnect 시 open/ready debt recovery를 snapshot만으로 복원
 - expected version / client action id 계약 유지
 
-## 다음 단계
+## 현재 상태
+
+Phase 7C 구현과 단계별 회귀 검증은 완료되었습니다.
 
 ```text
-최신 main 최종 integration
+foundation
+→ Classic liquidation policy
+→ debt recovery lifecycle
+→ deterministic settlement
+→ Game Engine integration
+→ local runtime
+→ authoritative RPC
+→ Realtime / reconnect
+→ online UI
+→ multiplayer regression
+→ latest main integration validation
 ```
+
+운영 Supabase migration 적용과 main 병합은 최종 integration PR 검증 이후 별도로 진행합니다.
