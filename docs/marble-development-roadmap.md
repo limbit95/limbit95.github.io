@@ -20,12 +20,12 @@ Phase 5   Online Multiplayer Foundation          완료
 Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
-└─ Phase 7B Trading / Negotiation                진행 중 (engine integration)
+└─ Phase 7B Trading / Negotiation                진행 중 (local runtime)
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 Game Engine integration 진행 중**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 local runtime 연결 진행 중**입니다.
 
 ## Phase 1 — Foundation
 
@@ -167,7 +167,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7B — Trading / Negotiation
 
-상태: **진행 중 — Game Engine integration**
+상태: **진행 중 — local runtime**
 
 거래 lifecycle과 deterministic settlement를 고정한 뒤, 현재는 기존 Phase 7A reducer를 직접 수정하지 않는 additive Game Engine integration을 진행합니다.
 
