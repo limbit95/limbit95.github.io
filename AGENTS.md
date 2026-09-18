@@ -56,6 +56,10 @@ fix/marble-stability-phase3-ci
 - `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
 - `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
 - Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
+- 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 현재 개발상태의 인수인계 문서로 유지합니다.
+- 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
+- 사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 checkpoint 기록을 요청하면 Phase 완료 여부와 관계없이 즉시 `DEVELOPMENT.md`를 현재 상태로 갱신하고 현재 작업 브랜치에 commit합니다.
+- 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 
 ## 작업 전 확인
 
