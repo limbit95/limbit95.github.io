@@ -6,9 +6,9 @@
 ## Current Status
 
 - Phase: Phase 4
-- Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-invite
-- Last checkpoint: 2026-09-18
+- Status: PRODUCTION_MIGRATED_PENDING_LIVE_SMOKE
+- Active branch: feature/cant-stop-production-migration-20260919
+- Last checkpoint: 2026-09-19
 
 ## Completed
 
@@ -91,13 +91,16 @@
 
 ## Current Work
 
-- platform-native Invite 생성/라우팅/서버 재검증/room 참가 경계를 disposable Supabase 및 Game Platform 회귀로 검증한다.
+- Phase 4 전체 구현은 통합 PR #323으로 main에 병합 완료했다.
+- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 적용 완료했다.
+- production schema / RLS / grants / Realtime publication / RPC auth boundary 검증을 완료했다.
+- 다음 작업은 실제 승인회원 계정 2~4개를 사용하는 live smoke test다.
 
 ## Next Work
 
-- Invite 검증 완료 후 운영 Supabase migration 적용 여부를 결정하고 실제 배포 smoke test를 준비한다.
-- 운영 migration + live smoke test가 완료되기 전까지 Registry `online/invite` capability는 false로 유지한다.
-- 운영 검증이 완료된 시점에 Registry capability와 게임 목록 노출을 별도 작은 변경으로 활성화한다.
+- room 생성 → 코드/Invite 참가 → ready → start → roll/pairing/push/stop → GAME_OVER → reconnect → rematch/leave를 실제 브라우저 2~4개에서 검증한다.
+- PC/모바일 혼합 환경에서 Realtime invalidation과 reconnect 상태 복구를 확인한다.
+- live smoke test 통과 후 별도 활성화 PR에서 Registry `online` / `invite` capability와 게임 목록 노출을 활성화한다.
 
 ## Decisions
 
@@ -132,19 +135,43 @@
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 검증
+- Completed: bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 회귀
 - Completed: multi-client lifecycle Governance #81 / Site static #3097 / Game DB integration #116 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks #3100 SUCCESS
-- Completed: Game Platform Governance Guard — run #83 SUCCESS
-- Completed: Site static checks — run #3100 SUCCESS
-- Completed: Game DB integration Invite join/security contract — run #118 SUCCESS
-- Pending: 없음 (Invite 소스 연결 범위)
+- Completed: Invite source Governance #84 / Site static #3101 / Game DB integration #119 SUCCESS
+- Completed: Phase 4 통합 PR #323 main 병합
+- Completed: 통합 PR Game Platform Governance #86 SUCCESS
+- Completed: 통합 PR Site static checks #3104 SUCCESS
+- Completed: 통합 PR Game DB integration #120 SUCCESS
+- Completed: 운영 Supabase migration 6개 적용
+  - `20260918232621 cant_stop_room_lobby_foundation`
+  - `20260918232626 cant_stop_roll_dice`
+  - `20260918232629 cant_stop_choose_pairing`
+  - `20260918232633 cant_stop_push_stop`
+  - `20260918232636 cant_stop_post_game`
+  - `20260918232641 cant_stop_invite_join`
+- Completed: production RLS / grants / Realtime publication / RPC auth boundary 검증
+- Pending: 실제 승인회원 2~4인 live smoke test
 
 ## Known Issues / Deferred
 
-- Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
-- Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
-- Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
+- 운영 DB migration은 적용 완료됐지만 실제 브라우저 멀티클라이언트 live smoke test는 아직 수행하지 않았다.
+- Registry `online` / `invite` capability는 live smoke test 전까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
+- Supabase advisor의 authenticated SECURITY DEFINER 경고는 authenticated 전용 authoritative RPC 설계로 인해 예상되는 항목이며, anon/PUBLIC EXECUTE는 모두 차단돼 있다.
+- `cant_stop_room_actions`는 RLS가 켜져 있고 direct SELECT/WRITE grant가 없는 action log라 policy가 없는 상태를 의도적으로 유지한다.
+
+## Development Progress Log
+
+### 2026-09-19 — Phase 4 운영 migration checkpoint
+
+- Can’t Stop Phase 4 전체 구현을 통합 PR #323으로 `main`에 병합했다.
+- 기존 stacked PR 체인을 정리하고 중복 post-game PR을 종료했다.
+- 운영 Supabase 프로젝트 `zxwdculpycqvbcfdoxvu`에 Can’t Stop migration 6개를 순서대로 적용했다.
+- 운영 DB에서 `cant_stop_rooms`, `cant_stop_room_players`, `cant_stop_room_actions` 생성과 RLS 활성화를 확인했다.
+- `cant_stop_rooms`, `cant_stop_room_players`가 `supabase_realtime` publication에 등록된 것을 확인했다.
+- Can’t Stop public RPC 13개가 anon/PUBLIC에는 실행 불가하고 authenticated에만 실행 가능함을 확인했다.
+- 모든 public RPC에 `auth.uid()`, `private.is_approved_member()`, 고정 `search_path` 검증이 포함된 것을 확인했다.
+- room/player 테이블은 authenticated SELECT만 허용하고 direct write는 차단하며, action log는 direct SELECT/WRITE 모두 차단된 상태를 확인했다.
+- Registry `online` / `invite` capability는 실제 멀티클라이언트 live smoke test가 끝날 때까지 비활성 상태를 유지한다.
+- 다음 체크포인트는 승인회원 계정 2~4개를 사용한 실제 브라우저 플레이 테스트다.
+
