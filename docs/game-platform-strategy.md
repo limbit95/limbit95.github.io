@@ -126,7 +126,28 @@ client_action_id
 
 플랫폼은 하나의 거대한 공통 게임 상태 테이블을 만들지 않는다.
 
-## 7. 기존 초대 기능 정책
+## 7. Common Game Shell 원칙
+
+신규 게임은 공통 Shell을 사용할 수 있다.
+
+Shell이 담당하는 범위:
+
+- 게임 제목 / 설명 / 게임 목록 복귀
+- 현재 방 식별 정보
+- 연결 / 재연결 / 오프라인 / 오류 상태 표시
+- 공통 플레이어 roster
+- 메인 게임 영역과 보조 정보 영역의 기본 배치
+- 하단 공통 action 영역
+
+Shell은 게임 화면 전체 디자인을 고정하는 템플릿이 아니다.
+
+각 게임은 Shell 안의 메인 게임 영역에서 보드, 카드, 주사위, 3D, 애니메이션, 테마 등 고유한 시각 표현을 자유롭게 구현한다.
+
+공통 Shell CSS는 전역 사이트에 강제로 주입하지 않고 신규 게임이 명시적으로 opt-in 한다. 이 원칙으로 Legacy 게임과 기존 커뮤니티 화면의 CSS 회귀를 방지한다.
+
+연결 상태 UI 역시 Realtime 자체를 신뢰하는 표시가 아니라 authoritative snapshot refresh 상태를 사용자에게 보여주는 역할에 집중한다.
+
+## 8. 기존 초대 기능 정책
 
 기존 게임별 초대 구현은 새 Game Platform의 호환 기준이 아니다.
 
@@ -138,7 +159,7 @@ Legacy 게임이 새 공통 Invite 기능을 적용하기 어렵다면 적용하
 
 기존 초대 링크를 영구적으로 보존하기 위해 새 플랫폼 설계를 복잡하게 만들지 않는다.
 
-## 8. 추후 Remaster 전략
+## 9. 추후 Remaster 전략
 
 Game Platform이 충분히 검증된 뒤 기존 게임을 새 플랫폼 위에서 다시 제공하고 싶다면 선택적으로 Remaster 버전을 새로 구현할 수 있다.
 
@@ -151,16 +172,20 @@ Game Platform이 충분히 검증된 뒤 기존 게임을 새 플랫폼 위에�
 
 따라서 현재 Legacy를 그대로 보존하는 것은 기술 부채를 방치하는 것이 아니라 미래의 안전한 재구현을 위한 의도적인 경계다.
 
-## 9. 현재 단계
+## 10. 현재 단계
 
 ```text
 Stable Legacy stabilization
 → Phase 3A: Registry + Access Gate
 → Phase 3B: Room/Lobby + Snapshot/Reconnect + Versioned Action contracts
-→ platform-side Invite / common shell 등 후속 기반
-→ Can’t Stop: 첫 실제 플랫폼 검증 게임
+→ Phase 3C: Common Game Shell + connection/player UI contract
+→ Phase 3D: platform-native Invite + legacy invite impact analysis
+→ Phase 3E: reusable DB/test contract template if needed
+→ Phase 4: Can’t Stop 신규 구현 및 실제 플랫폼 검증
 → 이후 신규 게임 확장
 → 필요 시 Legacy Remaster
 ```
 
-Phase 3B의 계약은 아직 기존 게임 런타임에 연결하지 않는다. Can’t Stop에서 첫 실제 소비자로 검증한 뒤 공통 기능의 범위를 확정한다.
+Phase 3C까지의 공통 기반은 아직 기존 게임 런타임에 연결하지 않는다.
+
+Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업이 아니라, Phase 4에서 `games/cant-stop/` 아래에 처음부터 생성하는 첫 platform-native 게임이다.
