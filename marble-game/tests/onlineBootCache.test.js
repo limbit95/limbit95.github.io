@@ -41,9 +41,9 @@ test("online recovery and Classic renderer entries bypass stale modules while un
   assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
   assert.match(twoDControllerSource, /onlineSession\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
-  assert.match(sessionSource, /onlineGameApi\.js\?v=20260910-r9/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260918-r1/);
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
-  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260910-r9/g) ?? []).length, 1);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260918-r1/g) ?? []).length, 1);
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
