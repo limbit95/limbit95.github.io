@@ -503,6 +503,9 @@ begin
   if char_length(v_action_id) not between 1 and 100 then
     raise exception 'INVALID_ACTION_ID' using errcode = 'P0001';
   end if;
+  if not private.cant_stop_is_room_member(p_room_id) then
+    raise exception 'NOT_ROOM_MEMBER' using errcode = 'P0001';
+  end if;
 
   perform pg_advisory_xact_lock(
     hashtextextended(p_room_id::text || ':' || v_action_id, 0)
@@ -685,6 +688,9 @@ begin
   end if;
   if char_length(v_action_id) not between 1 and 100 then
     raise exception 'INVALID_ACTION_ID' using errcode = 'P0001';
+  end if;
+  if not private.cant_stop_is_room_member(p_room_id) then
+    raise exception 'NOT_ROOM_MEMBER' using errcode = 'P0001';
   end if;
 
   perform pg_advisory_xact_lock(
