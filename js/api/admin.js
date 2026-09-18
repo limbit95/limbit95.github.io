@@ -119,6 +119,30 @@ export async function listAllMembers({ search = "" } = {}) {
   return items;
 }
 
+export async function listMemberAccess({
+  search = "",
+  recency = "all",
+  page = 1,
+  pageSize = 30,
+} = {}) {
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 30, 1), 100);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const rows = unwrap(await supabase.rpc("system_admin_list_member_access", {
+    p_search: search.trim() || null,
+    p_recency: recency || "all",
+    p_limit: safePageSize,
+    p_offset: (safePage - 1) * safePageSize,
+  })) ?? [];
+  const total = Number(rows[0]?.total_count ?? 0);
+  return {
+    items: rows.map(({ total_count, ...row }) => row),
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
+}
+
 export async function listEventOrganizerHistory({
   search = "",
   changeType = "",

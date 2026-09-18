@@ -54,6 +54,8 @@ baseline 실행 후 seed를 실행합니다.
 
 운영 DB에 이미 적용된 migration은 다시 실행하기 위한 파일이 아니라 **현재 운영 DB가 baseline 이후 어떻게 변경되었는지 추적하기 위한 source of truth**입니다.
 
+> 문서 점검 기준 2026-09-18: 아래 파일 트리와 `현재 확인된 본 사이트 흐름` 목록은 초기 baseline 및 주요 전환 지점을 설명하는 축약 목록이며 `supabase/site/migrations/`의 전체 파일을 열거하지 않습니다. 저장소의 현재 migration 목록은 실제 디렉터리를 확인하고, 운영 적용 여부는 `supabase_migrations.schema_migrations`를 함께 대조합니다.
+
 현재 확인된 본 사이트 흐름은 다음과 같습니다.
 
 1. baseline + seed

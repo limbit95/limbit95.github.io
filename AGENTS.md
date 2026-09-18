@@ -10,6 +10,27 @@
 - 변경사항은 작업 브랜치에 commit한 뒤 Pull Request로 제출합니다.
 - 사용자의 명시적 승인 없이 Pull Request를 `main`에 merge하지 않습니다.
 
+## 브랜치 명명 규칙
+
+- 기본 형식은 `<type>/<root-slug>-phase<N>-<detail>`을 사용합니다.
+- `feature`, `fix`, `refactor`, `chore` 등 `type`은 실제 작업 성격에 맞게 선택합니다.
+- 하나의 큰 작업이 시작되어 완료될 때까지 `root-slug`는 동일하게 유지합니다.
+- 세부 단계나 후속 작업은 `phase<N>`과 `detail`만 변경하여 구분합니다.
+- 기존 작업의 후속 브랜치에서 별도 `root-slug`를 임의로 만들지 않습니다. 새로운 `root-slug`는 완전히 별개의 작업을 시작할 때만 사용합니다.
+- 브랜치 정리, 삭제 대상 제안, 기존 작업 참조 시에는 `type`보다 `root-slug`를 우선 기준으로 삼습니다.
+- 삭제 대상 브랜치는 같은 `root-slug`끼리 묶어 검토하고, 현재 작업과 다른 `root-slug`의 브랜치를 작업 기준으로 혼용하거나 참조하지 않습니다.
+- 단계 구분이 불필요한 단일 작업은 `phase<N>`을 생략할 수 있지만, 여러 단계로 이어질 가능성이 있다면 처음부터 `phase<N>` 형식을 우선 사용합니다.
+
+예시:
+
+```text
+feature/marble-stability-phase1-foundation
+feature/marble-stability-phase2-room-sync
+fix/marble-stability-phase3-ci
+```
+
+위 예시처럼 `type`은 달라질 수 있어도 같은 작업 계보라면 `marble-stability`를 공통 `root-slug`로 유지합니다.
+
 ## 변경 원칙
 
 - 기존 아키텍처, 코딩 스타일, 데이터 구조와 기존 동작을 최대한 유지합니다.
@@ -19,6 +40,26 @@
 - 기존에 사용 중인 패턴과 유틸리티가 있다면 새 구조를 추가하기 전에 우선 재사용합니다.
 - 외부 의존성 추가는 꼭 필요한 경우에만 하며, 기존 방식으로 해결할 수 있는지 먼저 확인합니다.
 - GitHub Actions 워크플로 수정이나 불필요한 CI 실행을 유발하는 변경은 요청이 없는 한 하지 않습니다.
+
+## 문서 점검 및 변경 안전 원칙
+
+- 문서 정리를 이유로 기존 아키텍처 결정, 게임 규칙, DB 계약, 진행 중인 Phase 정의를 임의로 변경하지 않습니다.
+- 기준일, 기준 브랜치 또는 release version이 명시된 audit, plan, release 문서는 해당 시점의 이력으로 보존하며 현재 상태에 맞추기 위해 내용을 전면 재작성하지 않습니다.
+- 루트 README나 영역별 README처럼 현재 상태를 설명하는 문서는 실제 코드, 테스트, workflow, migration 등으로 명백한 불일치가 확인된 경우에만 필요한 문구를 최소 수정합니다.
+- 문서끼리 충돌하거나 어느 설명이 현재 기준인지 불명확하면 추측으로 하나를 선택하지 않고 기존 내용을 유지한 채 불일치와 확인 필요 사항을 보고합니다.
+- 문서 이동, 삭제, 통합과 대규모 표현 통일은 별도 범위의 작업으로 취급합니다.
+
+## Game Platform 신규 게임 필수 규칙
+
+- `games/<game-id>/` 아래 신규 platform-native 게임을 생성하거나 수정하기 전에 반드시 `docs/game-platform-development-rules.md`를 읽고 따릅니다.
+- 사용자가 매번 Game Platform 규칙을 다시 명시하지 않아도 해당 문서를 신규 게임 작업의 기본 전제로 적용합니다.
+- `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
+- `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
+- Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
+- 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 현재 개발상태의 인수인계 문서로 유지합니다.
+- 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
+- 사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 checkpoint 기록을 요청하면 Phase 완료 여부와 관계없이 즉시 `DEVELOPMENT.md`를 현재 상태로 갱신하고 현재 작업 브랜치에 commit합니다.
+- 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 
 ## 작업 전 확인
 
@@ -39,6 +80,7 @@ npm ci
 ```bash
 npm run build:assets
 npm run test:e2e
+npm run test:game-platform
 npm run test:the-game
 npm run test:marble
 ```

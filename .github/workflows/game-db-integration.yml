@@ -3,13 +3,15 @@ name: Game DB integration
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - main
     paths:
-      - "supabase/liar-game/**"
-      - "supabase/marble/**"
+      - "supabase/site/**/*.sql"
+      - "supabase/liar-game/**/*.sql"
+      - "supabase/liar-game/**/*.json"
+      - "supabase/the-game/**/*.sql"
+      - "supabase/marble/**/*.sql"
       - "scripts/prepare-game-db-e2e.mjs"
-      - "tests/game-db-integration/**"
+      - "scripts/build-liar-canonical.mjs"
+      - "tests/game-db-integration/**/*.js"
       - ".github/workflows/game-db-integration.yml"
 
 jobs:
@@ -61,8 +63,8 @@ jobs:
           echo "E2E_LOCAL_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
           echo "E2E_LOCAL_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
 
-      - name: Run game DB integration foundation
-        run: node --test tests/game-db-integration/foundation.test.js
+      - name: Run game DB integration tests
+        run: node --test tests/game-db-integration/*.test.js
 
       - name: Stop isolated Supabase services
         if: always()

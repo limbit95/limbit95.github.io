@@ -56,6 +56,7 @@ const user = await request("/auth/v1/admin/users", {
     password,
     email_confirm: true,
     user_metadata: {
+      signup_flow: "auth_otp",
       display_name: displayName,
       real_name: realName,
       birth_year: "1990",

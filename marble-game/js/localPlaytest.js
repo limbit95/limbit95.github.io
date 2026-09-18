@@ -1,6 +1,7 @@
 import { ACTION_TYPES, createAction } from "./core/actions.js";
+import { reducePhase7LiquidationGameAction } from "./core/liquidationGameEngine.js";
 import { rollDice } from "./core/dice.js";
-import { createInitialGameState, reduceGameAction } from "./core/gameEngine.js";
+import { createInitialGameState } from "./core/gameEngine.js";
 
 export const DEFAULT_PLAYERS = Object.freeze([
   Object.freeze({ id: "player-a", name: "플레이어 A" }),
@@ -16,11 +17,11 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
 
   let state = createInitialGameState({ themeId: "classic", players });
 
-  function dispatch(type, payload = {}) {
+  function dispatch(type, payload = {}, playerId = undefined) {
     const current = state.currentPlayerIndex === null ? null : state.players[state.currentPlayerIndex];
-    state = reduceGameAction(state, createAction({
+    state = reducePhase7LiquidationGameAction(state, createAction({
       type,
-      playerId: current?.id ?? null,
+      playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
     }));
     return state;
@@ -45,6 +46,40 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
     },
     endTurn() {
       return dispatch(ACTION_TYPES.END_TURN);
+    },
+    requestAuction(playerId) {
+      return dispatch(ACTION_TYPES.AUCTION_REQUEST, {}, playerId);
+    },
+    closeAuctionRequest() {
+      return dispatch(ACTION_TYPES.AUCTION_REQUEST_CLOSE, {}, null);
+    },
+    auctionBid(playerId, amount) {
+      return dispatch(ACTION_TYPES.AUCTION_BID, { amount }, playerId);
+    },
+    auctionPass(playerId) {
+      return dispatch(ACTION_TYPES.AUCTION_BID, { pass: true }, playerId);
+    },
+    offerTrade(recipientPlayerId, terms, offerId) {
+      return dispatch(ACTION_TYPES.TRADE_OFFER, {
+        offerId,
+        recipientPlayerId,
+        terms,
+      });
+    },
+    acceptTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_ACCEPT, {}, playerId);
+    },
+    rejectTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_REJECT, {}, playerId);
+    },
+    cancelTrade(playerId) {
+      return dispatch(ACTION_TYPES.TRADE_CANCEL, {}, playerId);
+    },
+    selectLiquidation(assetIds) {
+      return dispatch(ACTION_TYPES.LIQUIDATION_SELECT, { assetIds });
+    },
+    confirmLiquidation() {
+      return dispatch(ACTION_TYPES.LIQUIDATION_CONFIRM);
     },
   });
 }

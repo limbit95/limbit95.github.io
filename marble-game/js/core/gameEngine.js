@@ -111,11 +111,29 @@ function settleBankruptcy(draft, playerIndex, creditorId, events) {
   events.push({ type: "PLAYER_BANKRUPT", playerId: player.id, creditorId: creditorId ?? null });
 }
 
-function chargePlayer(draft, playerIndex, amount, creditorId, events, reason) {
+function chargePlayer(
+  draft,
+  playerIndex,
+  amount,
+  creditorId,
+  events,
+  reason,
+  { deferDebtRecovery = false } = {},
+) {
   const player = draft.players[playerIndex];
   if (player.money < amount) {
+    if (deferDebtRecovery) {
+      events.push({
+        type: "DEBT_PAYMENT_REQUIRED",
+        playerId: player.id,
+        creditorId: creditorId ?? null,
+        amount,
+        reason,
+      });
+      return "DEFERRED";
+    }
     settleBankruptcy(draft, playerIndex, creditorId, events);
-    return false;
+    return "BANKRUPT";
   }
   draft.players = updatePlayer(draft.players, playerIndex, { money: player.money - amount });
   if (creditorId) {
@@ -123,7 +141,18 @@ function chargePlayer(draft, playerIndex, amount, creditorId, events, reason) {
     draft.players = updatePlayer(draft.players, creditorIndex, { money: draft.players[creditorIndex].money + amount });
   }
   events.push({ type: "MONEY_PAID", playerId: player.id, creditorId: creditorId ?? null, amount, reason });
-  return true;
+  return "PAID";
+}
+
+function openDebtRecoveryChoice(draft, playerId, amountDue, creditorId, reason) {
+  draft.phase = transitionPhase(draft.phase, TURN_PHASES.WAITING_CHOICE);
+  draft.pendingChoice = Object.freeze({
+    type: "DEBT_RECOVERY",
+    playerId,
+    amountDue,
+    creditorId: creditorId ?? null,
+    reason,
+  });
 }
 
 function finishOrTurnEnd(draft, events) {
@@ -142,7 +171,7 @@ function finishOrTurnEnd(draft, events) {
 
 function getBoardNode(board, nodeId) { return board.nodes.find((node) => node.id === nodeId) ?? null; }
 
-function resolveClassicLanding(draft, playerIndex, theme, events) {
+function resolveClassicLanding(draft, playerIndex, theme, events, options = {}) {
   const player = draft.players[playerIndex];
   const node = getBoardNode(draft.board, player.positionNodeId);
   if (!node) throw new Error(`Landing node is missing: ${player.positionNodeId}`);
@@ -163,7 +192,11 @@ function resolveClassicLanding(draft, playerIndex, theme, events) {
       return;
     }
     const toll = node.tollByLevel[propertyState.buildingLevel];
-    chargePlayer(draft, playerIndex, toll, propertyState.ownerId, events, "TOLL");
+    const payment = chargePlayer(draft, playerIndex, toll, propertyState.ownerId, events, "TOLL", options);
+    if (payment === "DEFERRED") {
+      openDebtRecoveryChoice(draft, player.id, toll, propertyState.ownerId, "TOLL");
+      return;
+    }
     finishOrTurnEnd(draft, events);
     return;
   }
@@ -175,7 +208,11 @@ function resolveClassicLanding(draft, playerIndex, theme, events) {
     return;
   }
   if (node.type === "TAX") {
-    chargePlayer(draft, playerIndex, node.amount, null, events, "TAX");
+    const payment = chargePlayer(draft, playerIndex, node.amount, null, events, "TAX", options);
+    if (payment === "DEFERRED") {
+      openDebtRecoveryChoice(draft, player.id, node.amount, null, "TAX");
+      return;
+    }
     finishOrTurnEnd(draft, events);
     return;
   }
@@ -192,7 +229,13 @@ function resolveClassicLanding(draft, playerIndex, theme, events) {
     if (card.type === "BONUS") {
       draft.players = updatePlayer(draft.players, playerIndex, { money: player.money + card.amount });
       events.push({ type: "MONEY_RECEIVED", playerId: player.id, amount: card.amount, reason: "EVENT" });
-    } else if (card.type === "TAX") chargePlayer(draft, playerIndex, card.amount, null, events, "EVENT");
+    } else if (card.type === "TAX") {
+      const payment = chargePlayer(draft, playerIndex, card.amount, null, events, "EVENT", options);
+      if (payment === "DEFERRED") {
+        openDebtRecoveryChoice(draft, player.id, card.amount, null, "EVENT");
+        return;
+      }
+    }
     finishOrTurnEnd(draft, events);
     return;
   }
@@ -229,7 +272,7 @@ function advanceTurn(draft, events) {
   throw new Error("Unable to find the next active Marble player.");
 }
 
-export function reduceGameAction(state, action) {
+export function reduceGameAction(state, action, options = {}) {
   if (!state || typeof state !== "object") throw new TypeError("Game state is required.");
   if (!action || typeof action.type !== "string") throw new TypeError("A marble action is required.");
   const theme = requireTheme(state.themeId);
@@ -263,7 +306,7 @@ export function reduceGameAction(state, action) {
     draft.players = updatePlayer(draft.players, playerIndex, { positionNodeId: movement.toNodeId, money });
     events.push({ type: "PLAYER_MOVED", playerId: action.playerId, fromNodeId: movement.fromNodeId, toNodeId: movement.toNodeId, path: movement.path });
     draft.phase = transitionPhase(draft.phase, TURN_PHASES.RESOLVING_TILE);
-    resolveClassicLanding(draft, playerIndex, theme, events);
+    resolveClassicLanding(draft, playerIndex, theme, events, options);
     return withVersion(state, { status: draft.status, phase: draft.phase, players: Object.freeze(draft.players),
       boardState: Object.freeze({ properties: Object.freeze(draft.boardState.properties) }),
       themeState: Object.freeze(draft.themeState), pendingChoice: draft.pendingChoice, lastRoll: draft.lastRoll,

@@ -5,11 +5,14 @@ function requireClient() {
   return supabase;
 }
 
-async function rpc(name, params = {}) {
-  const client = requireClient();
+async function rpcWithClient(client, name, params = {}) {
   const { data, error } = await client.rpc(name, params);
   if (error) throw error;
   return data;
+}
+
+async function rpc(name, params = {}) {
+  return rpcWithClient(requireClient(), name, params);
 }
 
 export function createOnlineActionId() {
@@ -45,12 +48,16 @@ export function endOnlineGame({ roomId, expectedVersion }) {
   });
 }
 
-function gameAction(name, { roomId, expectedVersion, clientActionId } = {}) {
-  return rpc(name, {
+function gameActionWithRpc(callRpc, name, { roomId, expectedVersion, clientActionId } = {}) {
+  return callRpc(name, {
     p_room_id: roomId,
     p_expected_version: Number(expectedVersion),
     p_client_action_id: clientActionId ?? createOnlineActionId(),
   });
+}
+
+function gameAction(name, options) {
+  return gameActionWithRpc(rpc, name, options);
 }
 
 export function rollOnlineDice(options) {
@@ -69,8 +76,104 @@ export function endOnlineTurn(options) {
   return gameAction("marble_end_turn", options);
 }
 
-export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope = "session" } = {}) {
-  const client = requireClient();
+export function declineOnlinePropertyForAuction(options) {
+  return gameAction("marble_decline_property_for_auction", options);
+}
+
+export function requestOnlineAuction(options) {
+  return gameAction("marble_request_auction", options);
+}
+
+export function closeOnlineAuctionRequest(options) {
+  return gameAction("marble_close_auction_request", options);
+}
+
+function bidAuctionWithRpc(callRpc, { roomId, expectedVersion, clientActionId, amount = null, pass = false } = {}) {
+  return callRpc("marble_auction_bid", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_amount: amount === null ? null : Number(amount),
+    p_pass: pass === true,
+  });
+}
+
+export function bidOnlineAuction(options) {
+  return bidAuctionWithRpc(rpc, options);
+}
+
+function offerTradeWithRpc(callRpc, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  offerId,
+  recipientPlayerId,
+  terms,
+} = {}) {
+  const actionId = clientActionId ?? createOnlineActionId();
+  return callRpc("marble_trade_offer", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: actionId,
+    p_offer_id: offerId ?? actionId,
+    p_recipient_player_id: recipientPlayerId,
+    p_terms: terms,
+  });
+}
+
+export function offerOnlineTrade(options) {
+  return offerTradeWithRpc(rpc, options);
+}
+
+function resolveTradeWithRpc(callRpc, name, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  offerId,
+} = {}) {
+  return callRpc(name, {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_offer_id: offerId,
+  });
+}
+
+export function acceptOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_accept", options);
+}
+
+export function rejectOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_reject", options);
+}
+
+export function cancelOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_cancel", options);
+}
+
+function selectLiquidationWithRpc(callRpc, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  assetIds = [],
+} = {}) {
+  return callRpc("marble_liquidation_select", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_asset_ids: Array.isArray(assetIds) ? assetIds : [],
+  });
+}
+
+export function selectOnlineLiquidation(options) {
+  return selectLiquidationWithRpc(rpc, options);
+}
+
+export function confirmOnlineLiquidation(options) {
+  return gameActionWithRpc(rpc, "marble_liquidation_confirm", options);
+}
+
+function subscribeOnlineGameWithClient(client, roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const channel = client
     .channel(`marble-game:${roomId}:${channelScope}:${createOnlineActionId()}`)
     .on(
@@ -81,6 +184,56 @@ export function subscribeOnlineGame(roomId, { onChange, onStatus, channelScope =
     .subscribe((status, error) => onStatus?.(status, error));
 
   return () => client.removeChannel(channel);
+}
+
+export function subscribeOnlineGame(roomId, options) {
+  return subscribeOnlineGameWithClient(requireClient(), roomId, options);
+}
+
+export function createOnlineGameApi({ client } = {}) {
+  if (!client?.rpc || !client?.channel || !client?.removeChannel) {
+    throw new Error("SUPABASE_CLIENT_REQUIRED");
+  }
+  const callRpc = (name, params) => rpcWithClient(client, name, params);
+  return Object.freeze({
+    createActionId: createOnlineActionId,
+    getSnapshot(roomId) {
+      return callRpc("marble_get_game_snapshot", { p_room_id: roomId });
+    },
+    declinePropertyForAuction(options) {
+      return gameActionWithRpc(callRpc, "marble_decline_property_for_auction", options);
+    },
+    requestAuction(options) {
+      return gameActionWithRpc(callRpc, "marble_request_auction", options);
+    },
+    closeAuctionRequest(options) {
+      return gameActionWithRpc(callRpc, "marble_close_auction_request", options);
+    },
+    bidAuction(options) {
+      return bidAuctionWithRpc(callRpc, options);
+    },
+    offerTrade(options) {
+      return offerTradeWithRpc(callRpc, options);
+    },
+    acceptTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_accept", options);
+    },
+    rejectTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_reject", options);
+    },
+    cancelTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_cancel", options);
+    },
+    selectLiquidation(options) {
+      return selectLiquidationWithRpc(callRpc, options);
+    },
+    confirmLiquidation(options) {
+      return gameActionWithRpc(callRpc, "marble_liquidation_confirm", options);
+    },
+    subscribeGame(roomId, options) {
+      return subscribeOnlineGameWithClient(client, roomId, options);
+    },
+  });
 }
 
 export function subscribeOnlinePresence(roomId, { playerId, onSync, onStatus } = {}) {

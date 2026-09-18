@@ -174,4 +174,4 @@ Secret은 Supabase Dashboard의 Edge Functions Secrets 또는 Supabase CLI의 `s
 
 초기 다단계 회원가입 구현에서 사용했던 `signup-verification` Edge Function과 `signup_email_challenges` 기반 자체 OTP 방식은 현재 Native Supabase Auth OTP 경로에서 사용하지 않습니다.
 
-DB의 미사용 challenge 테이블 및 RPC는 `20260914024000_remove_legacy_signup_email_verification.sql`에서 제거합니다. 운영 반영 시에는 더 이상 호출되지 않는 배포본 `signup-verification` Edge Function도 함께 삭제하여 레거시 실행 경로를 남기지 않습니다.
+DB의 미사용 challenge 테이블 및 RPC는 `20260914075722_remove_legacy_signup_email_verification.sql`에서 제거합니다. 운영 반영 시에는 더 이상 호출되지 않는 배포본 `signup-verification` Edge Function도 함께 삭제하여 레거시 실행 경로를 남기지 않습니다.

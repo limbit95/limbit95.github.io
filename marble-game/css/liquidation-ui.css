@@ -1,0 +1,108 @@
+.liquidation-action-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(17, 24, 39, 0.94);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.liquidation-action-panel[hidden],
+.liquidation-action-panel__actions[hidden] {
+  display: none;
+}
+
+.liquidation-action-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.liquidation-action-panel__badge {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.liquidation-action-panel__summary,
+.liquidation-action-panel__progress {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.liquidation-action-panel__summary {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.liquidation-action-panel__progress {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.78rem;
+}
+
+.liquidation-action-panel__assets {
+  display: grid;
+  gap: 7px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.liquidation-action-panel__asset {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.liquidation-action-panel__asset input {
+  flex: 0 0 auto;
+}
+
+.liquidation-action-panel__asset-copy {
+  display: grid;
+  gap: 2px;
+}
+
+.liquidation-action-panel__asset-copy small {
+  opacity: 0.72;
+}
+
+.liquidation-action-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.liquidation-action-panel button {
+  min-height: 40px;
+}
+
+.liquidation-action-panel button:disabled,
+.liquidation-action-panel input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .liquidation-action-panel {
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .liquidation-action-panel__actions {
+    grid-template-columns: 1fr;
+  }
+}

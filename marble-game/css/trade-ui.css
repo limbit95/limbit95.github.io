@@ -1,0 +1,141 @@
+.trade-action-panel {
+  width: min(100%, 560px);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(17, 24, 39, 0.92);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.trade-action-panel[hidden],
+.trade-action-panel__compose[hidden],
+.trade-action-panel__pending[hidden],
+.trade-action-panel__responses[hidden] {
+  display: none;
+}
+
+.trade-action-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.trade-action-panel__badge {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.trade-action-panel__status,
+.trade-action-panel__terms {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.trade-action-panel__status {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.trade-action-panel__terms {
+  font-size: 0.78rem;
+  opacity: 0.82;
+}
+
+.trade-action-panel__compose {
+  display: grid;
+  gap: 10px;
+}
+
+.trade-action-panel__field,
+.trade-action-panel fieldset {
+  display: grid;
+  gap: 7px;
+}
+
+.trade-action-panel fieldset {
+  margin: 0;
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+
+.trade-action-panel legend,
+.trade-action-panel__field {
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.trade-action-panel select,
+.trade-action-panel input[type="number"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+}
+
+.trade-action-panel__properties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trade-action-panel__property {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.74rem;
+}
+
+.trade-action-panel__empty {
+  font-size: 0.74rem;
+  opacity: 0.6;
+}
+
+.trade-action-panel__pending,
+.trade-action-panel__responses {
+  display: grid;
+  gap: 8px;
+}
+
+.trade-action-panel__responses {
+  grid-template-columns: 1fr 1fr;
+}
+
+.trade-action-panel button {
+  min-height: 40px;
+}
+
+.trade-action-panel button:disabled,
+.trade-action-panel input:disabled,
+.trade-action-panel select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .trade-action-panel {
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .trade-action-panel__responses {
+    grid-template-columns: 1fr;
+  }
+}
