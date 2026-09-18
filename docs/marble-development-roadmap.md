@@ -166,6 +166,8 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 현재 요청창의 자동 deadline / 고정 시간 제한은 아직 확정된 제품 규칙이 아니므로 임의로 추가하지 않습니다.
 
+2026-09-18 실제 플레이테스트 결과, Phase 7A의 서버 권위 경매 기반은 유지하되 **현재 경매 UI와 플레이 흐름은 후속 UX 재검토가 필요**한 상태로 기록합니다. 구체적인 변경안은 [Auction Playtest UX Review](./marble-auction-ux-review.md)에서 별도로 정의합니다.
+
 ### Phase 7B — Trading / Negotiation
 
 상태: **완료**
@@ -226,15 +228,24 @@ local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realt
 
 ## 이후 Advanced Gameplay 후보
 
-초기 Classic Core 단계에서 장기 확장 후보로 기록된 항목에는 다음이 있습니다.
+Classic의 장기 기능 후보는 [Classic Feature & Presentation Candidate Backlog](./marble-classic-feature-candidates.md)에 통합 관리합니다.
+
+현재 주요 Gameplay 후보:
 
 - 운 조절
 - 개인 비밀 목표
 - 반응 카드
 - 공동 이벤트
+- 지역 독점 효과 강화
+- 랜드마크 / 최종 건설 단계
+- EVENT 다양화 / 선택형 EVENT
+- 게임 템포 preset
+- 승리 조건 다양화
 - 자산 매각 기반 파산 회피 — **Phase 7C 완료**
 
-이 항목들의 정확한 Phase 번호와 구현 순서는 각 단계 착수 전에 별도로 확정합니다.
+또한 현재 절차적 도형과 기본 모델은 최종 그래픽이 아니며, 도시별 랜드마크 / 캐릭터 / 건설 단계 / Money / Dice / EVENT / Camera / VFX / Sound 고도화 후보도 같은 문서에서 별도 축으로 관리합니다.
+
+후보의 정확한 Phase 번호, 실제 구현 여부와 순서는 각 단계 착수 전에 별도로 확정합니다.
 
 ## 개발 안전 원칙
 
@@ -253,3 +264,5 @@ local Classic runtime, authoritative liquidation RPC / isolated DB 검증, Realt
 - [Animation & Presentation Design](../marble-game/ANIMATION_DESIGN.md)
 - [Phase 7A Auction Foundation](./marble-phase7a-auction-foundation.md)
 - [Phase 7C Debt Recovery / Asset Liquidation](./marble-phase7c-liquidation-foundation.md)
+- [Classic Feature & Presentation Candidate Backlog](./marble-classic-feature-candidates.md)
+- [Auction Playtest UX Review](./marble-auction-ux-review.md)

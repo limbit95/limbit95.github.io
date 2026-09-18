@@ -6,6 +6,8 @@ Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5
 
 - [Marble Development Roadmap](../docs/marble-development-roadmap.md) — 현재 개발 위치와 Phase별 완료 상태, 다음 개발 단계를 확인하는 기준 문서입니다.
 - [Animation & Presentation Design](./ANIMATION_DESIGN.md) — 돈의 이동, 도시 건설, 캐릭터 반응, 자동 카메라, VFX/Sound, Animation Director/Queue, 테마별 presentation 확장과 향후 개발 순서를 기록합니다.
+- [Classic Feature & Presentation Candidate Backlog](../docs/marble-classic-feature-candidates.md) — Classic 재미 요소와 최종 비주얼 고도화 후보를 구현 확정과 분리해 보존합니다.
+- [Auction Playtest UX Review](../docs/marble-auction-ux-review.md) — 실제 플레이테스트에서 확인한 경매 UI/흐름 재검토 항목을 관리합니다.
 
 ## 현재 단계
 
@@ -15,7 +17,7 @@ Marble Worlds는 서로 다른 세계관과 규칙을 선택해 즐기는 3D/2.5
 
 Phase 4의 고정 Orthographic 쿼터뷰 2.5D 비주얼 기반은 그대로 유지하면서, Phase 5의 온라인 멀티플레이와 Phase 6의 Realtime/재접속/복구 안정화 위에 고급 플레이어 상호작용을 추가하고 있습니다.
 
-Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하고 참여할 수 있는 request-gated 경매를 로컬/온라인 양쪽에 연결했습니다. 서버 권위 RPC, version/idempotency, Realtime refresh, reconnect, stale snapshot 방어와 멀티플레이 회귀 검증까지 완료되어 main에 통합된 상태입니다.
+Phase 7A에서는 구매 거절 후 다른 플레이어가 경매를 요청하고 참여할 수 있는 request-gated 경매를 로컬/온라인 양쪽에 연결했습니다. 서버 권위 RPC, version/idempotency, Realtime refresh, reconnect, stale snapshot 방어와 멀티플레이 회귀 검증까지 완료되어 main에 통합된 상태입니다. 다만 실제 플레이테스트 기준 현재 경매 UI와 플레이 흐름은 별도 UX 재검토 대상으로 남아 있습니다.
 
 **Phase 7B — Trading / Negotiation**은 거래 lifecycle, 정산, 서버 권위 RPC, Realtime/재접속, 온라인 UI, 멀티플레이 회귀 검증과 main/운영 DB 통합까지 완료했습니다. 거래 상태는 `pendingTrade` authoritative snapshot을 기준으로 하며, 응답 대기 중 제안자는 자신의 제안을 취소해 게임 진행 잠금을 해제할 수 있습니다.
 
