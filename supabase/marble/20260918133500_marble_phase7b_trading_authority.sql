@@ -714,7 +714,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = public, private, pg_temp
-as $
+as $trade_cancel$
 declare
   v_user uuid := auth.uid();
   v_room public.marble_rooms%rowtype;
@@ -793,7 +793,7 @@ begin
   );
   return v_response;
 end;
-$;
+$trade_cancel$;
 
 revoke all on function private.marble_normalize_trade_terms(jsonb) from public, anon, authenticated;
 revoke all on function private.marble_guard_open_trade_progress() from public, anon, authenticated;
