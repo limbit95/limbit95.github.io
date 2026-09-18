@@ -22,8 +22,6 @@ on:
       - "package-lock.json"
       - ".github/workflows/community-authenticated-e2e.yml"
   pull_request:
-    branches:
-      - main
     paths:
       - "index.html"
       - "index.template.html"
