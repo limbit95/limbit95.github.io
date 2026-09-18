@@ -20,12 +20,13 @@ Phase 5   Online Multiplayer Foundation          완료
 Phase 6   Online Stability / Recovery            완료
 Phase 7   Classic Advanced Gameplay              진행 중
 └─ Phase 7A Auction                              완료
-└─ Phase 7B Trading / Negotiation                구현 완료 (main 통합 검증 중)
+└─ Phase 7B Trading / Negotiation                완료
+└─ Phase 7C Debt Recovery / Asset Liquidation   진행 중 (foundation)
 ```
 
 따라서 `marble-game/README.md`에 과거부터 남아 있던 **Phase 4가 현재 단계라는 표기는 더 이상 현재 상태가 아닙니다.**
 
-현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 구현 완료 및 main 통합 검증 중**입니다.
+현재 기준은 **Phase 7A 경매 완료, Phase 7B 거래/협상 완료, Phase 7C 자산 매각 기반 파산 회피 foundation 진행 중**입니다.
 
 ## Phase 1 — Foundation
 
@@ -167,7 +168,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 
 ### Phase 7B — Trading / Negotiation
 
-상태: **구현 완료 — main 통합 검증 중**
+상태: **완료**
 
 거래 lifecycle과 deterministic settlement를 고정한 뒤, 현재는 기존 Phase 7A reducer를 직접 수정하지 않는 additive Game Engine integration을 진행합니다.
 
@@ -180,12 +181,38 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 - Realtime / reconnect snapshot 복구 연결 완료
 - 온라인 거래 작성/수락/거절/제안자 취소 UI adapter 연결 완료
 - 3클라이언트 authoritative/Realtime/stale snapshot/reconnect 멀티플레이 회귀 검증 완료
-- 현재 최신 main 대상 최종 integration 검증 진행 중
+- 최신 main 통합 및 운영 Supabase migration 반영 완료
 - Phase 7A에서 검증한 서버 권위, version, idempotency, Realtime / reconnect 원칙을 유지
 - 기존 구매 / 건설 / 경매 / 턴 진행을 깨지 않도록 독립 규칙부터 설계
 - 거래 가능 자산, 골드 포함 여부, 제안 / 수정 / 거절 / 취소 / 만료, 턴 제한 등 세부 제품 규칙은 구현 전에 별도로 확정
 
 세부 거래 규칙은 아직 이 문서에서 임의로 고정하지 않습니다.
+
+### Phase 7C — Debt Recovery / Asset Liquidation
+
+상태: **진행 중 — foundation**
+
+Phase 2 Classic Core는 지불해야 할 금액보다 현금이 부족하면 즉시 파산 처리하고 보유 도시를 은행에 반환합니다. Phase 7C는 이 즉시 파산 전에 플레이어가 보유 자산을 정리해 지불 가능성을 회복할 수 있는 규칙을 추가하는 단계입니다.
+
+이번 foundation 범위:
+
+- 기존 `gameEngine.js`의 즉시 파산 경로는 아직 변경하지 않음
+- `liquidation.js`에서 debt recovery case를 독립 규칙으로 생성
+- 현재 현금 / 지불액 / 부족액 / 보유 자산을 immutable하게 계산
+- 매각 가능한 자산의 refund 값은 외부 정책에서 명시적으로 주입
+- 선택한 자산 조합이 지불액을 충족하는지 deterministic하게 평가
+- 건물 단계는 자산 metadata로 보존하되 환급 공식은 아직 해석하지 않음
+
+의도적으로 아직 확정하지 않는 규칙:
+
+- 도시 기본 매각가 계산식
+- 건물 가치 환급 방식
+- 도시 + 건물 동시 매각 여부
+- 한 번에 여러 자산을 선택하는 UI 흐름
+- creditor가 있는 통행료와 은행 지불(TAX/EVENT)의 정산 차이
+- 매각 후에도 부족할 경우 최종 파산 전환 시점
+
+다음 단계에서는 먼저 **매각 가치 정책과 debt recovery lifecycle**을 고정한 뒤 기존 지불/파산 경로에 연결합니다.
 
 ## 이후 Advanced Gameplay 후보
 
@@ -195,7 +222,7 @@ Phase 7은 기존 Phase 6 안정화 기반을 보호하면서, 다른 플레이�
 - 개인 비밀 목표
 - 반응 카드
 - 공동 이벤트
-- 자산 매각 기반 파산 회피
+- 자산 매각 기반 파산 회피 — **Phase 7C로 착수**
 
 이 항목들의 정확한 Phase 번호와 구현 순서는 각 단계 착수 전에 별도로 확정합니다.
 
