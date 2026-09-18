@@ -4,9 +4,11 @@ import { after, before, test } from "node:test";
 
 import {
   applyPairingChoice,
+  continueTurn,
   createInitialGameState,
   enumeratePairings,
   resolveRoll,
+  stopTurn,
 } from "../../games/cant-stop/rules.js";
 import { registerPlatformGameDbContract } from "./platformContract.js";
 
@@ -203,6 +205,75 @@ async function startTwoPlayerGame(label) {
     p_client_action_id: randomUUID(),
   }, host.accessToken), `${label} cant_stop_start_game`);
   return { host, guest, started };
+}
+
+async function advanceToPushOrStop(label) {
+  const game = await startTwoPlayerGame(label);
+  const activeUser = game.started.game.activePlayerId === game.host.id
+    ? game.host
+    : game.guest;
+
+  const rolled = await expectOk(await rpc("cant_stop_roll_dice", {
+    p_room_id: game.started.room.id,
+    p_expected_version: Number(game.started.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), `${label} cant_stop_roll_dice`);
+
+  const pairing = rolled.game.legalPairings[0];
+  const plan = pairing.plans[0];
+  const chosen = await expectOk(await rpc("cant_stop_choose_pairing", {
+    p_room_id: rolled.room.id,
+    p_sums: pairing.sums,
+    p_columns: plan,
+    p_expected_version: Number(rolled.version),
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), `${label} cant_stop_choose_pairing`);
+
+  return { ...game, activeUser, rolled, pairing, plan, chosen };
+}
+
+function serverGameToLocal(game) {
+  return {
+    phase: game.phase,
+    players: game.turnOrder.map((id) => ({
+      id,
+      progress: { ...(game.playerProgress?.[id] ?? {}) },
+    })),
+    turnOrder: [...game.turnOrder],
+    turnIndex: Number(game.turnIndex),
+    activePlayerId: game.activePlayerId,
+    claimedColumns: { ...(game.claimedColumns ?? {}) },
+    runners: { ...(game.runners ?? {}) },
+    latestDice: game.latestDice ? [...game.latestDice] : null,
+    legalPairings: (game.legalPairings ?? []).map((pairing) => ({
+      sums: [...pairing.sums],
+      plans: pairing.plans.map((plan) => [...plan]),
+    })),
+    winnerId: game.winnerId ?? null,
+  };
+}
+
+function localProgressByPlayer(state) {
+  return Object.fromEntries(
+    state.players.map((player) => [player.id, { ...player.progress }]),
+  );
+}
+
+async function setAuthoritativeGameState(roomId, gameState, version) {
+  const result = await request(`/rest/v1/cant_stop_rooms?id=eq.${roomId}`, {
+    method: "PATCH",
+    key: serviceRoleKey,
+    token: serviceRoleKey,
+    headers: { Prefer: "return=representation" },
+    body: {
+      status: "playing",
+      game_state: gameState,
+      version,
+    },
+  });
+  const rows = await expectOk(result, "set Can’t Stop authoritative fixture");
+  assert.equal(Array.isArray(rows), true);
+  assert.equal(rows.length, 1);
 }
 
 registerPlatformGameDbContract({
@@ -672,4 +743,195 @@ test("cant-stop: stale pairing version is rejected before runner commit", async 
   }, activeUser.accessToken);
 
   expectDenied(result, "stale cant_stop_choose_pairing", /VERSION_CONFLICT/u);
+});
+
+
+test("cant-stop: continue turn preserves runners and returns the same player to TURN_ROLL", async () => {
+  const { activeUser, chosen } = await advanceToPushOrStop("continue-authority");
+  const localContinued = continueTurn(serverGameToLocal(chosen.game));
+  const actionId = randomUUID();
+
+  const continued = await expectOk(await rpc("cant_stop_continue_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "active player cant_stop_continue_turn");
+
+  assert.equal(Number(continued.version), Number(chosen.version) + 1);
+  assert.equal(continued.game.phase, localContinued.phase);
+  assert.equal(continued.game.activePlayerId, localContinued.activePlayerId);
+  assert.equal(Number(continued.game.turnIndex), localContinued.turnIndex);
+  assert.deepEqual(continued.game.runners, localContinued.runners);
+  assert.equal(continued.game.latestDice, null);
+  assert.deepEqual(continued.game.legalPairings, []);
+
+  const replay = await expectOk(await rpc("cant_stop_continue_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "replayed cant_stop_continue_turn");
+
+  assert.equal(Number(replay.version), Number(continued.version));
+  assert.deepEqual(replay.game.runners, continued.game.runners);
+});
+
+test("cant-stop: stop turn commits runner progress and advances to the next player", async () => {
+  const { activeUser, chosen } = await advanceToPushOrStop("stop-authority");
+  const localStopped = stopTurn(serverGameToLocal(chosen.game));
+  const actionId = randomUUID();
+
+  const stopped = await expectOk(await rpc("cant_stop_stop_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "active player cant_stop_stop_turn");
+
+  assert.equal(Number(stopped.version), Number(chosen.version) + 1);
+  assert.equal(stopped.game.phase, localStopped.phase);
+  assert.equal(stopped.game.activePlayerId, localStopped.activePlayerId);
+  assert.equal(Number(stopped.game.turnIndex), localStopped.turnIndex);
+  assert.deepEqual(stopped.game.runners, {});
+  assert.deepEqual(stopped.game.claimedColumns, localStopped.claimedColumns);
+  assert.deepEqual(stopped.game.playerProgress, localProgressByPlayer(localStopped));
+  assert.equal(stopped.game.latestDice, null);
+  assert.deepEqual(stopped.game.legalPairings, []);
+
+  const replay = await expectOk(await rpc("cant_stop_stop_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version),
+    p_client_action_id: actionId,
+  }, activeUser.accessToken), "replayed cant_stop_stop_turn");
+
+  assert.equal(Number(replay.version), Number(stopped.version));
+  assert.deepEqual(replay.game.playerProgress, stopped.game.playerProgress);
+});
+
+test("cant-stop: stopping on a column top claims it and removes other players' progress", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("stop-claim");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+  const otherUser = activeUser.id === host.id ? guest : host;
+  const version = 100;
+
+  const fixture = {
+    ...started.game,
+    phase: "PUSH_OR_STOP",
+    playerProgress: {
+      [activeUser.id]: { 2: 2, 5: 1 },
+      [otherUser.id]: { 2: 1, 6: 2 },
+    },
+    claimedColumns: {},
+    runners: { 2: 3 },
+    latestDice: [1, 1, 3, 4],
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const stopped = await expectOk(await rpc("cant_stop_stop_turn", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "claiming cant_stop_stop_turn");
+
+  assert.equal(stopped.game.claimedColumns["2"], activeUser.id);
+  assert.equal(stopped.game.playerProgress[activeUser.id]["2"], 3);
+  assert.equal(Object.hasOwn(stopped.game.playerProgress[otherUser.id], "2"), false);
+  assert.equal(stopped.game.phase, "TURN_ROLL");
+  assert.notEqual(stopped.game.activePlayerId, activeUser.id);
+});
+
+test("cant-stop: third claimed column ends the game with the active player as winner", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("stop-win");
+  const activeUser = started.game.activePlayerId === host.id ? host : guest;
+  const otherUser = activeUser.id === host.id ? guest : host;
+  const version = 200;
+
+  const fixture = {
+    ...started.game,
+    phase: "PUSH_OR_STOP",
+    playerProgress: {
+      [activeUser.id]: { 2: 2, 3: 5, 4: 7 },
+      [otherUser.id]: { 2: 1 },
+    },
+    claimedColumns: {
+      3: activeUser.id,
+      4: activeUser.id,
+    },
+    runners: { 2: 3 },
+    latestDice: [1, 1, 1, 1],
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const stopped = await expectOk(await rpc("cant_stop_stop_turn", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken), "winning cant_stop_stop_turn");
+
+  assert.equal(stopped.game.phase, "GAME_OVER");
+  assert.equal(stopped.game.winnerId, activeUser.id);
+  assert.equal(stopped.game.claimedColumns["2"], activeUser.id);
+  assert.equal(stopped.game.claimedColumns["3"], activeUser.id);
+  assert.equal(stopped.game.claimedColumns["4"], activeUser.id);
+  assert.equal(stopped.game.activePlayerId, activeUser.id);
+  assert.deepEqual(stopped.game.runners, {});
+});
+
+test("cant-stop: non-active and stale push/stop actions are rejected", async () => {
+  const { host, guest, activeUser, chosen } = await advanceToPushOrStop("push-stop-guards");
+  const inactiveUser = activeUser.id === host.id ? guest : host;
+
+  const inactiveContinue = await rpc("cant_stop_continue_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version),
+    p_client_action_id: randomUUID(),
+  }, inactiveUser.accessToken);
+  expectDenied(inactiveContinue, "inactive cant_stop_continue_turn", /TURN_REQUIRED/u);
+
+  const staleStop = await rpc("cant_stop_stop_turn", {
+    p_room_id: chosen.room.id,
+    p_expected_version: Number(chosen.version) + 1,
+    p_client_action_id: randomUUID(),
+  }, activeUser.accessToken);
+  expectDenied(staleStop, "stale cant_stop_stop_turn", /VERSION_CONFLICT/u);
+
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: chosen.room.id,
+  }, activeUser.accessToken), "snapshot after rejected push/stop actions");
+  assert.equal(Number(snapshot.version), Number(chosen.version));
+  assert.equal(snapshot.game.phase, "PUSH_OR_STOP");
+});
+
+
+test("cant-stop: concurrent continue and stop intents allow only one authoritative commit", async () => {
+  const { activeUser, chosen } = await advanceToPushOrStop("push-stop-concurrent");
+  const expectedVersion = Number(chosen.version);
+
+  const results = await Promise.all([
+    rpc("cant_stop_continue_turn", {
+      p_room_id: chosen.room.id,
+      p_expected_version: expectedVersion,
+      p_client_action_id: randomUUID(),
+    }, activeUser.accessToken),
+    rpc("cant_stop_stop_turn", {
+      p_room_id: chosen.room.id,
+      p_expected_version: expectedVersion,
+      p_client_action_id: randomUUID(),
+    }, activeUser.accessToken),
+  ]);
+
+  const successes = results.filter((result) => result.response.ok);
+  const failures = results.filter((result) => !result.response.ok);
+
+  assert.equal(successes.length, 1);
+  assert.equal(failures.length, 1);
+  assert.match(failures[0].text, /VERSION_CONFLICT/u);
+
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: chosen.room.id,
+  }, activeUser.accessToken), "snapshot after concurrent push/stop");
+  assert.equal(Number(snapshot.version), expectedVersion + 1);
+  assert.ok(["TURN_ROLL"].includes(snapshot.game.phase));
 });
