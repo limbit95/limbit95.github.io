@@ -53,24 +53,6 @@ export const BRAND_GATEWAY_VARIANTS = Object.freeze([
     branch: "feature/brand-gateway-ae-20260918",
     commit: "48fcb21e00a3d636baf39c6327be74a4e9c74834",
   },
-  {
-    id: "gateway-af",
-    label: "AF",
-    branch: "feature/brand-gateway-af-20260918",
-    commit: "40e7b03f33220c0555323592e21c62620f496841",
-  },
-  {
-    id: "gateway-ag",
-    label: "AG",
-    branch: "feature/brand-gateway-ag-20260918",
-    commit: "a75138b90bebb976f05cbba260d79ce888096086",
-  },
-  {
-    id: "gateway-ah",
-    label: "AH",
-    branch: "feature/brand-gateway-ah-20260918",
-    commit: "54dab3805a3c43f13ec6d02dd43f45fdb1bc1373",
-  },
 ]);
 
 const RAW_ROOT = "https://raw.githubusercontent.com/limbit95/limbit95.github.io";
