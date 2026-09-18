@@ -1,6 +1,6 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260918-r11";
 import { markOnlineVisualRuntime } from "./onlineVisualPolicy.js?v=20260910-r10";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
@@ -47,7 +47,7 @@ function viewerCanAct(state) {
 function isAuctionChoice(state) {
   return (
     state?.phase === TURN_PHASES.WAITING_CHOICE
-    && ["AUCTION_REQUEST", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
+    && ["AUCTION_REQUEST", "AUCTION_RECRUITMENT", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
   );
 }
 

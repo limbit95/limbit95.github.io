@@ -142,7 +142,7 @@ function confirmDebtRecoveryChoice(state, action) {
   }, action);
 }
 
-export function reducePhase7LiquidationGameAction(state, action) {
+export function reducePhase7LiquidationGameAction(state, action, options = {}) {
   if (!state || typeof state !== "object") throw new TypeError("Game state is required.");
   if (!action || typeof action.type !== "string") throw new TypeError("A marble action is required.");
 
@@ -159,6 +159,7 @@ export function reducePhase7LiquidationGameAction(state, action) {
   }
 
   const deferred = reducePhase7TradingGameAction(state, action, {
+    ...options,
     deferDebtRecovery: true,
   });
   if (deferred.pendingChoice?.type !== "DEBT_RECOVERY") {
@@ -170,5 +171,5 @@ export function reducePhase7LiquidationGameAction(state, action) {
 
   // No liquidation plan can cover the debt. Re-run the same deterministic
   // action through the legacy path so existing bankruptcy semantics remain intact.
-  return reducePhase7TradingGameAction(state, action);
+  return reducePhase7TradingGameAction(state, action, options);
 }

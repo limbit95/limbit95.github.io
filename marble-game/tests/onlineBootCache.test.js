@@ -18,8 +18,8 @@ const costEntrySource = readFileSync(new URL("../js/renderer/threeClassicCostPre
 const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260917-r12"/);
-  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260915-r1/);
+  assert.match(indexHtml, /data-marble-build="20260918-r11"/);
+  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260918-r11/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
@@ -28,8 +28,8 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /multiplayerLobby\.js\?v=20260914-r8/);
-  assert.match(bootstrapSource, /playWindow\.js\?v=20260910-r10/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260910-r10"/);
+  assert.match(bootstrapSource, /playWindow\.js\?v=20260918-r11/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260918-r11"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
@@ -40,16 +40,16 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
 test("online recovery and Classic renderer entries bypass stale modules while untouched imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260915-r1"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
-  assert.match(controllerSource, /onlineSession\.js\?v=20260910-r8/);
-  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260910-r8/);
-  assert.match(tradeUiSource, /onlineSession\.js\?v=20260910-r8/);
-  assert.doesNotMatch(tradeUiSource, /onlineSession\.js\?v=20260918-r1/);
-  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260910-r8/);
-  assert.doesNotMatch(liquidationUiSource, /onlineSession\.js\?v=20260918-r2/);
+  assert.match(controllerSource, /onlineSession\.js\?v=20260918-r11/);
+  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260918-r11/);
+  assert.match(tradeUiSource, /onlineSession\.js\?v=20260918-r11/);
+  
+  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260918-r11/);
+  
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
-  assert.match(sessionSource, /onlineGameApi\.js\?v=20260918-r2/);
+  assert.match(sessionSource, /onlineGameApi\.js\?v=20260918-r11/);
   assert.match(presenceSource, /onlineGameApi\.js\?v=20260910-r8/);
-  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260918-r2/g) ?? []).length, 1);
+  assert.equal((sessionSource.match(/onlineGameApi\.js\?v=20260918-r11/g) ?? []).length, 1);
 
   assert.match(indexHtml, /diceStageOnlineLazy\.js\?v=20260912-r13/);
   assert.match(indexHtml, /onlineStartupVisualBoundary\.js\?v=20260910-r10/);
