@@ -23,9 +23,12 @@
 - `gameShellState.js`: 연결 상태와 플레이어 표시용 공통 view-state 계약
 - `gameShell.js`: 신규 게임용 공통 화면 골격, 연결 상태, 플레이어 roster
 - `game-shell.css`: 신규 게임이 명시적으로 opt-in 하는 공통 Shell 스타일
+- `gameInvite.js`: site invite 인프라를 재사용하는 platform-native `game_room` 초대 계약
 
 공통 계약은 새 게임을 위한 기준입니다. 기존 게임을 이 구조로 마이그레이션하기 위한 호환 계층으로 사용하지 않습니다.
 
 `game-shell.css`는 전역 사이트 CSS에 자동으로 포함하지 않습니다. 신규 게임 페이지가 필요할 때 직접 로드하며, Legacy 게임과 기존 커뮤니티 화면에는 적용하지 않습니다.
 
 서버 권한 검증과 게임 상태 판정은 계속 각 게임의 DB/RPC가 최종 권위입니다. 프런트 공통 모듈은 DB authorization을 대체하지 않습니다.
+
+Invite 영향 분석과 Legacy 경계는 [Game Platform Invite Analysis](../docs/game-platform-invite-analysis.md)를 참고합니다.

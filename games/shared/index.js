@@ -41,3 +41,12 @@ export {
   createGamePlayerRoster,
   createGameShell,
 } from "./gameShell.js";
+
+export {
+  GAME_ROOM_INVITE_TARGET,
+  GAME_ROOM_INVITE_VERSION,
+  buildGameRoomInviteDestination,
+  createGameRoomInvite,
+  parseGameRoomInvite,
+  resolveGameRoomInvite,
+} from "./gameInvite.js";
