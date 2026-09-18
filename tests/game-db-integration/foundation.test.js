@@ -548,7 +548,7 @@ test("Marble Phase 7C liquidation RPCs enforce debtor authority, action lock, se
   ), "fixture liquidation Singapore ownership");
 
   await expectOk(await request(
-    `/rest/v1/marble_game_players?id=eq.${alicePlayer.id}`,
+    `/rest/v1/marble_game_players?game_id=eq.${started.game.id}&room_player_id=eq.${alicePlayer.id}`,
     {
       method: "PATCH",
       key: serviceRoleKey,
