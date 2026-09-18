@@ -274,6 +274,38 @@ function createGameplaySidebar(view) {
 function createGameplayActions(view, state) {
   const actions = [];
 
+  if (view.isGameOver) {
+    if (view.isHost) {
+      actions.push(el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: state.busy ? "재대결 준비 중…" : "같은 방에서 재대결",
+        disabled: state.busy,
+        onClick: async () => {
+          try {
+            await lobbyController.prepareRematch();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }));
+    }
+
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger",
+      type: "button",
+      text: state.busy ? "처리 중…" : "방 나가기",
+      disabled: state.busy,
+      onClick: async () => {
+        try {
+          await lobbyController.leaveRoom();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+  }
+
   if (view.canRoll) {
     actions.push(el("button", {
       className: "game-platform-shell__button",
