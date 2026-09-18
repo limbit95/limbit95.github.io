@@ -56,6 +56,10 @@ fix/marble-stability-phase3-ci
 - `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
 - `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
 - Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
+- 사용자가 새로운 게임 개발을 요청하면 gameplay/runtime 구현 전에 게임 규칙과 제품 범위를 조사하고 `games/<game-id>/GAME_SPEC.md`와 `games/<game-id>/DEVELOPMENT.md`를 먼저 생성합니다.
+- 공개된 기존 보드게임을 구현하는 경우 공식 규칙서나 신뢰 가능한 규칙 출처를 우선 확인하고 `GAME_SPEC.md`에 출처와 해석 결정을 남깁니다. 확인되지 않은 규칙은 추측하지 않고 미결정 사항으로 기록합니다.
+- `GAME_SPEC.md`는 "무엇을 어떤 규칙과 구조로 구현할지"를 정의하고, `DEVELOPMENT.md`는 "현재 어디까지 구현했는지"를 기록합니다.
+- bootstrap 단계에서는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 있는 게임 디렉터리를 Registry 등록 전 상태로 둘 수 있습니다. 실제 runtime 파일을 추가하는 순간 Game Registry와 기존 platform-native 규칙을 함께 적용합니다.
 - 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 현재 개발상태의 인수인계 문서로 유지합니다.
 - 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
 - 사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 checkpoint 기록을 요청하면 Phase 완료 여부와 관계없이 즉시 `DEVELOPMENT.md`를 현재 상태로 갱신하고 현재 작업 브랜치에 commit합니다.

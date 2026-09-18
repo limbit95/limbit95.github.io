@@ -22,11 +22,13 @@ AGENTS.md
 
 ## 자동 차단하는 구조 위반
 
+- `games/<game-id>/` 디렉터리에 `GAME_SPEC.md`가 없거나 필수 설계 섹션이 빠진 경우
 - `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 인수인계 섹션이 빠진 경우
-- `games/<game-id>/` 디렉터리가 있는데 shared Game Registry 등록이 없는 경우
+- Registry 미등록 bootstrap 디렉터리에 `GAME_SPEC.md` / `DEVELOPMENT.md` 외 runtime 파일이 추가된 경우
+- runtime이 있는 `games/<game-id>/` 디렉터리가 shared Game Registry에 등록되지 않은 경우
 - shared Game Registry에 등록했지만 실제 `games/<game-id>/` 디렉터리가 없는 경우
 - online shared 게임인데 `tests/game-db-integration/<game-id>.test.js`가 없는 경우
-- 새 platform-native 게임 디렉터리를 추가하면서 Registry를 같은 PR에서 갱신하지 않은 경우
+- 새 platform-native runtime을 추가하면서 Registry를 같은 PR에서 갱신하지 않은 경우
 - Legacy 런타임과 Game Platform 런타임을 같은 PR에서 함께 수정한 경우
 - 새 `games/shared/*.js` 모듈을 추가하면서 Game Platform 계약 테스트 또는 관련 문서를 함께 갱신하지 않은 경우
 
@@ -58,8 +60,10 @@ Governance Guard는 Liar Game, Drawing Spy, The Game, Marble을 새 플랫폼 �
 workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바뀐 경우에만 실행한다. 별도 `push` 실행이나 전체 사이트 workflow 복제는 하지 않는다.
 
 검증은 Node 기본 기능과 기존 Game Platform 테스트만 사용하므로 별도 `npm ci` 단계도 추가하지 않는다.
-## 개발 진행 기록 경계
+## 게임 bootstrap 및 개발 기록 경계
 
-Governance Guard는 각 platform-native 게임에 `DEVELOPMENT.md`가 존재하고 표준 인수인계 섹션을 유지하는지 검사한다.
+Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`와 `DEVELOPMENT.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
 
-문서가 실제 Phase 진행상황과 의미적으로 일치하는지는 자동 판정하지 않는다. Phase 완료 시 갱신과 사용자의 명시적 checkpoint 요청 시 즉시 기록하는 책임은 `docs/game-platform-development-rules.md`와 `AGENTS.md`의 작업 규칙으로 강제한다.
+`GAME_SPEC.md`와 `DEVELOPMENT.md`만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
+
+Guard는 규칙 출처의 신뢰도, 게임 규칙의 의미적 정확성, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 해당 내용의 검토와 갱신 책임은 `docs/game-platform-development-rules.md`와 `AGENTS.md`의 작업 규칙으로 강제한다.

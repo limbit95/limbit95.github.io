@@ -12,6 +12,8 @@
 - Drawing Spy는 Liar Game 내부 모드이므로 별도 루트로 이동하지 않습니다.
 - 기존 게임은 새 플랫폼 기능이나 공통 레이아웃을 강제로 적용하지 않습니다.
 - 새 게임은 가능한 한 `games/<game-id>/` 아래에 두고 `games/shared/`의 공통 계약을 사용합니다.
+- 신규 게임은 runtime 구현 전에 `games/GAME_SPEC_TEMPLATE.md`를 기준으로 `games/<game-id>/GAME_SPEC.md`를 만들고, 게임 규칙·제품 범위·상태 머신·플랫폼 경계·구현 계획을 먼저 정리합니다.
+- `GAME_SPEC.md`와 `DEVELOPMENT.md`만 존재하는 bootstrap 디렉터리는 미완성 게임 노출을 막기 위해 Registry 등록 전 상태로 둘 수 있습니다. runtime 파일을 추가하는 순간 Registry 규칙이 적용됩니다.
 - 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 두고 현재 Phase, active branch, 완료/진행 중 작업, 다음 작업, 결정사항, 검증, known issue를 기록합니다.
 - Phase 완료 시와 사용자가 중간 checkpoint 기록을 요청할 때 `DEVELOPMENT.md`를 갱신합니다.
 - 게임 규칙, 턴 상태 머신, 승패 조건, 게임별 애니메이션은 각 게임에 남겨 둡니다.
