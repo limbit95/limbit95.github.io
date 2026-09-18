@@ -218,7 +218,12 @@ export function createCantStopLobbyController({
       if (!invite) {
         throw new Error("Can't Stop invite adapter is not configured.");
       }
-      const snapshot = await invite.joinRoomFromInvite({ token, nickname });
+      const joined = await invite.joinRoomFromInvite({ token, nickname });
+      const roomId = joined?.room?.id;
+      if (typeof roomId !== "string" || !roomId.trim()) {
+        throw new Error("Can't Stop invite join returned no room.");
+      }
+      const snapshot = await roomLobby.getLobbySnapshot({ roomId });
       return trackRoom(snapshot);
     });
   }
