@@ -257,6 +257,7 @@ test("Can't Stop gameplay view exposes push/stop and game-over states from serve
 
   assert.equal(finished.isGameOver, true);
   assert.equal(finished.winnerName, "Alice");
+  assert.equal(finished.isHost, true);
   assert.equal(finished.canContinue, false);
   assert.equal(finished.canStop, false);
 });
