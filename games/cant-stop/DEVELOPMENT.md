@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-rules-engine
+- Active branch: feature/game-platform-phase4-cant-stop-runtime-shell
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -25,16 +25,22 @@
 - server-random turn order를 rules engine 입력으로 받고 client-local randomness는 사용하지 않도록 했다.
 - rules engine 시작과 함께 Game Registry에 `cant-stop`을 `platform: "shared"`로 등록하되 아직 구현되지 않은 online/local/invite/presence capability는 모두 false로 유지했다.
 - rules engine 핵심 경계 13개 unit test를 추가했다.
+- 기존 사이트 auth source를 Game Platform Access Gate에 연결해 로그인/승인회원 접근 경계를 적용했다.
+- 승인회원에게 Common Game Shell과 현재 사용자 roster를 표시하는 최소 runtime을 추가했다.
+- rules engine의 2–12 column 높이를 재사용하는 11열 보드 골격을 추가했다.
+- 미승인/비로그인 사용자는 각각 승인 상태/로그인 화면으로 안내하고 gameplay shell은 렌더링하지 않는다.
+- Room/Lobby가 아직 없으므로 Registry의 online/local/invite/presence capability는 모두 false로 유지한다.
+- runtime model 및 실제 `app.js` syntax/index wiring 검증 테스트를 추가했다.
 
 ## Current Work
 
-- rules engine과 Registry 변경에 대한 repository-level Game Platform 검증을 진행한다.
+- Access Gate + Common Game Shell 최소 runtime 변경에 대한 repository-level Game Platform 검증을 진행한다.
 
 ## Next Work
 
-- Approved Member / Access Gate와 Common Game Shell을 사용한 최소 Can’t Stop runtime 화면을 연결한다.
-- 그 다음 game-specific Room/Lobby와 DB/RPC foundation을 설계하고 DB/Test Contract 10개 시나리오를 연결한다.
-- online authoritative dice/action → snapshot/reconnect → Realtime invalidation 순서로 확장한다.
+- game-specific Room/Lobby와 DB/RPC foundation을 설계하고 `defineRoomLobbyAdapter` 계약을 연결한다.
+- online capability는 실제 Room/Lobby와 DB/Test Contract가 연결되는 변경에서만 true로 전환한다.
+- 이후 authoritative dice/action → snapshot/reconnect → Realtime invalidation 순서로 확장한다.
 
 ## Decisions
 
@@ -46,19 +52,21 @@
 - 첫 플레이어는 사전 주사위 없이 게임 시작 RPC가 서버에서 turn order를 무작위로 한 번 확정하고 authoritative state에 저장하는 방식으로 결정한다.
 - pairing에서 두 합을 모두 사용할 수 있으면 두 이동을 모두 적용해야 하며, 둘 다 쓸 수 없지만 각각 하나씩 가능한 경우에는 legal move plan으로 어느 한 합을 사용할지 명시적으로 선택한다.
 - Game Registry 등록 시점에는 아직 실제 제공하지 않는 capability를 선행 선언하지 않는다.
+- 최소 runtime은 기존 청파 같이 auth module을 직접 재구현하지 않고 Shared Access Gate adapter로 소비한다.
+- Common Game Shell은 공통 header/status/roster/layout까지만 담당하고 11열 보드 표현은 Can’t Stop GAME-LOCAL로 유지한다.
 
 ## Validation
 
-- Completed: 원본 규칙 PDF, Board Game Arena, BoardGameGeek 및 column 자료를 교차 확인
-- Completed: bootstrap PR Game Platform governance / Site static checks
-- Completed: Node 22 isolated rules unit test — 13/13 PASS
-- Completed: `npm run test:game-platform` — Site static checks run #2994 SUCCESS
-- Completed: Game Platform Governance Guard — run #11 SUCCESS
-- Completed: Site static checks — run #2994 SUCCESS
-- Pending: 없음 (rules-engine 범위)
+- Completed: 이전 bootstrap / rules-engine Game Platform governance 및 Site static checks
+- Completed: rules engine unit test — 13/13 PASS
+- Pending: `npm run test:game-platform` on runtime-shell PR
+- Pending: Game Platform Governance Guard on runtime-shell PR
+- Pending: Site static checks on runtime-shell PR
 
 ## Known Issues / Deferred
 
-- Access Gate / Common Game Shell / Room-Lobby / DB-RPC / Realtime / UI는 아직 구현하지 않았다.
+- 현재 보드는 구조 확인용이며 주사위/runner/permanent marker 인터랙션은 아직 연결하지 않았다.
+- Room/Lobby / DB-RPC / authoritative gameplay / Realtime은 아직 구현하지 않았다.
 - Registry에는 platform identity만 등록했고 capability는 실제 기능이 연결될 때 단계적으로 true로 전환한다.
+- 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
 - legal pairing이 정확히 하나일 때 UI가 자동 적용할지 확인 버튼을 보여줄지는 후속 UX 단계에서 결정한다.
