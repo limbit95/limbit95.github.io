@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-runtime-shell
+- Active branch: feature/game-platform-phase4-cant-stop-room-lobby
 - Last checkpoint: 2026-09-18
 
 ## Completed
@@ -31,16 +31,24 @@
 - 미승인/비로그인 사용자는 각각 승인 상태/로그인 화면으로 안내하고 gameplay shell은 렌더링하지 않는다.
 - Room/Lobby가 아직 없으므로 Registry의 online/local/invite/presence capability는 모두 false로 유지한다.
 - runtime model 및 실제 `app.js` syntax/index wiring 검증 테스트를 추가했다.
+- Can’t Stop 전용 `cant_stop_rooms`, `cant_stop_room_players`, `cant_stop_room_actions` DB foundation을 추가했다.
+- 승인회원 전용 create/join/snapshot/ready/leave/start RPC와 명시적 RLS/grant 경계를 추가했다.
+- room row lock + `expected_version`으로 충돌을 직렬화하고, `client_action_id` action replay로 ready/start 재전송 idempotency를 구현했다.
+- 게임 시작 시 서버가 turn order를 무작위로 확정해 authoritative `game_state`에 저장하도록 구현했다.
+- `createCantStopRoomLobbyAdapter`를 Shared `defineRoomLobbyAdapter` 계약에 연결하고 Realtime Postgres Changes를 invalidation 신호로만 사용하도록 구현했다.
+- Game DB integration harness가 Can’t Stop migration을 disposable Supabase에 replay하도록 확장했다.
+- `tests/game-db-integration/cant-stop.test.js`에 플랫폼 필수 10개 DB 시나리오를 등록했다.
+- 기존 DB integration workflow에 `supabase/cant-stop/**/*.sql` 경로만 추가했으며 별도 workflow는 만들지 않았다.
 
 ## Current Work
 
-- Access Gate + Common Game Shell 최소 runtime 변경에 대한 repository-level Game Platform 검증을 진행한다.
+- Room/Lobby adapter와 DB/RPC foundation에 대한 unit / disposable Supabase DB contract 검증을 진행한다.
 
 ## Next Work
 
-- game-specific Room/Lobby와 DB/RPC foundation을 설계하고 `defineRoomLobbyAdapter` 계약을 연결한다.
-- online capability는 실제 Room/Lobby와 DB/Test Contract가 연결되는 변경에서만 true로 전환한다.
-- 이후 authoritative dice/action → snapshot/reconnect → Realtime invalidation 순서로 확장한다.
+- 최소 runtime UI에 Room 생성/참가/ready/start 흐름을 연결해 실제 사용자 경로에서 Room/Lobby adapter를 소비한다.
+- 사용자 경로가 연결되고 DB contract가 유지되면 Registry `online` capability를 true로 전환한다.
+- 이후 authoritative dice/action → snapshot coordinator/reconnect → gameplay Realtime invalidation 순서로 확장한다.
 
 ## Decisions
 
@@ -54,20 +62,25 @@
 - Game Registry 등록 시점에는 아직 실제 제공하지 않는 capability를 선행 선언하지 않는다.
 - 최소 runtime은 기존 청파 같이 auth module을 직접 재구현하지 않고 Shared Access Gate adapter로 소비한다.
 - Common Game Shell은 공통 header/status/roster/layout까지만 담당하고 11열 보드 표현은 Can’t Stop GAME-LOCAL로 유지한다.
+- Room/Lobby DB는 공통 gameplay 테이블을 만들지 않고 `cant_stop_*` namespace를 유지한다.
+- 브라우저는 room/player 테이블을 직접 수정하지 않고 승인회원 RPC만 호출한다.
+- Realtime payload는 최종 truth로 사용하지 않고 room/player 변경을 snapshot refresh invalidation으로만 사용한다.
+- Registry `online` capability는 DB foundation만으로 선행 활성화하지 않고 실제 runtime Room/Lobby 사용자 경로 연결까지 보류한다.
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine Game Platform governance 및 Site static checks
+- Completed: 이전 bootstrap / rules-engine / runtime-shell Game Platform governance 및 Site static checks
 - Completed: rules engine unit test — 13/13 PASS
-- Completed: `npm run test:game-platform` — Site static checks run #2998 SUCCESS
-- Completed: Game Platform Governance Guard — run #13 SUCCESS
-- Completed: Site static checks — run #2998 SUCCESS
-- Pending: 없음 (runtime-shell 범위)
+- Pending: `npm run test:game-platform` on Room/Lobby PR
+- Pending: Game Platform Governance Guard on Room/Lobby PR
+- Pending: Site static checks on Room/Lobby PR
+- Pending: Game DB integration 10-scenario Can’t Stop contract on disposable Supabase
 
 ## Known Issues / Deferred
 
-- 현재 보드는 구조 확인용이며 주사위/runner/permanent marker 인터랙션은 아직 연결하지 않았다.
-- Room/Lobby / DB-RPC / authoritative gameplay / Realtime은 아직 구현하지 않았다.
-- Registry에는 platform identity만 등록했고 capability는 실제 기능이 연결될 때 단계적으로 true로 전환한다.
+- 현재 runtime UI는 아직 Room 생성/참가/ready/start controls를 노출하지 않아 adapter를 사용자 경로에서 호출하지 않는다.
+- 주사위/runner/permanent marker authoritative gameplay RPC는 아직 구현하지 않았다.
+- snapshot coordinator / reconnect refresh는 gameplay 단계에서 연결한다.
+- Registry에는 platform identity만 등록했고 `online` capability는 실제 Room/Lobby UI 연결까지 false로 유지한다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
 - legal pairing이 정확히 하나일 때 UI가 자동 적용할지 확인 버튼을 보여줄지는 후속 UX 단계에서 결정한다.
