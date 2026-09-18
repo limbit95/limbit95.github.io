@@ -951,6 +951,7 @@ test("cant-stop: active gameplay room cannot be left before GAME_OVER", async ()
 test("cant-stop: GAME_OVER player can leave and immediately create another room", async () => {
   const { host, guest, started } = await startTwoPlayerGame("postgame-leave");
   const version = 300;
+  const guestName = started.players.find((player) => player.userId === guest.id)?.displayName;
   const fixture = {
     ...started.game,
     phase: "GAME_OVER",
@@ -987,7 +988,7 @@ test("cant-stop: GAME_OVER player can leave and immediately create another room"
   }, host.accessToken), "host sees final snapshot after winner leaves");
   const departedWinner = hostSnapshot.players.find((player) => player.userId === guest.id);
   assert.equal(hostSnapshot.game.winnerId, guest.id);
-  assert.equal(departedWinner?.displayName, guest.nickname);
+  assert.equal(departedWinner?.displayName, guestName);
   assert.equal(departedWinner?.connected, false);
   assert.equal(departedWinner?.membershipStatus, "left");
 
