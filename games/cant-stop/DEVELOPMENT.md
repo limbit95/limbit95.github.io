@@ -124,10 +124,11 @@
 
 - Completed: 이전 gameplay-ui 포함 Phase 4 누적 검증
 - Completed: gameplay-ui Site static checks #3068 / Governance #65 SUCCESS
-- Pending: `npm run test:game-platform` on postgame PR
-- Pending: Game Platform Governance Guard on postgame PR
-- Pending: Site static checks on postgame PR
-- Pending: Game DB integration GAME_OVER leave/rematch/restart tests on disposable Supabase
+- Completed: `npm run test:game-platform` — Site static checks #3090 SUCCESS
+- Completed: Game Platform Governance Guard — #76 SUCCESS
+- Completed: Site static checks — #3090 SUCCESS
+- Completed: Game DB integration GAME_OVER leave/rematch/restart contract — #110 SUCCESS
+- Pending: 없음 (post-game lifecycle 범위)
 
 ## Known Issues / Deferred
 
