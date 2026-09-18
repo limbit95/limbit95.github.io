@@ -139,4 +139,6 @@ test("local auction UI wires recruitment, bidding, and authoritative deadline ad
   assert.match(uiSource, /session\.auctionPass\(selectedPlayerId\)/);
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
   assert.match(uiSource, /매입에 성공하셨습니다/);
+  assert.match(uiSource, /const modalHost = documentObject\.body \?\? dock/);
+  assert.match(uiSource, /modalHost\.prepend\(panel\)/);
 });
