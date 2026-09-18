@@ -169,3 +169,22 @@ test("local Classic proposer can cancel an unanswered trade and continue the tur
   assert.equal(state.currentPlayerIndex, 0);
   assert.deepEqual(state.lastEvents.map((event) => event.type), ["TRADE_CANCELLED"]);
 });
+
+
+test("local Classic session exposes Phase 7C liquidation actions through the runtime adapter", () => {
+  const session = createLocalClassicSession();
+  const state = session.start();
+
+  assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
+  assert.equal(typeof session.selectLiquidation, "function");
+  assert.equal(typeof session.confirmLiquidation, "function");
+
+  assert.throws(
+    () => session.selectLiquidation(["singapore"]),
+    /reserved for a later Marble phase|debt recovery/i,
+  );
+  assert.throws(
+    () => session.confirmLiquidation(),
+    /reserved for a later Marble phase|debt recovery/i,
+  );
+});
