@@ -102,6 +102,51 @@ export function bidOnlineAuction(options) {
   return bidAuctionWithRpc(rpc, options);
 }
 
+function offerTradeWithRpc(callRpc, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  offerId,
+  recipientPlayerId,
+  terms,
+} = {}) {
+  const actionId = clientActionId ?? createOnlineActionId();
+  return callRpc("marble_trade_offer", {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: actionId,
+    p_offer_id: offerId ?? actionId,
+    p_recipient_player_id: recipientPlayerId,
+    p_terms: terms,
+  });
+}
+
+export function offerOnlineTrade(options) {
+  return offerTradeWithRpc(rpc, options);
+}
+
+function resolveTradeWithRpc(callRpc, name, {
+  roomId,
+  expectedVersion,
+  clientActionId,
+  offerId,
+} = {}) {
+  return callRpc(name, {
+    p_room_id: roomId,
+    p_expected_version: Number(expectedVersion),
+    p_client_action_id: clientActionId ?? createOnlineActionId(),
+    p_offer_id: offerId,
+  });
+}
+
+export function acceptOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_accept", options);
+}
+
+export function rejectOnlineTrade(options) {
+  return resolveTradeWithRpc(rpc, "marble_trade_reject", options);
+}
+
 function subscribeOnlineGameWithClient(client, roomId, { onChange, onStatus, channelScope = "session" } = {}) {
   const channel = client
     .channel(`marble-game:${roomId}:${channelScope}:${createOnlineActionId()}`)
@@ -140,6 +185,15 @@ export function createOnlineGameApi({ client } = {}) {
     },
     bidAuction(options) {
       return bidAuctionWithRpc(callRpc, options);
+    },
+    offerTrade(options) {
+      return offerTradeWithRpc(callRpc, options);
+    },
+    acceptTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_accept", options);
+    },
+    rejectTrade(options) {
+      return resolveTradeWithRpc(callRpc, "marble_trade_reject", options);
     },
     subscribeGame(roomId, options) {
       return subscribeOnlineGameWithClient(client, roomId, options);
