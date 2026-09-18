@@ -444,9 +444,12 @@ test("cant-stop: active player roll is server-generated and idempotent", async (
   );
   assert.equal(Array.isArray(rolled.game.legalPairings), true);
   assert.ok(rolled.game.legalPairings.length >= 1);
+  const sortPairings = (pairings) => [...pairings]
+    .map((pairing) => [...pairing])
+    .sort((left, right) => (left[0] - right[0]) || (left[1] - right[1]));
   assert.deepEqual(
-    rolled.game.legalPairings.map((pairing) => pairing.sums),
-    enumeratePairings(rolled.game.latestDice),
+    sortPairings(rolled.game.legalPairings.map((pairing) => pairing.sums)),
+    sortPairings(enumeratePairings(rolled.game.latestDice)),
   );
   for (const pairing of rolled.game.legalPairings) {
     assert.equal(Array.isArray(pairing.sums), true);
