@@ -328,3 +328,34 @@ test("online session exposes an authoritative server clock independent of local 
     restore.restore();
   }
 });
+
+
+test("equal-version refresh still resynchronizes the authoritative server clock", async () => {
+  const restore = installFakeBrowser();
+  try {
+    let nextSnapshot = {
+      ...snapshot(7, { pendingChoice: requestChoice() }),
+      serverNow: "2026-09-18T12:00:30Z",
+    };
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: {
+        ...snapshot(7, { pendingChoice: requestChoice() }),
+        serverNow: "2026-09-18T12:00:00Z",
+      },
+      api: {
+        subscribeGame: () => () => {},
+        getSnapshot: async () => nextSnapshot,
+      },
+    });
+
+    await session.refresh();
+    assert.ok(
+      Math.abs(session.getServerNowMs() - Date.parse("2026-09-18T12:00:30Z")) < 100,
+      "equal-version refresh should update server clock anchor",
+    );
+    session.dispose();
+  } finally {
+    restore.restore();
+  }
+});
