@@ -398,3 +398,37 @@ test("action or replay responses do not rewind the authoritative server clock", 
     restore.restore();
   }
 });
+
+
+test("lower-version recovery snapshots cannot rewind the server clock", async () => {
+  const restore = installFakeBrowser();
+  try {
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: {
+        ...snapshot(8, { pendingChoice: recruitmentChoice() }),
+        serverNow: "2026-09-18T12:00:00Z",
+      },
+      api: {
+        subscribeGame: () => () => {},
+        getSnapshot: async () => ({
+          ...snapshot(7, { pendingChoice: requestChoice() }),
+          serverNow: "2026-09-18T11:50:00Z",
+        }),
+      },
+    });
+
+    const before = session.getServerNowMs();
+    await session.refresh();
+    const after = session.getServerNowMs();
+
+    assert.equal(session.getState().version, 8);
+    assert.ok(
+      Math.abs(after - before) < 200,
+      "stale recovery snapshot must not rewind the server clock",
+    );
+    session.dispose();
+  } finally {
+    restore.restore();
+  }
+});
