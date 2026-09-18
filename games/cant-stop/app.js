@@ -11,7 +11,6 @@ import { supabase } from "../../js/supabaseClient.js";
 import { el } from "../../js/ui.js";
 import {
   CANT_STOP_ACCESS_VIEW,
-  createCantStopBoardColumns,
   createCantStopGameplayViewModel,
   createCantStopLobbyViewModel,
   createCantStopShellPlayer,
