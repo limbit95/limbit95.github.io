@@ -9,6 +9,19 @@ import { GAME_REGISTRY } from "../games/shared/registry.js";
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
+const GAME_SPEC_REQUIRED_SECTIONS = Object.freeze([
+  "## Game Overview",
+  "## Rules and Sources",
+  "## Product Scope",
+  "## State Machine",
+  "## Domain Model",
+  "## Platform Boundary",
+  "## Authority and Persistence",
+  "## UI / UX Direction",
+  "## Implementation Plan",
+  "## Validation Plan",
+  "## Open Questions / Deferred",
+]);
 const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
   "## Current Status",
   "## Completed",
@@ -18,6 +31,10 @@ const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
   "## Validation",
   "## Known Issues / Deferred",
 ]);
+const BOOTSTRAP_ALLOWED_FILES = Object.freeze(new Set([
+  "GAME_SPEC.md",
+  "DEVELOPMENT.md",
+]));
 
 function normalizePath(value) {
   return String(value).replaceAll("\\", "/").replace(/^\.\//u, "");
@@ -37,6 +54,8 @@ export function validateRepositoryState({
   gameDirectories,
   registry = GAME_REGISTRY,
   dbTestFiles,
+  gameFiles = {},
+  gameSpecDocuments = {},
   developmentDocuments = {},
   documents = {},
 }) {
@@ -57,10 +76,15 @@ export function validateRepositoryState({
       errors.push(`Platform game directory must use lowercase kebab-case: games/${gameId}/`);
       continue;
     }
-    const game = sharedById.get(gameId);
-    if (!game) {
-      errors.push(`Platform game directory games/${gameId}/ is missing a shared Game Registry entry.`);
-      continue;
+    const gameSpec = gameSpecDocuments[gameId];
+    if (typeof gameSpec !== "string") {
+      errors.push(`Platform game ${gameId} requires games/${gameId}/GAME_SPEC.md.`);
+    } else {
+      for (const section of GAME_SPEC_REQUIRED_SECTIONS) {
+        if (!gameSpec.includes(section)) {
+          errors.push(`games/${gameId}/GAME_SPEC.md is missing required section: ${section}`);
+        }
+      }
     }
 
     const development = developmentDocuments[gameId];
@@ -73,6 +97,19 @@ export function validateRepositoryState({
         }
       }
     }
+
+    const game = sharedById.get(gameId);
+    if (!game) {
+      const files = gameFiles[gameId];
+      const bootstrapOnly = Array.isArray(files)
+        && files.length > 0
+        && files.every((file) => BOOTSTRAP_ALLOWED_FILES.has(normalizePath(file)));
+      if (!bootstrapOnly) {
+        errors.push(`Platform game directory games/${gameId}/ has runtime files but is missing a shared Game Registry entry.`);
+      }
+      continue;
+    }
+
     const expectedHrefs = new Set([`./games/${gameId}/`, `/games/${gameId}/`]);
     if (!expectedHrefs.has(game.href)) {
       errors.push(`Shared game ${gameId} must route to games/${gameId}/ via its Registry href.`);
@@ -124,8 +161,16 @@ export function validatePullRequestChanges({
   }
 
   const newGameIds = headGameDirectories.filter((id) => !baseGameDirectories.includes(id));
-  if (newGameIds.length && !paths.includes("games/shared/registry.js")) {
-    errors.push(`New platform game(s) ${newGameIds.join(", ")} require a Game Registry change in the same PR.`);
+  const newRuntimeGameIds = newGameIds.filter((gameId) => {
+    const gamePaths = paths.filter((file) => platformGameIdFromPath(file) === gameId);
+    const allowed = new Set([
+      `games/${gameId}/GAME_SPEC.md`,
+      `games/${gameId}/DEVELOPMENT.md`,
+    ]);
+    return gamePaths.some((file) => !allowed.has(file));
+  });
+  if (newRuntimeGameIds.length && !paths.includes("games/shared/registry.js")) {
+    errors.push(`New platform game runtime(s) ${newRuntimeGameIds.join(", ")} require a Game Registry change in the same PR.`);
   }
 
   const addedSharedModules = changedFiles
@@ -162,11 +207,30 @@ function readDbTestFiles(directory) {
   return readdirSync(directory).filter((name) => name.endsWith(".test.js")).sort();
 }
 
-function readDevelopmentDocuments(gamesDirectory, gameDirectories) {
+function readGameDocuments(gamesDirectory, gameDirectories, documentName) {
   return Object.fromEntries(gameDirectories.map((gameId) => {
-    const filename = path.join(gamesDirectory, gameId, "DEVELOPMENT.md");
+    const filename = path.join(gamesDirectory, gameId, documentName);
     return [gameId, readOptional(filename)];
   }));
+}
+
+function readRelativeFiles(directory, prefix = "") {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory).flatMap((name) => {
+    const fullPath = path.join(directory, name);
+    const relativePath = prefix ? `${prefix}/${name}` : name;
+    if (statSync(fullPath).isDirectory()) {
+      return readRelativeFiles(fullPath, relativePath);
+    }
+    return [relativePath];
+  }).sort();
+}
+
+function readGameFiles(gamesDirectory, gameDirectories) {
+  return Object.fromEntries(gameDirectories.map((gameId) => [
+    gameId,
+    readRelativeFiles(path.join(gamesDirectory, gameId)),
+  ]));
 }
 
 function readOptional(filename) {
@@ -215,7 +279,9 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   const gamesDirectory = path.join(repositoryRoot, "games");
   const gameDirectories = readDirectoryNames(gamesDirectory);
   const dbTestFiles = readDbTestFiles(path.join(repositoryRoot, "tests", "game-db-integration"));
-  const developmentDocuments = readDevelopmentDocuments(gamesDirectory, gameDirectories);
+  const gameFiles = readGameFiles(gamesDirectory, gameDirectories);
+  const gameSpecDocuments = readGameDocuments(gamesDirectory, gameDirectories, "GAME_SPEC.md");
+  const developmentDocuments = readGameDocuments(gamesDirectory, gameDirectories, "DEVELOPMENT.md");
   const documents = Object.fromEntries([
     RULEBOOK_PATH,
     "AGENTS.md",
@@ -228,6 +294,8 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     gameDirectories,
     registry: GAME_REGISTRY,
     dbTestFiles,
+    gameFiles,
+    gameSpecDocuments,
     developmentDocuments,
     documents,
   });
