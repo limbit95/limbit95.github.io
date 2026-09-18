@@ -237,7 +237,7 @@ export function resolveRoll(state, dice) {
 
   const legalPairings = getLegalPairings(state, dice);
   if (!legalPairings.length) {
-    return nextPlayerState(state);
+    return nextPlayerState(cloneState(state));
   }
 
   const next = cloneState(state);
