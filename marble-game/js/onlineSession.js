@@ -16,7 +16,9 @@ import {
   acceptOnlineTrade,
   rejectOnlineTrade,
   cancelOnlineTrade,
-} from "./onlineGameApi.js?v=20260918-r1";
+  selectOnlineLiquidation,
+  confirmOnlineLiquidation,
+} from "./onlineGameApi.js?v=20260918-r2";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
@@ -75,6 +77,14 @@ function freezePendingTrade(pendingTrade) {
   });
 }
 
+function freezeLiquidationCatalog(catalog) {
+  return Object.freeze((Array.isArray(catalog) ? catalog : []).map((asset) => Object.freeze({
+    ...asset,
+    refund: Number(asset?.refund) || 0,
+    buildingLevel: Number(asset?.buildingLevel) || 0,
+  })));
+}
+
 function freezePendingChoice(pendingChoice) {
   if (!pendingChoice || typeof pendingChoice !== "object") return null;
   if (pendingChoice.type === "AUCTION_REQUEST") {
@@ -89,6 +99,13 @@ function freezePendingChoice(pendingChoice) {
       ...pendingChoice,
       requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
       auction: freezeAuctionState(pendingChoice.auction),
+    });
+  }
+  if (pendingChoice.type === "DEBT_RECOVERY") {
+    return Object.freeze({
+      ...pendingChoice,
+      catalog: freezeLiquidationCatalog(pendingChoice.catalog),
+      selectedAssetIds: freezeStringList(pendingChoice.selectedAssetIds),
     });
   }
   return Object.freeze({ ...pendingChoice });
@@ -173,6 +190,8 @@ export async function createOnlineClassicSession({
   const acceptTradeAction = api.acceptTrade ?? acceptOnlineTrade;
   const rejectTradeAction = api.rejectTrade ?? rejectOnlineTrade;
   const cancelTradeAction = api.cancelTrade ?? cancelOnlineTrade;
+  const selectLiquidationAction = api.selectLiquidation ?? selectOnlineLiquidation;
+  const confirmLiquidationAction = api.confirmLiquidation ?? confirmOnlineLiquidation;
 
   let snapshot = initialSnapshot ?? await getSnapshot(roomId);
   let state = mapOnlineGameSnapshot(snapshot);
@@ -459,6 +478,21 @@ export async function createOnlineClassicSession({
       const offerId = state.pendingTrade?.offerId;
       if (!offerId) throw new Error("TRADE_NOT_OPEN");
       return run((request) => cancelTradeAction({ ...request, offerId }));
+    },
+    selectLiquidation(assetIds) {
+      if (state.pendingChoice?.type !== "DEBT_RECOVERY") {
+        throw new Error("DEBT_RECOVERY_NOT_OPEN");
+      }
+      return run((request) => selectLiquidationAction({
+        ...request,
+        assetIds: Array.isArray(assetIds) ? assetIds : [],
+      }));
+    },
+    confirmLiquidation() {
+      if (state.pendingChoice?.type !== "DEBT_RECOVERY") {
+        throw new Error("DEBT_RECOVERY_NOT_OPEN");
+      }
+      return run(confirmLiquidationAction);
     },
     dispose() {
       disposed = true;

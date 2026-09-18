@@ -1,5 +1,5 @@
 import { ACTION_TYPES, createAction } from "./core/actions.js";
-import { reducePhase7TradingGameAction } from "./core/tradeGameEngine.js";
+import { reducePhase7LiquidationGameAction } from "./core/liquidationGameEngine.js";
 import { rollDice } from "./core/dice.js";
 import { createInitialGameState } from "./core/gameEngine.js";
 
@@ -19,7 +19,7 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
 
   function dispatch(type, payload = {}, playerId = undefined) {
     const current = state.currentPlayerIndex === null ? null : state.players[state.currentPlayerIndex];
-    state = reducePhase7TradingGameAction(state, createAction({
+    state = reducePhase7LiquidationGameAction(state, createAction({
       type,
       playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
@@ -74,6 +74,12 @@ export function createLocalClassicSession({ players = DEFAULT_PLAYERS, random = 
     },
     cancelTrade(playerId) {
       return dispatch(ACTION_TYPES.TRADE_CANCEL, {}, playerId);
+    },
+    selectLiquidation(assetIds) {
+      return dispatch(ACTION_TYPES.LIQUIDATION_SELECT, { assetIds });
+    },
+    confirmLiquidation() {
+      return dispatch(ACTION_TYPES.LIQUIDATION_CONFIRM);
     },
   });
 }

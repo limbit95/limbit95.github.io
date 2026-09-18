@@ -268,7 +268,7 @@ function resolvePropertyAuction(state, action) {
   }, action);
 }
 
-export function reducePhase7GameAction(state, action) {
+export function reducePhase7GameAction(state, action, options = {}) {
   if (
     action?.type === ACTION_TYPES.END_TURN
     && state?.phase === TURN_PHASES.WAITING_CHOICE
@@ -289,5 +289,5 @@ export function reducePhase7GameAction(state, action) {
     return resolvePropertyAuction(state, action);
   }
 
-  return reduceGameAction(state, action);
+  return reduceGameAction(state, action, options);
 }
