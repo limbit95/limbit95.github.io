@@ -150,6 +150,11 @@ test("Auction v2 UI owns timers, recruitment controls, and auto-purchase result"
   assert.match(cssSource, /transform: translate\(-50%, -50%\)/);
   assert.match(cssSource, /max-height: calc\(100dvh - 32px\)/);
   assert.match(cssSource, /overflow-y: auto/);
+  assert.match(cssSource, /background:[\s\S]*#172331/);
+  assert.match(cssSource, /border-radius: 22px/);
+  assert.match(cssSource, /grid-template-areas:[\s\S]*"badge spacer timer"[\s\S]*"title title title"/);
+  assert.match(cssSource, /content: "경매 안내"/);
+  assert.match(cssSource, /data-auction-stage="auction"[\s\S]*--auction-accent: #ffe29a/);
   assert.match(uiSource, /const modalHost = documentObject\.body \?\? dock/);
   assert.match(uiSource, /modalHost\.prepend\(panel\)/);
 });
