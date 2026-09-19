@@ -6,6 +6,7 @@ import {
   buyOnlineProperty,
   closeOnlineAuctionRequest,
   joinOnlineAuction,
+  passOnlineAuctionVote,
   withdrawOnlineAuction,
   advanceOnlineAuctionDeadline,
   createOnlineActionId,
@@ -101,19 +102,12 @@ function freezeLiquidationCatalog(catalog) {
 
 function freezePendingChoice(pendingChoice) {
   if (!pendingChoice || typeof pendingChoice !== "object") return null;
-  if (pendingChoice.type === "AUCTION_REQUEST") {
+  if (pendingChoice.type === "AUCTION_VOTE") {
     return Object.freeze({
       ...pendingChoice,
       eligiblePlayerIds: freezeStringList(pendingChoice.eligiblePlayerIds),
-      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
-    });
-  }
-  if (pendingChoice.type === "AUCTION_RECRUITMENT") {
-    return Object.freeze({
-      ...pendingChoice,
-      eligiblePlayerIds: freezeStringList(pendingChoice.eligiblePlayerIds),
-      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
       participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
+      passedPlayerIds: freezeStringList(pendingChoice.passedPlayerIds),
     });
   }
   if (pendingChoice.type === "PROPERTY_AUCTION") {
@@ -209,6 +203,7 @@ export async function createOnlineClassicSession({
   const requestAuctionAction = api.requestAuction ?? requestOnlineAuction;
   const closeAuctionRequestAction = api.closeAuctionRequest ?? closeOnlineAuctionRequest;
   const joinAuctionAction = api.joinAuction ?? joinOnlineAuction;
+  const passAuctionVoteAction = api.passAuctionVote ?? passOnlineAuctionVote;
   const withdrawAuctionAction = api.withdrawAuction ?? withdrawOnlineAuction;
   const advanceAuctionDeadlineAction = api.advanceAuctionDeadline ?? advanceOnlineAuctionDeadline;
   const bidAuctionAction = api.bidAuction ?? bidOnlineAuction;
@@ -498,6 +493,9 @@ export async function createOnlineClassicSession({
     },
     joinAuction() {
       return run(joinAuctionAction);
+    },
+    passAuctionVote() {
+      return run(passAuctionVoteAction);
     },
     withdrawAuction() {
       return run(withdrawAuctionAction);
