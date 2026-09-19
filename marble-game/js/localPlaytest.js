@@ -54,20 +54,14 @@ export function createLocalClassicSession({
     endTurn() {
       return dispatch(ACTION_TYPES.END_TURN);
     },
-    requestAuction(playerId) {
-      return dispatch(ACTION_TYPES.AUCTION_REQUEST, {}, playerId);
-    },
-    closeAuctionRequest() {
-      return dispatch(ACTION_TYPES.AUCTION_REQUEST_CLOSE, {}, null);
-    },
     joinAuction(playerId) {
       return dispatch(ACTION_TYPES.AUCTION_JOIN, {}, playerId);
     },
-    withdrawAuction(playerId) {
-      return dispatch(ACTION_TYPES.AUCTION_WITHDRAW, {}, playerId);
+    passAuctionVote(playerId) {
+      return dispatch(ACTION_TYPES.AUCTION_PASS, {}, playerId);
     },
-    closeAuctionRecruitment() {
-      return dispatch(ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, {}, null);
+    closeAuctionVote() {
+      return dispatch(ACTION_TYPES.AUCTION_VOTE_CLOSE, {}, null);
     },
     auctionBid(playerId, amount) {
       return dispatch(ACTION_TYPES.AUCTION_BID, { amount }, playerId);
@@ -79,11 +73,8 @@ export function createLocalClassicSession({
       return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
     },
     advanceAuctionDeadline() {
-      if (state.pendingChoice?.type === "AUCTION_REQUEST") {
-        return dispatch(ACTION_TYPES.AUCTION_REQUEST_CLOSE, {}, null);
-      }
-      if (state.pendingChoice?.type === "AUCTION_RECRUITMENT") {
-        return dispatch(ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE, {}, null);
+      if (state.pendingChoice?.type === "AUCTION_VOTE") {
+        return dispatch(ACTION_TYPES.AUCTION_VOTE_CLOSE, {}, null);
       }
       if (state.pendingChoice?.type === "PROPERTY_AUCTION") {
         return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
