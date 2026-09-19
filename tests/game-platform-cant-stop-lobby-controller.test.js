@@ -177,6 +177,16 @@ function fakeGameplayAdapter() {
         playerProgress: { bob: { 3: 1, 7: 1 } },
       });
     },
+    async endGame(input) {
+      calls.push(["endGame", input]);
+      return nextSnapshot(input, "GAME_OVER", {
+        winnerId: null,
+        endReason: "MANUAL",
+        runners: {},
+        latestDice: null,
+        legalPairings: [],
+      });
+    },
     async prepareRematch(input) {
       calls.push(["prepareRematch", input]);
       return snapshot({
@@ -530,4 +540,88 @@ test("Can't Stop lobby controller tracks authoritative snapshot after invite joi
     adapter.calls.some(([name]) => name === "subscribeInvalidation"),
     true,
   );
+});
+
+
+test("Can't Stop lobby controller ends an active game with the current authoritative version", async () => {
+  const adapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 60,
+      status: "playing",
+      canStart: true,
+      ready: true,
+    }),
+  });
+  const gameplay = fakeGameplayAdapter();
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => "end-action",
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.endGame();
+
+  assert.deepEqual(
+    gameplay.calls.find(([name]) => name === "endGame"),
+    ["endGame", {
+      roomId: "room-1",
+      expectedVersion: 60,
+      clientActionId: "end-action",
+    }],
+  );
+  assert.equal(controller.current().snapshot.game.phase, "GAME_OVER");
+  assert.equal(controller.current().snapshot.game.endReason, "MANUAL");
+  assert.equal(controller.current().snapshot.version, 61);
+});
+
+test("Can't Stop lobby controller marks a roll-only TURN_ROLL player change as bust feedback", async () => {
+  const active = snapshot({
+    version: 70,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "bob",
+    runners: { 6: 3 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const gameplay = fakeGameplayAdapter();
+  gameplay.rollDice = async (input) => {
+    gameplay.calls.push(["rollDice", input]);
+    return {
+      ...snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        canStart: true,
+        ready: true,
+      }),
+      game: {
+        phase: "TURN_ROLL",
+        activePlayerId: "alice",
+        runners: {},
+        latestDice: null,
+        legalPairings: [],
+      },
+    };
+  };
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => "bust-action",
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.rollDice();
+
+  assert.equal(controller.current().effect?.type, "bust");
+  assert.equal(controller.current().effect?.playerId, "bob");
+  assert.equal(controller.current().effect?.version, 71);
 });
