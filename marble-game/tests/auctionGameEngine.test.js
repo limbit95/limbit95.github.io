@@ -36,6 +36,7 @@ test("purchase decline opens one 15 second Auction vote at 150 percent", () => {
   assert.equal(state.pendingChoice.basePrice, 260);
   assert.equal(state.pendingChoice.openingBid, 390);
   assert.equal(state.pendingChoice.deadlineAt, 20_000);
+  assert.equal(state.pendingChoice.openedVersion, state.version);
   assert.deepEqual(state.pendingChoice.eligiblePlayerIds, ["b", "c"]);
   assert.deepEqual(state.pendingChoice.participantPlayerIds, []);
   assert.deepEqual(state.pendingChoice.passedPlayerIds, []);
