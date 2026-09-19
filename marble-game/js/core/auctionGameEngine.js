@@ -70,165 +70,100 @@ function requirePurchaseDecline(state, action) {
   return current;
 }
 
-function openPropertyAuctionRequest(state, action, options) {
+function openAuctionVote(state, action, options) {
   const current = requirePurchaseDecline(state, action);
   const node = getBoardNode(state.board, state.pendingChoice.nodeId);
   if (!node || node.type !== "PROPERTY") throw new Error("Auction property is missing.");
   if (state.boardState.properties[node.id]?.ownerId) throw new Error("Property is already owned.");
 
-  const openingBid = calculateAuctionOpeningBid(state.pendingChoice.price);
+  const basePrice = Number(state.pendingChoice.price);
+  const openingBid = calculateAuctionOpeningBid(basePrice);
   const eligiblePlayerIds = getEligibleAuctionPlayerIds({
     declinedByPlayerId: current.id,
     openingBid,
     players: state.players,
   });
-  const declinedEvent = { type: "CHOICE_DECLINED", playerId: current.id, choiceType: "BUY_PROPERTY" };
+  const declinedEvent = {
+    type: "CHOICE_DECLINED",
+    playerId: current.id,
+    choiceType: "BUY_PROPERTY",
+  };
 
-  const requestDeadlineAt = deadlineAt(options, AUCTION_TIMING.requestMs);
+  if (eligiblePlayerIds.length === 0) {
+    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
+    return withVersion(state, {
+      phase,
+      pendingChoice: null,
+      lastEvents: freezeEvents([
+        declinedEvent,
+        {
+          type: "AUCTION_VOTE_CLOSED",
+          nodeId: node.id,
+          participantPlayerIds: [],
+          passedPlayerIds: [],
+          reason: "NO_ELIGIBLE_PLAYERS",
+        },
+      ]),
+    }, action);
+  }
+
+  const deadline = deadlineAt(options, AUCTION_TIMING.voteMs);
   return withVersion(state, {
     pendingChoice: Object.freeze({
-      type: "AUCTION_REQUEST",
+      type: "AUCTION_VOTE",
       nodeId: node.id,
-      basePrice: Number(state.pendingChoice.price),
+      basePrice,
       openingBid,
       declinedByPlayerId: current.id,
-      eligiblePlayerIds,
-      requestedByPlayerIds: Object.freeze([]),
-      deadlineAt: requestDeadlineAt,
+      eligiblePlayerIds: Object.freeze([...eligiblePlayerIds]),
+      participantPlayerIds: Object.freeze([]),
+      passedPlayerIds: Object.freeze([]),
+      openedVersion: state.version + 1,
+      deadlineAt: deadline,
     }),
     lastEvents: freezeEvents([
       declinedEvent,
       {
-        type: "AUCTION_REQUEST_OPENED",
+        type: "AUCTION_VOTE_OPENED",
         nodeId: node.id,
         openingBid,
         declinedByPlayerId: current.id,
         eligiblePlayerIds,
-        deadlineAt: requestDeadlineAt,
+        deadlineAt: deadline,
       },
     ]),
   }, action);
 }
 
-function requireAuctionRequestWindow(state) {
+function requireAuctionVote(state) {
   if (state.status !== GAME_STATUS.PLAYING || state.phase !== TURN_PHASES.WAITING_CHOICE) {
-    throw new Error(`Auction request is not allowed during ${state.phase}.`);
+    throw new Error(`Auction vote is not allowed during ${state.phase}.`);
   }
-  if (state.pendingChoice?.type !== "AUCTION_REQUEST") {
-    throw new Error("There is no auction request window to resolve.");
+  if (state.pendingChoice?.type !== "AUCTION_VOTE") {
+    throw new Error("There is no auction vote to resolve.");
   }
   return state.pendingChoice;
 }
 
-function requireAuctionRecruitment(state) {
-  if (state.status !== GAME_STATUS.PLAYING || state.phase !== TURN_PHASES.WAITING_CHOICE) {
-    throw new Error(`Auction recruitment is not allowed during ${state.phase}.`);
-  }
-  if (state.pendingChoice?.type !== "AUCTION_RECRUITMENT") {
-    throw new Error("There is no auction recruitment to resolve.");
-  }
-  return state.pendingChoice;
-}
-
-function requireRecruitmentEligibility(state, recruitment, playerId) {
-  if (!recruitment.eligiblePlayerIds.includes(playerId)) {
+function requireVoteEligibility(state, vote, playerId) {
+  if (!vote.eligiblePlayerIds.includes(playerId)) {
     throw new Error("Player is not eligible for this auction.");
   }
   const player = state.players.find((candidate) => candidate.id === playerId);
-  if (!player || player.bankrupt || Number(player.money) < recruitment.openingBid) {
+  if (!player || player.bankrupt || Number(player.money) < vote.openingBid) {
     throw new Error("Player cannot afford the auction opening bid.");
   }
   return player;
 }
 
-function joinRecruitment(state, action, options, { fromRequest = false } = {}) {
-  const recruitment = requireAuctionRecruitment(state);
-  if (deadlineExpired(recruitment.deadlineAt, options)) throw new Error("Auction recruitment is already closed.");
-  requireRecruitmentEligibility(state, recruitment, action.playerId);
-  if (recruitment.participantPlayerIds.includes(action.playerId)) {
-    throw new Error("Player already joined this auction.");
-  }
-  const participantPlayerIds = Object.freeze([
-    ...recruitment.participantPlayerIds,
-    action.playerId,
-  ]);
-  return withVersion(state, {
-    pendingChoice: Object.freeze({
-      ...recruitment,
-      participantPlayerIds,
-    }),
-    lastEvents: freezeEvents([{
-      type: "AUCTION_PARTICIPANT_JOINED",
-      playerId: action.playerId,
-      nodeId: recruitment.nodeId,
-      source: fromRequest ? "CONCURRENT_REQUEST" : "JOIN",
-    }]),
-  }, action);
+function hasVoted(vote, playerId) {
+  return vote.participantPlayerIds.includes(playerId)
+    || vote.passedPlayerIds.includes(playerId);
 }
 
-function requestPropertyAuction(state, action, options) {
-  if (state.pendingChoice?.type === "AUCTION_RECRUITMENT") {
-    return joinRecruitment(state, action, options, { fromRequest: true });
-  }
-
-  const request = requireAuctionRequestWindow(state);
-  if (deadlineExpired(request.deadlineAt, options)) throw new Error("Auction request window is already closed.");
-  if (!request.eligiblePlayerIds.includes(action.playerId)) {
-    throw new Error("Player is not eligible to request this auction.");
-  }
-  const requester = state.players.find((player) => player.id === action.playerId);
-  if (!requester || requester.bankrupt || Number(requester.money) < request.openingBid) {
-    throw new Error("Player cannot afford the auction opening bid.");
-  }
-  const recruitmentDeadlineAt = deadlineAt(options, AUCTION_TIMING.recruitmentMs);
-  return withVersion(state, {
-    pendingChoice: Object.freeze({
-      type: "AUCTION_RECRUITMENT",
-      nodeId: request.nodeId,
-      basePrice: request.basePrice,
-      openingBid: request.openingBid,
-      declinedByPlayerId: request.declinedByPlayerId,
-      eligiblePlayerIds: Object.freeze([...request.eligiblePlayerIds]),
-      requesterPlayerId: action.playerId,
-      requestedByPlayerIds: Object.freeze([action.playerId]),
-      participantPlayerIds: Object.freeze([action.playerId]),
-      deadlineAt: recruitmentDeadlineAt,
-    }),
-    lastEvents: freezeEvents([
-      { type: "AUCTION_REQUESTED", playerId: action.playerId, nodeId: request.nodeId },
-      {
-        type: "AUCTION_RECRUITMENT_OPENED",
-        nodeId: request.nodeId,
-        requesterPlayerId: action.playerId,
-        openingBid: request.openingBid,
-        deadlineAt: recruitmentDeadlineAt,
-      },
-    ]),
-  }, action);
-}
-
-function withdrawRecruitment(state, action, options) {
-  const recruitment = requireAuctionRecruitment(state);
-  if (deadlineExpired(recruitment.deadlineAt, options)) throw new Error("Auction recruitment is already closed.");
-  if (action.playerId === recruitment.requesterPlayerId) {
-    throw new Error("Auction requester cannot withdraw from recruitment.");
-  }
-  if (!recruitment.participantPlayerIds.includes(action.playerId)) {
-    throw new Error("Player is not participating in this auction.");
-  }
-  return withVersion(state, {
-    pendingChoice: Object.freeze({
-      ...recruitment,
-      participantPlayerIds: Object.freeze(
-        recruitment.participantPlayerIds.filter((playerId) => playerId !== action.playerId),
-      ),
-    }),
-    lastEvents: freezeEvents([{
-      type: "AUCTION_PARTICIPANT_WITHDREW",
-      playerId: action.playerId,
-      nodeId: recruitment.nodeId,
-    }]),
-  }, action);
+function isVoteComplete(vote) {
+  return vote.participantPlayerIds.length + vote.passedPlayerIds.length
+    >= vote.eligiblePlayerIds.length;
 }
 
 function settleAuctionWinner(state, action, auction, extraEvents = []) {
@@ -274,98 +209,185 @@ function settleAuctionWinner(state, action, auction, extraEvents = []) {
   }, action);
 }
 
-function closePropertyAuctionRequest(state, action, options) {
-  const request = requireAuctionRequestWindow(state);
-  if (action.playerId !== null && action.playerId !== undefined) {
-    throw new Error("AUCTION_REQUEST_CLOSE must be performed by the game authority.");
-  }
-  if (!deadlineExpired(request.deadlineAt, options)) {
-    throw new Error("Auction request deadline has not expired.");
-  }
-  const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
-  return withVersion(state, {
-    phase,
-    pendingChoice: null,
-    lastEvents: freezeEvents([{
-      type: "AUCTION_REQUEST_CLOSED",
-      nodeId: request.nodeId,
-      requestedByPlayerIds: [],
-      reason: "NO_REQUESTS",
-    }]),
-  }, action);
-}
+function resolveAuctionVote(state, action, options, {
+  reason,
+  extraEvents = [],
+  timeout = false,
+} = {}) {
+  const vote = requireAuctionVote(state);
+  const participantPlayerIds = [...vote.participantPlayerIds];
+  const passedPlayerIds = [...vote.passedPlayerIds];
+  const passed = new Set(passedPlayerIds);
+  const participants = new Set(participantPlayerIds);
+  const events = [...extraEvents];
 
-function closeAuctionRecruitment(state, action, options) {
-  const recruitment = requireAuctionRecruitment(state);
-  if (action.playerId !== null && action.playerId !== undefined) {
-    throw new Error("AUCTION_RECRUITMENT_CLOSE must be performed by the game authority.");
-  }
-  if (!deadlineExpired(recruitment.deadlineAt, options)) {
-    throw new Error("Auction recruitment deadline has not expired.");
-  }
-  const participantPlayerIds = [...recruitment.participantPlayerIds];
-  if (participantPlayerIds.length === 1) {
-    const auction = createPropertyAuction({
-      nodeId: recruitment.nodeId,
-      openingBid: recruitment.openingBid,
-      declinedByPlayerId: recruitment.declinedByPlayerId,
-      requesterPlayerId: recruitment.requesterPlayerId,
-      participantPlayerIds,
-      players: state.players,
-    });
-    return settleAuctionWinner(state, action, auction, [{
-      type: "AUCTION_RECRUITMENT_CLOSED",
-      nodeId: recruitment.nodeId,
-      participantPlayerIds,
-      reason: "SOLE_PARTICIPANT",
-    }, {
-      type: "AUCTION_AUTO_PURCHASED",
-      nodeId: recruitment.nodeId,
-      playerId: recruitment.requesterPlayerId,
-      amount: recruitment.openingBid,
-    }]);
+  if (timeout) {
+    for (const playerId of vote.eligiblePlayerIds) {
+      if (participants.has(playerId) || passed.has(playerId)) continue;
+      passed.add(playerId);
+      passedPlayerIds.push(playerId);
+      events.push({
+        type: "AUCTION_VOTE_AUTO_PASSED",
+        playerId,
+        nodeId: vote.nodeId,
+        reason: "TIMEOUT",
+      });
+    }
   }
 
-  const turnDeadline = deadlineAt(options, AUCTION_TIMING.bidTurnMs);
+  events.push({
+    type: "AUCTION_VOTE_CLOSED",
+    nodeId: vote.nodeId,
+    participantPlayerIds,
+    passedPlayerIds,
+    reason,
+  });
+
+  if (participantPlayerIds.length === 0) {
+    const phase = transitionPhase(state.phase, TURN_PHASES.TURN_END);
+    return withVersion(state, {
+      phase,
+      pendingChoice: null,
+      lastEvents: freezeEvents(events),
+    }, action);
+  }
+
+  const openingBidderPlayerId = participantPlayerIds[0];
   const auction = createPropertyAuction({
-    nodeId: recruitment.nodeId,
-    openingBid: recruitment.openingBid,
-    declinedByPlayerId: recruitment.declinedByPlayerId,
-    requesterPlayerId: recruitment.requesterPlayerId,
+    nodeId: vote.nodeId,
+    openingBid: vote.openingBid,
+    declinedByPlayerId: vote.declinedByPlayerId,
+    openingBidderPlayerId,
     participantPlayerIds,
     players: state.players,
-    turnDeadlineAt: turnDeadline,
+    turnDeadlineAt: participantPlayerIds.length > 1
+      ? deadlineAt(options, AUCTION_TIMING.bidTurnMs)
+      : null,
   });
-  const baseEvents = [{
-    type: "AUCTION_RECRUITMENT_CLOSED",
-    nodeId: recruitment.nodeId,
-    participantPlayerIds,
-    reason: "COMPETITIVE",
-  }, {
-    type: "AUCTION_STARTED",
-    nodeId: recruitment.nodeId,
-    openingBid: recruitment.openingBid,
-    requesterPlayerId: recruitment.requesterPlayerId,
-    participantPlayerIds,
-    highestBidderId: recruitment.requesterPlayerId,
-    highestBid: recruitment.openingBid,
-  }];
 
-  if (auction.status === "WON") {
-    return settleAuctionWinner(state, action, auction, baseEvents);
+  if (participantPlayerIds.length === 1 || auction.status === "WON") {
+    return settleAuctionWinner(state, action, auction, [
+      ...events,
+      {
+        type: "AUCTION_AUTO_PURCHASED",
+        nodeId: vote.nodeId,
+        playerId: openingBidderPlayerId,
+        amount: vote.openingBid,
+      },
+    ]);
   }
 
   return withVersion(state, {
     pendingChoice: Object.freeze({
       type: "PROPERTY_AUCTION",
-      nodeId: recruitment.nodeId,
-      openingBid: recruitment.openingBid,
-      requesterPlayerId: recruitment.requesterPlayerId,
+      nodeId: vote.nodeId,
+      openingBid: vote.openingBid,
+      openingBidderPlayerId,
+      requesterPlayerId: openingBidderPlayerId,
       participantPlayerIds: Object.freeze(participantPlayerIds),
       auction,
     }),
-    lastEvents: freezeEvents(baseEvents),
+    lastEvents: freezeEvents([
+      ...events,
+      {
+        type: "AUCTION_STARTED",
+        nodeId: vote.nodeId,
+        openingBid: vote.openingBid,
+        openingBidderPlayerId,
+        participantPlayerIds,
+        highestBidderId: openingBidderPlayerId,
+        highestBid: vote.openingBid,
+      },
+    ]),
   }, action);
+}
+
+function voteToJoin(state, action, options) {
+  const vote = requireAuctionVote(state);
+  if (deadlineExpired(vote.deadlineAt, options)) throw new Error("Auction vote is already closed.");
+  requireVoteEligibility(state, vote, action.playerId);
+  if (hasVoted(vote, action.playerId)) {
+    throw new Error("Auction vote is already final for this player.");
+  }
+
+  const nextVote = Object.freeze({
+    ...vote,
+    participantPlayerIds: Object.freeze([
+      ...vote.participantPlayerIds,
+      action.playerId,
+    ]),
+  });
+  const event = {
+    type: "AUCTION_VOTE_JOINED",
+    playerId: action.playerId,
+    nodeId: vote.nodeId,
+    order: nextVote.participantPlayerIds.length,
+  };
+
+  if (isVoteComplete(nextVote)) {
+    return resolveAuctionVote(
+      { ...state, pendingChoice: nextVote },
+      action,
+      options,
+      { reason: "ALL_RESPONDED", extraEvents: [event] },
+    );
+  }
+
+  return withVersion(state, {
+    pendingChoice: nextVote,
+    lastEvents: freezeEvents([event]),
+  }, action);
+}
+
+function voteToPass(state, action, options) {
+  const vote = requireAuctionVote(state);
+  if (deadlineExpired(vote.deadlineAt, options)) throw new Error("Auction vote is already closed.");
+  requireVoteEligibility(state, vote, action.playerId);
+  if (hasVoted(vote, action.playerId)) {
+    throw new Error("Auction vote is already final for this player.");
+  }
+
+  const nextVote = Object.freeze({
+    ...vote,
+    passedPlayerIds: Object.freeze([
+      ...vote.passedPlayerIds,
+      action.playerId,
+    ]),
+  });
+  const event = {
+    type: "AUCTION_VOTE_PASSED",
+    playerId: action.playerId,
+    nodeId: vote.nodeId,
+    reason: "VOLUNTARY",
+  };
+
+  if (isVoteComplete(nextVote)) {
+    return resolveAuctionVote(
+      { ...state, pendingChoice: nextVote },
+      action,
+      options,
+      { reason: "ALL_RESPONDED", extraEvents: [event] },
+    );
+  }
+
+  return withVersion(state, {
+    pendingChoice: nextVote,
+    lastEvents: freezeEvents([event]),
+  }, action);
+}
+
+function closeAuctionVote(state, action, options) {
+  const vote = requireAuctionVote(state);
+  if (action.playerId !== null && action.playerId !== undefined) {
+    throw new Error("AUCTION_VOTE_CLOSE must be performed by the game authority.");
+  }
+  if (!deadlineExpired(vote.deadlineAt, options)) {
+    throw new Error("Auction vote deadline has not expired.");
+  }
+  return resolveAuctionVote(state, action, options, {
+    reason: "DEADLINE",
+    timeout: true,
+  });
 }
 
 function resolvePropertyAuction(state, action, options, { timeout = false } = {}) {
@@ -410,7 +432,12 @@ function resolvePropertyAuction(state, action, options, { timeout = false } = {}
     }, action);
   }
 
-  return settleAuctionWinner(state, action, result.auction, result.events.filter((event) => event.type !== "AUCTION_WON"));
+  return settleAuctionWinner(
+    state,
+    action,
+    result.auction,
+    result.events.filter((event) => event.type !== "AUCTION_WON"),
+  );
 }
 
 export function reducePhase7GameAction(state, action, options = {}) {
@@ -419,27 +446,19 @@ export function reducePhase7GameAction(state, action, options = {}) {
     && state?.phase === TURN_PHASES.WAITING_CHOICE
     && state?.pendingChoice?.type === "BUY_PROPERTY"
   ) {
-    return openPropertyAuctionRequest(state, action, options);
-  }
-
-  if (action?.type === ACTION_TYPES.AUCTION_REQUEST) {
-    return requestPropertyAuction(state, action, options);
+    return openAuctionVote(state, action, options);
   }
 
   if (action?.type === ACTION_TYPES.AUCTION_JOIN) {
-    return joinRecruitment(state, action, options);
+    return voteToJoin(state, action, options);
   }
 
-  if (action?.type === ACTION_TYPES.AUCTION_WITHDRAW) {
-    return withdrawRecruitment(state, action, options);
+  if (action?.type === ACTION_TYPES.AUCTION_PASS) {
+    return voteToPass(state, action, options);
   }
 
-  if (action?.type === ACTION_TYPES.AUCTION_REQUEST_CLOSE) {
-    return closePropertyAuctionRequest(state, action, options);
-  }
-
-  if (action?.type === ACTION_TYPES.AUCTION_RECRUITMENT_CLOSE) {
-    return closeAuctionRecruitment(state, action, options);
+  if (action?.type === ACTION_TYPES.AUCTION_VOTE_CLOSE) {
+    return closeAuctionVote(state, action, options);
   }
 
   if (action?.type === ACTION_TYPES.AUCTION_BID) {

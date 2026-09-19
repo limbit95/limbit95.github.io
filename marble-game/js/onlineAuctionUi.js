@@ -1,4 +1,4 @@
-import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260918-r11";
+import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260919-r13";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -31,60 +31,60 @@ function deadlineMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function participantCards(state, playerIds = []) {
+  return Object.freeze(playerIds.map((playerId, index) => Object.freeze({
+    id: playerId,
+    name: playerName(findPlayer(state, playerId)),
+    order: index + 1,
+    openingBidder: index === 0,
+  })));
+}
+
 export function createOnlineAuctionUiModel(state, viewerPlayerId) {
   const pending = state?.pendingChoice;
-  if (!pending || !["AUCTION_REQUEST", "AUCTION_RECRUITMENT", "PROPERTY_AUCTION"].includes(pending.type)) {
+  if (!pending || !["AUCTION_VOTE", "PROPERTY_AUCTION"].includes(pending.type)) {
     return null;
   }
 
   const viewer = findPlayer(state, viewerPlayerId);
   const node = findNode(state, pending.nodeId);
   const viewerGold = Number(viewer?.money) || 0;
-  const stage = pending.type === "AUCTION_REQUEST"
-    ? "request"
-    : pending.type === "AUCTION_RECRUITMENT"
-      ? "recruitment"
-      : "auction";
+  const stage = pending.type === "AUCTION_VOTE" ? "vote" : "auction";
 
-  if (stage === "request") {
-    const eligiblePlayerIds = pending.eligiblePlayerIds ?? [];
-    const eligible = eligiblePlayerIds.includes(viewerPlayerId);
-    return Object.freeze({
-      stage,
-      nodeId: pending.nodeId,
-      nodeLabel: node?.label ?? pending.nodeId,
-      viewerGold,
-      openingBid: Number(pending.openingBid) || 0,
-      basePrice: Number(pending.basePrice) || 0,
-      declinedByPlayerId: pending.declinedByPlayerId ?? null,
-      eligible,
-      canRequest: eligible && viewerGold >= Number(pending.openingBid),
-      deadlineAt: deadlineMs(pending.deadlineAt),
-    });
-  }
-
-  if (stage === "recruitment") {
+  if (stage === "vote") {
     const eligiblePlayerIds = pending.eligiblePlayerIds ?? [];
     const participantPlayerIds = pending.participantPlayerIds ?? [];
-    const participant = participantPlayerIds.includes(viewerPlayerId);
-    const requester = pending.requesterPlayerId === viewerPlayerId;
+    const passedPlayerIds = pending.passedPlayerIds ?? [];
     const eligible = eligiblePlayerIds.includes(viewerPlayerId);
+    const participant = participantPlayerIds.includes(viewerPlayerId);
+    const passed = passedPlayerIds.includes(viewerPlayerId);
+    const decided = participant || passed;
+    const waitingCount = Math.max(
+      0,
+      eligiblePlayerIds.length - participantPlayerIds.length - passedPlayerIds.length,
+    );
+
     return Object.freeze({
       stage,
       nodeId: pending.nodeId,
       nodeLabel: node?.label ?? pending.nodeId,
       viewerGold,
-      openingBid: Number(pending.openingBid) || 0,
       basePrice: Number(pending.basePrice) || 0,
-      requesterPlayerId: pending.requesterPlayerId ?? null,
-      requesterName: playerName(findPlayer(state, pending.requesterPlayerId)),
-      participantPlayerIds: Object.freeze([...participantPlayerIds]),
-      participantCount: participantPlayerIds.length,
-      participant,
-      requester,
+      openingBid: Number(pending.openingBid) || 0,
+      declinedByPlayerId: pending.declinedByPlayerId ?? null,
       eligible,
-      canJoin: eligible && !participant && viewerGold >= Number(pending.openingBid),
-      canWithdraw: participant && !requester,
+      participant,
+      passed,
+      decided,
+      decision: participant ? "JOIN" : passed ? "PASS" : null,
+      canJoin: eligible && !decided && viewerGold >= Number(pending.openingBid),
+      canVotePass: eligible && !decided,
+      participantPlayerIds: Object.freeze([...participantPlayerIds]),
+      participantCards: participantCards(state, participantPlayerIds),
+      participantCount: participantPlayerIds.length,
+      passedCount: passedPlayerIds.length,
+      waitingCount,
+      eligibleCount: eligiblePlayerIds.length,
       deadlineAt: deadlineMs(pending.deadlineAt),
     });
   }
@@ -112,8 +112,14 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
     highestBidderId,
     highestBidderName: highestBidderId ? playerName(findPlayer(state, highestBidderId)) : null,
     minimumBid,
-    requesterPlayerId: auction.requesterPlayerId ?? pending.requesterPlayerId ?? null,
+    openingBidderPlayerId: auction.openingBidderPlayerId
+      ?? pending.openingBidderPlayerId
+      ?? auction.requesterPlayerId
+      ?? pending.requesterPlayerId
+      ?? participantPlayerIds[0]
+      ?? null,
     participantPlayerIds: Object.freeze([...participantPlayerIds]),
+    participantCards: participantCards(state, participantPlayerIds),
     participant,
     passed,
     turnPlayerId,
@@ -130,7 +136,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-online-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260919-r1", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260919-r3", import.meta.url).href;
   link.dataset.onlineAuctionStyle = "true";
   documentObject.head.append(link);
 }
@@ -146,9 +152,7 @@ function createPanel(documentObject, dock) {
   heading.className = "auction-action-panel__heading";
   const badge = documentObject.createElement("span");
   badge.className = "auction-action-panel__badge";
-  badge.dataset.auctionStageLabel = "";
   const title = documentObject.createElement("strong");
-  title.dataset.auctionTitle = "";
   const timer = documentObject.createElement("span");
   timer.className = "auction-action-panel__timer";
   timer.dataset.auctionTimer = "";
@@ -156,53 +160,125 @@ function createPanel(documentObject, dock) {
 
   const status = documentObject.createElement("p");
   status.className = "auction-action-panel__status";
-  status.dataset.auctionStatus = "";
+
+  const summary = documentObject.createElement("div");
+  summary.className = "auction-action-panel__summary";
+  const primaryMetric = documentObject.createElement("div");
+  primaryMetric.className = "auction-action-panel__metric";
+  const primaryMetricLabel = documentObject.createElement("span");
+  const primaryMetricValue = documentObject.createElement("strong");
+  primaryMetric.append(primaryMetricLabel, primaryMetricValue);
+  const secondaryMetric = documentObject.createElement("div");
+  secondaryMetric.className = "auction-action-panel__metric";
+  const secondaryMetricLabel = documentObject.createElement("span");
+  const secondaryMetricValue = documentObject.createElement("strong");
+  secondaryMetric.append(secondaryMetricLabel, secondaryMetricValue);
+  summary.append(primaryMetric, secondaryMetric);
+
+  const participantCard = documentObject.createElement("section");
+  participantCard.className = "auction-action-panel__participants";
+  const participantHeading = documentObject.createElement("div");
+  participantHeading.className = "auction-action-panel__participants-heading";
+  const participantTitle = documentObject.createElement("strong");
+  participantTitle.textContent = "경매 참가자";
+  const participantMeta = documentObject.createElement("span");
+  participantHeading.append(participantTitle, participantMeta);
+  const participantList = documentObject.createElement("div");
+  participantList.className = "auction-action-panel__participants-list";
+  participantCard.append(participantHeading, participantList);
+
   const detail = documentObject.createElement("p");
   detail.className = "auction-action-panel__detail";
-  detail.dataset.auctionDetail = "";
 
-  const requestRow = documentObject.createElement("div");
-  requestRow.className = "auction-action-panel__request";
-  requestRow.dataset.auctionRequestRow = "";
+  const voteRow = documentObject.createElement("div");
+  voteRow.className = "auction-action-panel__vote";
   const primaryButton = documentObject.createElement("button");
   primaryButton.type = "button";
   primaryButton.className = "primary-button";
-  primaryButton.dataset.auctionPrimary = "";
+  primaryButton.textContent = "경매 참가";
   const secondaryButton = documentObject.createElement("button");
   secondaryButton.type = "button";
   secondaryButton.className = "secondary-button";
-  secondaryButton.dataset.auctionSecondary = "";
-  requestRow.append(primaryButton, secondaryButton);
+  secondaryButton.textContent = "경매 포기";
+  voteRow.append(primaryButton, secondaryButton);
 
   const bidRow = documentObject.createElement("div");
   bidRow.className = "auction-action-panel__bid";
-  bidRow.dataset.auctionBidRow = "";
   const bidInput = documentObject.createElement("input");
   bidInput.type = "number";
   bidInput.inputMode = "numeric";
   bidInput.step = "1";
-  bidInput.dataset.auctionBidInput = "";
   bidInput.setAttribute("aria-label", "경매 입찰가");
   const bidButton = documentObject.createElement("button");
   bidButton.type = "button";
   bidButton.className = "primary-button";
-  bidButton.dataset.auctionBid = "";
   bidButton.textContent = "입찰";
   const passButton = documentObject.createElement("button");
   passButton.type = "button";
   passButton.className = "secondary-button";
-  passButton.dataset.auctionPass = "";
   passButton.textContent = "포기";
   bidRow.append(bidInput, bidButton, passButton);
 
-  panel.append(heading, status, detail, requestRow, bidRow);
+  panel.append(heading, status, summary, participantCard, detail, voteRow, bidRow);
   const modalHost = documentObject.body ?? dock;
   modalHost.prepend(panel);
   return {
-    panel, badge, title, timer, status, detail,
-    requestRow, primaryButton, secondaryButton,
-    bidRow, bidInput, bidButton, passButton,
+    panel,
+    badge,
+    title,
+    timer,
+    status,
+    primaryMetricLabel,
+    primaryMetricValue,
+    secondaryMetricLabel,
+    secondaryMetricValue,
+    participantMeta,
+    participantList,
+    detail,
+    voteRow,
+    primaryButton,
+    secondaryButton,
+    bidRow,
+    bidInput,
+    bidButton,
+    passButton,
   };
+}
+
+function renderParticipantList(documentObject, elements, model) {
+  const cards = model.participantCards ?? [];
+  elements.participantMeta.textContent = model.stage === "vote"
+    ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount}`
+    : `${cards.length}명 · 입찰 순서`;
+
+  if (cards.length === 0) {
+    const empty = documentObject.createElement("p");
+    empty.className = "auction-action-panel__participants-empty";
+    empty.textContent = "아직 경매 참가자가 없습니다";
+    elements.participantList.replaceChildren(empty);
+    return;
+  }
+
+  elements.participantList.replaceChildren(...cards.map((card) => {
+    const row = documentObject.createElement("div");
+    row.className = "auction-action-panel__participant-row";
+
+    const order = documentObject.createElement("span");
+    order.className = "auction-action-panel__participant-order";
+    order.textContent = String(card.order);
+
+    const name = documentObject.createElement("strong");
+    name.textContent = card.name;
+
+    row.append(order, name);
+    if (card.openingBidder) {
+      const firstBid = documentObject.createElement("span");
+      firstBid.className = "auction-action-panel__first-bid";
+      firstBid.textContent = "첫 입찰";
+      row.append(firstBid);
+    }
+    return row;
+  }));
 }
 
 function isPurchaseDeclineTarget(target) {
@@ -261,7 +337,7 @@ export function setupOnlineAuctionUi({
   const shownResultKeys = new Set();
 
   function nowMs() {
-    if (typeof clock === "function") return nowMs();
+    if (typeof clock === "function") return Number(clock());
     const serverNow = Number(session.getServerNowMs?.());
     return Number.isFinite(serverNow) ? serverNow : Date.now();
   }
@@ -306,12 +382,7 @@ export function setupOnlineAuctionUi({
 
   function render(state = session.getState()) {
     if (disposed) return;
-    showAutoPurchaseResult(
-      documentObject,
-      state,
-      shownResultKeys,
-      session.getViewerPlayerId(),
-    );
+    showAutoPurchaseResult(documentObject, state, shownResultKeys, session.getViewerPlayerId());
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
     if (!model) {
       clearTimers();
@@ -324,33 +395,33 @@ export function setupOnlineAuctionUi({
     elements.panel.dataset.auctionStage = model.stage;
     elements.title.textContent = model.nodeLabel;
     updateTimer(model);
-    elements.requestRow.hidden = model.stage === "auction";
-    elements.bidRow.hidden = model.stage !== "auction";
-    elements.primaryButton.hidden = false;
-    elements.secondaryButton.hidden = false;
+    renderParticipantList(documentObject, elements, model);
 
-    if (model.stage === "request") {
-      elements.badge.textContent = "경매 요청";
-      elements.status.textContent = errorText || "10초 안에 경매 개최 의사를 선택하세요";
-      elements.detail.textContent = `정가 ${money(model.basePrice)} · 시작가 ${money(model.openingBid)} · 요청 시 구매 책임`;
-      elements.primaryButton.textContent = "경매 요청";
-      elements.primaryButton.hidden = !model.eligible;
-      elements.primaryButton.disabled = busy || !model.canRequest;
-      elements.secondaryButton.hidden = true;
-    } else if (model.stage === "recruitment") {
-      elements.badge.textContent = "참가 모집";
-      elements.status.textContent = errorText || `${model.requesterName} 요청 · 참가 ${model.participantCount}명`;
-      elements.detail.textContent = `시작가 ${money(model.openingBid)} · 10초 안에 참가 또는 철회`;
-      elements.primaryButton.textContent = model.participant ? "참가 완료" : "참가";
-      elements.primaryButton.hidden = !model.eligible;
+    elements.voteRow.hidden = model.stage !== "vote";
+    elements.bidRow.hidden = model.stage !== "auction";
+
+    if (model.stage === "vote") {
+      elements.badge.textContent = "경매 참가 투표";
+      elements.status.textContent = errorText || "참가 또는 포기를 한 번만 선택할 수 있습니다";
+      elements.primaryMetricLabel.textContent = "경매 시작가";
+      elements.primaryMetricValue.textContent = money(model.openingBid);
+      elements.secondaryMetricLabel.textContent = "내 보유 골드";
+      elements.secondaryMetricValue.textContent = money(model.viewerGold);
+      elements.detail.textContent = "15초 안에 모든 플레이어가 결정하면 즉시 마감됩니다. 미응답은 시간 종료 시 경매 포기로 처리됩니다.";
+
+      elements.voteRow.hidden = !model.eligible;
+      elements.primaryButton.textContent = model.participant ? "참가 확정" : "경매 참가";
+      elements.secondaryButton.textContent = model.passed ? "포기 확정" : "경매 포기";
       elements.primaryButton.disabled = busy || !model.canJoin;
-      elements.secondaryButton.textContent = "참가 철회";
-      elements.secondaryButton.hidden = !model.canWithdraw;
-      elements.secondaryButton.disabled = busy || !model.canWithdraw;
+      elements.secondaryButton.disabled = busy || !model.canVotePass;
     } else {
       elements.badge.textContent = "경매 진행";
-      elements.status.textContent = errorText || `현재 최고가 ${money(model.highestBid)} · ${model.highestBidderName ?? "입찰자"}`;
-      elements.detail.textContent = `현재 차례 ${model.turnPlayerName ?? "-"} · 다음 최소 ${money(model.minimumBid)} · 내 보유 ${money(model.viewerGold)}`;
+      elements.status.textContent = errorText || `현재 차례 · ${model.turnPlayerName ?? "-"}`;
+      elements.primaryMetricLabel.textContent = "현재 최고가";
+      elements.primaryMetricValue.textContent = money(model.highestBid);
+      elements.secondaryMetricLabel.textContent = "다음 최소 입찰가";
+      elements.secondaryMetricValue.textContent = money(model.minimumBid);
+      elements.detail.textContent = `현재 최고 입찰자 ${model.highestBidderName ?? "-"} · 내 보유 골드 ${money(model.viewerGold)}`;
       elements.bidRow.hidden = !model.participant;
       elements.bidInput.min = String(model.minimumBid);
       elements.bidInput.max = String(model.viewerGold);
@@ -423,13 +494,14 @@ export function setupOnlineAuctionUi({
 
   elements.primaryButton.addEventListener("click", () => {
     const model = createOnlineAuctionUiModel(session.getState(), session.getViewerPlayerId());
-    if (model?.stage === "request") void runAction(() => session.requestAuction());
-    else if (model?.stage === "recruitment") void runAction(() => session.joinAuction());
+    if (model?.stage === "vote" && model.canJoin) void runAction(() => session.joinAuction());
   });
+
   elements.secondaryButton.addEventListener("click", () => {
     const model = createOnlineAuctionUiModel(session.getState(), session.getViewerPlayerId());
-    if (model?.stage === "recruitment") void runAction(() => session.withdrawAuction());
+    if (model?.stage === "vote" && model.canVotePass) void runAction(() => session.passAuctionVote());
   });
+
   elements.bidButton.addEventListener("click", () => {
     const amount = Number(elements.bidInput.value);
     const model = createOnlineAuctionUiModel(session.getState(), session.getViewerPlayerId());
@@ -441,6 +513,7 @@ export function setupOnlineAuctionUi({
     }
     void runAction(() => session.auctionBid(amount));
   });
+
   elements.passButton.addEventListener("click", () => {
     void runAction(() => session.auctionPass());
   });

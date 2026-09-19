@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 const originalWindow = globalThis.window;
 globalThis.window = globalThis.window ?? {};
-const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260918-r3");
+const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260919-r13");
 const { createOnlineGameApi } = await import("../js/onlineGameApi.js");
 const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 globalThis.window = originalWindow;
@@ -34,7 +34,6 @@ function flush() {
 
 function createHarness() {
   const changes = new Map();
-  const snapshotOverrides = new Map();
   const actionCalls = [];
   const server = {
     version: 3,
@@ -42,52 +41,38 @@ function createHarness() {
     currentSeat: 0,
     pendingChoice: { type: "BUY_PROPERTY", nodeId: "tokyo", price: 240 },
     ownerId: null,
-    lastEvents: [],
     players: [
       { id: "p1", userId: "u1", name: "A", seat: 0, positionNodeId: "tokyo", money: 1500, bankrupt: false, skipTurns: 0 },
       { id: "p2", userId: "u2", name: "B", seat: 1, positionNodeId: "start", money: 1200, bankrupt: false, skipTurns: 0 },
       { id: "p3", userId: "u3", name: "C", seat: 2, positionNodeId: "start", money: 1100, bankrupt: false, skipTurns: 0 },
     ],
+    lastEvents: [],
   };
 
   function clone(value) {
-    return value === null || value === undefined ? value : JSON.parse(JSON.stringify(value));
+    return JSON.parse(JSON.stringify(value));
   }
 
-  function requestChoice() {
+  function voteChoice(participants = [], passed = []) {
     return {
-      type: "AUCTION_REQUEST",
+      type: "AUCTION_VOTE",
       nodeId: "tokyo",
       basePrice: 240,
       openingBid: 360,
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
-      requestedByPlayerIds: [],
-      deadlineAt: "2026-09-18T12:00:10Z",
-    };
-  }
-
-  function recruitmentChoice(participants = ["p2"]) {
-    return {
-      type: "AUCTION_RECRUITMENT",
-      nodeId: "tokyo",
-      basePrice: 240,
-      openingBid: 360,
-      declinedByPlayerId: "p1",
-      eligiblePlayerIds: ["p2", "p3"],
-      requesterPlayerId: "p2",
-      requestedByPlayerIds: ["p2"],
       participantPlayerIds: participants,
-      deadlineAt: "2026-09-18T12:00:20Z",
+      passedPlayerIds: passed,
+      deadlineAt: "2026-09-19T12:00:15Z",
     };
   }
 
-  function propertyAuctionChoice() {
+  function auctionChoice() {
     return {
       type: "PROPERTY_AUCTION",
       nodeId: "tokyo",
       openingBid: 360,
-      requesterPlayerId: "p2",
+      openingBidderPlayerId: "p2",
       participantPlayerIds: ["p2", "p3"],
       auction: {
         type: "PROPERTY_AUCTION",
@@ -96,23 +81,21 @@ function createHarness() {
         declinedByPlayerId: "p1",
         eligiblePlayerIds: ["p2", "p3"],
         participantPlayerIds: ["p2", "p3"],
-        requesterPlayerId: "p2",
-        requestedByPlayerIds: ["p2"],
+        openingBidderPlayerId: "p2",
         bidPlayerIds: ["p2"],
         passedPlayerIds: [],
         highestBid: 360,
         highestBidderId: "p2",
         turnPlayerId: "p3",
-        turnDeadlineAt: "2026-09-18T12:00:30Z",
+        turnDeadlineAt: "2026-09-19T12:00:25Z",
         status: "OPEN",
-        winnerPlayerId: null,
-        winningBid: 0,
       },
     };
   }
 
   function snapshotFor(viewerPlayerId) {
     return {
+      serverNow: "2026-09-19T12:00:00Z",
       room: { id: "room-1", roomCode: "ABC123", status: "playing", currentGameId: "game-1" },
       game: {
         id: "game-1",
@@ -121,7 +104,7 @@ function createHarness() {
         turn: 3,
         currentSeat: server.currentSeat,
         version: server.version,
-        pendingChoice: clone(server.pendingChoice),
+        pendingChoice: server.pendingChoice ? clone(server.pendingChoice) : null,
         lastRoll: null,
         lastEvents: clone(server.lastEvents),
         winnerPlayerId: null,
@@ -140,49 +123,44 @@ function createHarness() {
     };
   }
 
-  function assertEnvelope(params) {
+  function record(params) {
     assert.equal(params.p_room_id, "room-1");
-    assert.equal(params.p_expected_version, server.version);
     assert.equal(typeof params.p_client_action_id, "string");
     actionCalls.push({ ...params });
   }
 
   async function executeRpc(viewerPlayerId, name, params = {}) {
-    if (name === "marble_get_game_snapshot") {
-      return snapshotOverrides.get(viewerPlayerId) ?? snapshotFor(viewerPlayerId);
-    }
-    assertEnvelope(params);
+    if (name === "marble_get_game_snapshot") return snapshotFor(viewerPlayerId);
+    record(params);
 
     if (name === "marble_decline_property_for_auction") {
       assert.equal(viewerPlayerId, "p1");
-      server.version += 1;
-      server.pendingChoice = requestChoice();
-      server.lastEvents = [{ type: "AUCTION_REQUEST_OPENED", nodeId: "tokyo" }];
+      assert.equal(params.p_expected_version, 3);
+      server.version = 4;
+      server.pendingChoice = voteChoice();
+      server.lastEvents = [{ type: "AUCTION_VOTE_OPENED", nodeId: "tokyo" }];
       return snapshotFor(viewerPlayerId);
     }
 
-    if (name === "marble_request_auction") {
-      assert.equal(viewerPlayerId, "p2");
-      server.version += 1;
-      server.pendingChoice = recruitmentChoice(["p2"]);
-      server.lastEvents = [{ type: "AUCTION_RECRUITMENT_OPENED", requesterPlayerId: "p2" }];
+    if (name === "marble_join_auction" && viewerPlayerId === "p2") {
+      assert.equal(params.p_expected_version, 4);
+      server.version = 5;
+      server.pendingChoice = voteChoice(["p2"]);
+      server.lastEvents = [{ type: "AUCTION_VOTE_JOINED", playerId: "p2", order: 1 }];
       return snapshotFor(viewerPlayerId);
     }
 
-    if (name === "marble_join_auction") {
-      assert.equal(viewerPlayerId, "p3");
-      server.version += 1;
-      server.pendingChoice = recruitmentChoice(["p2", "p3"]);
-      server.lastEvents = [{ type: "AUCTION_PARTICIPANT_JOINED", playerId: "p3" }];
-      return snapshotFor(viewerPlayerId);
-    }
-
-    if (name === "marble_advance_auction_deadline") {
-      server.version += 1;
-      server.pendingChoice = propertyAuctionChoice();
+    if (name === "marble_join_auction" && viewerPlayerId === "p3") {
+      // p3 deliberately still has version 4. Server-side row locking absorbs this
+      // stale vote because the Auction vote is still open and p3 is undecided.
+      assert.equal(params.p_expected_version, 4);
+      assert.equal(server.version, 5);
+      server.version = 6;
+      server.pendingChoice = auctionChoice();
       server.lastEvents = [{
         type: "AUCTION_STARTED",
-        requesterPlayerId: "p2",
+        openingBidderPlayerId: "p2",
+        participantPlayerIds: ["p2", "p3"],
         highestBidderId: "p2",
         highestBid: 360,
       }];
@@ -191,9 +169,9 @@ function createHarness() {
 
     if (name === "marble_auction_bid") {
       assert.equal(viewerPlayerId, "p3");
+      assert.equal(params.p_expected_version, 6);
       assert.equal(params.p_pass, true);
-      assert.equal(params.p_amount, null);
-      server.version += 1;
+      server.version = 7;
       server.phase = "TURN_END";
       server.pendingChoice = null;
       server.ownerId = "p2";
@@ -209,8 +187,8 @@ function createHarness() {
     throw new Error(`UNEXPECTED_RPC:${name}`);
   }
 
-  function clientFor(viewerPlayerId) {
-    return {
+  function apiFor(viewerPlayerId) {
+    const client = {
       async rpc(name, params) {
         try {
           return { data: await executeRpc(viewerPlayerId, name, params), error: null };
@@ -237,10 +215,7 @@ function createHarness() {
         changes.delete(viewerPlayerId);
       },
     };
-  }
-
-  function apiFor(viewerPlayerId) {
-    return createOnlineGameApi({ client: clientFor(viewerPlayerId) });
+    return createOnlineGameApi({ client });
   }
 
   async function broadcast(...viewerPlayerIds) {
@@ -248,17 +223,10 @@ function createHarness() {
     await flush();
   }
 
-  return {
-    actionCalls,
-    apiFor,
-    broadcast,
-    server,
-    snapshotFor,
-    snapshotOverrides,
-  };
+  return { actionCalls, apiFor, broadcast, server, snapshotFor };
 }
 
-test("three clients converge through request, recruitment, requester auto-bid, and final settlement", async () => {
+test("three clients converge through irreversible vote, stale concurrent join, ordered bidding, and settlement", async () => {
   const restore = installFakeBrowser();
   const harness = createHarness();
   const sessions = [];
@@ -270,56 +238,43 @@ test("three clients converge through request, recruitment, requester auto-bid, a
         api: harness.apiFor(viewerPlayerId),
       }));
     }
-    const [decliner, requester, participant] = sessions;
+    const [decliner, firstJoiner, staleJoiner] = sessions;
 
     await decliner.declinePropertyForAuction();
     await harness.broadcast("p2", "p3");
-    assert.equal(requester.getState().pendingChoice.type, "AUCTION_REQUEST");
-    const declinerRequestUi = createOnlineAuctionUiModel(decliner.getState(), "p1");
-    assert.equal(declinerRequestUi.eligible, false);
-    assert.equal(declinerRequestUi.canRequest, false);
+    assert.equal(firstJoiner.getState().pendingChoice.type, "AUCTION_VOTE");
+    assert.equal(createOnlineAuctionUiModel(decliner.getState(), "p1").eligible, false);
 
-    await requester.requestAuction();
-    assert.equal(requester.getState().pendingChoice.type, "AUCTION_RECRUITMENT");
-    assert.deepEqual(requester.getState().pendingChoice.participantPlayerIds, ["p2"]);
-    await harness.broadcast("p1", "p3");
+    await firstJoiner.joinAuction();
+    assert.deepEqual(firstJoiner.getState().pendingChoice.participantPlayerIds, ["p2"]);
 
-    await participant.joinAuction();
-    assert.deepEqual(participant.getState().pendingChoice.participantPlayerIds, ["p2", "p3"]);
-    await harness.broadcast("p1", "p2");
-
-    await decliner.advanceAuctionDeadline();
-    assert.equal(decliner.getState().pendingChoice.type, "PROPERTY_AUCTION");
-    assert.equal(decliner.getState().pendingChoice.auction.highestBidderId, "p2");
-    assert.equal(decliner.getState().pendingChoice.auction.highestBid, 360);
-    assert.equal(decliner.getState().pendingChoice.auction.turnPlayerId, "p3");
-    await harness.broadcast("p2", "p3");
-
-    const requesterUi = createOnlineAuctionUiModel(requester.getState(), "p2");
-    const participantUi = createOnlineAuctionUiModel(participant.getState(), "p3");
-    assert.equal(requesterUi.canBid, false);
-    assert.equal(participantUi.canPass, true);
-    assert.equal(participantUi.minimumBid, 361);
-
-    const staleRequesterSnapshot = harness.snapshotFor("p2");
-    await participant.auctionPass();
-    assert.equal(participant.getState().phase, "TURN_END");
-    assert.equal(participant.getState().boardState.properties.tokyo.ownerId, "p2");
-    assert.equal(participant.getState().players.find((player) => player.id === "p2").money, 840);
+    // Do not broadcast p2's vote to p3. p3 votes from stale version 4.
+    await staleJoiner.joinAuction();
+    assert.equal(staleJoiner.getState().pendingChoice.type, "PROPERTY_AUCTION");
+    assert.deepEqual(staleJoiner.getState().pendingChoice.participantPlayerIds, ["p2", "p3"]);
+    assert.equal(staleJoiner.getState().pendingChoice.auction.openingBidderPlayerId, "p2");
+    assert.equal(staleJoiner.getState().pendingChoice.auction.highestBid, 360);
+    assert.equal(staleJoiner.getState().pendingChoice.auction.turnPlayerId, "p3");
 
     await harness.broadcast("p1", "p2");
-    assert.equal(requester.getState().version, 8);
-    assert.equal(requester.getState().boardState.properties.tokyo.ownerId, "p2");
+    const firstUi = createOnlineAuctionUiModel(firstJoiner.getState(), "p2");
+    const secondUi = createOnlineAuctionUiModel(staleJoiner.getState(), "p3");
+    assert.deepEqual(firstUi.participantCards.map((card) => card.id), ["p2", "p3"]);
+    assert.equal(firstUi.participantCards[0].openingBidder, true);
+    assert.equal(secondUi.canPass, true);
 
-    harness.snapshotOverrides.set("p2", staleRequesterSnapshot);
-    await harness.broadcast("p2");
-    assert.equal(requester.getState().version, 8);
-    assert.equal(requester.getState().boardState.properties.tokyo.ownerId, "p2");
+    await staleJoiner.auctionPass();
+    assert.equal(staleJoiner.getState().phase, "TURN_END");
+    assert.equal(staleJoiner.getState().boardState.properties.tokyo.ownerId, "p2");
+    assert.equal(staleJoiner.getState().players.find((player) => player.id === "p2").money, 840);
 
-    assert.deepEqual(harness.actionCalls.map((call) => call.p_expected_version), [3, 4, 5, 6, 7]);
-    assert.equal(
-      new Set(harness.actionCalls.map((call) => call.p_client_action_id)).size,
-      harness.actionCalls.length,
+    await harness.broadcast("p1", "p2");
+    assert.equal(firstJoiner.getState().version, 7);
+    assert.equal(firstJoiner.getState().boardState.properties.tokyo.ownerId, "p2");
+
+    assert.deepEqual(
+      harness.actionCalls.map((call) => call.p_expected_version),
+      [3, 4, 4, 6],
     );
   } finally {
     sessions.forEach((session) => session.dispose());
@@ -327,69 +282,32 @@ test("three clients converge through request, recruitment, requester auto-bid, a
   }
 });
 
-test("reconnecting snapshots reconstruct recruitment and ordered bidding without local history", async () => {
+test("reconnecting snapshot reconstructs vote and participant order without local history", async () => {
   const restore = installFakeBrowser();
   const harness = createHarness();
-  const sessions = [];
-
   try {
-    harness.server.version = 6;
+    harness.server.version = 5;
     harness.server.pendingChoice = {
-      type: "AUCTION_RECRUITMENT",
+      type: "AUCTION_VOTE",
       nodeId: "tokyo",
       basePrice: 240,
       openingBid: 360,
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
-      requesterPlayerId: "p2",
-      requestedByPlayerIds: ["p2"],
-      participantPlayerIds: ["p2", "p3"],
-      deadlineAt: "2026-09-18T12:00:20Z",
+      participantPlayerIds: ["p3"],
+      passedPlayerIds: [],
+      deadlineAt: "2026-09-19T12:00:15Z",
     };
-    const recruitmentSession = await createOnlineClassicSession({
+    const session = await createOnlineClassicSession({
       roomId: "room-1",
-      api: harness.apiFor("p3"),
+      api: harness.apiFor("p2"),
     });
-    sessions.push(recruitmentSession);
-    assert.deepEqual(recruitmentSession.getState().pendingChoice.participantPlayerIds, ["p2", "p3"]);
-
-    harness.server.version = 7;
-    harness.server.pendingChoice = {
-      type: "PROPERTY_AUCTION",
-      nodeId: "tokyo",
-      openingBid: 360,
-      requesterPlayerId: "p2",
-      participantPlayerIds: ["p2", "p3"],
-      auction: {
-        type: "PROPERTY_AUCTION",
-        nodeId: "tokyo",
-        openingBid: 360,
-        declinedByPlayerId: "p1",
-        eligiblePlayerIds: ["p2", "p3"],
-        participantPlayerIds: ["p2", "p3"],
-        requesterPlayerId: "p2",
-        requestedByPlayerIds: ["p2"],
-        bidPlayerIds: ["p2"],
-        passedPlayerIds: [],
-        highestBid: 360,
-        highestBidderId: "p2",
-        turnPlayerId: "p3",
-        turnDeadlineAt: "2026-09-18T12:00:30Z",
-        status: "OPEN",
-      },
-    };
-    const auctionSession = await createOnlineClassicSession({
-      roomId: "room-1",
-      api: harness.apiFor("p3"),
-    });
-    sessions.push(auctionSession);
-    const model = createOnlineAuctionUiModel(auctionSession.getState(), "p3");
-    assert.equal(model.stage, "auction");
-    assert.equal(model.highestBid, 360);
-    assert.equal(model.minimumBid, 361);
-    assert.equal(model.isTurn, true);
+    const model = createOnlineAuctionUiModel(session.getState(), "p2");
+    assert.equal(model.stage, "vote");
+    assert.deepEqual(model.participantCards.map((card) => card.id), ["p3"]);
+    assert.equal(model.participantCards[0].openingBidder, true);
+    session.dispose();
   } finally {
-    sessions.forEach((session) => session.dispose());
     restore();
   }
 });

@@ -19,17 +19,17 @@ function players(overrides = {}) {
   }));
 }
 
-test("auction v2 opening bid is 150 percent with integer rounding", () => {
+test("auction vote flow opening bid is 150 percent with integer rounding", () => {
   assert.equal(calculateAuctionOpeningBid(260), 390);
   assert.equal(calculateAuctionOpeningBid(333), 500);
 });
 
-test("auction starts with requester auto-bid and participant join order", () => {
+test("auction starts with first participant auto-bid and participant join order", () => {
   const auction = createPropertyAuction({
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b", "c", "d"],
     players: players(),
     turnDeadlineAt: 20_000,
@@ -45,12 +45,12 @@ test("auction starts with requester auto-bid and participant join order", () => 
   assert.equal(getPropertyAuctionMinimumBid(auction), 391);
 });
 
-test("sole requester wins immediately at the opening bid", () => {
+test("sole participant wins immediately at the opening bid", () => {
   const auction = createPropertyAuction({
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b"],
     players: players(),
   });
@@ -70,7 +70,7 @@ test("only the current auction turn player may bid or pass", () => {
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b", "c", "d"],
     players: players(),
   });
@@ -92,7 +92,7 @@ test("pass removes a participant and the fixed order continues", () => {
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b", "c", "d"],
     players: players(),
   });
@@ -113,7 +113,7 @@ test("players who cannot afford the next minimum bid are auto-passed", () => {
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b", "c", "d"],
     players: participantState,
   });
@@ -133,7 +133,7 @@ test("timeout pass uses the same irreversible pass rule", () => {
     nodeId: "singapore",
     openingBid: 390,
     declinedByPlayerId: "a",
-    requesterPlayerId: "b",
+    openingBidderPlayerId: "b",
     participantPlayerIds: ["b", "c"],
     players: players(),
   });

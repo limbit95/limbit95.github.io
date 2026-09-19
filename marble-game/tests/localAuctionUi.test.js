@@ -6,8 +6,9 @@ import { createLocalAuctionUiModel } from "../js/localAuctionUi.js";
 
 const appSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const uiSource = readFileSync(new URL("../js/localAuctionUi.js", import.meta.url), "utf8");
+const cssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
 
-function state(pendingChoice, overrides = {}) {
+function state(pendingChoice) {
   return {
     version: 7,
     players: [
@@ -18,35 +19,20 @@ function state(pendingChoice, overrides = {}) {
     board: { nodes: [{ id: "tokyo", label: "도쿄", type: "PROPERTY" }] },
     pendingChoice,
     lastEvents: [],
-    ...overrides,
   };
 }
 
-function requestChoice() {
+function voteChoice(participantPlayerIds = [], passedPlayerIds = []) {
   return {
-    type: "AUCTION_REQUEST",
+    type: "AUCTION_VOTE",
     nodeId: "tokyo",
     basePrice: 240,
     openingBid: 360,
     declinedByPlayerId: "p1",
     eligiblePlayerIds: ["p2", "p3"],
-    requestedByPlayerIds: [],
-    deadlineAt: 11_000,
-  };
-}
-
-function recruitmentChoice(participantPlayerIds = ["p2"]) {
-  return {
-    type: "AUCTION_RECRUITMENT",
-    nodeId: "tokyo",
-    basePrice: 240,
-    openingBid: 360,
-    declinedByPlayerId: "p1",
-    eligiblePlayerIds: ["p2", "p3"],
-    requesterPlayerId: "p2",
-    requestedByPlayerIds: ["p2"],
     participantPlayerIds,
-    deadlineAt: 12_000,
+    passedPlayerIds,
+    deadlineAt: 16_000,
   };
 }
 
@@ -61,7 +47,7 @@ function auctionChoice({
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
     openingBid: 360,
-    requesterPlayerId: "p2",
+    openingBidderPlayerId: participantPlayerIds[0],
     participantPlayerIds,
     auction: {
       type: "PROPERTY_AUCTION",
@@ -70,9 +56,8 @@ function auctionChoice({
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
       participantPlayerIds,
-      requesterPlayerId: "p2",
-      requestedByPlayerIds: ["p2"],
-      bidPlayerIds: ["p2"],
+      openingBidderPlayerId: participantPlayerIds[0],
+      bidPlayerIds: [participantPlayerIds[0]],
       passedPlayerIds,
       highestBid,
       highestBidderId,
@@ -83,62 +68,64 @@ function auctionChoice({
   };
 }
 
-test("local request model excludes the declining player and exposes 150 percent opening bid", () => {
-  const eligible = createLocalAuctionUiModel(state(requestChoice()), "p2");
-  assert.equal(eligible.stage, "request");
-  assert.equal(eligible.openingBid, 360);
-  assert.equal(eligible.canRequest, true);
+test("local vote model exposes one-time join/pass actions", () => {
+  const undecided = createLocalAuctionUiModel(state(voteChoice()), "p2");
+  assert.equal(undecided.stage, "vote");
+  assert.equal(undecided.openingBid, 360);
+  assert.equal(undecided.canJoin, true);
+  assert.equal(undecided.canVotePass, true);
+  assert.equal(undecided.decision, null);
 
-  const decliner = createLocalAuctionUiModel(state(requestChoice()), "p1");
-  assert.notEqual(decliner.selectedPlayerId, "p1");
-  assert.equal(decliner.playerOptions.some((option) => option.id === "p1"), false);
+  const joined = createLocalAuctionUiModel(state(voteChoice(["p2"])), "p2");
+  assert.equal(joined.decision, "JOIN");
+  assert.equal(joined.canJoin, false);
+  assert.equal(joined.canVotePass, false);
+
+  const passed = createLocalAuctionUiModel(state(voteChoice([], ["p2"])), "p2");
+  assert.equal(passed.decision, "PASS");
+  assert.equal(passed.canJoin, false);
+  assert.equal(passed.canVotePass, false);
 });
 
-test("local recruitment model preserves requester and allows normal participant withdrawal", () => {
-  const requester = createLocalAuctionUiModel(state(recruitmentChoice(["p2", "p3"])), "p2");
-  assert.equal(requester.stage, "recruitment");
-  assert.equal(requester.requester, true);
-  assert.equal(requester.canWithdraw, false);
-  assert.equal(requester.participantCount, 2);
-
-  const participant = createLocalAuctionUiModel(state(recruitmentChoice(["p2", "p3"])), "p3");
-  assert.equal(participant.participant, true);
-  assert.equal(participant.canWithdraw, true);
-  assert.equal(participant.canJoin, false);
+test("local participant cards preserve join order and first-bid badge", () => {
+  const model = createLocalAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
+  assert.deepEqual(model.participantCards.map((card) => ({
+    id: card.id,
+    order: card.order,
+    openingBidder: card.openingBidder,
+  })), [
+    { id: "p3", order: 1, openingBidder: true },
+    { id: "p2", order: 2, openingBidder: false },
+  ]);
+  assert.equal(model.participantCount, 2);
+  assert.equal(model.waitingCount, 0);
 });
 
-test("competitive model only enables bid and pass for the current participant", () => {
-  const requester = createLocalAuctionUiModel(state(auctionChoice()), "p2");
-  assert.equal(requester.highestBid, 360);
-  assert.equal(requester.minimumBid, 361);
-  assert.equal(requester.canBid, false);
-  assert.equal(requester.canPass, false);
+test("competitive model only enables bid and pass for current participant", () => {
+  const first = createLocalAuctionUiModel(state(auctionChoice()), "p2");
+  assert.equal(first.highestBid, 360);
+  assert.equal(first.minimumBid, 361);
+  assert.equal(first.canBid, false);
+  assert.equal(first.canPass, false);
 
   const current = createLocalAuctionUiModel(state(auctionChoice()), "p3");
   assert.equal(current.isTurn, true);
   assert.equal(current.canBid, true);
   assert.equal(current.canPass, true);
-  assert.equal(current.passLabel, "포기");
-
-  const passed = createLocalAuctionUiModel(state(auctionChoice({
-    passedPlayerIds: ["p3"],
-    turnPlayerId: null,
-  })), "p3");
-  assert.equal(passed.passed, true);
-  assert.equal(passed.canBid, false);
-  assert.equal(passed.canPass, false);
-  assert.equal(passed.passLabel, "포기 완료");
 });
 
-test("local auction UI wires recruitment, bidding, and authoritative deadline advancement", () => {
+test("local Auction UI wires vote, participant cards, bidding, and deadline advancement", () => {
   assert.match(appSource, /setupLocalAuctionUi/);
-  assert.match(uiSource, /session\.requestAuction\(selectedPlayerId\)/);
   assert.match(uiSource, /session\.joinAuction\(selectedPlayerId\)/);
-  assert.match(uiSource, /session\.withdrawAuction\(selectedPlayerId\)/);
+  assert.match(uiSource, /session\.passAuctionVote\(selectedPlayerId\)/);
+  assert.doesNotMatch(uiSource, /session\.withdrawAuction\(/);
+  assert.doesNotMatch(uiSource, /session\.requestAuction\(/);
+  assert.match(uiSource, /첫 입찰/);
+  assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.auctionBid\(selectedPlayerId, amount\)/);
   assert.match(uiSource, /session\.auctionPass\(selectedPlayerId\)/);
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
-  assert.match(uiSource, /매입에 성공하셨습니다/);
   assert.match(uiSource, /const modalHost = documentObject\.body \?\? dock/);
-  assert.match(uiSource, /modalHost\.prepend\(panel\)/);
+  assert.match(cssSource, /data-auction-stage="vote"/);
+  assert.match(cssSource, /auction-action-panel__participants/);
 });

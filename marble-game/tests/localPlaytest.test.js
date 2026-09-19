@@ -29,7 +29,7 @@ test("local Classic session can start, buy a property, and advance turn", () => 
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
 
-test("local Classic session completes Auction v2 recruitment and requester auto-bid flow", () => {
+test("local Classic session completes the 15 second Auction vote flow", () => {
   const values = [0, 0.2];
   let index = 0;
   let now = 1_000;
@@ -44,24 +44,22 @@ test("local Classic session completes Auction v2 recruitment and requester auto-
 
   state = session.endTurn();
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+  assert.equal(state.pendingChoice.type, "AUCTION_VOTE");
   assert.equal(state.pendingChoice.openingBid, 390);
-  assert.equal(state.pendingChoice.deadlineAt, 11_000);
+  assert.equal(state.pendingChoice.deadlineAt, 16_000);
 
   now = 2_000;
-  state = session.requestAuction("player-b");
-  assert.equal(state.pendingChoice.type, "AUCTION_RECRUITMENT");
-  assert.equal(state.pendingChoice.requesterPlayerId, "player-b");
+  state = session.joinAuction("player-b");
   assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b"]);
-  assert.equal(state.pendingChoice.deadlineAt, 12_000);
+
+  now = 2_500;
+  state = session.passAuctionVote("player-d");
+  assert.deepEqual(state.pendingChoice.passedPlayerIds, ["player-d"]);
 
   now = 3_000;
   state = session.joinAuction("player-c");
-  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b", "player-c"]);
-
-  now = 12_000;
-  state = session.advanceAuctionDeadline();
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b", "player-c"]);
   assert.equal(state.pendingChoice.auction.highestBidderId, "player-b");
   assert.equal(state.pendingChoice.auction.highestBid, 390);
   assert.equal(state.pendingChoice.auction.turnPlayerId, "player-c");
@@ -77,7 +75,7 @@ test("local Classic session completes Auction v2 recruitment and requester auto-
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
 
-test("local Classic session ends the turn when the 10 second request window expires without a request", () => {
+test("local Classic session treats Auction vote timeout as pass", () => {
   const values = [0, 0.2];
   let index = 0;
   let now = 1_000;
@@ -89,20 +87,23 @@ test("local Classic session ends the turn when the 10 second request window expi
   let state = session.start();
   state = session.roll();
   state = session.endTurn();
-  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+  assert.equal(state.pendingChoice.type, "AUCTION_VOTE");
 
-  now = 11_000;
+  now = 16_000;
   state = session.advanceAuctionDeadline();
 
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
   assert.equal(state.boardState.properties.singapore.ownerId, null);
+  assert.equal(
+    state.lastEvents.filter((event) => event.type === "AUCTION_VOTE_AUTO_PASSED").length,
+    3,
+  );
 
   state = session.endTurn();
   assert.equal(state.currentPlayerIndex, 1);
   assert.equal(state.phase, TURN_PHASES.WAITING_ROLL);
 });
-
 
 test("local Classic session can propose, accept, and settle a pre-roll trade", () => {
   const values = [0, 0.2];

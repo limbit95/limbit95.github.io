@@ -230,12 +230,12 @@ test("acceptance revalidates stale ownership instead of trusting the original of
   );
 });
 
-test("Phase 7A auction flow still delegates through the trading reducer", () => {
+test("Auction vote flow still delegates through the trading reducer", () => {
   let state = start(["a", "b"]);
   state = dispatch(state, ACTION_TYPES.ROLL_DICE, "a", { dice: [1, 2] });
   assert.equal(state.pendingChoice.type, "BUY_PROPERTY");
 
   state = dispatch(state, ACTION_TYPES.END_TURN, "a");
   assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
-  assert.equal(state.pendingChoice.type, "AUCTION_REQUEST");
+  assert.equal(state.pendingChoice.type, "AUCTION_VOTE");
 });

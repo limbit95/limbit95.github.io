@@ -24,8 +24,7 @@ function requirePlayer(players, playerId) {
 }
 
 export const AUCTION_TIMING = Object.freeze({
-  requestMs: 10_000,
-  recruitmentMs: 10_000,
+  voteMs: 15_000,
   bidTurnMs: 10_000,
 });
 
@@ -140,7 +139,8 @@ export function createPropertyAuction({
   nodeId,
   openingBid,
   declinedByPlayerId,
-  requesterPlayerId,
+  openingBidderPlayerId,
+  requesterPlayerId = null,
   participantPlayerIds,
   players,
   turnDeadlineAt = null,
@@ -155,8 +155,9 @@ export function createPropertyAuction({
     openingBid: normalizedOpeningBid,
     players,
   });
-  if (!eligiblePlayerIds.includes(requesterPlayerId)) {
-    throw new Error("Auction requester must be eligible for this auction.");
+  const firstBidderPlayerId = openingBidderPlayerId ?? requesterPlayerId;
+  if (!eligiblePlayerIds.includes(firstBidderPlayerId)) {
+    throw new Error("Auction opening bidder must be eligible for this auction.");
   }
   if (!Array.isArray(participantPlayerIds) || participantPlayerIds.length === 0) {
     throw new Error("Auction participants are required.");
@@ -165,8 +166,8 @@ export function createPropertyAuction({
   if (uniqueParticipants.length !== participantPlayerIds.length) {
     throw new Error("Auction participant ids must be unique.");
   }
-  if (uniqueParticipants[0] !== requesterPlayerId) {
-    throw new Error("Auction requester must be the first participant.");
+  if (uniqueParticipants[0] !== firstBidderPlayerId) {
+    throw new Error("Auction opening bidder must be the first participant.");
   }
   if (uniqueParticipants.some((playerId) => !eligiblePlayerIds.includes(playerId))) {
     throw new Error("Auction participants must be eligible.");
@@ -179,12 +180,13 @@ export function createPropertyAuction({
     declinedByPlayerId,
     eligiblePlayerIds,
     participantPlayerIds: uniqueParticipants,
-    requesterPlayerId,
-    requestedByPlayerIds: [requesterPlayerId],
-    bidPlayerIds: [requesterPlayerId],
+    openingBidderPlayerId: firstBidderPlayerId,
+    requesterPlayerId: firstBidderPlayerId,
+    requestedByPlayerIds: [],
+    bidPlayerIds: [firstBidderPlayerId],
     passedPlayerIds: [],
     highestBid: normalizedOpeningBid,
-    highestBidderId: requesterPlayerId,
+    highestBidderId: firstBidderPlayerId,
     turnPlayerId: null,
     turnDeadlineAt,
     status: "OPEN",
@@ -192,7 +194,7 @@ export function createPropertyAuction({
     winningBid: 0,
   });
 
-  const prepared = prepareNextTurn(initial, players, requesterPlayerId);
+  const prepared = prepareNextTurn(initial, players, firstBidderPlayerId);
   return freezeAuction({
     ...prepared.auction,
     turnDeadlineAt: prepared.auction.status === "OPEN" ? turnDeadlineAt : null,
