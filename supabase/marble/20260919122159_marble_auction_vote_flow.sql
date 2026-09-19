@@ -250,6 +250,7 @@ begin
           'eligiblePlayerIds',v_eligible,
           'participantPlayerIds','[]'::jsonb,
           'passedPlayerIds','[]'::jsonb,
+          'openedVersion',v_game.version + 1,
           'deadlineAt',v_deadline
         ),
         last_events=v_events,
@@ -290,6 +291,7 @@ declare
   v_participants jsonb;
   v_passed jsonb;
   v_events jsonb;
+  v_opened_version bigint;
 begin
   if v_user is null then raise exception 'AUTH_REQUIRED'; end if;
   if p_client_action_id is null then raise exception 'INVALID_ACTION_ID'; end if;
@@ -305,12 +307,18 @@ begin
   );
   if v_replay is not null then return v_replay; end if;
   if v_game.status <> 'playing' then raise exception 'GAME_NOT_PLAYING'; end if;
-  if v_game.version < p_expected_version then raise exception 'VERSION_CONFLICT'; end if;
   if v_game.phase <> 'WAITING_CHOICE' or v_game.pending_choice->>'type' <> 'AUCTION_VOTE' then
     raise exception 'AUCTION_VOTE_NOT_OPEN';
   end if;
   if (v_game.pending_choice->>'deadlineAt')::timestamptz <= now() then
     raise exception 'AUCTION_VOTE_DEADLINE_EXPIRED';
+  end if;
+  v_opened_version := coalesce(
+    nullif(v_game.pending_choice->>'openedVersion','')::bigint,
+    v_game.version
+  );
+  if p_expected_version < v_opened_version or p_expected_version > v_game.version then
+    raise exception 'VERSION_CONFLICT';
   end if;
 
   select * into v_actor
@@ -387,6 +395,7 @@ declare
   v_participants jsonb;
   v_passed jsonb;
   v_events jsonb;
+  v_opened_version bigint;
 begin
   if v_user is null then raise exception 'AUTH_REQUIRED'; end if;
   if p_client_action_id is null then raise exception 'INVALID_ACTION_ID'; end if;
@@ -408,6 +417,13 @@ begin
   end if;
   if (v_game.pending_choice->>'deadlineAt')::timestamptz <= now() then
     raise exception 'AUCTION_VOTE_DEADLINE_EXPIRED';
+  end if;
+  v_opened_version := coalesce(
+    nullif(v_game.pending_choice->>'openedVersion','')::bigint,
+    v_game.version
+  );
+  if p_expected_version < v_opened_version or p_expected_version > v_game.version then
+    raise exception 'VERSION_CONFLICT';
   end if;
 
   select * into v_actor
@@ -696,6 +712,7 @@ begin
       'eligiblePlayerIds',v_eligible,
       'participantPlayerIds',v_participants,
       'passedPlayerIds','[]'::jsonb,
+      'openedVersion',v_game.version + 1,
       'deadlineAt',now()+interval '15 seconds'
     );
 
