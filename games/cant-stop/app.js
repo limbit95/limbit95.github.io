@@ -445,21 +445,32 @@ function createDiceStage(view, state) {
           ? `${index + 1}번째 주사위 결과 대기`
           : `${index + 1}번째 주사위 ${die}`,
       }))),
-    view.canRoll
-      ? el("button", {
-        className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
-        type: "button",
-        text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
-        disabled: state.busy,
-        onClick: async () => {
-          try {
-            await lobbyController.rollDice();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      })
-      : null,
+    el("div", { className: "cant-stop-dice-stage__action-slot" }, [
+      view.canRoll
+        ? el("button", {
+          className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
+          type: "button",
+          text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
+          disabled: state.busy,
+          onClick: async () => {
+            try {
+              await lobbyController.rollDice();
+            } catch {
+              // Controller state renders the authoritative error.
+            }
+          },
+        })
+        : el("span", {
+          className: "cant-stop-dice-stage__action-hint",
+          text: view.phase === "PAIRING_SELECTION"
+            ? (view.isMyTurn ? "아래에서 등반 경로를 선택하세요" : "상대가 등반 경로를 고르는 중")
+            : view.phase === "PUSH_OR_STOP"
+              ? (view.isMyTurn ? "보드 아래에서 더 굴릴지 멈출지 선택하세요" : "상대가 다음 행동을 정하는 중")
+              : view.isGameOver
+                ? "게임이 종료되었습니다"
+                : "현재 플레이어의 주사위를 기다리는 중",
+        }),
+    ]),
     el("p", {
       className: "cant-stop-dice-stage__caption",
       text: rolling
