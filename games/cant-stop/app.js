@@ -365,14 +365,60 @@ function createPairingPanel(view, state) {
 
 function createBoard(view, state) {
   const heading = gameplayHeading(view);
-
   const busting = state.effect?.type === "bust";
 
+  const tracks = el("div", { className: "cant-stop-board__tracks" },
+    view.columns.map((column) => el("section", {
+      className: [
+        "cant-stop-column",
+        column.claimedById ? "cant-stop-column--claimed" : "",
+      ].filter(Boolean).join(" "),
+      dataset: { column: String(column.number) },
+      "aria-label": column.claimedByName
+        ? `${column.number} 열 ${column.claimedByName} 완주`
+        : `${column.number} 열 ${column.height}칸`,
+    }, [
+      el("strong", {
+        className: "cant-stop-column__number",
+        text: String(column.number),
+      }),
+      column.claimedByName
+        ? el("span", {
+          className: "cant-stop-column__claim",
+          text: `${column.claimedByName} 완주`,
+        })
+        : null,
+      el("div", { className: "cant-stop-column__cells" },
+        Array.from({ length: column.height }, (_, index) => {
+          const position = column.height - index;
+          const permanent = column.permanentMarkers
+            .filter((marker) => marker.position === position);
+          const runner = column.runner?.position === position
+            ? column.runner
+            : null;
+          return el("span", {
+            className: "cant-stop-column__cell",
+            dataset: { position: String(position) },
+            "aria-label": `${column.number} 열 ${position}칸`,
+          }, [
+            ...permanent.map((marker) => el("span", {
+              className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
+              title: `${marker.displayName} 영구 진척`,
+              "aria-label": `${marker.displayName} 영구 진척`,
+            })),
+            runner
+              ? el("span", {
+                className: `cant-stop-marker cant-stop-marker--runner cant-stop-marker--player-${runner.playerIndex % 4}`,
+                title: `${runner.displayName} 현재 runner`,
+                "aria-label": `${runner.displayName} 현재 runner`,
+              })
+              : null,
+          ]);
+        })),
+    ])));
+
   return el("section", {
-    className: [
-      "cant-stop-board",
-      busting ? "cant-stop-board--bust" : "",
-    ].filter(Boolean).join(" "),
+    className: "cant-stop-board",
     "aria-label": "Can’t Stop 보드",
   }, [
     el("div", { className: "cant-stop-board__intro" }, [
@@ -396,66 +442,25 @@ function createBoard(view, state) {
         text: getCantStopLobbyErrorMessage(state.error),
       })
       : null,
-    busting
-      ? el("div", {
-        className: "cant-stop-bust-notice",
-        role: "status",
-        "aria-live": "polite",
-      }, [
-        el("strong", { text: "등반 실패" }),
-        el("span", { text: "이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
-      ])
-      : null,
     createPairingPanel(view, state),
-    el("div", { className: "cant-stop-board__tracks" },
-      view.columns.map((column) => el("section", {
-        className: [
-          "cant-stop-column",
-          column.claimedById ? "cant-stop-column--claimed" : "",
-        ].filter(Boolean).join(" "),
-        dataset: { column: String(column.number) },
-        "aria-label": column.claimedByName
-          ? `${column.number} 열 ${column.claimedByName} 완주`
-          : `${column.number} 열 ${column.height}칸`,
-      }, [
-        column.claimedByName
-          ? el("span", {
-            className: "cant-stop-column__claim",
-            text: `${column.claimedByName} 완주`,
-          })
-          : null,
-        el("div", { className: "cant-stop-column__cells" },
-          Array.from({ length: column.height }, (_, index) => {
-            const position = column.height - index;
-            const permanent = column.permanentMarkers
-              .filter((marker) => marker.position === position);
-            const runner = column.runner?.position === position
-              ? column.runner
-              : null;
-            return el("span", {
-              className: "cant-stop-column__cell",
-              dataset: { position: String(position) },
-              "aria-label": `${column.number} 열 ${position}칸`,
-            }, [
-              ...permanent.map((marker) => el("span", {
-                className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
-                title: `${marker.displayName} 영구 진척`,
-                "aria-label": `${marker.displayName} 영구 진척`,
-              })),
-              runner
-                ? el("span", {
-                  className: `cant-stop-marker cant-stop-marker--runner cant-stop-marker--player-${runner.playerIndex % 4}`,
-                  title: `${runner.displayName} 현재 runner`,
-                  "aria-label": `${runner.displayName} 현재 runner`,
-                })
-                : null,
-            ]);
-          })),
-        el("strong", {
-          className: "cant-stop-column__number",
-          text: String(column.number),
-        }),
-      ]))),
+    el("div", {
+      className: [
+        "cant-stop-board__mountain",
+        busting ? "cant-stop-board__mountain--bust" : "",
+      ].filter(Boolean).join(" "),
+    }, [
+      busting
+        ? el("div", {
+          className: "cant-stop-bust-notice",
+          role: "status",
+          "aria-live": "polite",
+        }, [
+          el("strong", { text: "등반 실패" }),
+          el("span", { text: "이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
+        ])
+        : null,
+      tracks,
+    ]),
   ]);
 }
 
