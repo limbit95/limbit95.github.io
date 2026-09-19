@@ -118,6 +118,7 @@ function openAuctionVote(state, action, options) {
       eligiblePlayerIds: Object.freeze([...eligiblePlayerIds]),
       participantPlayerIds: Object.freeze([]),
       passedPlayerIds: Object.freeze([]),
+      openedVersion: state.version + 1,
       deadlineAt: deadline,
     }),
     lastEvents: freezeEvents([
