@@ -1202,6 +1202,73 @@ test("cant-stop: reconnect after peer leaves GAME_OVER restores host succession 
 });
 
 
+
+test("cant-stop: host can manually end an active game and reuse the post-game lifecycle", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("manual-end");
+  const actionId = randomUUID();
+
+  const ended = await expectOk(await rpc("cant_stop_end_game", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: actionId,
+  }, host.accessToken), "host cant_stop_end_game");
+
+  assert.equal(ended.room.status, "playing");
+  assert.equal(ended.game.phase, "GAME_OVER");
+  assert.equal(ended.game.winnerId, null);
+  assert.equal(ended.game.endReason, "MANUAL");
+  assert.equal(ended.game.endedById, host.id);
+  assert.deepEqual(ended.game.runners, {});
+  assert.equal(ended.game.latestDice, null);
+  assert.deepEqual(ended.game.legalPairings, []);
+  assert.equal(Number(ended.version), Number(started.version) + 1);
+
+  const replay = await expectOk(await rpc("cant_stop_end_game", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: actionId,
+  }, host.accessToken), "replayed cant_stop_end_game");
+  assert.equal(Number(replay.version), Number(ended.version));
+  assert.equal(replay.game.endReason, "MANUAL");
+
+  await expectOk(await rpc("cant_stop_leave_room", {
+    p_room_id: ended.room.id,
+    p_expected_version: Number(ended.version),
+  }, guest.accessToken), "guest leaves manually ended game");
+
+  const hostAfterGuestLeave = await expectOk(await rpc(
+    "cant_stop_get_my_active_room",
+    {},
+    host.accessToken,
+  ), "host snapshot after guest leaves manually ended game");
+
+  const waiting = await expectOk(await rpc("cant_stop_prepare_rematch", {
+    p_room_id: hostAfterGuestLeave.room.id,
+    p_expected_version: Number(hostAfterGuestLeave.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), "host rematch after manual end");
+  assert.equal(waiting.room.status, "waiting");
+  assert.equal(waiting.game, null);
+});
+
+test("cant-stop: non-host cannot manually terminate the active game", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("manual-end-host-only");
+
+  const denied = await rpc("cant_stop_end_game", {
+    p_room_id: started.room.id,
+    p_expected_version: Number(started.version),
+    p_client_action_id: randomUUID(),
+  }, guest.accessToken);
+  expectDenied(denied, "guest cant_stop_end_game", /GAME_END_HOST_REQUIRED/u);
+
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: started.room.id,
+  }, host.accessToken), "snapshot after denied manual end");
+  assert.equal(Number(snapshot.version), Number(started.version));
+  assert.notEqual(snapshot.game.phase, "GAME_OVER");
+});
+
+
 test("cant-stop: approved member can join a waiting room through a valid platform invite", async () => {
   const host = await createTestUser("invite-host");
   const guest = await createTestUser("invite-guest");
