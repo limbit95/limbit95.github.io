@@ -46,7 +46,8 @@ test("first committed participant becomes opening bidder and join order becomes 
 
 test("simultaneous vote actions are serialized by the game row and stale client versions are absorbed", () => {
   assert.match(voteMigration, /from public\.marble_games[\s\S]*for update/);
-  assert.match(voteMigration, /if v_game\.version < p_expected_version then raise exception 'VERSION_CONFLICT'/);
+  assert.match(voteMigration, /'openedVersion',v_game\.version \+ 1/);
+  assert.match(voteMigration, /p_expected_version < v_opened_version or p_expected_version > v_game\.version/);
   assert.match(voteMigration, /v_participants := v_participants \|\| jsonb_build_array\(v_player_id\)/);
 });
 
