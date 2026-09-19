@@ -199,7 +199,9 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - Common Game Shell로 제목, 방 정보, 연결 상태, roster, 공통 action 영역을 제공한다.
 - 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성하고, 상용판 아트를 복제하지 않은 고유 설산/빙설 테마를 사용한다.
 - permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다.
-- 현재 roll의 네 주사위와 가능한 pairing 선택지를 함께 보여준다.
+- 현재 roll의 네 주사위와 가능한 pairing 선택지는 보드 위에 삽입하지 않고 오른쪽 sidebar의 전용 dice/route panel에서 함께 보여준다.
+- dice/route panel은 게임 phase가 바뀌어도 높이를 유지해 board playfield가 위아래로 흔들리지 않게 한다.
+- pairing 선택 시 실제 네 주사위가 어떤 두 쌍으로 묶여 각 열의 합을 만드는지 mini-dice → column number 형태로 설명하고, 서버가 허용한 legal move plan만 선택 버튼으로 노출한다.
 - 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다.
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
