@@ -60,6 +60,7 @@ test("sole participant settlement reuses normal purchase events", () => {
 });
 
 test("legacy request and recruitment states are normalized into the vote window", () => {
+  assert.match(voteMigration, /select id, version, pending_choice/);
   assert.match(voteMigration, /pending_choice->>'type' in \('AUCTION_REQUEST','AUCTION_RECRUITMENT'\)/);
   assert.match(voteMigration, /'type','AUCTION_VOTE'/);
   assert.match(voteMigration, /deadlineAt',now\(\)\+interval '15 seconds'/);
