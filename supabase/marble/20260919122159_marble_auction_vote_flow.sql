@@ -661,7 +661,7 @@ declare
   v_participants jsonb;
 begin
   for v_game in
-    select id, pending_choice
+    select id, version, pending_choice
     from public.marble_games
     where status='playing'
       and phase='WAITING_CHOICE'
