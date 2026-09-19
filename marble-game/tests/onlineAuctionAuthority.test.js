@@ -2,89 +2,91 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const migration = readFileSync(
+const v2Migration = readFileSync(
   new URL("../../supabase/marble/20260918220000_marble_auction_v2.sql", import.meta.url),
   "utf8",
 );
-const legacyCompatMigration = readFileSync(
-  new URL(
-    "../../supabase/marble/20260918224500_marble_auction_v2_legacy_request_compat.sql",
-    import.meta.url,
-  ),
+const voteMigration = readFileSync(
+  new URL("../../supabase/marble/20260919122159_marble_auction_vote_flow.sql", import.meta.url),
   "utf8",
 );
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 
-test("Auction v2 authority exposes server time and defines the 150 percent request and recruitment lifecycle", () => {
-  assert.match(migration, /'serverNow', now\(\)/);
-  assert.match(migration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
-  assert.match(migration, /'type','AUCTION_REQUEST'/);
-  assert.match(migration, /'type','AUCTION_RECRUITMENT'/);
-  assert.match(migration, /interval '10 seconds'/);
-  assert.match(migration, /marble_join_auction/);
-  assert.match(migration, /marble_withdraw_auction/);
-  assert.match(migration, /AUCTION_REQUESTER_WITHDRAW_NOT_ALLOWED/);
+test("Auction vote authority opens a single 15-second vote at 150 percent", () => {
+  assert.match(voteMigration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
+  assert.match(voteMigration, /'type','AUCTION_VOTE'/);
+  assert.match(voteMigration, /interval '15 seconds'/);
+  assert.match(voteMigration, /'participantPlayerIds','\[\]'::jsonb/);
+  assert.match(voteMigration, /'passedPlayerIds','\[\]'::jsonb/);
 });
 
-test("concurrent request losers are absorbed into recruitment in server commit order", () => {
-  assert.match(migration, /v_type='AUCTION_RECRUITMENT'/);
-  assert.match(migration, /CONCURRENT_REQUEST/);
-  assert.match(migration, /v_participants := v_participants \|\| jsonb_build_array\(v_player_id\)/);
-  assert.match(migration, /v_game\.version < p_expected_version/);
+test("vote decisions are irreversible and timeout means pass", () => {
+  assert.match(voteMigration, /marble_pass_auction_vote/);
+  assert.match(voteMigration, /AUCTION_VOTE_ALREADY_FINAL/);
+  assert.match(voteMigration, /AUCTION_VOTE_IS_FINAL/);
+  assert.match(voteMigration, /AUCTION_VOTE_AUTO_PASSED/);
+  assert.match(voteMigration, /reason','TIMEOUT'/);
 });
 
-test("competitive auction is ordered, timed, and auto-removes unaffordable participants", () => {
-  assert.match(migration, /marble_auction_v2_next_turn/);
-  assert.match(migration, /participantPlayerIds/);
-  assert.match(migration, /turnPlayerId/);
-  assert.match(migration, /turnDeadlineAt/);
-  assert.match(migration, /AUCTION_AUTO_PASSED/);
-  assert.match(migration, /INSUFFICIENT_GOLD/);
-  assert.match(migration, /reason','TIMEOUT/);
-  assert.match(migration, /v_minimum := case when v_highest>0 then v_highest\+1/);
+test("all responded immediately resolves without waiting for the vote deadline", () => {
+  assert.match(
+    voteMigration,
+    /jsonb_array_length\(v_participants\) \+ jsonb_array_length\(v_passed\)[\s\S]*?marble_auction_v3_finalize_vote/,
+  );
+  assert.match(voteMigration, /'ALL_RESPONDED'/);
 });
 
-test("requester auto-bid and sole participant settlement reuse normal purchase events", () => {
-  assert.match(migration, /'bidPlayerIds',jsonb_build_array\(v_requester\)/);
-  assert.match(migration, /'highestBid',v_opening/);
-  assert.match(migration, /'highestBidderId',v_requester/);
-  assert.match(migration, /AUCTION_AUTO_PURCHASED/);
-  assert.match(migration, /'type','PROPERTY_BOUGHT'/);
-  assert.match(migration, /'reason','AUCTION'/);
-  assert.match(migration, /set money = money - v_amount/);
-  assert.match(migration, /set owner_seat = v_winner\.seat, building_level = 0/);
+test("first committed participant becomes opening bidder and join order becomes bid order", () => {
+  assert.match(voteMigration, /v_opening_bidder := v_participants->>0/);
+  assert.match(voteMigration, /'openingBidderPlayerId', v_opening_bidder/);
+  assert.match(voteMigration, /'participantPlayerIds', v_participants/);
+  assert.match(voteMigration, /'highestBidderId', v_opening_bidder/);
+  assert.match(voteMigration, /marble_auction_v2_next_turn/);
 });
 
-test("Auction v2 RPCs keep replay/version validation and protected execution grants", () => {
-  assert.match(migration, /private\.marble_action_replay/);
-  assert.match(migration, /private\.marble_record_action/);
-  assert.match(migration, /VERSION_CONFLICT/);
-  assert.match(migration, /for update/);
-  assert.match(migration, /revoke all on function public\.marble_join_auction/);
-  assert.match(migration, /grant execute on function public\.marble_join_auction.*authenticated/);
-  assert.match(migration, /revoke all on function public\.marble_advance_auction_deadline/);
+test("simultaneous vote actions are serialized by the game row and stale client versions are absorbed", () => {
+  assert.match(voteMigration, /from public\.marble_games[\s\S]*for update/);
+  assert.match(voteMigration, /if v_game\.version < p_expected_version then raise exception 'VERSION_CONFLICT'/);
+  assert.match(voteMigration, /v_participants := v_participants \|\| jsonb_build_array\(v_player_id\)/);
 });
 
-test("online API exposes Auction v2 RPC adapters without replacing stable game actions", () => {
+test("sole participant settlement reuses normal purchase events", () => {
+  assert.match(voteMigration, /AUCTION_AUTO_PURCHASED/);
+  assert.match(v2Migration, /'type','PROPERTY_BOUGHT'/);
+  assert.match(v2Migration, /'reason','AUCTION'/);
+  assert.match(v2Migration, /set money = money - v_amount/);
+  assert.match(v2Migration, /set owner_seat = v_winner\.seat, building_level = 0/);
+});
+
+test("legacy request and recruitment states are normalized into the vote window", () => {
+  assert.match(voteMigration, /pending_choice->>'type' in \('AUCTION_REQUEST','AUCTION_RECRUITMENT'\)/);
+  assert.match(voteMigration, /'type','AUCTION_VOTE'/);
+  assert.match(voteMigration, /deadlineAt',now\(\)\+interval '15 seconds'/);
+  assert.match(voteMigration, /participantPlayerIds/);
+});
+
+test("Auction vote RPCs keep authentication, replay, fixed search path, and grants", () => {
+  assert.match(voteMigration, /private\.marble_action_replay/);
+  assert.match(voteMigration, /private\.marble_record_action/);
+  assert.match(voteMigration, /auth\.uid\(\)/);
+  assert.match(voteMigration, /set search_path = public, private, pg_temp/);
+  assert.match(voteMigration, /revoke all on function public\.marble_pass_auction_vote/);
+  assert.match(voteMigration, /grant execute on function public\.marble_pass_auction_vote.*authenticated/);
+});
+
+test("end turn guard includes Auction vote and competitive auction", () => {
+  assert.match(
+    voteMigration,
+    /in \('AUCTION_REQUEST','AUCTION_RECRUITMENT','AUCTION_VOTE','PROPERTY_AUCTION'\)/,
+  );
+});
+
+test("online API exposes join/pass/deadline/bid adapters while stable game actions remain", () => {
   assert.match(apiSource, /marble_decline_property_for_auction/);
-  assert.match(apiSource, /marble_request_auction/);
   assert.match(apiSource, /marble_join_auction/);
-  assert.match(apiSource, /marble_withdraw_auction/);
+  assert.match(apiSource, /marble_pass_auction_vote/);
   assert.match(apiSource, /marble_advance_auction_deadline/);
   assert.match(apiSource, /marble_auction_bid/);
   assert.match(apiSource, /marble_roll_dice/);
   assert.match(apiSource, /marble_end_turn/);
-});
-
-
-test("Auction v2 legacy request compatibility upgrades only pre-v2 unrequested windows", () => {
-  assert.match(legacyCompatMigration, /pending_choice->>'type' = 'AUCTION_REQUEST'/);
-  assert.match(legacyCompatMigration, /not \(pending_choice \? 'basePrice'\)/);
-  assert.match(legacyCompatMigration, /not \(pending_choice \? 'deadlineAt'\)/);
-  assert.match(legacyCompatMigration, /requestedByPlayerIds/);
-  assert.match(legacyCompatMigration, /jsonb_array_length/);
-  assert.match(legacyCompatMigration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
-  assert.match(legacyCompatMigration, /interval '10 seconds'/);
-  assert.match(legacyCompatMigration, /gp\.money >= v_opening_bid/);
-  assert.match(legacyCompatMigration, /version = version \+ 1/);
 });
