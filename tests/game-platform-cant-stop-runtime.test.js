@@ -261,3 +261,46 @@ test("Can't Stop gameplay view exposes push/stop and game-over states from serve
   assert.equal(finished.canContinue, false);
   assert.equal(finished.canStop, false);
 });
+
+
+test("Can't Stop gameplay view distinguishes host manual termination from a claimed-column win", () => {
+  const view = createCantStopGameplayViewModel({
+    version: 31,
+    room: {
+      id: "room-1",
+      status: "playing",
+      hostUserId: "alice",
+    },
+    players: [
+      { userId: "alice", displayName: "Alice" },
+      { userId: "bob", displayName: "Bob" },
+    ],
+    viewerUserId: "alice",
+    game: {
+      phase: "GAME_OVER",
+      activePlayerId: "alice",
+      playerProgress: { alice: {}, bob: {} },
+      runners: {},
+      claimedColumns: {},
+      latestDice: null,
+      legalPairings: [],
+      winnerId: null,
+      endReason: "MANUAL",
+      endedById: "alice",
+    },
+  }, "alice");
+
+  assert.equal(view.isGameOver, true);
+  assert.equal(view.isManuallyEnded, true);
+  assert.equal(view.endReason, "MANUAL");
+  assert.equal(view.winnerId, null);
+  assert.equal(view.winnerName, null);
+  assert.equal(view.isHost, true);
+});
+
+test("Can't Stop lobby errors explain host-only manual game termination", () => {
+  assert.match(
+    getCantStopLobbyErrorMessage({ message: "GAME_END_HOST_REQUIRED" }),
+    /방장만/u,
+  );
+});

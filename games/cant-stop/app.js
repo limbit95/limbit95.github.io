@@ -25,6 +25,8 @@ import { createInviteShareDialog } from "../../js/invites/inviteShare.js";
 import { createCantStopGameplayAdapter } from "./gameplay.js";
 import { createCantStopInviteAdapter } from "./invite.js";
 import { createCantStopRoomLobbyAdapter } from "./roomLobby.js";
+import { CANT_STOP_RULES_GUIDE } from "./rulesHelp.js";
+import { createCantStopPresentationCoordinator } from "./presentation.js";
 
 const root = document.getElementById("cant-stop-app");
 
@@ -38,7 +40,138 @@ let lobbyController = null;
 let inviteAdapter = null;
 let inviteShareSession = null;
 let accessUnsubscribe = null;
+let rulesDialog = null;
+let endGameDialog = null;
+let presentationCoordinator = null;
 let bootEpoch = 0;
+
+const DICE_GLYPHS = Object.freeze(["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]);
+
+function closeDialog(dialog) {
+  if (!dialog) return;
+  if (dialog.open && typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+}
+
+function showDialog(dialog) {
+  if (!dialog) return;
+  if (!dialog.open && typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function ensureRulesDialog() {
+  if (rulesDialog?.isConnected) return rulesDialog;
+
+  rulesDialog = el("dialog", {
+    className: "cant-stop-rules-dialog",
+    "aria-labelledby": "cant-stop-rules-title",
+  }, [
+    el("div", { className: "cant-stop-dialog__header" }, [
+      el("div", {}, [
+        el("p", { className: "cant-stop-dialog__eyebrow", text: "HOW TO PLAY" }),
+        el("h2", {
+          className: "cant-stop-dialog__title",
+          id: "cant-stop-rules-title",
+          text: CANT_STOP_RULES_GUIDE.title,
+        }),
+      ]),
+      el("button", {
+        className: "cant-stop-dialog__close",
+        type: "button",
+        text: "닫기",
+        onClick: () => closeDialog(rulesDialog),
+      }),
+    ]),
+    el("p", {
+      className: "cant-stop-rules-dialog__intro",
+      text: CANT_STOP_RULES_GUIDE.intro,
+    }),
+    el("div", { className: "cant-stop-rules-dialog__body" },
+      CANT_STOP_RULES_GUIDE.sections.map((section) => el("section", {
+        className: "cant-stop-rules-section",
+      }, [
+        el("h3", { text: section.title }),
+        ...section.paragraphs.map((paragraph) => el("p", { text: paragraph })),
+      ]))),
+    el("footer", { className: "cant-stop-rules-dialog__sources" }, [
+      el("strong", { text: "규칙 참고" }),
+      el("div", { className: "cant-stop-rules-dialog__source-links" },
+        CANT_STOP_RULES_GUIDE.sources.map((source) => el("a", {
+          href: source.href,
+          target: "_blank",
+          rel: "noreferrer",
+          text: source.label,
+        }))),
+    ]),
+  ]);
+  rulesDialog.addEventListener("click", (event) => {
+    if (event.target === rulesDialog) closeDialog(rulesDialog);
+  });
+  document.body.append(rulesDialog);
+  return rulesDialog;
+}
+
+function openRulesDialog() {
+  showDialog(ensureRulesDialog());
+}
+
+function ensureEndGameDialog() {
+  if (endGameDialog?.isConnected) return endGameDialog;
+
+  const confirmButton = el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-end-dialog__confirm",
+    type: "button",
+    text: "게임 종료",
+    onClick: async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = "종료 중…";
+      try {
+        await lobbyController?.endGame();
+        closeDialog(endGameDialog);
+      } catch {
+        // Controller state renders the authoritative error.
+      } finally {
+        button.disabled = false;
+        button.textContent = "게임 종료";
+      }
+    },
+  });
+
+  endGameDialog = el("dialog", {
+    className: "cant-stop-end-dialog",
+    "aria-labelledby": "cant-stop-end-title",
+  }, [
+    el("p", { className: "cant-stop-dialog__eyebrow", text: "END GAME" }),
+    el("h2", {
+      className: "cant-stop-dialog__title",
+      id: "cant-stop-end-title",
+      text: "현재 게임을 종료할까요?",
+    }),
+    el("p", {
+      className: "cant-stop-end-dialog__message",
+      text: "방장이 게임을 종료하면 모든 플레이어의 현재 등반이 끝나고 승자 없이 GAME OVER 상태가 됩니다. 이후 같은 방에서 재대결하거나 방을 나갈 수 있어요.",
+    }),
+    el("div", { className: "cant-stop-end-dialog__actions" }, [
+      el("button", {
+        className: "game-platform-shell__button game-platform-shell__button--secondary",
+        type: "button",
+        text: "계속 플레이",
+        onClick: () => closeDialog(endGameDialog),
+      }),
+      confirmButton,
+    ]),
+  ]);
+  endGameDialog.addEventListener("cancel", (event) => {
+    if (confirmButton.disabled) event.preventDefault();
+  });
+  document.body.append(endGameDialog);
+  return endGameDialog;
+}
+
+function openEndGameDialog() {
+  showDialog(ensureEndGameDialog());
+}
 
 function inviteTokenFromLocation() {
   return new URLSearchParams(window.location.search).get("invite")?.trim() ?? "";
@@ -82,6 +215,13 @@ function createAccessPage({
 
 function gameplayHeading(view) {
   if (view.isGameOver) {
+    if (view.isManuallyEnded) {
+      return {
+        eyebrow: "GAME ENDED",
+        title: "게임이 종료되었어요",
+        description: "방장이 현재 게임을 종료했습니다. 재대결하거나 방을 나갈 수 있어요.",
+      };
+    }
     return {
       eyebrow: "GAME OVER",
       title: view.winnerName ? `${view.winnerName} 승리!` : "게임 종료",
@@ -122,19 +262,63 @@ function pairingPlanLabel(columns) {
     : `${columns[0]}열 이동`;
 }
 
-function createDicePanel(view) {
-  if (!view.latestDice) return null;
+function createDiceStage(view, state) {
+  const rolling = state.busyAction === "rollDice";
+  const dice = view.latestDice ?? [null, null, null, null];
+  const hasResult = Array.isArray(view.latestDice);
+
   return el("section", {
-    className: "cant-stop-dice",
-    "aria-label": "현재 주사위 결과",
+    className: [
+      "cant-stop-dice-stage",
+      rolling ? "cant-stop-dice-stage--rolling" : "",
+    ].filter(Boolean).join(" "),
+    "aria-label": "주사위 굴리기 영역",
+    "aria-busy": rolling ? "true" : "false",
   }, [
-    el("span", { className: "cant-stop-dice__label", text: "주사위 결과" }),
-    el("div", { className: "cant-stop-dice__values" },
-      view.latestDice.map((die, index) => el("span", {
-        className: "cant-stop-die",
-        text: String(die),
-        "aria-label": `${index + 1}번째 주사위 ${die}`,
+    el("div", { className: "cant-stop-dice-stage__heading" }, [
+      el("div", {}, [
+        el("p", { className: "cant-stop-dice-stage__eyebrow", text: "DICE RIDGE" }),
+        el("strong", {
+          className: "cant-stop-dice-stage__title",
+          text: rolling ? "주사위가 굴러가는 중…" : "주사위",
+        }),
+      ]),
+      el("span", {
+        className: "cant-stop-dice-stage__status",
+        text: hasResult ? "SERVER RESULT" : (rolling ? "ROLLING" : "READY"),
+      }),
+    ]),
+    el("div", { className: "cant-stop-dice-stage__snow", "aria-hidden": "true" }),
+    el("div", { className: "cant-stop-dice-stage__dice" },
+      dice.map((die, index) => el("span", {
+        className: "cant-stop-die-visual",
+        dataset: { dieIndex: String(index + 1) },
+        text: die == null ? "?" : DICE_GLYPHS[Number(die)],
+        "aria-label": die == null
+          ? `${index + 1}번째 주사위 결과 대기`
+          : `${index + 1}번째 주사위 ${die}`,
       }))),
+    view.canRoll
+      ? el("button", {
+        className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
+        type: "button",
+        text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
+        disabled: state.busy,
+        onClick: async () => {
+          try {
+            await lobbyController.rollDice();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      })
+      : null,
+    el("p", {
+      className: "cant-stop-dice-stage__caption",
+      text: rolling
+        ? "결과는 서버가 확정합니다"
+        : (hasResult ? view.latestDice.join(" · ") : "내 턴에 주사위를 굴리면 이곳에서 결과를 확인할 수 있어요"),
+    }),
   ]);
 }
 
@@ -181,6 +365,57 @@ function createPairingPanel(view, state) {
 
 function createBoard(view, state) {
   const heading = gameplayHeading(view);
+  const busting = state.effect?.type === "bust";
+
+  const tracks = el("div", { className: "cant-stop-board__tracks" },
+    view.columns.map((column) => el("section", {
+      className: [
+        "cant-stop-column",
+        column.claimedById ? "cant-stop-column--claimed" : "",
+      ].filter(Boolean).join(" "),
+      dataset: { column: String(column.number) },
+      "aria-label": column.claimedByName
+        ? `${column.number} 열 ${column.claimedByName} 완주`
+        : `${column.number} 열 ${column.height}칸`,
+    }, [
+      el("strong", {
+        className: "cant-stop-column__number",
+        text: String(column.number),
+      }),
+      column.claimedByName
+        ? el("span", {
+          className: "cant-stop-column__claim",
+          text: `${column.claimedByName} 완주`,
+        })
+        : null,
+      el("div", { className: "cant-stop-column__cells" },
+        Array.from({ length: column.height }, (_, index) => {
+          const position = column.height - index;
+          const permanent = column.permanentMarkers
+            .filter((marker) => marker.position === position);
+          const runner = column.runner?.position === position
+            ? column.runner
+            : null;
+          return el("span", {
+            className: "cant-stop-column__cell",
+            dataset: { position: String(position) },
+            "aria-label": `${column.number} 열 ${position}칸`,
+          }, [
+            ...permanent.map((marker) => el("span", {
+              className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
+              title: `${marker.displayName} 영구 진척`,
+              "aria-label": `${marker.displayName} 영구 진척`,
+            })),
+            runner
+              ? el("span", {
+                className: `cant-stop-marker cant-stop-marker--runner cant-stop-marker--player-${runner.playerIndex % 4}`,
+                title: `${runner.displayName} 현재 runner`,
+                "aria-label": `${runner.displayName} 현재 runner`,
+              })
+              : null,
+          ]);
+        })),
+    ])));
 
   return el("section", {
     className: "cant-stop-board",
@@ -207,88 +442,70 @@ function createBoard(view, state) {
         text: getCantStopLobbyErrorMessage(state.error),
       })
       : null,
-    createDicePanel(view),
     createPairingPanel(view, state),
-    el("div", { className: "cant-stop-board__tracks" },
-      view.columns.map((column) => el("section", {
-        className: [
-          "cant-stop-column",
-          column.claimedById ? "cant-stop-column--claimed" : "",
-        ].filter(Boolean).join(" "),
-        dataset: { column: String(column.number) },
-        "aria-label": column.claimedByName
-          ? `${column.number} 열 ${column.claimedByName} 완주`
-          : `${column.number} 열 ${column.height}칸`,
-      }, [
-        column.claimedByName
-          ? el("span", {
-            className: "cant-stop-column__claim",
-            text: `${column.claimedByName} 완주`,
-          })
-          : null,
-        el("div", { className: "cant-stop-column__cells" },
-          Array.from({ length: column.height }, (_, index) => {
-            const position = column.height - index;
-            const permanent = column.permanentMarkers
-              .filter((marker) => marker.position === position);
-            const runner = column.runner?.position === position
-              ? column.runner
-              : null;
-            return el("span", {
-              className: "cant-stop-column__cell",
-              dataset: { position: String(position) },
-              "aria-label": `${column.number} 열 ${position}칸`,
-            }, [
-              ...permanent.map((marker) => el("span", {
-                className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
-                title: `${marker.displayName} 영구 진척`,
-                "aria-label": `${marker.displayName} 영구 진척`,
-              })),
-              runner
-                ? el("span", {
-                  className: `cant-stop-marker cant-stop-marker--runner cant-stop-marker--player-${runner.playerIndex % 4}`,
-                  title: `${runner.displayName} 현재 runner`,
-                  "aria-label": `${runner.displayName} 현재 runner`,
-                })
-                : null,
-            ]);
-          })),
-        el("strong", {
-          className: "cant-stop-column__number",
-          text: String(column.number),
-        }),
-      ]))),
-  ]);
-}
-
-function createGameplaySidebar(view) {
-  const claimed = view.columns.filter((column) => column.claimedByName);
-  return el("section", { className: "cant-stop-runtime-notes" }, [
-    el("h2", {
-      className: "cant-stop-runtime-notes__title",
-      text: view.isGameOver ? "최종 결과" : "현재 턴",
-    }),
-    el("ul", { className: "cant-stop-runtime-notes__list" }, [
-      el("li", {
-        text: view.isGameOver
-          ? `승자: ${view.winnerName ?? "확정 중"}`
-          : `진행 중: ${view.activePlayerName}`,
-      }),
-      el("li", { text: `게임 상태 버전: ${view.version}` }),
-      el("li", {
-        text: claimed.length
-          ? `완주 열: ${claimed.map((column) => `${column.number}(${column.claimedByName})`).join(", ")}`
-          : "아직 완주된 열이 없어요.",
-      }),
-      el("li", {
-        text: "실제 주사위와 모든 이동 결과는 서버 snapshot을 기준으로 표시합니다.",
-      }),
+    el("div", {
+      className: [
+        "cant-stop-board__mountain",
+        busting ? "cant-stop-board__mountain--bust" : "",
+      ].filter(Boolean).join(" "),
+    }, [
+      busting
+        ? el("div", {
+          className: "cant-stop-bust-notice",
+          role: "status",
+          "aria-live": "polite",
+        }, [
+          el("strong", { text: "등반 실패" }),
+          el("span", { text: "이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
+        ])
+        : null,
+      tracks,
     ]),
   ]);
 }
 
+function createGameplaySidebar(view, state) {
+  const claimed = view.columns.filter((column) => column.claimedByName);
+  return [
+    el("section", { className: "cant-stop-runtime-notes" }, [
+      el("h2", {
+        className: "cant-stop-runtime-notes__title",
+        text: view.isGameOver ? "최종 결과" : "현재 턴",
+      }),
+      el("ul", { className: "cant-stop-runtime-notes__list" }, [
+        el("li", {
+          text: view.isGameOver
+            ? (view.isManuallyEnded
+              ? "방장 수동 종료 · 승자 없음"
+              : `승자: ${view.winnerName ?? "확정 중"}`)
+            : `진행 중: ${view.activePlayerName}`,
+        }),
+        el("li", { text: `게임 상태 버전: ${view.version}` }),
+        el("li", {
+          text: claimed.length
+            ? `완주 열: ${claimed.map((column) => `${column.number}(${column.claimedByName})`).join(", ")}`
+            : "아직 완주된 열이 없어요.",
+        }),
+        el("li", {
+          text: "실제 주사위와 모든 이동 결과는 서버 snapshot을 기준으로 표시합니다.",
+        }),
+      ]),
+    ]),
+    createDiceStage(view, state),
+  ];
+}
+
+function rulesActionButton() {
+  return el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "게임 규칙",
+    onClick: openRulesDialog,
+  });
+}
+
 function createGameplayActions(view, state) {
-  const actions = [];
+  const actions = [rulesActionButton()];
 
   if (view.isGameOver) {
     if (view.isHost) {
@@ -322,19 +539,13 @@ function createGameplayActions(view, state) {
     }));
   }
 
-  if (view.canRoll) {
+  if (!view.isGameOver && view.isHost) {
     actions.push(el("button", {
-      className: "game-platform-shell__button",
+      className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
-      text: state.busy ? "주사위 굴리는 중…" : "주사위 굴리기",
+      text: "게임 종료",
       disabled: state.busy,
-      onClick: async () => {
-        try {
-          await lobbyController.rollDice();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
+      onClick: openEndGameDialog,
     }));
   }
 
@@ -510,6 +721,12 @@ function createEntryPanel(state) {
         className: "cant-stop-board__description",
         text: "새 방을 만들거나 친구가 만든 방 코드로 참가해 주세요.",
       }),
+      el("button", {
+        className: "cant-stop-rules-trigger",
+        type: "button",
+        text: "처음이라면 게임 규칙부터 보기 →",
+        onClick: openRulesDialog,
+      }),
     ]),
     state.error
       ? el("div", {
@@ -569,7 +786,7 @@ function createLobbyPanel(view, state) {
 }
 
 function createLobbyActions(view, state, { inviteEnabled = false } = {}) {
-  const actions = [];
+  const actions = [rulesActionButton()];
 
   if (!view.isHost) {
     actions.push(el("button", {
@@ -734,6 +951,36 @@ function connectionFor(state) {
   };
 }
 
+function patchGameShell(nextShell) {
+  const currentShell = root?.querySelector(":scope > .game-platform-shell");
+  if (!currentShell) {
+    root?.replaceChildren(nextShell);
+    return;
+  }
+
+  const replaceSlot = (selector) => {
+    const current = currentShell.querySelector(selector);
+    const next = nextShell.querySelector(selector);
+    if (current && next) {
+      current.replaceWith(next);
+      return;
+    }
+    if (current && !next) {
+      current.remove();
+      return;
+    }
+    if (!current && next) {
+      currentShell.append(next);
+    }
+  };
+
+  replaceSlot(":scope > .game-platform-shell__header");
+  replaceSlot(":scope > .game-platform-status");
+  replaceSlot(".game-platform-shell__stage");
+  replaceSlot(".game-platform-shell__sidebar");
+  replaceSlot(":scope > .game-platform-shell__actions");
+}
+
 function renderApprovedRuntime(state) {
   if (!root) return;
 
@@ -763,7 +1010,7 @@ function renderApprovedRuntime(state) {
     if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING) {
       const gameplay = createCantStopGameplayViewModel(state.snapshot, auth.user?.id);
       main = createBoard(gameplay, state);
-      sidebar = createGameplaySidebar(gameplay);
+      sidebar = createGameplaySidebar(gameplay, state);
       actions = createGameplayActions(gameplay, state);
     } else {
       main = createLobbyPanel(view, state);
@@ -774,7 +1021,7 @@ function renderApprovedRuntime(state) {
     }
   }
 
-  root.replaceChildren(createGameShell({
+  patchGameShell(createGameShell({
     title: "Can’t Stop",
     eyebrow: "CHEONGPA GAME · PHASE 4",
     description: "주사위 조합으로 열을 오르고, 멈출 타이밍을 선택하는 push-your-luck 게임",
@@ -794,6 +1041,8 @@ function renderApprovedRuntime(state) {
 }
 
 function disposeLobby() {
+  presentationCoordinator?.dispose();
+  presentationCoordinator = null;
   lobbyController?.dispose();
   lobbyController = null;
   inviteShareSession?.dialog?.destroy?.();
@@ -808,17 +1057,20 @@ async function enterApprovedRuntime(epoch) {
     const adapter = createCantStopRoomLobbyAdapter({ client: supabase });
     const gameplayAdapter = createCantStopGameplayAdapter({ client: supabase });
     inviteAdapter = createCantStopInviteAdapter({ client: supabase });
+    presentationCoordinator = createCantStopPresentationCoordinator({
+      onPresent: renderApprovedRuntime,
+    });
     lobbyController = createCantStopLobbyController({
       adapter,
       gameplayAdapter,
       inviteAdapter,
-      onState: renderApprovedRuntime,
+      onState: (state) => presentationCoordinator?.receive(state),
       onError: (error) => {
         console.warn("Can’t Stop lobby request failed.", error);
       },
     });
 
-    renderApprovedRuntime(lobbyController.current());
+    presentationCoordinator.receive(lobbyController.current());
     await lobbyController.initialize();
     await acceptInviteIfReady();
   } catch (error) {
@@ -870,6 +1122,10 @@ function cleanup() {
   accessUnsubscribe?.();
   accessUnsubscribe = null;
   disposeLobby();
+  rulesDialog?.remove();
+  rulesDialog = null;
+  endGameDialog?.remove();
+  endGameDialog = null;
 }
 
 async function boot() {

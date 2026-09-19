@@ -157,6 +157,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     })),
   );
   const phase = String(game.phase ?? "");
+  const endReason = game.endReason == null ? null : String(game.endReason);
 
   return Object.freeze({
     version: Number(snapshot.version),
@@ -169,6 +170,8 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     isMyTurn: viewerId !== "" && viewerId === activePlayerId,
     winnerId,
     winnerName: winner?.displayName ?? null,
+    endReason,
+    isManuallyEnded: phase === CANT_STOP_PHASE.GAME_OVER && endReason === "MANUAL",
     latestDice,
     legalPairings,
     columns: Object.freeze(columns),
@@ -197,6 +200,7 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ACTION_ID_CONFLICT", "같은 요청이 다른 내용으로 재사용됐어요. 다시 시도해 주세요."],
   ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
   ["GAME_NOT_OVER", "게임이 종료된 뒤에만 재대결을 준비할 수 있어요."],
+  ["GAME_END_HOST_REQUIRED", "진행 중인 게임 전체 종료는 방장만 할 수 있어요."],
   ["ROOM_NOT_LEAVABLE", "진행 중인 게임에서는 방을 나갈 수 없어요."],
   ["INVALID_INVITE_TOKEN", "올바르지 않은 초대 링크예요."],
   ["INVITE_NOT_FOUND_OR_EXPIRED", "초대 링크가 만료되었거나 취소되었어요."],
