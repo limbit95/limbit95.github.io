@@ -108,12 +108,35 @@ export function createCantStopLobbyController({
     return state;
   }
 
+  function deriveSnapshotEffect(previous, next) {
+    const previousGame = previous?.game;
+    const nextGame = next?.game;
+    if (
+      previous?.room?.status === "playing"
+      && next?.room?.status === "playing"
+      && previousGame?.phase === "TURN_ROLL"
+      && nextGame?.phase === "TURN_ROLL"
+      && previousGame?.activePlayerId
+      && nextGame?.activePlayerId
+      && previousGame.activePlayerId !== nextGame.activePlayerId
+      && Number(next?.version) > Number(previous?.version)
+    ) {
+      return Object.freeze({
+        type: "bust",
+        playerId: String(previousGame.activePlayerId),
+        version: Number(next.version),
+      });
+    }
+    return null;
+  }
+
   function applySnapshot(snapshot, patch = {}) {
+    const hasExplicitEffect = Object.hasOwn(patch, "effect");
     return emit({
       snapshot: snapshot ?? null,
       view: lobbyView(snapshot),
       error: null,
-      effect: null,
+      effect: hasExplicitEffect ? patch.effect : deriveSnapshotEffect(state.snapshot, snapshot),
       ...patch,
     });
   }
