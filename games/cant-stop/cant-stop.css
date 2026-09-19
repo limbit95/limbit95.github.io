@@ -1423,3 +1423,8 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+.game-platform-shell__stage {
+  overflow-x: auto;
+}
