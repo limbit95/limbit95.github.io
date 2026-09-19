@@ -42,6 +42,8 @@
 
 청파 같이 구현에서는 사전 주사위로 선 플레이어를 정하지 않는다. 게임 시작 RPC가 서버에서 플레이어 순서를 한 번 무작위로 확정하고 authoritative game state에 저장한다.
 
+사용자용 규칙은 `rulesHelp.js`의 상세 가이드를 로비와 실제 플레이 화면에서 modal로 제공한다. 처음 플레이하는 사용자가 외부 검색 없이 목표, 열 높이, 주사위 pairing, runner 제한, stop, bust, claim, 승리, 수동 종료까지 이해할 수 있는 수준을 유지한다.
+
 ## Product Scope
 
 ### Included
@@ -57,6 +59,9 @@
 - Approved Member 기반 Room/Lobby
 - authoritative snapshot / reconnect
 - online core 안정화 이후 platform-native Invite
+- 로비/플레이 중 상세 게임 규칙 modal
+- 방장 권한의 authoritative 수동 게임 종료
+- 설산 등반 테마 보드, 2.5D 주사위 롤링, bust 미끄러짐 피드백
 
 ### Deferred
 
@@ -66,7 +71,7 @@
 - AI/bot
 - 변형 규칙
 - 랭킹/전적 시스템
-- 고급 3D 연출
+- 물리 엔진 기반 고급 3D 주사위/보드 연출
 
 ### Not planned for initial version
 
@@ -87,6 +92,9 @@ LOBBY
 
 TURN_ROLL
 └─ no legal pairing → BUST → next player → TURN_ROLL
+
+TURN_ROLL / PAIRING_SELECTION / PUSH_OR_STOP
+└─ host manual end → GAME_OVER(endReason = MANUAL, winnerId = null)
 ```
 
 - `TURN_ROLL`: 현재 플레이어만 roll intent를 보낼 수 있다.
@@ -94,14 +102,14 @@ TURN_ROLL
 - `PUSH_OR_STOP`: pairing 적용 이후 현재 플레이어가 다시 roll하거나 stop한다.
 - `COMMIT_PROGRESS`: 임시 runner를 permanent progress로 확정하고 claim/win을 계산한다.
 - `BUST`: 임시 진척을 폐기하고 permanent state는 유지한다.
-- `GAME_OVER`: gameplay action을 더 받지 않는다.
+- `GAME_OVER`: 일반 gameplay action을 더 받지 않는다. 승리 종료 또는 방장 수동 종료 뒤 leave/rematch lifecycle로 이동한다.
 
 ## Domain Model
 
 - `columns`: number, height, claimedBy
 - `players`: player id, 서버가 게임 시작 시 무작위로 확정한 turn order, column별 permanent progress, claimed columns
 - `turn`: activePlayerId, 최대 세 개의 runner positions, latest dice, legal pairings + legal move plans, phase
-- `game`: status, version, winnerId, turn index
+- `game`: status, version, winnerId, endReason, endedById, turn index
 
 pairing은 주사위 인덱스 조합보다 최종 두 합을 canonical form으로 저장한다. 동일한 합 조합은 선택지에서 중복 제거하되, 같은 합 두 개는 `[7, 7]`처럼 두 번의 이동 가능성을 보존한다.
 
@@ -150,9 +158,10 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 - 승리
 - 게임 시작 시 최초 turn order 무작위 확정
 - turn 이동
+- 방장 수동 게임 종료 권한과 terminal state
 - room/game version 증가
 
-클라이언트는 `roll_dice`, `choose_pairing`, `continue_turn`, `stop_turn` 같은 intent만 보낸다.
+클라이언트는 `roll_dice`, `choose_pairing`, `continue_turn`, `stop_turn`, `end_game` 같은 intent만 보낸다.
 
 `roll_dice`는 클라이언트가 dice 값을 전달하지 않는다. 서버 RPC가 네 개의 d6를 생성하고 현재 authoritative `claimedColumns`, `runners`, `playerProgress`를 기준으로 legal pairing / legal move plan을 계산한다. legal pairing이 하나도 없으면 같은 transaction 안에서 bust 처리와 다음 turn 전환까지 수행한다.
 
@@ -161,6 +170,8 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 `continue_turn`은 `PUSH_OR_STOP`에서 현재 runner를 그대로 유지하고 `latestDice`와 `legalPairings`만 초기화해 같은 active player의 `TURN_ROLL`로 돌아간다.
 
 `stop_turn`은 현재 runner 위치를 active player의 `playerProgress`에 commit한다. top에 도달한 runner는 해당 column을 claim하고 다른 플레이어의 같은 column progress를 삭제한다. active player의 claim이 세 개 이상이면 `GAME_OVER`와 `winnerId`를 기록하고, 아니면 runner/roll 상태를 비운 뒤 다음 player의 `TURN_ROLL`로 전환한다.
+
+`end_game`은 진행 중 게임의 방장만 호출할 수 있다. 서버는 현재 room/version/member/host를 다시 검증하고 `GAME_OVER`, `winnerId = null`, `endReason = MANUAL`을 기록한다. 종료 뒤에는 기존 GAME_OVER leave/rematch 흐름을 그대로 재사용한다.
 
 state-changing action은 공통 envelope의 `expectedVersion`과 `clientActionId`를 사용한다. 동일 action 재전송은 두 번 적용되지 않아야 하고 같은 version을 기준으로 충돌하는 action은 하나만 authoritative commit되어야 한다.
 
@@ -175,7 +186,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용한다.
 - `public.cant_stop_rooms`: room identity, host, status, max players, authoritative `version`, game state
 - `public.cant_stop_room_players`: room membership, seat, nickname, ready state
 - `public.cant_stop_room_actions`: `client_action_id` 기반 lobby action replay/idempotency 기록
-- public RPC: `cant_stop_create_room`, `cant_stop_join_room`, `cant_stop_get_my_active_room`, `cant_stop_get_lobby_snapshot`, `cant_stop_set_ready`, `cant_stop_leave_room`, `cant_stop_start_game`, `cant_stop_roll_dice`, `cant_stop_choose_pairing`, `cant_stop_continue_turn`, `cant_stop_stop_turn`
+- public RPC: `cant_stop_create_room`, `cant_stop_join_room`, `cant_stop_join_room_by_invite`, `cant_stop_get_my_active_room`, `cant_stop_get_lobby_snapshot`, `cant_stop_set_ready`, `cant_stop_leave_room`, `cant_stop_start_game`, `cant_stop_roll_dice`, `cant_stop_choose_pairing`, `cant_stop_continue_turn`, `cant_stop_stop_turn`, `cant_stop_end_game`, `cant_stop_prepare_rematch`
 
 브라우저에는 위 테이블의 직접 쓰기 권한을 주지 않는다. 승인회원 RPC가 권한, membership, host, phase, expected version을 검증하고 room row lock 안에서 변경한다. `set_ready`와 `start_game`은 `client_action_id`를 기록해 재전송 시 같은 authoritative snapshot을 반환한다.
 
@@ -184,13 +195,16 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 ## UI / UX Direction
 
 - Common Game Shell로 제목, 방 정보, 연결 상태, roster, 공통 action 영역을 제공한다.
-- 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성한다.
+- 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성하고, 상용판 아트를 복제하지 않은 고유 설산/빙설 테마를 사용한다.
 - permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다.
 - 현재 roll의 네 주사위와 가능한 pairing 선택지를 함께 보여준다.
+- 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다.
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
-- bust 시 이번 턴에 잃은 임시 진척이 명확히 보이도록 짧은 피드백을 제공한다.
+- bust 시 설산에서 미끄러지는 등반자와 눈보라 피드백을 보여줘 임시 진척 소멸과 턴 변경을 갑작스럽지 않게 설명한다.
+- 로비/플레이 중 언제든 상세 규칙 modal을 열 수 있다.
+- 진행 중 방장은 확인 dialog를 거쳐 전체 게임을 수동 종료할 수 있고, 종료 결과는 모든 클라이언트의 authoritative GAME_OVER snapshot으로 동기화한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
 - 원본 상용판의 보드/말 그래픽은 복제하지 않고 청파 같이 고유 시각 디자인을 사용한다.
 - online entry는 방 만들기 또는 6자리 코드 참가로 시작하며, waiting room에서 준비 상태와 방장 시작 조건을 명확히 보여준다.
@@ -272,4 +286,4 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 - Invite는 shared `game_room` 계약과 사이트 공용 invite infrastructure를 사용한다.
 - invite token resolve 이후 실제 참가 권한은 `cant_stop_join_room_by_invite`가 token을 서버에서 다시 검증해 결정한다.
 - Invite 소스 연결과 Registry capability 활성화는 분리하며 운영 migration + live smoke test 전에는 `online/invite`를 활성화하지 않는다.
-- 초기 board의 최종 시각 테마와 애니메이션 품질은 core rules/authority 검증 이후 확정한다.
+- 현재 설산/2.5D 주사위/bust 연출은 첫 폴리싱 기준이며 실제 멀티브라우저 playtest 후 세부 속도·크기·강도를 조정한다.
