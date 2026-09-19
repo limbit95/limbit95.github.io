@@ -411,7 +411,6 @@ begin
   );
   if v_replay is not null then return v_replay; end if;
   if v_game.status <> 'playing' then raise exception 'GAME_NOT_PLAYING'; end if;
-  if v_game.version < p_expected_version then raise exception 'VERSION_CONFLICT'; end if;
   if v_game.phase <> 'WAITING_CHOICE' or v_game.pending_choice->>'type' <> 'AUCTION_VOTE' then
     raise exception 'AUCTION_VOTE_NOT_OPEN';
   end if;
