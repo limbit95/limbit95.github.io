@@ -74,6 +74,22 @@ test("Can't Stop runtime entry module has valid JavaScript syntax", () => {
   });
 });
 
+test("Can't Stop gameplay keeps pairing selection out of the board and inside the dice route panel", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  const boardStart = app.indexOf("function createBoard(view, state)");
+  const sidebarStart = app.indexOf("function createGameplaySidebar(view, state)");
+  const boardSource = app.slice(boardStart, sidebarStart);
+
+  assert.equal(boardSource.includes("createPairingPanel"), false);
+  assert.match(app, /createDiceRoutePanel\(view, state\)/u);
+  assert.match(app, /cant-stop-dice-stage__action-slot/u);
+  assert.match(app, /createCantStopPairingPresentation/u);
+});
+
 test("Can't Stop runtime HTML opts into the Common Game Shell stylesheet and app module", () => {
   const html = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "index.html"),
