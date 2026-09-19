@@ -1428,3 +1428,326 @@ body {
 .game-platform-shell__stage {
   overflow-x: auto;
 }
+
+
+/* Dice + route panel: keep route choices out of the board so the playfield never jumps. */
+.cant-stop-dice-stage {
+  min-height: 520px;
+  padding: 1rem;
+  align-content: stretch;
+  grid-template-rows: auto 92px 44px auto minmax(250px, 1fr);
+  gap: .72rem;
+  background:
+    linear-gradient(180deg, rgba(114, 201, 209, .96) 0 27%, rgba(220, 239, 244, .98) 27.5% 58%, #f8fcfd 100%);
+}
+
+.cant-stop-dice-stage::before {
+  height: 43%;
+  opacity: .88;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(207,222,228,.96));
+  clip-path: polygon(
+    0 100%, 0 75%, 14% 59%, 25% 70%, 39% 39%, 48% 53%,
+    59% 18%, 70% 47%, 82% 34%, 100% 68%, 100% 100%
+  );
+}
+
+.cant-stop-dice-stage__heading,
+.cant-stop-dice-stage__dice,
+.cant-stop-dice-stage__action-slot,
+.cant-stop-dice-stage__caption,
+.cant-stop-route-panel {
+  position: relative;
+  z-index: 3;
+}
+
+.cant-stop-dice-stage__dice {
+  min-height: 92px;
+}
+
+.cant-stop-dice-stage__action-slot {
+  min-height: 44px;
+  display: grid;
+  align-items: stretch;
+}
+
+.cant-stop-dice-stage__roll-button {
+  min-height: 44px;
+  margin: 0;
+  border: 1px solid rgba(42, 76, 88, .22);
+  background: #304c57;
+  box-shadow: 0 6px 15px rgba(37, 71, 83, .15);
+}
+
+.cant-stop-dice-stage__action-hint {
+  min-height: 44px;
+  padding: .55rem .7rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.62);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.62);
+  color: #607b85;
+  font-size: .73rem;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+  backdrop-filter: blur(5px);
+}
+
+.cant-stop-dice-stage__caption {
+  min-height: 18px;
+  font-size: .72rem;
+}
+
+.cant-stop-route-panel {
+  min-height: 250px;
+  padding: .78rem;
+  display: grid;
+  align-content: start;
+  gap: .68rem;
+  border: 1px solid rgba(72, 104, 117, .18);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(250,253,254,.93), rgba(235,244,247,.95));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.92),
+    0 7px 18px rgba(45, 79, 91, .08);
+  overflow: hidden;
+}
+
+.cant-stop-route-panel::before {
+  position: absolute;
+  inset: auto -5% 0;
+  height: 46%;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(205,221,227,.55), rgba(181,205,214,.5));
+  clip-path: polygon(0 100%, 0 76%, 14% 53%, 25% 69%, 44% 33%, 57% 62%, 72% 42%, 86% 66%, 100% 52%, 100% 100%);
+  content: "";
+}
+
+.cant-stop-route-panel__header {
+  display: grid;
+  gap: .12rem;
+}
+
+.cant-stop-route-panel__header strong {
+  color: #304951;
+  font-size: .88rem;
+}
+
+.cant-stop-route-panel__header span {
+  color: #708992;
+  font-size: .7rem;
+  line-height: 1.4;
+}
+
+.cant-stop-route-panel__routes {
+  min-height: 184px;
+  max-height: 284px;
+  display: grid;
+  align-content: start;
+  gap: .5rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.cant-stop-route {
+  padding: .58rem;
+  display: grid;
+  gap: .5rem;
+  border: 1px solid rgba(64, 96, 108, .18);
+  border-radius: 13px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 4px 12px rgba(44, 76, 88, .07);
+}
+
+.cant-stop-route__formula {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: .35rem;
+}
+
+.cant-stop-route__dice-group {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 30px;
+  align-items: center;
+  gap: .28rem;
+}
+
+.cant-stop-route__mini-dice {
+  min-width: 0;
+  display: flex;
+  gap: .2rem;
+}
+
+.cant-stop-route__mini-dice span {
+  width: 25px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(61, 87, 98, .22);
+  border-radius: 7px;
+  background: #fff;
+  color: #304c57;
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: 2px 3px 0 rgba(71, 105, 118, .12);
+}
+
+.cant-stop-route__equals,
+.cant-stop-route__divider {
+  color: #81969d;
+  font-size: .72rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.cant-stop-route__divider {
+  width: 16px;
+  font-size: .9rem;
+}
+
+.cant-stop-route__summit {
+  width: 30px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: #30363a;
+  color: #fff;
+  font-size: .72rem;
+  line-height: 1;
+  box-shadow: 0 3px 7px rgba(27, 44, 50, .2);
+}
+
+.cant-stop-route__plans {
+  display: grid;
+  gap: .34rem;
+}
+
+.cant-stop-route__plan {
+  width: 100%;
+  min-height: 42px;
+  padding: .48rem .58rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .55rem;
+  border: 1px solid rgba(62, 100, 114, .24);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fcfd, #eaf4f7);
+  color: #304c57;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cant-stop-route__plan:hover:not(:disabled) {
+  border-color: rgba(48, 76, 87, .45);
+  background: linear-gradient(180deg, #fff, #e3f1f5);
+  transform: translateY(-1px);
+}
+
+.cant-stop-route__plan:focus-visible {
+  outline: 3px solid rgba(114, 201, 209, .38);
+  outline-offset: 2px;
+}
+
+.cant-stop-route__plan:disabled {
+  opacity: .62;
+  cursor: default;
+}
+
+.cant-stop-route__plan-label {
+  font-size: .74rem;
+  font-weight: 900;
+}
+
+.cant-stop-route__plan-arrow {
+  color: #68838d;
+  font-size: .64rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cant-stop-route-panel__placeholder {
+  min-height: 176px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .65rem;
+  color: #718b94;
+  font-size: .72rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.cant-stop-route-panel__ridge {
+  width: min(100%, 190px);
+  height: 58px;
+  display: block;
+  background: linear-gradient(180deg, #d5e4e9, #b8d0d9);
+  clip-path: polygon(0 100%, 0 82%, 18% 60%, 31% 76%, 51% 24%, 64% 57%, 78% 43%, 100% 78%, 100% 100%);
+  opacity: .72;
+}
+
+.cant-stop-route-panel--calculating .cant-stop-route-panel__ridge {
+  animation: cant-stop-route-pulse 900ms ease-in-out infinite alternate;
+}
+
+.cant-stop-dice-stage--choosing {
+  border-color: rgba(72, 104, 117, .34);
+  box-shadow:
+    0 0 0 3px rgba(114, 201, 209, .12),
+    var(--shadow-sm);
+}
+
+@keyframes cant-stop-route-pulse {
+  from {
+    opacity: .48;
+    transform: scaleX(.96) translateY(2px);
+  }
+  to {
+    opacity: .9;
+    transform: scaleX(1) translateY(0);
+  }
+}
+
+@media (max-width: 899px) {
+  .cant-stop-dice-stage {
+    min-height: 490px;
+    grid-template-rows: auto 86px 44px auto minmax(230px, 1fr);
+  }
+
+  .cant-stop-route-panel {
+    min-height: 230px;
+  }
+}
+
+@media (max-width: 520px) {
+  .cant-stop-route__formula {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .cant-stop-route__divider {
+    width: auto;
+    line-height: .7;
+  }
+
+  .cant-stop-route__dice-group {
+    grid-template-columns: minmax(0, 1fr) auto 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cant-stop-route-panel--calculating .cant-stop-route-panel__ridge,
+  .cant-stop-route__plan {
+    animation: none !important;
+    transition: none !important;
+  }
+}
