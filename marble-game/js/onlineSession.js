@@ -22,7 +22,7 @@ import {
   cancelOnlineTrade,
   selectOnlineLiquidation,
   confirmOnlineLiquidation,
-} from "./onlineGameApi.js?v=20260918-r11";
+} from "./onlineGameApi.js?v=20260919-r13";
 
 const CLASSIC_BOARD = createClassicBoard().toJSON();
 const RECOVERY_REFRESH_MS = 3000;
