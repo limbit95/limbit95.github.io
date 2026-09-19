@@ -92,6 +92,10 @@ export function joinOnlineAuction(options) {
   return gameAction("marble_join_auction", options);
 }
 
+export function passOnlineAuctionVote(options) {
+  return gameAction("marble_pass_auction_vote", options);
+}
+
 export function withdrawOnlineAuction(options) {
   return gameAction("marble_withdraw_auction", options);
 }
@@ -223,6 +227,9 @@ export function createOnlineGameApi({ client } = {}) {
     },
     joinAuction(options) {
       return gameActionWithRpc(callRpc, "marble_join_auction", options);
+    },
+    passAuctionVote(options) {
+      return gameActionWithRpc(callRpc, "marble_pass_auction_vote", options);
     },
     withdrawAuction(options) {
       return gameActionWithRpc(callRpc, "marble_withdraw_auction", options);
