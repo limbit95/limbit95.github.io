@@ -181,6 +181,8 @@ Can’t Stop에는 상대에게 숨겨야 하는 hand/role 같은 gameplay priva
 
 Realtime은 snapshot 교체 데이터가 아니라 invalidation 신호로만 사용한다.
 
+클라이언트의 시각 연출은 authoritative snapshot을 변경하지 않는다. 주사위 roll이나 bust처럼 짧은 presentation이 필요한 경우 서버 응답 snapshot을 잠시 보류하고 기존 snapshot으로 애니메이션을 끝낸 뒤 최신 snapshot을 화면에 적용한다. 서버 결과 자체를 지연하거나 재계산하지 않으며, presentation 완료 후에는 항상 가장 최신 authoritative snapshot으로 수렴한다.
+
 Room/Lobby foundation은 다음 game-local DB 객체를 사용한다.
 
 - `public.cant_stop_rooms`: room identity, host, status, max players, authoritative `version`, game state
