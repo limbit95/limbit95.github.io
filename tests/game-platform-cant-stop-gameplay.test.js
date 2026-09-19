@@ -239,3 +239,33 @@ test("Can't Stop gameplay prepareRematch sends only the versioned post-game inte
     }],
   ]);
 });
+
+
+test("Can't Stop gameplay endGame sends a versioned authoritative termination intent", async () => {
+  const client = fakeClient({
+    result: {
+      version: 15,
+      game: {
+        phase: "GAME_OVER",
+        winnerId: null,
+        endReason: "MANUAL",
+      },
+    },
+  });
+  const adapter = createCantStopGameplayAdapter({ client });
+
+  const snapshot = await adapter.endGame({
+    roomId: "room-1",
+    expectedVersion: 14,
+    clientActionId: "end-1",
+  });
+
+  assert.equal(snapshot.version, 15);
+  assert.deepEqual(client.calls, [
+    ["cant_stop_end_game", {
+      p_room_id: "room-1",
+      p_expected_version: 14,
+      p_client_action_id: "end-1",
+    }],
+  ]);
+});
