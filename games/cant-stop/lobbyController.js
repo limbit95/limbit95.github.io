@@ -16,6 +16,7 @@ function requireGameplayAdapter(adapter) {
     "choosePairing",
     "continueTurn",
     "stopTurn",
+    "endGame",
     "prepareRematch",
   ];
   for (const method of methods) {
@@ -87,6 +88,8 @@ export function createCantStopLobbyController({
     view: CANT_STOP_LOBBY_VIEW.ENTRY,
     snapshot: null,
     busy: false,
+    busyAction: null,
+    effect: null,
     connection: "connected",
     error: null,
   });
@@ -110,6 +113,7 @@ export function createCantStopLobbyController({
       snapshot: snapshot ?? null,
       view: lobbyView(snapshot),
       error: null,
+      effect: null,
       ...patch,
     });
   }
@@ -171,11 +175,11 @@ export function createCantStopLobbyController({
     return state.snapshot;
   }
 
-  async function command(operation) {
+  async function command(operation, busyAction = null) {
     if (disposed) throw new Error("Can't Stop lobby controller has been disposed.");
     if (state.busy) throw new Error("Can't Stop lobby action is already in progress.");
 
-    emit({ busy: true, error: null });
+    emit({ busy: true, busyAction, error: null });
     try {
       return await operation();
     } catch (error) {
@@ -183,7 +187,7 @@ export function createCantStopLobbyController({
       onError(error);
       throw error;
     } finally {
-      emit({ busy: false });
+      emit({ busy: false, busyAction: null });
     }
   }
 
@@ -284,15 +288,31 @@ export function createCantStopLobbyController({
       if (!snapshot?.room?.id || snapshot.room.status !== "playing") {
         throw new Error("Can’t Stop game is not active.");
       }
+      const previousActivePlayerId = String(snapshot.game?.activePlayerId ?? "");
       const next = await requireGameplay()[method]({
         roomId: snapshot.room.id,
         expectedVersion: Number(snapshot.version),
         clientActionId: idFactory(),
         ...payload,
       });
-      applySnapshot(next, { connection: "connected" });
+      const nextActivePlayerId = String(next?.game?.activePlayerId ?? "");
+      const busted = method === "rollDice"
+        && next?.game?.phase === "TURN_ROLL"
+        && previousActivePlayerId
+        && nextActivePlayerId
+        && previousActivePlayerId !== nextActivePlayerId;
+      applySnapshot(next, {
+        connection: "connected",
+        effect: busted
+          ? Object.freeze({
+            type: "bust",
+            playerId: previousActivePlayerId,
+            version: Number(next.version),
+          })
+          : null,
+      });
       return next;
-    });
+    }, method);
   }
 
   function rollDice() {
@@ -309,6 +329,10 @@ export function createCantStopLobbyController({
 
   function stopTurn() {
     return gameplayCommand("stopTurn");
+  }
+
+  function endGame() {
+    return gameplayCommand("endGame");
   }
 
   function prepareRematch() {
@@ -348,6 +372,7 @@ export function createCantStopLobbyController({
     choosePairing,
     continueTurn,
     stopTurn,
+    endGame,
     prepareRematch,
     refresh,
     current,
