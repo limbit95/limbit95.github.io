@@ -26,6 +26,7 @@ import { createCantStopGameplayAdapter } from "./gameplay.js";
 import { createCantStopInviteAdapter } from "./invite.js";
 import { createCantStopRoomLobbyAdapter } from "./roomLobby.js";
 import { CANT_STOP_RULES_GUIDE } from "./rulesHelp.js";
+import { createCantStopPairingPresentation } from "./pairingPresentation.js";
 import { createCantStopPresentationCoordinator } from "./presentation.js";
 
 const root = document.getElementById("cant-stop-app");
@@ -262,6 +263,145 @@ function pairingPlanLabel(columns) {
     : `${columns[0]}열 이동`;
 }
 
+function createPairingDiceGroup(group) {
+  if (!group) return null;
+  return el("div", {
+    className: "cant-stop-route__dice-group",
+    "aria-label": `${group.dice[0]} 더하기 ${group.dice[1]}는 ${group.sum}`,
+  }, [
+    el("div", { className: "cant-stop-route__mini-dice", "aria-hidden": "true" }, [
+      el("span", { text: DICE_GLYPHS[group.dice[0]] }),
+      el("span", { text: DICE_GLYPHS[group.dice[1]] }),
+    ]),
+    el("span", { className: "cant-stop-route__equals", text: "=" }),
+    el("strong", {
+      className: "cant-stop-route__summit",
+      text: String(group.sum),
+      title: `${group.sum}번 열`,
+    }),
+  ]);
+}
+
+function createPairingRouteCard(pairing, view, state) {
+  const groups = pairing.groups ?? pairing.sums.map((sum) => ({
+    dice: null,
+    sum,
+  }));
+
+  return el("article", {
+    className: "cant-stop-route",
+    dataset: { route: pairing.id },
+  }, [
+    el("div", { className: "cant-stop-route__formula" },
+      groups.map((group, index) => [
+        index > 0
+          ? el("span", {
+            className: "cant-stop-route__divider",
+            text: "+",
+            "aria-hidden": "true",
+          })
+          : null,
+        group.dice
+          ? createPairingDiceGroup(group)
+          : el("strong", {
+            className: "cant-stop-route__summit",
+            text: String(group.sum),
+          }),
+      ]).flat()),
+    el("div", { className: "cant-stop-route__plans" },
+      pairing.plans.map((columns) => el("button", {
+        className: "cant-stop-route__plan",
+        type: "button",
+        disabled: state.busy || !view.canChoosePairing,
+        onClick: async () => {
+          try {
+            await lobbyController.choosePairing({
+              sums: [...pairing.sums],
+              columns: [...columns],
+            });
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }, [
+        el("span", {
+          className: "cant-stop-route__plan-label",
+          text: pairingPlanLabel(columns),
+        }),
+        el("span", {
+          className: "cant-stop-route__plan-arrow",
+          text: view.canChoosePairing ? "이 경로 선택 →" : "선택 대기",
+        }),
+      ]))),
+  ]);
+}
+
+function createDiceRoutePanel(view, state) {
+  const pairingView = createCantStopPairingPresentation(
+    view.latestDice,
+    view.legalPairings,
+  );
+
+  if (state.busyAction === "rollDice") {
+    return el("section", {
+      className: "cant-stop-route-panel cant-stop-route-panel--calculating",
+      "aria-live": "polite",
+    }, [
+      el("div", { className: "cant-stop-route-panel__header" }, [
+        el("strong", { text: "등반 경로 계산 중" }),
+        el("span", { text: "네 주사위를 두 쌍으로 나누고 있어요" }),
+      ]),
+      el("div", { className: "cant-stop-route-panel__placeholder" }, [
+        el("span", { className: "cant-stop-route-panel__ridge", "aria-hidden": "true" }),
+        el("span", { text: "주사위가 멈추면 가능한 경로가 이곳에 표시됩니다" }),
+      ]),
+    ]);
+  }
+
+  if (view.phase === "PAIRING_SELECTION" && pairingView.length) {
+    return el("section", {
+      className: "cant-stop-route-panel cant-stop-route-panel--choices",
+      "aria-label": "이동 조합 선택",
+    }, [
+      el("div", { className: "cant-stop-route-panel__header" }, [
+        el("strong", { text: "어느 길로 오를까요?" }),
+        el("span", {
+          text: view.isMyTurn
+            ? "주사위 두 개씩 묶은 경로 중 하나를 선택하세요"
+            : `${view.activePlayerName}님이 경로를 고르고 있어요`,
+        }),
+      ]),
+      el("div", { className: "cant-stop-route-panel__routes" },
+        pairingView.map((pairing) => createPairingRouteCard(pairing, view, state))),
+    ]);
+  }
+
+  const message = view.phase === "PUSH_OR_STOP"
+    ? "이동이 적용됐어요. 더 오를지 지금 진척을 저장할지 선택하세요."
+    : view.isGameOver
+      ? "이번 등반이 끝났어요."
+      : view.isMyTurn
+        ? "주사위를 굴리면 가능한 등반 경로를 여기서 바로 비교할 수 있어요."
+        : `${view.activePlayerName}님의 주사위 결과와 경로가 여기에 표시됩니다.`;
+
+  return el("section", {
+    className: "cant-stop-route-panel cant-stop-route-panel--idle",
+  }, [
+    el("div", { className: "cant-stop-route-panel__header" }, [
+      el("strong", { text: view.phase === "PUSH_OR_STOP" ? "경로 이동 완료" : "등반 경로" }),
+      el("span", { text: message }),
+    ]),
+    el("div", { className: "cant-stop-route-panel__placeholder" }, [
+      el("span", { className: "cant-stop-route-panel__ridge", "aria-hidden": "true" }),
+      el("span", {
+        text: view.phase === "PUSH_OR_STOP"
+          ? "보드에서 runner 위치를 확인해 주세요"
+          : "주사위 결과를 기다리는 중",
+      }),
+    ]),
+  ]);
+}
+
 function createDiceStage(view, state) {
   const rolling = state.busyAction === "rollDice";
   const dice = view.latestDice ?? [null, null, null, null];
@@ -271,21 +411,28 @@ function createDiceStage(view, state) {
     className: [
       "cant-stop-dice-stage",
       rolling ? "cant-stop-dice-stage--rolling" : "",
+      view.phase === "PAIRING_SELECTION" ? "cant-stop-dice-stage--choosing" : "",
     ].filter(Boolean).join(" "),
-    "aria-label": "주사위 굴리기 영역",
+    "aria-label": "주사위와 등반 경로",
     "aria-busy": rolling ? "true" : "false",
   }, [
     el("div", { className: "cant-stop-dice-stage__heading" }, [
       el("div", {}, [
-        el("p", { className: "cant-stop-dice-stage__eyebrow", text: "DICE RIDGE" }),
+        el("p", { className: "cant-stop-dice-stage__eyebrow", text: "DICE & ROUTES" }),
         el("strong", {
           className: "cant-stop-dice-stage__title",
-          text: rolling ? "주사위가 굴러가는 중…" : "주사위",
+          text: rolling ? "주사위가 굴러가는 중…" : "주사위와 등반 경로",
         }),
       ]),
       el("span", {
         className: "cant-stop-dice-stage__status",
-        text: hasResult ? "SERVER RESULT" : (rolling ? "ROLLING" : "READY"),
+        text: rolling
+          ? "ROLLING"
+          : view.phase === "PAIRING_SELECTION"
+            ? "CHOOSE ROUTE"
+            : hasResult
+              ? "SERVER RESULT"
+              : "READY",
       }),
     ]),
     el("div", { className: "cant-stop-dice-stage__snow", "aria-hidden": "true" }),
@@ -317,49 +464,9 @@ function createDiceStage(view, state) {
       className: "cant-stop-dice-stage__caption",
       text: rolling
         ? "결과는 서버가 확정합니다"
-        : (hasResult ? view.latestDice.join(" · ") : "내 턴에 주사위를 굴리면 이곳에서 결과를 확인할 수 있어요"),
+        : (hasResult ? view.latestDice.join(" · ") : "네 개의 주사위를 굴려 등반 경로를 만듭니다"),
     }),
-  ]);
-}
-
-function createPairingPanel(view, state) {
-  if (view.phase !== "PAIRING_SELECTION" || !view.legalPairings.length) return null;
-
-  return el("section", { className: "cant-stop-pairings" }, [
-    el("div", { className: "cant-stop-pairings__heading" }, [
-      el("strong", { text: "이동 조합" }),
-      el("span", {
-        text: view.isMyTurn
-          ? "사용할 pairing과 이동 plan을 선택해 주세요."
-          : "현재 플레이어가 조합을 선택하고 있어요.",
-      }),
-    ]),
-    el("div", { className: "cant-stop-pairings__grid" },
-      view.legalPairings.map((pairing) => el("article", {
-        className: "cant-stop-pairing-card",
-      }, [
-        el("strong", {
-          className: "cant-stop-pairing-card__sums",
-          text: `${pairing.sums[0]} + ${pairing.sums[1]}`,
-        }),
-        el("div", { className: "cant-stop-pairing-card__plans" },
-          pairing.plans.map((columns) => el("button", {
-            className: "cant-stop-plan-button",
-            type: "button",
-            text: pairingPlanLabel(columns),
-            disabled: state.busy || !view.canChoosePairing,
-            onClick: async () => {
-              try {
-                await lobbyController.choosePairing({
-                  sums: [...pairing.sums],
-                  columns: [...columns],
-                });
-              } catch {
-                // Controller state renders the authoritative error.
-              }
-            },
-          }))),
-      ]))),
+    createDiceRoutePanel(view, state),
   ]);
 }
 
@@ -442,7 +549,6 @@ function createBoard(view, state) {
         text: getCantStopLobbyErrorMessage(state.error),
       })
       : null,
-    createPairingPanel(view, state),
     el("div", {
       className: [
         "cant-stop-board__mountain",
