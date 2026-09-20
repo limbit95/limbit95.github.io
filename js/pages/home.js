@@ -156,7 +156,16 @@ export async function renderHome() {
   lowerGrid.append(noticeCard, gameCard);
   root.append(hero);
   if (installCard) root.append(installCard);
-  root.append(lowerGrid, upcomingSection);
+  const temporaryRotationLink = el("div", {
+    style: { display: "flex", justifyContent: "flex-end" },
+  }, [
+    el("a", {
+      className: "button button--ghost",
+      href: "./temporary-tools/rotation-randomizer/",
+      text: "로테이션 랜덤 생성",
+    }),
+  ]);
+  root.append(lowerGrid, upcomingSection, temporaryRotationLink);
 
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
