@@ -692,7 +692,7 @@ test("Can't Stop replaces inline action error cards with a three-second modal no
   assert.equal(app.includes("cant-stop-inline-error"), false);
   assert.match(app, /function ensureActionNoticeDialog/u);
   assert.match(app, /showActionNotice\(message\)/u);
-  assert.match(app, /}, 3000\);/u);
+  assert.equal(app.includes("}, 3000);"), true);
   assert.match(app, /presentActionError\(state\.error, state\.snapshot\?\.version\)/u);
 });
 
