@@ -100,6 +100,7 @@ test("game shell player normalization preserves optional status, turn, and accen
       connected: true,
       statusLabel: "게임 중",
       turnLabel: "현재 턴",
+      progressLabel: "완주 2/3",
       accent: "#1e90ff",
     },
   ], {
@@ -109,6 +110,7 @@ test("game shell player normalization preserves optional status, turn, and accen
 
   assert.equal(player.statusLabel, "게임 중");
   assert.equal(player.turnLabel, "현재 턴");
+  assert.equal(player.progressLabel, "완주 2/3");
   assert.equal(player.accent, "#1e90ff");
   assert.equal(player.isMe, true);
   assert.equal(player.isHost, true);
