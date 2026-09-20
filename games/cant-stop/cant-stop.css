@@ -1646,7 +1646,7 @@ body {
   background: linear-gradient(180deg, #f8fcfd, #eaf4f7);
   color: #304c57;
   font: inherit;
-  text-align: center;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -2352,7 +2352,7 @@ body {
     opacity: 0;
     transform: translate(-50%, calc(-50% + 12px)) scale(.97);
   }
-  12%, 84% {
+  8%, 90% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
@@ -2382,13 +2382,13 @@ body {
 .cant-stop-bust-notice {
   isolation: isolate;
   overflow: hidden;
-  padding: 1.2rem 1.45rem 1.2rem 1.65rem;
-  gap: .42rem;
+  padding: 1.25rem 1.4rem;
+  gap: .5rem;
   border: 1px solid rgba(109, 158, 174, .58);
   background:
     linear-gradient(145deg, rgba(250,254,255,.98), rgba(226,242,247,.96));
   color: #284753;
-  text-align: left;
+  text-align: center;
   box-shadow:
     0 22px 52px rgba(24, 55, 67, .24),
     0 5px 14px rgba(48, 91, 106, .12),
@@ -2435,8 +2435,9 @@ body {
   z-index: 1;
   display: grid;
   justify-items: center;
-  gap: .08rem;
+  gap: .14rem;
   margin: 0;
+  text-align: center;
 }
 
 .cant-stop-bust-notice__message span {
@@ -2450,6 +2451,6 @@ body {
 
 @media (max-width: 520px) {
   .cant-stop-bust-notice {
-    padding: 1rem 1.05rem 1rem 1.3rem;
+    padding: 1rem 1.05rem;
   }
 }
