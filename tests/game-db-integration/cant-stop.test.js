@@ -90,7 +90,7 @@ async function rpc(name, body = {}, token = anonKey) {
 async function createTestUser(label, status = "approved") {
   const suffix = randomUUID().slice(0, 8);
   const email = `cant-stop-${label}-${suffix}@example.com`;
-  const displayName = `Can’t Stop ${label}`;
+  const displayName = `CS ${suffix} ${label}`.slice(0, 50);
   const approvedAt = new Date().toISOString();
   const approvedLike = status === "approved";
   const joinStatus = status === "pending" ? "pending" : "approved";
