@@ -660,7 +660,11 @@ function createBoard(view, state) {
           "aria-live": "polite",
         }, [
           el("strong", { text: "등반 실패" }),
-          el("span", { text: "눈길에 미끄러졌어요. 이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
+          el("div", { className: "cant-stop-bust-notice__message" }, [
+            el("span", { text: "눈길에 미끄러졌어요." }),
+            el("span", { text: "이번 턴의 임시 진척이 사라지고" }),
+            el("span", { text: "다음 플레이어에게 턴이 넘어갑니다." }),
+          ]),
         ])
         : null,
       tracks,
