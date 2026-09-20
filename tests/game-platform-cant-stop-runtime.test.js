@@ -745,3 +745,63 @@ test("Can't Stop ready state uses the waiting shell class plus a stronger tinted
     /cant-stop-shell--waiting \.game-platform-player\[data-ready="true"\][\s\S]*30%[\s\S]*18%/u,
   );
 });
+
+
+test("Can't Stop gameplay view distinguishes a two-player leave game over", () => {
+  const view = createCantStopGameplayViewModel({
+    version: 44,
+    room: {
+      id: "room-1",
+      status: "playing",
+      hostUserId: "alice",
+    },
+    players: [
+      { userId: "alice", displayName: "Alice" },
+    ],
+    viewerUserId: "alice",
+    game: {
+      phase: "GAME_OVER",
+      activePlayerId: "alice",
+      turnOrder: ["alice"],
+      turnIndex: 0,
+      playerProgress: { alice: { 7: 3 } },
+      runners: {},
+      claimedColumns: {},
+      latestDice: null,
+      legalPairings: [],
+      winnerId: null,
+      endReason: "PLAYER_LEFT",
+      endedById: "bob",
+    },
+  }, "alice");
+
+  assert.equal(view.isGameOver, true);
+  assert.equal(view.isPlayerLeftEnded, true);
+  assert.equal(view.isManuallyEnded, false);
+  assert.equal(view.winnerId, null);
+  assert.equal(view.winnerName, null);
+});
+
+test("Can't Stop player-left game over has explicit board heading copy", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /view\.isPlayerLeftEnded/u);
+  assert.match(app, /PLAYER LEFT/u);
+  assert.match(app, /상대 플레이어가 방을 나가 게임이 종료됐어요/u);
+});
+
+test("Can't Stop two-player leave migration ends the game instead of blocking exit", () => {
+  const migration = readFileSync(
+    path.join(repositoryRoot, "supabase", "cant-stop", "20260920231500_cant_stop_two_player_leave_game_over.sql"),
+    "utf8",
+  );
+
+  assert.match(migration, /v_active_count = 2/u);
+  assert.match(migration, /'phase', 'GAME_OVER'/u);
+  assert.match(migration, /'endReason', 'PLAYER_LEFT'/u);
+  assert.match(migration, /'endedById', v_user_id::text/u);
+  assert.equal(migration.includes("raise exception 'LEAVE_MIN_PLAYERS'"), false);
+});

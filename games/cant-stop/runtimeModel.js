@@ -177,6 +177,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     winnerName: winner?.displayName ?? null,
     endReason,
     isManuallyEnded: phase === CANT_STOP_PHASE.GAME_OVER && endReason === "MANUAL",
+    isPlayerLeftEnded: phase === CANT_STOP_PHASE.GAME_OVER && endReason === "PLAYER_LEFT",
     latestDice,
     legalPairings,
     columns: Object.freeze(columns),

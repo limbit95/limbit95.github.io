@@ -392,6 +392,12 @@ function gameplayHeading(view) {
         title: "게임이 종료되었어요",
       };
     }
+    if (view.isPlayerLeftEnded) {
+      return {
+        eyebrow: "PLAYER LEFT",
+        title: "상대 플레이어가 방을 나가 게임이 종료됐어요",
+      };
+    }
     return {
       eyebrow: "GAME OVER",
       title: view.winnerName ? `${view.winnerName} 승리!` : "게임 종료",

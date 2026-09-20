@@ -245,11 +245,12 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - gameplay의 규칙/새로고침/게임 종료 같은 utility action은 하단 sticky footer가 아니라 player roster와 dice stage 사이의 compact sidebar toolbar에 둔다.
 - waiting/playing room에서는 manual refresh 중 Common Shell connection status card를 별도로 생성하지 않는다. 오류는 기존 inline error presentation으로 전달한다.
 - GAME_OVER에서는 새로고침 utility를 숨기고 규칙/재대결/방 나가기만 보여 compact toolbar 높이가 불필요하게 늘어나지 않게 한다.
-- 진행 중 비방장 플레이어는 자신의 턴에서만 방 나가기를 실행할 수 있다. 이탈 후에도 2명 이상 남아야 하며, 서버는 이탈자를 turnOrder/playerProgress/claimedColumns에서 제거하고 해당 턴 runners/latestDice/legalPairings를 초기화한 뒤 남은 순서의 다음 플레이어에게 TURN_ROLL을 넘긴다.
-- 진행 중 방장은 방 나가기 대신 게임 종료를 사용한다. 2명 게임에서는 한 명 이탈 시 최소 인원이 깨지므로 진행 중 방 나가기를 허용하지 않는다.
+- 진행 중 비방장 플레이어는 자신의 턴에서만 방 나가기를 실행할 수 있다. 3~4인 게임에서 이탈 후 2명 이상이 남으면 서버는 이탈자를 turnOrder/playerProgress/claimedColumns에서 제거하고 해당 턴 runners/latestDice/legalPairings를 초기화한 뒤 남은 순서의 다음 플레이어에게 TURN_ROLL을 넘긴다.
+- 2인 게임에서 비방장이 자신의 턴에 나가면 이탈 자체는 허용하되 게임을 즉시 `GAME_OVER`로 종료한다. 승자는 지정하지 않고 `endReason = PLAYER_LEFT`와 `endedById`를 기록하며, 남은 방장은 재대결을 눌러 1인 waiting room으로 돌아간 뒤 새 플레이어가 참가해야 다시 시작할 수 있다.
+- 진행 중 방장은 방 나가기 대신 게임 종료를 사용한다.
 - 진행 중 gameplay utility toolbar는 현재 버튼 수에 맞춰 동일 폭 column으로 채우며 빈 가로 여백을 남기지 않는다. 방장은 `게임 종료`, 일반 플레이어는 `방 나가기`를 본다.
-- 일반 플레이어의 진행 중 방 나가기는 자신의 턴에서만 허용한다. 나간 뒤에도 최소 2명이 남아야 하며, 2인 게임에서는 진행 중 이탈을 거부한다.
-- 진행 중 이탈이 성공하면 해당 플레이어를 active room membership / turn order / player progress에서 제거하고, 해당 플레이어 소유 claim과 현재 runner를 제거한다. phase는 다음 남은 플레이어의 `TURN_ROLL`로 정규화해 2명 이상 남은 게임을 계속한다.
+- 일반 플레이어의 진행 중 방 나가기는 자신의 턴에서만 허용한다. 3명 이상일 때는 남은 플레이어가 2명 이상이면 게임을 계속하고, 정확히 2명일 때 비방장이 나가면 게임을 종료한다.
+- 진행 중 이탈이 성공하면 해당 플레이어를 active room membership / turn order / player progress에서 제거하고, 해당 플레이어 소유 claim과 현재 runner를 제거한다. 2명 이상 남으면 다음 플레이어의 `TURN_ROLL`로 정규화하고, 1명만 남으면 `PLAYER_LEFT` GAME_OVER로 정규화한다.
 - 방장은 진행 중 방 나가기를 사용하지 않고 host-only `게임 종료` 흐름을 사용한다.
 - action validation 오류는 board 안의 inline error card로 레이아웃을 밀지 않고 3초 뒤 자동으로 닫히는 transient modal로 표시한다.
 - Game Shell patch 시 entry/waiting/playing state class를 기존 shell root에도 동기화해 waiting ready tint와 gameplay 900px board override가 실제 DOM에 즉시 적용되게 한다.
