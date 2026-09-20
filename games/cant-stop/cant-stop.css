@@ -2692,3 +2692,17 @@ body {
     min-height: 116px;
   }
 }
+
+
+/* Polish phase 2h: tighten dice-to-route vertical rhythm by half. */
+.cant-stop-dice-stage {
+  gap: .36rem;
+}
+
+.cant-stop-dice-stage__caption--empty {
+  min-height: 9px;
+}
+
+.cant-stop-route-panel {
+  gap: .34rem;
+}
