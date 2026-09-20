@@ -2822,6 +2822,7 @@ body {
 .cant-stop-entry-card--create .cant-stop-entry-card__submit {
   background: #304c57;
   border-color: #304c57;
+  color: #fff;
   box-shadow: 0 6px 14px rgba(37,71,83,.14);
 }
 
