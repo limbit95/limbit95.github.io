@@ -473,3 +473,15 @@ test("Can't Stop blizzard uses round snow particles instead of line streaks", ()
   assert.match(css, /radial-gradient\(circle/u);
   assert.equal(css.includes("cant-stop-blizzard-streaks"), false);
 });
+
+
+test("Can't Stop renders each dice value in its own badge directly below the die", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /cant-stop-die-result/u);
+  assert.match(app, /cant-stop-die-result__value/u);
+  assert.equal(app.includes('view.latestDice.join(" · ")'), false);
+});
