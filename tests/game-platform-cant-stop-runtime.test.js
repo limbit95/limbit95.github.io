@@ -393,7 +393,7 @@ test("Can't Stop push-or-stop removes implementation copy and hides the normal p
   );
   assert.match(
     app,
-    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
+    /const suppressConnectionCard = state\.view !== CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
   );
 });
 
@@ -519,7 +519,7 @@ test("Can't Stop entry hides the normal connected status card but keeps reconnec
 
   assert.match(
     app,
-    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
+    /const suppressConnectionCard = state\.view !== CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
   );
   assert.match(app, /state\.connection === "reconnecting"/u);
   assert.match(app, /state\.connection === "error"/u);
@@ -563,7 +563,7 @@ test("Can't Stop waiting and playing screens remove the normal connected banner"
 
   assert.match(
     app,
-    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
+    /const suppressConnectionCard = state\.view !== CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
   );
 });
 
