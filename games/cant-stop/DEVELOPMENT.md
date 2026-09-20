@@ -129,6 +129,7 @@
 - Invite는 반드시 shared `game_room` 계약을 사용하고 game-local target type을 새로 만들지 않는다.
 - client invite resolve는 라우팅/UX 검증이고 최종 room 참가 권한은 서버 `cant_stop_join_room_by_invite`가 token을 다시 검증해 결정한다.
 - Invite 소스가 구현되어도 Registry `online/invite` capability는 운영 migration + smoke test가 끝날 때까지 false로 유지한다.
+- 게임 로비의 닉네임 입력/변경 UI는 제거하고 사이트 프로필 닉네임을 사용한다. Can’t Stop DB는 room player nickname 저장 시 `profiles.display_name`을 강제해 client override를 authoritative 값으로 사용하지 않는다.
 
 ## Validation
 
@@ -148,3 +149,4 @@
 - post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
 - Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
+- profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 작업 브랜치에 추가됐으며 main 병합/운영 반영 전까지 production에는 적용하지 않는다.
