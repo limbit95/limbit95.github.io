@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   GAME_ACCESS_REASON,
@@ -11,7 +14,9 @@ import {
   resolveApprovedMemberAccess,
 } from "../games/shared/index.js";
 
-test("game registry keeps legacy entries intact and registers Can't Stop without premature capabilities", () => {
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+test("game registry keeps legacy entries intact and activates Can't Stop online/invite capabilities", () => {
   assert.deepEqual(
     GAME_REGISTRY.map((game) => game.id),
     ["liar", "the-game", "marble", "cant-stop"],
@@ -29,11 +34,12 @@ test("game registry keeps legacy entries intact and registers Can't Stop without
   assert.equal(cantStop?.platform, "shared");
   assert.equal(cantStop?.href, "./games/cant-stop/");
   assert.deepEqual(cantStop?.capabilities, {
-    online: false,
+    online: true,
     local: false,
-    invite: false,
+    invite: true,
     presence: false,
   });
+  assert.equal(cantStop?.buttonText, "Can’t Stop 시작");
   assert.equal(getRegisteredGame("missing"), null);
 
   const copy = listRegisteredGames();
@@ -148,4 +154,16 @@ test("game access gate adapts an auth source and unsubscribes through the source
 
   unsubscribe();
   assert.equal(unsubscribed, true);
+});
+
+
+test("main games page exposes Can't Stop as a playable card", () => {
+  const gamesPage = readFileSync(
+    path.join(repositoryRoot, "js", "pages", "games.js"),
+    "utf8",
+  );
+
+  assert.match(gamesPage, /title: "Can’t Stop"/u);
+  assert.match(gamesPage, /href: "\.\/games\/cant-stop\/"?/u);
+  assert.match(gamesPage, /buttonText: "Can’t Stop 시작"/u);
 });
