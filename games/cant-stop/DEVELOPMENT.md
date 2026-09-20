@@ -149,4 +149,6 @@
 - post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
 - Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
-- profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 작업 브랜치에 추가됐으며 main 병합/운영 반영 전까지 production에는 적용하지 않는다.
+- profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143502 cant_stop_profile_nickname`으로 기록되어 있다.
+- active-turn leave migration `20260920223000_cant_stop_active_turn_leave.sql`도 production에 적용 완료했다. 운영 migration history에는 `20260920143513 cant_stop_active_turn_leave`로 기록되어 있다.
+- 운영 검증에서 room nickname 1~50자 제약, profile nickname trigger, create/join/invite의 profile lookup, active leave의 turn/min-player guard와 progress/claim/runner cleanup 정의를 확인했다.
