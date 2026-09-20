@@ -106,6 +106,9 @@ export function normalizeGamePlayers(players = [], {
     if (typeof player.turnLabel === "string" && player.turnLabel.trim()) {
       normalized.turnLabel = player.turnLabel.trim();
     }
+    if (typeof player.progressLabel === "string" && player.progressLabel.trim()) {
+      normalized.progressLabel = player.progressLabel.trim();
+    }
     if (typeof player.accent === "string" && player.accent.trim()) {
       normalized.accent = player.accent.trim();
     }
