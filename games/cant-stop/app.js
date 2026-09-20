@@ -503,19 +503,31 @@ function createDiceStage(view, state) {
     ]),
     el("div", { className: "cant-stop-dice-stage__snow", "aria-hidden": "true" }),
     el("div", { className: "cant-stop-dice-stage__dice" },
-      dice.map((die, index) => el("span", {
-        className: "cant-stop-die-visual",
+      dice.map((die, index) => el("div", {
+        className: "cant-stop-die-result",
         dataset: { dieIndex: String(index + 1) },
       }, [
-        die == null
-          ? el("span", {
-            className: "cant-stop-die-visual__unknown",
-            text: "?",
-            "aria-label": `${index + 1}번째 주사위 결과 대기`,
-          })
-          : createDieFace(die, {
-            label: `${index + 1}번째 주사위 ${die}`,
-          }),
+        el("span", {
+          className: "cant-stop-die-visual",
+        }, [
+          die == null
+            ? el("span", {
+              className: "cant-stop-die-visual__unknown",
+              text: "?",
+              "aria-label": `${index + 1}번째 주사위 결과 대기`,
+            })
+            : createDieFace(die, {
+              label: `${index + 1}번째 주사위 ${die}`,
+            }),
+        ]),
+        el("span", {
+          className: [
+            "cant-stop-die-result__value",
+            die == null ? "cant-stop-die-result__value--pending" : "",
+          ].filter(Boolean).join(" "),
+          text: die == null ? "–" : String(die),
+          "aria-hidden": "true",
+        }),
       ]))),
     el("div", {
       className: [
@@ -589,12 +601,14 @@ function createDiceStage(view, state) {
                   : "현재 플레이어의 주사위를 기다리는 중",
             }),
     ].flat()),
-    el("p", {
-      className: "cant-stop-dice-stage__caption",
-      text: rolling
-        ? "결과는 서버가 확정합니다"
-        : (hasResult ? view.latestDice.join(" · ") : "네 개의 주사위를 굴려 등반 경로를 만듭니다"),
-    }),
+    !hasResult
+      ? el("p", {
+        className: "cant-stop-dice-stage__caption",
+        text: rolling
+          ? "결과는 서버가 확정합니다"
+          : "네 개의 주사위를 굴려 등반 경로를 만듭니다",
+      })
+      : null,
     createDiceRoutePanel(view, state),
   ]);
 }
