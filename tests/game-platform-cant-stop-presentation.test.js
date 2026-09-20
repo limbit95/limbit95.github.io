@@ -220,3 +220,8 @@ test("Can't Stop presentation keeps local bust feedback when a same-version real
   assert.equal(presented.at(-1).snapshot.version, 41);
   assert.equal(presented.at(-1).effect, null);
 });
+
+
+test("Can't Stop bust notice timing is five seconds", () => {
+  assert.equal(CANT_STOP_PRESENTATION_TIMINGS.bustMs, 5000);
+});
