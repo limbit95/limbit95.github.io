@@ -520,64 +520,74 @@ function createDiceStage(view, state) {
     el("div", {
       className: [
         "cant-stop-dice-stage__action-slot",
-        view.phase === "PUSH_OR_STOP" && view.isMyTurn
+        !rolling && view.phase === "PUSH_OR_STOP" && view.isMyTurn
           ? "cant-stop-dice-stage__action-slot--split"
+          : "",
+        rolling
+          ? "cant-stop-dice-stage__action-slot--rolling"
           : "",
       ].filter(Boolean).join(" "),
     }, [
-      view.canRoll
+      rolling
         ? el("button", {
           className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
           type: "button",
-          text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
-          disabled: state.busy,
-          onClick: async () => {
-            try {
-              void playCantStopDiceRollSound();
-              await lobbyController.rollDice();
-            } catch {
-              // Controller state renders the authoritative error.
-            }
-          },
+          text: "주사위 굴리는 중…",
+          disabled: true,
         })
-        : view.phase === "PUSH_OR_STOP" && view.isMyTurn
-          ? [
-            el("button", {
-              className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
-              type: "button",
-              text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
-              disabled: state.busy,
-              onClick: async () => {
-                try {
-                  void playCantStopDiceRollSound();
-                  await lobbyController.continueAndRoll();
-                } catch {
-                  // Controller state renders the authoritative error.
-                }
-              },
+        : view.canRoll
+          ? el("button", {
+            className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
+            type: "button",
+            text: "주사위 굴리기",
+            disabled: state.busy,
+            onClick: async () => {
+              try {
+                void playCantStopDiceRollSound();
+                await lobbyController.rollDice();
+              } catch {
+                // Controller state renders the authoritative error.
+              }
+            },
+          })
+          : view.phase === "PUSH_OR_STOP" && view.isMyTurn
+            ? [
+              el("button", {
+                className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
+                type: "button",
+                text: "주사위 굴리기",
+                disabled: state.busy,
+                onClick: async () => {
+                  try {
+                    void playCantStopDiceRollSound();
+                    await lobbyController.continueAndRoll();
+                  } catch {
+                    // Controller state renders the authoritative error.
+                  }
+                },
+              }),
+              el("button", {
+                className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-dice-stage__stop-button",
+                type: "button",
+                text: "멈추기",
+                disabled: state.busy,
+                onClick: async () => {
+                  try {
+                    await lobbyController.stopTurn();
+                  } catch {
+                    // Controller state renders the authoritative error.
+                  }
+                },
+              }),
+            ]
+            : el("span", {
+              className: "cant-stop-dice-stage__action-hint",
+              text: view.phase === "PAIRING_SELECTION"
+                ? (view.isMyTurn ? "아래에서 등반 경로를 선택하세요" : "상대가 등반 경로를 고르는 중")
+                : view.isGameOver
+                  ? "게임이 종료되었습니다"
+                  : "현재 플레이어의 주사위를 기다리는 중",
             }),
-            el("button", {
-              className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-dice-stage__stop-button",
-              type: "button",
-              text: state.busy ? "처리 중…" : "멈추기",
-              disabled: state.busy,
-              onClick: async () => {
-                try {
-                  await lobbyController.stopTurn();
-                } catch {
-                  // Controller state renders the authoritative error.
-                }
-              },
-            }),
-          ]
-          : el("span", {
-            className: "cant-stop-dice-stage__action-hint",
-            text: view.phase === "PAIRING_SELECTION"
-              ? (view.isMyTurn ? "아래에서 등반 경로를 선택하세요" : "상대가 등반 경로를 고르는 중")
-              : view.isGameOver
-                ? "게임이 종료되었습니다"
-                : "현재 플레이어의 주사위를 기다리는 중",
-          }),
     ].flat()),
     el("p", {
       className: "cant-stop-dice-stage__caption",
