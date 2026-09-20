@@ -2706,3 +2706,155 @@ body {
 .cant-stop-route-panel {
   gap: .34rem;
 }
+
+
+/* Lobby polish: simplify entry and reuse the alpine board visual language. */
+.cant-stop-entry__intro {
+  gap: .2rem;
+  padding-inline: .15rem;
+}
+
+.cant-stop-entry-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 292px;
+  padding: 1.08rem;
+  gap: .72rem;
+  border-color: rgba(72, 104, 117, .24);
+  background:
+    linear-gradient(180deg, rgba(236,249,251,.98) 0 31%, rgba(249,253,254,.99) 31% 100%);
+  box-shadow:
+    0 10px 26px rgba(45, 79, 91, .11),
+    inset 0 1px 0 rgba(255,255,255,.95);
+}
+
+.cant-stop-entry-card::before {
+  position: absolute;
+  top: 34px;
+  right: -12%;
+  width: 72%;
+  height: 105px;
+  z-index: -2;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.94), rgba(205,225,232,.82));
+  clip-path: polygon(0 100%, 19% 65%, 31% 77%, 50% 23%, 62% 50%, 73% 37%, 100% 78%, 100% 100%);
+  opacity: .9;
+}
+
+.cant-stop-entry-card::after {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 116px;
+  z-index: -3;
+  content: "";
+  background:
+    radial-gradient(circle at 18% 25%, rgba(255,255,255,.72) 0 3px, transparent 4px),
+    radial-gradient(circle at 79% 20%, rgba(255,255,255,.62) 0 2px, transparent 3px),
+    linear-gradient(180deg, rgba(103,199,208,.22), rgba(190,228,233,.06));
+  pointer-events: none;
+}
+
+.cant-stop-entry-card--create {
+  border-top-color: rgba(53, 146, 157, .48);
+}
+
+.cant-stop-entry-card--join {
+  border-top-color: rgba(80, 112, 126, .45);
+}
+
+.cant-stop-entry-card__ridge {
+  min-height: 30px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .3rem;
+}
+
+.cant-stop-entry-card__ridge span {
+  width: 28px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.92);
+  border-radius: 50%;
+  background: #304c57;
+  color: #fff;
+  font-size: .7rem;
+  font-weight: 900;
+  box-shadow:
+    0 0 0 1px rgba(48,76,87,.16),
+    0 3px 8px rgba(37,71,83,.14);
+}
+
+.cant-stop-entry-card__ridge span:nth-child(2) {
+  transform: translateY(-8px);
+}
+
+.cant-stop-entry-card__eyebrow,
+.cant-stop-entry-card__title,
+.cant-stop-entry-card__description,
+.cant-stop-entry-card .cant-stop-field,
+.cant-stop-entry-card__submit {
+  position: relative;
+  z-index: 1;
+}
+
+.cant-stop-entry-card__eyebrow {
+  color: #3f7580;
+}
+
+.cant-stop-entry-card__title {
+  font-size: 1.18rem;
+}
+
+.cant-stop-entry-card__description {
+  min-height: 2.8em;
+  color: #59737d;
+}
+
+.cant-stop-entry-card .cant-stop-input {
+  border-color: rgba(74, 111, 124, .26);
+  background: rgba(255,255,255,.94);
+}
+
+.cant-stop-entry-card--create .cant-stop-entry-card__submit {
+  background: #304c57;
+  border-color: #304c57;
+  box-shadow: 0 6px 14px rgba(37,71,83,.14);
+}
+
+.cant-stop-entry-card--join .cant-stop-entry-card__submit {
+  border-color: rgba(68, 119, 132, .34);
+  background: rgba(255,255,255,.94);
+  color: #304c57;
+  box-shadow: 0 5px 12px rgba(45,79,91,.08);
+}
+
+.cant-stop-runtime-notes--entry {
+  overflow: hidden;
+  border-color: rgba(72, 104, 117, .22);
+  background:
+    linear-gradient(180deg, rgba(237,249,251,.96), rgba(255,255,255,.98));
+}
+
+.cant-stop-runtime-notes__actions {
+  padding-top: .72rem;
+  border-top: 1px solid rgba(72, 104, 117, .13);
+}
+
+.cant-stop-runtime-notes__rules {
+  width: 100%;
+  margin: 0;
+}
+
+@media (max-width: 679px) {
+  .cant-stop-entry-card {
+    min-height: auto;
+  }
+
+  .cant-stop-entry-card__description {
+    min-height: 0;
+  }
+}
