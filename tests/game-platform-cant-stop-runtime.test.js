@@ -526,3 +526,15 @@ test("Can't Stop entry hides the normal connected status card but keeps reconnec
   assert.match(app, /state\.connection === "reconnecting"/u);
   assert.match(app, /state\.connection === "error"/u);
 });
+
+
+test("Can't Stop profile nickname migration keeps room display names server-authoritative", () => {
+  const migration = readFileSync(
+    path.join(repositoryRoot, "supabase", "cant-stop", "20260920205000_cant_stop_profile_nickname.sql"),
+    "utf8",
+  );
+
+  assert.match(migration, /cant_stop_enforce_profile_nickname/u);
+  assert.match(migration, /from public\.profiles/u);
+  assert.match(migration, /new\.nickname := v_nickname/u);
+});
