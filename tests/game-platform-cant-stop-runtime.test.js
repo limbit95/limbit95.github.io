@@ -378,3 +378,20 @@ test("Can't Stop dice uses explicit pip faces instead of font-dependent dice gly
   assert.match(app, /cant-stop-die-face__pip--active/u);
   assert.equal(app.includes("DICE_GLYPHS"), false);
 });
+
+
+test("Can't Stop push-or-stop removes implementation copy and hides the normal playing status card", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.equal(
+    app.includes("더 굴리면 현재 runner는 유지되고, 멈추면 지금 위치가 permanent progress로 확정됩니다."),
+    false,
+  );
+  assert.match(
+    app,
+    /state\.view === CANT_STOP_LOBBY_VIEW\.PLAYING[\s\S]*state\.connection === "connected"[\s\S]*game-platform-status/u,
+  );
+});
