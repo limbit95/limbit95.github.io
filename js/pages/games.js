@@ -1,5 +1,55 @@
 import { el, pageContainer } from "../ui.js";
 
+let gameDescriptionResizeBound = false;
+
+function syncGameDescriptionOverflow(root = document) {
+  root.querySelectorAll(".game-card__description-wrap").forEach((wrapper) => {
+    const description = wrapper.querySelector(".game-card__description");
+    const more = wrapper.querySelector(".game-card__more");
+    if (!description || !more) return;
+
+    wrapper.classList.remove("is-overflowing");
+    more.hidden = true;
+
+    const isOverflowing = description.scrollHeight > description.clientHeight + 1;
+    wrapper.classList.toggle("is-overflowing", isOverflowing);
+    more.hidden = !isOverflowing;
+  });
+}
+
+function scheduleGameDescriptionOverflowSync(root) {
+  window.requestAnimationFrame(() => syncGameDescriptionOverflow(root));
+  document.fonts?.ready?.then(() => syncGameDescriptionOverflow(root));
+
+  if (gameDescriptionResizeBound) return;
+  gameDescriptionResizeBound = true;
+  window.addEventListener("resize", () => syncGameDescriptionOverflow(document), { passive: true });
+}
+
+function createGameDescription(game, index) {
+  const tooltipId = `game-description-${index}`;
+  return el("div", { className: "game-card__description-wrap" }, [
+    el("p", {
+      className: "subtle game-card__description",
+      text: game.description,
+    }),
+    el("button", {
+      className: "game-card__more",
+      type: "button",
+      text: "… 더보기",
+      hidden: true,
+      "aria-label": `${game.title} 전체 설명 보기`,
+      "aria-describedby": tooltipId,
+    }),
+    el("span", {
+      className: "game-card__description-tooltip",
+      id: tooltipId,
+      role: "tooltip",
+      text: game.description,
+    }),
+  ]);
+}
+
 const GAMES = [
   {
     icon: "🎭",
@@ -50,12 +100,12 @@ export function renderGames() {
     "aria-label": "게임 목록",
   });
 
-  GAMES.forEach((game) => {
+  GAMES.forEach((game, index) => {
     grid.append(el("article", { className: "card page-stack" }, [
       el("div", { className: "status-page__icon", text: game.icon, "aria-hidden": "true" }),
       el("div", {}, [
         el("h2", { className: "section-title", text: game.title }),
-        el("p", { className: "subtle", text: game.description }),
+        createGameDescription(game, index),
       ]),
       el("a", {
         className: "button button--coral",
@@ -66,5 +116,6 @@ export function renderGames() {
   });
 
   root.append(header, grid);
+  scheduleGameDescriptionOverflowSync(root);
   return root;
 }
