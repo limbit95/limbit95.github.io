@@ -47,6 +47,32 @@ let presentationCoordinator = null;
 let bootEpoch = 0;
 
 const DICE_GLYPHS = Object.freeze(["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]);
+const CANT_STOP_PLAYER_COLORS = Object.freeze([
+  "#1e90ff",
+  "#ff4d6d",
+  "#2ed573",
+  "#9b59ff",
+]);
+
+function decorateCantStopPlayers(players, gameplay = null) {
+  return players.map((player, index) => {
+    const seat = Number.isInteger(player.seat) ? player.seat : index;
+    const connected = player.connected !== false;
+    const playing = gameplay != null;
+    return {
+      ...player,
+      accent: CANT_STOP_PLAYER_COLORS[seat % CANT_STOP_PLAYER_COLORS.length],
+      statusLabel: connected
+        ? (playing ? (gameplay.isGameOver ? "게임 종료" : "게임 중") : null)
+        : "연결 끊김",
+      turnLabel: playing
+        && !gameplay.isGameOver
+        && player.id === gameplay.activePlayerId
+        ? "현재 턴"
+        : null,
+    };
+  });
+}
 
 function closeDialog(dialog) {
   if (!dialog) return;
@@ -582,34 +608,7 @@ function createBoard(view, state) {
 }
 
 function createGameplaySidebar(view, state) {
-  const claimed = view.columns.filter((column) => column.claimedByName);
-  return [
-    el("section", { className: "cant-stop-runtime-notes" }, [
-      el("h2", {
-        className: "cant-stop-runtime-notes__title",
-        text: view.isGameOver ? "최종 결과" : "현재 턴",
-      }),
-      el("ul", { className: "cant-stop-runtime-notes__list" }, [
-        el("li", {
-          text: view.isGameOver
-            ? (view.isManuallyEnded
-              ? "방장 수동 종료 · 승자 없음"
-              : `승자: ${view.winnerName ?? "확정 중"}`)
-            : `진행 중: ${view.activePlayerName}`,
-        }),
-        el("li", { text: `게임 상태 버전: ${view.version}` }),
-        el("li", {
-          text: claimed.length
-            ? `완주 열: ${claimed.map((column) => `${column.number}(${column.claimedByName})`).join(", ")}`
-            : "아직 완주된 열이 없어요.",
-        }),
-        el("li", {
-          text: "실제 주사위와 모든 이동 결과는 서버 snapshot을 기준으로 표시합니다.",
-        }),
-      ]),
-    ]),
-    createDiceStage(view, state),
-  ];
+  return [createDiceStage(view, state)];
 }
 
 function rulesActionButton() {
@@ -1120,12 +1119,13 @@ function renderApprovedRuntime(state) {
 
   if (state.snapshot?.room) {
     const view = createCantStopLobbyViewModel(state.snapshot, auth.user?.id);
-    players = view.players;
+    players = decorateCantStopPlayers(view.players);
     hostUserId = view.hostUserId;
     roomLabel = "#" + view.roomCode;
 
     if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING) {
       const gameplay = createCantStopGameplayViewModel(state.snapshot, auth.user?.id);
+      players = decorateCantStopPlayers(view.players, gameplay);
       main = createBoard(gameplay, state);
       sidebar = createGameplaySidebar(gameplay, state);
       actions = createGameplayActions(gameplay, state);
