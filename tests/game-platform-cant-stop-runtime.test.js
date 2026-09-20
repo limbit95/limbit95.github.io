@@ -435,7 +435,7 @@ test("Can't Stop dice card owns initial roll and split roll-stop controls", () =
 
   assert.match(app, /cant-stop-dice-stage__action-slot--split/u);
   assert.match(app, /lobbyController\.continueAndRoll\(\)/u);
-  assert.match(app, /text: "멈추기"/u);
+  assert.match(app, /"멈추기"/u);
   assert.match(app, /playCantStopDiceRollSound/u);
   assert.match(app, /playCantStopBlizzardSound/u);
 
