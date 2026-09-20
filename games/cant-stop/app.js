@@ -242,24 +242,33 @@ function ensureEndGameDialog() {
     className: "cant-stop-end-dialog",
     "aria-labelledby": "cant-stop-end-title",
   }, [
-    el("p", { className: "cant-stop-dialog__eyebrow", text: "END GAME" }),
-    el("h2", {
-      className: "cant-stop-dialog__title",
-      id: "cant-stop-end-title",
-      text: "현재 게임을 종료할까요?",
-    }),
-    el("p", {
-      className: "cant-stop-end-dialog__message",
-      text: "방장이 게임을 종료하면 모든 플레이어의 현재 등반이 끝나고 승자 없이 GAME OVER 상태가 됩니다. 이후 같은 방에서 재대결하거나 방을 나갈 수 있어요.",
-    }),
-    el("div", { className: "cant-stop-end-dialog__actions" }, [
-      el("button", {
-        className: "game-platform-shell__button game-platform-shell__button--secondary",
-        type: "button",
-        text: "계속 플레이",
-        onClick: () => closeDialog(endGameDialog),
+    el("div", { className: "cant-stop-end-dialog__hero" }, [
+      el("div", { className: "cant-stop-end-dialog__ridge", "aria-hidden": "true" }, [
+        el("span", { text: "6" }),
+        el("span", { text: "7" }),
+        el("span", { text: "8" }),
+      ]),
+      el("p", { className: "cant-stop-dialog__eyebrow", text: "END GAME" }),
+      el("h2", {
+        className: "cant-stop-dialog__title",
+        id: "cant-stop-end-title",
+        text: "현재 게임을 종료할까요?",
       }),
-      confirmButton,
+    ]),
+    el("div", { className: "cant-stop-end-dialog__body" }, [
+      el("p", {
+        className: "cant-stop-end-dialog__message",
+        text: "방장이 게임을 종료하면 모든 플레이어의 현재 등반이 끝나고 승자 없이 GAME OVER 상태가 됩니다. 이후 같은 방에서 재대결하거나 방을 나갈 수 있어요.",
+      }),
+      el("div", { className: "cant-stop-end-dialog__actions" }, [
+        el("button", {
+          className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-end-dialog__continue",
+          type: "button",
+          text: "계속 플레이",
+          onClick: () => closeDialog(endGameDialog),
+        }),
+        confirmButton,
+      ]),
     ]),
   ]);
   endGameDialog.addEventListener("cancel", (event) => {
@@ -834,7 +843,10 @@ function rulesActionButton(extraClass = "") {
 function createGameplayTools(view, state) {
   const tools = [
     rulesActionButton("cant-stop-gameplay-tools__button"),
-    el("button", {
+  ];
+
+  if (!view.isGameOver) {
+    tools.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-gameplay-tools__button",
       type: "button",
       text: "새로고침",
@@ -842,8 +854,8 @@ function createGameplayTools(view, state) {
       onClick: () => {
         void lobbyController.refresh("manual-gameplay").catch(() => {});
       },
-    }),
-  ];
+    }));
+  }
 
   if (view.isGameOver) {
     if (view.isHost) {
@@ -1325,7 +1337,9 @@ function renderApprovedRuntime(state) {
         : "cant-stop-shell--waiting",
   );
 
-  if (state.connection === "connected") {
+  const suppressConnectionCard = state.view !== CANT_STOP_LOBBY_VIEW.ENTRY
+    || state.connection === "connected";
+  if (suppressConnectionCard) {
     shell.querySelector(":scope > .game-platform-status")?.remove();
   }
 
