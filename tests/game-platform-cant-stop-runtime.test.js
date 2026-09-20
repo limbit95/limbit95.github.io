@@ -612,3 +612,72 @@ test("Can't Stop desktop board is 900px tall and the sidebar stretches to the sa
   assert.match(css, /cant-stop-shell--playing \.game-platform-shell__sidebar[\s\S]*grid-template-rows: auto auto minmax\(0, 1fr\);/u);
   assert.match(css, /cant-stop-shell--playing \.cant-stop-dice-stage[\s\S]*height: 100%;/u);
 });
+
+
+test("Can't Stop suppresses in-room connection cards during manual refresh", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(
+    app,
+    /const suppressConnectionCard = state\.view !== CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
+  );
+});
+
+test("Can't Stop ready player cards use a clearly visible tinted waiting-state surface", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(
+    css,
+    /cant-stop-shell--waiting \.game-platform-player\[data-ready="true"\][\s\S]*rgba\(114, 201, 209, \.2\)/u,
+  );
+  assert.match(css, /inset 5px 0 0 var\(--game-player-accent/u);
+});
+
+test("Can't Stop end-game dialog reuses alpine board visuals and outlines continue play", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /cant-stop-end-dialog__hero/u);
+  assert.match(app, /cant-stop-end-dialog__ridge/u);
+  assert.match(app, /cant-stop-end-dialog__continue/u);
+  assert.match(css, /cant-stop-end-dialog__hero::before/u);
+  assert.match(css, /cant-stop-end-dialog__continue[\s\S]*border: 1px solid/u);
+});
+
+test("Can't Stop hides refresh after game over so the compact tool row stays stable", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  const toolsStart = app.indexOf("function createGameplayTools(view, state)");
+  const toolsEnd = app.indexOf("\nfunction createField", toolsStart);
+  const toolsSource = app.slice(toolsStart, toolsEnd);
+
+  assert.match(toolsSource, /if \(!view\.isGameOver\)[\s\S]*text: "새로고침"/u);
+  assert.match(toolsSource, /if \(view\.isGameOver\)[\s\S]*text: state\.busy \? "준비 중…" : "재대결"/u);
+});
+
+test("Can't Stop base mountain rule is 900px before responsive mobile overrides", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(
+    css,
+    /\.cant-stop-board__mountain \{[\s\S]*height: 900px;[\s\S]*min-height: 900px;/u,
+  );
+});
