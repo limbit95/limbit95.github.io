@@ -52,6 +52,21 @@ export async function getProfileInterests(userId) {
     .eq("user_id", userId)) ?? [];
 }
 
+export async function checkDisplayNameAvailability(displayName) {
+  const normalized = String(displayName ?? "").trim();
+  if (!normalized) return false;
+  return Boolean(unwrap(await supabase.rpc("check_display_name_availability", {
+    p_display_name: normalized,
+  })));
+}
+
+export function isDisplayNameConflict(error) {
+  if (error?.code !== "23505") return false;
+  return [error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .some((value) => String(value).includes("profiles_active_display_name_uidx"));
+}
+
 export async function updateProfile(userId, payload) {
   return unwrap(await supabase
     .from("profiles")
