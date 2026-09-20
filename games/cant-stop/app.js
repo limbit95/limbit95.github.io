@@ -287,9 +287,7 @@ function gameplayHeading(view) {
   return {
     eyebrow: "PUSH OR STOP",
     title: view.isMyTurn ? "한 번 더 갈까요, 여기서 멈출까요?" : `${view.activePlayerName}님이 선택하는 중`,
-    description: view.isMyTurn
-      ? "더 굴리면 현재 runner는 유지되고, 멈추면 지금 위치가 permanent progress로 확정됩니다."
-      : "상대 플레이어의 결정을 기다리고 있어요.",
+    description: view.isMyTurn ? "" : "상대 플레이어의 결정을 기다리고 있어요.",
   };
 }
 
@@ -1214,7 +1212,7 @@ function renderApprovedRuntime(state) {
     }
   }
 
-  patchGameShell(createGameShell({
+  const shell = createGameShell({
     title: "Can’t Stop",
     eyebrow: "CHEONGPA GAME · PHASE 4",
     description: "주사위 조합으로 열을 오르고, 멈출 타이밍을 선택하는 push-your-luck 게임",
@@ -1230,7 +1228,16 @@ function renderApprovedRuntime(state) {
     main,
     sidebar,
     actions,
-  }));
+  });
+
+  if (
+    state.view === CANT_STOP_LOBBY_VIEW.PLAYING
+    && state.connection === "connected"
+  ) {
+    shell.querySelector(":scope > .game-platform-status")?.remove();
+  }
+
+  patchGameShell(shell);
 }
 
 function disposeLobby() {
