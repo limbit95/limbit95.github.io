@@ -667,7 +667,7 @@ test("Can't Stop hides refresh after game over so the compact tool row stays sta
   const toolsSource = app.slice(toolsStart, toolsEnd);
 
   assert.match(toolsSource, /if \(!view\.isGameOver\)[\s\S]*text: "새로고침"/u);
-  assert.match(toolsSource, /if \(view\.isGameOver\)[\s\S]*text: state\.busy \? "준비 중…" : "재대결"/u);
+  assert.match(toolsSource, /else \{[\s\S]*text: state\.busy \? "준비 중…" : "재대결"/u);
 });
 
 test("Can't Stop base mountain rule is 900px before responsive mobile overrides", () => {
