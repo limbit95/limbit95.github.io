@@ -46,7 +46,6 @@ let endGameDialog = null;
 let presentationCoordinator = null;
 let bootEpoch = 0;
 
-const DICE_GLYPHS = Object.freeze(["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]);
 const CANT_STOP_PLAYER_COLORS = Object.freeze([
   "#1e90ff",
   "#ff4d6d",
