@@ -445,3 +445,31 @@ test("Can't Stop dice card owns initial roll and split roll-stop controls", () =
   assert.equal(gameplayActions.includes("한 번 더 굴리기"), false);
   assert.equal(gameplayActions.includes("여기서 멈추기"), false);
 });
+
+
+test("Can't Stop rolling state collapses split push controls into one disabled button", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(
+    app,
+    /!rolling && view\.phase === "PUSH_OR_STOP"[\s\S]*cant-stop-dice-stage__action-slot--split/u,
+  );
+  assert.match(
+    app,
+    /rolling[\s\S]*text: "주사위 굴리는 중…"[\s\S]*disabled: true/u,
+  );
+});
+
+test("Can't Stop blizzard uses round snow particles instead of line streaks", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(css, /cant-stop-blizzard-snowballs/u);
+  assert.match(css, /radial-gradient\(circle/u);
+  assert.equal(css.includes("cant-stop-blizzard-streaks"), false);
+});
