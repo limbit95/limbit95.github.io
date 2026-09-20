@@ -259,35 +259,28 @@ function gameplayHeading(view) {
       return {
         eyebrow: "GAME ENDED",
         title: "게임이 종료되었어요",
-        description: "방장이 현재 게임을 종료했습니다. 재대결하거나 방을 나갈 수 있어요.",
       };
     }
     return {
       eyebrow: "GAME OVER",
       title: view.winnerName ? `${view.winnerName} 승리!` : "게임 종료",
-      description: "세 개의 열을 먼저 완주해 승리했습니다. 최종 결과는 서버 snapshot에 확정되어 있어요.",
     };
   }
   if (view.phase === "TURN_ROLL") {
     return {
       eyebrow: "ROLL",
       title: view.isMyTurn ? "주사위를 굴려 주세요" : `${view.activePlayerName}님의 턴`,
-      description: view.isMyTurn
-        ? "현재 runner를 유지한 채 네 개의 주사위를 서버에서 굴립니다."
-        : "상대 플레이어의 선택을 기다리고 있어요.",
     };
   }
   if (view.phase === "PAIRING_SELECTION") {
     return {
       eyebrow: "CHOOSE",
       title: view.isMyTurn ? "이동 조합을 선택하세요" : `${view.activePlayerName}님이 조합을 고르는 중`,
-      description: "",
     };
   }
   return {
     eyebrow: "PUSH OR STOP",
     title: view.isMyTurn ? "한 번 더 갈까요, 여기서 멈출까요?" : `${view.activePlayerName}님이 선택하는 중`,
-    description: view.isMyTurn ? "" : "상대 플레이어의 결정을 기다리고 있어요.",
   };
 }
 
@@ -628,12 +621,6 @@ function createBoard(view, state) {
           className: "cant-stop-board__title",
           text: heading.title,
         }),
-        heading.description
-          ? el("p", {
-            className: "cant-stop-board__description",
-            text: heading.description,
-          })
-          : null,
       ]),
       view.phase === "PAIRING_SELECTION"
         ? el("span", {
