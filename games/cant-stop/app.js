@@ -748,9 +748,13 @@ function createGameplaySidebar(view, state) {
   return [createDiceStage(view, state)];
 }
 
-function rulesActionButton() {
+function rulesActionButton(extraClass = "") {
   return el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    className: [
+      "game-platform-shell__button",
+      "game-platform-shell__button--secondary",
+      extraClass,
+    ].filter(Boolean).join(" "),
     type: "button",
     text: "게임 규칙",
     onClick: openRulesDialog,
@@ -830,14 +834,14 @@ function createEntryPanel(state) {
   const nickname = profileNickname();
 
   const createForm = el("form", {
-    className: "cant-stop-entry-card",
+    className: "cant-stop-entry-card cant-stop-entry-card--create",
     onSubmit: async (event) => {
       event.preventDefault();
       const form = event.currentTarget;
       const data = new FormData(form);
       try {
         await lobbyController.createRoom({
-          nickname: String(data.get("nickname") ?? ""),
+          nickname,
           maxPlayers: Number(data.get("maxPlayers")),
         });
       } catch {
@@ -845,22 +849,17 @@ function createEntryPanel(state) {
       }
     },
   }, [
+    el("div", { className: "cant-stop-entry-card__ridge", "aria-hidden": "true" }, [
+      el("span", { text: "6" }),
+      el("span", { text: "7" }),
+      el("span", { text: "8" }),
+    ]),
     el("p", { className: "cant-stop-entry-card__eyebrow", text: "CREATE ROOM" }),
     el("h2", { className: "cant-stop-entry-card__title", text: "새 방 만들기" }),
     el("p", {
       className: "cant-stop-entry-card__description",
-      text: "2~4명이 함께 플레이할 새 방을 만들어요.",
+      text: "2~4명이 함께 오를 새로운 산길을 열어요.",
     }),
-    createField("닉네임", el("input", {
-      className: "cant-stop-input",
-      name: "nickname",
-      type: "text",
-      value: nickname,
-      minlength: "1",
-      maxlength: "20",
-      required: true,
-      autocomplete: "nickname",
-    })),
     createField("최대 인원", el("select", {
       className: "cant-stop-input",
       name: "maxPlayers",
@@ -878,7 +877,7 @@ function createEntryPanel(state) {
   ]);
 
   const joinForm = el("form", {
-    className: "cant-stop-entry-card",
+    className: "cant-stop-entry-card cant-stop-entry-card--join",
     onSubmit: async (event) => {
       event.preventDefault();
       const form = event.currentTarget;
@@ -886,18 +885,23 @@ function createEntryPanel(state) {
       try {
         await lobbyController.joinRoom({
           roomCode: String(data.get("roomCode") ?? ""),
-          nickname: String(data.get("nickname") ?? ""),
+          nickname,
         });
       } catch {
         // Controller state renders the authoritative error.
       }
     },
   }, [
+    el("div", { className: "cant-stop-entry-card__ridge", "aria-hidden": "true" }, [
+      el("span", { text: "5" }),
+      el("span", { text: "7" }),
+      el("span", { text: "9" }),
+    ]),
     el("p", { className: "cant-stop-entry-card__eyebrow", text: "JOIN ROOM" }),
     el("h2", { className: "cant-stop-entry-card__title", text: "코드로 참가" }),
     el("p", {
       className: "cant-stop-entry-card__description",
-      text: "친구에게 받은 6자리 방 코드를 입력해 참가해요.",
+      text: "친구가 먼저 연 산길에 6자리 방 코드로 합류해요.",
     }),
     createField("방 코드", el("input", {
       className: "cant-stop-input cant-stop-input--code",
@@ -916,16 +920,6 @@ function createEntryPanel(state) {
           .slice(0, 6);
       },
     })),
-    createField("닉네임", el("input", {
-      className: "cant-stop-input",
-      name: "nickname",
-      type: "text",
-      value: nickname,
-      minlength: "1",
-      maxlength: "20",
-      required: true,
-      autocomplete: "nickname",
-    })),
     el("button", {
       className: "button button--secondary cant-stop-entry-card__submit",
       type: "submit",
@@ -937,16 +931,9 @@ function createEntryPanel(state) {
   return el("section", { className: "cant-stop-entry" }, [
     el("div", { className: "cant-stop-entry__intro" }, [
       el("p", { className: "cant-stop-board__eyebrow", text: "ONLINE LOBBY" }),
-      el("h2", { className: "cant-stop-board__title", text: "Can’t Stop 온라인 방" }),
       el("p", {
         className: "cant-stop-board__description",
         text: "새 방을 만들거나 친구가 만든 방 코드로 참가해 주세요.",
-      }),
-      el("button", {
-        className: "cant-stop-rules-trigger",
-        type: "button",
-        text: "처음이라면 게임 규칙부터 보기 →",
-        onClick: openRulesDialog,
       }),
     ]),
     state.error
@@ -1219,13 +1206,15 @@ function renderApprovedRuntime(state) {
   let players = [fallbackPlayer];
   let hostUserId = null;
   let roomLabel = null;
-  let sidebar = el("section", { className: "cant-stop-runtime-notes" }, [
+  let sidebar = el("section", { className: "cant-stop-runtime-notes cant-stop-runtime-notes--entry" }, [
     el("h2", { className: "cant-stop-runtime-notes__title", text: "온라인 플레이" }),
     el("ul", { className: "cant-stop-runtime-notes__list" }, [
       el("li", { text: "2~4명이 한 방에서 함께 플레이해요." }),
       el("li", { text: "방 코드는 6자리로 생성돼요." }),
       el("li", { text: "게임 시작 순서는 서버에서 무작위로 정해요." }),
-      el("li", { text: "현재 운영 게임 목록에는 아직 노출하지 않아요." }),
+    ]),
+    el("div", { className: "cant-stop-runtime-notes__actions" }, [
+      rulesActionButton("cant-stop-runtime-notes__rules"),
     ]),
   ]);
   let actions = null;
@@ -1270,8 +1259,11 @@ function renderApprovedRuntime(state) {
   });
 
   if (
-    state.view === CANT_STOP_LOBBY_VIEW.PLAYING
-    && state.connection === "connected"
+    state.connection === "connected"
+    && (
+      state.view === CANT_STOP_LOBBY_VIEW.ENTRY
+      || state.view === CANT_STOP_LOBBY_VIEW.PLAYING
+    )
   ) {
     shell.querySelector(":scope > .game-platform-status")?.remove();
   }
