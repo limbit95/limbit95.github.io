@@ -1646,7 +1646,7 @@ body {
   background: linear-gradient(180deg, #f8fcfd, #eaf4f7);
   color: #304c57;
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
 }
 
@@ -2333,7 +2333,7 @@ body {
     0 18px 42px rgba(25, 57, 69, .22),
     inset 0 0 0 1px rgba(84, 132, 149, .08);
   transform: translate(-50%, -50%);
-  animation: cant-stop-bust-notice-readable 3600ms ease both;
+  animation: cant-stop-bust-notice-readable 5000ms ease both;
 }
 
 .cant-stop-bust-notice strong {
@@ -2430,16 +2430,22 @@ body {
   line-height: 1.25;
 }
 
-.cant-stop-bust-notice span {
+.cant-stop-bust-notice__message {
   position: relative;
   z-index: 1;
-  display: block;
-  max-width: 40ch;
+  display: grid;
+  justify-items: center;
+  gap: .08rem;
   margin: 0;
-  padding-left: .08rem;
+}
+
+.cant-stop-bust-notice__message span {
+  display: block;
+  margin: 0;
   color: #536f79;
   font-size: clamp(.92rem, 1.3vw, 1.02rem);
-  line-height: 1.65;
+  line-height: 1.55;
+  text-align: center;
 }
 
 @media (max-width: 520px) {
