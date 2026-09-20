@@ -367,13 +367,6 @@ export function renderSignup() {
     };
     refreshResendCooldown = tick;
     tick();
-    if (
-      isVerified
-      && fields.display_name.input.value.trim()
-      && displayNameCheckStatus === "idle"
-    ) {
-      scheduleDisplayNameCheck();
-    }
     timerId = setInterval(() => {
       if (!form.isConnected) {
         clearInterval(timerId);
@@ -383,6 +376,13 @@ export function renderSignup() {
       }
       tick();
     }, 1000);
+    if (
+      isVerified
+      && fields.display_name.input.value.trim()
+      && displayNameCheckStatus === "idle"
+    ) {
+      scheduleDisplayNameCheck();
+    }
   }
 
   async function sendCode() {
