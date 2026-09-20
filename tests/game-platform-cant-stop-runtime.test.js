@@ -320,3 +320,21 @@ test("Can't Stop lobby errors explain host-only manual game termination", () => 
     /방장만/u,
   );
 });
+
+
+test("Can't Stop gameplay sidebar moves turn metadata into player cards and keeps only dice routes", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  const sidebarStart = app.indexOf("function createGameplaySidebar(view, state)");
+  const actionsStart = app.indexOf("function rulesActionButton()", sidebarStart);
+  const sidebarSource = app.slice(sidebarStart, actionsStart);
+
+  assert.match(sidebarSource, /createDiceStage\(view, state\)/u);
+  assert.equal(sidebarSource.includes("cant-stop-runtime-notes"), false);
+  assert.match(app, /statusLabel:/u);
+  assert.match(app, /turnLabel:/u);
+  assert.match(app, /"현재 턴"/u);
+});
