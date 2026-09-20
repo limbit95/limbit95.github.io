@@ -31,6 +31,7 @@ export function createCantStopPresentationCoordinator({
   let rollStartedAt = 0;
   let rollTimer = null;
   let bustTimer = null;
+  let bustTargetState = null;
 
   function clearTimer(name) {
     const timer = name === "roll" ? rollTimer : bustTimer;
@@ -56,10 +57,12 @@ export function createCantStopPresentationCoordinator({
     clearTimer("bust");
     const baseSnapshot = baseState?.snapshot;
     if (!baseSnapshot) {
+      bustTargetState = null;
       present({ ...finalState, effect: null });
       return;
     }
 
+    bustTargetState = finalState;
     present({
       ...finalState,
       snapshot: baseSnapshot,
@@ -70,8 +73,10 @@ export function createCantStopPresentationCoordinator({
 
     bustTimer = schedule(() => {
       bustTimer = null;
+      const target = bustTargetState ?? finalState;
+      bustTargetState = null;
       present({
-        ...finalState,
+        ...target,
         effect: null,
       });
     }, timings.bustMs);
@@ -106,13 +111,33 @@ export function createCantStopPresentationCoordinator({
   }
 
   function queueRollResult(state) {
-    queuedRollState = state;
+    const queuedVersion = snapshotVersion(queuedRollState);
+    const incomingVersion = snapshotVersion(state);
+    const keepQueuedBust = isBustEffect(queuedRollState)
+      && !isBustEffect(state)
+      && queuedVersion != null
+      && queuedVersion === incomingVersion;
+
+    queuedRollState = keepQueuedBust
+      ? { ...state, effect: queuedRollState.effect }
+      : state;
     clearTimer("roll");
     rollTimer = schedule(releaseQueuedRoll, nextRollBoundaryDelay());
   }
 
   function receive(state) {
     if (disposed) return;
+
+    if (bustTimer != null && bustTargetState) {
+      const targetVersion = snapshotVersion(bustTargetState);
+      const incomingVersion = snapshotVersion(state);
+      if (incomingVersion != null && targetVersion != null && incomingVersion >= targetVersion) {
+        bustTargetState = isBustEffect(state)
+          ? state
+          : { ...state, effect: bustTargetState.effect };
+        return;
+      }
+    }
 
     const rolling = state?.busyAction === "rollDice";
     if (rolling && !rollBaseState) {
