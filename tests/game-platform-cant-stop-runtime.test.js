@@ -497,3 +497,32 @@ test("Can't Stop dice and route sections keep compact half spacing", () => {
   assert.match(css, /\.cant-stop-dice-stage__caption--empty \{[\s\S]*min-height: 9px;/u);
   assert.match(css, /\.cant-stop-route-panel \{[\s\S]*gap: \.34rem;/u);
 });
+
+
+test("Can't Stop entry lobby removes nickname editing and redundant entry copy", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.equal(app.includes('name: "nickname"'), false);
+  assert.equal(app.includes('data.get("nickname")'), false);
+  assert.equal(app.includes("Can’t Stop 온라인 방"), false);
+  assert.equal(app.includes("처음이라면 게임 규칙부터 보기"), false);
+  assert.match(app, /cant-stop-runtime-notes__actions/u);
+  assert.match(app, /rulesActionButton\("cant-stop-runtime-notes__rules"\)/u);
+});
+
+test("Can't Stop entry hides the normal connected status card but keeps reconnect states available", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(
+    app,
+    /state\.connection === "connected"[\s\S]*state\.view === CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
+  );
+  assert.match(app, /state\.connection === "reconnecting"/u);
+  assert.match(app, /state\.connection === "error"/u);
+});
