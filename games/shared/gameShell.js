@@ -68,6 +68,7 @@ export function createGamePlayerRoster(players, {
           ready: player.ready ? "true" : "false",
           currentTurn: player.turnLabel ? "true" : "false",
           hasAccent: player.accent ? "true" : "false",
+          hasProgress: player.progressLabel ? "true" : "false",
         },
         style: player.accent
           ? { "--game-player-accent": player.accent }
@@ -100,6 +101,12 @@ export function createGamePlayerRoster(players, {
                 ?? (player.connected ? (player.ready ? "준비 완료" : "대기 중") : "연결 끊김"),
             ].filter(Boolean).join(" · "),
           }),
+          player.progressLabel
+            ? el("span", {
+              className: "game-platform-player__progress",
+              text: player.progressLabel,
+            })
+            : null,
         ]),
         player.turnLabel
           ? el("span", {
