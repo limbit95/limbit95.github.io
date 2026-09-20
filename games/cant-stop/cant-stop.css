@@ -1809,7 +1809,8 @@ body {
 
 .cant-stop-board__mountain {
   min-width: 760px;
-  min-height: 800px;
+  height: 900px;
+  min-height: 900px;
 }
 
 .cant-stop-board__tracks {
@@ -3050,5 +3051,156 @@ body {
   .cant-stop-room-guide__utilities,
   .cant-stop-gameplay-tools {
     grid-template-columns: 1fr;
+  }
+}
+
+
+/* Polish phase 2j: enforce 900px board, stronger ready state, and alpine end dialog. */
+.cant-stop-shell--playing .cant-stop-board__mountain,
+.cant-stop-shell--waiting .cant-stop-board__mountain {
+  height: 900px;
+  min-height: 900px;
+}
+
+.cant-stop-shell--waiting .game-platform-player[data-ready="true"] {
+  border: 2px solid color-mix(in srgb, var(--game-player-accent, #5b8897) 72%, #c9dce2);
+  background: rgba(114, 201, 209, .2);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--game-player-accent, #5b8897) 24%, #fff) 0%,
+      color-mix(in srgb, var(--game-player-accent, #5b8897) 12%, #fff) 100%
+    );
+  box-shadow:
+    inset 5px 0 0 var(--game-player-accent, #5b8897),
+    0 7px 16px color-mix(in srgb, var(--game-player-accent, #5b8897) 18%, transparent);
+}
+
+.cant-stop-shell--waiting .game-platform-player[data-ready="true"] .game-platform-player__meta {
+  color: color-mix(in srgb, var(--game-player-accent, #446b78) 72%, #38535d);
+  font-weight: 900;
+}
+
+.cant-stop-end-dialog {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(76, 121, 136, .34);
+  background: #f8fcfd;
+  box-shadow:
+    0 28px 80px rgba(31, 65, 77, .3),
+    inset 0 0 0 1px rgba(255,255,255,.76);
+}
+
+.cant-stop-end-dialog__hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 150px;
+  padding: 1.15rem 1.25rem 1rem;
+  display: grid;
+  align-content: end;
+  gap: .18rem;
+  background:
+    linear-gradient(180deg, rgba(114,201,209,.98) 0 46%, rgba(220,239,244,.98) 46% 100%);
+}
+
+.cant-stop-end-dialog__hero::before {
+  position: absolute;
+  inset: 32px -8% 0;
+  z-index: -2;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.97), rgba(198,219,227,.95));
+  clip-path: polygon(0 100%, 12% 74%, 25% 82%, 42% 42%, 52% 57%, 66% 24%, 78% 52%, 91% 38%, 100% 67%, 100% 100%);
+}
+
+.cant-stop-end-dialog__hero::after {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: 42px;
+  content: "";
+  background:
+    linear-gradient(165deg, transparent 0 30%, rgba(58,82,90,.34) 31% 49%, transparent 50%),
+    linear-gradient(200deg, transparent 0 43%, rgba(47,69,77,.2) 44% 62%, transparent 63%);
+}
+
+.cant-stop-end-dialog__hero .cant-stop-dialog__eyebrow {
+  position: relative;
+  z-index: 1;
+  color: #315d6a;
+}
+
+.cant-stop-end-dialog__hero .cant-stop-dialog__title {
+  position: relative;
+  z-index: 1;
+  color: #284651;
+  font-size: 1.3rem;
+}
+
+.cant-stop-end-dialog__ridge {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+}
+
+.cant-stop-end-dialog__ridge span {
+  width: 29px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.94);
+  border-radius: 50%;
+  background: #30383c;
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 950;
+  box-shadow: 0 3px 8px rgba(25,49,59,.2);
+}
+
+.cant-stop-end-dialog__ridge span:nth-child(2) {
+  transform: translateY(-8px);
+}
+
+.cant-stop-end-dialog__body {
+  padding: 1rem 1.15rem 1.15rem;
+}
+
+.cant-stop-end-dialog__message {
+  margin: 0;
+  padding: .82rem .9rem;
+  border: 1px solid rgba(91, 133, 147, .16);
+  border-radius: 14px;
+  background: rgba(255,255,255,.82);
+  color: #5d7781;
+}
+
+.cant-stop-end-dialog__actions {
+  margin-top: .9rem;
+}
+
+.cant-stop-end-dialog__continue {
+  border: 1px solid rgba(67, 106, 120, .32);
+  background: #fff;
+  color: #315866;
+  box-shadow: 0 4px 10px rgba(45,79,91,.08);
+}
+
+.cant-stop-end-dialog__confirm {
+  border: 1px solid rgba(154, 77, 86, .38);
+  background: #a65b63;
+  color: #fff;
+  box-shadow: 0 5px 12px rgba(118, 56, 64, .17);
+}
+
+@media (max-width: 899px) {
+  .cant-stop-board__mountain,
+  .cant-stop-shell--playing .cant-stop-board__mountain,
+  .cant-stop-shell--waiting .cant-stop-board__mountain {
+    height: 760px;
+    min-height: 760px;
   }
 }
