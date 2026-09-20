@@ -207,6 +207,23 @@ async function startTwoPlayerGame(label) {
   return { host, guest, started };
 }
 
+async function startThreePlayerGame(label) {
+  const host = await createTestUser(`${label}-host`);
+  const guestA = await createTestUser(`${label}-guest-a`);
+  const guestB = await createTestUser(`${label}-guest-b`);
+  const created = await createRoom(host);
+  const joinedA = await joinRoom(guestA, created);
+  const joinedB = await joinRoom(guestB, joinedA);
+  const readyA = await setReady(guestA, joinedB, true);
+  const readyB = await setReady(guestB, readyA, true);
+  const started = await expectOk(await rpc("cant_stop_start_game", {
+    p_room_id: readyB.room.id,
+    p_expected_version: Number(readyB.version),
+    p_client_action_id: randomUUID(),
+  }, host.accessToken), `${label} cant_stop_start_game`);
+  return { host, guestA, guestB, started };
+}
+
 async function advanceToPushOrStop(label) {
   const game = await startTwoPlayerGame(label);
   const activeUser = game.started.game.activePlayerId === game.host.id
@@ -1017,14 +1034,149 @@ test("cant-stop: host can prepare the same room for a rematch and reuse ready/st
   assert.deepEqual(new Set(restarted.game.turnOrder), new Set([host.id, guest.id]));
 });
 
-test("cant-stop: active games cannot be left or rematched before GAME_OVER", async () => {
-  const { host, guest, started } = await startTwoPlayerGame("postgame-guards");
+test("cant-stop: active non-host can leave only on their turn and remaining players continue", async () => {
+  const { host, guestA, guestB, started } = await startThreePlayerGame("active-leave");
+  const version = 500;
+  const fixture = {
+    ...started.game,
+    phase: "PUSH_OR_STOP",
+    turnOrder: [host.id, guestA.id, guestB.id],
+    turnIndex: 1,
+    activePlayerId: guestA.id,
+    playerProgress: {
+      [host.id]: { 4: 2 },
+      [guestA.id]: { 7: 3, 8: 2 },
+      [guestB.id]: { 9: 1 },
+    },
+    claimedColumns: {
+      3: guestA.id,
+      4: host.id,
+    },
+    runners: { 7: 5, 8: 3 },
+    latestDice: [3, 4, 2, 6],
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
 
-  const leaveResult = await rpc("cant_stop_leave_room", {
+  await expectOk(await rpc("cant_stop_leave_room", {
     p_room_id: started.room.id,
-    p_expected_version: Number(started.version),
+    p_expected_version: version,
+  }, guestA.accessToken), "active guest cant_stop_leave_room");
+
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: started.room.id,
+  }, host.accessToken), "snapshot after active guest leave");
+
+  assert.equal(snapshot.room.status, "playing");
+  assert.equal(snapshot.players.length, 2);
+  assert.equal(snapshot.players.some((player) => player.userId === guestA.id), false);
+  assert.deepEqual(snapshot.game.turnOrder, [host.id, guestB.id]);
+  assert.equal(snapshot.game.turnIndex, 1);
+  assert.equal(snapshot.game.activePlayerId, guestB.id);
+  assert.equal(snapshot.game.phase, "TURN_ROLL");
+  assert.equal(Object.hasOwn(snapshot.game.playerProgress, guestA.id), false);
+  assert.equal(
+    Object.values(snapshot.game.claimedColumns).includes(guestA.id),
+    false,
+  );
+  assert.equal(snapshot.game.claimedColumns["4"], host.id);
+  assert.deepEqual(snapshot.game.runners, {});
+  assert.equal(snapshot.game.latestDice, null);
+  assert.deepEqual(snapshot.game.legalPairings, []);
+});
+
+test("cant-stop: inactive non-host cannot leave an active game", async () => {
+  const { host, guestA, guestB, started } = await startThreePlayerGame("active-leave-turn-guard");
+  const version = 510;
+  const fixture = {
+    ...started.game,
+    phase: "TURN_ROLL",
+    turnOrder: [host.id, guestA.id, guestB.id],
+    turnIndex: 1,
+    activePlayerId: guestA.id,
+    playerProgress: {
+      [host.id]: {},
+      [guestA.id]: {},
+      [guestB.id]: {},
+    },
+    claimedColumns: {},
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const result = await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+  }, guestB.accessToken);
+
+  expectDenied(result, "inactive guest cant_stop_leave_room", /LEAVE_TURN_REQUIRED/u);
+});
+
+test("cant-stop: two-player active game cannot be reduced below the minimum", async () => {
+  const { host, guest, started } = await startTwoPlayerGame("active-leave-minimum");
+  const version = 520;
+  const fixture = {
+    ...started.game,
+    phase: "TURN_ROLL",
+    turnOrder: [host.id, guest.id],
+    turnIndex: 1,
+    activePlayerId: guest.id,
+    playerProgress: {
+      [host.id]: {},
+      [guest.id]: {},
+    },
+    claimedColumns: {},
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const result = await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
   }, guest.accessToken);
-  expectDenied(leaveResult, "leave active game", /ROOM_NOT_LEAVABLE/u);
+
+  expectDenied(result, "minimum-player cant_stop_leave_room", /LEAVE_MIN_PLAYERS/u);
+});
+
+test("cant-stop: active host must use game termination instead of leaving", async () => {
+  const { host, guestA, guestB, started } = await startThreePlayerGame("active-host-leave");
+  const version = 530;
+  const fixture = {
+    ...started.game,
+    phase: "TURN_ROLL",
+    turnOrder: [host.id, guestA.id, guestB.id],
+    turnIndex: 0,
+    activePlayerId: host.id,
+    playerProgress: {
+      [host.id]: {},
+      [guestA.id]: {},
+      [guestB.id]: {},
+    },
+    claimedColumns: {},
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    winnerId: null,
+  };
+  await setAuthoritativeGameState(started.room.id, fixture, version);
+
+  const result = await rpc("cant_stop_leave_room", {
+    p_room_id: started.room.id,
+    p_expected_version: version,
+  }, host.accessToken);
+
+  expectDenied(result, "active host cant_stop_leave_room", /ACTIVE_HOST_MUST_END_GAME/u);
+});
+
+test("cant-stop: rematch remains unavailable before GAME_OVER", async () => {
+  const { host, started } = await startTwoPlayerGame("postgame-rematch-guard");
 
   const rematchResult = await rpc("cant_stop_prepare_rematch", {
     p_room_id: started.room.id,
