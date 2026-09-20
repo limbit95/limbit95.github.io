@@ -1,7 +1,7 @@
 export const CANT_STOP_PRESENTATION_TIMINGS = Object.freeze({
   rollCycleMs: 900,
   rollMinimumMs: 900,
-  bustMs: 1250,
+  bustMs: 3600,
 });
 
 function snapshotVersion(state) {
