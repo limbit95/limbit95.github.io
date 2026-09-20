@@ -364,16 +364,20 @@ export function createCantStopLobbyController({
         clientActionId: idFactory(),
       });
 
-      applySnapshot(continued, {
-        connection: "connected",
-        effect: null,
-      });
-
-      const rolled = await requireGameplay().rollDice({
-        roomId: snapshot.room.id,
-        expectedVersion: Number(continued.version),
-        clientActionId: idFactory(),
-      });
+      let rolled;
+      try {
+        rolled = await requireGameplay().rollDice({
+          roomId: snapshot.room.id,
+          expectedVersion: Number(continued.version),
+          clientActionId: idFactory(),
+        });
+      } catch (error) {
+        applySnapshot(continued, {
+          connection: "connected",
+          effect: null,
+        });
+        throw error;
+      }
 
       const nextActivePlayerId = String(rolled?.game?.activePlayerId ?? "");
       const busted = rolled?.game?.phase === "TURN_ROLL"
