@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   platformGameIdFromPath,
   validatePullRequestChanges,
   validateRepositoryState,
 } from "../scripts/check-game-platform-governance.mjs";
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function game({
   id,
@@ -238,4 +243,15 @@ test("new shared modules require contract test and platform documentation change
       { status: "M", path: "docs/game-platform-development-rules.md" },
     ],
   }), []);
+});
+
+
+test("Game Platform rules prohibit game-local nickname editing", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /게임 로비에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다/u);
+  assert.match(rules, /프로필의 닉네임을 직접 조회/u);
 });
