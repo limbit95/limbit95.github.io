@@ -42,6 +42,27 @@
 
 청파 같이 구현에서는 사전 주사위로 선 플레이어를 정하지 않는다. 게임 시작 RPC가 서버에서 플레이어 순서를 한 번 무작위로 확정하고 authoritative game state에 저장한다.
 
+### Rules Audit — 2026-09-20
+
+정식 기본 규칙과 pure JS rules engine, 운영 Supabase의 `private.cant_stop_legal_pairings` / `private.cant_stop_commit_stop` 계산을 대조했다.
+
+감사에서 확인한 엣지 케이스:
+
+- runner 두 개 사용 중이고 남은 한 자리로 두 새 열 중 하나만 열 수 있을 때 두 single plan을 모두 허용
+- runner 두 개 사용 중이며 기존 열 + 새 열을 함께 움직일 수 있으면 두 이동을 모두 강제
+- runner 세 개를 이미 사용 중이면 새 열은 막고 기존 runner 이동만 허용
+- 한 합이 claim된 열이면 다른 합만 합법적으로 움직일 수 있을 때 single move 허용
+- 같은 합 두 번에서 정상까지 한 칸만 남았으면 가능한 한 칸만 이동
+- runner가 이미 정상에 있어 더 못 움직여도 다른 합이 합법이면 다른 합 이동 허용
+- 모든 가능한 합이 정상/runner 제한/claim으로 막히면 bust
+- 정상 도달은 즉시 claim이 아니며 stop 전 bust 시 해당 정상 도달도 소멸
+- 한 번의 stop에서 여러 열을 동시에 claim 가능
+- 기존 두 claim + 두 동시 claim처럼 세 개를 넘어도 `claimedCount >= 3`으로 즉시 승리
+- claim 전에는 서로 다른 플레이어의 permanent marker가 같은 칸에 공존 가능
+- claim 시에만 다른 플레이어의 해당 열 progress 제거
+
+감사 결과 core gameplay 규칙 차이는 발견되지 않았다. 정식 규칙서와 다른 의도적 digital adaptation은 **게임 시작 순서 결정**뿐이다. 규칙서는 선 플레이어를 별도 방식으로 정한 뒤 좌석 순서로 진행하지만, 청파 같이 버전은 온라인 좌석에 물리적 의미가 없으므로 서버가 전체 turn order를 한 번 무작위 확정하고 이후 그 순서를 순환한다. 이 차이는 pairing / runner / bust / stop / claim / 승리 규칙에는 영향을 주지 않는다.
+
 사용자용 규칙은 `rulesHelp.js`의 상세 가이드를 로비와 실제 플레이 화면에서 modal로 제공한다. 처음 플레이하는 사용자가 외부 검색 없이 목표, 열 높이, 주사위 pairing, runner 제한, stop, bust, claim, 승리, 수동 종료까지 이해할 수 있는 수준을 유지한다.
 
 ## Product Scope
