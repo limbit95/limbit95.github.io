@@ -93,11 +93,16 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
 
   const game = snapshot.game;
   const viewerId = String(snapshot.viewerUserId ?? currentUserId ?? "");
-  const players = snapshot.players.map((player, index) => Object.freeze({
-    id: gameplayPlayerId(player),
-    displayName: String(player.displayName ?? player.nickname ?? `플레이어 ${index + 1}`),
-    index,
-  }));
+  const players = snapshot.players.map((player, index) => {
+    const seat = Number.isInteger(player.seat) && player.seat >= 0
+      ? player.seat
+      : index;
+    return Object.freeze({
+      id: gameplayPlayerId(player),
+      displayName: String(player.displayName ?? player.nickname ?? `플레이어 ${index + 1}`),
+      index: seat,
+    });
+  });
   const playerMap = new Map(players.map((player) => [player.id, player]));
   const activePlayerId = String(game.activePlayerId ?? "");
   const activePlayer = playerMap.get(activePlayerId) ?? null;
