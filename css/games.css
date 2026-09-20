@@ -1,6 +1,6 @@
 .content-grid[aria-label="게임 목록"] > .card.page-stack {
   grid-template-columns: clamp(76px, 18vw, 88px) minmax(0, 320px);
-  grid-template-rows: auto auto;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     "icon details"
     "action action";
@@ -38,6 +38,7 @@
   grid-area: action;
   width: 100%;
   justify-self: stretch;
+  align-self: end;
 }
 
 .home-games-card {
