@@ -395,3 +395,20 @@ test("Can't Stop push-or-stop removes implementation copy and hides the normal p
     /state\.view === CANT_STOP_LOBBY_VIEW\.PLAYING[\s\S]*state\.connection === "connected"[\s\S]*game-platform-status/u,
   );
 });
+
+
+test("Can't Stop board phase card contains no secondary helper copy", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.equal(app.includes("현재 runner를 유지한 채 네 개의 주사위를 서버에서 굴립니다."), false);
+  assert.equal(app.includes("상대 플레이어의 선택을 기다리고 있어요."), false);
+  assert.equal(app.includes("상대 플레이어의 결정을 기다리고 있어요."), false);
+
+  const boardStart = app.indexOf("function createBoard(view, state)");
+  const sidebarStart = app.indexOf("function createGameplaySidebar(view, state)", boardStart);
+  const boardSource = app.slice(boardStart, sidebarStart);
+  assert.equal(boardSource.includes("heading.description"), false);
+});
