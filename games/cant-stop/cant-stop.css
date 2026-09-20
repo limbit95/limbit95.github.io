@@ -2667,3 +2667,28 @@ body {
     font-size: .72rem;
   }
 }
+
+
+.cant-stop-dice-stage {
+  grid-template-rows: auto 122px 46px auto minmax(470px, 1fr);
+}
+
+.cant-stop-dice-stage__dice {
+  min-height: 122px;
+}
+
+.cant-stop-dice-stage__caption--empty {
+  min-height: 18px;
+  margin: 0;
+  visibility: hidden;
+}
+
+@media (max-width: 899px) {
+  .cant-stop-dice-stage {
+    grid-template-rows: auto 116px 44px auto minmax(410px, 1fr);
+  }
+
+  .cant-stop-dice-stage__dice {
+    min-height: 116px;
+  }
+}
