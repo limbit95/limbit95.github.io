@@ -49,6 +49,13 @@ test("signup checks nicknames after email verification and rechecks before final
   assert.match(signup, /이미 사용 중인 닉네임입니다\. 다른 닉네임을 선택해 주세요/);
 });
 
+test("nickname checks preserve the existing signup OTP countdown lifecycle", () => {
+  assert.match(
+    signup,
+    /refreshResendCooldown = tick;\n    tick\(\);\n    timerId = setInterval\(\(\) => \{/,
+  );
+});
+
 test("profile editing keeps the current nickname but validates changed nicknames", () => {
   assert.match(mypage, /const originalDisplayNameKey = normalizeDisplayNameKey\(auth\.profile\.display_name\)/);
   assert.match(mypage, /현재 사용 중인 닉네임입니다/);
