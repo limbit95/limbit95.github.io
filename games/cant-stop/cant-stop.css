@@ -2368,3 +2368,82 @@ body {
     padding: .9rem 1rem;
   }
 }
+
+
+/* Polish phase 2e: simplify phase cards and refine the centered bust notice. */
+.cant-stop-board__phase-copy {
+  gap: .04rem;
+}
+
+.cant-stop-board__phase-copy .cant-stop-board__description {
+  display: none;
+}
+
+.cant-stop-bust-notice {
+  isolation: isolate;
+  overflow: hidden;
+  padding: 1.2rem 1.45rem 1.2rem 1.65rem;
+  gap: .42rem;
+  border: 1px solid rgba(109, 158, 174, .58);
+  background:
+    linear-gradient(145deg, rgba(250,254,255,.98), rgba(226,242,247,.96));
+  color: #284753;
+  text-align: left;
+  box-shadow:
+    0 22px 52px rgba(24, 55, 67, .24),
+    0 5px 14px rgba(48, 91, 106, .12),
+    inset 0 1px 0 rgba(255,255,255,.96);
+}
+
+.cant-stop-bust-notice::before {
+  position: absolute;
+  left: 0;
+  top: 15%;
+  bottom: 15%;
+  width: 5px;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(180deg, #4f8294, #79b7c4);
+  content: "";
+}
+
+.cant-stop-bust-notice::after {
+  position: absolute;
+  right: -18px;
+  bottom: -20px;
+  z-index: -1;
+  width: 150px;
+  height: 86px;
+  background:
+    linear-gradient(155deg, transparent 0 31%, rgba(152, 194, 205, .17) 32% 54%, transparent 55%),
+    linear-gradient(205deg, transparent 0 42%, rgba(255,255,255,.62) 43% 65%, transparent 66%);
+  clip-path: polygon(0 100%, 23% 61%, 39% 74%, 60% 25%, 76% 54%, 100% 14%, 100% 100%);
+  content: "";
+}
+
+.cant-stop-bust-notice strong {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin: 0;
+  color: #24424e;
+  font-size: clamp(1.3rem, 2.1vw, 1.6rem);
+  line-height: 1.25;
+}
+
+.cant-stop-bust-notice span {
+  position: relative;
+  z-index: 1;
+  display: block;
+  max-width: 40ch;
+  margin: 0;
+  padding-left: .08rem;
+  color: #536f79;
+  font-size: clamp(.92rem, 1.3vw, 1.02rem);
+  line-height: 1.65;
+}
+
+@media (max-width: 520px) {
+  .cant-stop-bust-notice {
+    padding: 1rem 1.05rem 1rem 1.3rem;
+  }
+}
