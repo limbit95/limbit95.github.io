@@ -93,11 +93,16 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
 
   const game = snapshot.game;
   const viewerId = String(snapshot.viewerUserId ?? currentUserId ?? "");
-  const players = snapshot.players.map((player, index) => Object.freeze({
-    id: gameplayPlayerId(player),
-    displayName: String(player.displayName ?? player.nickname ?? `플레이어 ${index + 1}`),
-    index,
-  }));
+  const players = snapshot.players.map((player, index) => {
+    const seat = Number.isInteger(player.seat) && player.seat >= 0
+      ? player.seat
+      : index;
+    return Object.freeze({
+      id: gameplayPlayerId(player),
+      displayName: String(player.displayName ?? player.nickname ?? `플레이어 ${index + 1}`),
+      index: seat,
+    });
+  });
   const playerMap = new Map(players.map((player) => [player.id, player]));
   const activePlayerId = String(game.activePlayerId ?? "");
   const activePlayer = playerMap.get(activePlayerId) ?? null;
@@ -172,6 +177,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
     winnerName: winner?.displayName ?? null,
     endReason,
     isManuallyEnded: phase === CANT_STOP_PHASE.GAME_OVER && endReason === "MANUAL",
+    isPlayerLeftEnded: phase === CANT_STOP_PHASE.GAME_OVER && endReason === "PLAYER_LEFT",
     latestDice,
     legalPairings,
     columns: Object.freeze(columns),
@@ -187,6 +193,7 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ROOM_NOT_FOUND", "방을 찾을 수 없거나 이미 시작된 방이에요."],
   ["ROOM_FULL", "방 인원이 모두 찼어요."],
   ["ACTIVE_ROOM_EXISTS", "이미 참여 중인 Can’t Stop 방이 있어요."],
+  ["PROFILE_NICKNAME_REQUIRED", "마이페이지에서 사용할 닉네임을 먼저 설정해 주세요."],
   ["VERSION_CONFLICT", "방 상태가 방금 변경됐어요. 최신 상태를 다시 불러와 주세요."],
   ["HOST_REQUIRED", "방장만 게임을 시작할 수 있어요."],
   ["PLAYERS_NOT_READY", "모든 플레이어가 준비한 뒤 시작할 수 있어요."],
@@ -201,7 +208,10 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["GAME_NOT_PLAYING", "현재 진행 중인 게임이 아니에요."],
   ["GAME_NOT_OVER", "게임이 종료된 뒤에만 재대결을 준비할 수 있어요."],
   ["GAME_END_HOST_REQUIRED", "진행 중인 게임 전체 종료는 방장만 할 수 있어요."],
-  ["ROOM_NOT_LEAVABLE", "진행 중인 게임에서는 방을 나갈 수 없어요."],
+  ["ACTIVE_HOST_MUST_END_GAME", "방장은 진행 중인 게임에서 방 나가기 대신 게임 종료를 사용해 주세요."],
+  ["LEAVE_TURN_REQUIRED", "방 나가기는 자신의 턴에만 할 수 있어요."],
+  ["LEAVE_MIN_PLAYERS", "게임을 계속하려면 최소 2명의 플레이어가 남아 있어야 해요."],
+  ["ROOM_NOT_LEAVABLE", "현재 상태에서는 방을 나갈 수 없어요."],
   ["INVALID_INVITE_TOKEN", "올바르지 않은 초대 링크예요."],
   ["INVITE_NOT_FOUND_OR_EXPIRED", "초대 링크가 만료되었거나 취소되었어요."],
   ["GAME_INVITE_MISMATCH", "Can’t Stop 방 초대 링크가 아니에요."],

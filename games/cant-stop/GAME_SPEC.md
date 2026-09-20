@@ -42,6 +42,27 @@
 
 청파 같이 구현에서는 사전 주사위로 선 플레이어를 정하지 않는다. 게임 시작 RPC가 서버에서 플레이어 순서를 한 번 무작위로 확정하고 authoritative game state에 저장한다.
 
+### Rules Audit — 2026-09-20
+
+정식 기본 규칙과 pure JS rules engine, 운영 Supabase의 `private.cant_stop_legal_pairings` / `private.cant_stop_commit_stop` 계산을 대조했다.
+
+감사에서 확인한 엣지 케이스:
+
+- runner 두 개 사용 중이고 남은 한 자리로 두 새 열 중 하나만 열 수 있을 때 두 single plan을 모두 허용
+- runner 두 개 사용 중이며 기존 열 + 새 열을 함께 움직일 수 있으면 두 이동을 모두 강제
+- runner 세 개를 이미 사용 중이면 새 열은 막고 기존 runner 이동만 허용
+- 한 합이 claim된 열이면 다른 합만 합법적으로 움직일 수 있을 때 single move 허용
+- 같은 합 두 번에서 정상까지 한 칸만 남았으면 가능한 한 칸만 이동
+- runner가 이미 정상에 있어 더 못 움직여도 다른 합이 합법이면 다른 합 이동 허용
+- 모든 가능한 합이 정상/runner 제한/claim으로 막히면 bust
+- 정상 도달은 즉시 claim이 아니며 stop 전 bust 시 해당 정상 도달도 소멸
+- 한 번의 stop에서 여러 열을 동시에 claim 가능
+- 기존 두 claim + 두 동시 claim처럼 세 개를 넘어도 `claimedCount >= 3`으로 즉시 승리
+- claim 전에는 서로 다른 플레이어의 permanent marker가 같은 칸에 공존 가능
+- claim 시에만 다른 플레이어의 해당 열 progress 제거
+
+감사 결과 core gameplay 규칙 차이는 발견되지 않았다. 정식 규칙서와 다른 의도적 digital adaptation은 **게임 시작 순서 결정**뿐이다. 규칙서는 선 플레이어를 별도 방식으로 정한 뒤 좌석 순서로 진행하지만, 청파 같이 버전은 온라인 좌석에 물리적 의미가 없으므로 서버가 전체 turn order를 한 번 무작위 확정하고 이후 그 순서를 순환한다. 이 차이는 pairing / runner / bust / stop / claim / 승리 규칙에는 영향을 주지 않는다.
+
 사용자용 규칙은 `rulesHelp.js`의 상세 가이드를 로비와 실제 플레이 화면에서 modal로 제공한다. 처음 플레이하는 사용자가 외부 검색 없이 목표, 열 높이, 주사위 pairing, runner 제한, stop, bust, claim, 승리, 수동 종료까지 이해할 수 있는 수준을 유지한다.
 
 ## Product Scope
@@ -149,6 +170,7 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 
 서버가 최종 결정하는 항목:
 
+- 방 생성/참가 시 표시할 플레이어 닉네임은 클라이언트 입력값이 아니라 사이트 `profiles.display_name`으로 확정
 - 실제 주사위 네 개의 결과
 - 가능한 pairing 목록과 선택 유효성
 - runner 이동 가능 여부
@@ -198,18 +220,41 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 
 - Common Game Shell로 제목, 방 정보, 연결 상태, roster, 공통 action 영역을 제공한다.
 - 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성하고, 상용판 아트를 복제하지 않은 고유 설산/빙설 테마를 사용한다.
-- permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다.
-- 현재 roll의 네 주사위와 가능한 pairing 선택지를 함께 보여준다.
-- 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다.
+- permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다. 최대 4명의 player는 seat별 고유 고대비 색상을 사용해 검은 track 위에서도 말의 소유자를 빠르게 구분할 수 있게 한다.
+- 현재 roll의 네 주사위와 가능한 pairing 선택지는 보드 위에 삽입하지 않고 오른쪽 sidebar의 전용 dice/route panel에서 함께 보여준다.
+- dice/route panel은 게임 phase가 바뀌어도 높이를 유지해 board playfield가 위아래로 흔들리지 않게 한다. 플레이 중에는 별도 현재 턴 정보 카드를 두지 않고 이 패널이 sidebar 정보 영역을 주로 사용한다.
+- 플레이어 roster는 대기 중의 준비 상태를 게임 시작 후 `게임 중`으로 전환하고, 연결이 끊기면 `연결 끊김`을 표시한다. active player는 고유 player color의 `현재 턴` badge와 card accent로 강조한다. 각 player card에는 현재 차지한 열 수를 `완주 N/3`으로 함께 표시한다.
+- pairing 선택 시 실제 네 주사위가 어떤 두 쌍으로 묶여 각 열의 합을 만드는지 mini-dice → column number 형태로 설명하고, 서버가 허용한 legal move plan만 선택 버튼으로 노출한다.
+- 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다. 주사위 눈금은 폰트 glyph에 의존하지 않고 3×3 pip face로 그려 작은 화면에서도 값이 즉시 읽혀야 한다.
+- 턴의 첫 roll에는 `주사위 굴리기` 하나만 노출한다. pairing 이동 이후 PUSH OR STOP에서는 같은 dice card 안에 왼쪽 `주사위 굴리기`, 오른쪽 `멈추기`를 나란히 배치한다. 어느 단계에서든 roll 요청이 진행 중이면 두 버튼을 숨기고 폭 전체의 비활성 `주사위 굴리는 중…` 버튼 하나만 보여 layout clipping을 방지한다. 계속 굴리기는 client에서 authoritative `continue_turn` 결과 version을 사용해 곧바로 `roll_dice`를 이어 호출하되 중간 TURN_ROLL snapshot은 화면에 노출하지 않아 한 번의 사용자 클릭/한 번의 roll presentation으로 진행한다.
+- dice roll에는 짧은 clatter 효과음을, bust에는 눈보라/바람 효과음을 Web Audio로 제공한다. 효과음 재생 실패는 게임 진행을 막지 않는다.
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
-- bust 시 설산에서 미끄러지는 등반자와 눈보라 피드백을 보여줘 임시 진척 소멸과 턴 변경을 갑작스럽지 않게 설명한다.
+- bust 시 runner가 산 정상 기준 좌우 경사 방향으로 미끄러지고, 말 주변의 눈가루와 짧은 눈사태/powder 연출을 함께 보여줘 설산 등반 실패의 재미를 강화한다. 눈보라 전경 입자는 선형 streak가 아니라 크기가 다른 둥근 눈덩이/눈가루 particle로 표현한다. 눈/runner 연출 자체는 짧게 끝내되 결과 안내 카드는 보드 중앙에서 약 4초 유지해 사용자가 내용을 읽을 시간을 보장한다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
 - 로비/플레이 중 언제든 상세 규칙 modal을 열 수 있다.
 - 진행 중 방장은 확인 dialog를 거쳐 전체 게임을 수동 종료할 수 있고, 종료 결과는 모든 클라이언트의 authoritative GAME_OVER snapshot으로 동기화한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
 - 원본 상용판의 보드/말 그래픽은 복제하지 않고 청파 같이 고유 시각 디자인을 사용한다.
 - online entry는 방 만들기 또는 6자리 코드 참가로 시작하며, waiting room에서 준비 상태와 방장 시작 조건을 명확히 보여준다.
+- entry lobby에는 닉네임 입력/변경 UI를 두지 않는다. 로그인한 승인회원의 사이트 프로필 닉네임을 그대로 사용하며 닉네임 변경과 중복 검사는 마이페이지의 공통 프로필 흐름에서만 수행한다.
+- entry 화면은 정상 연결 상태 카드를 별도로 노출하지 않고 새 방 만들기 / 코드 참가 두 행동에 집중한다. 규칙 보기는 오른쪽 온라인 플레이 안내 카드 하단에 둔다.
+- waiting room은 별도 준비 카드 대신 실제 게임 보드를 미리 보여주며, 보드 phase card에 `게임 준비 중`과 전원 준비 안내를 표시한다. 오른쪽은 profile avatar 기반 player roster와 방 안내/ready-start controls를 유지한다.
+- player roster는 사이트 공개 프로필의 avatar를 사용하고 avatar가 없거나 서명 URL을 얻지 못하면 사이트 공통 `assets/images/default-avatar.svg`를 사용한다. waiting에서 ready player는 seat accent를 활용한 card background로 구분한다.
+- desktop gameplay board mountain은 900px 기준으로 확대하고 right sidebar를 같은 grid row에 stretch해 dice/route card 하단과 board 영역 하단이 일렬로 맞도록 한다.
+- gameplay의 규칙/새로고침/게임 종료 같은 utility action은 하단 sticky footer가 아니라 player roster와 dice stage 사이의 compact sidebar toolbar에 둔다.
+- waiting/playing room에서는 manual refresh 중 Common Shell connection status card를 별도로 생성하지 않는다. 오류는 기존 inline error presentation으로 전달한다.
+- GAME_OVER에서는 새로고침 utility를 숨기고 규칙/재대결/방 나가기만 보여 compact toolbar 높이가 불필요하게 늘어나지 않게 한다.
+- 진행 중 비방장 플레이어는 자신의 턴에서만 방 나가기를 실행할 수 있다. 3~4인 게임에서 이탈 후 2명 이상이 남으면 서버는 이탈자를 turnOrder/playerProgress/claimedColumns에서 제거하고 해당 턴 runners/latestDice/legalPairings를 초기화한 뒤 남은 순서의 다음 플레이어에게 TURN_ROLL을 넘긴다.
+- 2인 게임에서 비방장이 자신의 턴에 나가면 이탈 자체는 허용하되 게임을 즉시 `GAME_OVER`로 종료한다. 승자는 지정하지 않고 `endReason = PLAYER_LEFT`와 `endedById`를 기록하며, 남은 방장은 재대결을 눌러 1인 waiting room으로 돌아간 뒤 새 플레이어가 참가해야 다시 시작할 수 있다.
+- 진행 중 방장은 방 나가기 대신 게임 종료를 사용한다.
+- 진행 중 gameplay utility toolbar는 현재 버튼 수에 맞춰 동일 폭 column으로 채우며 빈 가로 여백을 남기지 않는다. 방장은 `게임 종료`, 일반 플레이어는 `방 나가기`를 본다.
+- 일반 플레이어의 진행 중 방 나가기는 자신의 턴에서만 허용한다. 3명 이상일 때는 남은 플레이어가 2명 이상이면 게임을 계속하고, 정확히 2명일 때 비방장이 나가면 게임을 종료한다.
+- 진행 중 이탈이 성공하면 해당 플레이어를 active room membership / turn order / player progress에서 제거하고, 해당 플레이어 소유 claim과 현재 runner를 제거한다. 2명 이상 남으면 다음 플레이어의 `TURN_ROLL`로 정규화하고, 1명만 남으면 `PLAYER_LEFT` GAME_OVER로 정규화한다.
+- 방장은 진행 중 방 나가기를 사용하지 않고 host-only `게임 종료` 흐름을 사용한다.
+- action validation 오류는 board 안의 inline error card로 레이아웃을 밀지 않고 3초 뒤 자동으로 닫히는 transient modal로 표시한다.
+- Game Shell patch 시 entry/waiting/playing state class를 기존 shell root에도 동기화해 waiting ready tint와 gameplay 900px board override가 실제 DOM에 즉시 적용되게 한다.
+- host manual-end confirmation dialog는 alpine sky/mountain/number marker visual language를 재사용하고 계속 플레이/게임 종료 선택을 명확한 bordered controls로 구분한다.
 - Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
 - 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
 
@@ -289,3 +334,9 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 - invite token resolve 이후 실제 참가 권한은 `cant_stop_join_room_by_invite`가 token을 서버에서 다시 검증해 결정한다.
 - Invite 소스 연결과 Registry capability 활성화는 분리하며 운영 migration + live smoke test 전에는 `online/invite`를 활성화하지 않는다.
 - 현재 설산/2.5D 주사위/bust 연출은 첫 폴리싱 기준이며 실제 멀티브라우저 playtest 후 세부 속도·크기·강도를 조정한다.
+
+
+- 정상적인 connected gameplay에서는 상단 연결 상태 카드를 숨겨 플레이 화면을 단순화한다. reconnect/error 상태에서는 해당 배너를 다시 노출해 필요한 연결 정보만 보여준다.
+- gameplay phase card는 eyebrow와 굵은 핵심 제목만 표시하고 그 아래의 보조 설명 문구는 사용하지 않는다. ROLL / CHOOSE / PUSH OR STOP 모두 동일한 정보 밀도를 유지한다.
+- PUSH OR STOP phase는 선택 자체가 명확하므로 구현 설명 문구를 추가하지 않고 행동 제목과 실제 버튼에 집중한다.
+- bust 결과 안내 카드는 보드 중앙에서 설산/빙설 palette의 옅은 gradient surface, 좌측 accent, 절제된 shadow를 사용하고 텍스트는 좌측 정렬해 읽기 쉽도록 한다.

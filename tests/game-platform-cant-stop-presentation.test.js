@@ -164,3 +164,64 @@ test("Can't Stop presentation stages a remote bust on the currently displayed bo
   assert.equal(presented.at(-1).snapshot.version, 31);
   assert.equal(presented.at(-1).effect, null);
 });
+
+
+test("Can't Stop presentation keeps local bust feedback when a same-version realtime refresh drops the effect", () => {
+  const clock = fakeClock();
+  const presented = [];
+  const coordinator = createCantStopPresentationCoordinator({
+    onPresent: (next) => presented.push(next),
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  coordinator.receive(state({
+    version: 40,
+    busy: true,
+    busyAction: "rollDice",
+    activePlayerId: "alice",
+  }));
+
+  clock.advance(240);
+  coordinator.receive(state({
+    version: 41,
+    busy: true,
+    busyAction: "rollDice",
+    activePlayerId: "bob",
+    effect: { type: "bust", playerId: "alice", version: 41 },
+  }));
+
+  coordinator.receive(state({
+    version: 41,
+    busy: false,
+    activePlayerId: "bob",
+    effect: null,
+  }));
+
+  clock.advance(CANT_STOP_PRESENTATION_TIMINGS.rollCycleMs - 240);
+
+  assert.equal(presented.at(-1).snapshot.version, 40);
+  assert.equal(presented.at(-1).effect?.type, "bust");
+  assert.equal(presented.at(-1).effect?.playerId, "alice");
+
+  coordinator.receive(state({
+    version: 41,
+    busy: false,
+    activePlayerId: "bob",
+    effect: null,
+  }));
+
+  clock.advance(CANT_STOP_PRESENTATION_TIMINGS.bustMs - 1);
+  assert.equal(presented.at(-1).snapshot.version, 40);
+  assert.equal(presented.at(-1).effect?.type, "bust");
+
+  clock.advance(1);
+  assert.equal(presented.at(-1).snapshot.version, 41);
+  assert.equal(presented.at(-1).effect, null);
+});
+
+
+test("Can't Stop bust notice timing is four seconds", () => {
+  assert.equal(CANT_STOP_PRESENTATION_TIMINGS.bustMs, 4000);
+});

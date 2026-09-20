@@ -125,10 +125,11 @@
 - gameplay UI는 authoritative snapshot을 표시할 뿐 dice/pairing/runner 결과를 client에서 재계산해 truth로 사용하지 않는다.
 - legal pairing이 정확히 하나여도 자동 적용하지 않고 active player가 명시적으로 plan을 선택해 commit한다.
 - 재대결은 즉시 새 게임을 강제 시작하지 않고 GAME_OVER room을 waiting으로 되돌린 뒤 기존 ready/start 계약을 다시 사용한다.
-- 진행 중인 게임에서는 기존처럼 방 나가기를 금지하며 GAME_OVER에서만 leave를 허용한다.
+- 진행 중 비방장 플레이어는 자신의 턴에 방 나가기가 가능하다. 3~4인 게임은 2명 이상 남으면 계속 진행하고, 2인 게임의 비방장 이탈은 승자 없이 `PLAYER_LEFT` GAME_OVER로 종료한다. 진행 중 방장은 게임 종료 흐름을 사용한다.
 - Invite는 반드시 shared `game_room` 계약을 사용하고 game-local target type을 새로 만들지 않는다.
 - client invite resolve는 라우팅/UX 검증이고 최종 room 참가 권한은 서버 `cant_stop_join_room_by_invite`가 token을 다시 검증해 결정한다.
 - Invite 소스가 구현되어도 Registry `online/invite` capability는 운영 migration + smoke test가 끝날 때까지 false로 유지한다.
+- 게임 로비의 닉네임 입력/변경 UI는 제거하고 사이트 프로필 닉네임을 사용한다. Can’t Stop DB는 room player nickname 저장 시 `profiles.display_name`을 강제해 client override를 authoritative 값으로 사용하지 않는다.
 
 ## Validation
 
@@ -148,3 +149,7 @@
 - post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
 - Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
+- profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143502 cant_stop_profile_nickname`으로 기록되어 있다.
+- active-turn leave migration `20260920223000_cant_stop_active_turn_leave.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143513 cant_stop_active_turn_leave`로 기록되어 있다.
+- 2인 게임 비방장 이탈을 `PLAYER_LEFT` GAME_OVER로 전환하는 후속 migration `20260920231500_cant_stop_two_player_leave_game_over.sql`을 production에 적용 완료했다. 운영 migration history에는 `20260920150002 cant_stop_two_player_leave_game_over`로 기록되어 있다.
+- 운영 검증에서 room nickname 1~50자 제약, profile nickname trigger, create/join/invite의 profile lookup, active leave의 turn/min-player guard와 progress/claim/runner cleanup 정의를 확인했다.

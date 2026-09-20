@@ -151,3 +151,113 @@ test("Can't Stop claiming a third column ends the game without advancing the tur
   assert.equal(stopped.winnerId, "bob");
   assert.equal(stopped.activePlayerId, "bob");
 });
+
+
+test("Can't Stop keeps one-move pairings available even when another pairing can make two moves", () => {
+  const state = gameState();
+  state.runners = { 2: 1, 3: 1 };
+
+  const rolled = resolveRoll(state, [2, 3, 4, 5]);
+  const fiveNine = rolled.legalPairings.find((pairing) =>
+    pairing.sums[0] === 5 && pairing.sums[1] === 9);
+  const sevenSeven = rolled.legalPairings.find((pairing) =>
+    pairing.sums[0] === 7 && pairing.sums[1] === 7);
+
+  assert.deepEqual(fiveNine.plans, [[5], [9]]);
+  assert.deepEqual(sevenSeven.plans, [[7, 7]]);
+});
+
+test("Can't Stop requires both moves when an existing runner and one new runner are both legal", () => {
+  const state = gameState();
+  state.runners = { 2: 1, 3: 1 };
+
+  assert.deepEqual(getLegalMovePlans(state, [3, 6]), [[3, 6]]);
+});
+
+test("Can't Stop skips a claimed sum only when the other sum can still move", () => {
+  const state = gameState();
+  state.claimedColumns[6] = "alice";
+
+  assert.deepEqual(getLegalMovePlans(state, [6, 8]), [[8]]);
+});
+
+test("Can't Stop can use the other sum when one runner is already at the top", () => {
+  const state = gameState();
+  state.runners = { 7: CANT_STOP_COLUMN_HEIGHTS[7] };
+
+  assert.deepEqual(getLegalMovePlans(state, [7, 8]), [[8]]);
+});
+
+test("Can't Stop busts when every usable sum is blocked by runners already at the top", () => {
+  const state = gameState();
+  state.runners = {
+    2: CANT_STOP_COLUMN_HEIGHTS[2],
+    3: CANT_STOP_COLUMN_HEIGHTS[3],
+    4: CANT_STOP_COLUMN_HEIGHTS[4],
+  };
+
+  const busted = resolveRoll(state, [1, 1, 1, 2]);
+
+  assert.equal(busted.activePlayerId, "cara");
+  assert.deepEqual(busted.runners, {});
+  assert.deepEqual(busted.claimedColumns, {});
+});
+
+test("Can't Stop does not claim top runners until the player stops", () => {
+  const state = gameState();
+  state.phase = CANT_STOP_PHASE.PUSH_OR_STOP;
+  state.runners = {
+    2: CANT_STOP_COLUMN_HEIGHTS[2],
+    3: CANT_STOP_COLUMN_HEIGHTS[3],
+    4: CANT_STOP_COLUMN_HEIGHTS[4],
+  };
+
+  const continued = continueTurn(state);
+  assert.deepEqual(continued.claimedColumns, {});
+  assert.deepEqual(continued.runners, state.runners);
+
+  const busted = resolveRoll(continued, [1, 1, 1, 2]);
+  assert.deepEqual(busted.claimedColumns, {});
+  assert.deepEqual(busted.runners, {});
+});
+
+test("Can't Stop can claim multiple columns on one stop and wins at three or more claims", () => {
+  const state = gameState();
+  state.phase = CANT_STOP_PHASE.PUSH_OR_STOP;
+  state.claimedColumns = { 3: "bob", 4: "bob" };
+  state.runners = {
+    2: CANT_STOP_COLUMN_HEIGHTS[2],
+    12: CANT_STOP_COLUMN_HEIGHTS[12],
+  };
+  state.players.find((player) => player.id === "alice").progress = { 2: 2, 12: 1 };
+  state.players.find((player) => player.id === "cara").progress = { 2: 1, 12: 2 };
+
+  const stopped = stopTurn(state);
+
+  assert.equal(stopped.phase, CANT_STOP_PHASE.GAME_OVER);
+  assert.equal(stopped.winnerId, "bob");
+  assert.deepEqual(stopped.claimedColumns, {
+    2: "bob",
+    3: "bob",
+    4: "bob",
+    12: "bob",
+  });
+  assert.equal(stopped.players.find((player) => player.id === "alice").progress[2], undefined);
+  assert.equal(stopped.players.find((player) => player.id === "alice").progress[12], undefined);
+  assert.equal(stopped.players.find((player) => player.id === "cara").progress[2], undefined);
+  assert.equal(stopped.players.find((player) => player.id === "cara").progress[12], undefined);
+});
+
+test("Can't Stop allows players to share permanent progress spaces until a column is claimed", () => {
+  const state = gameState();
+  state.phase = CANT_STOP_PHASE.PUSH_OR_STOP;
+  activePlayer(state).progress[7] = 3;
+  state.players.find((player) => player.id === "alice").progress[7] = 4;
+  state.runners = { 7: 4 };
+
+  const stopped = stopTurn(state);
+
+  assert.equal(stopped.players.find((player) => player.id === "bob").progress[7], 4);
+  assert.equal(stopped.players.find((player) => player.id === "alice").progress[7], 4);
+  assert.equal(stopped.claimedColumns[7], undefined);
+});
