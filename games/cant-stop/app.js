@@ -55,6 +55,17 @@ const CANT_STOP_PLAYER_COLORS = Object.freeze([
 ]);
 
 function decorateCantStopPlayers(players, gameplay = null) {
+  const completedByPlayer = new Map();
+  if (gameplay) {
+    for (const column of gameplay.columns) {
+      if (!column.claimedById) continue;
+      completedByPlayer.set(
+        column.claimedById,
+        (completedByPlayer.get(column.claimedById) ?? 0) + 1,
+      );
+    }
+  }
+
   return players.map((player, index) => {
     const seat = Number.isInteger(player.seat) ? player.seat : index;
     const connected = player.connected !== false;
@@ -65,6 +76,9 @@ function decorateCantStopPlayers(players, gameplay = null) {
       statusLabel: connected
         ? (playing ? (gameplay.isGameOver ? "게임 종료" : "게임 중") : null)
         : "연결 끊김",
+      progressLabel: playing
+        ? `완주 ${completedByPlayer.get(player.id) ?? 0}/3`
+        : null,
       turnLabel: playing
         && !gameplay.isGameOver
         && player.id === gameplay.activePlayerId
@@ -268,7 +282,7 @@ function gameplayHeading(view) {
     return {
       eyebrow: "CHOOSE",
       title: view.isMyTurn ? "이동 조합을 선택하세요" : `${view.activePlayerName}님이 조합을 고르는 중`,
-      description: "서버가 계산한 legal pairing과 이동 plan만 선택할 수 있어요.",
+      description: "",
     };
   }
   return {
@@ -278,6 +292,34 @@ function gameplayHeading(view) {
       ? "더 굴리면 현재 runner는 유지되고, 멈추면 지금 위치가 permanent progress로 확정됩니다."
       : "상대 플레이어의 결정을 기다리고 있어요.",
   };
+}
+
+function createDieFace(value, {
+  mini = false,
+  label = null,
+} = {}) {
+  const numeric = Number(value);
+  const activePips = new Set({
+    1: [5],
+    2: [1, 9],
+    3: [1, 5, 9],
+    4: [1, 3, 7, 9],
+    5: [1, 3, 5, 7, 9],
+    6: [1, 3, 4, 6, 7, 9],
+  }[numeric] ?? []);
+
+  return el("span", {
+    className: mini
+      ? "cant-stop-die-face cant-stop-die-face--mini"
+      : "cant-stop-die-face",
+    dataset: { value: Number.isFinite(numeric) ? String(numeric) : "" },
+    "aria-label": label ?? (Number.isFinite(numeric) ? `주사위 ${numeric}` : "주사위 결과 대기"),
+  }, Array.from({ length: 9 }, (_, index) => el("span", {
+    className: activePips.has(index + 1)
+      ? "cant-stop-die-face__pip cant-stop-die-face__pip--active"
+      : "cant-stop-die-face__pip",
+    "aria-hidden": "true",
+  })));
 }
 
 function pairingPlanLabel(columns) {
@@ -295,9 +337,9 @@ function createPairingDiceGroup(group) {
     className: "cant-stop-route__dice-group",
     "aria-label": `${group.dice[0]} 더하기 ${group.dice[1]}는 ${group.sum}`,
   }, [
-    el("div", { className: "cant-stop-route__mini-dice", "aria-hidden": "true" }, [
-      el("span", { text: DICE_GLYPHS[group.dice[0]] }),
-      el("span", { text: DICE_GLYPHS[group.dice[1]] }),
+    el("div", { className: "cant-stop-route__mini-dice" }, [
+      createDieFace(group.dice[0], { mini: true }),
+      createDieFace(group.dice[1], { mini: true }),
     ]),
     el("span", { className: "cant-stop-route__equals", text: "=" }),
     el("strong", {
@@ -466,11 +508,17 @@ function createDiceStage(view, state) {
       dice.map((die, index) => el("span", {
         className: "cant-stop-die-visual",
         dataset: { dieIndex: String(index + 1) },
-        text: die == null ? "?" : DICE_GLYPHS[Number(die)],
-        "aria-label": die == null
-          ? `${index + 1}번째 주사위 결과 대기`
-          : `${index + 1}번째 주사위 ${die}`,
-      }))),
+      }, [
+        die == null
+          ? el("span", {
+            className: "cant-stop-die-visual__unknown",
+            text: "?",
+            "aria-label": `${index + 1}번째 주사위 결과 대기`,
+          })
+          : createDieFace(die, {
+            label: `${index + 1}번째 주사위 ${die}`,
+          }),
+      ]))),
     el("div", { className: "cant-stop-dice-stage__action-slot" }, [
       view.canRoll
         ? el("button", {
@@ -565,19 +613,37 @@ function createBoard(view, state) {
     className: "cant-stop-board",
     "aria-label": "Can’t Stop 보드",
   }, [
-    el("div", { className: "cant-stop-board__intro" }, [
-      el("p", {
-        className: "cant-stop-board__eyebrow",
-        text: heading.eyebrow,
-      }),
-      el("h2", {
-        className: "cant-stop-board__title",
-        text: heading.title,
-      }),
-      el("p", {
-        className: "cant-stop-board__description",
-        text: heading.description,
-      }),
+    el("div", {
+      className: [
+        "cant-stop-board__intro",
+        view.phase === "PAIRING_SELECTION" ? "cant-stop-board__intro--pairing" : "",
+      ].filter(Boolean).join(" "),
+    }, [
+      el("div", { className: "cant-stop-board__phase-icon", "aria-hidden": "true" }, [
+        el("span", { text: "▲" }),
+      ]),
+      el("div", { className: "cant-stop-board__phase-copy" }, [
+        el("p", {
+          className: "cant-stop-board__eyebrow",
+          text: heading.eyebrow,
+        }),
+        el("h2", {
+          className: "cant-stop-board__title",
+          text: heading.title,
+        }),
+        heading.description
+          ? el("p", {
+            className: "cant-stop-board__description",
+            text: heading.description,
+          })
+          : null,
+      ]),
+      view.phase === "PAIRING_SELECTION"
+        ? el("span", {
+          className: "cant-stop-board__phase-status",
+          text: view.isMyTurn ? "경로 선택" : "선택 중",
+        })
+        : null,
     ]),
     state.error
       ? el("div", {
@@ -594,12 +660,23 @@ function createBoard(view, state) {
     }, [
       busting
         ? el("div", {
+          className: "cant-stop-bust-weather",
+          "aria-hidden": "true",
+        }, [
+          el("span", { className: "cant-stop-bust-weather__avalanche" }),
+          el("span", { className: "cant-stop-bust-weather__powder cant-stop-bust-weather__powder--one" }),
+          el("span", { className: "cant-stop-bust-weather__powder cant-stop-bust-weather__powder--two" }),
+          el("span", { className: "cant-stop-bust-weather__powder cant-stop-bust-weather__powder--three" }),
+        ])
+        : null,
+      busting
+        ? el("div", {
           className: "cant-stop-bust-notice",
           role: "status",
           "aria-live": "polite",
         }, [
           el("strong", { text: "등반 실패" }),
-          el("span", { text: "이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
+          el("span", { text: "눈길에 미끄러졌어요. 이번 턴의 임시 진척이 사라지고 다음 플레이어에게 턴이 넘어갑니다." }),
         ])
         : null,
       tracks,
