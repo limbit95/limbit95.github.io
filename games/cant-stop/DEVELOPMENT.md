@@ -151,5 +151,5 @@
 - 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
 - profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143502 cant_stop_profile_nickname`으로 기록되어 있다.
 - active-turn leave migration `20260920223000_cant_stop_active_turn_leave.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143513 cant_stop_active_turn_leave`로 기록되어 있다.
-- 2인 게임 비방장 이탈을 `PLAYER_LEFT` GAME_OVER로 전환하는 후속 migration `20260920231500_cant_stop_two_player_leave_game_over.sql`을 추가했다.
+- 2인 게임 비방장 이탈을 `PLAYER_LEFT` GAME_OVER로 전환하는 후속 migration `20260920231500_cant_stop_two_player_leave_game_over.sql`을 production에 적용 완료했다. 운영 migration history에는 `20260920150002 cant_stop_two_player_leave_game_over`로 기록되어 있다.
 - 운영 검증에서 room nickname 1~50자 제약, profile nickname trigger, create/join/invite의 profile lookup, active leave의 turn/min-player guard와 progress/claim/runner cleanup 정의를 확인했다.
