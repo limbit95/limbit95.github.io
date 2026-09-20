@@ -295,4 +295,6 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 
 - 정상적인 connected gameplay에서는 상단 연결 상태 카드를 숨겨 플레이 화면을 단순화한다. reconnect/error 상태에서는 해당 배너를 다시 노출해 필요한 연결 정보만 보여준다.
+- gameplay phase card는 eyebrow와 굵은 핵심 제목만 표시하고 그 아래의 보조 설명 문구는 사용하지 않는다. ROLL / CHOOSE / PUSH OR STOP 모두 동일한 정보 밀도를 유지한다.
 - PUSH OR STOP phase는 선택 자체가 명확하므로 구현 설명 문구를 추가하지 않고 행동 제목과 실제 버튼에 집중한다.
+- bust 결과 안내 카드는 보드 중앙에서 설산/빙설 palette의 옅은 gradient surface, 좌측 accent, 절제된 shadow를 사용하고 텍스트는 좌측 정렬해 읽기 쉽도록 한다.
