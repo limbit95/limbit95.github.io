@@ -7,8 +7,8 @@
 
 - Phase: Phase 4
 - Status: RELEASED
-- Active branch: feature/cant-stop-activation-20260921
-- Last checkpoint: 2026-09-21
+- Active branch: main
+- Last checkpoint: 2026-09-21 00:16 KST
 
 ## Completed
 
@@ -91,12 +91,15 @@
 
 ## Current Work
 
-- Can’t Stop v1 구현과 운영 migration 적용을 완료하고 Game Registry 및 사이트 게임 목록에 정식 노출한다.
+- Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출까지 완료했다.
+- 현재 진행 중인 필수 기능 작업은 없다. 이후 작업은 실제 사용자 플레이에서 발견되는 UX/안정성 개선만 후속 버전으로 진행한다.
 
 ## Next Work
 
-- 실제 사용자 플레이에서 발견되는 UX/밸런스 문제만 후속 버전에서 개선한다.
-- core rules / server-authoritative contract / migration은 v1 기준으로 안정화 상태를 유지한다.
+- 실제 브라우저 2~4인 live smoke에서 방 생성/참가/준비/시작/굴림/pairing/stop/bust/claim/승리/재대결/이탈/초대 링크를 한 번 더 사람 기준으로 점검한다.
+- 특히 remote bust audio는 브라우저 autoplay 정책 때문에 사용자 상호작용 전에는 소리가 제한될 수 있으므로 실사용에서 확인한다.
+- 이후 발견되는 문제는 v1.1 후속 브랜치에서 최소 수정한다.
+- core rules / server-authoritative contract / production migrations는 v1 기준으로 안정화 상태를 유지한다.
 
 ## Decisions
 
@@ -132,32 +135,39 @@
 
 ## Validation
 
-- Completed: 이전 bootstrap / rules-engine / runtime-shell / Room-Lobby / gameplay / post-game 검증
-- Completed: multi-client lifecycle Governance #81 / Site static #3097 / Game DB integration #116 SUCCESS
-- Completed: `npm run test:game-platform` — Site static checks #3100 SUCCESS
-- Completed: Game Platform Governance Guard — run #83 SUCCESS
-- Completed: Site static checks — run #3100 SUCCESS
-- Completed: Game DB integration Invite join/security contract — run #118 SUCCESS
-- Pending: 없음 (Invite 소스 연결 범위)
+- PR #327 최종 기능 브랜치: Game Platform Governance / Site static checks / Game DB integration SUCCESS 후 main 병합 완료.
+- 규칙 감사: JS rules engine + 운영 Supabase legal pairing/stop 계산 + 정식 기본 규칙을 대조했고 core gameplay 차이 없음.
+- active leave 회귀: 4→3, 3→2 계속 진행 / 2→1 PLAYER_LEFT GAME_OVER / out-of-turn leave 거부 / active host leave 거부 / 이탈자 progress·claim·runner 정리 / replacement 재대결 재시작 검증 완료.
+- production migration 검증: profile nickname authority, active-turn leave, two-player leave GAME_OVER 함수/권한/제약 확인 완료.
+- PR #331 activation: Game Platform Governance SUCCESS, Site static checks SUCCESS, Community E2E smoke SUCCESS, Community authenticated E2E SUCCESS.
+- PR #331 merge commit: `9225b3a22b4170f3f183de7915a9cc2edbf8f1a3`.
 
 ## Known Issues / Deferred
 
-- Room/Lobby 사용자 흐름은 소스에 연결됐지만 운영 Supabase에는 Can’t Stop migration을 적용하지 않았다.
-- authoritative core action과 gameplay UI 연결은 완료됐지만 실제 운영 Supabase에서는 아직 실행할 수 없다.
-- Registry에는 platform identity만 등록했고 `online` capability는 운영 migration + smoke test 전까지 false로 유지한다.
-- post-game 및 Invite 관련 migration은 구현했지만 운영 Supabase에는 아직 적용하지 않았다.
-- Registry `online/invite` capability는 false라 Invite UI와 자동 참가 흐름은 운영에서 아직 비활성이다.
-- 게임 목록 UI는 아직 Can’t Stop을 노출하지 않는다.
-- profile nickname enforcement migration `20260920205000_cant_stop_profile_nickname.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143502 cant_stop_profile_nickname`으로 기록되어 있다.
-- active-turn leave migration `20260920223000_cant_stop_active_turn_leave.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143513 cant_stop_active_turn_leave`로 기록되어 있다.
-- 2인 게임 비방장 이탈을 `PLAYER_LEFT` GAME_OVER로 전환하는 후속 migration `20260920231500_cant_stop_two_player_leave_game_over.sql`을 production에 적용 완료했다. 운영 migration history에는 `20260920150002 cant_stop_two_player_leave_game_over`로 기록되어 있다.
-- 운영 검증에서 room nickname 1~50자 제약, profile nickname trigger, create/join/invite의 profile lookup, active leave의 turn/min-player guard와 progress/claim/runner cleanup 정의를 확인했다.
-
+- v1 출시를 막는 known issue는 현재 없다.
+- 실제 다중 브라우저 live smoke는 자동 회귀 검증과 별개로 사용자 관점에서 한 번 더 수행하면 좋다.
+- Web Audio 기반 remote bust 사운드는 브라우저 autoplay 정책에 따라 해당 탭에서 사용자 상호작용 전에는 재생되지 않을 수 있다.
+- Supabase security/performance advisor에는 프로젝트 전체에 이미 존재하던 경고가 남아 있다. 이번 Can’t Stop migration으로 anon EXECUTE가 새로 노출된 것은 확인되지 않았다.
+- Can’t Stop Registry capability는 현재 `online=true`, `invite=true`, `local=false`, `presence=false`다.
 
 ## Release — 2026-09-21
 
-- PR #327을 main에 병합했다.
+- PR #327을 main에 병합했다. merge commit: `0fa282901d5be8b0d1bdb0d25beba7d5d4764a7e`.
 - 운영 Supabase에 Can’t Stop room/gameplay/manual-end/profile-nickname/active-leave/2-player leave GAME_OVER migration까지 반영했다.
-- Game Registry에서 `online=true`, `invite=true`를 활성화했다.
-- 사이트 게임 목록에 Can’t Stop 카드를 노출했다.
+- production migration history:
+  - `20260919140250 cant_stop_manual_end`
+  - `20260920143502 cant_stop_profile_nickname`
+  - `20260920143513 cant_stop_active_turn_leave`
+  - `20260920150002 cant_stop_two_player_leave_game_over`
+- 2인 게임에서 비방장이 자신의 턴에 나가면 승자 없이 `PLAYER_LEFT` GAME_OVER가 되고, 남은 방장은 재대결을 눌러 1인 waiting room으로 돌아간 뒤 새 플레이어 참가 후 다시 시작한다.
+- PR #331에서 Game Registry `online=true`, `invite=true`를 활성화하고 사이트 게임 목록에 Can’t Stop 카드를 노출했다.
+- PR #331은 main에 병합 완료했다. merge commit: `9225b3a22b4170f3f183de7915a9cc2edbf8f1a3`.
 - 공용 `game_room` invite entry가 Registry의 Can’t Stop 경로를 통해 `./games/cant-stop/?invite=...`로 연결된다.
+- v1 기준 사용자 흐름:
+  - 승인회원 + 사이트 프로필 닉네임으로 방 생성/코드 참가/초대 참가
+  - waiting board preview + profile avatar + ready tint + host start
+  - server-random turn order, server-generated 4d6, authoritative pairing/runner/progress/claim
+  - push/stop, 4초 bust presentation, Web Audio dice/blizzard sound
+  - host manual game end, non-host own-turn leave, reconnect/snapshot recovery
+  - GAME_OVER rematch / leave
+- 규칙 감사 결과 기본 Can’t Stop 규칙과 core gameplay 구현은 일치하며, 의도적 digital adaptation은 시작 순서를 서버 랜덤 turn order로 정하는 부분이다.
