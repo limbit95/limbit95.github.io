@@ -8,9 +8,14 @@ import {
   subscribeAuth,
 } from "../../js/auth.js";
 import { supabase } from "../../js/supabaseClient.js";
+import {
+  getPublicProfiles,
+  getSignedAvatarUrl,
+} from "../../js/api/profiles.js";
 import { el } from "../../js/ui.js";
 import {
   CANT_STOP_ACCESS_VIEW,
+  createCantStopBoardColumns,
   createCantStopGameplayViewModel,
   createCantStopLobbyViewModel,
   createCantStopShellPlayer,
@@ -61,6 +66,52 @@ const CANT_STOP_PLAYER_COLORS = Object.freeze([
   "#9b59ff",
 ]);
 
+const CANT_STOP_DEFAULT_AVATAR_URL = "../../assets/images/default-avatar.svg";
+const cantStopAvatarCache = new Map();
+const cantStopAvatarLoading = new Set();
+
+function normalizeSignedAvatarUrl(url) {
+  return url === "./assets/images/default-avatar.svg"
+    ? CANT_STOP_DEFAULT_AVATAR_URL
+    : url;
+}
+
+async function hydrateCantStopPlayerAvatars(players) {
+  const pendingIds = [...new Set(players
+    .map((player) => String(player?.id ?? player?.userId ?? "").trim())
+    .filter((playerId) =>
+      playerId
+      && !cantStopAvatarCache.has(playerId)
+      && !cantStopAvatarLoading.has(playerId)))];
+
+  if (!pendingIds.length) return;
+
+  pendingIds.forEach((playerId) => cantStopAvatarLoading.add(playerId));
+  try {
+    const profiles = await getPublicProfiles(pendingIds);
+    const profileById = new Map(
+      (profiles ?? []).map((profile) => [String(profile.id), profile]),
+    );
+
+    await Promise.all(pendingIds.map(async (playerId) => {
+      const avatarPath = profileById.get(playerId)?.avatar_path;
+      const avatarUrl = avatarPath
+        ? normalizeSignedAvatarUrl(await getSignedAvatarUrl(avatarPath))
+        : CANT_STOP_DEFAULT_AVATAR_URL;
+      cantStopAvatarCache.set(playerId, avatarUrl || CANT_STOP_DEFAULT_AVATAR_URL);
+    }));
+  } catch (error) {
+    pendingIds.forEach((playerId) => {
+      cantStopAvatarCache.set(playerId, CANT_STOP_DEFAULT_AVATAR_URL);
+    });
+    console.warn("Can’t Stop player avatar load failed.", error);
+  } finally {
+    pendingIds.forEach((playerId) => cantStopAvatarLoading.delete(playerId));
+    const current = lobbyController?.current?.();
+    if (current) renderApprovedRuntime(current);
+  }
+}
+
 function decorateCantStopPlayers(players, gameplay = null) {
   const completedByPlayer = new Map();
   if (gameplay) {
@@ -79,6 +130,7 @@ function decorateCantStopPlayers(players, gameplay = null) {
     const playing = gameplay != null;
     return {
       ...player,
+      avatarUrl: cantStopAvatarCache.get(String(player.id)) ?? CANT_STOP_DEFAULT_AVATAR_URL,
       accent: CANT_STOP_PLAYER_COLORS[seat % CANT_STOP_PLAYER_COLORS.length],
       statusLabel: connected
         ? (playing ? (gameplay.isGameOver ? "게임 종료" : "게임 중") : null)
@@ -617,8 +669,16 @@ function createDiceStage(view, state) {
   ]);
 }
 
-function createBoard(view, state) {
-  const heading = gameplayHeading(view);
+function createBoard(view, state, {
+  waiting = false,
+} = {}) {
+  const heading = waiting
+    ? {
+      eyebrow: "READY",
+      title: "게임 준비 중",
+      description: "모든 플레이어가 준비하면 게임을 시작할 수 있어요.",
+    }
+    : gameplayHeading(view);
   const busting = state.effect?.type === "bust";
 
   const tracks = el("div", { className: "cant-stop-board__tracks" },
@@ -678,6 +738,7 @@ function createBoard(view, state) {
     el("div", {
       className: [
         "cant-stop-board__intro",
+        waiting ? "cant-stop-board__intro--waiting" : "",
         view.phase === "PAIRING_SELECTION" ? "cant-stop-board__intro--pairing" : "",
       ].filter(Boolean).join(" "),
     }, [
@@ -693,6 +754,12 @@ function createBoard(view, state) {
           className: "cant-stop-board__title",
           text: heading.title,
         }),
+        heading.description
+          ? el("p", {
+            className: "cant-stop-board__description",
+            text: heading.description,
+          })
+          : null,
       ]),
       view.phase === "PAIRING_SELECTION"
         ? el("span", {
@@ -745,7 +812,10 @@ function createBoard(view, state) {
 }
 
 function createGameplaySidebar(view, state) {
-  return [createDiceStage(view, state)];
+  return [
+    createGameplayTools(view, state),
+    createDiceStage(view, state),
+  ];
 }
 
 function rulesActionButton(extraClass = "") {
@@ -761,15 +831,26 @@ function rulesActionButton(extraClass = "") {
   });
 }
 
-function createGameplayActions(view, state) {
-  const actions = [rulesActionButton()];
+function createGameplayTools(view, state) {
+  const tools = [
+    rulesActionButton("cant-stop-gameplay-tools__button"),
+    el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-gameplay-tools__button",
+      type: "button",
+      text: "새로고침",
+      disabled: state.busy,
+      onClick: () => {
+        void lobbyController.refresh("manual-gameplay").catch(() => {});
+      },
+    }),
+  ];
 
   if (view.isGameOver) {
     if (view.isHost) {
-      actions.push(el("button", {
-        className: "game-platform-shell__button",
+      tools.push(el("button", {
+        className: "game-platform-shell__button cant-stop-gameplay-tools__button",
         type: "button",
-        text: state.busy ? "재대결 준비 중…" : "같은 방에서 재대결",
+        text: state.busy ? "준비 중…" : "재대결",
         disabled: state.busy,
         onClick: async () => {
           try {
@@ -781,8 +862,8 @@ function createGameplayActions(view, state) {
       }));
     }
 
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--danger",
+    tools.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-gameplay-tools__button",
       type: "button",
       text: state.busy ? "처리 중…" : "방 나가기",
       disabled: state.busy,
@@ -794,11 +875,9 @@ function createGameplayActions(view, state) {
         }
       },
     }));
-  }
-
-  if (!view.isGameOver && view.isHost) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--danger",
+  } else if (view.isHost) {
+    tools.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-gameplay-tools__button",
       type: "button",
       text: "게임 종료",
       disabled: state.busy,
@@ -806,17 +885,10 @@ function createGameplayActions(view, state) {
     }));
   }
 
-  actions.push(el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--secondary",
-    type: "button",
-    text: "상태 새로고침",
-    disabled: state.busy,
-    onClick: () => {
-      void lobbyController.refresh("manual-gameplay").catch(() => {});
-    },
-  }));
-
-  return actions;
+  return el("nav", {
+    className: "cant-stop-gameplay-tools",
+    "aria-label": "게임 메뉴",
+  }, tools);
 }
 
 function createField(label, control) {
@@ -947,58 +1019,42 @@ function createEntryPanel(state) {
   ]);
 }
 
-function createLobbyPanel(view, state) {
-  return el("section", { className: "cant-stop-lobby" }, [
-    el("div", { className: "cant-stop-lobby__hero" }, [
-      el("p", { className: "cant-stop-board__eyebrow", text: "WAITING ROOM" }),
-      el("h2", { className: "cant-stop-lobby__title", text: "게임 준비 중" }),
-      el("p", {
-        className: "cant-stop-lobby__description",
-        text: view.isHost
-          ? "모든 플레이어가 준비하면 게임을 시작할 수 있어요."
-          : "준비가 끝났다면 아래 준비 버튼을 눌러 주세요.",
-      }),
-    ]),
-    el("div", { className: "cant-stop-room-code" }, [
-      el("span", { className: "cant-stop-room-code__label", text: "방 코드" }),
-      el("strong", { className: "cant-stop-room-code__value", text: view.roomCode }),
-      el("span", {
-        className: "cant-stop-room-code__meta",
-        text: view.playerCount + " / " + view.maxPlayers + "명 · 상태 버전 " + view.version,
-      }),
-    ]),
-    state.error
-      ? el("div", {
-        className: "cant-stop-inline-error",
-        role: "alert",
-        text: getCantStopLobbyErrorMessage(state.error),
-      })
-      : null,
-    el("div", { className: "cant-stop-lobby__status-grid" }, [
-      el("div", { className: "cant-stop-lobby__status-card" }, [
-        el("span", { className: "cant-stop-lobby__status-label", text: "내 상태" }),
-        el("strong", {
-          className: "cant-stop-lobby__status-value",
-          text: view.isHost ? "방장 · 준비 완료" : (view.isReady ? "준비 완료" : "대기 중"),
-        }),
-      ]),
-      el("div", { className: "cant-stop-lobby__status-card" }, [
-        el("span", { className: "cant-stop-lobby__status-label", text: "시작 조건" }),
-        el("strong", {
-          className: "cant-stop-lobby__status-value",
-          text: view.canStart ? "시작 가능" : "2명 이상 · 전원 준비",
-        }),
-      ]),
-    ]),
-  ]);
+function createLobbyPanel(_view, state) {
+  const previewColumns = createCantStopBoardColumns().map((column) => ({
+    ...column,
+    permanentMarkers: [],
+    runner: null,
+    claimedById: null,
+    claimedByName: null,
+  }));
+
+  return createBoard({
+    phase: "WAITING",
+    columns: previewColumns,
+  }, state, {
+    waiting: true,
+  });
 }
 
-function createLobbyActions(view, state, { inviteEnabled = false } = {}) {
-  const actions = [rulesActionButton()];
-
-  if (!view.isHost) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button",
+function createLobbySidebar(view, state, {
+  inviteEnabled = false,
+} = {}) {
+  const primaryAction = view.isHost
+    ? el("button", {
+      className: "game-platform-shell__button cant-stop-room-guide__primary",
+      type: "button",
+      text: state.busy ? "시작 준비 중…" : "게임 시작",
+      disabled: state.busy || !view.canStart,
+      onClick: async () => {
+        try {
+          await lobbyController.startGame();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    })
+    : el("button", {
+      className: "game-platform-shell__button cant-stop-room-guide__primary",
       type: "button",
       text: state.busy
         ? "처리 중…"
@@ -1011,28 +1067,15 @@ function createLobbyActions(view, state, { inviteEnabled = false } = {}) {
           // Controller state renders the authoritative error.
         }
       },
-    }));
-  }
+    });
 
-  if (view.isHost) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button",
-      type: "button",
-      text: state.busy ? "시작 준비 중…" : "게임 시작",
-      disabled: state.busy || !view.canStart,
-      onClick: async () => {
-        try {
-          await lobbyController.startGame();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
-    }));
-  }
+  const utilities = [
+    rulesActionButton("cant-stop-room-guide__utility"),
+  ];
 
   if (inviteEnabled) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--secondary",
+    utilities.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-room-guide__utility",
       type: "button",
       text: "초대 링크 · QR",
       disabled: state.busy,
@@ -1044,41 +1087,51 @@ function createLobbyActions(view, state, { inviteEnabled = false } = {}) {
     }));
   }
 
-  actions.push(el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--secondary",
-    type: "button",
-    text: "새로고침",
-    disabled: state.busy,
-    onClick: () => {
-      void lobbyController.refresh("manual").catch(() => {});
-    },
-  }));
+  utilities.push(
+    el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-room-guide__utility",
+      type: "button",
+      text: "새로고침",
+      disabled: state.busy,
+      onClick: () => {
+        void lobbyController.refresh("manual").catch(() => {});
+      },
+    }),
+    el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-room-guide__utility",
+      type: "button",
+      text: state.busy ? "처리 중…" : "방 나가기",
+      disabled: state.busy,
+      onClick: async () => {
+        try {
+          await lobbyController.leaveRoom();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }),
+  );
 
-  actions.push(el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--danger",
-    type: "button",
-    text: state.busy ? "처리 중…" : "방 나가기",
-    disabled: state.busy,
-    onClick: async () => {
-      try {
-        await lobbyController.leaveRoom();
-      } catch {
-        // Controller state renders the authoritative error.
-      }
-    },
-  }));
-
-  return actions;
-}
-
-function createLobbySidebar(view) {
-  return el("section", { className: "cant-stop-runtime-notes" }, [
-    el("h2", { className: "cant-stop-runtime-notes__title", text: "방 안내" }),
+  return el("section", { className: "cant-stop-runtime-notes cant-stop-room-guide" }, [
+    el("div", { className: "cant-stop-room-guide__header" }, [
+      el("div", {}, [
+        el("p", { className: "cant-stop-room-guide__eyebrow", text: "WAITING ROOM" }),
+        el("h2", { className: "cant-stop-runtime-notes__title", text: "방 안내" }),
+      ]),
+      el("strong", {
+        className: "cant-stop-room-guide__code",
+        text: view.roomCode,
+        title: "방 코드",
+      }),
+    ]),
     el("ul", { className: "cant-stop-runtime-notes__list" }, [
       el("li", { text: "방장은 항상 준비 완료 상태예요." }),
       el("li", { text: "2명 이상이 모이고 전원이 준비하면 시작할 수 있어요." }),
       el("li", { text: "방장이 나가면 남아 있는 첫 플레이어에게 방장이 넘어가요." }),
-      el("li", { text: "다른 플레이어의 변경은 최신 서버 snapshot으로 다시 불러와요." }),
+    ]),
+    el("div", { className: "cant-stop-room-guide__actions" }, [
+      primaryAction,
+      el("div", { className: "cant-stop-room-guide__utilities" }, utilities),
     ]),
   ]);
 }
@@ -1201,7 +1254,11 @@ function renderApprovedRuntime(state) {
   }
 
   const auth = getAuthState();
-  const fallbackPlayer = createCantStopShellPlayer(auth);
+  const fallbackBasePlayer = createCantStopShellPlayer(auth);
+  const fallbackPlayer = {
+    ...fallbackBasePlayer,
+    avatarUrl: cantStopAvatarCache.get(fallbackBasePlayer.id) ?? CANT_STOP_DEFAULT_AVATAR_URL,
+  };
   let main = createEntryPanel(state);
   let players = [fallbackPlayer];
   let hostUserId = null;
@@ -1230,15 +1287,17 @@ function renderApprovedRuntime(state) {
       players = decorateCantStopPlayers(view.players, gameplay);
       main = createBoard(gameplay, state);
       sidebar = createGameplaySidebar(gameplay, state);
-      actions = createGameplayActions(gameplay, state);
+      actions = null;
     } else {
       main = createLobbyPanel(view, state);
-      sidebar = createLobbySidebar(view);
-      actions = createLobbyActions(view, state, {
+      sidebar = createLobbySidebar(view, state, {
         inviteEnabled: inviteAdapter?.enabled === true,
       });
+      actions = null;
     }
   }
+
+  void hydrateCantStopPlayerAvatars(players);
 
   const shell = createGameShell({
     title: "Can’t Stop",
@@ -1258,13 +1317,15 @@ function renderApprovedRuntime(state) {
     actions,
   });
 
-  if (
-    state.connection === "connected"
-    && (
-      state.view === CANT_STOP_LOBBY_VIEW.ENTRY
-      || state.view === CANT_STOP_LOBBY_VIEW.PLAYING
-    )
-  ) {
+  shell.classList.add(
+    state.view === CANT_STOP_LOBBY_VIEW.ENTRY
+      ? "cant-stop-shell--entry"
+      : state.view === CANT_STOP_LOBBY_VIEW.PLAYING
+        ? "cant-stop-shell--playing"
+        : "cant-stop-shell--waiting",
+  );
+
+  if (state.connection === "connected") {
     shell.querySelector(":scope > .game-platform-status")?.remove();
   }
 
@@ -1357,6 +1418,7 @@ function cleanup() {
   rulesDialog = null;
   endGameDialog?.remove();
   endGameDialog = null;
+  cantStopAvatarLoading.clear();
 }
 
 async function boot() {

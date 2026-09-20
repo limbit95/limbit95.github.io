@@ -332,6 +332,7 @@ test("Can't Stop gameplay sidebar moves turn metadata into player cards and keep
   const actionsStart = app.indexOf("function rulesActionButton(", sidebarStart);
   const sidebarSource = app.slice(sidebarStart, actionsStart);
 
+  assert.match(sidebarSource, /createGameplayTools\(view, state\)/u);
   assert.match(sidebarSource, /createDiceStage\(view, state\)/u);
   assert.equal(sidebarSource.includes("cant-stop-runtime-notes"), false);
   assert.match(app, /statusLabel:/u);
@@ -537,4 +538,81 @@ test("Can't Stop profile nickname migration keeps room display names server-auth
   assert.match(migration, /cant_stop_enforce_profile_nickname/u);
   assert.match(migration, /from public\.profiles/u);
   assert.match(migration, /new\.nickname := v_nickname/u);
+});
+
+
+test("Can't Stop waiting room previews the real board and keeps ready controls in room guide", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /createCantStopBoardColumns\(\)\.map/u);
+  assert.match(app, /waiting: true/u);
+  assert.match(app, /title: "게임 준비 중"/u);
+  assert.match(app, /모든 플레이어가 준비하면 게임을 시작할 수 있어요\./u);
+  assert.match(app, /cant-stop-room-guide__primary/u);
+  assert.equal(
+    app.includes("다른 플레이어의 변경은 최신 서버 snapshot으로 다시 불러와요."),
+    false,
+  );
+});
+
+test("Can't Stop waiting and playing screens remove the normal connected banner", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(
+    app,
+    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
+  );
+  assert.equal(app.includes('label: "로비 연결됨"') && app.includes("game-platform-status") === false, false);
+});
+
+test("Can't Stop roster hydrates site profile photos and uses the shared default avatar", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /getPublicProfiles/u);
+  assert.match(app, /getSignedAvatarUrl/u);
+  assert.match(app, /\.\.\/\.\.\/assets\/images\/default-avatar\.svg/u);
+  assert.match(app, /avatarUrl: cantStopAvatarCache/u);
+});
+
+test("Can't Stop ready players receive a visual card state in the waiting room", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(css, /cant-stop-shell--waiting \.game-platform-player\[data-ready="true"\]/u);
+  assert.match(css, /--game-player-accent/u);
+});
+
+test("Can't Stop gameplay uses a compact sidebar utility bar instead of the shell footer", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /className: "cant-stop-gameplay-tools"/u);
+  assert.match(app, /createGameplayTools\(view, state\)/u);
+  assert.match(app, /actions = null/u);
+  assert.equal(app.includes("function createGameplayActions"), false);
+});
+
+test("Can't Stop desktop board is 900px tall and the sidebar stretches to the same content row", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(css, /cant-stop-shell--playing \.cant-stop-board__mountain[\s\S]*height: 900px;[\s\S]*min-height: 900px;/u);
+  assert.match(css, /cant-stop-shell--playing \.game-platform-shell__content[\s\S]*align-items: stretch;/u);
+  assert.match(css, /cant-stop-shell--playing \.game-platform-shell__sidebar[\s\S]*grid-template-rows: auto auto minmax\(0, 1fr\);/u);
+  assert.match(css, /cant-stop-shell--playing \.cant-stop-dice-stage[\s\S]*height: 100%;/u);
 });

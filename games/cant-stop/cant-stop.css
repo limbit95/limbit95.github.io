@@ -2859,3 +2859,196 @@ body {
     min-height: 0;
   }
 }
+
+
+/* Polish phase 2i: shared waiting-board composition, profile avatars, aligned gameplay columns. */
+.cant-stop-board__intro--waiting {
+  border-color: rgba(79, 132, 148, .38);
+  background:
+    linear-gradient(135deg, rgba(229,246,249,.98), rgba(250,253,254,.98));
+  box-shadow:
+    inset 4px 0 0 #5a8a99,
+    0 6px 16px rgba(53, 91, 105, .09);
+}
+
+.cant-stop-board__intro--waiting .cant-stop-board__eyebrow {
+  color: #4f7c8b;
+}
+
+.cant-stop-board__intro--waiting .cant-stop-board__description {
+  display: block;
+  margin-top: .16rem;
+  color: #617c86;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.cant-stop-shell--waiting .game-platform-player[data-ready="true"] {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--game-player-accent, #5b8897) 66%, #d7e7eb);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--game-player-accent, #5b8897) 14%, #fff),
+      #fff 76%
+    );
+  box-shadow:
+    inset 4px 0 0 var(--game-player-accent, #5b8897),
+    0 6px 14px color-mix(in srgb, var(--game-player-accent, #5b8897) 13%, transparent);
+}
+
+.cant-stop-room-guide {
+  align-content: start;
+  gap: .85rem;
+}
+
+.cant-stop-room-guide__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+.cant-stop-room-guide__eyebrow {
+  margin: 0 0 .18rem;
+  color: #5a8290;
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.cant-stop-room-guide__code {
+  padding: .34rem .48rem;
+  border: 1px solid rgba(72, 104, 117, .18);
+  border-radius: 999px;
+  background: #edf7fa;
+  color: #355762;
+  font-size: .72rem;
+  letter-spacing: .08em;
+}
+
+.cant-stop-room-guide__actions {
+  margin-top: auto;
+  padding-top: .82rem;
+  display: grid;
+  gap: .55rem;
+  border-top: 1px solid rgba(72, 104, 117, .13);
+}
+
+.cant-stop-room-guide__primary {
+  width: 100%;
+}
+
+.cant-stop-room-guide__utilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .45rem;
+}
+
+.cant-stop-room-guide__utility {
+  min-height: 36px;
+  padding: .5rem .55rem;
+  font-size: .72rem;
+}
+
+.cant-stop-gameplay-tools {
+  padding: .48rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .4rem;
+  border: 1px solid rgba(72, 104, 117, .2);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(249,253,254,.98), rgba(237,247,250,.96));
+  box-shadow: 0 5px 14px rgba(53, 91, 105, .07);
+}
+
+.cant-stop-gameplay-tools__button {
+  min-height: 36px;
+  padding: .48rem .42rem;
+  font-size: .72rem;
+  line-height: 1.15;
+}
+
+@media (min-width: 900px) {
+  .cant-stop-shell--playing .game-platform-shell__content,
+  .cant-stop-shell--waiting .game-platform-shell__content {
+    align-items: stretch;
+  }
+
+  .cant-stop-shell--playing .game-platform-shell__sidebar,
+  .cant-stop-shell--waiting .game-platform-shell__sidebar {
+    position: static;
+    align-self: stretch;
+    min-height: 100%;
+  }
+
+  .cant-stop-shell--playing .game-platform-shell__sidebar {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .cant-stop-shell--waiting .game-platform-shell__sidebar {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .cant-stop-shell--waiting .cant-stop-room-guide {
+    height: 100%;
+  }
+
+  .cant-stop-shell--playing .cant-stop-board__mountain,
+  .cant-stop-shell--waiting .cant-stop-board__mountain {
+    height: 900px;
+    min-height: 900px;
+  }
+
+  .cant-stop-shell--playing .cant-stop-board__tracks,
+  .cant-stop-shell--waiting .cant-stop-board__tracks {
+    inset: 4.5% 4.4% 6.2%;
+    gap: clamp(.3rem, .76vw, .58rem);
+  }
+
+  .cant-stop-shell--playing .cant-stop-column__cells,
+  .cant-stop-shell--waiting .cant-stop-column__cells {
+    gap: clamp(.38rem, .72vw, .58rem);
+  }
+
+  .cant-stop-shell--playing .cant-stop-column__cell,
+  .cant-stop-shell--waiting .cant-stop-column__cell {
+    width: clamp(31px, 3.65vw, 44px);
+  }
+
+  .cant-stop-shell--playing .cant-stop-column__number,
+  .cant-stop-shell--waiting .cant-stop-column__number {
+    width: clamp(34px, 3.9vw, 45px);
+  }
+
+  .cant-stop-shell--playing .cant-stop-dice-stage {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: auto 122px 46px auto minmax(0, 1fr);
+  }
+
+  .cant-stop-shell--playing .cant-stop-route-panel {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .cant-stop-shell--playing .cant-stop-route-panel__placeholder {
+    min-height: 0;
+    height: 100%;
+  }
+}
+
+@media (max-width: 899px) {
+  .cant-stop-gameplay-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .cant-stop-room-guide__utilities,
+  .cant-stop-gameplay-tools {
+    grid-template-columns: 1fr;
+  }
+}

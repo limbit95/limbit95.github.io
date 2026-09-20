@@ -239,6 +239,10 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - online entry는 방 만들기 또는 6자리 코드 참가로 시작하며, waiting room에서 준비 상태와 방장 시작 조건을 명확히 보여준다.
 - entry lobby에는 닉네임 입력/변경 UI를 두지 않는다. 로그인한 승인회원의 사이트 프로필 닉네임을 그대로 사용하며 닉네임 변경과 중복 검사는 마이페이지의 공통 프로필 흐름에서만 수행한다.
 - entry 화면은 정상 연결 상태 카드를 별도로 노출하지 않고 새 방 만들기 / 코드 참가 두 행동에 집중한다. 규칙 보기는 오른쪽 온라인 플레이 안내 카드 하단에 둔다.
+- waiting room은 별도 준비 카드 대신 실제 게임 보드를 미리 보여주며, 보드 phase card에 `게임 준비 중`과 전원 준비 안내를 표시한다. 오른쪽은 profile avatar 기반 player roster와 방 안내/ready-start controls를 유지한다.
+- player roster는 사이트 공개 프로필의 avatar를 사용하고 avatar가 없거나 서명 URL을 얻지 못하면 사이트 공통 `assets/images/default-avatar.svg`를 사용한다. waiting에서 ready player는 seat accent를 활용한 card background로 구분한다.
+- desktop gameplay board mountain은 900px 기준으로 확대하고 right sidebar를 같은 grid row에 stretch해 dice/route card 하단과 board 영역 하단이 일렬로 맞도록 한다.
+- gameplay의 규칙/새로고침/게임 종료 같은 utility action은 하단 sticky footer가 아니라 player roster와 dice stage 사이의 compact sidebar toolbar에 둔다.
 - Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
 - 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
 
