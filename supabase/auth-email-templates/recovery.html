@@ -27,7 +27,7 @@
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:28px 0 8px;">
                   <tr>
                     <td bgcolor="#c9e3ec" style="border-radius:12px;">
-                      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 20px;font-size:14px;font-weight:800;line-height:1.2;color:#3f6270;text-decoration:none;border:1px solid #bad9e4;border-radius:12px;">비밀번호 다시 설정하기</a>
+                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery#/password/update" style="display:inline-block;padding:13px 20px;font-size:14px;font-weight:800;line-height:1.2;color:#3f6270;text-decoration:none;border:1px solid #bad9e4;border-radius:12px;">비밀번호 다시 설정하기</a>
                     </td>
                   </tr>
                 </table>
