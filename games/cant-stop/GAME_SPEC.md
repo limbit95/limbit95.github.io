@@ -198,15 +198,16 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 
 - Common Game Shell로 제목, 방 정보, 연결 상태, roster, 공통 action 영역을 제공한다.
 - 메인 영역은 2–12 열이 산 형태로 올라가는 Can't Stop 전용 board로 구성하고, 상용판 아트를 복제하지 않은 고유 설산/빙설 테마를 사용한다.
-- permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다.
+- permanent progress와 현재 턴의 temporary runner를 시각적으로 구분한다. 최대 4명의 player는 seat별 고유 고대비 색상을 사용해 검은 track 위에서도 말의 소유자를 빠르게 구분할 수 있게 한다.
 - 현재 roll의 네 주사위와 가능한 pairing 선택지는 보드 위에 삽입하지 않고 오른쪽 sidebar의 전용 dice/route panel에서 함께 보여준다.
-- dice/route panel은 게임 phase가 바뀌어도 높이를 유지해 board playfield가 위아래로 흔들리지 않게 한다.
+- dice/route panel은 게임 phase가 바뀌어도 높이를 유지해 board playfield가 위아래로 흔들리지 않게 한다. 플레이 중에는 별도 현재 턴 정보 카드를 두지 않고 이 패널이 sidebar 정보 영역을 주로 사용한다.
+- 플레이어 roster는 대기 중의 준비 상태를 게임 시작 후 `게임 중`으로 전환하고, 연결이 끊기면 `연결 끊김`을 표시한다. active player는 고유 player color의 `현재 턴` badge와 card accent로 강조한다.
 - pairing 선택 시 실제 네 주사위가 어떤 두 쌍으로 묶여 각 열의 합을 만드는지 mini-dice → column number 형태로 설명하고, 서버가 허용한 legal move plan만 선택 버튼으로 노출한다.
 - 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다.
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
-- bust 시 설산에서 미끄러지는 등반자와 눈보라 피드백을 보여줘 임시 진척 소멸과 턴 변경을 갑작스럽지 않게 설명한다.
+- bust 시 설산에서 미끄러지는 등반자와 눈보라 피드백을 보여줘 임시 진척 소멸과 턴 변경을 갑작스럽지 않게 설명한다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
 - 로비/플레이 중 언제든 상세 규칙 modal을 열 수 있다.
 - 진행 중 방장은 확인 dialog를 거쳐 전체 게임을 수동 종료할 수 있고, 종료 결과는 모든 클라이언트의 authoritative GAME_OVER snapshot으로 동기화한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
