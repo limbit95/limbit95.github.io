@@ -192,6 +192,7 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["ROOM_NOT_FOUND", "방을 찾을 수 없거나 이미 시작된 방이에요."],
   ["ROOM_FULL", "방 인원이 모두 찼어요."],
   ["ACTIVE_ROOM_EXISTS", "이미 참여 중인 Can’t Stop 방이 있어요."],
+  ["PROFILE_NICKNAME_REQUIRED", "마이페이지에서 사용할 닉네임을 먼저 설정해 주세요."],
   ["VERSION_CONFLICT", "방 상태가 방금 변경됐어요. 최신 상태를 다시 불러와 주세요."],
   ["HOST_REQUIRED", "방장만 게임을 시작할 수 있어요."],
   ["PLAYERS_NOT_READY", "모든 플레이어가 준비한 뒤 시작할 수 있어요."],
