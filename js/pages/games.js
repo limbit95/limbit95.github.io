@@ -22,6 +22,13 @@ const GAMES = [
     href: "./marble-game/",
     buttonText: "마블 월드 보기",
   },
+  {
+    icon: "🎲",
+    title: "Can’t Stop",
+    description: "주사위 조합을 선택해 열을 오르고 멈출 타이밍을 겨루는 push-your-luck 게임이에요.",
+    href: "./games/cant-stop/",
+    buttonText: "Can’t Stop 시작",
+  },
 ];
 
 export function renderGames() {

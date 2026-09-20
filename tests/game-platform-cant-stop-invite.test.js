@@ -39,19 +39,15 @@ function fakeClient(handler) {
   };
 }
 
-test("Can't Stop invite remains disabled while Registry online/invite capabilities are false", async () => {
-  assert.equal(isCantStopInviteEnabled(), false);
+test("Can't Stop invite is enabled by the production Registry capabilities", () => {
+  assert.equal(isCantStopInviteEnabled(), true);
 
   const client = fakeClient(() => {
-    throw new Error("RPC should not run while capability guard rejects invite creation.");
+    throw new Error("This test only verifies the default capability guard.");
   });
   const adapter = createCantStopInviteAdapter({ client });
 
-  assert.equal(adapter.enabled, false);
-  await assert.rejects(
-    () => adapter.createRoomInvite({ roomId: "room-1" }),
-    /GAME_INVITE_UNSUPPORTED_GAME/u,
-  );
+  assert.equal(adapter.enabled, true);
   assert.equal(client.calls.length, 0);
 });
 

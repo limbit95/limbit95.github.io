@@ -6,9 +6,9 @@
 ## Current Status
 
 - Phase: Phase 4
-- Status: IN_PROGRESS
-- Active branch: feature/game-platform-phase4-cant-stop-invite
-- Last checkpoint: 2026-09-18
+- Status: RELEASED
+- Active branch: feature/cant-stop-activation-20260921
+- Last checkpoint: 2026-09-21
 
 ## Completed
 
@@ -91,13 +91,12 @@
 
 ## Current Work
 
-- platform-native Invite 생성/라우팅/서버 재검증/room 참가 경계를 disposable Supabase 및 Game Platform 회귀로 검증한다.
+- Can’t Stop v1 구현과 운영 migration 적용을 완료하고 Game Registry 및 사이트 게임 목록에 정식 노출한다.
 
 ## Next Work
 
-- Invite 검증 완료 후 운영 Supabase migration 적용 여부를 결정하고 실제 배포 smoke test를 준비한다.
-- 운영 migration + live smoke test가 완료되기 전까지 Registry `online/invite` capability는 false로 유지한다.
-- 운영 검증이 완료된 시점에 Registry capability와 게임 목록 노출을 별도 작은 변경으로 활성화한다.
+- 실제 사용자 플레이에서 발견되는 UX/밸런스 문제만 후속 버전에서 개선한다.
+- core rules / server-authoritative contract / migration은 v1 기준으로 안정화 상태를 유지한다.
 
 ## Decisions
 
@@ -153,3 +152,12 @@
 - active-turn leave migration `20260920223000_cant_stop_active_turn_leave.sql`은 production에 적용 완료했다. 운영 migration history에는 `20260920143513 cant_stop_active_turn_leave`로 기록되어 있다.
 - 2인 게임 비방장 이탈을 `PLAYER_LEFT` GAME_OVER로 전환하는 후속 migration `20260920231500_cant_stop_two_player_leave_game_over.sql`을 production에 적용 완료했다. 운영 migration history에는 `20260920150002 cant_stop_two_player_leave_game_over`로 기록되어 있다.
 - 운영 검증에서 room nickname 1~50자 제약, profile nickname trigger, create/join/invite의 profile lookup, active leave의 turn/min-player guard와 progress/claim/runner cleanup 정의를 확인했다.
+
+
+## Release — 2026-09-21
+
+- PR #327을 main에 병합했다.
+- 운영 Supabase에 Can’t Stop room/gameplay/manual-end/profile-nickname/active-leave/2-player leave GAME_OVER migration까지 반영했다.
+- Game Registry에서 `online=true`, `invite=true`를 활성화했다.
+- 사이트 게임 목록에 Can’t Stop 카드를 노출했다.
+- 공용 `game_room` invite entry가 Registry의 Can’t Stop 경로를 통해 `./games/cant-stop/?invite=...`로 연결된다.
