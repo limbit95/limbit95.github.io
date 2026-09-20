@@ -1355,3 +1355,29 @@ test("cant-stop: invite join rejects revoked tokens and does not add membership"
   ), "active room after revoked invite");
   assert.equal(active, null);
 });
+
+
+test("cant-stop: room nicknames are enforced from the site profile instead of client input", async () => {
+  const host = await createTestUser("profile-name-host");
+  const guest = await createTestUser("profile-name-guest");
+
+  const created = await createRoom(host, "Spoofed Host");
+  assert.equal(
+    created.players.find((player) => player.userId === host.id)?.displayName,
+    host.displayName,
+  );
+  assert.equal(
+    created.players.find((player) => player.userId === host.id)?.displayName === "Spoofed Host",
+    false,
+  );
+
+  const joined = await joinRoom(guest, created, "Spoofed Guest");
+  assert.equal(
+    joined.players.find((player) => player.userId === guest.id)?.displayName,
+    guest.displayName,
+  );
+  assert.equal(
+    joined.players.find((player) => player.userId === guest.id)?.displayName === "Spoofed Guest",
+    false,
+  );
+});
