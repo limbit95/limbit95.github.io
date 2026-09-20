@@ -601,14 +601,18 @@ function createDiceStage(view, state) {
                   : "현재 플레이어의 주사위를 기다리는 중",
             }),
     ].flat()),
-    !hasResult
-      ? el("p", {
-        className: "cant-stop-dice-stage__caption",
-        text: rolling
+    el("p", {
+      className: [
+        "cant-stop-dice-stage__caption",
+        hasResult ? "cant-stop-dice-stage__caption--empty" : "",
+      ].filter(Boolean).join(" "),
+      text: hasResult
+        ? ""
+        : rolling
           ? "결과는 서버가 확정합니다"
           : "네 개의 주사위를 굴려 등반 경로를 만듭니다",
-      })
-      : null,
+      "aria-hidden": hasResult ? "true" : null,
+    }),
     createDiceRoutePanel(view, state),
   ]);
 }
