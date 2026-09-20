@@ -329,7 +329,7 @@ test("Can't Stop gameplay sidebar moves turn metadata into player cards and keep
   );
 
   const sidebarStart = app.indexOf("function createGameplaySidebar(view, state)");
-  const actionsStart = app.indexOf("function rulesActionButton()", sidebarStart);
+  const actionsStart = app.indexOf("function rulesActionButton(", sidebarStart);
   const sidebarSource = app.slice(sidebarStart, actionsStart);
 
   assert.match(sidebarSource, /createDiceStage\(view, state\)/u);
