@@ -1116,7 +1116,7 @@ test("cant-stop: inactive non-host cannot leave an active game", async () => {
   expectDenied(result, "inactive guest cant_stop_leave_room", /LEAVE_TURN_REQUIRED/u);
 });
 
-test("cant-stop: two-player active game cannot be reduced below the minimum", async () => {
+test("cant-stop: two-player active guest leave ends the game instead of blocking exit", async () => {
   const { host, guest, started } = await startTwoPlayerGame("active-leave-minimum");
   const version = 520;
   const fixture = {
@@ -1137,12 +1137,22 @@ test("cant-stop: two-player active game cannot be reduced below the minimum", as
   };
   await setAuthoritativeGameState(started.room.id, fixture, version);
 
-  const result = await rpc("cant_stop_leave_room", {
+  await expectOk(await rpc("cant_stop_leave_room", {
     p_room_id: started.room.id,
     p_expected_version: version,
-  }, guest.accessToken);
+  }, guest.accessToken), "two-player guest cant_stop_leave_room");
 
-  expectDenied(result, "minimum-player cant_stop_leave_room", /LEAVE_MIN_PLAYERS/u);
+  const snapshot = await expectOk(await rpc("cant_stop_get_lobby_snapshot", {
+    p_room_id: started.room.id,
+  }, host.accessToken), "snapshot after two-player guest leave");
+
+  assert.equal(snapshot.players.length, 1);
+  assert.equal(snapshot.players[0].userId, host.id);
+  assert.equal(snapshot.game.phase, "GAME_OVER");
+  assert.equal(snapshot.game.endReason, "PLAYER_LEFT");
+  assert.equal(snapshot.game.endedById, guest.id);
+  assert.equal(snapshot.game.winnerId, null);
+  assert.deepEqual(snapshot.game.turnOrder, [host.id]);
 });
 
 test("cant-stop: active host must use game termination instead of leaving", async () => {
