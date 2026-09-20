@@ -53,6 +53,9 @@ let inviteShareSession = null;
 let accessUnsubscribe = null;
 let rulesDialog = null;
 let endGameDialog = null;
+let actionNoticeDialog = null;
+let actionNoticeTimer = null;
+let lastActionNoticeKey = null;
 let presentationCoordinator = null;
 let lastBustSoundVersion = null;
 let bootEpoch = 0;
@@ -280,6 +283,65 @@ function ensureEndGameDialog() {
 
 function openEndGameDialog() {
   showDialog(ensureEndGameDialog());
+}
+
+function ensureActionNoticeDialog() {
+  if (actionNoticeDialog?.isConnected) return actionNoticeDialog;
+
+  actionNoticeDialog = el("dialog", {
+    className: "cant-stop-action-notice",
+    "aria-labelledby": "cant-stop-action-notice-title",
+    "aria-describedby": "cant-stop-action-notice-message",
+  }, [
+    el("div", { className: "cant-stop-action-notice__peak", "aria-hidden": "true" }, [
+      el("span", { text: "▲" }),
+    ]),
+    el("div", { className: "cant-stop-action-notice__copy" }, [
+      el("strong", {
+        id: "cant-stop-action-notice-title",
+        text: "지금은 진행할 수 없어요",
+      }),
+      el("p", {
+        id: "cant-stop-action-notice-message",
+        className: "cant-stop-action-notice__message",
+      }),
+    ]),
+  ]);
+  actionNoticeDialog.addEventListener("click", (event) => {
+    if (event.target === actionNoticeDialog) closeDialog(actionNoticeDialog);
+  });
+  document.body.append(actionNoticeDialog);
+  return actionNoticeDialog;
+}
+
+function showActionNotice(message) {
+  const dialog = ensureActionNoticeDialog();
+  const messageNode = dialog.querySelector(".cant-stop-action-notice__message");
+  if (messageNode) messageNode.textContent = String(message ?? "");
+
+  if (actionNoticeTimer) clearTimeout(actionNoticeTimer);
+  showDialog(dialog);
+  actionNoticeTimer = window.setTimeout(() => {
+    closeDialog(dialog);
+    actionNoticeTimer = null;
+  }, 3000);
+}
+
+function presentActionError(error, version) {
+  if (!error) {
+    lastActionNoticeKey = null;
+    return;
+  }
+
+  const message = getCantStopLobbyErrorMessage(error);
+  const source = [error?.code, error?.message, error?.details]
+    .filter(Boolean)
+    .join("|");
+  const key = `${Number(version ?? -1)}|${source}|${message}`;
+  if (key === lastActionNoticeKey) return;
+
+  lastActionNoticeKey = key;
+  showActionNotice(message);
 }
 
 function inviteTokenFromLocation() {
@@ -777,13 +839,6 @@ function createBoard(view, state, {
         })
         : null,
     ]),
-    state.error
-      ? el("div", {
-        className: "cant-stop-inline-error",
-        role: "alert",
-        text: getCantStopLobbyErrorMessage(state.error),
-      })
-      : null,
     el("div", {
       className: [
         "cant-stop-board__mountain",
@@ -855,9 +910,32 @@ function createGameplayTools(view, state) {
         void lobbyController.refresh("manual-gameplay").catch(() => {});
       },
     }));
-  }
 
-  if (view.isGameOver) {
+    if (view.isHost) {
+      tools.push(el("button", {
+        className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-gameplay-tools__button",
+        type: "button",
+        text: "게임 종료",
+        disabled: state.busy,
+        onClick: openEndGameDialog,
+      }));
+    } else {
+      tools.push(el("button", {
+        className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-gameplay-tools__button",
+        type: "button",
+        text: state.busy ? "처리 중…" : "방 나가기",
+        disabled: state.busy || !view.isMyTurn,
+        title: view.isMyTurn ? "현재 게임에서 나갑니다." : "자신의 턴에만 방을 나갈 수 있어요.",
+        onClick: async () => {
+          try {
+            await lobbyController.leaveRoom();
+          } catch {
+            // Controller state opens the transient action notice.
+          }
+        },
+      }));
+    }
+  } else {
     if (view.isHost) {
       tools.push(el("button", {
         className: "game-platform-shell__button cant-stop-gameplay-tools__button",
@@ -868,7 +946,7 @@ function createGameplayTools(view, state) {
           try {
             await lobbyController.prepareRematch();
           } catch {
-            // Controller state renders the authoritative error.
+            // Controller state opens the transient action notice.
           }
         },
       }));
@@ -883,22 +961,14 @@ function createGameplayTools(view, state) {
         try {
           await lobbyController.leaveRoom();
         } catch {
-          // Controller state renders the authoritative error.
+          // Controller state opens the transient action notice.
         }
       },
-    }));
-  } else if (view.isHost) {
-    tools.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--danger cant-stop-gameplay-tools__button",
-      type: "button",
-      text: "게임 종료",
-      disabled: state.busy,
-      onClick: openEndGameDialog,
     }));
   }
 
   return el("nav", {
-    className: "cant-stop-gameplay-tools",
+    className: `cant-stop-gameplay-tools cant-stop-gameplay-tools--count-${Math.min(tools.length, 4)}`,
     "aria-label": "게임 메뉴",
   }, tools);
 }
@@ -1020,13 +1090,6 @@ function createEntryPanel(state) {
         text: "새 방을 만들거나 친구가 만든 방 코드로 참가해 주세요.",
       }),
     ]),
-    state.error
-      ? el("div", {
-        className: "cant-stop-inline-error",
-        role: "alert",
-        text: getCantStopLobbyErrorMessage(state.error),
-      })
-      : null,
     el("div", { className: "cant-stop-entry__grid" }, [createForm, joinForm]),
   ]);
 }
@@ -1231,6 +1294,9 @@ function patchGameShell(nextShell) {
     return;
   }
 
+  currentShell.className = nextShell.className;
+  currentShell.dataset.gamePlatformShell = nextShell.dataset.gamePlatformShell ?? "true";
+
   const replaceSlot = (selector) => {
     const current = currentShell.querySelector(selector);
     const next = nextShell.querySelector(selector);
@@ -1256,6 +1322,8 @@ function patchGameShell(nextShell) {
 
 function renderApprovedRuntime(state) {
   if (!root) return;
+
+  presentActionError(state.error, state.snapshot?.version);
 
   if (state.effect?.type === "bust") {
     const effectVersion = Number(state.effect.version ?? state.snapshot?.version);
@@ -1432,6 +1500,11 @@ function cleanup() {
   rulesDialog = null;
   endGameDialog?.remove();
   endGameDialog = null;
+  if (actionNoticeTimer) clearTimeout(actionNoticeTimer);
+  actionNoticeTimer = null;
+  actionNoticeDialog?.remove();
+  actionNoticeDialog = null;
+  lastActionNoticeKey = null;
   cantStopAvatarLoading.clear();
 }
 
