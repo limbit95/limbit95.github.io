@@ -739,6 +739,25 @@ test("enforces member activity transitions and owner-safe removal in the databas
 
     await page.goto("/#/games");
     await assertHealthyPage(page, "게임");
+
+    const gameCards = page.locator('[aria-label="게임 목록"] > .card.page-stack');
+    const cardHeights = await gameCards.evaluateAll((cards) => (
+      cards.map((card) => card.getBoundingClientRect().height)
+    ));
+    expect(Math.max(...cardHeights) - Math.min(...cardHeights)).toBeLessThanOrEqual(1);
+
+    const marbleCard = gameCards.filter({ hasText: "마블 월드" });
+    const marbleDescription = marbleCard.locator(".game-card__description");
+    expect(await marbleDescription.evaluate((element) => getComputedStyle(element).webkitLineClamp)).toBe("2");
+
+    const moreButton = marbleCard.getByRole("button", { name: "마블 월드 전체 설명 보기" });
+    const descriptionTooltip = marbleCard.getByRole("tooltip");
+    await expect(moreButton).toBeVisible();
+    await expect(descriptionTooltip).toBeHidden();
+    await moreButton.hover();
+    await expect(descriptionTooltip).toBeVisible();
+    await expect(descriptionTooltip).toHaveText("클래식부터 우주·바다·판타지까지 서로 다른 세계와 규칙을 선택해 즐기는 테마형 마블 게임이에요.");
+
     await page.getByRole("link", { name: "라이어 게임 시작" }).click();
 
     await expect(page).toHaveURL(/\/liar-game\/$/);
