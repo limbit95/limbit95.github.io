@@ -6,43 +6,44 @@ globalThis.window = globalThis.window ?? {};
 const {
   createOnlineClassicSession,
   mapOnlineGameSnapshot,
-} = await import("../js/onlineSession.js");
+} = await import("../js/onlineSession.js?v=20260919-r13");
 globalThis.window = originalWindow;
 
-function auctionRequestChoice(requestedByPlayerIds = []) {
+function voteChoice(participantPlayerIds = [], passedPlayerIds = []) {
   return {
-    type: "AUCTION_REQUEST",
+    type: "AUCTION_VOTE",
     nodeId: "tokyo",
-    openingBid: 240,
+    basePrice: 240,
+    openingBid: 360,
     declinedByPlayerId: "p1",
     eligiblePlayerIds: ["p2", "p3"],
-    requestedByPlayerIds,
+    participantPlayerIds,
+    passedPlayerIds,
+    deadlineAt: "2026-09-19T12:00:15Z",
   };
 }
 
-function propertyAuctionChoice({
-  requestedByPlayerIds = ["p2"],
-  bidPlayerIds = [],
-  passedPlayerIds = [],
-  highestBid = 0,
-  highestBidderId = null,
-} = {}) {
+function propertyAuctionChoice() {
   return {
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
-    openingBid: 240,
-    requestedByPlayerIds,
+    openingBid: 360,
+    openingBidderPlayerId: "p2",
+    participantPlayerIds: ["p2", "p3"],
     auction: {
       type: "PROPERTY_AUCTION",
       nodeId: "tokyo",
-      openingBid: 240,
+      openingBid: 360,
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
-      requestedByPlayerIds,
-      bidPlayerIds,
-      passedPlayerIds,
-      highestBid,
-      highestBidderId,
+      participantPlayerIds: ["p2", "p3"],
+      openingBidderPlayerId: "p2",
+      bidPlayerIds: ["p2"],
+      passedPlayerIds: [],
+      highestBid: 360,
+      highestBidderId: "p2",
+      turnPlayerId: "p3",
+      turnDeadlineAt: "2026-09-19T12:00:25Z",
       status: "OPEN",
       winnerPlayerId: null,
       winningBid: 0,
@@ -54,8 +55,10 @@ function snapshot(version, {
   pendingChoice = null,
   viewerPlayerId = "p2",
   lastEvents = [],
+  serverNow = "2026-09-19T12:00:00Z",
 } = {}) {
   return {
+    serverNow,
     room: { id: "room-1", roomCode: "ABC123", status: "playing", currentGameId: "game-1" },
     game: {
       id: "game-1",
@@ -84,37 +87,25 @@ function snapshot(version, {
 function installFakeBrowser() {
   const previousWindow = globalThis.window;
   const previousDocument = globalThis.document;
-  const windowListeners = new Map();
-  const documentListeners = new Map();
-  const timers = new Map();
   let nextTimerId = 1;
-
+  const timers = new Map();
   globalThis.window = {
-    setTimeout(callback) {
+    setTimeout(callback, ms) {
       const id = nextTimerId++;
-      timers.set(id, callback);
+      timers.set(id, { callback, ms });
       return id;
     },
     clearTimeout(id) {
       timers.delete(id);
     },
-    addEventListener(type, listener) {
-      windowListeners.set(type, listener);
-    },
-    removeEventListener(type, listener) {
-      if (windowListeners.get(type) === listener) windowListeners.delete(type);
-    },
+    addEventListener() {},
+    removeEventListener() {},
   };
   globalThis.document = {
     visibilityState: "visible",
-    addEventListener(type, listener) {
-      documentListeners.set(type, listener);
-    },
-    removeEventListener(type, listener) {
-      if (documentListeners.get(type) === listener) documentListeners.delete(type);
-    },
+    addEventListener() {},
+    removeEventListener() {},
   };
-
   return {
     timers,
     restore() {
@@ -124,91 +115,27 @@ function installFakeBrowser() {
   };
 }
 
-function flush() {
-  return new Promise((resolve) => setImmediate(resolve));
-}
-
-test("auction request and active auction snapshots survive reconnect mapping without mutable nested state", () => {
-  const requestState = mapOnlineGameSnapshot(snapshot(7, { pendingChoice: auctionRequestChoice(["p2"]) }));
-  assert.equal(requestState.pendingChoice.type, "AUCTION_REQUEST");
-  assert.deepEqual(requestState.pendingChoice.eligiblePlayerIds, ["p2", "p3"]);
-  assert.deepEqual(requestState.pendingChoice.requestedByPlayerIds, ["p2"]);
-  assert.equal(Object.isFrozen(requestState.pendingChoice), true);
-  assert.equal(Object.isFrozen(requestState.pendingChoice.eligiblePlayerIds), true);
-  assert.equal(Object.isFrozen(requestState.pendingChoice.requestedByPlayerIds), true);
-
-  const auctionState = mapOnlineGameSnapshot(snapshot(8, {
-    pendingChoice: propertyAuctionChoice({
-      requestedByPlayerIds: ["p2", "p3"],
-      bidPlayerIds: ["p2"],
-      passedPlayerIds: ["p3"],
-      highestBid: 260,
-      highestBidderId: "p2",
-    }),
+test("snapshot mapping preserves Auction vote decisions and competitive bid order", () => {
+  const vote = mapOnlineGameSnapshot(snapshot(8, {
+    pendingChoice: voteChoice(["p2"], ["p3"]),
   }));
-  assert.equal(auctionState.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.equal(auctionState.pendingChoice.auction.highestBid, 260);
-  assert.equal(auctionState.pendingChoice.auction.highestBidderId, "p2");
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction), true);
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction.bidPlayerIds), true);
-  assert.equal(Object.isFrozen(auctionState.pendingChoice.auction.passedPlayerIds), true);
+  assert.equal(vote.pendingChoice.type, "AUCTION_VOTE");
+  assert.deepEqual(vote.pendingChoice.participantPlayerIds, ["p2"]);
+  assert.deepEqual(vote.pendingChoice.passedPlayerIds, ["p3"]);
+  assert.equal(vote.pendingChoice.deadlineAt, "2026-09-19T12:00:15Z");
+
+  const auction = mapOnlineGameSnapshot(snapshot(9, {
+    pendingChoice: propertyAuctionChoice(),
+  }));
+  assert.deepEqual(auction.pendingChoice.auction.participantPlayerIds, ["p2", "p3"]);
+  assert.equal(auction.pendingChoice.auction.openingBidderPlayerId, "p2");
+  assert.equal(auction.pendingChoice.auction.turnPlayerId, "p3");
 });
 
-test("realtime game-version refresh carries auction request and active auction state to every session", async () => {
-  const browser = installFakeBrowser();
-  let realtimeChange = null;
-  let realtimeStatus = null;
-  let latestSnapshot = snapshot(3, {
-    pendingChoice: { type: "BUY_PROPERTY", nodeId: "tokyo", price: 240 },
-  });
-  const remoteChoices = [];
-
-  try {
-    const session = await createOnlineClassicSession({
-      roomId: "room-1",
-      initialSnapshot: latestSnapshot,
-      onRemoteState(state) {
-        remoteChoices.push(state.pendingChoice?.type ?? null);
-      },
-      api: {
-        async getSnapshot() {
-          return latestSnapshot;
-        },
-        subscribeGame(_roomId, { onChange, onStatus }) {
-          realtimeChange = onChange;
-          realtimeStatus = onStatus;
-          return () => {};
-        },
-      },
-    });
-
-    realtimeStatus("SUBSCRIBED");
-    await flush();
-    assert.deepEqual(remoteChoices, []);
-
-    latestSnapshot = snapshot(4, { pendingChoice: auctionRequestChoice([]) });
-    realtimeChange();
-    await flush();
-    assert.equal(session.getState().version, 4);
-    assert.equal(session.getState().pendingChoice.type, "AUCTION_REQUEST");
-
-    latestSnapshot = snapshot(5, { pendingChoice: propertyAuctionChoice() });
-    realtimeChange();
-    await flush();
-    assert.equal(session.getState().version, 5);
-    assert.equal(session.getState().pendingChoice.type, "PROPERTY_AUCTION");
-    assert.deepEqual(remoteChoices, ["AUCTION_REQUEST", "PROPERTY_AUCTION"]);
-
-    session.dispose();
-  } finally {
-    browser.restore();
-  }
-});
-
-test("channel recovery refreshes the latest in-progress auction snapshot before resubscribe", async () => {
+test("realtime recovery converges a disconnected voter to the latest vote snapshot", async () => {
   const browser = installFakeBrowser();
   let realtimeStatus = null;
-  let latestSnapshot = snapshot(5, { pendingChoice: propertyAuctionChoice() });
+  let latestSnapshot = snapshot(7, { pendingChoice: voteChoice() });
   const remoteVersions = [];
 
   try {
@@ -219,105 +146,164 @@ test("channel recovery refreshes the latest in-progress auction snapshot before 
         remoteVersions.push(state.version);
       },
       api: {
-        async getSnapshot() {
-          return latestSnapshot;
-        },
         subscribeGame(_roomId, { onStatus }) {
           realtimeStatus = onStatus;
           return () => {};
         },
+        async getSnapshot() {
+          return latestSnapshot;
+        },
       },
     });
 
-    realtimeStatus("SUBSCRIBED");
-    await flush();
+    realtimeStatus("CHANNEL_ERROR", new Error("network"));
+    latestSnapshot = snapshot(8, { pendingChoice: voteChoice(["p2"]) });
 
-    latestSnapshot = snapshot(6, {
-      pendingChoice: propertyAuctionChoice({
-        bidPlayerIds: ["p2"],
-        highestBid: 260,
-        highestBidderId: "p2",
-      }),
-      lastEvents: [{ type: "AUCTION_BID_PLACED", playerId: "p2", nodeId: "tokyo", amount: 260 }],
-    });
-    realtimeStatus("CLOSED");
-    assert.equal(browser.timers.size, 1);
+    const recoveryTimer = [...browser.timers.values()].find((timer) => timer.ms === 3000);
+    assert.ok(recoveryTimer);
+    await recoveryTimer.callback();
 
-    const [timerId, recovery] = browser.timers.entries().next().value;
-    browser.timers.delete(timerId);
-    await recovery();
-    await flush();
-
-    assert.equal(session.getState().version, 6);
-    assert.equal(session.getState().pendingChoice.auction.highestBid, 260);
-    assert.equal(session.getState().pendingChoice.auction.highestBidderId, "p2");
-    assert.deepEqual(remoteVersions, [6]);
-    assert.equal(browser.timers.size, 1);
-
-    realtimeStatus("SUBSCRIBED");
-    await flush();
-    assert.equal(browser.timers.size, 0);
+    assert.equal(session.getState().version, 8);
+    assert.equal(session.getState().pendingChoice.type, "AUCTION_VOTE");
+    assert.deepEqual(session.getState().pendingChoice.participantPlayerIds, ["p2"]);
+    assert.deepEqual(remoteVersions, [8]);
     session.dispose();
   } finally {
     browser.restore();
   }
 });
 
-test("online session exposes non-turn auction request and bid actions through the same versioned action recovery path", async () => {
+test("vote session actions preserve versioned idempotent request envelopes", async () => {
   const browser = installFakeBrowser();
   const actionId = "11111111-1111-4111-8111-111111111111";
-  let latestSnapshot = snapshot(7, { pendingChoice: auctionRequestChoice([]) });
-  const requestCalls = [];
-  const bidCalls = [];
-
+  const joinCalls = [];
+  const passCalls = [];
   try {
-    const session = await createOnlineClassicSession({
+    const joinSession = await createOnlineClassicSession({
       roomId: "room-1",
-      initialSnapshot: latestSnapshot,
+      initialSnapshot: snapshot(8, { pendingChoice: voteChoice(), viewerPlayerId: "p2" }),
       api: {
         createActionId: () => actionId,
         subscribeGame: () => () => {},
-        async getSnapshot() {
-          return latestSnapshot;
-        },
-        async requestAuction(request) {
-          requestCalls.push(request);
-          latestSnapshot = snapshot(8, { pendingChoice: auctionRequestChoice(["p2"]) });
-          return latestSnapshot;
-        },
-        async bidAuction(request) {
-          bidCalls.push(request);
-          latestSnapshot = snapshot(10, {
-            pendingChoice: propertyAuctionChoice({
-              requestedByPlayerIds: ["p2"],
-              bidPlayerIds: ["p2"],
-              highestBid: 260,
-              highestBidderId: "p2",
-            }),
-          });
-          return latestSnapshot;
+        joinAuction: async (request) => {
+          joinCalls.push(request);
+          return snapshot(9, { pendingChoice: voteChoice(["p2"]), viewerPlayerId: "p2" });
         },
       },
     });
-
-    const requested = await session.requestAuction();
-    assert.equal(requested.version, 8);
-    assert.deepEqual(requestCalls, [{ roomId: "room-1", expectedVersion: 7, clientActionId: actionId }]);
-
-    latestSnapshot = snapshot(9, { pendingChoice: propertyAuctionChoice({ requestedByPlayerIds: ["p2"] }) });
-    await session.refresh({ notify: false });
-    const bid = await session.auctionBid(260);
-    assert.equal(bid.version, 10);
-    assert.deepEqual(bidCalls, [{
+    await joinSession.joinAuction();
+    assert.deepEqual(joinCalls[0], {
       roomId: "room-1",
-      expectedVersion: 9,
+      expectedVersion: 8,
       clientActionId: actionId,
-      amount: 260,
-      pass: false,
-    }]);
-    assert.equal(typeof session.declinePropertyForAuction, "function");
-    assert.equal(typeof session.closeAuctionRequest, "function");
-    assert.equal(typeof session.auctionPass, "function");
+    });
+    joinSession.dispose();
+
+    const passSession = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(8, { pendingChoice: voteChoice(), viewerPlayerId: "p3" }),
+      api: {
+        createActionId: () => actionId,
+        subscribeGame: () => () => {},
+        passAuctionVote: async (request) => {
+          passCalls.push(request);
+          return snapshot(9, { pendingChoice: voteChoice([], ["p3"]), viewerPlayerId: "p3" });
+        },
+      },
+    });
+    await passSession.passAuctionVote();
+    assert.deepEqual(passCalls[0], {
+      roomId: "room-1",
+      expectedVersion: 8,
+      clientActionId: actionId,
+    });
+    passSession.dispose();
+  } finally {
+    browser.restore();
+  }
+});
+
+test("online session exposes an authoritative server clock independent of local device time", async () => {
+  const restore = installFakeBrowser();
+  const realDateNow = Date.now;
+  try {
+    Date.now = () => Date.parse("2026-09-19T11:58:00Z");
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(7, { pendingChoice: voteChoice() }),
+      api: { subscribeGame: () => () => {} },
+    });
+
+    const firstServerNow = session.getServerNowMs();
+    assert.ok(Math.abs(firstServerNow - Date.parse("2026-09-19T12:00:00Z")) < 100);
+
+    Date.now = () => Date.parse("2030-01-01T00:00:00Z");
+    const afterLocalClockJump = session.getServerNowMs();
+    assert.ok(Math.abs(afterLocalClockJump - firstServerNow) < 100);
+    session.dispose();
+  } finally {
+    Date.now = realDateNow;
+    restore.restore();
+  }
+});
+
+test("equal-version refresh resynchronizes the authoritative server clock", async () => {
+  const browser = installFakeBrowser();
+  try {
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(7, {
+        pendingChoice: voteChoice(),
+        serverNow: "2026-09-19T12:00:00Z",
+      }),
+      api: {
+        subscribeGame: () => () => {},
+        getSnapshot: async () => snapshot(7, {
+          pendingChoice: voteChoice(),
+          serverNow: "2026-09-19T12:00:30Z",
+        }),
+      },
+    });
+    await session.refresh();
+    assert.ok(Math.abs(session.getServerNowMs() - Date.parse("2026-09-19T12:00:30Z")) < 100);
+    session.dispose();
+  } finally {
+    browser.restore();
+  }
+});
+
+test("action replay and stale recovery snapshots cannot rewind the server clock", async () => {
+  const browser = installFakeBrowser();
+  try {
+    const session = await createOnlineClassicSession({
+      roomId: "room-1",
+      initialSnapshot: snapshot(8, {
+        pendingChoice: voteChoice(),
+        serverNow: "2026-09-19T12:00:00Z",
+      }),
+      api: {
+        createActionId: () => "22222222-2222-4222-8222-222222222222",
+        subscribeGame: () => () => {},
+        joinAuction: async () => snapshot(9, {
+          pendingChoice: voteChoice(["p2"]),
+          serverNow: "2026-09-19T11:55:00Z",
+        }),
+        getSnapshot: async () => snapshot(7, {
+          pendingChoice: voteChoice(),
+          serverNow: "2026-09-19T11:50:00Z",
+        }),
+      },
+    });
+
+    const before = session.getServerNowMs();
+    await session.joinAuction();
+    const afterAction = session.getServerNowMs();
+    assert.ok(Math.abs(afterAction - before) < 200);
+
+    await session.refresh();
+    assert.equal(session.getState().version, 9);
+    const afterStaleRefresh = session.getServerNowMs();
+    assert.ok(Math.abs(afterStaleRefresh - before) < 200);
     session.dispose();
   } finally {
     browser.restore();

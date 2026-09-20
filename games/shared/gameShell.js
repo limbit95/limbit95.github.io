@@ -66,7 +66,13 @@ export function createGamePlayerRoster(players, {
           playerId: player.id,
           connected: player.connected ? "true" : "false",
           ready: player.ready ? "true" : "false",
+          currentTurn: player.turnLabel ? "true" : "false",
+          hasAccent: player.accent ? "true" : "false",
+          hasProgress: player.progressLabel ? "true" : "false",
         },
+        style: player.accent
+          ? { "--game-player-accent": player.accent }
+          : null,
       }, [
         player.avatarUrl
           ? el("img", {
@@ -91,10 +97,23 @@ export function createGamePlayerRoster(players, {
             text: [
               player.isMe ? "나" : null,
               player.isHost ? "방장" : null,
-              player.connected ? (player.ready ? "준비 완료" : "대기 중") : "연결 끊김",
+              player.statusLabel
+                ?? (player.connected ? (player.ready ? "준비 완료" : "대기 중") : "연결 끊김"),
             ].filter(Boolean).join(" · "),
           }),
+          player.progressLabel
+            ? el("span", {
+              className: "game-platform-player__progress",
+              text: player.progressLabel,
+            })
+            : null,
         ]),
+        player.turnLabel
+          ? el("span", {
+            className: "game-platform-player__turn-badge",
+            text: player.turnLabel,
+          })
+          : null,
         el("span", {
           className: "game-platform-player__presence",
           title: player.connected ? "연결됨" : "연결 끊김",

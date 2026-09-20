@@ -269,3 +269,60 @@
     top: 1rem;
   }
 }
+
+
+.game-platform-player[data-has-accent="true"] {
+  border-color: color-mix(in srgb, var(--game-player-accent) 48%, var(--game-shell-line));
+}
+
+.game-platform-player[data-has-accent="true"] .game-platform-player__avatar {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--game-player-accent) 72%, #fff);
+}
+
+.game-platform-player[data-has-accent="true"] .game-platform-player__avatar--fallback {
+  background: color-mix(in srgb, var(--game-player-accent) 16%, #fff);
+  color: color-mix(in srgb, var(--game-player-accent) 78%, #21383f);
+}
+
+.game-platform-player[data-current-turn="true"] {
+  border-color: var(--game-player-accent, var(--game-shell-primary));
+  background: color-mix(in srgb, var(--game-player-accent, var(--game-shell-primary)) 9%, #fff);
+  box-shadow:
+    inset 3px 0 0 var(--game-player-accent, var(--game-shell-primary)),
+    0 4px 12px color-mix(in srgb, var(--game-player-accent, var(--game-shell-primary)) 12%, transparent);
+}
+
+.game-platform-player__turn-badge {
+  min-width: max-content;
+  padding: .34rem .48rem;
+  border-radius: 999px;
+  background: var(--game-player-accent, var(--game-shell-primary));
+  color: #fff;
+  font-size: .67rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -.01em;
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--game-player-accent, var(--game-shell-primary)) 30%, transparent);
+}
+
+.game-platform-player[data-current-turn="true"] {
+  grid-template-columns: 40px minmax(0, 1fr) auto 10px;
+}
+
+
+.game-platform-player[data-has-progress="true"] {
+  min-height: 66px;
+}
+
+.game-platform-player__progress {
+  width: fit-content;
+  margin-top: .18rem;
+  padding: .2rem .42rem;
+  border: 1px solid color-mix(in srgb, var(--game-player-accent, var(--game-shell-line)) 34%, var(--game-shell-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--game-player-accent, var(--game-shell-primary)) 7%, #fff);
+  color: color-mix(in srgb, var(--game-player-accent, var(--game-shell-primary)) 70%, #334f59);
+  font-size: .66rem;
+  font-weight: 850;
+  line-height: 1.15;
+}

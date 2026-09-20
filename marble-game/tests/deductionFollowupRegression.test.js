@@ -95,5 +95,5 @@ test("toll deduction cards use equal columns and centered symmetric spacing", ()
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /threeClassicCostPresentationEntry\.js\?v=20260917-r12/);
-  assert.match(indexHtml, /data-marble-build="20260917-r12"/);
+  assert.match(indexHtml, /data-marble-build="20260919-r13"/);
 });

@@ -2,6 +2,7 @@ function freezeAuction(auction) {
   return Object.freeze({
     ...auction,
     eligiblePlayerIds: Object.freeze([...(auction.eligiblePlayerIds ?? [])]),
+    participantPlayerIds: Object.freeze([...(auction.participantPlayerIds ?? [])]),
     requestedByPlayerIds: Object.freeze([...(auction.requestedByPlayerIds ?? [])]),
     bidPlayerIds: Object.freeze([...(auction.bidPlayerIds ?? [])]),
     passedPlayerIds: Object.freeze([...(auction.passedPlayerIds ?? [])]),
@@ -22,80 +23,182 @@ function requirePlayer(players, playerId) {
   return player;
 }
 
-function getMinimumBid(auction) {
+export const AUCTION_TIMING = Object.freeze({
+  voteMs: 15_000,
+  bidTurnMs: 10_000,
+});
+
+export function calculateAuctionOpeningBid(basePrice) {
+  const price = Number(basePrice);
+  if (!Number.isSafeInteger(price) || price <= 0) {
+    throw new Error("Auction base price must be a positive integer.");
+  }
+  return Math.round(price * 1.5);
+}
+
+export function getEligibleAuctionPlayerIds({
+  declinedByPlayerId,
+  openingBid,
+  players,
+}) {
+  const normalizedOpeningBid = normalizeOpeningBid(openingBid);
+  if (!Array.isArray(players) || players.length < 2) {
+    throw new Error("Auction requires at least two players.");
+  }
+  requirePlayer(players, declinedByPlayerId);
+  return Object.freeze(players
+    .filter((player) => (
+      player.id !== declinedByPlayerId
+      && player.bankrupt !== true
+      && Number(player.money) >= normalizedOpeningBid
+    ))
+    .map((player) => player.id));
+}
+
+export function getPropertyAuctionMinimumBid(auction) {
+  if (auction?.type !== "PROPERTY_AUCTION") throw new Error("A property auction is required.");
   return auction.highestBid > 0 ? auction.highestBid + 1 : auction.openingBid;
 }
 
-function settleAuction(auction) {
+function getActiveIds(auction) {
   const passed = new Set(auction.passedPlayerIds);
-  const remaining = auction.eligiblePlayerIds.filter((playerId) => !passed.has(playerId));
+  return auction.participantPlayerIds.filter((playerId) => !passed.has(playerId));
+}
 
-  if (!auction.highestBidderId && remaining.length === 0) {
-    return freezeAuction({ ...auction, status: "UNSOLD", winnerPlayerId: null, winningBid: 0 });
+function settleAuction(auction) {
+  const activeIds = getActiveIds(auction);
+  if (!auction.highestBidderId && activeIds.length === 0) {
+    return freezeAuction({ ...auction, status: "UNSOLD", winnerPlayerId: null, winningBid: 0, turnPlayerId: null });
   }
-
   if (
     auction.highestBidderId
-    && remaining.length === 1
-    && remaining[0] === auction.highestBidderId
+    && activeIds.length === 1
+    && activeIds[0] === auction.highestBidderId
   ) {
     return freezeAuction({
       ...auction,
       status: "WON",
       winnerPlayerId: auction.highestBidderId,
       winningBid: auction.highestBid,
+      turnPlayerId: null,
+      turnDeadlineAt: null,
     });
   }
-
   return freezeAuction(auction);
+}
+
+function autoPassUnaffordable(auction, players) {
+  const minimumBid = getPropertyAuctionMinimumBid(auction);
+  const passed = new Set(auction.passedPlayerIds);
+  const autoPassedPlayerIds = [];
+  for (const playerId of auction.participantPlayerIds) {
+    if (playerId === auction.highestBidderId || passed.has(playerId)) continue;
+    const player = requirePlayer(players, playerId);
+    if (player.bankrupt || Number(player.money) < minimumBid) {
+      passed.add(playerId);
+      autoPassedPlayerIds.push(playerId);
+    }
+  }
+  return {
+    auction: freezeAuction({ ...auction, passedPlayerIds: [...passed] }),
+    autoPassedPlayerIds: Object.freeze(autoPassedPlayerIds),
+  };
+}
+
+function nextTurnPlayerId(auction, afterPlayerId) {
+  const participants = auction.participantPlayerIds;
+  if (!participants.length) return null;
+  const passed = new Set(auction.passedPlayerIds);
+  const startIndex = Math.max(0, participants.indexOf(afterPlayerId));
+  for (let offset = 1; offset <= participants.length; offset += 1) {
+    const candidate = participants[(startIndex + offset) % participants.length];
+    if (passed.has(candidate) || candidate === auction.highestBidderId) continue;
+    return candidate;
+  }
+  return null;
+}
+
+function prepareNextTurn(auction, players, afterPlayerId) {
+  const affordability = autoPassUnaffordable(auction, players);
+  let next = settleAuction(affordability.auction);
+  if (next.status !== "OPEN") {
+    return { auction: next, autoPassedPlayerIds: affordability.autoPassedPlayerIds };
+  }
+  const turnPlayerId = nextTurnPlayerId(next, afterPlayerId);
+  if (!turnPlayerId) {
+    next = settleAuction(next);
+    return { auction: next, autoPassedPlayerIds: affordability.autoPassedPlayerIds };
+  }
+  return {
+    auction: freezeAuction({ ...next, turnPlayerId }),
+    autoPassedPlayerIds: affordability.autoPassedPlayerIds,
+  };
 }
 
 export function createPropertyAuction({
   nodeId,
   openingBid,
   declinedByPlayerId,
-  requestedByPlayerIds = [],
+  openingBidderPlayerId,
+  requesterPlayerId = null,
+  participantPlayerIds,
   players,
+  turnDeadlineAt = null,
 }) {
   if (typeof nodeId !== "string" || !nodeId.trim()) throw new Error("Auction property node id is required.");
   if (typeof declinedByPlayerId !== "string" || !declinedByPlayerId.trim()) {
     throw new Error("Auction declining player id is required.");
   }
-  if (!Array.isArray(players) || players.length < 2) throw new Error("Auction requires at least two players.");
-  if (!Array.isArray(requestedByPlayerIds)) throw new Error("Auction requester ids must be an array.");
-
   const normalizedOpeningBid = normalizeOpeningBid(openingBid);
-  requirePlayer(players, declinedByPlayerId);
-  const eligiblePlayerIds = players
-    .filter((player) => (
-      player.id !== declinedByPlayerId
-      && player.bankrupt !== true
-      && Number(player.money) >= normalizedOpeningBid
-    ))
-    .map((player) => player.id);
-  const uniqueRequestedByPlayerIds = [...new Set(requestedByPlayerIds)];
-  if (uniqueRequestedByPlayerIds.length !== requestedByPlayerIds.length) {
-    throw new Error("Auction requester ids must be unique.");
+  const eligiblePlayerIds = getEligibleAuctionPlayerIds({
+    declinedByPlayerId,
+    openingBid: normalizedOpeningBid,
+    players,
+  });
+  const firstBidderPlayerId = openingBidderPlayerId ?? requesterPlayerId;
+  if (!eligiblePlayerIds.includes(firstBidderPlayerId)) {
+    throw new Error("Auction opening bidder must be eligible for this auction.");
   }
-  if (uniqueRequestedByPlayerIds.some((playerId) => !eligiblePlayerIds.includes(playerId))) {
-    throw new Error("Auction requester must be eligible for this auction.");
+  if (!Array.isArray(participantPlayerIds) || participantPlayerIds.length === 0) {
+    throw new Error("Auction participants are required.");
+  }
+  const uniqueParticipants = [...new Set(participantPlayerIds)];
+  if (uniqueParticipants.length !== participantPlayerIds.length) {
+    throw new Error("Auction participant ids must be unique.");
+  }
+  if (uniqueParticipants[0] !== firstBidderPlayerId) {
+    throw new Error("Auction opening bidder must be the first participant.");
+  }
+  if (uniqueParticipants.some((playerId) => !eligiblePlayerIds.includes(playerId))) {
+    throw new Error("Auction participants must be eligible.");
   }
 
-  return settleAuction(freezeAuction({
+  const initial = freezeAuction({
     type: "PROPERTY_AUCTION",
     nodeId,
     openingBid: normalizedOpeningBid,
     declinedByPlayerId,
     eligiblePlayerIds,
-    requestedByPlayerIds: uniqueRequestedByPlayerIds,
-    bidPlayerIds: [],
+    participantPlayerIds: uniqueParticipants,
+    openingBidderPlayerId: firstBidderPlayerId,
+    requesterPlayerId: firstBidderPlayerId,
+    requestedByPlayerIds: [],
+    bidPlayerIds: [firstBidderPlayerId],
     passedPlayerIds: [],
-    highestBid: 0,
-    highestBidderId: null,
+    highestBid: normalizedOpeningBid,
+    highestBidderId: firstBidderPlayerId,
+    turnPlayerId: null,
+    turnDeadlineAt,
     status: "OPEN",
     winnerPlayerId: null,
     winningBid: 0,
-  }));
+  });
+
+  const prepared = prepareNextTurn(initial, players, firstBidderPlayerId);
+  return freezeAuction({
+    ...prepared.auction,
+    turnDeadlineAt: prepared.auction.status === "OPEN" ? turnDeadlineAt : null,
+  });
 }
 
 export function reducePropertyAuction(auction, players, action) {
@@ -104,55 +207,77 @@ export function reducePropertyAuction(auction, players, action) {
   if (!Array.isArray(players)) throw new Error("Auction players are required.");
 
   const playerId = action?.playerId;
-  if (!auction.eligiblePlayerIds.includes(playerId)) throw new Error("Player is not eligible for this auction.");
+  if (playerId !== auction.turnPlayerId) {
+    throw new Error("It is not this player's auction turn.");
+  }
+  if (!auction.participantPlayerIds.includes(playerId)) {
+    throw new Error("Player is not participating in this auction.");
+  }
   if (auction.passedPlayerIds.includes(playerId)) throw new Error("Player already passed this auction.");
 
   const player = requirePlayer(players, playerId);
   if (player.bankrupt) throw new Error("Bankrupt players cannot participate in an auction.");
 
+  const events = [];
+  let nextAuction = auction;
+
   if (action?.pass === true) {
-    if (auction.highestBidderId === playerId) throw new Error("The current highest bidder cannot pass.");
-    const requesterStillOwesBid = (
-      auction.requestedByPlayerIds.includes(playerId)
-      && !auction.bidPlayerIds.includes(playerId)
-    );
-    if (requesterStillOwesBid && Number(player.money) >= getMinimumBid(auction)) {
-      throw new Error("Auction requester must place a bid before passing.");
-    }
-    const next = settleAuction(freezeAuction({
+    nextAuction = freezeAuction({
       ...auction,
       passedPlayerIds: [...auction.passedPlayerIds, playerId],
-    }));
-    const events = [{ type: "AUCTION_PASSED", playerId, nodeId: auction.nodeId }];
-    if (next.status === "UNSOLD") {
-      events.push({ type: "AUCTION_ENDED", nodeId: auction.nodeId, winnerPlayerId: null, amount: 0 });
-    } else if (next.status === "WON") {
-      events.push({ type: "AUCTION_WON", nodeId: auction.nodeId, winnerPlayerId: next.winnerPlayerId, amount: next.winningBid });
+      turnPlayerId: null,
+      turnDeadlineAt: null,
+    });
+    events.push({
+      type: action?.timeout === true ? "AUCTION_AUTO_PASSED" : "AUCTION_PASSED",
+      playerId,
+      nodeId: auction.nodeId,
+      reason: action?.timeout === true ? "TIMEOUT" : "VOLUNTARY",
+    });
+  } else {
+    const amount = Number(action?.amount);
+    const minimumBid = getPropertyAuctionMinimumBid(auction);
+    if (!Number.isSafeInteger(amount) || amount < minimumBid) {
+      throw new Error(`Auction bid must be at least ${minimumBid}.`);
     }
-    return Object.freeze({ auction: next, events: Object.freeze(events.map((event) => Object.freeze(event))) });
+    if (amount > Number(player.money)) throw new Error("Player cannot afford this auction bid.");
+    nextAuction = freezeAuction({
+      ...auction,
+      bidPlayerIds: auction.bidPlayerIds.includes(playerId)
+        ? auction.bidPlayerIds
+        : [...auction.bidPlayerIds, playerId],
+      highestBid: amount,
+      highestBidderId: playerId,
+      turnPlayerId: null,
+      turnDeadlineAt: null,
+    });
+    events.push({ type: "AUCTION_BID_PLACED", playerId, nodeId: auction.nodeId, amount });
   }
 
-  const amount = Number(action?.amount);
-  const minimumBid = getMinimumBid(auction);
-  if (!Number.isSafeInteger(amount) || amount < minimumBid) {
-    throw new Error(`Auction bid must be at least ${minimumBid}.`);
+  const prepared = prepareNextTurn(nextAuction, players, playerId);
+  nextAuction = prepared.auction;
+  for (const autoPassedPlayerId of prepared.autoPassedPlayerIds) {
+    events.push({
+      type: "AUCTION_AUTO_PASSED",
+      playerId: autoPassedPlayerId,
+      nodeId: auction.nodeId,
+      reason: "INSUFFICIENT_GOLD",
+    });
   }
-  if (amount > Number(player.money)) throw new Error("Player cannot afford this auction bid.");
 
-  const bidPlayerIds = auction.bidPlayerIds.includes(playerId)
-    ? auction.bidPlayerIds
-    : [...auction.bidPlayerIds, playerId];
-  const next = settleAuction(freezeAuction({
-    ...auction,
-    bidPlayerIds,
-    highestBid: amount,
-    highestBidderId: playerId,
-  }));
-  const events = [{ type: "AUCTION_BID_PLACED", playerId, nodeId: auction.nodeId, amount }];
-  if (next.status === "WON") {
-    events.push({ type: "AUCTION_WON", nodeId: auction.nodeId, winnerPlayerId: next.winnerPlayerId, amount: next.winningBid });
+  if (nextAuction.status === "WON") {
+    events.push({
+      type: "AUCTION_WON",
+      nodeId: auction.nodeId,
+      winnerPlayerId: nextAuction.winnerPlayerId,
+      amount: nextAuction.winningBid,
+    });
   }
-  return Object.freeze({ auction: next, events: Object.freeze(events.map((event) => Object.freeze(event))) });
+
+  return Object.freeze({
+    auction: nextAuction,
+    events: Object.freeze(events.map((event) => Object.freeze(event))),
+  });
 }
 
 export function getPropertyAuctionSettlement(auction) {

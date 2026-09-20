@@ -1,6 +1,6 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
-import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260910-r8";
+import { createOnlineClassicSession, isOnlineViewerTurn } from "./onlineSession.js?v=20260919-r13";
 import { markOnlineVisualRuntime } from "./onlineVisualPolicy.js?v=20260910-r10";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
@@ -47,7 +47,7 @@ function viewerCanAct(state) {
 function isAuctionChoice(state) {
   return (
     state?.phase === TURN_PHASES.WAITING_CHOICE
-    && ["AUCTION_REQUEST", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
+    && ["AUCTION_REQUEST", "AUCTION_RECRUITMENT", "AUCTION_VOTE", "PROPERTY_AUCTION"].includes(state.pendingChoice?.type)
   );
 }
 
@@ -197,7 +197,7 @@ function renderActionControls(state) {
     choiceDeclinedPending = false;
     primaryActionButton.hidden = true;
     if (secondaryActionButton) secondaryActionButton.hidden = true;
-    gameMessage.textContent = "경매 패널에서 요청·입찰·패스를 진행해 주세요.";
+    gameMessage.textContent = "경매 패널에서 참가 투표·입찰·포기를 진행해 주세요.";
     return;
   }
 

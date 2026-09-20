@@ -8,20 +8,19 @@ const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 const {
   createOnlineClassicSession,
   getActiveOnlineClassicSession,
-} = await import("../js/onlineSession.js?v=20260910-r8");
+} = await import("../js/onlineSession.js?v=20260919-r13");
 globalThis.window = originalWindow;
 
 const uiSource = readFileSync(new URL("../js/onlineAuctionUi.js", import.meta.url), "utf8");
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
-const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta.url), "utf8");
 const controller2dSource = readFileSync(new URL("../js/onlineGameController2d.js", import.meta.url), "utf8");
-const endTurnGuardSql = readFileSync(
-  new URL("../../supabase/marble/20260918105000_marble_phase7a_end_turn_auction_guard.sql", import.meta.url),
+const auctionVoteSql = readFileSync(
+  new URL("../../supabase/marble/20260919122159_marble_auction_vote_flow.sql", import.meta.url),
   "utf8",
 );
 const cssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
 
-function state(pendingChoice, overrides = {}) {
+function state(pendingChoice) {
   return {
     currentPlayerIndex: 0,
     players: [
@@ -31,156 +30,117 @@ function state(pendingChoice, overrides = {}) {
     ],
     board: { nodes: [{ id: "tokyo", label: "도쿄", type: "PROPERTY" }] },
     pendingChoice,
-    ...overrides,
   };
 }
 
-function requestChoice(requestedByPlayerIds = []) {
+function voteChoice(participantPlayerIds = [], passedPlayerIds = []) {
   return {
-    type: "AUCTION_REQUEST",
+    type: "AUCTION_VOTE",
     nodeId: "tokyo",
-    openingBid: 240,
+    basePrice: 240,
+    openingBid: 360,
     declinedByPlayerId: "p1",
     eligiblePlayerIds: ["p2", "p3"],
-    requestedByPlayerIds,
+    participantPlayerIds,
+    passedPlayerIds,
+    deadlineAt: "2026-09-19T12:00:15Z",
   };
 }
 
-function auctionChoice({
-  requestedByPlayerIds = ["p2"],
-  bidPlayerIds = [],
-  passedPlayerIds = [],
-  highestBid = 0,
-  highestBidderId = null,
-} = {}) {
+function auctionChoice() {
   return {
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
-    openingBid: 240,
-    requestedByPlayerIds,
+    openingBid: 360,
+    openingBidderPlayerId: "p2",
+    participantPlayerIds: ["p2", "p3"],
     auction: {
       type: "PROPERTY_AUCTION",
       nodeId: "tokyo",
-      openingBid: 240,
+      openingBid: 360,
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
-      requestedByPlayerIds,
-      bidPlayerIds,
-      passedPlayerIds,
-      highestBid,
-      highestBidderId,
+      participantPlayerIds: ["p2", "p3"],
+      openingBidderPlayerId: "p2",
+      bidPlayerIds: ["p2"],
+      passedPlayerIds: [],
+      highestBid: 360,
+      highestBidderId: "p2",
+      turnPlayerId: "p3",
+      turnDeadlineAt: "2026-09-19T12:00:25Z",
       status: "OPEN",
     },
   };
 }
 
-test("request UI is available to other eligible players while the declining player controls request close", () => {
-  const otherPlayer = createOnlineAuctionUiModel(state(requestChoice()), "p2");
-  assert.equal(otherPlayer.stage, "request");
-  assert.equal(otherPlayer.nodeLabel, "도쿄");
-  assert.equal(otherPlayer.canRequest, true);
-  assert.equal(otherPlayer.requested, false);
-  assert.equal(otherPlayer.canClose, false);
-  assert.equal(otherPlayer.openingBid, 240);
+test("vote UI exposes irreversible join/pass state and 15-second deadline", () => {
+  const undecided = createOnlineAuctionUiModel(state(voteChoice()), "p2");
+  assert.equal(undecided.stage, "vote");
+  assert.equal(undecided.openingBid, 360);
+  assert.equal(undecided.canJoin, true);
+  assert.equal(undecided.canVotePass, true);
 
-  const requested = createOnlineAuctionUiModel(state(requestChoice(["p2"])), "p2");
-  assert.equal(requested.canRequest, false);
-  assert.equal(requested.requested, true);
-  assert.equal(requested.requestCount, 1);
+  const joined = createOnlineAuctionUiModel(state(voteChoice(["p2"])), "p2");
+  assert.equal(joined.decision, "JOIN");
+  assert.equal(joined.canJoin, false);
+  assert.equal(joined.canVotePass, false);
 
-  const decliningPlayer = createOnlineAuctionUiModel(state(requestChoice(["p2"])), "p1");
-  assert.equal(decliningPlayer.eligible, false);
-  assert.equal(decliningPlayer.canRequest, false);
-  assert.equal(decliningPlayer.canClose, true);
+  const passed = createOnlineAuctionUiModel(state(voteChoice([], ["p2"])), "p2");
+  assert.equal(passed.decision, "PASS");
+  assert.equal(passed.canJoin, false);
+  assert.equal(passed.canVotePass, false);
 });
 
-test("auction UI exposes authoritative minimum bid, highest bidder, balance, and pass restrictions", () => {
-  const requesterBeforeBid = createOnlineAuctionUiModel(state(auctionChoice()), "p2");
-  assert.equal(requesterBeforeBid.stage, "auction");
-  assert.equal(requesterBeforeBid.minimumBid, 240);
-  assert.equal(requesterBeforeBid.viewerGold, 1200);
-  assert.equal(requesterBeforeBid.canBid, true);
-  assert.equal(requesterBeforeBid.canPass, false);
-  assert.equal(requesterBeforeBid.passLabel, "첫 입찰 필요");
-
-  const requesterLeading = createOnlineAuctionUiModel(state(auctionChoice({
-    bidPlayerIds: ["p2"],
-    highestBid: 260,
-    highestBidderId: "p2",
-  })), "p2");
-  assert.equal(requesterLeading.minimumBid, 261);
-  assert.equal(requesterLeading.highestBidderName, "B");
-  assert.equal(requesterLeading.isHighestBidder, true);
-  assert.equal(requesterLeading.canPass, false);
-  assert.equal(requesterLeading.passLabel, "최고 입찰 중");
-
-  const competitor = createOnlineAuctionUiModel(state(auctionChoice({
-    bidPlayerIds: ["p2"],
-    highestBid: 260,
-    highestBidderId: "p2",
-  })), "p3");
-  assert.equal(competitor.canBid, true);
-  assert.equal(competitor.canPass, true);
-
-  const passed = createOnlineAuctionUiModel(state(auctionChoice({
-    bidPlayerIds: ["p2"],
-    passedPlayerIds: ["p3"],
-    highestBid: 260,
-    highestBidderId: "p2",
-  })), "p3");
-  assert.equal(passed.passed, true);
-  assert.equal(passed.canBid, false);
-  assert.equal(passed.canPass, false);
-  assert.equal(passed.passLabel, "패스 완료");
+test("participant cards expose authoritative join order and first bidder", () => {
+  const model = createOnlineAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
+  assert.deepEqual(model.participantCards.map((card) => [card.id, card.order, card.openingBidder]), [
+    ["p3", 1, true],
+    ["p2", 2, false],
+  ]);
 });
 
-test("minimal auction UI keeps purchase decline separate from build decline and does not hardcode a request timer", () => {
-  assert.match(uiSource, /state\.pendingChoice\?\.type !== "BUY_PROPERTY"/);
-  assert.match(uiSource, /session\.declinePropertyForAuction\(\)/);
-  assert.match(uiSource, /stopImmediatePropagation\(\)/);
-  assert.match(uiSource, /dataset\.auctionStage/);
-  assert.match(uiSource, /requestButton\.textContent\s*=/);
-  assert.match(uiSource, /bidButton\.textContent\s*=/);
-  assert.match(uiSource, /bidInput\.dataset\.auctionBidInput/);
-  assert.match(uiSource, /session\.auctionPass\(\)/);
-  assert.doesNotMatch(uiSource, /setTimeout/);
-  assert.doesNotMatch(uiSource, /5000/);
-  assert.match(cssSource, /data-auction-stage="request"/);
-  assert.match(cssSource, /data-auction-stage="auction"/);
-  assert.match(cssSource, /@media \(max-width: 640px\)/);
+test("competitive UI keeps the participant order visible and turn-scoped controls", () => {
+  const first = createOnlineAuctionUiModel(state(auctionChoice()), "p2");
+  assert.equal(first.highestBidderId, "p2");
+  assert.equal(first.minimumBid, 361);
+  assert.equal(first.canBid, false);
+
+  const bidder = createOnlineAuctionUiModel(state(auctionChoice()), "p3");
+  assert.equal(bidder.isTurn, true);
+  assert.equal(bidder.canBid, true);
+  assert.equal(bidder.canPass, true);
+  assert.deepEqual(bidder.participantCards.map((card) => card.id), ["p2", "p3"]);
 });
 
-test("legacy 2D controls and end-turn RPC cannot bypass an active auction", () => {
-  assert.match(controller2dSource, /function isAuctionChoice\(state\)/);
-  assert.match(controller2dSource, /\["AUCTION_REQUEST", "PROPERTY_AUCTION"\]\.includes\(state\.pendingChoice\?\.type\)/);
+test("Auction vote UI uses shared modal language and viewport portal", () => {
+  assert.match(uiSource, /session\.passAuctionVote\(\)/);
+  assert.doesNotMatch(uiSource, /session\.withdrawAuction\(\)/);
+  assert.match(uiSource, /경매 참가/);
+  assert.match(uiSource, /경매 포기/);
+  assert.match(uiSource, /첫 입찰/);
+  assert.match(uiSource, /15초/);
+  assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
+  assert.match(uiSource, /session\.getServerNowMs\?\.\(\)/);
+  assert.match(uiSource, /const modalHost = documentObject\.body \?\? dock/);
+  assert.match(cssSource, /data-auction-stage="vote"/);
+  assert.match(cssSource, /#172331/);
+  assert.match(cssSource, /auction-action-panel__participants/);
+});
+
+test("legacy controls cannot bypass Auction vote or competitive auction", () => {
   assert.match(
     controller2dSource,
-    /if \(isAuctionChoice\(currentState\) && \["decline", "endTurn"\]\.includes\(actionName\)\) return;/,
+    /"AUCTION_VOTE", "PROPERTY_AUCTION"/,
   );
   assert.match(
-    controller2dSource,
-    /if \(isAuctionChoice\(state\)\)[\s\S]*?primaryActionButton\.hidden = true;[\s\S]*?secondaryActionButton\) secondaryActionButton\.hidden = true;/,
+    auctionVoteSql,
+    /in \('AUCTION_REQUEST','AUCTION_RECRUITMENT','AUCTION_VOTE','PROPERTY_AUCTION'\)/,
   );
-  assert.match(
-    endTurnGuardSql,
-    /pending_choice->>'type',''\) in \('AUCTION_REQUEST','PROPERTY_AUCTION'\)[\s\S]*?raise exception 'END_TURN_NOT_ALLOWED'/,
-  );
-  assert.match(endTurnGuardSql, /v_game\.phase not in \('TURN_END','WAITING_CHOICE'\)/);
 });
 
-test("online boot attaches the auction adapter only after the existing game controller is ready", () => {
-  const controllerStart = playWindowSource.indexOf("controllerModule.startOnlineGameController");
-  const auctionModule = playWindowSource.indexOf("onlineAuctionUi.js");
-  assert.ok(controllerStart >= 0);
-  assert.ok(auctionModule > controllerStart);
-  assert.match(playWindowSource, /setupOnlineAuctionUi\(\{ roomId: onlineRoomId \}\)/);
-  assert.match(sessionSource, /getActiveOnlineClassicSession/);
-  assert.match(sessionSource, /subscribeState\(listener\)/);
-  assert.match(sessionSource, /notifyCurrentState/);
-});
-
-function snapshot(version, pendingChoice = requestChoice()) {
+function snapshot(version, pendingChoice = voteChoice()) {
   return {
+    serverNow: "2026-09-19T12:00:00Z",
     room: { id: "room-1", roomCode: "ABC123", status: "playing", currentGameId: "game-1" },
     game: {
       id: "game-1",
@@ -226,36 +186,41 @@ function installFakeBrowser() {
   };
 }
 
-test("active online session notifies the auction UI on authoritative action state and unregisters on dispose", async () => {
+test("active online session maps Auction vote participant updates", async () => {
   const restore = installFakeBrowser();
   const observedVersions = [];
-  const presentedVersions = [];
   try {
+    const joinedSnapshot = snapshot(8, voteChoice(["p2"]));
     const session = await createOnlineClassicSession({
       roomId: "room-1",
       initialSnapshot: snapshot(7),
-      onRemoteState(stateValue) {
-        presentedVersions.push(stateValue.version);
-      },
       api: {
         createActionId: () => "11111111-1111-4111-8111-111111111111",
         subscribeGame: () => () => {},
-        getSnapshot: async () => snapshot(8, requestChoice(["p2"])),
-        requestAuction: async () => snapshot(8, requestChoice(["p2"])),
+        getSnapshot: async () => joinedSnapshot,
+        joinAuction: async () => joinedSnapshot,
       },
     });
 
     assert.equal(getActiveOnlineClassicSession("room-1"), session);
     const unsubscribe = session.subscribeState((nextState) => observedVersions.push(nextState.version));
-    await session.requestAuction();
+    await session.joinAuction();
     assert.deepEqual(observedVersions, [8]);
-    await session.notifyCurrentState();
-    assert.deepEqual(presentedVersions, [8]);
+    assert.equal(session.getState().pendingChoice.type, "AUCTION_VOTE");
+    assert.deepEqual(session.getState().pendingChoice.participantPlayerIds, ["p2"]);
 
     unsubscribe();
     session.dispose();
-    assert.equal(getActiveOnlineClassicSession("room-1"), null);
   } finally {
     restore();
   }
+});
+
+test("session maps vote lists and exposes pass action", () => {
+  assert.match(sessionSource, /pendingChoice\.type === "AUCTION_VOTE"/);
+  assert.match(sessionSource, /participantPlayerIds/);
+  assert.match(sessionSource, /passedPlayerIds/);
+  assert.match(sessionSource, /joinAuction\(\)/);
+  assert.match(sessionSource, /passAuctionVote\(\)/);
+  assert.match(sessionSource, /advanceAuctionDeadline\(\)/);
 });

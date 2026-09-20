@@ -1,7 +1,9 @@
 import { getAuthState, refreshAuthContext } from "../auth.js";
 import {
+  checkDisplayNameAvailability,
   getProfileInterests,
   getSignedAvatarUrl,
+  isDisplayNameConflict,
   replaceProfileInterests,
   updateProfile,
   uploadAvatar,
@@ -431,6 +433,99 @@ export async function renderProfileEdit() {
     accept: "image/jpeg,image/png,image/webp",
   });
   const birthDate = profileBirthDateField(auth.profile);
+  const displayNameField = inputField("display_name", "표시 이름", "text", auth.profile.display_name, { maxlength: "50", required: true });
+  const displayNameInput = displayNameField.querySelector('[name="display_name"]');
+  const displayNameAvailability = el("p", { className: "field-help", "aria-live": "polite" });
+  const displayNameError = displayNameField.querySelector('[data-error-for="display_name"]');
+  displayNameField.insertBefore(displayNameAvailability, displayNameError);
+  const originalDisplayNameKey = normalizeDisplayNameKey(auth.profile.display_name);
+  let displayNameCheckTimer = null;
+  let displayNameCheckRequest = 0;
+  let displayNameCheckValue = auth.profile.display_name.trim();
+  let displayNameCheckStatus = "available";
+
+  function normalizeDisplayNameKey(value) {
+    return String(value ?? "").trim().toLocaleLowerCase();
+  }
+
+  function scheduleDisplayNameCheck() {
+    clearTimeout(displayNameCheckTimer);
+    const value = displayNameInput.value.trim();
+    if (!value || !valueInRange(value, 1, 50)) return;
+    if (normalizeDisplayNameKey(value) === originalDisplayNameKey) {
+      displayNameCheckValue = value;
+      displayNameCheckStatus = "available";
+      displayNameAvailability.textContent = "현재 사용 중인 닉네임입니다.";
+      return;
+    }
+    const requestId = ++displayNameCheckRequest;
+    displayNameCheckStatus = "checking";
+    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
+    displayNameCheckTimer = window.setTimeout(() => {
+      displayNameCheckTimer = null;
+      void runDisplayNameCheck(value, requestId);
+    }, 450);
+  }
+
+  async function runDisplayNameCheck(value, requestId = ++displayNameCheckRequest, { blockOnError = false } = {}) {
+    try {
+      const available = await checkDisplayNameAvailability(value);
+      if (requestId !== displayNameCheckRequest || displayNameInput.value.trim() !== value) return false;
+      displayNameCheckValue = value;
+      displayNameCheckStatus = available ? "available" : "taken";
+      if (available) {
+        setFieldError(form, "display_name", "");
+        displayNameAvailability.textContent = "✓ 사용 가능한 닉네임입니다.";
+      } else {
+        displayNameAvailability.textContent = "";
+        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+      }
+      return available;
+    } catch {
+      if (requestId !== displayNameCheckRequest || displayNameInput.value.trim() !== value) return false;
+      displayNameCheckValue = "";
+      displayNameCheckStatus = "error";
+      displayNameAvailability.textContent = blockOnError
+        ? ""
+        : "닉네임 사용 가능 여부를 확인하지 못했습니다. 저장할 때 다시 확인합니다.";
+      if (blockOnError) {
+        setFieldError(form, "display_name", "닉네임 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      return false;
+    }
+  }
+
+  async function ensureDisplayNameAvailable() {
+    const value = displayNameInput.value.trim();
+    if (!valueInRange(value, 1, 50)) return false;
+    if (normalizeDisplayNameKey(value) === originalDisplayNameKey) return true;
+    if (displayNameCheckValue === value && displayNameCheckStatus === "available") return true;
+    if (displayNameCheckValue === value && displayNameCheckStatus === "taken") {
+      setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+      return false;
+    }
+    clearTimeout(displayNameCheckTimer);
+    displayNameCheckTimer = null;
+    const requestId = ++displayNameCheckRequest;
+    displayNameCheckStatus = "checking";
+    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
+    return runDisplayNameCheck(value, requestId, { blockOnError: true });
+  }
+
+  displayNameInput.addEventListener("input", () => {
+    clearTimeout(displayNameCheckTimer);
+    displayNameCheckTimer = null;
+    displayNameCheckRequest += 1;
+    displayNameCheckValue = "";
+    displayNameCheckStatus = "idle";
+    displayNameAvailability.textContent = "";
+    setFieldError(form, "display_name", "");
+
+    const value = displayNameInput.value.trim();
+    if (!value || !valueInRange(value, 1, 50)) return;
+    scheduleDisplayNameCheck();
+  });
+
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
     if (!file) return;
@@ -448,7 +543,7 @@ export async function renderProfileEdit() {
       fileInput,
       el("p", { className: "field-help", text: "JPG, PNG, WEBP · 최대 3MB" }),
     ]),
-    inputField("display_name", "표시 이름", "text", auth.profile.display_name, { maxlength: "50", required: true }),
+    displayNameField,
     birthDate.root,
     el("div", { className: "field field--full" }, [
       el("label", { for: "profile-bio", text: "소개" }),
@@ -503,6 +598,7 @@ export async function renderProfileEdit() {
       valid = false;
     }
     if (!valid) return;
+    if (!(await ensureDisplayNameAvailable())) return;
     setBusy(form, true, "저장 중…");
     try {
       const profilePayload = {
@@ -521,6 +617,13 @@ export async function renderProfileEdit() {
       showToast("프로필을 저장했습니다.", "success");
       window.location.hash = "#/mypage";
     } catch (error) {
+      if (isDisplayNameConflict(error)) {
+        displayNameCheckValue = displayNameInput.value.trim();
+        displayNameCheckStatus = "taken";
+        displayNameAvailability.textContent = "";
+        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해 주세요.");
+        return;
+      }
       showToast(getErrorMessage(error, "프로필 저장에 실패했습니다."), "error");
     } finally {
       setBusy(form, false);

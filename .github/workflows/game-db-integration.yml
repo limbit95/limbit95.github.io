@@ -9,6 +9,7 @@ on:
       - "supabase/liar-game/**/*.json"
       - "supabase/the-game/**/*.sql"
       - "supabase/marble/**/*.sql"
+      - "supabase/cant-stop/**/*.sql"
       - "scripts/prepare-game-db-e2e.mjs"
       - "scripts/build-liar-canonical.mjs"
       - "tests/game-db-integration/**/*.js"

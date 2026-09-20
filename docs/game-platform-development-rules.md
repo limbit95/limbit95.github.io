@@ -39,8 +39,9 @@ Legacy의 현재 동작 보호가 우선이며, 신규 플랫폼과 맞추기 �
 1. 최신 `main`에서 작업 브랜치를 만든다.
 2. **이 문서를 필수 실행 기준으로 읽는다.**
 3. `games/shared/`의 현재 공통 계약과 관련 테스트를 확인한다.
-4. DB/RPC가 포함되면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인한다.
-5. Legacy 게임 코드를 신규 게임의 기본 구조로 복사하지 않는다.
+4. `games/GAME_SPEC_TEMPLATE.md`와 `games/DEVELOPMENT_TEMPLATE.md`를 기준으로 초기 문서를 준비한다.
+5. DB/RPC가 포함되면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인한다.
+6. Legacy 게임 코드를 신규 게임의 기본 구조로 복사하지 않는다.
 
 `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 플랫폼을 구축한 배경과 결정 과정을 보존하는 참고 문서다. 신규 게임 개발을 시작하기 위한 필수 선행 문서가 아니며, 현재 실행 규칙은 이 문서와 실제 `games/shared/` 코드·테스트를 우선한다.
 
@@ -52,7 +53,63 @@ games/<game-id>/
 
 `game-id`는 lowercase kebab-case를 사용하고 Game Registry에도 동일한 ID를 등록한다.
 
-## 3A. 게임별 개발 진행 기록과 채팅 연속성
+## 3A. 신규 게임 초기 세팅과 GAME_SPEC
+
+사용자가 `새 게임 만들자`, `<게임명> 개발 시작하자`처럼 신규 게임 개발을 요청하면 gameplay/runtime 코드부터 작성하지 않는다. 먼저 게임 자체와 구현 경계를 복원할 수 있는 bootstrap 문서를 만든다.
+
+기본 순서는 다음과 같다.
+
+1. 게임의 원본 규칙과 구성요소를 조사한다.
+2. 이번 웹게임에서 지원할 인원, 규칙 버전/변형, online/local 범위와 제외 범위를 정한다.
+3. `games/<game-id>/GAME_SPEC.md`를 생성해 게임 규칙과 구현 설계를 기록한다.
+4. `games/<game-id>/DEVELOPMENT.md`를 생성해 현재 작업 상태와 다음 작업을 기록한다.
+5. 규칙 해석이 불명확한 항목은 임의로 확정하지 않고 `Open Questions / Deferred`에 남긴다.
+6. 위 문서가 최소 기준을 충족한 뒤 게임 규칙 엔진, Registry, DB/RPC, UI 등 실제 구현을 시작한다.
+
+공개된 기존 보드게임을 웹게임으로 구현하는 경우 공식 규칙서, 퍼블리셔 자료 또는 신뢰 가능한 규칙 문서를 우선 확인한다. `GAME_SPEC.md`에는 사용한 출처와 구현상 해석 결정을 남긴다. 규칙 원문을 장문 복제하지 않고 구현에 필요한 사실과 결정만 요약한다.
+
+### MUST: GAME_SPEC의 역할
+
+`GAME_SPEC.md`는 **이 게임이 무엇이며 청파 같이에서 어떻게 구현할지 정의하는 game-local 설계 기준**이다. 최소 다음 섹션을 유지한다.
+
+```text
+## Game Overview
+## Rules and Sources
+## Product Scope
+## State Machine
+## Domain Model
+## Platform Boundary
+## Authority and Persistence
+## UI / UX Direction
+## Implementation Plan
+## Validation Plan
+## Open Questions / Deferred
+```
+
+게임 규칙, 상태 머신, 도메인 모델 또는 구현 경계가 바뀌면 현재 설계와 일치하도록 `GAME_SPEC.md`를 갱신한다. 작은 commit 내역을 쌓는 changelog로 사용하지 않는다.
+
+### MUST: bootstrap 상태와 Registry 노출 경계
+
+신규 게임은 설계를 먼저 확정하기 위해 `games/<game-id>/`에 다음 두 파일만 존재하는 **bootstrap 상태**를 가질 수 있다.
+
+```text
+GAME_SPEC.md
+DEVELOPMENT.md
+```
+
+이 bootstrap 상태에서는 아직 Game Registry에 등록하지 않아도 된다. 미완성 게임이 게임 목록이나 실제 서비스 경로에 노출되는 것을 막기 위한 예외다.
+
+다음 중 하나라도 시작하면 bootstrap 상태가 끝난다.
+
+- `index.html`, JavaScript, CSS 등 실제 game runtime 파일 추가
+- 게임 전용 asset 또는 실행 모듈 추가
+- 실제 플레이 가능한 화면/엔진 구현 시작
+
+bootstrap 상태가 끝나는 PR에서는 같은 변경 범위 안에서 Game Registry 등록을 추가하고 실제 구현된 capability만 선언한다.
+
+MUST NOT: 구현 예정이라는 이유만으로 `online`, `invite`, `presence` 같은 capability를 미리 선언하지 않는다.
+
+## 3B. 게임별 개발 진행 기록과 채팅 연속성
 
 모든 platform-native 게임은 최초 구현 PR부터 게임 디렉터리 안에 다음 문서를 둔다.
 
@@ -82,7 +139,7 @@ games/<game-id>/DEVELOPMENT.md
 - 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽는다.
 - `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
 - 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
-- 게임별 Phase 브랜치명은 가능하면 game id를 포함해 `feature/game-platform-phase4a-cant-stop-foundation`처럼 다른 채팅에서도 검색 가능하게 유지한다.
+- 게임별 Phase 브랜치명은 가능하면 game id를 포함해 `feature/game-platform-phase4-cant-stop-bootstrap`처럼 다른 채팅에서도 검색 가능하게 유지한다.
 
 ### MUST: Phase 완료 시
 
@@ -153,7 +210,7 @@ games/<game-id>/DEVELOPMENT.md
 
 ## 5. Registry와 capability
 
-신규 게임은 Game Registry에 등록한다.
+신규 게임의 bootstrap 문서 단계에서는 Registry 등록을 유예할 수 있다. 실제 runtime 구현을 시작하는 순간 Game Registry에 등록한다.
 
 platform-native 게임은 다음 값을 사용한다.
 
@@ -196,6 +253,19 @@ subscribeInvalidation
 MUST: 방 생성, 참가, 준비, 시작 같은 권한 판정은 서버 RPC가 최종 판단한다.
 
 MUST NOT: UI에서 버튼을 숨기거나 비활성화했다는 이유로 서버 권한 검증을 생략하지 않는다.
+
+## 6A. 플레이어 닉네임 / 로비 정체성
+
+모든 platform-native 게임 로비에서 플레이어 닉네임은 **사이트 계정 프로필의 확정 닉네임**을 사용한다.
+
+- MUST: 방 생성, 코드 참가, 초대 참가에서 현재 로그인 사용자의 프로필 닉네임을 사용한다.
+- MUST: 닉네임의 생성·변경·중복 검사는 마이페이지 등 사이트 공통 프로필 흐름에서만 수행한다.
+- MUST NOT: 게임 로비에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다.
+- MUST NOT: 게임 참가 요청의 임의 client payload를 authoritative 닉네임으로 신뢰하지 않는다.
+- SHOULD: 게임별 서버 RPC는 가능한 경우 `auth.uid()`에 연결된 프로필의 닉네임을 직접 조회해 room member 표시 이름을 확정한다.
+- 기존 호환성 때문에 RPC에 nickname 파라미터가 남아 있더라도 서버는 해당 값을 표시 이름의 권위로 사용하지 않는다.
+
+이 규칙의 목적은 게임마다 다른 이름을 사용하는 것을 막고, 사이트에서 중복 검사를 거쳐 확정한 하나의 커뮤니티 정체성을 모든 게임에서 일관되게 사용하는 것이다.
 
 ## 7. 서버 권위
 
@@ -284,6 +354,28 @@ Shell이 담당하는 범위:
 `game-shell.css`는 신규 게임 페이지가 명시적으로 opt-in 한다.
 
 MUST NOT: 공통 Shell을 이유로 게임 고유 보드, 카드, 주사위, 3D, 애니메이션, 테마를 획일화하지 않는다.
+
+## 10A. 게임 규칙 안내와 게임 종료
+
+모든 platform-native 게임은 처음 플레이하는 사용자가 외부 검색 없이 게임을 이해하고 안전하게 세션을 끝낼 수 있어야 한다.
+
+### MUST: 게임 규칙 안내
+
+- 로비 또는 게임 시작 전 화면에서 항상 **게임 규칙 보기**에 접근할 수 있어야 한다.
+- 규칙 안내는 처음 플레이하는 사용자가 읽고 바로 플레이할 수 있을 정도로 목표, 구성요소, 턴 순서, 가능한 선택, 실패/패널티, 종료/승리 조건, 대표 예시를 충분히 설명한다.
+- 공개된 기존 보드게임은 공식 규칙서, 퍼블리셔 자료 또는 신뢰 가능한 규칙 출처를 먼저 확인하고 구현 규칙과 사용자 안내가 같은 해석을 사용해야 한다.
+- 규칙이 짧거나 중간 분량이면 modal/dialog를 사용할 수 있고, 내용이 길거나 예시·도표가 많으면 game-local 전용 규칙 페이지를 사용한다.
+- 규칙 원문을 장문 복제하지 않고 출처를 남긴 뒤 웹게임에 필요한 사실과 해석을 상세히 재구성한다.
+- 로비뿐 아니라 실제 플레이 중에도 규칙 안내를 다시 열 수 있는 경로를 유지하는 것을 기본값으로 한다.
+
+### MUST: 게임 종료 / 세션 이탈
+
+- 모든 게임은 진행 중인 세션을 끝낼 수 있는 명시적 **게임 종료** 또는 이에 준하는 안전한 종료 경로를 제공한다.
+- 온라인 멀티플레이에서 게임 전체를 종료하는 권한은 게임별로 명확히 정의하며, 다른 플레이어의 세션에 영향을 주는 종료는 서버가 최종 권한을 검증한다.
+- 파괴적 종료는 확인 modal/dialog를 거쳐 오조작을 방지한다.
+- 종료 후 모든 클라이언트가 authoritative snapshot 또는 명시적 terminal state로 동일한 결과를 복구할 수 있어야 한다.
+- 종료된 사용자가 active room/session에 영구히 묶이지 않도록 leave, rematch, lobby return 등 후속 경로를 정의한다.
+- 브라우저를 닫거나 단순히 다른 페이지로 이동하는 것을 authoritative 게임 종료로 간주하지 않는다.
 
 ## 11. Invite
 
@@ -377,19 +469,21 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 특별한 이유가 없다면 다음 순서로 개발한다.
 
 ```text
-1. 게임 규칙과 상태 머신 정의
-2. Game Registry 등록
-3. Access Gate 연결
-4. 게임별 DB schema / RPC 설계
-5. Room/Lobby adapter 구현
-6. DB/Test Contract 연결
-7. authoritative snapshot 구현
-8. Versioned / Idempotent Action 연결
-9. Realtime invalidation + reconnect 연결
-10. Common Game Shell / player UI 연결
-11. Invite 연결 (지원하는 경우)
-12. 게임 고유 UI / 애니메이션 / 연출 확장
-13. 멀티클라이언트 및 reconnect 회귀 검증
+1. 원본 규칙/출처 조사와 제품 범위 결정
+2. GAME_SPEC.md + DEVELOPMENT.md bootstrap
+3. 게임 규칙과 상태 머신 구현 및 unit test
+4. 첫 runtime 구현과 함께 Game Registry 등록
+5. Access Gate 연결
+6. 게임별 DB schema / RPC 설계
+7. Room/Lobby adapter 구현
+8. DB/Test Contract 연결
+9. authoritative snapshot 구현
+10. Versioned / Idempotent Action 연결
+11. Realtime invalidation + reconnect 연결
+12. Common Game Shell / player UI 연결
+13. Invite 연결 (지원하는 경우)
+14. 게임 고유 UI / 애니메이션 / 연출 확장
+15. 멀티클라이언트 및 reconnect 회귀 검증
 ```
 
 이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다.
@@ -399,17 +493,21 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 신규 온라인 게임 PR을 완료하기 전에 다음을 확인한다.
 
 - [ ] `games/<game-id>/`에 게임이 독립적으로 위치한다.
+- [ ] `games/<game-id>/GAME_SPEC.md`가 현재 게임 규칙, 구현 범위, 상태 머신, 플랫폼 경계를 반영한다.
 - [ ] `games/<game-id>/DEVELOPMENT.md`가 현재 Phase/브랜치/다음 작업/검증 상태를 반영한다.
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
 - [ ] 실제 구현된 capability만 선언되어 있다.
 - [ ] Approved Member / Access Gate를 사용한다.
 - [ ] Room/Lobby adapter 계약을 만족한다.
+- [ ] 게임 로비에는 닉네임 입력/변경 UI가 없고 사이트 프로필 닉네임을 사용한다.
 - [ ] 서버 RPC가 권한과 상태 전이를 최종 판정한다.
 - [ ] state-changing action이 version/idempotency 경계를 가진다.
 - [ ] snapshot version과 stale snapshot 방어가 있다.
 - [ ] Realtime은 invalidation으로만 사용한다.
 - [ ] reconnect가 authoritative snapshot으로 복원된다.
 - [ ] 구독/listener 정리 경로가 있다.
+- [ ] 로비 또는 시작 전 화면에서 상세 게임 규칙을 확인할 수 있고 플레이 중에도 다시 접근할 수 있다.
+- [ ] 진행 중 세션을 안전하게 끝낼 수 있는 게임 종료 경로와 종료 후 복구/이탈 흐름이 있다.
 - [ ] Common Game Shell 사용 여부와 게임-local UI 경계가 명확하다.
 - [ ] Invite를 제공한다면 `game_room` 계약을 사용한다.
 - [ ] DB/Test Contract 필수 시나리오를 모두 구현한다.

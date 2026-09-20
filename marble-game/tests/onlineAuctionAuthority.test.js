@@ -2,44 +2,92 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const migration = readFileSync(
-  new URL("../../supabase/marble/20260917213000_marble_phase7a_auction_authority.sql", import.meta.url),
+const v2Migration = readFileSync(
+  new URL("../../supabase/marble/20260918220000_marble_auction_v2.sql", import.meta.url),
+  "utf8",
+);
+const voteMigration = readFileSync(
+  new URL("../../supabase/marble/20260919122159_marble_auction_vote_flow.sql", import.meta.url),
   "utf8",
 );
 const apiSource = readFileSync(new URL("../js/onlineGameApi.js", import.meta.url), "utf8");
 
-test("Phase 7A auction RPCs keep request gating server-authoritative", () => {
-  assert.match(migration, /marble_decline_property_for_auction/);
-  assert.match(migration, /'type','AUCTION_REQUEST'/);
-  assert.match(migration, /'reason','NO_ELIGIBLE_PLAYERS'/);
-  assert.match(migration, /marble_request_auction/);
-  assert.match(migration, /AUCTION_ALREADY_REQUESTED/);
-  assert.match(migration, /marble_close_auction_request/);
-  assert.match(migration, /case when jsonb_array_length\(v_requested\)>0 then 'REQUESTED' else 'NO_REQUESTS'/);
-  assert.match(migration, /'type','PROPERTY_AUCTION'/);
+test("Auction vote authority opens a single 15-second vote at 150 percent", () => {
+  assert.match(voteMigration, /round\(v_base_price::numeric \* 1\.5\)::integer/);
+  assert.match(voteMigration, /'type','AUCTION_VOTE'/);
+  assert.match(voteMigration, /interval '15 seconds'/);
+  assert.match(voteMigration, /'participantPlayerIds','\[\]'::jsonb/);
+  assert.match(voteMigration, /'passedPlayerIds','\[\]'::jsonb/);
 });
 
-test("auction requests and bids use versioning, replay protection, and server validation", () => {
-  assert.match(migration, /marble_action_replay/);
-  assert.match(migration, /marble_record_action/);
-  assert.match(migration, /VERSION_CONFLICT/);
-  assert.match(migration, /for update/);
-  assert.match(migration, /gp\.money>=v_opening_bid/);
-  assert.match(migration, /AUCTION_REQUESTER_BID_REQUIRED/);
-  assert.match(migration, /p_amount>v_actor\.money/);
+test("vote decisions are irreversible and timeout means pass", () => {
+  assert.match(voteMigration, /marble_pass_auction_vote/);
+  assert.match(voteMigration, /AUCTION_VOTE_ALREADY_FINAL/);
+  assert.match(voteMigration, /AUCTION_VOTE_IS_FINAL/);
+  assert.match(voteMigration, /AUCTION_VOTE_AUTO_PASSED/);
+  assert.match(voteMigration, /reason','TIMEOUT'/);
 });
 
-test("auction settlement updates money and ownership in the same authoritative RPC", () => {
-  assert.match(migration, /update public\.marble_game_players set money=money-v_highest/);
-  assert.match(migration, /update public\.marble_game_properties set owner_seat=v_winner\.seat, building_level=0/);
-  assert.match(migration, /'type','PROPERTY_BOUGHT'/);
-  assert.match(migration, /set phase='TURN_END', pending_choice=null/);
+test("all responded immediately resolves without waiting for the vote deadline", () => {
+  assert.match(
+    voteMigration,
+    /jsonb_array_length\(v_participants\) \+ jsonb_array_length\(v_passed\)[\s\S]*?marble_auction_v3_finalize_vote/,
+  );
+  assert.match(voteMigration, /'ALL_RESPONDED'/);
 });
 
-test("online API exposes auction RPC adapters without replacing existing Phase 6 actions", () => {
+test("first committed participant becomes opening bidder and join order becomes bid order", () => {
+  assert.match(voteMigration, /v_opening_bidder := v_participants->>0/);
+  assert.match(voteMigration, /'openingBidderPlayerId', v_opening_bidder/);
+  assert.match(voteMigration, /'participantPlayerIds', v_participants/);
+  assert.match(voteMigration, /'highestBidderId', v_opening_bidder/);
+  assert.match(voteMigration, /marble_auction_v2_next_turn/);
+});
+
+test("simultaneous vote actions are serialized by the game row and stale client versions are absorbed", () => {
+  assert.match(voteMigration, /from public\.marble_games[\s\S]*for update/);
+  assert.match(voteMigration, /'openedVersion',v_game\.version \+ 1/);
+  assert.match(voteMigration, /p_expected_version < v_opened_version or p_expected_version > v_game\.version/);
+  assert.match(voteMigration, /v_participants := v_participants \|\| jsonb_build_array\(v_player_id\)/);
+});
+
+test("sole participant settlement reuses normal purchase events", () => {
+  assert.match(voteMigration, /AUCTION_AUTO_PURCHASED/);
+  assert.match(v2Migration, /'type','PROPERTY_BOUGHT'/);
+  assert.match(v2Migration, /'reason','AUCTION'/);
+  assert.match(v2Migration, /set money = money - v_amount/);
+  assert.match(v2Migration, /set owner_seat = v_winner\.seat, building_level = 0/);
+});
+
+test("legacy request and recruitment states are normalized into the vote window", () => {
+  assert.match(voteMigration, /select id, version, pending_choice/);
+  assert.match(voteMigration, /pending_choice->>'type' in \('AUCTION_REQUEST','AUCTION_RECRUITMENT'\)/);
+  assert.match(voteMigration, /'type','AUCTION_VOTE'/);
+  assert.match(voteMigration, /deadlineAt',now\(\)\+interval '15 seconds'/);
+  assert.match(voteMigration, /participantPlayerIds/);
+});
+
+test("Auction vote RPCs keep authentication, replay, fixed search path, and grants", () => {
+  assert.match(voteMigration, /private\.marble_action_replay/);
+  assert.match(voteMigration, /private\.marble_record_action/);
+  assert.match(voteMigration, /auth\.uid\(\)/);
+  assert.match(voteMigration, /set search_path = public, private, pg_temp/);
+  assert.match(voteMigration, /revoke all on function public\.marble_pass_auction_vote/);
+  assert.match(voteMigration, /grant execute on function public\.marble_pass_auction_vote.*authenticated/);
+});
+
+test("end turn guard includes Auction vote and competitive auction", () => {
+  assert.match(
+    voteMigration,
+    /in \('AUCTION_REQUEST','AUCTION_RECRUITMENT','AUCTION_VOTE','PROPERTY_AUCTION'\)/,
+  );
+});
+
+test("online API exposes join/pass/deadline/bid adapters while stable game actions remain", () => {
   assert.match(apiSource, /marble_decline_property_for_auction/);
-  assert.match(apiSource, /marble_request_auction/);
-  assert.match(apiSource, /marble_close_auction_request/);
+  assert.match(apiSource, /marble_join_auction/);
+  assert.match(apiSource, /marble_pass_auction_vote/);
+  assert.match(apiSource, /marble_advance_auction_deadline/);
   assert.match(apiSource, /marble_auction_bid/);
   assert.match(apiSource, /marble_roll_dice/);
   assert.match(apiSource, /marble_end_turn/);

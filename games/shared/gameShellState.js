@@ -87,7 +87,7 @@ export function normalizeGamePlayers(players = [], {
       "player displayName",
     );
 
-    return Object.freeze({
+    const normalized = {
       id,
       displayName,
       avatarUrl: typeof player.avatarUrl === "string" && player.avatarUrl.trim()
@@ -98,7 +98,22 @@ export function normalizeGamePlayers(players = [], {
       isHost: id === hostUserId,
       isMe: id === currentUserId,
       seat: Number.isInteger(player.seat) && player.seat >= 0 ? player.seat : index,
-    });
+    };
+
+    if (typeof player.statusLabel === "string" && player.statusLabel.trim()) {
+      normalized.statusLabel = player.statusLabel.trim();
+    }
+    if (typeof player.turnLabel === "string" && player.turnLabel.trim()) {
+      normalized.turnLabel = player.turnLabel.trim();
+    }
+    if (typeof player.progressLabel === "string" && player.progressLabel.trim()) {
+      normalized.progressLabel = player.progressLabel.trim();
+    }
+    if (typeof player.accent === "string" && player.accent.trim()) {
+      normalized.accent = player.accent.trim();
+    }
+
+    return Object.freeze(normalized);
   });
 
   return Object.freeze(normalized);
