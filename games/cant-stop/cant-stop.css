@@ -3204,3 +3204,106 @@ body {
     min-height: 760px;
   }
 }
+
+
+/* Polish phase 2k: transient action notice, adaptive tool widths, unmistakable ready state. */
+.cant-stop-gameplay-tools--count-1 {
+  grid-template-columns: 1fr;
+}
+
+.cant-stop-gameplay-tools--count-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cant-stop-gameplay-tools--count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cant-stop-gameplay-tools--count-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cant-stop-gameplay-tools__button {
+  width: 100%;
+  min-width: 0;
+}
+
+.cant-stop-shell--waiting .game-platform-player[data-ready="true"] {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--game-player-accent, #5b8897) 30%, #fff) 0%,
+      color-mix(in srgb, var(--game-player-accent, #5b8897) 18%, #fff) 100%
+    );
+}
+
+.cant-stop-action-notice {
+  width: min(420px, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid rgba(78, 123, 139, .35);
+  border-radius: 20px;
+  background: #f8fcfd;
+  color: #304c57;
+  box-shadow:
+    0 24px 64px rgba(31, 65, 77, .28),
+    inset 0 0 0 1px rgba(255,255,255,.82);
+  overflow: hidden;
+}
+
+.cant-stop-action-notice::backdrop {
+  background: rgba(31, 55, 64, .28);
+  backdrop-filter: blur(2px);
+}
+
+.cant-stop-action-notice__peak {
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(180deg, rgba(114,201,209,.98), rgba(217,238,243,.98));
+  color: #345d6a;
+}
+
+.cant-stop-action-notice__peak span {
+  width: 42px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 5px 12px rgba(40,75,88,.13);
+}
+
+.cant-stop-action-notice__copy {
+  padding: 1rem 1.1rem 1.1rem;
+  display: grid;
+  gap: .35rem;
+  text-align: center;
+}
+
+.cant-stop-action-notice__copy strong {
+  font-size: 1.03rem;
+}
+
+.cant-stop-action-notice__message {
+  margin: 0;
+  color: #617b85;
+  font-size: .86rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 899px) {
+  .cant-stop-gameplay-tools--count-3,
+  .cant-stop-gameplay-tools--count-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .cant-stop-gameplay-tools--count-2,
+  .cant-stop-gameplay-tools--count-3,
+  .cant-stop-gameplay-tools--count-4 {
+    grid-template-columns: 1fr;
+  }
+}
