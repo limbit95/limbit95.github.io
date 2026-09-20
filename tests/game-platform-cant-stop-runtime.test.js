@@ -485,3 +485,15 @@ test("Can't Stop renders each dice value in its own badge directly below the die
   assert.match(app, /cant-stop-die-result__value/u);
   assert.equal(app.includes('view.latestDice.join(" · ")'), false);
 });
+
+
+test("Can't Stop dice and route sections keep compact half spacing", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(css, /\.cant-stop-dice-stage \{[\s\S]*gap: \.36rem;/u);
+  assert.match(css, /\.cant-stop-dice-stage__caption--empty \{[\s\S]*min-height: 9px;/u);
+  assert.match(css, /\.cant-stop-route-panel \{[\s\S]*gap: \.34rem;/u);
+});
