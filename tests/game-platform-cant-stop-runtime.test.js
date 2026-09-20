@@ -412,3 +412,16 @@ test("Can't Stop board phase card contains no secondary helper copy", () => {
   const boardSource = app.slice(boardStart, sidebarStart);
   assert.equal(boardSource.includes("heading.description"), false);
 });
+
+
+test("Can't Stop bust notice uses centered three-line result copy", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /눈길에 미끄러졌어요\./u);
+  assert.match(app, /이번 턴의 임시 진척이 사라지고/u);
+  assert.match(app, /다음 플레이어에게 턴이 넘어갑니다\./u);
+  assert.match(app, /cant-stop-bust-notice__message/u);
+});
