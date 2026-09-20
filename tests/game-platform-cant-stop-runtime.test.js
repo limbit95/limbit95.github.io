@@ -338,3 +338,43 @@ test("Can't Stop gameplay sidebar moves turn metadata into player cards and keep
   assert.match(app, /turnLabel:/u);
   assert.match(app, /"현재 턴"/u);
 });
+
+
+test("Can't Stop choose phase removes the server implementation copy and uses the board phase card", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.equal(
+    app.includes("서버가 계산한 legal pairing과 이동 plan만 선택할 수 있어요."),
+    false,
+  );
+  assert.match(app, /cant-stop-board__intro--pairing/u);
+  assert.match(app, /cant-stop-board__phase-status/u);
+});
+
+test("Can't Stop gameplay roster exposes completed-column progress and high-contrast player colors", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /progressLabel:/u);
+  assert.match(app, /완주 \\?\$\{completedByPlayer/u);
+  assert.match(app, /#1e90ff/u);
+  assert.match(app, /#ff4d6d/u);
+  assert.match(app, /#2ed573/u);
+  assert.match(app, /#9b59ff/u);
+});
+
+test("Can't Stop dice uses explicit pip faces instead of font-dependent dice glyphs", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /function createDieFace/u);
+  assert.match(app, /cant-stop-die-face__pip--active/u);
+  assert.equal(app.includes("DICE_GLYPHS"), false);
+});
