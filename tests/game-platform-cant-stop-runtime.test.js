@@ -595,7 +595,7 @@ test("Can't Stop gameplay uses a compact sidebar utility bar instead of the shel
     "utf8",
   );
 
-  assert.match(app, /className: "cant-stop-gameplay-tools"/u);
+  assert.match(app, /cant-stop-gameplay-tools--count-\$\{Math\.min\(tools\.length, 4\)\}/u);
   assert.match(app, /createGameplayTools\(view, state\)/u);
   assert.match(app, /actions = null/u);
   assert.equal(app.includes("function createGameplayActions"), false);
@@ -679,5 +679,69 @@ test("Can't Stop base mountain rule is 900px before responsive mobile overrides"
   assert.match(
     css,
     /\.cant-stop-board__mountain \{[\s\S]*height: 900px;[\s\S]*min-height: 900px;/u,
+  );
+});
+
+
+test("Can't Stop replaces inline action error cards with a three-second modal notice", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.equal(app.includes("cant-stop-inline-error"), false);
+  assert.match(app, /function ensureActionNoticeDialog/u);
+  assert.match(app, /showActionNotice\(message\)/u);
+  assert.match(app, /}, 3000\);/u);
+  assert.match(app, /presentActionError\(state\.error, state\.snapshot\?\.version\)/u);
+});
+
+test("Can't Stop keeps shell state classes synchronized across patched lobby views", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /currentShell\.className = nextShell\.className/u);
+  assert.match(app, /cant-stop-shell--waiting/u);
+  assert.match(app, /cant-stop-shell--playing/u);
+});
+
+test("Can't Stop ongoing non-host players get leave instead of end-game and only on their turn", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  const toolsStart = app.indexOf("function createGameplayTools(view, state)");
+  const toolsEnd = app.indexOf("\nfunction createField", toolsStart);
+  const toolsSource = app.slice(toolsStart, toolsEnd);
+
+  assert.match(toolsSource, /if \(view\.isHost\)[\s\S]*text: "게임 종료"/u);
+  assert.match(toolsSource, /else \{[\s\S]*text: state\.busy \? "처리 중…" : "방 나가기"/u);
+  assert.match(toolsSource, /disabled: state\.busy \|\| !view\.isMyTurn/u);
+  assert.match(toolsSource, /자신의 턴에만 방을 나갈 수 있어요\./u);
+});
+
+test("Can't Stop utility buttons expand evenly for the current button count", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(css, /cant-stop-gameplay-tools--count-2[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/u);
+  assert.match(css, /cant-stop-gameplay-tools--count-3[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/u);
+  assert.match(css, /cant-stop-gameplay-tools__button[\s\S]*width: 100%/u);
+});
+
+test("Can't Stop ready state uses the waiting shell class plus a stronger tinted player background", () => {
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(
+    css,
+    /cant-stop-shell--waiting \.game-platform-player\[data-ready="true"\][\s\S]*30%[\s\S]*18%/u,
   );
 });
