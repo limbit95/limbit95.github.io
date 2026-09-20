@@ -1751,3 +1751,193 @@ body {
     transition: none !important;
   }
 }
+
+
+/* Polish phase 2b: denser rules, taller mountain, stronger player colors, full-height route panel. */
+.cant-stop-rules-dialog {
+  height: min(86vh, 820px);
+  max-height: min(86vh, 820px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  border-color: #c8dce2;
+  box-shadow:
+    0 28px 80px rgba(35, 74, 91, .25),
+    inset 0 0 0 1px rgba(92, 133, 149, .08);
+}
+
+.cant-stop-rules-dialog__intro {
+  border-bottom: 1px solid #d7e7eb;
+}
+
+.cant-stop-rules-dialog__body {
+  min-height: 0;
+  padding: .7rem .9rem .9rem;
+  gap: .55rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  background: #f7fbfc;
+}
+
+.cant-stop-rules-section {
+  padding: .75rem .8rem;
+  border: 1px solid #d8e7eb;
+  border-radius: 12px;
+  background: rgba(255,255,255,.84);
+}
+
+.cant-stop-rules-section:last-child {
+  border-bottom: 1px solid #d8e7eb;
+}
+
+.cant-stop-rules-section h3 {
+  margin-bottom: .42rem;
+}
+
+.cant-stop-rules-section p {
+  margin-top: .26rem;
+}
+
+.cant-stop-rules-dialog__sources {
+  position: relative;
+  z-index: 2;
+  border-top-color: #d2e3e8;
+}
+
+.cant-stop-board__mountain {
+  min-width: 760px;
+  min-height: 800px;
+}
+
+.cant-stop-board__tracks {
+  inset: 5% 4.6% 6.8%;
+  gap: clamp(.28rem, .78vw, .58rem);
+}
+
+.cant-stop-column {
+  gap: clamp(.25rem, .56vw, .42rem);
+}
+
+.cant-stop-column__cells {
+  gap: clamp(.3rem, .68vw, .56rem);
+}
+
+.cant-stop-column__cell {
+  width: clamp(29px, 3.65vw, 42px);
+  box-shadow:
+    inset 0 -2px 0 rgba(0,0,0,.2),
+    0 2px 5px rgba(16, 27, 32, .24);
+}
+
+.cant-stop-column__number {
+  width: clamp(32px, 3.9vw, 43px);
+  font-size: clamp(.8rem, 1.4vw, 1.02rem);
+}
+
+.cant-stop-marker--permanent {
+  width: 16px;
+  border-width: 2px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.9),
+    0 2px 6px rgba(0,0,0,.42);
+}
+
+.cant-stop-marker--runner {
+  width: 25px;
+  border: 4px solid #fff;
+  box-shadow:
+    0 0 0 3px currentColor,
+    0 3px 9px rgba(0,0,0,.5);
+}
+
+.cant-stop-marker--player-0 {
+  background: #1e90ff;
+  color: #1e90ff;
+}
+
+.cant-stop-marker--player-1 {
+  background: #ff4d6d;
+  color: #ff4d6d;
+}
+
+.cant-stop-marker--player-2 {
+  background: #2ed573;
+  color: #2ed573;
+}
+
+.cant-stop-marker--player-3 {
+  background: #9b59ff;
+  color: #9b59ff;
+}
+
+.cant-stop-dice-stage {
+  min-height: 790px;
+  grid-template-rows: auto 104px 46px auto minmax(470px, 1fr);
+}
+
+.cant-stop-dice-stage__dice {
+  min-height: 104px;
+}
+
+.cant-stop-route-panel {
+  min-height: 470px;
+}
+
+.cant-stop-route-panel__routes {
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.cant-stop-route-panel__placeholder {
+  min-height: 390px;
+}
+
+.game-platform-player[data-has-accent="true"] {
+  border-width: 1px;
+}
+
+.game-platform-player[data-current-turn="true"] {
+  border-width: 2px;
+}
+
+.game-platform-player[data-connected="false"] {
+  opacity: .78;
+}
+
+.game-platform-player[data-connected="false"] .game-platform-player__meta {
+  color: #8a6b6b;
+  font-weight: 800;
+}
+
+@media (max-width: 899px) {
+  .cant-stop-board__mountain {
+    min-width: 720px;
+    min-height: 760px;
+  }
+
+  .cant-stop-dice-stage {
+    min-height: 720px;
+    grid-template-rows: auto 96px 44px auto minmax(410px, 1fr);
+  }
+
+  .cant-stop-route-panel {
+    min-height: 410px;
+  }
+
+  .cant-stop-route-panel__placeholder {
+    min-height: 330px;
+  }
+}
+
+@media (max-width: 520px) {
+  .cant-stop-rules-dialog {
+    width: calc(100vw - 1rem);
+    height: 90vh;
+    max-height: 90vh;
+  }
+
+  .cant-stop-rules-dialog__body {
+    padding-inline: .65rem;
+  }
+}
