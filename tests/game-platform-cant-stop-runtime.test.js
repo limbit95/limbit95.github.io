@@ -425,3 +425,23 @@ test("Can't Stop bust notice uses centered three-line result copy", () => {
   assert.match(app, /다음 플레이어에게 턴이 넘어갑니다\./u);
   assert.match(app, /cant-stop-bust-notice__message/u);
 });
+
+
+test("Can't Stop dice card owns initial roll and split roll-stop controls", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+
+  assert.match(app, /cant-stop-dice-stage__action-slot--split/u);
+  assert.match(app, /lobbyController\.continueAndRoll\(\)/u);
+  assert.match(app, /text: "멈추기"/u);
+  assert.match(app, /playCantStopDiceRollSound/u);
+  assert.match(app, /playCantStopBlizzardSound/u);
+
+  const gameplayActionsStart = app.indexOf("function createGameplayActions(view, state)");
+  const lobbyActionsStart = app.indexOf("function createLobbyPanel", gameplayActionsStart);
+  const gameplayActions = app.slice(gameplayActionsStart, lobbyActionsStart);
+  assert.equal(gameplayActions.includes("한 번 더 굴리기"), false);
+  assert.equal(gameplayActions.includes("여기서 멈추기"), false);
+});
