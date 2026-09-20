@@ -6,6 +6,7 @@ import {
   updatePassword,
   verifySignupEmailCode,
 } from "../auth.js";
+import { checkDisplayNameAvailability, isDisplayNameConflict } from "../api/profiles.js";
 import { COMMUNITY_RULES_VERSION, PRIVACY_POLICY_VERSION } from "../config.js";
 import { getErrorMessage, setBusy, el } from "../ui.js";
 import {
@@ -22,6 +23,7 @@ const STEP_LABELS = ["약관 동의", "회원 정보", "최종 확인"];
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 60 * 1000;
 const OTP_RESEND_STORAGE_KEY = "cheongpa:signup-otp-resend-cooldowns";
+const DISPLAY_NAME_CHECK_DELAY_MS = 450;
 
 function getOtpResendStorageKey(email) {
   let hash = 2166136261;
@@ -122,6 +124,32 @@ export function renderSignup() {
     request_message: textareaField("request_message", "가입 신청 내용", "관리자가 가입자를 확인할 수 있도록 간단한 소개나 가입 관련 내용을 작성해 주세요."),
   };
 
+  const displayNameAvailability = el("p", { className: "field-help", "aria-live": "polite" });
+  const displayNameError = fields.display_name.root.querySelector('[data-error-for="display_name"]');
+  fields.display_name.root.insertBefore(displayNameAvailability, displayNameError);
+  let displayNameCheckTimer = null;
+  let displayNameCheckRequest = 0;
+  let displayNameCheckValue = "";
+  let displayNameCheckStatus = "idle";
+
+  fields.display_name.input.addEventListener("input", () => {
+    clearTimeout(displayNameCheckTimer);
+    displayNameCheckTimer = null;
+    displayNameCheckRequest += 1;
+    displayNameCheckValue = "";
+    displayNameCheckStatus = "idle";
+    displayNameAvailability.textContent = "";
+    setFieldError(form, "display_name", "");
+
+    const value = fields.display_name.input.value.trim();
+    if (!value || !valueInRange(value, 1, 50)) return;
+    if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) {
+      displayNameAvailability.textContent = "이메일 인증 후 닉네임 사용 가능 여부를 확인합니다.";
+      return;
+    }
+    scheduleDisplayNameCheck();
+  });
+
   fields.password_confirm.input.addEventListener("input", () => {
     setFieldError(
       form,
@@ -174,6 +202,63 @@ export function renderSignup() {
     if (step === 1) renderAgreements();
     if (step === 2) renderMemberInfo();
     if (step === 3) renderReview();
+  }
+
+  function scheduleDisplayNameCheck() {
+    clearTimeout(displayNameCheckTimer);
+    const value = fields.display_name.input.value.trim();
+    if (!value || !valueInRange(value, 1, 50)) return;
+    const requestId = ++displayNameCheckRequest;
+    displayNameCheckStatus = "checking";
+    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
+    displayNameCheckTimer = window.setTimeout(() => {
+      displayNameCheckTimer = null;
+      void runDisplayNameCheck(value, requestId);
+    }, DISPLAY_NAME_CHECK_DELAY_MS);
+  }
+
+  async function runDisplayNameCheck(value, requestId = ++displayNameCheckRequest, { blockOnError = false } = {}) {
+    try {
+      const available = await checkDisplayNameAvailability(value);
+      if (requestId !== displayNameCheckRequest || fields.display_name.input.value.trim() !== value) return false;
+      displayNameCheckValue = value;
+      displayNameCheckStatus = available ? "available" : "taken";
+      if (available) {
+        setFieldError(form, "display_name", "");
+        displayNameAvailability.textContent = "✓ 사용 가능한 닉네임입니다.";
+      } else {
+        displayNameAvailability.textContent = "";
+        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+      }
+      return available;
+    } catch {
+      if (requestId !== displayNameCheckRequest || fields.display_name.input.value.trim() !== value) return false;
+      displayNameCheckValue = "";
+      displayNameCheckStatus = "error";
+      displayNameAvailability.textContent = blockOnError
+        ? ""
+        : "닉네임 사용 가능 여부를 확인하지 못했습니다. 다음 단계에서 다시 확인합니다.";
+      if (blockOnError) {
+        setFieldError(form, "display_name", "닉네임 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      return false;
+    }
+  }
+
+  async function ensureDisplayNameAvailable() {
+    const value = fields.display_name.input.value.trim();
+    if (!valueInRange(value, 1, 50)) return false;
+    if (displayNameCheckValue === value && displayNameCheckStatus === "available") return true;
+    if (displayNameCheckValue === value && displayNameCheckStatus === "taken") {
+      setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+      return false;
+    }
+    clearTimeout(displayNameCheckTimer);
+    displayNameCheckTimer = null;
+    const requestId = ++displayNameCheckRequest;
+    displayNameCheckStatus = "checking";
+    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
+    return runDisplayNameCheck(value, requestId, { blockOnError: true });
   }
 
   function renderAgreements() {
@@ -282,6 +367,13 @@ export function renderSignup() {
     };
     refreshResendCooldown = tick;
     tick();
+    if (
+      isVerified
+      && fields.display_name.input.value.trim()
+      && displayNameCheckStatus === "idle"
+    ) {
+      scheduleDisplayNameCheck();
+    }
     timerId = setInterval(() => {
       if (!form.isConnected) {
         clearInterval(timerId);
@@ -399,8 +491,9 @@ export function renderSignup() {
     return valid;
   }
 
-  function nextStep() {
+  async function nextStep() {
     if (!validateStep(step)) return;
+    if (step === 2 && !(await ensureDisplayNameAvailable())) return;
     goTo(step + 1);
   }
 
@@ -414,6 +507,12 @@ export function renderSignup() {
         showToast("필수 정보를 다시 확인해 주세요.", "error");
         return;
       }
+    }
+
+    if (!(await ensureDisplayNameAvailable())) {
+      goTo(2);
+      showToast("닉네임을 다시 확인해 주세요.", "error");
+      return;
     }
 
     const password = fields.password.input.value;
@@ -450,7 +549,18 @@ export function renderSignup() {
       });
       showToast("가입 신청이 완료되었습니다. 관리자의 승인을 기다려 주세요.", "success", 6000);
       window.location.hash = "#/pending";
-    } catch (error) { showToast(getErrorMessage(error), "error"); }
+    } catch (error) {
+      if (isDisplayNameConflict(error)) {
+        displayNameCheckValue = fields.display_name.input.value.trim();
+        displayNameCheckStatus = "taken";
+        displayNameAvailability.textContent = "";
+        goTo(2);
+        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해 주세요.");
+        showToast("방금 다른 사용자가 해당 닉네임을 사용했습니다.", "error");
+        return;
+      }
+      showToast(getErrorMessage(error), "error");
+    }
     finally { setBusy(form, false); }
   });
 
