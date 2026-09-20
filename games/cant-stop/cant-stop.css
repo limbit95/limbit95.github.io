@@ -2609,3 +2609,61 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+
+/* Polish phase 2g: bind each numeric result directly to its die. */
+.cant-stop-dice-stage__dice {
+  align-items: start;
+}
+
+.cant-stop-die-result {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: .42rem;
+}
+
+.cant-stop-die-result .cant-stop-die-visual {
+  display: grid;
+  place-items: center;
+}
+
+.cant-stop-die-result__value {
+  min-width: 31px;
+  height: 25px;
+  padding: 0 .48rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(66, 105, 119, .34);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(231,242,246,.96));
+  color: #304c57;
+  font-size: .76rem;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow:
+    0 3px 7px rgba(48, 79, 91, .09),
+    inset 0 1px 0 rgba(255,255,255,.92);
+}
+
+.cant-stop-die-result__value--pending {
+  border-color: rgba(93, 126, 138, .18);
+  background: rgba(245,250,251,.78);
+  color: #91a5ac;
+  box-shadow: none;
+}
+
+@media (max-width: 520px) {
+  .cant-stop-die-result {
+    gap: .34rem;
+  }
+
+  .cant-stop-die-result__value {
+    min-width: 28px;
+    height: 23px;
+    padding-inline: .4rem;
+    font-size: .72rem;
+  }
+}
