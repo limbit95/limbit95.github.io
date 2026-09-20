@@ -204,10 +204,12 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - 플레이어 roster는 대기 중의 준비 상태를 게임 시작 후 `게임 중`으로 전환하고, 연결이 끊기면 `연결 끊김`을 표시한다. active player는 고유 player color의 `현재 턴` badge와 card accent로 강조한다. 각 player card에는 현재 차지한 열 수를 `완주 N/3`으로 함께 표시한다.
 - pairing 선택 시 실제 네 주사위가 어떤 두 쌍으로 묶여 각 열의 합을 만드는지 mini-dice → column number 형태로 설명하고, 서버가 허용한 legal move plan만 선택 버튼으로 노출한다.
 - 주사위는 오른쪽 sidebar 하단의 전용 2.5D dice stage에서 굴러가는 움직임을 보여주며 최종 숫자는 authoritative server snapshot만 표시한다. 주사위 눈금은 폰트 glyph에 의존하지 않고 3×3 pip face로 그려 작은 화면에서도 값이 즉시 읽혀야 한다.
+- 턴의 첫 roll에는 `주사위 굴리기` 하나만 노출한다. pairing 이동 이후 PUSH OR STOP에서는 같은 dice card 안에 왼쪽 `주사위 굴리기`, 오른쪽 `멈추기`를 나란히 배치한다. 계속 굴리기는 client에서 authoritative `continue_turn` 완료 snapshot을 받은 뒤 바로 `roll_dice`를 이어 호출하여 한 번의 사용자 클릭으로 다음 roll까지 진행한다.
+- dice roll에는 짧은 clatter 효과음을, bust에는 눈보라/바람 효과음을 Web Audio로 제공한다. 효과음 재생 실패는 게임 진행을 막지 않는다.
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
-- bust 시 runner가 산 정상 기준 좌우 경사 방향으로 미끄러지고, 말 주변의 눈가루와 짧은 눈사태/powder 연출을 함께 보여줘 설산 등반 실패의 재미를 강화한다. 눈/runner 연출 자체는 짧게 끝내되 결과 안내 카드는 보드 중앙에서 약 5초 유지해 사용자가 내용을 충분히 읽을 시간을 보장한다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
+- bust 시 runner가 산 정상 기준 좌우 경사 방향으로 미끄러지고, 말 주변의 눈가루와 짧은 눈사태/powder 연출을 함께 보여줘 설산 등반 실패의 재미를 강화한다. 눈/runner 연출 자체는 짧게 끝내되 결과 안내 카드는 보드 중앙에서 약 4초 유지해 사용자가 내용을 읽을 시간을 보장한다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
 - 로비/플레이 중 언제든 상세 규칙 modal을 열 수 있다.
 - 진행 중 방장은 확인 dialog를 거쳐 전체 게임을 수동 종료할 수 있고, 종료 결과는 모든 클라이언트의 authoritative GAME_OVER snapshot으로 동기화한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
