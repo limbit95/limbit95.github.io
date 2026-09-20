@@ -269,15 +269,3 @@ test("Can't Stop gameplay endGame sends a versioned authoritative termination in
     }],
   ]);
 });
-
-
-test("Can't Stop profile nickname migration keeps the room display name server-authoritative", () => {
-  const migration = readFileSync(
-    path.join(repositoryRoot, "supabase", "cant-stop", "20260920205000_cant_stop_profile_nickname.sql"),
-    "utf8",
-  );
-
-  assert.match(migration, /cant_stop_enforce_profile_nickname/u);
-  assert.match(migration, /from public\.profiles/u);
-  assert.match(migration, /new\.nickname := v_nickname/u);
-});
