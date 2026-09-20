@@ -945,6 +945,10 @@ body {
   cursor: pointer;
 }
 
+.cant-stop-rules-dialog[open] {
+  display: grid;
+}
+
 .cant-stop-rules-dialog__intro {
   margin: 0;
   padding: 1rem 1.1rem;
@@ -1757,7 +1761,6 @@ body {
 .cant-stop-rules-dialog {
   height: min(86vh, 820px);
   max-height: min(86vh, 820px);
-  display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   border-color: #c8dce2;
   box-shadow:
