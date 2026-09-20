@@ -28,6 +28,11 @@ import { createCantStopRoomLobbyAdapter } from "./roomLobby.js";
 import { CANT_STOP_RULES_GUIDE } from "./rulesHelp.js";
 import { createCantStopPairingPresentation } from "./pairingPresentation.js";
 import { createCantStopPresentationCoordinator } from "./presentation.js";
+import {
+  installCantStopAudioUnlock,
+  playCantStopBlizzardSound,
+  playCantStopDiceRollSound,
+} from "./audio.js";
 
 const root = document.getElementById("cant-stop-app");
 
@@ -44,7 +49,10 @@ let accessUnsubscribe = null;
 let rulesDialog = null;
 let endGameDialog = null;
 let presentationCoordinator = null;
+let lastBustSoundVersion = null;
 let bootEpoch = 0;
+
+installCantStopAudioUnlock();
 
 const CANT_STOP_PLAYER_COLORS = Object.freeze([
   "#1e90ff",
@@ -509,7 +517,14 @@ function createDiceStage(view, state) {
             label: `${index + 1}번째 주사위 ${die}`,
           }),
       ]))),
-    el("div", { className: "cant-stop-dice-stage__action-slot" }, [
+    el("div", {
+      className: [
+        "cant-stop-dice-stage__action-slot",
+        view.phase === "PUSH_OR_STOP" && view.isMyTurn
+          ? "cant-stop-dice-stage__action-slot--split"
+          : "",
+      ].filter(Boolean).join(" "),
+    }, [
       view.canRoll
         ? el("button", {
           className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
@@ -518,23 +533,52 @@ function createDiceStage(view, state) {
           disabled: state.busy,
           onClick: async () => {
             try {
+              void playCantStopDiceRollSound();
               await lobbyController.rollDice();
             } catch {
               // Controller state renders the authoritative error.
             }
           },
         })
-        : el("span", {
-          className: "cant-stop-dice-stage__action-hint",
-          text: view.phase === "PAIRING_SELECTION"
-            ? (view.isMyTurn ? "아래에서 등반 경로를 선택하세요" : "상대가 등반 경로를 고르는 중")
-            : view.phase === "PUSH_OR_STOP"
-              ? (view.isMyTurn ? "보드 아래에서 더 굴릴지 멈출지 선택하세요" : "상대가 다음 행동을 정하는 중")
+        : view.phase === "PUSH_OR_STOP" && view.isMyTurn
+          ? [
+            el("button", {
+              className: "game-platform-shell__button cant-stop-dice-stage__roll-button",
+              type: "button",
+              text: rolling ? "주사위 굴리는 중…" : "주사위 굴리기",
+              disabled: state.busy,
+              onClick: async () => {
+                try {
+                  void playCantStopDiceRollSound();
+                  await lobbyController.continueAndRoll();
+                } catch {
+                  // Controller state renders the authoritative error.
+                }
+              },
+            }),
+            el("button", {
+              className: "game-platform-shell__button game-platform-shell__button--secondary cant-stop-dice-stage__stop-button",
+              type: "button",
+              text: state.busy ? "처리 중…" : "멈추기",
+              disabled: state.busy,
+              onClick: async () => {
+                try {
+                  await lobbyController.stopTurn();
+                } catch {
+                  // Controller state renders the authoritative error.
+                }
+              },
+            }),
+          ]
+          : el("span", {
+            className: "cant-stop-dice-stage__action-hint",
+            text: view.phase === "PAIRING_SELECTION"
+              ? (view.isMyTurn ? "아래에서 등반 경로를 선택하세요" : "상대가 등반 경로를 고르는 중")
               : view.isGameOver
                 ? "게임이 종료되었습니다"
                 : "현재 플레이어의 주사위를 기다리는 중",
-        }),
-    ]),
+          }),
+    ].flat()),
     el("p", {
       className: "cant-stop-dice-stage__caption",
       text: rolling
@@ -727,38 +771,6 @@ function createGameplayActions(view, state) {
       text: "게임 종료",
       disabled: state.busy,
       onClick: openEndGameDialog,
-    }));
-  }
-
-  if (view.canContinue) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button",
-      type: "button",
-      text: state.busy ? "처리 중…" : "한 번 더 굴리기",
-      disabled: state.busy,
-      onClick: async () => {
-        try {
-          await lobbyController.continueTurn();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
-    }));
-  }
-
-  if (view.canStop) {
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--secondary",
-      type: "button",
-      text: state.busy ? "처리 중…" : "여기서 멈추기",
-      disabled: state.busy,
-      onClick: async () => {
-        try {
-          await lobbyController.stopTurn();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
     }));
   }
 
@@ -1164,6 +1176,14 @@ function patchGameShell(nextShell) {
 
 function renderApprovedRuntime(state) {
   if (!root) return;
+
+  if (state.effect?.type === "bust") {
+    const effectVersion = Number(state.effect.version ?? state.snapshot?.version);
+    if (Number.isFinite(effectVersion) && effectVersion !== lastBustSoundVersion) {
+      lastBustSoundVersion = effectVersion;
+      void playCantStopBlizzardSound();
+    }
+  }
 
   const auth = getAuthState();
   const fallbackPlayer = createCantStopShellPlayer(auth);
