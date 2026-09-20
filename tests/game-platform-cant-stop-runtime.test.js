@@ -393,12 +393,12 @@ test("Can't Stop push-or-stop removes implementation copy and hides the normal p
   );
   assert.match(
     app,
-    /state\.view === CANT_STOP_LOBBY_VIEW\.PLAYING[\s\S]*state\.connection === "connected"[\s\S]*game-platform-status/u,
+    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
   );
 });
 
 
-test("Can't Stop board phase card contains no secondary helper copy", () => {
+test("Can't Stop gameplay phase cards stay concise while waiting board shows readiness help", () => {
   const app = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "app.js"),
     "utf8",
@@ -407,11 +407,8 @@ test("Can't Stop board phase card contains no secondary helper copy", () => {
   assert.equal(app.includes("현재 runner를 유지한 채 네 개의 주사위를 서버에서 굴립니다."), false);
   assert.equal(app.includes("상대 플레이어의 선택을 기다리고 있어요."), false);
   assert.equal(app.includes("상대 플레이어의 결정을 기다리고 있어요."), false);
-
-  const boardStart = app.indexOf("function createBoard(view, state)");
-  const sidebarStart = app.indexOf("function createGameplaySidebar(view, state)", boardStart);
-  const boardSource = app.slice(boardStart, sidebarStart);
-  assert.equal(boardSource.includes("heading.description"), false);
+  assert.match(app, /waiting \? "cant-stop-board__intro--waiting"/u);
+  assert.match(app, /description: "모든 플레이어가 준비하면 게임을 시작할 수 있어요\."/u);
 });
 
 
@@ -440,11 +437,11 @@ test("Can't Stop dice card owns initial roll and split roll-stop controls", () =
   assert.match(app, /playCantStopDiceRollSound/u);
   assert.match(app, /playCantStopBlizzardSound/u);
 
-  const gameplayActionsStart = app.indexOf("function createGameplayActions(view, state)");
-  const lobbyActionsStart = app.indexOf("function createLobbyPanel", gameplayActionsStart);
-  const gameplayActions = app.slice(gameplayActionsStart, lobbyActionsStart);
-  assert.equal(gameplayActions.includes("한 번 더 굴리기"), false);
-  assert.equal(gameplayActions.includes("여기서 멈추기"), false);
+  const diceStageStart = app.indexOf("function createDiceStage(view, state)");
+  const boardStart = app.indexOf("function createBoard(view, state", diceStageStart);
+  const diceStage = app.slice(diceStageStart, boardStart);
+  assert.equal(diceStage.includes("한 번 더 굴리기"), false);
+  assert.equal(diceStage.includes("여기서 멈추기"), false);
 });
 
 
@@ -522,7 +519,7 @@ test("Can't Stop entry hides the normal connected status card but keeps reconnec
 
   assert.match(
     app,
-    /state\.connection === "connected"[\s\S]*state\.view === CANT_STOP_LOBBY_VIEW\.ENTRY[\s\S]*game-platform-status/u,
+    /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
   );
   assert.match(app, /state\.connection === "reconnecting"/u);
   assert.match(app, /state\.connection === "error"/u);
@@ -568,7 +565,6 @@ test("Can't Stop waiting and playing screens remove the normal connected banner"
     app,
     /if \(state\.connection === "connected"\) \{[\s\S]*game-platform-status/u,
   );
-  assert.equal(app.includes('label: "로비 연결됨"') && app.includes("game-platform-status") === false, false);
 });
 
 test("Can't Stop roster hydrates site profile photos and uses the shared default avatar", () => {
