@@ -243,6 +243,9 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - player roster는 사이트 공개 프로필의 avatar를 사용하고 avatar가 없거나 서명 URL을 얻지 못하면 사이트 공통 `assets/images/default-avatar.svg`를 사용한다. waiting에서 ready player는 seat accent를 활용한 card background로 구분한다.
 - desktop gameplay board mountain은 900px 기준으로 확대하고 right sidebar를 같은 grid row에 stretch해 dice/route card 하단과 board 영역 하단이 일렬로 맞도록 한다.
 - gameplay의 규칙/새로고침/게임 종료 같은 utility action은 하단 sticky footer가 아니라 player roster와 dice stage 사이의 compact sidebar toolbar에 둔다.
+- waiting/playing room에서는 manual refresh 중 Common Shell connection status card를 별도로 생성하지 않는다. 오류는 기존 inline error presentation으로 전달한다.
+- GAME_OVER에서는 새로고침 utility를 숨기고 규칙/재대결/방 나가기만 보여 compact toolbar 높이가 불필요하게 늘어나지 않게 한다.
+- host manual-end confirmation dialog는 alpine sky/mountain/number marker visual language를 재사용하고 계속 플레이/게임 종료 선택을 명확한 bordered controls로 구분한다.
 - Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
 - 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
 
