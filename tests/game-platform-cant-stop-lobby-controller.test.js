@@ -625,3 +625,136 @@ test("Can't Stop lobby controller marks a roll-only TURN_ROLL player change as b
   assert.equal(controller.current().effect?.playerId, "bob");
   assert.equal(controller.current().effect?.version, 71);
 });
+
+
+test("Can't Stop continueAndRoll performs authoritative continue then roll in one UI action", async () => {
+  const active = snapshot({
+    version: 80,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "PUSH_OR_STOP",
+    activePlayerId: "bob",
+    runners: { 4: 2, 8: 2 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const gameplay = fakeGameplayAdapter();
+  const actionIds = ["continue-action", "roll-action"];
+  const states = [];
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: () => actionIds.shift(),
+    onState: (state) => states.push(state),
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.continueAndRoll();
+
+  assert.deepEqual(
+    gameplay.calls.filter(([name]) => name === "continueTurn" || name === "rollDice"),
+    [
+      ["continueTurn", {
+        roomId: "room-1",
+        expectedVersion: 80,
+        clientActionId: "continue-action",
+      }],
+      ["rollDice", {
+        roomId: "room-1",
+        expectedVersion: 81,
+        clientActionId: "roll-action",
+      }],
+    ],
+  );
+  assert.equal(controller.current().snapshot.version, 82);
+  assert.equal(controller.current().snapshot.game.phase, "PAIRING_SELECTION");
+  assert.equal(
+    states.some((state) => state.busyAction === "rollDice"),
+    true,
+  );
+});
+
+test("Can't Stop starting a new action consumes stale bust feedback", async () => {
+  const active = snapshot({
+    version: 90,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "bob",
+    runners: { 6: 4 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const gameplay = fakeGameplayAdapter();
+  let rollCount = 0;
+  gameplay.rollDice = async (input) => {
+    gameplay.calls.push(["rollDice", input]);
+    rollCount += 1;
+    if (rollCount === 1) {
+      return {
+        ...snapshot({
+          version: input.expectedVersion + 1,
+          status: "playing",
+          canStart: true,
+          ready: true,
+        }),
+        game: {
+          phase: "TURN_ROLL",
+          activePlayerId: "alice",
+          runners: {},
+          latestDice: null,
+          legalPairings: [],
+        },
+      };
+    }
+    return {
+      ...snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        canStart: true,
+        ready: true,
+      }),
+      game: {
+        phase: "PAIRING_SELECTION",
+        activePlayerId: "alice",
+        latestDice: [2, 2, 3, 4],
+        legalPairings: [],
+      },
+    };
+  };
+
+  const states = [];
+  const controller = createCantStopLobbyController({
+    adapter,
+    gameplayAdapter: gameplay,
+    idFactory: (() => {
+      let index = 0;
+      return () => `roll-${++index}`;
+    })(),
+    onState: (state) => states.push(state),
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+  await controller.rollDice();
+  assert.equal(controller.current().effect?.type, "bust");
+
+  const stateCountBeforeNextRoll = states.length;
+  await controller.rollDice();
+
+  const secondRollStates = states.slice(stateCountBeforeNextRoll);
+  assert.equal(
+    secondRollStates.some((state) => state.busyAction === "rollDice" && state.effect != null),
+    false,
+  );
+  assert.equal(controller.current().effect, null);
+});
