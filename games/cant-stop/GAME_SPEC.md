@@ -207,7 +207,7 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - legal pairing이 하나만 존재해도 자동 적용하지 않고 active player가 이동 plan을 명시적으로 선택한다.
 - temporary runner와 permanent progress는 서로 다른 marker 스타일로 표시하고 claimed column은 완주자를 함께 표시한다.
 - `한 번 더 굴리기`와 `여기서 멈추기`를 turn의 핵심 선택으로 강조한다.
-- bust 시 runner가 산 정상 기준 좌우 경사 방향으로 미끄러지고, 말 주변의 눈가루와 짧은 눈사태/powder 연출을 함께 보여줘 설산 등반 실패의 재미를 강화한다. 과도한 화면 가림은 피하고 약 1.25초 안에 연출을 끝낸다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
+- bust 시 runner가 산 정상 기준 좌우 경사 방향으로 미끄러지고, 말 주변의 눈가루와 짧은 눈사태/powder 연출을 함께 보여줘 설산 등반 실패의 재미를 강화한다. 눈/runner 연출 자체는 짧게 끝내되 결과 안내 카드는 보드 중앙에서 약 3.6초 유지해 사용자가 내용을 읽을 시간을 보장한다. actor의 local RPC 응답과 다른 player의 Realtime refresh 모두 동일한 bust presentation을 끝까지 보여준 뒤 다음 snapshot으로 전환한다.
 - 로비/플레이 중 언제든 상세 규칙 modal을 열 수 있다.
 - 진행 중 방장은 확인 dialog를 거쳐 전체 게임을 수동 종료할 수 있고, 종료 결과는 모든 클라이언트의 authoritative GAME_OVER snapshot으로 동기화한다.
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
@@ -292,3 +292,7 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 - invite token resolve 이후 실제 참가 권한은 `cant_stop_join_room_by_invite`가 token을 서버에서 다시 검증해 결정한다.
 - Invite 소스 연결과 Registry capability 활성화는 분리하며 운영 migration + live smoke test 전에는 `online/invite`를 활성화하지 않는다.
 - 현재 설산/2.5D 주사위/bust 연출은 첫 폴리싱 기준이며 실제 멀티브라우저 playtest 후 세부 속도·크기·강도를 조정한다.
+
+
+- 정상적인 connected gameplay에서는 상단 연결 상태 카드를 숨겨 플레이 화면을 단순화한다. reconnect/error 상태에서는 해당 배너를 다시 노출해 필요한 연결 정보만 보여준다.
+- PUSH OR STOP phase는 선택 자체가 명확하므로 구현 설명 문구를 추가하지 않고 행동 제목과 실제 버튼에 집중한다.
