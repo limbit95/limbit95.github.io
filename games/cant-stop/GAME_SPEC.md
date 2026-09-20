@@ -170,6 +170,7 @@ online version의 최종 권위는 서버 RPC와 DB state다.
 
 서버가 최종 결정하는 항목:
 
+- 방 생성/참가 시 표시할 플레이어 닉네임은 클라이언트 입력값이 아니라 사이트 `profiles.display_name`으로 확정
 - 실제 주사위 네 개의 결과
 - 가능한 pairing 목록과 선택 유효성
 - runner 이동 가능 여부
@@ -236,6 +237,8 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - 모바일에서는 11개 열 전체 판독성을 우선하고 과도한 3D/카메라 조작은 초기 버전에서 사용하지 않는다.
 - 원본 상용판의 보드/말 그래픽은 복제하지 않고 청파 같이 고유 시각 디자인을 사용한다.
 - online entry는 방 만들기 또는 6자리 코드 참가로 시작하며, waiting room에서 준비 상태와 방장 시작 조건을 명확히 보여준다.
+- entry lobby에는 닉네임 입력/변경 UI를 두지 않는다. 로그인한 승인회원의 사이트 프로필 닉네임을 그대로 사용하며 닉네임 변경과 중복 검사는 마이페이지의 공통 프로필 흐름에서만 수행한다.
+- entry 화면은 정상 연결 상태 카드를 별도로 노출하지 않고 새 방 만들기 / 코드 참가 두 행동에 집중한다. 규칙 보기는 오른쪽 온라인 플레이 안내 카드 하단에 둔다.
 - Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
 - 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
 
