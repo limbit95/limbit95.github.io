@@ -2454,3 +2454,146 @@ body {
     padding: 1rem 1.05rem;
   }
 }
+
+
+/* Polish phase 2f: split push/stop controls and stronger but restrained blizzard feedback. */
+.cant-stop-dice-stage__action-slot--split {
+  grid-template-columns: minmax(0, 1fr) minmax(0, .8fr);
+  gap: .55rem;
+}
+
+.cant-stop-dice-stage__stop-button {
+  min-height: 44px;
+  border-color: rgba(62, 100, 114, .28);
+  background: rgba(248,252,253,.92);
+  color: #355763;
+}
+
+.cant-stop-board__mountain--bust::before {
+  height: 30%;
+  opacity: 0;
+  filter: blur(.6px);
+  animation-duration: 1480ms;
+}
+
+.cant-stop-bust-weather::before {
+  position: absolute;
+  inset: -12%;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      118deg,
+      transparent 0 17px,
+      rgba(255,255,255,.68) 18px 20px,
+      transparent 21px 35px
+    );
+  opacity: 0;
+  content: "";
+  transform: translate3d(58px, -52px, 0);
+  animation: cant-stop-blizzard-streaks 1420ms ease-out both;
+}
+
+.cant-stop-bust-weather::after {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 27%;
+  height: 38%;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at center, rgba(255,255,255,.72) 0 13%, rgba(236,247,250,.48) 38%, transparent 73%);
+  filter: blur(7px);
+  opacity: 0;
+  content: "";
+  animation: cant-stop-blizzard-mist 1580ms ease-out both;
+}
+
+.cant-stop-bust-weather__avalanche {
+  left: 12%;
+  right: 9%;
+  top: 35%;
+  height: 20%;
+  filter: blur(2px);
+  animation-duration: 1450ms;
+}
+
+.cant-stop-bust-weather__powder {
+  width: 92px;
+}
+
+.cant-stop-bust-weather__powder--one {
+  animation-duration: 1280ms;
+}
+
+.cant-stop-bust-weather__powder--two {
+  animation-duration: 1380ms;
+}
+
+.cant-stop-bust-weather__powder--three {
+  animation-duration: 1320ms;
+}
+
+.cant-stop-board__mountain--bust .cant-stop-marker--runner {
+  animation-duration: 1380ms;
+}
+
+.cant-stop-board__mountain--bust .cant-stop-marker--runner::after {
+  width: 54px;
+  animation-duration: 1120ms;
+}
+
+.cant-stop-bust-notice {
+  animation: cant-stop-bust-notice-readable 4000ms ease both;
+}
+
+@keyframes cant-stop-blizzard-streaks {
+  0%, 5% {
+    opacity: 0;
+    transform: translate3d(68px, -58px, 0);
+  }
+  24% {
+    opacity: .5;
+  }
+  62% {
+    opacity: .72;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-82px, 86px, 0);
+  }
+}
+
+@keyframes cant-stop-blizzard-mist {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -22px, 0) scale(.82);
+  }
+  30% {
+    opacity: .62;
+  }
+  68% {
+    opacity: .52;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-8px, 94px, 0) scale(1.24);
+  }
+}
+
+@media (max-width: 520px) {
+  .cant-stop-dice-stage__action-slot--split {
+    grid-template-columns: 1fr 1fr;
+    gap: .4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cant-stop-bust-weather::before,
+  .cant-stop-bust-weather::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
