@@ -202,7 +202,7 @@ export function createCantStopLobbyController({
     if (disposed) throw new Error("Can't Stop lobby controller has been disposed.");
     if (state.busy) throw new Error("Can't Stop lobby action is already in progress.");
 
-    emit({ busy: true, busyAction, error: null });
+    emit({ busy: true, busyAction, error: null, effect: null });
     try {
       return await operation();
     } catch (error) {
@@ -350,6 +350,51 @@ export function createCantStopLobbyController({
     return gameplayCommand("continueTurn");
   }
 
+  async function continueAndRoll() {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id || snapshot.room.status !== "playing") {
+        throw new Error("Can’t Stop game is not active.");
+      }
+
+      const previousActivePlayerId = String(snapshot.game?.activePlayerId ?? "");
+      const continued = await requireGameplay().continueTurn({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
+      });
+
+      applySnapshot(continued, {
+        connection: "connected",
+        effect: null,
+      });
+
+      const rolled = await requireGameplay().rollDice({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(continued.version),
+        clientActionId: idFactory(),
+      });
+
+      const nextActivePlayerId = String(rolled?.game?.activePlayerId ?? "");
+      const busted = rolled?.game?.phase === "TURN_ROLL"
+        && previousActivePlayerId
+        && nextActivePlayerId
+        && previousActivePlayerId !== nextActivePlayerId;
+
+      applySnapshot(rolled, {
+        connection: "connected",
+        effect: busted
+          ? Object.freeze({
+            type: "bust",
+            playerId: previousActivePlayerId,
+            version: Number(rolled.version),
+          })
+          : null,
+      });
+      return rolled;
+    }, "rollDice");
+  }
+
   function stopTurn() {
     return gameplayCommand("stopTurn");
   }
@@ -394,6 +439,7 @@ export function createCantStopLobbyController({
     rollDice,
     choosePairing,
     continueTurn,
+    continueAndRoll,
     stopTurn,
     endGame,
     prepareRematch,
