@@ -6,8 +6,14 @@ export function buildRotationPlan({ startDate, endDate, people, random = Math.ra
   if (!startDate || !endDate) throw new Error("시작일과 종료일을 모두 선택해 주세요.");
   if (!normalizedPeople.length) throw new Error("로테이션에 참여할 인원을 한 명 이상 등록해 주세요.");
 
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (start > end) throw new Error("종료일은 시작일보다 빠를 수 없습니다.");
+
+  const dayCount = Math.floor((end - start) / DAY_MS) + 1;
+  if (dayCount > MAX_DAYS) throw new Error("기간은 최대 366일까지 설정할 수 있습니다.");
+
   const dates = enumerateDates(startDate, endDate);
-  if (dates.length > MAX_DAYS) throw new Error("기간은 최대 366일까지 설정할 수 있습니다.");
 
   const assignments = [];
   let previousPerson = null;
