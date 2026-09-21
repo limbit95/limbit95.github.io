@@ -85,3 +85,20 @@ test("No Thanks! terminal screen distinguishes a host-terminated game", () => {
   assert.match(runtime, /방장이 게임을 종료했어요/u);
   assert.match(runtime, /결과방 닫기/u);
 });
+
+
+test("No Thanks! shell shows reconnect state without transferring host or turn authority", () => {
+  assert.match(runtime, /createNoThanksPresenceAdapter/u);
+  assert.match(runtime, /재접속 대기/u);
+  assert.match(runtime, /방장 권한은 자동 위임되지 않고 게임도 자동 종료되지 않습니다/u);
+  assert.match(runtime, /turn은 유지되며/u);
+  assert.match(runtime, /GAME_CONNECTION_STATE\.OFFLINE/u);
+  assert.match(styles, /\.no-thanks-connection-note/u);
+});
+
+test("No Thanks! rematch creates a fresh room instead of resetting terminal state", () => {
+  assert.match(runtime, /새 게임 방 만들기/u);
+  assert.match(runtime, /기존 결과방을 닫고 같은 최대 인원의 새 방/u);
+  assert.match(runtime, /lobbyController\.createRematchRoom\(\)/u);
+  assert.match(runtime, /새 방 코드로 다시 참가/u);
+});
