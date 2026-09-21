@@ -200,6 +200,25 @@ begin
   if not found or v_room.status <> 'playing' then
     raise exception 'ROOM_NOT_FOUND';
   end if;
+
+  -- A duplicate retry can arrive while the first request is still waiting on
+  -- the same room lock. Re-check after acquiring the lock so both callers
+  -- converge on the first committed authoritative snapshot.
+  select *
+    into v_existing
+  from public.no_thanks_room_actions
+  where room_id = p_room_id
+    and client_action_id = p_client_action_id;
+
+  if found then
+    if v_existing.actor_user_id <> v_user_id
+      or v_existing.action_type <> v_action_type
+      or v_existing.request_payload <> v_payload then
+      raise exception 'ACTION_CONFLICT';
+    end if;
+    return v_existing.response_snapshot;
+  end if;
+
   if v_room.version is distinct from p_expected_version then
     raise exception 'VERSION_CONFLICT';
   end if;
