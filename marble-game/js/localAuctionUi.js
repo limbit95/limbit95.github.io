@@ -1,3 +1,4 @@
+import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r2";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -350,6 +351,7 @@ export function setupLocalAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
+  elements.panel.addEventListener("pointerdown", prepareAuctionBidSound, { once: true });
   let disposed = false;
   let busy = false;
   let errorText = "";
@@ -382,6 +384,7 @@ export function setupLocalAuctionUi({
     elements.bidEvent.dataset.active = "false";
     void elements.bidEvent.offsetWidth;
     elements.bidEvent.dataset.active = "true";
+    playAuctionBidSound();
 
     if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
     bidEventTimer = setTimeoutFn?.(() => {
