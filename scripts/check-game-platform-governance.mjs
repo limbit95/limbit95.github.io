@@ -93,7 +93,7 @@ export function validatePlatformDocumentPolicy({
       continue;
     }
 
-    if (filename !== RULEBOOK_PATH && !content.includes(RULEBOOK_PATH)) {
+    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename) && filename !== RULEBOOK_PATH && !content.includes(RULEBOOK_PATH)) {
       errors.push(
         `Game Platform document ${filename} must identify ${RULEBOOK_PATH} as the current rulebook.`,
       );
