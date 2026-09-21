@@ -287,6 +287,26 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - `END_GAME`: 방장만 가능하며 확인 UI를 거친 뒤 `GAME_OVER / HOST_TERMINATED`로 전환합니다. 수동 종료는 최종 점수와 승자를 계산하지 않습니다.
 - `GAME_OVER` 이후에는 참가자가 결과를 확인한 뒤 안전하게 세션에서 이탈할 수 있습니다.
 
+### Disconnect / Presence / Reconnect 정책
+
+- 브라우저 종료, 네트워크 단절, 모바일 백그라운드 진입 같은 비정상 연결 끊김은 `leave`로 취급하지 않습니다.
+- 연결이 끊겨도 room membership, host ownership, turn, 공개/비공개 game state는 서버에 그대로 유지합니다.
+- 현재 차례 플레이어의 연결이 끊겨도 자동으로 turn을 넘기지 않습니다. 해당 사용자가 재접속하면 authoritative snapshot을 다시 받아 같은 turn에서 이어서 진행합니다.
+- 방장의 연결이 끊겨도 다른 사용자에게 방장 권한을 자동 위임하지 않으며 게임도 자동 종료하지 않습니다.
+- Supabase Realtime Presence는 roster의 온라인/오프라인 표시용 보조 신호로만 사용합니다. Presence 결과는 ready/start/action 권한이나 server-authoritative game rule 판정에 사용하지 않습니다.
+- Presence payload에는 `userId`와 접속 시각만 포함하고, 닉네임·카드·칩·turn state 같은 게임 데이터는 넣지 않습니다.
+- 동일 사용자가 여러 탭으로 접속할 수 있으므로 각 브라우저 client는 고유 Presence key를 사용하고 UI에서는 user id 기준으로 접속 여부를 합칩니다.
+- `online`, `pageshow`, visible 복귀 시 최종 화면 상태는 Presence가 아니라 snapshot RPC 재조회로 복원합니다.
+
+### 재대결 정책
+
+첫 버전에서는 종료된 room의 game/private/action state를 초기화해 재사용하지 않습니다.
+
+- 방장만 결과 화면에서 `새 게임 방 만들기`를 선택할 수 있습니다.
+- 기존 결과방을 정상 종료한 뒤 동일한 최대 인원으로 새 room을 생성합니다.
+- 기존 참가자는 새 room code로 다시 참가합니다.
+- 이 방식으로 이전 게임의 version, action id, private deck/counter state가 다음 게임에 섞이지 않도록 경계를 단순하게 유지합니다.
+
 ## UI / UX Direction
 
 - 공통 게임 화면 골격을 사용합니다.
@@ -302,6 +322,10 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 로비와 실제 플레이 화면 모두 `게임 규칙` 진입점을 유지합니다.
 - 사이트 프로필 닉네임을 사용하며 게임 안에서 별도의 닉네임 입력이나 변경 기능을 제공하지 않습니다.
 - 게임 전체 종료는 방장에게만 제공하며, 확인 화면을 거친 뒤 서버가 방장 권한을 다시 검증하고 최종 상태를 변경합니다.
+- 접속이 끊긴 플레이어는 roster에 `재접속 대기`로 표시합니다.
+- 현재 차례 플레이어가 오프라인이면 자동 진행하지 않고 재접속 후 이어진다는 안내를 표시합니다.
+- 방장이 오프라인이어도 자동 위임 또는 자동 종료가 발생하지 않는다는 안내를 표시합니다.
+- 결과 화면의 재대결은 같은 room reset이 아니라 새 room 생성임을 확인 dialog에서 명확히 안내합니다.
 
 ## Implementation Plan
 
@@ -359,7 +383,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 ## Open Questions / Deferred
 
 - 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
-- 게임 진행 중 플레이어가 나가는 경우의 정책은 방/로비와 게임 데이터베이스를 설계하는 단계에서 게임 규칙과 플랫폼 안전성을 함께 검토해 확정합니다.
-- 게임 진행 중 방장이 브라우저를 닫거나 연결이 끊기는 비정상 이탈에서 방장 권한을 넘길지, 일정 시간 후 게임을 종료할지는 아직 확정하지 않습니다. 명시적 `게임 종료`는 현재 방장 전용 서버 액션으로 처리합니다.
-- 재대결 시 같은 방을 유지하면서 게임 상태만 초기화할지 여부는 게임 후 흐름을 구현할 때 확정합니다.
+- 명시적 leave는 WAITING 또는 GAME_OVER에서만 허용하고 PLAYING 중 비정상 disconnect는 membership을 유지합니다.
+- 방장 비정상 disconnect는 권한 위임이나 자동 종료 없이 재접속을 기다리는 정책으로 확정했습니다. 명시적 `게임 종료`만 방장 전용 서버 액션으로 처리합니다.
+- 재대결은 같은 방을 초기화하지 않고 새 room을 만드는 방식으로 확정했습니다.
 - 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.
