@@ -295,6 +295,12 @@ async function createPendingMember(token) {
 test.describe("approved member flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
 
+
+  test("keeps the AE design preview link hidden from regular members", async ({ page }) => {
+    await login(page, memberEmail, memberPassword);
+    await expect(page.getByRole("link", { name: "도안 보기" })).toHaveCount(0);
+  });
+
   test("loads hashed startup bundles and keeps route chunks lazy", async ({ page }) => {
     const pageErrors = collectPageErrors(page);
     const jsRequests = collectJavaScriptRequests(page);
@@ -787,6 +793,18 @@ test("enforces member activity transitions and owner-safe removal in the databas
 
 test.describe("admin flow", () => {
   test.skip(!authenticatedEnvironmentReady, "Authenticated E2E requires the isolated local Supabase environment.");
+
+
+  test("shows the AE design preview link on the admin home", async ({ page }) => {
+    await login(page, adminEmail, adminPassword);
+
+    const previewLink = page.getByRole("link", { name: "도안 보기" });
+    await expect(previewLink).toBeVisible();
+    await expect(previewLink).toHaveAttribute(
+      "href",
+      "https://chungpagachi.com/brand-gateway-compare.html",
+    );
+  });
 
   test("opens every admin route without runtime contract errors", async ({ page }) => {
     const pageErrors = collectPageErrors(page);
