@@ -306,6 +306,17 @@ test("Game Platform rules prohibit game-local nickname editing", () => {
   assert.match(rules, /프로필의 닉네임을 직접 조회/u);
 });
 
+test("Game Platform rules separate Legacy protection from growing Registry entries", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /Legacy 보호 테스트는 보호 대상 Legacy 게임의 존재와 핵심 계약/u);
+  assert.match(rules, /Registry의 전체 게임 개수나 전체 ID 목록을 고정하지 않는다/u);
+  assert.match(rules, /개별 platform-native 게임의 Registry 설정과 capability/u);
+});
+
 test("core Game Platform rule documents remain game-agnostic", () => {
   const rulePaths = [
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
