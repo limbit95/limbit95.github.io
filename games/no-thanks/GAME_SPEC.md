@@ -271,13 +271,21 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 - `public.no_thanks_rooms`: room identity, host, waiting/playing/closed 상태, 최대 인원, authoritative `version`, 공개 `game_state`
 - `public.no_thanks_room_players`: active membership, 사이트 프로필 `display_name`, seat, ready, 공개 획득 카드
-- `public.no_thanks_room_actions`: `client_action_id` 기반 ready/start replay와 payload conflict 검증
+- `public.no_thanks_room_actions`: `client_action_id` 기반 ready/start/gameplay replay와 payload conflict 검증
 - `public.no_thanks_room_private_state`: 남은 draw deck, 제외된 9장, 플레이어별 비공개 칩 수
-- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`
+- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`, `no_thanks_play_action`
 
 브라우저는 위 테이블을 직접 수정하지 않고 승인회원 RPC만 호출합니다. 특히 `no_thanks_room_private_state`에는 authenticated select 권한을 주지 않으며 Realtime 구독 대상에서도 제외합니다. 공개 room/player 변경은 invalidation 신호로만 사용하고, 실제 화면 상태는 RPC snapshot을 다시 조회해 복원합니다.
 
 게임 시작 시 서버가 3–7명 조건과 방장/ready 상태를 검증한 뒤 turn order와 3–35 카드 순서를 무작위로 확정합니다. 24장 중 첫 카드만 공개 `game_state`에 두고 남은 23장, 제외된 9장, 모든 플레이어의 칩 수는 private state에 유지합니다. snapshot은 호출자 자신의 칩 수만 `viewer.counters`로 합성하며 다른 플레이어의 칩 수와 미공개 카드 순서는 반환하지 않습니다.
+
+게임 진행 중 `REFUSE_CARD`, `TAKE_CARD`, `END_GAME`은 game-local `no_thanks_play_action` RPC가 처리합니다. 모든 요청은 `expected_version`과 `client_action_id`를 받아 room/private state를 같은 트랜잭션에서 잠그고, 현재 차례·보유 칩·방장 권한·중복 요청 여부를 서버가 최종 판정합니다.
+
+- `REFUSE_CARD`: 현재 플레이어만 가능하며 private counter를 1개 차감하고 공개 중앙 칩을 1개 늘린 뒤 다음 플레이어로 차례를 이동합니다.
+- `TAKE_CARD`: 현재 플레이어가 공개 카드를 획득하고 중앙 칩을 private counter에 더합니다. 남은 private deck의 다음 카드만 공개하며 같은 플레이어가 계속 선택합니다.
+- 마지막 카드 `TAKE_CARD`: 공개 획득 카드와 private counter로 최종 점수를 서버에서 계산하고 `GAME_OVER / LAST_CARD_TAKEN`과 공동 승자를 authoritative snapshot에 확정합니다.
+- `END_GAME`: 방장만 가능하며 확인 UI를 거친 뒤 `GAME_OVER / HOST_TERMINATED`로 전환합니다. 수동 종료는 최종 점수와 승자를 계산하지 않습니다.
+- `GAME_OVER` 이후에는 참가자가 결과를 확인한 뒤 안전하게 세션에서 이탈할 수 있습니다.
 
 ## UI / UX Direction
 
@@ -352,6 +360,6 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 - 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
 - 게임 진행 중 플레이어가 나가는 경우의 정책은 방/로비와 게임 데이터베이스를 설계하는 단계에서 게임 규칙과 플랫폼 안전성을 함께 검토해 확정합니다.
-- 게임 진행 중 방장이 나가는 경우 방장 권한을 넘길지 게임을 종료할지는 아직 확정하지 않습니다.
+- 게임 진행 중 방장이 브라우저를 닫거나 연결이 끊기는 비정상 이탈에서 방장 권한을 넘길지, 일정 시간 후 게임을 종료할지는 아직 확정하지 않습니다. 명시적 `게임 종료`는 현재 방장 전용 서버 액션으로 처리합니다.
 - 재대결 시 같은 방을 유지하면서 게임 상태만 초기화할지 여부는 게임 후 흐름을 구현할 때 확정합니다.
 - 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.
