@@ -23,7 +23,6 @@ const STEP_LABELS = ["약관 동의", "회원 정보", "최종 확인"];
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_MS = 60 * 1000;
 const OTP_RESEND_STORAGE_KEY = "cheongpa:signup-otp-resend-cooldowns";
-const DISPLAY_NAME_CHECK_DELAY_MS = 450;
 
 function getOtpResendStorageKey(email) {
   let hash = 2166136261;
@@ -126,15 +125,27 @@ export function renderSignup() {
 
   const displayNameAvailability = el("p", { className: "field-help", "aria-live": "polite" });
   const displayNameError = fields.display_name.root.querySelector('[data-error-for="display_name"]');
+  const displayNameHelp = fields.display_name.root.querySelector(".field-help");
+  const displayNameCheckButton = el("button", {
+    className: "button button--ghost",
+    type: "button",
+    text: "중복 확인",
+    disabled: true,
+    onclick: () => {
+      void checkDisplayNameFromButton();
+    },
+  });
+  const displayNameRow = el("div", { className: "signup-display-name-row" }, [
+    fields.display_name.input,
+    displayNameCheckButton,
+  ]);
+  fields.display_name.root.insertBefore(displayNameRow, displayNameHelp ?? displayNameError);
   fields.display_name.root.insertBefore(displayNameAvailability, displayNameError);
-  let displayNameCheckTimer = null;
   let displayNameCheckRequest = 0;
   let displayNameCheckValue = "";
   let displayNameCheckStatus = "idle";
 
   fields.display_name.input.addEventListener("input", () => {
-    clearTimeout(displayNameCheckTimer);
-    displayNameCheckTimer = null;
     displayNameCheckRequest += 1;
     displayNameCheckValue = "";
     displayNameCheckStatus = "idle";
@@ -142,12 +153,16 @@ export function renderSignup() {
     setFieldError(form, "display_name", "");
 
     const value = fields.display_name.input.value.trim();
-    if (!value || !valueInRange(value, 1, 50)) return;
-    if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) {
-      displayNameAvailability.textContent = "이메일 인증 후 닉네임 사용 가능 여부를 확인합니다.";
+    if (!value || !valueInRange(value, 1, 50)) {
+      updateDisplayNameCheckButton();
       return;
     }
-    scheduleDisplayNameCheck();
+    if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) {
+      displayNameAvailability.textContent = "이메일 인증 후 닉네임 중복 확인을 할 수 있습니다.";
+    } else {
+      displayNameAvailability.textContent = "닉네임을 입력한 뒤 중복 확인 버튼을 눌러 주세요.";
+    }
+    updateDisplayNameCheckButton();
   });
 
   fields.password_confirm.input.addEventListener("input", () => {
@@ -204,17 +219,49 @@ export function renderSignup() {
     if (step === 3) renderReview();
   }
 
-  function scheduleDisplayNameCheck() {
-    clearTimeout(displayNameCheckTimer);
+  function updateDisplayNameCheckButton() {
     const value = fields.display_name.input.value.trim();
-    if (!value || !valueInRange(value, 1, 50)) return;
+    const isVerified = Boolean(
+      verifiedEmail
+      && verifiedEmail === fields.email.input.value.trim().toLowerCase()
+    );
+    const validValue = valueInRange(value, 1, 50);
+    const checkedCurrentValue = displayNameCheckValue === value;
+    displayNameCheckButton.disabled = !isVerified
+      || !validValue
+      || displayNameCheckStatus === "checking"
+      || (checkedCurrentValue && displayNameCheckStatus === "available");
+    displayNameCheckButton.textContent = displayNameCheckStatus === "checking"
+      ? "확인 중…"
+      : checkedCurrentValue && displayNameCheckStatus === "available"
+        ? "확인 완료"
+        : checkedCurrentValue && displayNameCheckStatus === "taken"
+          ? "다시 확인"
+          : "중복 확인";
+  }
+
+  async function checkDisplayNameFromButton() {
+    const value = fields.display_name.input.value.trim();
+    setFieldError(form, "display_name", "");
+
+    if (!valueInRange(value, 1, 50)) {
+      setFieldError(form, "display_name", "닉네임은 1~50자로 입력해 주세요.");
+      updateDisplayNameCheckButton();
+      return false;
+    }
+    if (!verifiedEmail || verifiedEmail !== fields.email.input.value.trim().toLowerCase()) {
+      displayNameAvailability.textContent = "이메일 인증 후 닉네임 중복 확인을 할 수 있습니다.";
+      updateDisplayNameCheckButton();
+      return false;
+    }
+
     const requestId = ++displayNameCheckRequest;
     displayNameCheckStatus = "checking";
     displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
-    displayNameCheckTimer = window.setTimeout(() => {
-      displayNameCheckTimer = null;
-      void runDisplayNameCheck(value, requestId);
-    }, DISPLAY_NAME_CHECK_DELAY_MS);
+    updateDisplayNameCheckButton();
+    const available = await runDisplayNameCheck(value, requestId, { blockOnError: true });
+    updateDisplayNameCheckButton();
+    return available;
   }
 
   async function runDisplayNameCheck(value, requestId = ++displayNameCheckRequest, { blockOnError = false } = {}) {
@@ -237,7 +284,7 @@ export function renderSignup() {
       displayNameCheckStatus = "error";
       displayNameAvailability.textContent = blockOnError
         ? ""
-        : "닉네임 사용 가능 여부를 확인하지 못했습니다. 다음 단계에서 다시 확인합니다.";
+        : "닉네임 사용 가능 여부를 확인하지 못했습니다. 중복 확인 버튼으로 다시 시도해 주세요.";
       if (blockOnError) {
         setFieldError(form, "display_name", "닉네임 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
       }
@@ -253,12 +300,10 @@ export function renderSignup() {
       setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
       return false;
     }
-    clearTimeout(displayNameCheckTimer);
-    displayNameCheckTimer = null;
-    const requestId = ++displayNameCheckRequest;
-    displayNameCheckStatus = "checking";
-    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
-    return runDisplayNameCheck(value, requestId, { blockOnError: true });
+    setFieldError(form, "display_name", "닉네임 중복 확인을 완료해 주세요.");
+    displayNameAvailability.textContent = "닉네임을 입력한 뒤 중복 확인 버튼을 눌러 주세요.";
+    updateDisplayNameCheckButton();
+    return false;
   }
 
   function renderAgreements() {
@@ -376,12 +421,14 @@ export function renderSignup() {
       }
       tick();
     }, 1000);
+    updateDisplayNameCheckButton();
     if (
       isVerified
-      && fields.display_name.input.value.trim()
+      && valueInRange(fields.display_name.input.value.trim(), 1, 50)
       && displayNameCheckStatus === "idle"
+      && !displayNameAvailability.textContent
     ) {
-      scheduleDisplayNameCheck();
+      displayNameAvailability.textContent = "닉네임을 입력한 뒤 중복 확인 버튼을 눌러 주세요.";
     }
   }
 
