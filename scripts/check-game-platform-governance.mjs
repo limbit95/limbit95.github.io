@@ -9,6 +9,9 @@ import { GAME_REGISTRY } from "../games/shared/registry.js";
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
+const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
+const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
+const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
 const GAME_SPEC_REQUIRED_SECTIONS = Object.freeze([
   "## Game Overview",
   "## Rules and Sources",
@@ -50,6 +53,65 @@ export function platformGameIdFromPath(filename) {
   return match[1];
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function containsPlatformGameReference(content, game) {
+  const idPattern = new RegExp(
+    `(^|[^a-z0-9-])${escapeRegExp(game.id)}([^a-z0-9-]|$)`,
+    "iu",
+  );
+  if (idPattern.test(content)) return true;
+
+  const title = String(game.title ?? "").trim();
+  return title ? new RegExp(escapeRegExp(title), "iu").test(content) : false;
+}
+
+export function validatePlatformDocumentPolicy({
+  documents = {},
+  registry = GAME_REGISTRY,
+}) {
+  const errors = [];
+  const sharedGames = registry.filter((game) => game.platform === "shared");
+
+  for (const [rawFilename, content] of Object.entries(documents)) {
+    const filename = normalizePath(rawFilename);
+    if (typeof content !== "string") continue;
+
+    let classification = null;
+    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename)) {
+      const match = content.match(PLATFORM_DOCUMENT_CLASS_PATTERN);
+      if (!match) {
+        errors.push(`${filename} must declare > **문서 분류:** CURRENT or HISTORY.`);
+        continue;
+      }
+      classification = match[1];
+    } else if (filename === "AGENTS.md" || GAME_GUIDE_PATH_PATTERN.test(filename)) {
+      classification = "CURRENT";
+    } else {
+      continue;
+    }
+
+    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename) && filename !== RULEBOOK_PATH && !content.includes(RULEBOOK_PATH)) {
+      errors.push(
+        `Game Platform document ${filename} must identify ${RULEBOOK_PATH} as the current rulebook.`,
+      );
+    }
+
+    if (classification === "HISTORY") continue;
+
+    for (const game of sharedGames) {
+      if (containsPlatformGameReference(content, game)) {
+        errors.push(
+          `Current Game Platform document ${filename} must stay game-agnostic; move ${game.id}-specific guidance to that game\'s documents/tests.`,
+        );
+      }
+    }
+  }
+
+  return errors;
+}
 export function validateRepositoryState({
   gameDirectories,
   registry = GAME_REGISTRY,
@@ -247,6 +309,37 @@ function readOptional(filename) {
   return existsSync(filename) ? readFileSync(filename, "utf8") : null;
 }
 
+function readPlatformPolicyDocuments(repositoryRoot) {
+  const filenames = new Set(["AGENTS.md"]);
+  const docsDirectory = path.join(repositoryRoot, "docs");
+  const gamesDirectory = path.join(repositoryRoot, "games");
+
+  if (existsSync(docsDirectory)) {
+    for (const name of readdirSync(docsDirectory)) {
+      const relativePath = `docs/${name}`;
+      const fullPath = path.join(docsDirectory, name);
+      if (statSync(fullPath).isFile() && PLATFORM_DOCUMENT_PATH_PATTERN.test(relativePath)) {
+        filenames.add(relativePath);
+      }
+    }
+  }
+
+  if (existsSync(gamesDirectory)) {
+    for (const name of readdirSync(gamesDirectory)) {
+      const relativePath = `games/${name}`;
+      const fullPath = path.join(gamesDirectory, name);
+      if (statSync(fullPath).isFile() && GAME_GUIDE_PATH_PATTERN.test(relativePath)) {
+        filenames.add(relativePath);
+      }
+    }
+  }
+
+  return Object.fromEntries(
+    [...filenames]
+      .sort()
+      .map((filename) => [filename, readOptional(path.join(repositoryRoot, filename))]),
+  );
+}
 function runGit(args, cwd) {
   return execFileSync("git", args, { cwd, encoding: "utf8" }).trim();
 }
@@ -292,13 +385,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   const gameFiles = readGameFiles(gamesDirectory, gameDirectories);
   const gameSpecDocuments = readGameDocuments(gamesDirectory, gameDirectories, "GAME_SPEC.md");
   const developmentDocuments = readGameDocuments(gamesDirectory, gameDirectories, "DEVELOPMENT.md");
-  const documents = Object.fromEntries([
-    RULEBOOK_PATH,
-    "AGENTS.md",
-    "games/README.md",
-    "docs/game-platform-strategy.md",
-    "docs/game-platform-invite-analysis.md",
-  ].map((filename) => [filename, readOptional(path.join(repositoryRoot, filename))]));
+  const documents = readPlatformPolicyDocuments(repositoryRoot);
 
   const errors = validateRepositoryState({
     gameDirectories,
@@ -309,6 +396,11 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     developmentDocuments,
     documents,
   });
+
+  errors.push(...validatePlatformDocumentPolicy({
+    documents,
+    registry: GAME_REGISTRY,
+  }));
 
   if (base) {
     errors.push(...validatePullRequestChanges({

@@ -1,8 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
 
 import {
   GAME_ACCESS_REASON,
@@ -14,37 +11,29 @@ import {
   resolveApprovedMemberAccess,
 } from "../games/shared/index.js";
 
-const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("game registry keeps legacy entries intact and activates Can't Stop online/invite capabilities", () => {
-  assert.deepEqual(
-    GAME_REGISTRY.map((game) => game.id),
-    ["liar", "the-game", "marble", "cant-stop"],
-  );
-
+test("game registry protects the Legacy baseline without constraining platform-native additions", () => {
   const legacyGames = GAME_REGISTRY.filter((game) => game.platform === "legacy");
   assert.deepEqual(legacyGames.map((game) => game.id), ["liar", "the-game", "marble"]);
   assert.ok(legacyGames.every((game) => game.capabilities.online));
 
+  assert.equal(getRegisteredGame("liar")?.href, "./liar-game/");
   assert.equal(getRegisteredGame("the-game")?.href, "./the-game/");
   assert.equal(getRegisteredGame("the-game")?.capabilities.invite, true);
+  assert.equal(getRegisteredGame("marble")?.href, "./marble-game/");
   assert.equal(getRegisteredGame("marble")?.capabilities.presence, true);
+});
 
-  const cantStop = getRegisteredGame("cant-stop");
-  assert.equal(cantStop?.platform, "shared");
-  assert.equal(cantStop?.href, "./games/cant-stop/");
-  assert.deepEqual(cantStop?.capabilities, {
-    online: true,
-    local: false,
-    invite: true,
-    presence: false,
-  });
-  assert.equal(cantStop?.buttonText, "Can’t Stop 시작");
+test("game registry keeps generic lookup and list contracts stable as entries grow", () => {
+  const ids = GAME_REGISTRY.map((game) => game.id);
+  assert.equal(new Set(ids).size, ids.length);
   assert.equal(getRegisteredGame("missing"), null);
 
+  const registryLength = GAME_REGISTRY.length;
   const copy = listRegisteredGames();
   copy.pop();
-  assert.equal(GAME_REGISTRY.length, 4);
+
+  assert.equal(GAME_REGISTRY.length, registryLength);
   assert.ok(Object.isFrozen(GAME_REGISTRY));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0]));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0].capabilities));
@@ -52,11 +41,11 @@ test("game registry keeps legacy entries intact and activates Can't Stop online/
 
 test("game registry validates new shared game definitions", () => {
   const game = defineGame({
-    id: "cant-stop",
-    title: "Can’t Stop",
-    href: "./games/cant-stop/",
+    id: "sample-game",
+    title: "Sample Game",
+    href: "./games/sample-game/",
     icon: "🎲",
-    description: "주사위 조합으로 열을 올라가는 게임",
+    description: "Registry 계약 검증용 샘플 게임",
     buttonText: "게임 시작",
     capabilities: { online: true, presence: true },
     platform: "shared",
@@ -156,14 +145,3 @@ test("game access gate adapts an auth source and unsubscribes through the source
   assert.equal(unsubscribed, true);
 });
 
-
-test("main games page exposes Can't Stop as a playable card", () => {
-  const gamesPage = readFileSync(
-    path.join(repositoryRoot, "js", "pages", "games.js"),
-    "utf8",
-  );
-
-  assert.match(gamesPage, /title: "Can’t Stop"/u);
-  assert.match(gamesPage, /href: "\.\/games\/cant-stop\/"?/u);
-  assert.match(gamesPage, /buttonText: "Can’t Stop 시작"/u);
-});

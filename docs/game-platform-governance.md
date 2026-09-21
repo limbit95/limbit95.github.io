@@ -1,5 +1,7 @@
 # Game Platform Governance Guard
 
+> **문서 분류:** CURRENT
+
 이 문서는 신규 Game Platform 작업의 자동 검증 범위를 설명한다.
 
 Governance Guard는 사이트 런타임 기능이 아니다. Pull Request 단계에서 신규 platform-native 게임과 `games/shared/` 변경이 현재 플랫폼 경계를 벗어나지 않는지 확인하는 개발용 안전장치다.
@@ -41,15 +43,14 @@ AGENTS.md
 
 ## 문서 권위 연결
 
-`docs/game-platform-development-rules.md`가 저장소에 존재하는 경우 Governance Guard는 다음 문서가 규칙서를 명시적으로 참조하는지 확인한다.
+`docs/game-platform-*.md`는 Governance Guard가 자동으로 발견하며 각 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 선언해야 한다.
 
-- `AGENTS.md`
-- `games/README.md`
-- `docs/game-platform-strategy.md`
-- `docs/game-platform-invite-analysis.md`
+- `CURRENT`: 현재 실행 규칙/공통 계약 문서다. Registry의 특정 platform-native 게임명이나 ID를 공통 규칙으로 포함할 수 없다.
+- `HISTORY`: 과거 전략·분석·구현 이력을 보존하는 문서다. 특정 게임 이력을 기록할 수 있지만 현재 실행 기준으로 사용하지 않는다.
+- 메인 규칙서 `docs/game-platform-development-rules.md`를 제외한 모든 `docs/game-platform-*.md`는 해당 규칙서를 현재 rulebook으로 명시해야 한다.
+- `AGENTS.md`와 `games/` 최상위 Markdown 가이드/템플릿은 별도 분류 표기 없이 `CURRENT`로 간주해 같은 game-agnostic 검사를 적용한다.
 
-따라서 규칙서가 main에 들어온 이후 문서 권위 관계가 우연히 끊어지는 것도 자동으로 감지한다.
-
+따라서 새 공통 문서를 추가해도 Governance 테스트의 파일 목록을 수동으로 수정할 필요가 없고, 분류 누락·권위 연결 누락·특정 신규 게임 종속 규칙이 자동으로 차단된다.
 ## Legacy 경계
 
 Governance Guard는 Liar Game, Drawing Spy, The Game, Marble을 새 플랫폼 규칙으로 마이그레이션하지 않는다.

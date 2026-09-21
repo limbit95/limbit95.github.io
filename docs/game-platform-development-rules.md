@@ -1,5 +1,7 @@
 # Game Platform Development Rules
 
+> **문서 분류:** CURRENT
+
 이 문서는 청파 같이에서 **새로운 platform-native 게임을 구현하거나 수정할 때 기본적으로 따라야 하는 실행 규칙**이다.
 
 사용자가 매 작업마다 아래 규칙을 다시 설명하지 않아도, 신규 게임 작업은 이 문서를 기본 전제로 진행한다.
@@ -224,6 +226,19 @@ games/<game-id>/DEVELOPMENT.md
 
 한 게임에서만 필요한 예외를 위해 `games/shared/` API를 복잡하게 만들지 않는다.
 
+### MUST: 현재 플랫폼 규칙과 공통 가이드는 game-agnostic하게 유지한다
+
+Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는 경우를 제외하면, 현재 실행 규칙·공통 가이드·템플릿은 특정 platform-native 게임 이름, 경로, 상태 머신 또는 구현 세부사항을 신규 게임의 기준으로 삼지 않는다.
+
+- 신규 게임을 설명하는 예시는 `<game-id>`, `example-game` 같은 중립적인 placeholder를 사용한다.
+- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
+- 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
+- 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
+- `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
+- `CURRENT` 문서는 현재 Registry의 어떤 platform-native 게임명/ID도 공통 규칙으로 포함하지 않는다.
+- 메인 규칙서 자신을 제외한 모든 `docs/game-platform-*.md`는 `docs/game-platform-development-rules.md`를 현재 rulebook으로 명시해야 한다.
+- `HISTORY` 문서는 과거 구현 이력을 기록할 수 있지만 현재 규칙·템플릿·구현 기준으로 사용하지 않는다.
+- `AGENTS.md`와 `games/` 최상위의 공통 Markdown 문서는 별도 표기가 없어도 `CURRENT`로 취급한다.
 ### MUST: 출시 후 플랫폼 피드백 루프를 수행한다
 
 각 platform-native 게임을 출시한 뒤 구현 과정에서 나온 결정을 다음 세 종류로 다시 분류한다.
@@ -297,6 +312,16 @@ online capability를 활성화하기 전에는 최소한 다음을 확인한다.
 - release blocker 부재
 
 Invite를 활성화한다면 shared `game_room` routing과 서버-side token 재검증까지 확인한다.
+
+### MUST: Registry 테스트 책임을 분리한다
+
+Legacy 보호 테스트는 보호 대상 Legacy 게임의 존재와 핵심 계약을 명시적으로 검증할 수 있다.
+
+공통 Game Platform 테스트는 Registry의 전체 게임 개수나 전체 ID 목록을 고정하지 않는다. 신규 platform-native 게임이 추가될 때마다 공통 foundation 테스트의 기대 배열이나 고정 길이를 수정하는 구조를 만들지 않는다.
+
+개별 platform-native 게임의 Registry 설정과 capability, 실제 사용자 노출 상태는 해당 게임의 테스트가 검증한다. Registry ID 중복, shared 경로, runtime 등록 여부처럼 게임 수와 무관한 불변조건은 공통 계약 또는 Governance Guard가 검증한다.
+
+이 분리의 목적은 Legacy 보호 강도를 낮추는 것이 아니라, 보호 대상과 확장 가능한 신규 게임의 테스트 책임을 분리해 게임 수 증가가 공통 테스트 수정량 증가로 이어지지 않게 하는 것이다.
 
 전체 사람이 직접 플레이하는 exploratory smoke는 자동 검증을 대체하지 않는다. 반대로 자동/운영 계약이 충분히 검증된 상태에서 남은 위험이 presentation·브라우저 정책 같은 관찰 항목뿐이라면 해당 항목을 `Known Issues / Deferred`에 남기고 post-release에서 확인할 수 있다.
 
@@ -531,6 +556,7 @@ MUST NOT: 테스트를 위해 production Supabase 데이터나 스키마를 직�
 3. 게임 규칙과 무관하고 미래의 여러 게임에서도 반복될 플랫폼 책임인지 확인한다.
 4. SHARED 책임으로 확인된 경우에만 가장 작은 범위로 공통 계약을 확장한다.
 5. shared 변경에는 계약 테스트와 관련 문서 변경을 함께 포함한다.
+6. `games/shared/` 모듈을 사이트 공통 `js/`나 다른 영역이 직접 소비한다면 해당 소비자 모듈의 import/export 연결 검증도 유지한다. Game Platform 전용 CI로 분리하더라도 이 교차 경계를 검증 없이 제외하지 않는다.
 
 MUST NOT: 현재 게임을 빠르게 구현하기 위한 편의 때문에 shared에 게임별 예외를 추가하지 않는다.
 

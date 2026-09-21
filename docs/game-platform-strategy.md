@@ -1,6 +1,8 @@
 # Game Platform Strategy
 
-> **문서 성격:** 이 문서는 Game Platform을 구축한 전략과 단계별 결정 배경을 보존하는 참고 문서다. 신규 platform-native 게임의 현재 실행 규칙은 `docs/game-platform-development-rules.md`를 따르며, 실제 계약은 `games/shared/` 코드와 테스트를 기준으로 확인한다.
+> **문서 분류:** HISTORY
+
+> **문서 성격:** 이 문서는 Game Platform을 구축한 전략과 단계별 결정 배경을 보존하는 참고 문서다. 신규 platform-native 게임의 현재 실행 규칙은 `docs/game-platform-development-rules.md`를 따르며, 실제 계약은 `games/shared/` 코드와 테스트를 기준으로 확인한다. 특정 게임명이나 당시 구현 내용이 등장하더라도 역사적 이력일 뿐 현재 신규 게임의 규칙·템플릿·구현 기준으로 사용하지 않는다.
 
 ## 1. 목적
 
@@ -64,7 +66,7 @@ Legacy 변경은 실제 장애, 보안, 데이터 손상, 동기화 오류 등 �
 
 ## 4. 신규 게임의 기본 구조
 
-Can’t Stop을 시작으로 신규 게임은 Game Platform 위에 구현한다.
+신규 platform-native 게임은 Game Platform 위에 구현한다.
 
 신규 게임의 실제 구현 절차와 MUST / MUST NOT 규칙은 `docs/game-platform-development-rules.md`를 실행 기준으로 사용한다.
 
@@ -218,11 +220,11 @@ Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업�
 
 Can’t Stop v1은 2026-09-21 production release까지 완료되어 Registry `online` / `invite`, authoritative DB/RPC, reconnect, rematch/leave, shared Invite, Game DB contract가 실제 한 게임의 전체 lifecycle에서 동작하는 것을 검증했다.
 
-## 11. Can’t Stop 이후 플랫폼 검증 사이클
+## 11. Platform-native 출시 후 검증 사이클
 
-첫 게임의 성공은 Game Platform이 완성됐다는 뜻이 아니다. Can’t Stop은 **첫 번째 실전 표본**이며, 이제 다음 게임에서 공통 기반의 일반성을 다시 검증한다.
+첫 production 게임의 성공은 Game Platform이 완성됐다는 뜻이 아니다. 각 출시는 **하나의 실전 표본**이며, 다음 게임에서도 공통 기반의 일반성을 다시 검증한다.
 
-Can’t Stop 구현을 통해 다음 경계는 유지할 가치가 확인됐다.
+첫 production 검증을 통해 다음 경계는 유지할 가치가 확인됐다.
 
 - 인증/승인회원, Registry, Room/Lobby adapter, snapshot/reconnect, version/idempotency, Invite, DB contract는 SHARED 책임으로 재사용한다.
 - production migration과 capability activation은 소스 구현과 분리한다.
