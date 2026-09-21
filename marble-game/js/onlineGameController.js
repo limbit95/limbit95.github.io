@@ -57,6 +57,7 @@ if (onlineRoomId) {
 
   const OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
   const MOVE_COUNT_HOLD_MS = 1200;
+  const TURN_RESULT_HOLD_MS = 1800;
   const OTHER_HUD_SLOTS = Object.freeze(["top-left", "top-right", "bottom-left"]);
   let session = null;
   let threeRenderer = null;
@@ -68,6 +69,7 @@ if (onlineRoomId) {
   let interactionLocked = false;
   let tileInfoChoiceAction = null;
   let choiceDeclinedPending = false;
+  let autoAdvancedTurnVersion = null;
   let eventHistory = [];
   let importantNoticeTimer = null;
   let lastAnimatedVersion = 0;
@@ -244,9 +246,8 @@ if (onlineRoomId) {
       return;
     }
     if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
-      gameMessage.textContent = "건너뛰기를 선택했습니다. 다음 턴을 눌러 차례를 넘겨 주세요.";
-      primaryActionButton.textContent = "다음 턴";
-      primaryActionButton.dataset.action = "endTurn";
+      gameMessage.textContent = "선택을 반영하고 있습니다.";
+      primaryActionButton.hidden = true;
       return;
     }
     if (state.phase === TURN_PHASES.WAITING_CHOICE) {
@@ -255,9 +256,8 @@ if (onlineRoomId) {
       return;
     }
     if (state.phase === TURN_PHASES.TURN_END) {
-      gameMessage.textContent = interactionLocked ? "서버 결과를 처리하고 있습니다." : "이번 턴 처리가 끝났습니다.";
-      primaryActionButton.textContent = "다음 턴";
-      primaryActionButton.dataset.action = "endTurn";
+      gameMessage.textContent = "결과를 확인하는 중입니다. 잠시 후 다음 차례로 넘어갑니다.";
+      primaryActionButton.hidden = true;
       return;
     }
     primaryActionButton.hidden = true;
@@ -433,6 +433,34 @@ if (onlineRoomId) {
         text = `${playerName(player)}이(가) 파산했습니다.`;
         break;
       }
+      if (event.type === "PROPERTY_BOUGHT") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        const node = findNode(state, event.nodeId);
+        text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
+        break;
+      }
+      if (event.type === "PROPERTY_BUILT") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        const node = findNode(state, event.nodeId);
+        text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId}에 건물을 건설했습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
+        const node = findNode(state, event.nodeId);
+        text = `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_OPENED") {
+        const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
+        const node = findNode(state, event.nodeId);
+        text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매를 시작합니다.`;
+        break;
+      }
+      if (event.type === "CHOICE_DECLINED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = `${playerName(player)}이(가) 도시 행동을 포기했습니다.`;
+        break;
+      }
       if (event.type === "EVENT_DRAWN") {
         const player = state.players.find((candidate) => candidate.id === event.playerId);
         text = `${playerName(player)} · ${event.label}`;
@@ -566,7 +594,35 @@ if (onlineRoomId) {
     else if (["RECONNECTING", "CHANNEL_ERROR", "TIMED_OUT"].includes(status)) gameMessage.textContent = "온라인 게임을 다시 연결하는 중입니다.";
   }
 
-  async function applyState(state, { animate = true, remote = false } = {}) {
+  async function maybeAutoAdvanceTurn(state) {
+    if (
+      state.status !== GAME_STATUS.PLAYING
+      || state.phase !== TURN_PHASES.TURN_END
+      || !viewerCanAct(state)
+      || autoAdvancedTurnVersion === state.version
+    ) {
+      return;
+    }
+
+    autoAdvancedTurnVersion = state.version;
+    await wait(TURN_RESULT_HOLD_MS);
+
+    const latest = session?.getState();
+    if (
+      !latest
+      || latest.version !== state.version
+      || latest.phase !== TURN_PHASES.TURN_END
+      || !viewerCanAct(latest)
+    ) {
+      return;
+    }
+
+    const nextState = await session.endTurn();
+    choiceDeclinedPending = false;
+    await applyState(nextState, { animate: true, remote: false, autoAdvance: false });
+  }
+
+  async function applyState(state, { animate = true, remote = false, autoAdvance = true } = {}) {
     if (state.phase !== TURN_PHASES.WAITING_CHOICE || !viewerCanAct(state)) choiceDeclinedPending = false;
     appendEvents(state);
     renderUi(state, { renderThree: !animate });
@@ -574,6 +630,7 @@ if (onlineRoomId) {
     showImportantNotice(state);
     showLandingOutcome(state);
     renderActionControls(state);
+    if (autoAdvance) await maybeAutoAdvanceTurn(state);
   }
 
   async function runAction(actionName) {
@@ -588,6 +645,7 @@ if (onlineRoomId) {
       if (actionName === "roll") state = await session.roll();
       else if (actionName === "buy") state = await session.buy();
       else if (actionName === "build") state = await session.build();
+      else if (actionName === "declineProperty") state = await session.declinePropertyForAuction();
       else if (actionName === "endTurn") state = await session.endTurn();
       else return;
       if (isChoiceAction) closeTileInfo({ force: true });
@@ -629,9 +687,14 @@ if (onlineRoomId) {
   tileInfoConfirmButton?.addEventListener("click", () => closeTileInfo());
   tileInfoDeclineButton?.addEventListener("click", () => {
     if (!session || !viewerCanAct(session.getState())) return;
+    const state = session.getState();
     choiceDeclinedPending = true;
     closeTileInfo({ force: true });
-    renderActionControls(session.getState());
+    if (state.pendingChoice?.type === "BUY_PROPERTY") {
+      void runAction("declineProperty");
+      return;
+    }
+    void runAction("endTurn");
   });
   tileInfoActionButton?.addEventListener("click", () => {
     if (tileInfoActionButton.disabled) return;
