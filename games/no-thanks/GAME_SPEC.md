@@ -267,6 +267,18 @@ action payload
 
 실시간 이벤트는 상태 변경을 알리는 신호로만 사용하고, 최종 상태는 서버의 권위 있는 스냅샷을 다시 조회해 확인합니다.
 
+Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
+
+- `public.no_thanks_rooms`: room identity, host, waiting/playing/closed 상태, 최대 인원, authoritative `version`, 공개 `game_state`
+- `public.no_thanks_room_players`: active membership, 사이트 프로필 `display_name`, seat, ready, 공개 획득 카드
+- `public.no_thanks_room_actions`: `client_action_id` 기반 ready/start replay와 payload conflict 검증
+- `public.no_thanks_room_private_state`: 남은 draw deck, 제외된 9장, 플레이어별 비공개 칩 수
+- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`
+
+브라우저는 위 테이블을 직접 수정하지 않고 승인회원 RPC만 호출합니다. 특히 `no_thanks_room_private_state`에는 authenticated select 권한을 주지 않으며 Realtime 구독 대상에서도 제외합니다. 공개 room/player 변경은 invalidation 신호로만 사용하고, 실제 화면 상태는 RPC snapshot을 다시 조회해 복원합니다.
+
+게임 시작 시 서버가 3–7명 조건과 방장/ready 상태를 검증한 뒤 turn order와 3–35 카드 순서를 무작위로 확정합니다. 24장 중 첫 카드만 공개 `game_state`에 두고 남은 23장, 제외된 9장, 모든 플레이어의 칩 수는 private state에 유지합니다. snapshot은 호출자 자신의 칩 수만 `viewer.counters`로 합성하며 다른 플레이어의 칩 수와 미공개 카드 순서는 반환하지 않습니다.
+
 ## UI / UX Direction
 
 - 공통 게임 화면 골격을 사용합니다.
