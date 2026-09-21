@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f0ede5">
-    <meta name="description" content="같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부 — 청파 같이">
+    <meta name="theme-color" content="#9fcfdf">
+    <meta name="description" content="청년 공동체의 문화생활과 야외 활동을 함께하는 청파 같이">
     <title>청파 같이</title>
     <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon-v4.png" type="image/png">
@@ -30,52 +30,20 @@
     <link rel="stylesheet" href="./css/activity-form-cards.css">
     <link rel="stylesheet" href="./css/activity-form-enhancements.css">
     <link rel="stylesheet" href="./css/admin-permissions.css">
-    <link rel="stylesheet" href="./css/brand-gateway.css">
-    <script>
-      (() => {
-        if (!window.location.hash) {
-          window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/gateway");
-        }
-        const path = (window.location.hash.slice(1).split("?")[0] || "/gateway")
-          .replace(/\/+$/, "") || "/";
-        if (path === "/gateway" || path === "/value" || path === "/like" || path === "/together") {
-          document.documentElement.dataset.brandPublic = "true";
-        }
-      })();
-    </script>
   </head>
   <body>
     <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
-    <div id="brand-gateway-root" hidden></div>
     <div id="app" class="app-shell">
       <div class="app-initial-loading" role="status" aria-live="polite">
         <img src="./assets/images/logo.svg" alt="" width="64" height="64">
         <p>청파 같이 불러오는 중…</p>
       </div>
     </div>
-    <div id="brand-design-lab-link" class="brand-design-lab-link" hidden>
-      <a class="button button--ghost" href="#/gateway">도안 보기</a>
-    </div>
     <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
     <div id="modal-root"></div>
     <noscript>
       <div class="noscript-message">이 서비스를 이용하려면 JavaScript를 활성화해 주세요.</div>
     </noscript>
-    <script src="./js/brand-gateway.js" onerror="document.documentElement.removeAttribute('data-brand-public')"></script>
-    <script>
-      (() => {
-        const designLabLink = document.getElementById("brand-design-lab-link");
-        if (designLabLink) {
-          const hide = () => {
-            designLabLink.hidden = true;
-          };
-          window.addEventListener("hashchange", hide);
-          window.addEventListener("app:page-rendered", (event) => {
-            designLabLink.hidden = event.detail?.route !== "/";
-          });
-        }
-      })();
-    </script>
     <script>
       (() => {
         function showBootError(message) {
@@ -115,17 +83,6 @@
     <script type="module" src="./js/activity-form-enhancements.js"></script>
     <script type="module" src="./js/activity-share-route-marker.js"></script>
     <script type="module" src="./js/signup-push-guidance.js"></script>
-    <script type="module">
-  let communityAppPromise;
-  const loadCommunityApp = () => {
-    communityAppPromise ||= import("./assets/build/app-P7GLDONA.js");
-    return communityAppPromise;
-  };
-  if (document.documentElement.dataset.brandPublic === "true") {
-    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
-  } else {
-    loadCommunityApp();
-  }
-</script>
+    <script type="module" src="./assets/build/app-P7GLDONA.js"></script>
   </body>
 </html>
