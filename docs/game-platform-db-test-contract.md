@@ -1,5 +1,7 @@
 # Game Platform DB/Test Contract
 
+> **문서 분류:** CURRENT
+
 이 문서는 신규 online platform-native 게임의 **현재 정식 DB/RPC 품질 계약**이다.
 
 게임별 테이블 구조, RPC 이름, 규칙 상태 머신과 session lifecycle은 각 게임에 남겨 두되, 모든 신규 온라인 게임은 아래 서버 경계와 테스트 시나리오를 만족해야 한다.
