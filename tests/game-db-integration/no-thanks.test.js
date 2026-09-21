@@ -625,6 +625,19 @@ test("no-thanks gameplay: last take finalizes joint winners and allows terminal 
     room.guestA.accessToken,
   ), "finished-room active lookup");
   assert.equal(activeRoom, null);
+
+  const hostResult = await expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: finished.room.id,
+  }, room.host.accessToken), "host result after another player leaves");
+  assert.equal(hostResult.players.length, 3);
+  assert.deepEqual(
+    Object.values(hostResult.game.finalScores).sort((a, b) => a - b),
+    [0, 0, 0],
+  );
+  assert.deepEqual(
+    [...hostResult.game.winners].sort(),
+    [room.host.id, room.guestA.id, room.guestB.id].sort(),
+  );
 });
 
 
