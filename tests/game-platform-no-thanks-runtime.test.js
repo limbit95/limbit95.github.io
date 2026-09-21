@@ -95,3 +95,82 @@ test("No Thanks! lobby errors map server contract failures to recovery copy", ()
     /인원이 모두 찼/u,
   );
 });
+
+
+test("No Thanks! gameplay view exposes turn and legal action state without other counters", () => {
+  const source = snapshot();
+  source.room.status = "playing";
+  source.viewer.counters = 4;
+  source.game = {
+    phase: "PLAYING",
+    turnOrder: ["host", "guest-a", "guest-b"],
+    activePlayerId: "guest-a",
+    currentCard: 27,
+    centerCounters: 3,
+    deckRemaining: 12,
+    winners: [],
+    finalScores: null,
+  };
+
+  const view = createNoThanksLobbyViewModel(source, "guest-a");
+
+  assert.equal(view.isMyTurn, true);
+  assert.equal(view.canRefuse, true);
+  assert.equal(view.canTake, true);
+  assert.equal(view.centerCounters, 3);
+  assert.equal(view.activePlayerDisplayName, "Guest A");
+
+  source.viewer.counters = 0;
+  const forcedTake = createNoThanksLobbyViewModel(source, "guest-a");
+  assert.equal(forcedTake.canRefuse, false);
+  assert.equal(forcedTake.canTake, true);
+});
+
+test("No Thanks! result view sorts final scores and preserves joint winners", () => {
+  const source = snapshot();
+  source.room.status = "playing";
+  source.viewer.counters = 5;
+  source.game = {
+    phase: "GAME_OVER",
+    turnOrder: ["host", "guest-a", "guest-b"],
+    activePlayerId: "guest-a",
+    currentCard: null,
+    centerCounters: 0,
+    deckRemaining: 0,
+    endReason: "LAST_CARD_TAKEN",
+    finalScores: {
+      host: 17,
+      "guest-a": 9,
+      "guest-b": 9,
+    },
+    winners: ["guest-a", "guest-b"],
+  };
+
+  const view = createNoThanksLobbyViewModel(source, "guest-a");
+
+  assert.equal(view.gamePhase, "GAME_OVER");
+  assert.deepEqual(view.winners, ["guest-a", "guest-b"]);
+  assert.deepEqual(
+    view.scoreboard.map(({ id, score, winner }) => ({ id, score, winner })),
+    [
+      { id: "guest-a", score: 9, winner: true },
+      { id: "guest-b", score: 9, winner: true },
+      { id: "host", score: 17, winner: false },
+    ],
+  );
+  assert.equal(
+    view.players.some((player) => Object.hasOwn(player, "counters")),
+    false,
+  );
+});
+
+test("No Thanks! gameplay errors explain turn and forced-take boundaries", () => {
+  assert.match(
+    getNoThanksLobbyErrorMessage({ message: "TURN_REQUIRED" }),
+    /다른 플레이어/u,
+  );
+  assert.match(
+    getNoThanksLobbyErrorMessage({ message: "TAKE_REQUIRED" }),
+    /반드시 가져/u,
+  );
+});
