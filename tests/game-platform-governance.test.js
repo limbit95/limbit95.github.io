@@ -4,10 +4,9 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { GAME_REGISTRY } from "../games/shared/registry.js";
-
 import {
   platformGameIdFromPath,
+  validatePlatformDocumentPolicy,
   validatePullRequestChanges,
   validateRepositoryState,
 } from "../scripts/check-game-platform-governance.mjs";
@@ -16,11 +15,12 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 
 function game({
   id,
+  title = "Sample Game",
   href = `./games/${id}/`,
   online = true,
   platform = "shared",
 } = {}) {
-  return { id, href, platform, capabilities: { online } };
+  return { id, title, href, platform, capabilities: { online } };
 }
 
 function gameSpecDocument() {
@@ -319,24 +319,56 @@ test("Game Platform rules separate Legacy protection from growing Registry entri
   assert.match(rules, /개별 platform-native 게임의 Registry 설정과 capability/u);
 });
 
-test("current Game Platform rule documents remain platform-native game-agnostic", () => {
-  const rulePaths = [
-    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
-    path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
-    path.join(repositoryRoot, "games", "README.md"),
-    path.join(repositoryRoot, "games", "GAME_SPEC_TEMPLATE.md"),
-    path.join(repositoryRoot, "games", "DEVELOPMENT_TEMPLATE.md"),
-  ];
-  const platformNativeGames = GAME_REGISTRY.filter((game) => game.platform === "shared");
+test("platform document policy rejects platform-native game guidance in any current common document", () => {
+  const registry = [game({ id: "sample-game", title: "Sample Game", online: false })];
+  const errors = validatePlatformDocumentPolicy({
+    registry,
+    documents: {
+      "docs/game-platform-ui-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "sample-game 전용 구현을 모든 신규 게임의 기준으로 사용한다.",
+      ].join("\n"),
+      "games/NEW_GAME_GUIDE.md": "Sample Game 구현을 공통 기준으로 사용한다.",
+    },
+  });
 
-  for (const filename of rulePaths) {
-    const content = readFileSync(filename, "utf8");
-    const normalizedContent = content.toLocaleLowerCase("en-US");
-    for (const game of platformNativeGames) {
-      assert.equal(normalizedContent.includes(game.id.toLocaleLowerCase("en-US")), false);
-      assert.equal(normalizedContent.includes(game.title.toLocaleLowerCase("en-US")), false);
-    }
-  }
+  assert.equal(errors.length, 2);
+  assert.match(errors.join("\n"), /game-platform-ui-rules\.md must stay game-agnostic/u);
+  assert.match(errors.join("\n"), /games\/NEW_GAME_GUIDE\.md must stay game-agnostic/u);
+});
+
+test("platform document policy requires explicit classification and isolates historical documents", () => {
+  const registry = [game({ id: "sample-game", title: "Sample Game", online: false })];
+
+  const missingClassification = validatePlatformDocumentPolicy({
+    registry,
+    documents: {
+      "docs/game-platform-future-guide.md": "공통 규칙",
+    },
+  });
+  assert.match(missingClassification.join("\n"), /must declare .*CURRENT or HISTORY/u);
+
+  const missingRulebookLink = validatePlatformDocumentPolicy({
+    registry,
+    documents: {
+      "docs/game-platform-release-history.md": [
+        "> **문서 분류:** HISTORY",
+        "Sample Game 당시 구현 기록",
+      ].join("\n"),
+    },
+  });
+  assert.match(missingRulebookLink.join("\n"), /must identify docs\/game-platform-development-rules\.md/u);
+
+  assert.deepEqual(validatePlatformDocumentPolicy({
+    registry,
+    documents: {
+      "docs/game-platform-release-history.md": [
+        "> **문서 분류:** HISTORY",
+        "현재 실행 규칙: docs/game-platform-development-rules.md",
+        "Sample Game 당시 구현 기록",
+      ].join("\n"),
+    },
+  }), []);
 });
 test("Game Platform rules codify release closeout and post-release feedback loop", () => {
   const rules = readFileSync(
