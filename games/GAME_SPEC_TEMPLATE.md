@@ -25,8 +25,9 @@
 
 ## State Machine
 
-- <LOBBY → ... → GAME_OVER>
+- <ENTRY / SETUP / PLAY / TERMINAL 등 이 게임에 필요한 상태와 전이>
 - 각 상태에서 가능한 action과 전이 조건을 기록합니다.
+- lobby, ready, host start, rematch 같은 lifecycle은 실제 게임에 존재하는 경우에만 정의합니다.
 
 ## Domain Model
 
@@ -35,38 +36,39 @@
 
 ## Platform Boundary
 
-- SHARED: <Registry / Access Gate / Room-Lobby / Snapshot / Reconnect / Invite 등 재사용 항목>
+- SHARED: <이 게임이 실제 사용하는 Registry / Access Gate / Room-Session / Snapshot / Reconnect / Invite 등 재사용 항목>
 - GAME-LOCAL: <게임 규칙, 상태 머신, 도메인 계산, 전용 UI>
 - shared 계약 확장이 필요해 보이는 항목은 실제 공통 책임인지 확인 전까지 GAME-LOCAL로 둡니다.
+- 현재 shared lifecycle에 맞추기 위해 게임에 존재하지 않는 ready/host/rematch 같은 개념을 억지로 추가하지 않습니다.
 
 ## Authority and Persistence
 
-- 서버가 최종 결정해야 하는 action과 난수 결과
-- authoritative snapshot에 포함할 public/private state
-- version / idempotency / transaction 경계
-- reconnect 시 복원 기준
+- online/stateful 게임이라면 서버가 최종 결정해야 하는 action과 난수 결과
+- authoritative snapshot이 필요한 경우 포함할 public/private state
+- 상태 변경 action이 있다면 version / idempotency / transaction 경계
+- reconnect가 필요한 경우 복원 기준
 
 ## UI / UX Direction
 
 - 공통 Shell 사용 범위
 - 게임 고유 보드/카드/주사위/애니메이션 방향
 - 모바일/데스크톱 상호작용 기준
-- 로비/플레이 중 게임 규칙 보기 진입점과 규칙 안내 방식
-- 로비 닉네임은 사이트 프로필 닉네임을 사용하며 게임별 입력/변경 UI를 두지 않습니다.
-- 진행 중 게임 종료 권한, 확인 UX, 종료 후 lobby/leave/rematch 흐름
+- 플레이 시작 전 entry/setup 화면과 플레이 중 게임 규칙 보기 진입점
+- 사이트 계정 기반 multiplayer라면 플레이어 표시 이름은 사이트 프로필 닉네임을 사용하고 게임별 입력/변경 UI를 두지 않습니다.
+- 지속되는 플레이 세션이 있다면 종료 권한, 확인 UX, 종료 후 leave/restart/rematch/entry return 중 필요한 흐름
 
 ## Implementation Plan
 
 1. <첫 구현 slice>
 2. <다음 slice>
-3. <온라인/DB/snapshot/realtime/UI 순서>
+3. <이 게임이 사용하는 online/DB/snapshot/realtime/UI capability 순서>
 
 ## Validation Plan
 
 - 게임 규칙 unit test
 - Game Platform contract test
 - online인 경우 DB/Test Contract
-- multiplayer / reconnect / stale action 회귀
+- 해당하는 경우 multiplayer / reconnect / stale action 회귀
 - 필요한 수동 브라우저 검증
 
 ## Open Questions / Deferred
