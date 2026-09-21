@@ -501,6 +501,14 @@ test("no-thanks gameplay: only the active player can refuse and replay is idempo
   }, nonActive.accessToken);
   expectDenied(denied, "non-active refuse", /TURN_REQUIRED/u);
 
+  const nullVersion = await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: null,
+    p_client_action_id: randomUUID(),
+  }, active.accessToken);
+  expectDenied(nullVersion, "null-version refuse", /VERSION_CONFLICT/u);
+
   const refused = await playAction(active, room.started, "refuse_card", actionId);
   assert.equal(Number(refused.version), Number(room.started.version) + 1);
   assert.equal(refused.game.centerCounters, 1);
