@@ -333,6 +333,29 @@ function renderParticipantList(documentObject, elements, model) {
   }));
 }
 
+function showAuctionUnsoldResult(documentObject, state, shownKeys) {
+  const event = state?.lastEvents?.find?.((candidate) => (
+    candidate.type === "AUCTION_VOTE_CLOSED"
+    && (candidate.participantPlayerIds?.length ?? 0) === 0
+  ));
+  if (!event) return;
+  const key = `unsold:${state.version ?? "v"}:${event.nodeId}`;
+  if (shownKeys.has(key)) return;
+  shownKeys.add(key);
+  const dialog = documentObject.createElement("dialog");
+  dialog.className = "auction-result-modal";
+  const title = documentObject.createElement("strong");
+  title.textContent = `${findNode(state, event.nodeId)?.label ?? event.nodeId} 경매가 유찰되었습니다`;
+  dialog.append(title);
+  documentObject.body?.append?.(dialog);
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+  globalThis.setTimeout?.(() => {
+    dialog.close?.();
+    dialog.remove();
+  }, 1800);
+}
+
 function showAutoPurchaseResult(documentObject, state, shownKeys) {
   const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_AUTO_PURCHASED");
   if (!event) return;
@@ -459,6 +482,7 @@ export function setupLocalAuctionUi({
 
   function render(state = session.getState()) {
     if (disposed) return;
+    showAuctionUnsoldResult(documentObject, state, shownResultKeys);
     showAutoPurchaseResult(documentObject, state, shownResultKeys);
     showBidEvent(state);
     const model = createLocalAuctionUiModel(state, selectedPlayerId);
