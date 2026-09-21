@@ -141,6 +141,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
+  assert.match(uiSource, /playAuctionBidSound\(\)/);
+  assert.match(uiSource, /prepareAuctionBidSound/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r2/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
