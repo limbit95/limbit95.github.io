@@ -40,24 +40,34 @@ test("profile API centralizes availability lookup and unique-conflict recognitio
   assert.match(profilesApi, /profiles_active_display_name_uidx/);
 });
 
-test("signup requires an explicit nickname duplicate check after email verification", () => {
-  assert.doesNotMatch(signup, /DISPLAY_NAME_CHECK_DELAY_MS/);
-  assert.doesNotMatch(signup, /scheduleDisplayNameCheck/);
-  assert.match(signup, /className: "signup-display-name-row"/);
+test("signup uses button-driven nickname verification with no automatic availability checks", () => {
+  assert.doesNotMatch(signup, /DISPLAY_NAME_CHECK_DELAY_MS|scheduleDisplayNameCheck|runDisplayNameCheck|ensureDisplayNameAvailable|displayNameCheckTimer/);
+  assert.match(signup, /className: "display-name-check-row"/);
   assert.match(signup, /text: "중복 확인"/);
-  assert.match(signup, /onclick: \(\) => \{[\s\S]*checkDisplayNameFromButton\(\)/);
-  assert.match(signup, /이메일 인증 후 닉네임 중복 확인을 할 수 있습니다/);
-  assert.match(signup, /checkDisplayNameAvailability\(value\)/);
-  assert.match(signup, /닉네임 중복 확인을 완료해 주세요/);
-  assert.match(signup, /step === 2 && !\(await ensureDisplayNameAvailable\(\)\)/);
-  assert.match(signup, /if \(!\(await ensureDisplayNameAvailable\(\)\)\)[\s\S]*goTo\(2\)/);
+  assert.match(signup, /onclick: \(\) => \{[\s\S]*verifyDisplayName\(\)/);
+  assert.match(signup, /async function verifyDisplayName\(\)/);
+  assert.match(signup, /if \(!valueInRange\(value, 1, 50\)\)/);
+  assert.match(signup, /const available = await checkDisplayNameAvailability\(value\)/);
+  assert.match(signup, /verifiedDisplayName = value/);
+  assert.match(signup, /✓ 닉네임 중복 확인이 완료되었습니다/);
+  assert.match(signup, /function requireDisplayNameVerification\(\)/);
+  assert.match(signup, /step === 2 && !requireDisplayNameVerification\(\)/);
+  assert.match(signup, /if \(!requireDisplayNameVerification\(\)\)[\s\S]*goTo\(2\)/);
   assert.match(signup, /isDisplayNameConflict\(error\)/);
   assert.match(signup, /이미 사용 중인 닉네임입니다\. 다른 닉네임을 선택해 주세요/);
 });
 
-test("signup nickname duplicate check button shares the responsive input-row layout", () => {
-  assert.match(pagesCss, /\.signup-email-row,\n\.signup-display-name-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto/);
-  assert.match(pagesCss, /\.signup-email-row,\n  \.signup-display-name-row \{ grid-template-columns: 1fr; \}/);
+test("signup nickname verification is invalidated as soon as the input changes", () => {
+  assert.match(
+    signup,
+    /fields\.display_name\.input\.addEventListener\("input", \(\) => \{[\s\S]*verifiedDisplayName = "";[\s\S]*updateDisplayNameCheckButton\(\);/,
+  );
+  assert.equal((signup.match(/checkDisplayNameAvailability\(value\)/g) ?? []).length, 1);
+});
+
+test("nickname verification button shares the responsive input-row layout", () => {
+  assert.match(pagesCss, /\.signup-email-row,\n\.display-name-check-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(pagesCss, /\.signup-email-row,\n  \.display-name-check-row \{ grid-template-columns: 1fr; \}/);
 });
 
 test("nickname checks preserve the existing signup OTP countdown lifecycle", () => {
@@ -67,10 +77,15 @@ test("nickname checks preserve the existing signup OTP countdown lifecycle", () 
   );
 });
 
-test("profile editing keeps the current nickname but validates changed nicknames", () => {
-  assert.match(mypage, /const originalDisplayNameKey = normalizeDisplayNameKey\(auth\.profile\.display_name\)/);
-  assert.match(mypage, /현재 사용 중인 닉네임입니다/);
-  assert.match(mypage, /checkDisplayNameAvailability\(value\)/);
-  assert.match(mypage, /if \(!\(await ensureDisplayNameAvailable\(\)\)\) return/);
+test("profile editing also uses explicit nickname verification with no debounce", () => {
+  assert.doesNotMatch(mypage, /displayNameCheckTimer|scheduleDisplayNameCheck|runDisplayNameCheck|ensureDisplayNameAvailable|setTimeout\([\s\S]*450/);
+  assert.match(mypage, /className: "display-name-check-row"/);
+  assert.match(mypage, /async function verifyDisplayName\(\)/);
+  assert.match(mypage, /const available = await checkDisplayNameAvailability\(value\)/);
+  assert.match(mypage, /verifiedDisplayName = value/);
+  assert.match(mypage, /function requireDisplayNameVerification\(\)/);
+  assert.match(mypage, /if \(!requireDisplayNameVerification\(\)\) return/);
+  assert.match(mypage, /displayNameInput\.addEventListener\("input", \(\) => \{[\s\S]*verifiedDisplayName = ""/);
   assert.match(mypage, /isDisplayNameConflict\(error\)/);
+  assert.equal((mypage.match(/checkDisplayNameAvailability\(value\)/g) ?? []).length, 1);
 });
