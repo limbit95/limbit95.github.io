@@ -8,6 +8,7 @@ const migration = readFileSync(
 );
 const profilesApi = readFileSync(new URL("../js/api/profiles.js", import.meta.url), "utf8");
 const signup = readFileSync(new URL("../js/pages/signup.js", import.meta.url), "utf8");
+const pagesCss = readFileSync(new URL("../css/pages.css", import.meta.url), "utf8");
 const mypage = readFileSync(new URL("../js/pages/mypage.js", import.meta.url), "utf8");
 
 test("active member display names are unique after trim and case normalization", () => {
@@ -39,14 +40,24 @@ test("profile API centralizes availability lookup and unique-conflict recognitio
   assert.match(profilesApi, /profiles_active_display_name_uidx/);
 });
 
-test("signup checks nicknames after email verification and rechecks before final submission", () => {
-  assert.match(signup, /const DISPLAY_NAME_CHECK_DELAY_MS = 450/);
-  assert.match(signup, /이메일 인증 후 닉네임 사용 가능 여부를 확인합니다/);
+test("signup requires an explicit nickname duplicate check after email verification", () => {
+  assert.doesNotMatch(signup, /DISPLAY_NAME_CHECK_DELAY_MS/);
+  assert.doesNotMatch(signup, /scheduleDisplayNameCheck/);
+  assert.match(signup, /className: "signup-display-name-row"/);
+  assert.match(signup, /text: "중복 확인"/);
+  assert.match(signup, /onclick: \(\) => \{[\s\S]*checkDisplayNameFromButton\(\)/);
+  assert.match(signup, /이메일 인증 후 닉네임 중복 확인을 할 수 있습니다/);
   assert.match(signup, /checkDisplayNameAvailability\(value\)/);
+  assert.match(signup, /닉네임 중복 확인을 완료해 주세요/);
   assert.match(signup, /step === 2 && !\(await ensureDisplayNameAvailable\(\)\)/);
   assert.match(signup, /if \(!\(await ensureDisplayNameAvailable\(\)\)\)[\s\S]*goTo\(2\)/);
   assert.match(signup, /isDisplayNameConflict\(error\)/);
   assert.match(signup, /이미 사용 중인 닉네임입니다\. 다른 닉네임을 선택해 주세요/);
+});
+
+test("signup nickname duplicate check button shares the responsive input-row layout", () => {
+  assert.match(pagesCss, /\.signup-email-row,\n\.signup-display-name-row \{[^}]*grid-template-columns: minmax\(0, 1fr\) auto/);
+  assert.match(pagesCss, /\.signup-email-row,\n  \.signup-display-name-row \{ grid-template-columns: 1fr; \}/);
 });
 
 test("nickname checks preserve the existing signup OTP countdown lifecycle", () => {
