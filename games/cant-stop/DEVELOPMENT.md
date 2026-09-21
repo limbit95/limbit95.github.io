@@ -8,7 +8,15 @@
 - Phase: Phase 4
 - Status: RELEASED
 - Active branch: main
-- Last checkpoint: 2026-09-21 00:16 KST
+- Last checkpoint: 2026-09-21 09:00 KST
+
+## Release Baseline
+
+- v1 source of truth는 `main`이며 Can’t Stop 관련 개발/임시 브랜치는 release closeout 과정에서 정리했다.
+- Game Registry는 `platform: "shared"`, `online=true`, `invite=true`, `local=false`, `presence=false` 상태다.
+- 사이트 게임 목록에서 Can’t Stop을 정식 노출하고 `./games/cant-stop/` 경로로 진입한다.
+- 운영 Supabase에는 v1에 필요한 room/gameplay/invite/manual-end/profile-nickname/active-leave/2-player leave migration이 적용되어 있다.
+- 이후 Can’t Stop 변경은 과거 Phase 4 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치를 만든다.
 
 ## Completed
 
@@ -23,13 +31,13 @@
 - deterministic rules engine을 추가해 2–12 column, dice pairing, runner 이동, bust, stop, claim, win을 game-local로 구현했다.
 - pairing만으로 이동이 하나로 결정되지 않는 경우를 legal move plan으로 표현하도록 규칙 모델을 고정했다.
 - server-random turn order를 rules engine 입력으로 받고 client-local randomness는 사용하지 않도록 했다.
-- rules engine 시작과 함께 Game Registry에 `cant-stop`을 `platform: "shared"`로 등록하되 아직 구현되지 않은 online/local/invite/presence capability는 모두 false로 유지했다.
+- rules engine 초기 구현 단계에서는 Game Registry에 `cant-stop`을 `platform: "shared"`로 등록하되 미구현 capability를 false로 유지했고, v1 release에서 검증된 `online`/`invite`만 true로 활성화했다.
 - rules engine 핵심 경계 13개 unit test를 추가했다.
 - 기존 사이트 auth source를 Game Platform Access Gate에 연결해 로그인/승인회원 접근 경계를 적용했다.
 - 승인회원에게 Common Game Shell과 현재 사용자 roster를 표시하는 최소 runtime을 추가했다.
 - rules engine의 2–12 column 높이를 재사용하는 11열 보드 골격을 추가했다.
 - 미승인/비로그인 사용자는 각각 승인 상태/로그인 화면으로 안내하고 gameplay shell은 렌더링하지 않는다.
-- Room/Lobby가 아직 없으므로 Registry의 online/local/invite/presence capability는 모두 false로 유지한다.
+- Room/Lobby 구현 전 단계에서는 Registry capability를 선행 활성화하지 않았고, 실제 Room/Lobby·DB 계약이 연결된 뒤에도 production 검증 전까지 비활성 상태를 유지했다.
 - runtime model 및 실제 `app.js` syntax/index wiring 검증 테스트를 추가했다.
 - Can’t Stop 전용 `cant_stop_rooms`, `cant_stop_room_players`, `cant_stop_room_actions` DB foundation을 추가했다.
 - 승인회원 전용 create/join/snapshot/ready/leave/start RPC와 명시적 RLS/grant 경계를 추가했다.
@@ -44,7 +52,7 @@
 - Shared Snapshot Coordinator를 lobby에도 적용해 Realtime payload는 invalidation으로만 소비하고 RPC snapshot을 다시 읽도록 했다.
 - online/pageshow/visibility 복귀 시 authoritative lobby snapshot을 다시 불러오도록 reconnect refresh trigger를 연결했다.
 - 게임 시작 snapshot을 받으면 서버 확정 turn order 상태를 유지한 채 기존 보드 골격 화면으로 전환한다.
-- 운영 Supabase에는 migration을 적용하지 않았으므로 Registry `online` capability와 게임 목록 노출은 계속 보류한다.
+- gameplay 구현 단계에서는 운영 Supabase migration과 Registry 활성화를 분리해 진행했고, production migration·권한 검증 후 별도 activation 단계에서 `online`/`invite`와 게임 목록 노출을 켰다.
 - authoritative gameplay 첫 slice로 `cant_stop_roll_dice` RPC를 추가했다.
 - 클라이언트는 dice 값을 전달하지 않고 room/version/action id intent만 보내며 서버가 4d6를 생성한다.
 - 서버가 현재 claimed column / runner / permanent progress를 기준으로 legal pairing과 legal move plan을 계산한다.
@@ -87,19 +95,20 @@
 - 초대 진입은 `?invite=<token>`을 다시 resolve하고 expected game id를 검증한 뒤 Can’t Stop 서버 참가 RPC로 넘긴다.
 - `cant_stop_join_room_by_invite` RPC는 서버에서 같은 token을 다시 `site_invite_resolve`하고 target type / game id / platform version / room id를 재검증한 뒤에만 waiting room 참가를 허용한다.
 - revoked/mismatched invite 및 server/client room parity를 테스트로 고정했다.
-- Registry `online/invite` capability가 false인 현재 상태에서는 초대 버튼/자동 참가가 노출되지 않으며, 운영 migration + smoke test 이후 capability 활성화 시 연결된 기능이 바로 켜지도록 구성했다.
+- Invite 소스 구현 단계에서는 Registry `online/invite` capability를 비활성으로 유지했고, production migration과 권한/회귀 검증이 끝난 v1 activation에서 두 capability를 활성화했다.
 
 ## Current Work
 
-- Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출까지 완료했다.
-- 현재 진행 중인 필수 기능 작업은 없다. 이후 작업은 실제 사용자 플레이에서 발견되는 UX/안정성 개선만 후속 버전으로 진행한다.
+- Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출, 최종 인수인계 문서 정리까지 완료했다.
+- Can’t Stop 자체는 유지보수 단계로 전환했다. 현재 진행 중인 필수 기능 작업은 없다.
+- Can’t Stop에서 얻은 첫 platform-native 실전 피드백은 Game Platform 규칙/거버넌스에 환류하며, 이후 게임에서 공통성이 다시 검증될 때 shared 계약을 확장한다.
 
 ## Next Work
 
-- 실제 브라우저 2~4인 live smoke에서 방 생성/참가/준비/시작/굴림/pairing/stop/bust/claim/승리/재대결/이탈/초대 링크를 한 번 더 사람 기준으로 점검한다.
+- 실제 사용자 플레이에서 발견되는 UX/안정성 문제는 v1.1 이후 유지보수 작업으로 분리한다.
+- 2~4인 다중 브라우저 exploratory playtest는 자동 회귀 검증과 별개인 post-release 관찰 항목으로 계속 수행할 수 있다.
 - 특히 remote bust audio는 브라우저 autoplay 정책 때문에 사용자 상호작용 전에는 소리가 제한될 수 있으므로 실사용에서 확인한다.
-- 이후 발견되는 문제는 v1.1 후속 브랜치에서 최소 수정한다.
-- core rules / server-authoritative contract / production migrations는 v1 기준으로 안정화 상태를 유지한다.
+- core rules / server-authoritative contract / production migrations는 v1 release baseline으로 유지한다.
 
 ## Decisions
 
@@ -141,6 +150,8 @@
 - production migration 검증: profile nickname authority, active-turn leave, two-player leave GAME_OVER 함수/권한/제약 확인 완료.
 - PR #331 activation: Game Platform Governance SUCCESS, Site static checks SUCCESS, Community E2E smoke SUCCESS, Community authenticated E2E SUCCESS.
 - PR #331 merge commit: `9225b3a22b4170f3f183de7915a9cc2edbf8f1a3`.
+- PR #332에서 RELEASED 상태의 최종 인수인계 문서를 main에 반영했다.
+- 게임 목록 카드 정렬/설명 UI 후속 PR #334~#336은 Site static checks / Community E2E smoke / Community authenticated E2E를 통과한 뒤 main에 반영됐다.
 
 ## Known Issues / Deferred
 
@@ -171,3 +182,5 @@
   - host manual game end, non-host own-turn leave, reconnect/snapshot recovery
   - GAME_OVER rematch / leave
 - 규칙 감사 결과 기본 Can’t Stop 규칙과 core gameplay 구현은 일치하며, 의도적 digital adaptation은 시작 순서를 서버 랜덤 turn order로 정하는 부분이다.
+- release closeout 시점에 Can’t Stop 관련 개발/임시 브랜치를 정리했고 최종 기준 브랜치를 `main`으로 고정했다.
+- Can’t Stop은 Game Platform의 첫 production platform-native 기준 사례이며, 이 구현에서 확인한 release/document/feedback 규칙을 공통 플랫폼 규칙으로 환류한다.
