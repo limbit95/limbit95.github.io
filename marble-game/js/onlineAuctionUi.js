@@ -59,6 +59,14 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
     const participant = participantPlayerIds.includes(viewerPlayerId);
     const passed = passedPlayerIds.includes(viewerPlayerId);
     const decided = participant || passed;
+    const openingBid = Number(pending.openingBid) || 0;
+    const insufficientGold = Boolean(
+      viewer
+      && viewer.id !== pending.declinedByPlayerId
+      && viewer.bankrupt !== true
+      && !eligible
+      && viewerGold < openingBid
+    );
     const waitingCount = Math.max(
       0,
       eligiblePlayerIds.length - participantPlayerIds.length - passedPlayerIds.length,
@@ -70,14 +78,15 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
       nodeLabel: node?.label ?? pending.nodeId,
       viewerGold,
       basePrice: Number(pending.basePrice) || 0,
-      openingBid: Number(pending.openingBid) || 0,
+      openingBid,
       declinedByPlayerId: pending.declinedByPlayerId ?? null,
       eligible,
       participant,
       passed,
       decided,
       decision: participant ? "JOIN" : passed ? "PASS" : null,
-      canJoin: eligible && !decided && viewerGold >= Number(pending.openingBid),
+      insufficientGold,
+      canJoin: eligible && !decided && viewerGold >= openingBid,
       canVotePass: eligible && !decided,
       participantPlayerIds: Object.freeze([...participantPlayerIds]),
       participantCards: participantCards(state, participantPlayerIds),
@@ -318,6 +327,29 @@ function isPurchaseDeclineTarget(target) {
   return secondary?.dataset?.action === "decline";
 }
 
+function showAuctionUnsoldResult(documentObject, state, shownKeys) {
+  const event = state?.lastEvents?.find?.((candidate) => (
+    candidate.type === "AUCTION_VOTE_CLOSED"
+    && (candidate.participantPlayerIds?.length ?? 0) === 0
+  ));
+  if (!event) return;
+  const key = `unsold:${state.version ?? "v"}:${event.nodeId}`;
+  if (shownKeys.has(key)) return;
+  shownKeys.add(key);
+  const dialog = documentObject.createElement("dialog");
+  dialog.className = "auction-result-modal";
+  const title = documentObject.createElement("strong");
+  title.textContent = `${findNode(state, event.nodeId)?.label ?? event.nodeId} 경매가 유찰되었습니다`;
+  dialog.append(title);
+  documentObject.body?.append?.(dialog);
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+  globalThis.setTimeout?.(() => {
+    dialog.close?.();
+    dialog.remove();
+  }, 1800);
+}
+
 function showAutoPurchaseResult(documentObject, state, shownKeys, viewerPlayerId) {
   const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_AUTO_PURCHASED");
   if (!event || event.playerId !== viewerPlayerId) return;
@@ -433,6 +465,7 @@ export function setupOnlineAuctionUi({
 
   function render(state = session.getState()) {
     if (disposed) return;
+    showAuctionUnsoldResult(documentObject, state, shownResultKeys);
     showAutoPurchaseResult(documentObject, state, shownResultKeys, session.getViewerPlayerId());
     showBidEvent(state);
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
@@ -463,11 +496,21 @@ export function setupOnlineAuctionUi({
       elements.secondaryMetricValue.textContent = money(model.viewerGold);
       elements.detail.textContent = "15초 안에 모든 플레이어가 결정하면 즉시 마감됩니다. 미응답은 시간 종료 시 경매 포기로 처리됩니다.";
 
-      elements.voteRow.hidden = !model.eligible;
-      elements.primaryButton.textContent = model.participant ? "참가 확정" : "경매 참가";
-      elements.secondaryButton.textContent = model.passed ? "포기 확정" : "경매 포기";
-      elements.primaryButton.disabled = busy || !model.canJoin;
-      elements.secondaryButton.disabled = busy || !model.canVotePass;
+      elements.voteRow.hidden = !model.eligible && !model.insufficientGold;
+      elements.voteRow.dataset.singleAction = model.insufficientGold ? "true" : "false";
+      elements.primaryButton.hidden = false;
+      elements.secondaryButton.hidden = false;
+      if (model.insufficientGold) {
+        elements.status.textContent = "경매 시작가보다 보유 골드가 부족해 참가할 수 없습니다";
+        elements.primaryButton.textContent = "보유 골드 부족";
+        elements.primaryButton.disabled = true;
+        elements.secondaryButton.hidden = true;
+      } else {
+        elements.primaryButton.textContent = model.participant ? "참가 확정" : "경매 참가";
+        elements.secondaryButton.textContent = model.passed ? "포기 확정" : "경매 포기";
+        elements.primaryButton.disabled = busy || !model.canJoin;
+        elements.secondaryButton.disabled = busy || !model.canVotePass;
+      }
     } else {
       elements.badge.textContent = "경매 진행";
       elements.primaryMetricLabel.textContent = "현재 최고가";
