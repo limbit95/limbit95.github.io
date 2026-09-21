@@ -16,10 +16,10 @@ import {
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("game registry keeps legacy entries intact and activates Can't Stop online/invite capabilities", () => {
+test("game registry keeps legacy entries intact, activates Can't Stop, and keeps No Thanks! inactive", () => {
   assert.deepEqual(
     GAME_REGISTRY.map((game) => game.id),
-    ["liar", "the-game", "marble", "cant-stop"],
+    ["liar", "the-game", "marble", "cant-stop", "no-thanks"],
   );
 
   const legacyGames = GAME_REGISTRY.filter((game) => game.platform === "legacy");
@@ -40,11 +40,22 @@ test("game registry keeps legacy entries intact and activates Can't Stop online/
     presence: false,
   });
   assert.equal(cantStop?.buttonText, "Can’t Stop 시작");
+
+  const noThanks = getRegisteredGame("no-thanks");
+  assert.equal(noThanks?.platform, "shared");
+  assert.equal(noThanks?.href, "./games/no-thanks/");
+  assert.deepEqual(noThanks?.capabilities, {
+    online: false,
+    local: false,
+    invite: false,
+    presence: false,
+  });
+
   assert.equal(getRegisteredGame("missing"), null);
 
   const copy = listRegisteredGames();
   copy.pop();
-  assert.equal(GAME_REGISTRY.length, 4);
+  assert.equal(GAME_REGISTRY.length, 5);
   assert.ok(Object.isFrozen(GAME_REGISTRY));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0]));
   assert.ok(Object.isFrozen(GAME_REGISTRY[0].capabilities));
