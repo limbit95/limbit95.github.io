@@ -93,14 +93,13 @@ export function validatePlatformDocumentPolicy({
       continue;
     }
 
-    if (classification === "HISTORY") {
-      if (!content.includes(RULEBOOK_PATH)) {
-        errors.push(
-          `Historical Game Platform document ${filename} must identify ${RULEBOOK_PATH} as the current rulebook.`,
-        );
-      }
-      continue;
+    if (filename !== RULEBOOK_PATH && !content.includes(RULEBOOK_PATH)) {
+      errors.push(
+        `Game Platform document ${filename} must identify ${RULEBOOK_PATH} as the current rulebook.`,
+      );
     }
+
+    if (classification === "HISTORY") continue;
 
     for (const game of sharedGames) {
       if (containsPlatformGameReference(content, game)) {
