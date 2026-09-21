@@ -204,8 +204,9 @@ Stable Legacy stabilization
 → Phase 3C: Common Game Shell + connection/player UI contract
 → Phase 3D: platform-native game_room Invite + legacy invite impact analysis
 → Phase 3E: reusable DB/test contract gate
-→ Phase 4: Can’t Stop 신규 구현 및 실제 플랫폼 검증
-→ 이후 신규 게임 확장
+→ Phase 4: Can’t Stop 신규 구현 및 첫 production 검증 — COMPLETE
+→ Post-Phase 4: Can’t Stop 피드백을 플랫폼 규칙/거버넌스에 환류
+→ 다음 platform-native 게임으로 공통성 2차 검증
 → 필요 시 Legacy Remaster
 ```
 
@@ -214,3 +215,19 @@ Phase 3D까지의 공통 기반은 Legacy 게임 런타임에 강제로 연결�
 Phase 3E에서는 공통 게임 DB 스키마나 공통 RPC를 만들지 않는다. 대신 신규 온라인 게임이 반드시 검증해야 할 승인회원, 멤버십, host 권한, stale version, idempotency, 동시성, reconnect snapshot, private-state 노출 방지 시나리오를 공통 테스트 계약으로 고정한다. 상세 기준은 `docs/game-platform-db-test-contract.md`를 따른다.
 
 Can’t Stop은 이미 존재하는 게임을 플랫폼으로 옮기는 작업이 아니라, Phase 4에서 `games/cant-stop/` 아래에 처음부터 생성하는 첫 platform-native 게임이며 Phase 3E DB 계약의 첫 실제 소비자가 된다.
+
+Can’t Stop v1은 2026-09-21 production release까지 완료되어 Registry `online` / `invite`, authoritative DB/RPC, reconnect, rematch/leave, shared Invite, Game DB contract가 실제 한 게임의 전체 lifecycle에서 동작하는 것을 검증했다.
+
+## 11. Can’t Stop 이후 플랫폼 검증 사이클
+
+첫 게임의 성공은 Game Platform이 완성됐다는 뜻이 아니다. Can’t Stop은 **첫 번째 실전 표본**이며, 이제 다음 게임에서 공통 기반의 일반성을 다시 검증한다.
+
+Can’t Stop 구현을 통해 다음 경계는 유지할 가치가 확인됐다.
+
+- 인증/승인회원, Registry, Room/Lobby adapter, snapshot/reconnect, version/idempotency, Invite, DB contract는 SHARED 책임으로 재사용한다.
+- dice/pairing/runner, active-turn leave의 구체적 게임 의미, 설산 UI와 bust 연출은 GAME-LOCAL에 유지한다.
+- production migration과 capability activation은 소스 구현과 분리한다.
+- 게임 출시 시 문서 상태를 `RELEASED / main`으로 닫고, stacked PR과 임시 브랜치를 정리해야 다음 작업자가 과거 브랜치를 현재 기준으로 오해하지 않는다.
+- 한 게임에서 발견된 편의 기능은 곧바로 shared abstraction으로 승격하지 않는다. 두 번째 이후 게임에서 같은 플랫폼 책임이 반복될 때 계약을 확장한다.
+
+따라서 현재 Game Platform의 다음 목표는 "공통 기능을 더 많이 만드는 것"이 아니라 **다음 신규 게임에서 기존 shared 계약을 가능한 한 그대로 사용하고, 실제로 반복되는 부족한 계약만 최소 확장하는 것**이다.
