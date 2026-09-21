@@ -71,3 +71,17 @@ test("No Thanks! host waiting-room exit requires an explicit destructive confirm
 test("No Thanks! page does not render a literal newline escape between scripts", () => {
   assert.doesNotMatch(page, /<\/script>\\\\n\s*<script/u);
 });
+
+
+test("No Thanks! in-progress host termination requires confirmation", () => {
+  assert.match(runtime, /진행 중인 게임을 종료할까요/u);
+  assert.match(runtime, /점수와 승자는 계산하지 않습니다/u);
+  assert.match(runtime, /lobbyController\.endGame\(\)/u);
+  assert.match(runtime, /openGameEndConfirm/u);
+});
+
+test("No Thanks! terminal screen distinguishes a host-terminated game", () => {
+  assert.match(runtime, /HOST_TERMINATED/u);
+  assert.match(runtime, /방장이 게임을 종료했어요/u);
+  assert.match(runtime, /결과방 닫기/u);
+});
