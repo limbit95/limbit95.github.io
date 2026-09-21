@@ -1,126 +1,126 @@
-# No Thanks! Game Spec
+# No Thanks! 게임 명세
 
-> 이 문서는 No Thanks!가 무엇이며 청파 같이에서 어떤 규칙과 구조로 구현할지 정의하는 game-local 설계 기준입니다.
-> 구현 진행상황은 같은 디렉터리의 `DEVELOPMENT.md`에서 관리합니다.
+> 이 문서는 No Thanks!가 어떤 게임이며 청파 같이에서 어떤 규칙과 구조로 구현할지 정의하는 게임별 설계 기준입니다.
+> 실제 개발 진행 상황은 같은 디렉터리의 `DEVELOPMENT.md`에서 관리합니다.
 
 ## Game Overview
 
-- Game id: `no-thanks`
-- Designer: Thorsten Gimmler
-- Players: 3–7명
-- Target mode: online multiplayer
-- Core loop: 현재 공개된 숫자 카드를 칩 1개를 내고 거절하거나, 카드와 그 위에 쌓인 칩을 함께 가져오는 선택을 반복하는 카드 게임
-- Win condition: 마지막 카드가 가져가진 뒤 숫자 카드 점수에서 남은 칩을 뺀 최종 점수가 가장 낮은 플레이어가 승리
-- Base deck: 3–35의 숫자 카드 33장 중 무작위 9장을 제외하고 24장 사용
+- 게임 식별자: `no-thanks`
+- 디자이너: Thorsten Gimmler
+- 지원 인원: 3–7명
+- 목표 방식: 온라인 멀티플레이
+- 핵심 진행: 현재 공개된 숫자 카드를 칩 1개를 내고 거절하거나, 카드와 그 위에 쌓인 칩을 함께 가져오는 선택을 반복합니다.
+- 승리 조건: 마지막 카드가 가져가진 뒤 숫자 카드 점수에서 남은 칩을 뺀 최종 점수가 가장 낮은 플레이어가 승리합니다.
+- 기본 카드 구성: 3–35의 숫자 카드 33장 중 무작위 9장을 제외하고 24장을 사용합니다.
 
 ## Rules and Sources
 
 구현 기준은 다음 자료를 우선 사용합니다.
 
-- AMIGO official English rulebook: https://blog.amigo-spiele.de/content/ap/rule/02455-GB-AmigoRule.pdf
-- AMIGO product page: https://www.amigo-spiele.de/no-thanks_2455_1247
-- Board Game Arena rules summary (secondary cross-check): https://en.doc.boardgamearena.com/Gamehelpnothanks
+- AMIGO 공식 영문 규칙서: https://blog.amigo-spiele.de/content/ap/rule/02455-GB-AmigoRule.pdf
+- AMIGO 공식 제품 페이지: https://www.amigo-spiele.de/no-thanks_2455_1247
+- Board Game Arena 규칙 요약: https://en.doc.boardgamearena.com/Gamehelpnothanks
 
-현재 v1에서 적용할 기본 규칙:
+현재 첫 버전에 적용할 기본 규칙은 다음과 같습니다.
 
-1. 3–5인은 각 11개, 6인은 각 9개, 7인은 각 7개의 counter로 시작한다.
-2. 각 플레이어가 가진 counter 개수는 게임이 끝날 때까지 다른 플레이어에게 공개하지 않는다.
-3. 3–35의 숫자 카드 33장을 섞고 9장을 보지 않은 채 제외한다. 남은 24장이 draw deck이다.
-4. 현재 차례의 플레이어는 공개된 카드를 가져가거나 counter 1개를 내고 거절할 수 있다.
-5. 카드를 거절하면 counter 1개가 현재 카드 위의 공개 pile에 추가되고 차례는 다음 플레이어에게 넘어간다.
-6. counter가 하나도 없는 플레이어는 거절할 수 없으며 현재 카드를 반드시 가져가야 한다.
-7. 현재 카드를 가져가면 카드 위에 쌓인 모든 counter도 함께 가져간다.
-8. 카드를 가져간 플레이어가 다음 카드를 공개하며 같은 플레이어가 다시 선택한다. 즉, 카드를 가져가는 행동 자체로는 차례가 끝나지 않는다.
-9. 마지막 카드를 누군가 가져가는 순간 게임이 끝난다.
-10. 단독 숫자 카드는 적힌 값만큼 점수가 된다.
-11. 연속된 숫자 카드 묶음은 가장 낮은 숫자 하나만 점수에 포함한다.
-12. 최종 점수는 숫자 카드 점수 합에서 남은 counter 수를 뺀 값이다.
-13. 최종 점수가 가장 낮은 플레이어가 승리한다.
-14. 최저 점수가 동점이면 해당 플레이어들은 공동 승리한다.
+1. 3–5인은 각 11개, 6인은 각 9개, 7인은 각 7개의 칩으로 시작합니다.
+2. 각 플레이어가 가진 칩 개수는 게임이 끝날 때까지 다른 플레이어에게 공개하지 않습니다.
+3. 3–35의 숫자 카드 33장을 섞고 9장을 보지 않은 채 제외합니다. 남은 24장을 실제 게임에 사용합니다.
+4. 현재 차례의 플레이어는 공개된 카드를 가져가거나 칩 1개를 내고 거절할 수 있습니다.
+5. 카드를 거절하면 칩 1개가 현재 카드 위의 공개 칩 더미에 추가되고 차례는 다음 플레이어에게 넘어갑니다.
+6. 칩이 하나도 없는 플레이어는 거절할 수 없으며 현재 카드를 반드시 가져가야 합니다.
+7. 현재 카드를 가져가면 카드 위에 쌓인 모든 칩도 함께 가져갑니다.
+8. 카드를 가져간 플레이어가 다음 카드를 공개하며 같은 플레이어가 다시 선택합니다. 즉 카드를 가져가는 행동 자체로는 차례가 끝나지 않습니다.
+9. 마지막 카드를 누군가 가져가는 순간 게임이 끝납니다.
+10. 단독 숫자 카드는 적힌 값만큼 점수가 됩니다.
+11. 연속된 숫자 카드 묶음은 가장 낮은 숫자 하나만 점수에 포함합니다.
+12. 최종 점수는 숫자 카드 점수 합에서 남은 칩 수를 뺀 값입니다.
+13. 최종 점수가 가장 낮은 플레이어가 승리합니다.
+14. 최저 점수가 동점이면 해당 플레이어들은 공동 승리합니다.
 
-### Digital adaptation
+### 온라인 구현에 따른 조정
 
-공식 규칙의 선 플레이어 결정은 "가장 최근에 No thanks!라고 말한 사람"이지만 온라인 좌석에는 물리적 맥락이 없으므로 청파 같이 v1에서는 서버가 게임 시작 시 turn order를 한 번 무작위로 확정합니다.
+공식 규칙의 선 플레이어 결정은 "가장 최근에 No thanks!라고 말한 사람"이지만 온라인 환경에서는 적용하기 어렵기 때문에 청파 같이 첫 버전에서는 서버가 게임 시작 시 플레이 순서를 한 번 무작위로 확정합니다.
 
-게임 중 다른 플레이어의 보유 counter 수는 공식 규칙대로 비공개로 유지합니다. 현재 공개 카드 위에 쌓인 counter 수와 각 플레이어가 획득한 숫자 카드는 모든 플레이어에게 공개합니다.
+게임 중 다른 플레이어의 보유 칩 수는 공식 규칙대로 비공개로 유지합니다. 현재 공개 카드 위에 쌓인 칩 수와 각 플레이어가 획득한 숫자 카드는 모든 플레이어에게 공개합니다.
 
-사용자용 규칙 안내는 로비와 실제 플레이 화면에서 다시 열 수 있는 modal을 기본으로 합니다. 목표, 시작 counter, 9장 제외, 거절/수락, counter가 없을 때의 강제 수락, 연속 숫자 scoring, 남은 counter 감점, 공동 승리를 처음 플레이하는 사용자도 이해할 수 있게 설명합니다.
+사용자용 규칙 안내는 로비와 실제 플레이 화면에서 다시 열 수 있는 모달로 제공합니다. 처음 플레이하는 사용자도 목표, 시작 칩 수, 9장 제외, 거절과 카드 가져오기, 칩이 없을 때의 강제 수락, 연속 숫자 점수 계산, 남은 칩 차감, 공동 승리를 이해할 수 있는 수준으로 설명합니다.
 
 ## Product Scope
 
-### Included
+### 이번 버전에 포함
 
-- 3–7인 online multiplayer
-- classic base game
-- 3–35 number deck
+- 3–7인 온라인 멀티플레이
+- 기본 규칙
+- 3–35 숫자 카드
 - 무작위 9장 비공개 제외
-- 인원별 초기 counter 수
-- counter 보유량 private state
-- pass/refuse action
-- take-card action
-- 카드 위 공개 counter pile
-- 연속 숫자 chain scoring
-- final score 및 공동 승리
-- authoritative reconnect snapshot
-- 상세 게임 규칙 modal
-- 진행 중 세션의 안전한 종료/이탈 경로
+- 인원별 초기 칩 수
+- 플레이어별 보유 칩 수 비공개 처리
+- 카드 거절
+- 카드 가져오기
+- 현재 카드 위의 공개 칩 더미
+- 연속 숫자 묶음 점수 계산
+- 최종 점수와 공동 승리
+- 서버 기준 재접속 상태 복원
+- 상세 게임 규칙 모달
+- 진행 중 세션의 안전한 종료와 이탈 경로
 
-### Deferred
+### 후속 개발로 보류
 
-- 2024 AMIGO 재판에 포함된 22장 special-card expansion
+- 2024년 AMIGO 재판에 포함된 22장 특수 카드 확장
 - Board Game Arena의 Tactical Variant
-- 플레이 기록/전적
+- 플레이 기록과 전적
 - 관전자 모드
-- AI player
-- 별도 애니메이션/사운드 polish
-- production capability activation
+- 인공지능 플레이어
+- 별도 애니메이션과 사운드 완성도 개선
+- 운영 환경 기능 활성화
 
-### Not planned for v1
+### 첫 버전에서 제외
 
-- Legacy 게임 구조 복사
-- 클라이언트가 deck shuffle, draw card, score, chip legality를 최종 결정하는 구조
-- 게임별 nickname 입력/변경 UI
-- 다른 플레이어의 정확한 counter 수 공개
+- 기존 Legacy 게임 구조 복사
+- 클라이언트가 카드 섞기, 카드 뽑기, 점수 계산, 칩 사용 가능 여부를 최종 판단하는 구조
+- 게임별 닉네임 입력 또는 변경 화면
+- 다른 플레이어의 정확한 보유 칩 수 공개
 
 ## State Machine
 
-### Room lifecycle
+### 방 진행 상태
 
 - `ENTRY`: 승인회원 진입
-- `WAITING`: room 생성/참가, 3–7명 구성, 준비 상태 관리
-- `PLAYING`: authoritative game state 진행
-- `GAME_OVER`: 마지막 카드 수락 또는 수동 종료로 terminal
-- `POST_GAME`: 결과 확인 후 leave/rematch 흐름
+- `WAITING`: 방 생성 또는 참가, 3–7명 구성, 준비 상태 관리
+- `PLAYING`: 서버가 관리하는 게임 진행
+- `GAME_OVER`: 마지막 카드 수락 또는 수동 종료로 게임 종료
+- `POST_GAME`: 결과 확인 후 방 나가기 또는 재대결 흐름
 
-현재 shared Room/Lobby 계약의 ready + host start lifecycle을 v1에서 사용합니다.
+현재 공통 방/로비 계약에서 사용하는 준비 완료와 방장 시작 흐름을 첫 버전에 그대로 사용합니다.
 
-### Gameplay lifecycle
+### 실제 게임 진행 상태
 
-`PLAYING` 안에서 별도 복잡한 phase를 늘리지 않고 다음 authoritative state를 유지합니다.
+`PLAYING` 안에서는 불필요하게 세부 단계를 늘리지 않고 다음 상태를 유지합니다.
 
 - `currentCard`: 현재 공개 카드
-- `centerCounters`: 현재 카드 위에 쌓인 공개 counter 수
+- `centerCounters`: 현재 카드 위에 쌓인 공개 칩 수
 - `activePlayerId`: 현재 선택권을 가진 플레이어
 - `deckRemaining`: 아직 공개되지 않은 카드 수
 
-가능한 action:
+가능한 행동은 다음과 같습니다.
 
 - `REFUSE_CARD`
-  - 조건: active player이며 own counters > 0
-  - 결과: own counters -1, centerCounters +1, active player를 다음 좌석으로 이동
+  - 조건: 현재 차례의 플레이어이며 본인 칩이 1개 이상 남아 있어야 합니다.
+  - 결과: 본인 칩 1개 감소, `centerCounters` 1개 증가, 차례가 다음 플레이어에게 넘어갑니다.
 - `TAKE_CARD`
-  - 조건: active player
-  - 결과: currentCard를 플레이어 공개 tableau에 추가, centerCounters를 own counters에 더함
-  - draw deck이 남았으면 서버가 다음 카드를 공개하고 active player는 그대로 유지
-  - 마지막 카드였다면 final score를 계산하고 `GAME_OVER`
+  - 조건: 현재 차례의 플레이어여야 합니다.
+  - 결과: `currentCard`를 플레이어가 획득한 공개 카드에 추가하고 `centerCounters`만큼 본인 칩이 증가합니다.
+  - 남은 카드가 있으면 서버가 다음 카드를 공개하며 현재 플레이어가 계속 선택합니다.
+  - 마지막 카드였다면 최종 점수를 계산하고 `GAME_OVER`로 전환합니다.
 - `END_GAME`
-  - host 등 명시된 권한에 따라 서버가 terminal state로 전환
+  - 방장 등 명시된 권한을 가진 사용자의 요청을 서버가 검증한 뒤 게임 종료 상태로 전환합니다.
 
-counter가 0이면 `REFUSE_CARD`는 legal action이 아니고 `TAKE_CARD`만 허용합니다.
+보유 칩이 0개라면 `REFUSE_CARD`는 사용할 수 없고 `TAKE_CARD`만 허용합니다.
 
 ## Domain Model
 
-authoritative game state의 핵심 모델:
+서버가 관리하는 게임 상태의 핵심 구조는 다음과 같습니다.
 
 ```text
 game
@@ -140,7 +140,7 @@ game
   endReason
 ```
 
-private snapshot의 플레이어별 모델:
+현재 사용자에게만 제공하는 비공개 상태는 다음과 같습니다.
 
 ```text
 viewer
@@ -148,7 +148,7 @@ viewer
   counters
 ```
 
-서버 내부에만 유지할 상태:
+서버 내부에서만 유지할 상태는 다음과 같습니다.
 
 ```text
 drawDeck[]
@@ -156,75 +156,81 @@ playerCounters{}
 excludedCards[] 또는 이에 준하는 비공개 상태
 ```
 
-클라이언트는 draw order나 제외 카드 목록을 미리 알 수 없어야 합니다.
+클라이언트는 앞으로 뽑힐 카드 순서나 제외된 카드 목록을 미리 알 수 없어야 합니다.
 
-### Deterministic scoring
+### 점수 계산
 
-숫자 카드를 오름차순으로 정렬한 뒤 각 연속 chain의 첫 숫자만 합산합니다.
+숫자 카드를 오름차순으로 정렬한 뒤 각 연속 숫자 묶음의 첫 숫자만 합산합니다.
 
-예:
+예시는 다음과 같습니다.
 
 ```text
-cards = [3, 10, 11, 12, 20]
-card score = 3 + 10 + 20 = 33
-counters = 5
-final score = 28
+보유 카드 = [3, 10, 11, 12, 20]
+카드 점수 = 3 + 10 + 20 = 33
+남은 칩 = 5
+최종 점수 = 28
 ```
 
-동일 최저 점수는 공동 승리로 처리합니다.
+동일한 최저 점수를 기록한 플레이어가 여러 명이면 공동 승리로 처리합니다.
 
 ## Platform Boundary
 
 ### SHARED
 
-- Game Registry
-- Approved Member / Access Gate
-- Common Game Shell
-- Room/Lobby contract
-- versioned / idempotent action envelope
-- Snapshot Coordinator
-- reconnect refresh trigger
-- connection/player view-state
-- platform-native Invite (실제 구현/운영 검증 후 capability activation)
-- DB/Test Contract
+다음 책임은 기존 공통 게임 플랫폼을 재사용합니다.
+
+- 게임 등록부
+- 승인회원 접근 제어
+- 공통 게임 화면 골격
+- 방/로비 계약
+- 버전과 중복 요청 방지 정보를 포함하는 행동 요청 규격
+- 스냅샷 조정 기능
+- 재접속 시 새로고침 처리
+- 연결 상태와 플레이어 표시 상태
+- 게임 초대 기능
+- 데이터베이스 통합 검증 계약
+
+게임 초대 기능은 실제 구현과 운영 검증이 끝난 뒤에만 활성화합니다.
 
 ### GAME-LOCAL
 
-- deck 구성과 shuffle
-- 9장 제외
-- 인원별 초기 counter 계산
-- 공개 카드 및 center counter pile
-- refuse / take legality
-- hidden counter state
-- turn advancement
-- consecutive-chain scoring
-- final score / 공동 승리
-- No Thanks! 전용 카드/tableau UI
-- 게임 특유 애니메이션/사운드
+다음 책임은 No Thanks! 내부에 둡니다.
 
-현재 shared 계약 변경 없이 구현하는 것을 기본으로 합니다.
+- 카드 구성과 섞기
+- 9장 제외
+- 인원별 초기 칩 수 계산
+- 공개 카드와 카드 위 칩 더미
+- 카드 거절과 가져오기 가능 여부
+- 플레이어별 비공개 칩 상태
+- 차례 이동
+- 연속 숫자 묶음 점수 계산
+- 최종 점수와 공동 승리
+- No Thanks! 전용 카드와 획득 카드 화면
+- 게임 고유 애니메이션과 사운드
+
+현재 공통 계약을 변경하지 않고 구현하는 것을 기본으로 합니다.
 
 ## Authority and Persistence
 
-online v1은 서버 authoritative 구조로 구현합니다.
+첫 온라인 버전은 서버가 최종 판단하는 구조로 구현합니다.
 
-서버가 최종 결정해야 하는 항목:
+서버가 최종 결정해야 하는 항목은 다음과 같습니다.
 
-- room membership / ready / start 조건
-- turn order
-- deck shuffle
+- 방 참가 여부와 준비 상태, 게임 시작 조건
+- 플레이 순서
+- 카드 섞기
 - 제외되는 9장
-- draw order
-- current card
-- player counter count
-- refuse 가능 여부
-- center counter pile
-- take 결과
-- turn advancement
-- final score / winners
-- manual termination
+- 카드가 공개되는 순서
+- 현재 공개 카드
+- 각 플레이어의 보유 칩 수
+- 카드 거절 가능 여부
+- 현재 카드 위의 칩 수
+- 카드 가져오기 결과
+- 다음 차례
+- 최종 점수와 승자
+- 수동 게임 종료
 
-상태 변경 action은 기본적으로 다음 경계를 사용합니다.
+상태를 변경하는 요청은 기본적으로 다음 값을 사용합니다.
 
 ```text
 room_id
@@ -233,104 +239,106 @@ client_action_id
 action payload
 ```
 
-서버는 room row lock과 transaction 안에서 membership, active player, phase, expected version, idempotency를 검증한 뒤 상태를 한 번만 commit합니다.
+서버는 방 단위 잠금과 트랜잭션 안에서 방 참가 여부, 현재 차례, 게임 상태, `expected_version`, `client_action_id`를 검증한 뒤 상태를 한 번만 반영합니다.
 
-### Snapshot privacy
+### 스냅샷 공개 범위
 
-public snapshot:
+모든 참여자에게 공개하는 상태:
 
-- room / version / status
-- turn order
-- active player
-- current card
-- centerCounters
-- deckRemaining
-- 모든 플레이어의 공개 tableau
-- 게임 종료 후 final score / winners
+- 방 정보와 버전, 진행 상태
+- 플레이 순서
+- 현재 차례의 플레이어
+- 현재 공개 카드
+- 현재 카드 위에 쌓인 칩 수
+- 남은 카드 수
+- 모든 플레이어가 획득한 공개 숫자 카드
+- 게임 종료 후 최종 점수와 승자
 
-viewer-private snapshot:
+현재 사용자에게만 공개하는 상태:
 
-- 현재 로그인 플레이어 자신의 정확한 counter 수
+- 본인의 정확한 보유 칩 수
 
-MUST NOT:
+공개하지 않는 상태:
 
-- 다른 플레이어의 counter 수
-- 아직 공개되지 않은 draw order
+- 다른 플레이어의 정확한 보유 칩 수
+- 아직 공개되지 않은 카드 순서
 - 제외된 9장 목록
 
-Realtime은 invalidation 신호로만 사용하고 최종 상태는 authoritative snapshot으로 다시 조회합니다.
+실시간 이벤트는 상태 변경을 알리는 신호로만 사용하고, 최종 상태는 서버의 권위 있는 스냅샷을 다시 조회해 확인합니다.
 
 ## UI / UX Direction
 
-- Common Game Shell을 사용합니다.
-- desktop에서는 중앙에 현재 카드와 counter pile을 크게 두고, 좌우/하단에 player tableau와 roster를 배치합니다.
-- mobile에서는 현재 카드/선택 action을 첫 화면에 우선 배치하고 player tableau는 세로 흐름으로 정리합니다.
-- 자신의 counter 수는 명확히 표시하지만 다른 플레이어의 counter 수는 숫자로 노출하지 않습니다.
-- 현재 카드 위의 counter pile 수는 모든 플레이어에게 공개합니다.
-- action은 핵심 두 개만 강조합니다.
+- 공통 게임 화면 골격을 사용합니다.
+- 데스크톱에서는 중앙에 현재 카드와 칩 더미를 크게 두고, 주변에 플레이어별 획득 카드와 참가자 정보를 배치합니다.
+- 모바일에서는 현재 카드와 선택 버튼을 첫 화면에서 가장 먼저 볼 수 있게 배치하고, 다른 플레이어 정보는 세로 흐름으로 정리합니다.
+- 자신의 보유 칩 수는 명확하게 표시하지만 다른 플레이어의 칩 수는 숫자로 보여주지 않습니다.
+- 현재 카드 위에 쌓인 칩 수는 모든 플레이어에게 공개합니다.
+- 핵심 선택 버튼은 두 개만 강조합니다.
   - `거절하기 (-1)`
   - `카드 가져오기 (+쌓인 칩)`
-- counter가 0이면 거절 버튼을 숨기거나 disabled 처리하되 서버 검증은 그대로 유지합니다.
-- 획득한 숫자 카드는 연속 chain이 즉시 보이도록 정렬/그룹화합니다.
-- 로비/플레이 중 모두 `게임 규칙` 진입점을 유지합니다.
-- 사이트 프로필 닉네임을 사용하고 game-local nickname 입력 UI를 두지 않습니다.
-- destructive 게임 종료는 확인 UI + server-authoritative terminal state로 처리합니다.
+- 칩이 0개라면 거절 버튼을 숨기거나 비활성화하되, 최종 가능 여부는 서버가 다시 검증합니다.
+- 획득한 숫자 카드는 연속된 숫자 묶음을 쉽게 확인할 수 있도록 정렬하고 묶어서 보여줍니다.
+- 로비와 실제 플레이 화면 모두 `게임 규칙` 진입점을 유지합니다.
+- 사이트 프로필 닉네임을 사용하며 게임 안에서 별도의 닉네임 입력이나 변경 기능을 제공하지 않습니다.
+- 게임 전체 종료처럼 되돌리기 어려운 행동은 확인 화면을 거친 뒤 서버가 최종 상태를 변경합니다.
 
 ## Implementation Plan
 
-1. Bootstrap
+1. 초기 설계
    - `GAME_SPEC.md`
    - `DEVELOPMENT.md`
-2. Deterministic rules engine
-   - initial counter calculation
-   - take/refuse transition
-   - turn progression
-   - chain scoring / ties
-   - game-over transition
-   - unit tests
-3. Access Gate + Common Game Shell 최소 runtime
-4. Room/Lobby DB/RPC foundation
-   - 3–7명
-   - ready / host start
-   - authoritative turn order / deck initialization
-   - DB/Test Contract
-5. Runtime lobby flow
-6. Authoritative gameplay RPC
-   - refuse card
-   - take card / server draw
-   - final scoring
-7. Snapshot privacy / reconnect / realtime invalidation
-8. 상세 rules modal / game exit / post-game
-9. Invite
-10. production migration / multiplayer smoke / capability activation
-11. release closeout + platform feedback loop
+2. 순수 규칙 엔진
+   - 인원별 시작 칩 계산
+   - 카드 거절 처리
+   - 카드 가져오기 처리
+   - 차례 이동
+   - 연속 숫자 묶음 점수 계산
+   - 공동 승리 처리
+   - 게임 종료 전환
+   - 단위 테스트
+3. 승인회원 접근 제어와 공통 게임 화면의 최소 실행 코드
+4. 방/로비 데이터베이스 및 RPC 기반 구성
+   - 3–7명 참가
+   - 준비 완료와 방장 시작
+   - 서버에서 플레이 순서와 카드 순서 초기화
+   - 데이터베이스 통합 검증 계약
+5. 실제 방/로비 사용자 흐름
+6. 서버 권위 게임 행동 RPC
+   - 카드 거절
+   - 카드 가져오기와 다음 카드 공개
+   - 최종 점수 계산
+7. 비공개 상태 보호, 재접속, 실시간 변경 감지
+8. 상세 규칙 모달, 게임 종료, 게임 후 화면
+9. 게임 초대
+10. 운영 마이그레이션, 다중 사용자 점검, 기능 활성화
+11. 출시 마무리와 게임 플랫폼 회고
 
 ## Validation Plan
 
-- game-local rules unit tests
-  - player-count counter setup
-  - zero-counter forced take
-  - refuse decrements own counter / increments center pile / advances turn
-  - take transfers center counters / keeps active player
-  - last-card game over
-  - consecutive-chain scoring
-  - disconnected chains
-  - counter deduction
-  - tie winners
-  - input state immutability
-- Game Platform contract / governance tests
-- DB/Test Contract 10개 mandatory scenario
-- hidden counter privacy regression
-- draw order / excluded cards non-exposure regression
-- stale version / duplicate action / concurrent action regression
-- reconnect authoritative snapshot
-- 3인 / 7인 browser multiplayer smoke
-- mobile/desktop rules modal 및 action layout 수동 검증
+- 게임 규칙 단위 테스트
+  - 인원별 시작 칩 수
+  - 칩이 0개일 때 카드 가져오기 강제
+  - 거절 시 본인 칩 감소, 중앙 칩 증가, 다음 차례 이동
+  - 카드 가져오기 시 중앙 칩 획득, 현재 플레이어 유지
+  - 마지막 카드 획득 후 게임 종료
+  - 연속 숫자 묶음 점수 계산
+  - 떨어져 있는 숫자 묶음의 개별 점수 계산
+  - 남은 칩 수 차감
+  - 공동 승리
+  - 입력 상태를 직접 변경하지 않는지 확인
+- 게임 플랫폼 공통 계약과 관리 규칙 검증
+- 데이터베이스 통합 계약의 필수 시나리오 10개 검증
+- 다른 플레이어의 칩 수가 노출되지 않는지 확인
+- 미공개 카드 순서와 제외 카드가 노출되지 않는지 확인
+- 오래된 버전 요청, 같은 요청의 중복 전송, 동시 요청 충돌 검증
+- 재접속 시 서버 상태 복원 검증
+- 3인과 7인 실제 브라우저 멀티플레이 점검
+- 모바일과 데스크톱에서 규칙 모달과 행동 버튼 배치 확인
 
 ## Open Questions / Deferred
 
-- special-card expansion은 classic v1 release 뒤 별도 Phase에서 검토합니다.
-- game in-progress player leave 정책은 Room/Lobby 및 gameplay DB 설계 단계에서 게임 규칙과 플랫폼 안전성을 함께 검토해 확정합니다.
-- host가 PLAYING 중 떠나는 경우의 host transfer 또는 terminal 정책은 아직 확정하지 않습니다.
-- rematch에서 동일 room을 재사용할지 새 authoritative game state만 초기화할지는 post-game 단계에서 확정합니다.
-- production에서 invite capability를 켜는 시점은 migration, DB contract, 실제 multiplayer smoke 이후로 미룹니다.
+- 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
+- 게임 진행 중 플레이어가 나가는 경우의 정책은 방/로비와 게임 데이터베이스를 설계하는 단계에서 게임 규칙과 플랫폼 안전성을 함께 검토해 확정합니다.
+- 게임 진행 중 방장이 나가는 경우 방장 권한을 넘길지 게임을 종료할지는 아직 확정하지 않습니다.
+- 재대결 시 같은 방을 유지하면서 게임 상태만 초기화할지 여부는 게임 후 흐름을 구현할 때 확정합니다.
+- 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.
