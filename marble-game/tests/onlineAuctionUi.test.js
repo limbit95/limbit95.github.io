@@ -118,6 +118,14 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /경매 참가/);
   assert.match(uiSource, /경매 포기/);
   assert.match(uiSource, /첫 입찰/);
+  assert.match(uiSource, /입찰 차례/);
+  assert.match(uiSource, /AUCTION_BID_PLACED/);
+  assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
+  assert.match(uiSource, /elements\.status\.hidden = model\.stage === "auction"/);
+  assert.match(uiSource, /elements\.detail\.hidden = model\.stage === "auction"/);
+  assert.doesNotMatch(uiSource, /현재 최고 입찰자 \$\{model\.highestBidderName/);
+  assert.match(cssSource, /data-current-turn="true"/);
+  assert.match(cssSource, /auctionBidPaddleRaise/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
   assert.match(uiSource, /session\.getServerNowMs\?\.\(\)/);

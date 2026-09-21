@@ -140,7 +140,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260919-r3", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260921-r4", import.meta.url).href;
   link.dataset.auctionStyle = "true";
   documentObject.head.append(link);
 }
@@ -163,6 +163,21 @@ function createPanel(documentObject, dock) {
 
   const status = documentObject.createElement("p");
   status.className = "auction-action-panel__status";
+
+  const bidEvent = documentObject.createElement("div");
+  bidEvent.className = "auction-action-panel__bid-event";
+  bidEvent.hidden = true;
+  bidEvent.setAttribute("aria-hidden", "true");
+  const bidEventPaddle = documentObject.createElement("span");
+  bidEventPaddle.className = "auction-action-panel__bid-paddle";
+  bidEventPaddle.textContent = "BID";
+  const bidEventCopy = documentObject.createElement("div");
+  const bidEventPlayer = documentObject.createElement("span");
+  bidEventPlayer.className = "auction-action-panel__bid-player";
+  const bidEventAmount = documentObject.createElement("strong");
+  bidEventAmount.className = "auction-action-panel__bid-amount";
+  bidEventCopy.append(bidEventPlayer, bidEventAmount);
+  bidEvent.append(bidEventPaddle, bidEventCopy);
 
   const summary = documentObject.createElement("div");
   summary.className = "auction-action-panel__summary";
@@ -232,6 +247,7 @@ function createPanel(documentObject, dock) {
   panel.append(
     heading,
     status,
+    bidEvent,
     summary,
     participantCard,
     detail,
@@ -247,6 +263,9 @@ function createPanel(documentObject, dock) {
     title,
     timer,
     status,
+    bidEvent,
+    bidEventPlayer,
+    bidEventAmount,
     primaryMetricLabel,
     primaryMetricValue,
     secondaryMetricLabel,
@@ -270,7 +289,7 @@ function renderParticipantList(documentObject, elements, model) {
   const cards = model.participantCards ?? [];
   elements.participantMeta.textContent = model.stage === "vote"
     ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount}`
-    : `${cards.length}명 · 입찰 순서`;
+    : `${cards.length}명 · 실시간 입찰 순서`;
 
   if (cards.length === 0) {
     const empty = documentObject.createElement("p");
@@ -283,6 +302,9 @@ function renderParticipantList(documentObject, elements, model) {
   elements.participantList.replaceChildren(...cards.map((card) => {
     const row = documentObject.createElement("div");
     row.className = "auction-action-panel__participant-row";
+    if (model.stage === "auction" && card.id === model.turnPlayerId) {
+      row.dataset.currentTurn = "true";
+    }
 
     const order = documentObject.createElement("span");
     order.className = "auction-action-panel__participant-order";
@@ -291,13 +313,22 @@ function renderParticipantList(documentObject, elements, model) {
     const name = documentObject.createElement("strong");
     name.textContent = card.name;
 
-    row.append(order, name);
+    const badges = documentObject.createElement("span");
+    badges.className = "auction-action-panel__participant-badges";
     if (card.openingBidder) {
       const firstBid = documentObject.createElement("span");
       firstBid.className = "auction-action-panel__first-bid";
       firstBid.textContent = "첫 입찰";
-      row.append(firstBid);
+      badges.append(firstBid);
     }
+    if (model.stage === "auction" && card.id === model.turnPlayerId) {
+      const currentTurn = documentObject.createElement("span");
+      currentTurn.className = "auction-action-panel__turn-badge";
+      currentTurn.textContent = "입찰 차례";
+      badges.append(currentTurn);
+    }
+
+    row.append(order, name, badges);
     return row;
   }));
 }
@@ -316,18 +347,14 @@ function showAutoPurchaseResult(documentObject, state, shownKeys) {
   title.textContent = "매입에 성공하셨습니다";
   const detail = documentObject.createElement("p");
   detail.textContent = `${playerName(player)} · ${node?.label ?? event.nodeId} · ${money(event.amount)}`;
-  const button = documentObject.createElement("button");
-  button.type = "button";
-  button.className = "primary-button";
-  button.textContent = "확인";
-  button.addEventListener("click", () => {
-    dialog.close?.();
-    dialog.remove();
-  });
-  dialog.append(title, detail, button);
+  dialog.append(title, detail);
   documentObject.body?.append?.(dialog);
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
+  globalThis.setTimeout?.(() => {
+    dialog.close?.();
+    dialog.remove();
+  }, 1800);
 }
 
 export function setupLocalAuctionUi({
@@ -350,13 +377,38 @@ export function setupLocalAuctionUi({
   let selectedPlayerId = null;
   let deadlineTimer = null;
   let tickerTimer = null;
+  let bidEventTimer = null;
   const shownResultKeys = new Set();
+  const shownBidEventKeys = new Set();
 
   function clearTimers() {
     if (deadlineTimer !== null) clearTimeoutFn?.(deadlineTimer);
     if (tickerTimer !== null) clearTimeoutFn?.(tickerTimer);
     deadlineTimer = null;
     tickerTimer = null;
+  }
+
+  function showBidEvent(state) {
+    const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_BID_PLACED");
+    if (!event) return;
+    const key = `${state.version ?? "v"}:${event.playerId}:${event.amount}`;
+    if (shownBidEventKeys.has(key)) return;
+    shownBidEventKeys.add(key);
+
+    const player = findPlayer(state, event.playerId);
+    elements.bidEventPlayer.textContent = `${playerName(player)} 입찰!`;
+    elements.bidEventAmount.textContent = money(event.amount);
+    elements.bidEvent.hidden = false;
+    elements.bidEvent.dataset.active = "false";
+    void elements.bidEvent.offsetWidth;
+    elements.bidEvent.dataset.active = "true";
+
+    if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
+    bidEventTimer = setTimeoutFn?.(() => {
+      bidEventTimer = null;
+      elements.bidEvent.dataset.active = "false";
+      elements.bidEvent.hidden = true;
+    }, 1250) ?? null;
   }
 
   function syncPlayerOptions(model) {
@@ -408,6 +460,7 @@ export function setupLocalAuctionUi({
   function render(state = session.getState()) {
     if (disposed) return;
     showAutoPurchaseResult(documentObject, state, shownResultKeys);
+    showBidEvent(state);
     const model = createLocalAuctionUiModel(state, selectedPlayerId);
     if (!model) {
       clearTimers();
@@ -426,6 +479,8 @@ export function setupLocalAuctionUi({
 
     elements.voteRow.hidden = model.stage !== "vote";
     elements.bidRow.hidden = model.stage !== "auction";
+    elements.status.hidden = model.stage === "auction";
+    elements.detail.hidden = model.stage === "auction";
 
     if (model.stage === "vote") {
       elements.badge.textContent = "경매 참가 투표";
@@ -441,12 +496,10 @@ export function setupLocalAuctionUi({
       elements.secondaryButton.disabled = busy || !model.canVotePass;
     } else {
       elements.badge.textContent = "경매 진행";
-      elements.status.textContent = errorText || `현재 차례 · ${model.turnPlayerName ?? "-"}`;
       elements.primaryMetricLabel.textContent = "현재 최고가";
       elements.primaryMetricValue.textContent = money(model.highestBid);
       elements.secondaryMetricLabel.textContent = "다음 최소 입찰가";
       elements.secondaryMetricValue.textContent = money(model.minimumBid);
-      elements.detail.textContent = `현재 최고 입찰자 ${model.highestBidderName ?? "-"} · ${model.selectedPlayerName} 보유 ${money(model.selectedPlayerGold)}`;
       elements.bidInput.min = String(model.minimumBid);
       elements.bidInput.max = String(model.selectedPlayerGold);
       const currentValue = Number(elements.bidInput.value);
@@ -526,6 +579,7 @@ export function setupLocalAuctionUi({
     dispose() {
       disposed = true;
       clearTimers();
+      if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
       elements.panel.remove();
     },
   });

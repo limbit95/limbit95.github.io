@@ -149,12 +149,14 @@ test("online dice result gets a readable pause before authoritative movement", (
   assert.match(controllerSource, /`\$\{Number\(total\)\}칸 이동!`/);
 });
 
-test("online landing UX shows event results and stages skip before next turn", () => {
+test("online landing UX shows results and auto-advances without a manual next-turn button", () => {
   assert.match(controllerSource, /landedNode\?\.type === "EVENT"/);
   assert.match(controllerSource, /openTileInfo\(state, landing\.nodeId, \{ source: "landing" \}\)/);
-  assert.match(controllerSource, /let choiceDeclinedPending = false/);
-  assert.match(controllerSource, /choiceDeclinedPending = true;\s*closeTileInfo\(\{ force: true \}\);\s*renderActionControls/);
-  assert.match(controllerSource, /건너뛰기를 선택했습니다\. 다음 턴을 눌러 차례를 넘겨 주세요/);
+  assert.match(controllerSource, /async function maybeAutoAdvanceTurn\(state\)/);
+  assert.match(controllerSource, /await wait\(TURN_RESULT_HOLD_MS\)/);
+  assert.match(controllerSource, /const nextState = await session\.endTurn\(\)/);
+  assert.match(controllerSource, /결과를 확인하는 중입니다\. 잠시 후 다음 차례로 넘어갑니다/);
+  assert.doesNotMatch(controllerSource, /건너뛰기를 선택했습니다\. 다음 턴을 눌러 차례를 넘겨 주세요/);
 });
 
 test("online choice modal prevents unaffordable buys from closing the game flow", () => {
