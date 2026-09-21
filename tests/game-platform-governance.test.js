@@ -302,10 +302,22 @@ test("Game Platform rules prohibit game-local nickname editing", () => {
     "utf8",
   );
 
-  assert.match(rules, /게임 로비에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다/u);
+  assert.match(rules, /게임별 entry\/lobby 화면에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다/u);
   assert.match(rules, /프로필의 닉네임을 직접 조회/u);
 });
 
+test("core Game Platform rule documents remain game-agnostic", () => {
+  const rulePaths = [
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
+    path.join(repositoryRoot, "games", "GAME_SPEC_TEMPLATE.md"),
+  ];
+
+  for (const filename of rulePaths) {
+    const content = readFileSync(filename, "utf8");
+    assert.doesNotMatch(content, /Can[’\']?t Stop|cant-stop/iu);
+  }
+});
 test("Game Platform rules codify release closeout and post-release feedback loop", () => {
   const rules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
