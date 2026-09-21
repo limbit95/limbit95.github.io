@@ -435,96 +435,108 @@ export async function renderProfileEdit() {
   const birthDate = profileBirthDateField(auth.profile);
   const displayNameField = inputField("display_name", "표시 이름", "text", auth.profile.display_name, { maxlength: "50", required: true });
   const displayNameInput = displayNameField.querySelector('[name="display_name"]');
-  const displayNameAvailability = el("p", { className: "field-help", "aria-live": "polite" });
+  const displayNameVerification = el("p", { className: "field-help", "aria-live": "polite" });
   const displayNameError = displayNameField.querySelector('[data-error-for="display_name"]');
-  displayNameField.insertBefore(displayNameAvailability, displayNameError);
-  const originalDisplayNameKey = normalizeDisplayNameKey(auth.profile.display_name);
-  let displayNameCheckTimer = null;
-  let displayNameCheckRequest = 0;
-  let displayNameCheckValue = auth.profile.display_name.trim();
-  let displayNameCheckStatus = "available";
+  const displayNameCheckButton = el("button", {
+    className: "button button--ghost",
+    type: "button",
+    text: "확인 완료",
+    onclick: () => {
+      void verifyDisplayName();
+    },
+  });
+  const displayNameRow = el("div", { className: "display-name-check-row" }, [
+    displayNameInput,
+    displayNameCheckButton,
+  ]);
+  displayNameField.insertBefore(displayNameRow, displayNameError);
+  displayNameField.insertBefore(displayNameVerification, displayNameError);
 
-  function normalizeDisplayNameKey(value) {
-    return String(value ?? "").trim().toLocaleLowerCase();
+  let displayNameVerificationRequest = 0;
+  let verifiedDisplayName = auth.profile.display_name.trim();
+  let displayNameVerificationPending = false;
+
+  function updateDisplayNameCheckButton() {
+    const currentValue = displayNameInput.value.trim();
+    displayNameCheckButton.disabled = displayNameVerificationPending
+      || Boolean(verifiedDisplayName && verifiedDisplayName === currentValue);
+    displayNameCheckButton.textContent = displayNameVerificationPending
+      ? "확인 중…"
+      : verifiedDisplayName && verifiedDisplayName === currentValue
+        ? "확인 완료"
+        : "중복 확인";
   }
 
-  function scheduleDisplayNameCheck() {
-    clearTimeout(displayNameCheckTimer);
+  async function verifyDisplayName() {
     const value = displayNameInput.value.trim();
-    if (!value || !valueInRange(value, 1, 50)) return;
-    if (normalizeDisplayNameKey(value) === originalDisplayNameKey) {
-      displayNameCheckValue = value;
-      displayNameCheckStatus = "available";
-      displayNameAvailability.textContent = "현재 사용 중인 닉네임입니다.";
-      return;
-    }
-    const requestId = ++displayNameCheckRequest;
-    displayNameCheckStatus = "checking";
-    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
-    displayNameCheckTimer = window.setTimeout(() => {
-      displayNameCheckTimer = null;
-      void runDisplayNameCheck(value, requestId);
-    }, 450);
-  }
+    setFieldError(form, "display_name", "");
+    displayNameVerification.textContent = "";
 
-  async function runDisplayNameCheck(value, requestId = ++displayNameCheckRequest, { blockOnError = false } = {}) {
+    if (!valueInRange(value, 1, 50)) {
+      setFieldError(form, "display_name", "표시 이름은 1~50자로 입력해 주세요.");
+      updateDisplayNameCheckButton();
+      return false;
+    }
+
+    const requestId = ++displayNameVerificationRequest;
+    verifiedDisplayName = "";
+    displayNameVerificationPending = true;
+    displayNameVerification.textContent = "닉네임 중복 여부를 확인하고 있어요…";
+    updateDisplayNameCheckButton();
+
     try {
       const available = await checkDisplayNameAvailability(value);
-      if (requestId !== displayNameCheckRequest || displayNameInput.value.trim() !== value) return false;
-      displayNameCheckValue = value;
-      displayNameCheckStatus = available ? "available" : "taken";
-      if (available) {
-        setFieldError(form, "display_name", "");
-        displayNameAvailability.textContent = "✓ 사용 가능한 닉네임입니다.";
-      } else {
-        displayNameAvailability.textContent = "";
-        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+      if (
+        requestId !== displayNameVerificationRequest
+        || displayNameInput.value.trim() !== value
+      ) {
+        return false;
       }
-      return available;
+
+      if (!available) {
+        setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
+        displayNameVerification.textContent = "";
+        return false;
+      }
+
+      verifiedDisplayName = value;
+      displayNameVerification.textContent = "✓ 닉네임 중복 확인이 완료되었습니다.";
+      return true;
     } catch {
-      if (requestId !== displayNameCheckRequest || displayNameInput.value.trim() !== value) return false;
-      displayNameCheckValue = "";
-      displayNameCheckStatus = "error";
-      displayNameAvailability.textContent = blockOnError
-        ? ""
-        : "닉네임 사용 가능 여부를 확인하지 못했습니다. 저장할 때 다시 확인합니다.";
-      if (blockOnError) {
-        setFieldError(form, "display_name", "닉네임 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      if (
+        requestId === displayNameVerificationRequest
+        && displayNameInput.value.trim() === value
+      ) {
+        setFieldError(form, "display_name", "닉네임 중복 여부를 확인하지 못했습니다. 다시 시도해 주세요.");
+        displayNameVerification.textContent = "";
       }
       return false;
+    } finally {
+      if (requestId === displayNameVerificationRequest) {
+        displayNameVerificationPending = false;
+        updateDisplayNameCheckButton();
+      }
     }
   }
 
-  async function ensureDisplayNameAvailable() {
+  function requireDisplayNameVerification() {
     const value = displayNameInput.value.trim();
     if (!valueInRange(value, 1, 50)) return false;
-    if (normalizeDisplayNameKey(value) === originalDisplayNameKey) return true;
-    if (displayNameCheckValue === value && displayNameCheckStatus === "available") return true;
-    if (displayNameCheckValue === value && displayNameCheckStatus === "taken") {
-      setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다.");
-      return false;
-    }
-    clearTimeout(displayNameCheckTimer);
-    displayNameCheckTimer = null;
-    const requestId = ++displayNameCheckRequest;
-    displayNameCheckStatus = "checking";
-    displayNameAvailability.textContent = "닉네임 사용 가능 여부를 확인하고 있어요…";
-    return runDisplayNameCheck(value, requestId, { blockOnError: true });
+    if (verifiedDisplayName === value) return true;
+    setFieldError(form, "display_name", "닉네임 중복 확인을 완료해 주세요.");
+    return false;
   }
 
   displayNameInput.addEventListener("input", () => {
-    clearTimeout(displayNameCheckTimer);
-    displayNameCheckTimer = null;
-    displayNameCheckRequest += 1;
-    displayNameCheckValue = "";
-    displayNameCheckStatus = "idle";
-    displayNameAvailability.textContent = "";
+    displayNameVerificationRequest += 1;
+    verifiedDisplayName = "";
+    displayNameVerificationPending = false;
+    displayNameVerification.textContent = "";
     setFieldError(form, "display_name", "");
-
-    const value = displayNameInput.value.trim();
-    if (!value || !valueInRange(value, 1, 50)) return;
-    scheduleDisplayNameCheck();
+    updateDisplayNameCheckButton();
   });
+
+  updateDisplayNameCheckButton();
 
   fileInput.addEventListener("change", () => {
     const file = fileInput.files?.[0];
@@ -598,7 +610,7 @@ export async function renderProfileEdit() {
       valid = false;
     }
     if (!valid) return;
-    if (!(await ensureDisplayNameAvailable())) return;
+    if (!requireDisplayNameVerification()) return;
     setBusy(form, true, "저장 중…");
     try {
       const profilePayload = {
@@ -618,9 +630,9 @@ export async function renderProfileEdit() {
       window.location.hash = "#/mypage";
     } catch (error) {
       if (isDisplayNameConflict(error)) {
-        displayNameCheckValue = displayNameInput.value.trim();
-        displayNameCheckStatus = "taken";
-        displayNameAvailability.textContent = "";
+        verifiedDisplayName = "";
+        displayNameVerification.textContent = "";
+        updateDisplayNameCheckButton();
         setFieldError(form, "display_name", "이미 사용 중인 닉네임입니다. 다른 닉네임을 선택해 주세요.");
         return;
       }
