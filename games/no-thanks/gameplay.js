@@ -66,5 +66,18 @@ export function createNoThanksGameplayAdapter({
         clientActionId,
       });
     },
+
+    endGame({
+      roomId,
+      expectedVersion,
+      clientActionId,
+    }) {
+      return callAction(supabase, {
+        roomId,
+        actionType: "end_game",
+        expectedVersion,
+        clientActionId,
+      });
+    },
   });
 }
