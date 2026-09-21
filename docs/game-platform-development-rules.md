@@ -139,7 +139,7 @@ games/<game-id>/DEVELOPMENT.md
 - 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽는다.
 - `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
 - 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
-- 게임별 Phase 브랜치명은 가능하면 game id를 포함해 `feature/game-platform-phase4-cant-stop-bootstrap`처럼 다른 채팅에서도 검색 가능하게 유지한다.
+- 게임별 Phase 브랜치명은 가능하면 game id와 작업 범위를 포함해 `feature/game-platform-<phase>-<game-id>-<scope>`처럼 다른 채팅에서도 검색 가능한 형태로 유지한다.
 
 ### MUST: Phase 완료 시
 
@@ -234,8 +234,6 @@ games/<game-id>/DEVELOPMENT.md
 
 첫 게임 한 번에서 편리했다는 이유만으로 SHARED 후보를 즉시 공통 API로 승격하지 않는다. 다음 게임에서도 같은 책임이 반복되거나 플랫폼 경계상 명백히 공통인 경우에만 shared 코드/계약을 확장하며, 그때 계약 테스트와 이 규칙 문서를 함께 갱신한다.
 
-Can’t Stop v1은 첫 production platform-native 기준 사례다. 따라서 그 구현 완료는 Game Platform 설계의 종료가 아니라 **첫 실전 데이터가 확보된 시점**이며, 다음 게임 구현에서 이 규칙의 일반성을 다시 검증한다.
-
 ### MUST: 모든 신규 게임 release 뒤 플랫폼 회고를 수행한다
 
 Game Platform 규칙은 한 번 완성하고 고정하는 규칙집이 아니다. 신규 platform-native 게임을 실제로 구현하고 출시할 때마다 **그 게임에서 드러난 구조적 마찰을 근거로 갱신하는 살아 있는 개발 기준**으로 유지한다.
@@ -302,11 +300,19 @@ Invite를 활성화한다면 shared `game_room` routing과 서버-side token 재
 
 전체 사람이 직접 플레이하는 exploratory smoke는 자동 검증을 대체하지 않는다. 반대로 자동/운영 계약이 충분히 검증된 상태에서 남은 위험이 presentation·브라우저 정책 같은 관찰 항목뿐이라면 해당 항목을 `Known Issues / Deferred`에 남기고 post-release에서 확인할 수 있다.
 
-## 6. Room / Lobby 계약
+## 6. Room / Session 계약
 
-온라인 platform-native 게임은 `defineRoomLobbyAdapter` 계약을 기준으로 Room/Lobby adapter를 제공한다.
+온라인 멀티플레이가 room/session 개념을 사용하는 경우 기존 shared Room/Lobby 계약을 우선 검토한다.
 
-현재 필수 메서드는 다음과 같다.
+플랫폼이 공통으로 보장해야 하는 책임은 특정 보드게임의 준비 방식이 아니라 다음과 같은 **세션 경계**다.
+
+- 세션 생성 또는 참가
+- 현재 사용자가 속한 활성 세션 확인
+- 권한이 적용된 authoritative snapshot 조회
+- 안전한 세션 이탈
+- 상태 변경을 감지해 snapshot refresh를 유도하는 invalidation 구독
+
+현재 `defineRoomLobbyAdapter` 구현은 다음 surface를 제공한다.
 
 ```text
 createRoom
@@ -319,19 +325,27 @@ startGame
 subscribeInvalidation
 ```
 
-각 메서드 내부 구현과 실제 RPC 이름은 게임별로 달라도 된다.
+`setReady`와 `startGame`은 현재 shared 구현에서 검증된 lifecycle이지만 **모든 미래 게임의 보편 규칙으로 간주하지 않는다.** 전원 ready가 없거나, 자동 시작하거나, host가 없거나, 다른 방식으로 세션이 시작되는 게임에 억지로 빈 메서드나 가짜 의미를 추가하지 않는다.
 
-MUST: 방 생성, 참가, 준비, 시작 같은 권한 판정은 서버 RPC가 최종 판단한다.
+새 게임의 자연스러운 lifecycle이 현재 adapter와 맞지 않으면:
+
+1. game-local workaround로 shared 계약을 우회하지 않는다.
+2. 현재 adapter를 그대로 강제하기 위해 의미 없는 method를 구현하지 않는다.
+3. 실제 반복 가능한 플랫폼 책임인지 검토한 뒤 shared 계약을 가장 작은 범위로 확장하거나 분리한다.
+4. 계약 변경 시 관련 contract test와 이 문서를 함께 갱신한다.
+
+현재 adapter를 그대로 사용하는 게임은 해당 surface 전체를 구현해야 하며, 각 메서드 내부 구현과 실제 RPC 이름은 게임별로 달라도 된다.
+
+MUST: 세션 생성/참가/준비/시작 등 상태 전이가 존재한다면 해당 권한과 조건은 서버가 최종 판단한다.
 
 MUST NOT: UI에서 버튼을 숨기거나 비활성화했다는 이유로 서버 권한 검증을 생략하지 않는다.
-
 ## 6A. 플레이어 닉네임 / 로비 정체성
 
-모든 platform-native 게임 로비에서 플레이어 닉네임은 **사이트 계정 프로필의 확정 닉네임**을 사용한다.
+사이트 계정으로 참가하는 platform-native 멀티플레이 게임에서 플레이어 표시 이름은 **사이트 계정 프로필의 확정 닉네임**을 사용한다.
 
-- MUST: 방 생성, 코드 참가, 초대 참가에서 현재 로그인 사용자의 프로필 닉네임을 사용한다.
+- MUST: 세션 생성/참가/초대 등 플레이어 identity가 확정되는 모든 진입 경로에서 현재 로그인 사용자의 프로필 닉네임을 사용한다.
 - MUST: 닉네임의 생성·변경·중복 검사는 마이페이지 등 사이트 공통 프로필 흐름에서만 수행한다.
-- MUST NOT: 게임 로비에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다.
+- MUST NOT: 게임별 entry/lobby 화면에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다.
 - MUST NOT: 게임 참가 요청의 임의 client payload를 authoritative 닉네임으로 신뢰하지 않는다.
 - SHOULD: 게임별 서버 RPC는 가능한 경우 `auth.uid()`에 연결된 프로필의 닉네임을 직접 조회해 room member 표시 이름을 확정한다.
 - 기존 호환성 때문에 RPC에 nickname 파라미터가 남아 있더라도 서버는 해당 값을 표시 이름의 권위로 사용하지 않는다.
@@ -432,20 +446,20 @@ MUST NOT: 공통 Shell을 이유로 게임 고유 보드, 카드, 주사위, 3D,
 
 ### MUST: 게임 규칙 안내
 
-- 로비 또는 게임 시작 전 화면에서 항상 **게임 규칙 보기**에 접근할 수 있어야 한다.
+- 사용자가 플레이를 시작하기 전에 접근 가능한 entry/setup 화면(로비가 있는 게임은 로비 포함)에서 항상 **게임 규칙 보기**에 접근할 수 있어야 한다.
 - 규칙 안내는 처음 플레이하는 사용자가 읽고 바로 플레이할 수 있을 정도로 목표, 구성요소, 턴 순서, 가능한 선택, 실패/패널티, 종료/승리 조건, 대표 예시를 충분히 설명한다.
 - 공개된 기존 보드게임은 공식 규칙서, 퍼블리셔 자료 또는 신뢰 가능한 규칙 출처를 먼저 확인하고 구현 규칙과 사용자 안내가 같은 해석을 사용해야 한다.
 - 규칙이 짧거나 중간 분량이면 modal/dialog를 사용할 수 있고, 내용이 길거나 예시·도표가 많으면 game-local 전용 규칙 페이지를 사용한다.
 - 규칙 원문을 장문 복제하지 않고 출처를 남긴 뒤 웹게임에 필요한 사실과 해석을 상세히 재구성한다.
-- 로비뿐 아니라 실제 플레이 중에도 규칙 안내를 다시 열 수 있는 경로를 유지하는 것을 기본값으로 한다.
+- 실제 플레이 중에도 규칙 안내를 다시 열 수 있는 경로를 유지하는 것을 기본값으로 한다.
 
 ### MUST: 게임 종료 / 세션 이탈
 
-- 모든 게임은 진행 중인 세션을 끝낼 수 있는 명시적 **게임 종료** 또는 이에 준하는 안전한 종료 경로를 제공한다.
+- 지속되는 플레이 세션을 갖는 게임은 진행 중인 세션을 끝낼 수 있는 명시적 **게임 종료** 또는 이에 준하는 안전한 종료 경로를 제공한다.
 - 온라인 멀티플레이에서 게임 전체를 종료하는 권한은 게임별로 명확히 정의하며, 다른 플레이어의 세션에 영향을 주는 종료는 서버가 최종 권한을 검증한다.
 - 파괴적 종료는 확인 modal/dialog를 거쳐 오조작을 방지한다.
 - 종료 후 모든 클라이언트가 authoritative snapshot 또는 명시적 terminal state로 동일한 결과를 복구할 수 있어야 한다.
-- 종료된 사용자가 active room/session에 영구히 묶이지 않도록 leave, rematch, lobby return 등 후속 경로를 정의한다.
+- 종료된 사용자가 active session에 영구히 묶이지 않도록 해당 게임에 필요한 leave, restart/rematch, entry return 등의 후속 경로를 정의한다.
 - 브라우저를 닫거나 단순히 다른 페이지로 이동하는 것을 authoritative 게임 종료로 간주하지 않는다.
 
 ## 11. Invite
@@ -493,7 +507,7 @@ tests/game-db-integration/<game-id>.test.js
 2. 미승인 회원의 create + join 차단
 3. 승인 회원의 create + join 허용
 4. non-member snapshot 차단
-5. non-host start 차단
+5. 게임 시작 조건/권한의 server-side 검증
 6. stale version 거부
 7. duplicate action 중복 적용 방지
 8. concurrent conflicting action의 single authoritative commit
@@ -546,12 +560,12 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 4. 첫 runtime 구현과 함께 Game Registry 등록
 5. Access Gate 연결
 6. 게임별 DB schema / RPC 설계
-7. Room/Lobby adapter 구현
-8. DB/Test Contract 연결
-9. authoritative snapshot 구현
-10. Versioned / Idempotent Action 연결
-11. Realtime invalidation + reconnect 연결
-12. Common Game Shell / player UI 연결
+7. Room/Session adapter 연결 (해당 lifecycle을 사용하는 경우)
+8. DB/Test Contract 연결 (online인 경우)
+9. authoritative snapshot 구현 (stateful online인 경우)
+10. Versioned / Idempotent Action 연결 (상태 변경 action이 있는 경우)
+11. Realtime invalidation + reconnect 연결 (online realtime을 사용하는 경우)
+12. Common Game Shell / player UI 연결 (필요한 공통 surface만)
 13. Invite 연결 (지원하는 경우)
 14. 게임 고유 UI / 애니메이션 / 연출 확장
 15. 멀티클라이언트 및 reconnect 회귀 검증
@@ -574,15 +588,15 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
 - [ ] 실제 구현된 capability만 선언되어 있다.
 - [ ] Approved Member / Access Gate를 사용한다.
-- [ ] Room/Lobby adapter 계약을 만족한다.
-- [ ] 게임 로비에는 닉네임 입력/변경 UI가 없고 사이트 프로필 닉네임을 사용한다.
+- [ ] room/session 기반 online 게임이라면 현재 shared adapter가 lifecycle에 맞는지 확인하고, 맞지 않으면 의미 없는 method를 추가하지 않고 계약 확장 여부를 검토했다.
+- [ ] 사이트 계정 기반 multiplayer라면 게임별 entry/lobby에서 닉네임을 따로 만들지 않고 사이트 프로필 닉네임을 사용한다.
 - [ ] 서버 RPC가 권한과 상태 전이를 최종 판정한다.
 - [ ] state-changing action이 version/idempotency 경계를 가진다.
 - [ ] snapshot version과 stale snapshot 방어가 있다.
 - [ ] Realtime은 invalidation으로만 사용한다.
 - [ ] reconnect가 authoritative snapshot으로 복원된다.
 - [ ] 구독/listener 정리 경로가 있다.
-- [ ] 로비 또는 시작 전 화면에서 상세 게임 규칙을 확인할 수 있고 플레이 중에도 다시 접근할 수 있다.
+- [ ] 플레이 시작 전 entry/setup 화면에서 상세 게임 규칙을 확인할 수 있고 플레이 중에도 다시 접근할 수 있다.
 - [ ] 진행 중 세션을 안전하게 끝낼 수 있는 게임 종료 경로와 종료 후 복구/이탈 흐름이 있다.
 - [ ] Common Game Shell 사용 여부와 게임-local UI 경계가 명확하다.
 - [ ] Invite를 제공한다면 `game_room` 계약을 사용한다.
