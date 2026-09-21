@@ -158,6 +158,7 @@ export async function renderHome() {
   if (installCard) root.append(installCard);
   root.append(lowerGrid, upcomingSection);
 
+  // Keep the in-progress AE gateway out of the regular member experience until launch.
   if (auth.isAdmin) {
     root.append(el("div", { className: "home-design-preview-link" }, [
       el("a", {
