@@ -20,6 +20,12 @@ function snapshot({
   status = "waiting",
   readyA = false,
   readyB = false,
+  activePlayerId = "host",
+  centerCounters = 0,
+  counters = 11,
+  gamePhase = status === "playing" ? "PLAYING" : null,
+  finalScores = null,
+  winners = [],
 } = {}) {
   return {
     version,
@@ -55,17 +61,20 @@ function snapshot({
     ],
     game: status === "playing"
       ? {
-        phase: "PLAYING",
+        phase: gamePhase,
         turnOrder: ["host", "guest-a", "guest-b"],
-        activePlayerId: "host",
-        currentCard: 17,
-        centerCounters: 0,
-        deckRemaining: 23,
+        activePlayerId,
+        currentCard: gamePhase === "GAME_OVER" ? null : 17,
+        centerCounters,
+        deckRemaining: gamePhase === "GAME_OVER" ? 0 : 23,
+        finalScores,
+        winners,
+        endReason: gamePhase === "GAME_OVER" ? "LAST_CARD_TAKEN" : null,
       }
       : null,
     viewer: {
       playerId: "guest-a",
-      counters: status === "playing" ? 11 : null,
+      counters: status === "playing" ? counters : null,
     },
   };
 }
@@ -153,9 +162,39 @@ function fakeAdapter({ activeSnapshot = null } = {}) {
   };
 }
 
-function createController(adapter) {
+function fakeGameplayAdapter({
+  refuseSnapshot = null,
+  takeSnapshot = null,
+} = {}) {
+  const calls = [];
+  return {
+    calls,
+    async refuseCard(input) {
+      calls.push(["refuseCard", input]);
+      return refuseSnapshot ?? snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        activePlayerId: "guest-b",
+        centerCounters: 1,
+        counters: 10,
+      });
+    },
+    async takeCard(input) {
+      calls.push(["takeCard", input]);
+      return takeSnapshot ?? snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        activePlayerId: "guest-a",
+        counters: 11,
+      });
+    },
+  };
+}
+
+function createController(adapter, gameplayAdapter = fakeGameplayAdapter()) {
   return createNoThanksLobbyController({
     adapter,
+    gameplayAdapter,
     idFactory: () => "action-1",
     windowTarget: new EventTarget(),
     documentTarget: new FakeDocument(),
@@ -292,4 +331,100 @@ test("No Thanks! ignores an older refresh that resolves after a newer command sn
 
   assert.equal(controller.current().snapshot.version, 2);
   assert.equal(controller.current().snapshot.players[1].isReady, true);
+});
+
+
+test("No Thanks! controller sends versioned refuse and take gameplay actions", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 8,
+      status: "playing",
+      activePlayerId: "guest-a",
+    }),
+  });
+  const gameplayAdapter = fakeGameplayAdapter({
+    refuseSnapshot: snapshot({
+      version: 9,
+      status: "playing",
+      activePlayerId: "guest-b",
+      centerCounters: 1,
+      counters: 10,
+    }),
+  });
+  const controller = createController(roomAdapter, gameplayAdapter);
+
+  await controller.initialize();
+  await controller.refuseCard();
+
+  assert.deepEqual(gameplayAdapter.calls[0], ["refuseCard", {
+    roomId: "room-1",
+    expectedVersion: 8,
+    clientActionId: "action-1",
+  }]);
+  assert.equal(controller.current().snapshot.version, 9);
+  assert.equal(controller.current().snapshot.game.centerCounters, 1);
+
+  controller.dispose();
+
+  const takeRoom = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 12,
+      status: "playing",
+      activePlayerId: "guest-a",
+      centerCounters: 2,
+    }),
+  });
+  const takeGameplay = fakeGameplayAdapter({
+    takeSnapshot: snapshot({
+      version: 13,
+      status: "playing",
+      activePlayerId: "guest-a",
+      centerCounters: 0,
+      counters: 13,
+    }),
+  });
+  const takeController = createController(takeRoom, takeGameplay);
+
+  await takeController.initialize();
+  await takeController.takeCard();
+
+  assert.deepEqual(takeGameplay.calls[0], ["takeCard", {
+    roomId: "room-1",
+    expectedVersion: 12,
+    clientActionId: "action-1",
+  }]);
+  assert.equal(takeController.current().snapshot.version, 13);
+  assert.equal(takeController.current().snapshot.game.activePlayerId, "guest-a");
+});
+
+test("No Thanks! controller enters the terminal result view from takeCard", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 20,
+      status: "playing",
+      activePlayerId: "guest-a",
+    }),
+  });
+  const gameplayAdapter = fakeGameplayAdapter({
+    takeSnapshot: snapshot({
+      version: 21,
+      status: "playing",
+      gamePhase: "GAME_OVER",
+      activePlayerId: "guest-a",
+      counters: 7,
+      finalScores: {
+        host: 15,
+        "guest-a": 8,
+        "guest-b": 8,
+      },
+      winners: ["guest-a", "guest-b"],
+    }),
+  });
+  const controller = createController(roomAdapter, gameplayAdapter);
+
+  await controller.initialize();
+  await controller.takeCard();
+
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.GAME_OVER);
+  assert.equal(controller.current().snapshot.game.phase, "GAME_OVER");
 });
