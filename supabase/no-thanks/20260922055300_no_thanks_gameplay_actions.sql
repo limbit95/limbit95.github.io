@@ -12,7 +12,7 @@ returns integer
 language sql
 immutable
 set search_path = ''
-as $
+as $$
   with ordered as (
     select
       card,
@@ -29,7 +29,7 @@ as $
     0
   )::integer
   from ordered;
-$;
+$$;
 
 create or replace function private.no_thanks_snapshot(
   p_room_id uuid,
@@ -40,7 +40,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_room public.no_thanks_rooms%rowtype;
   v_players jsonb;
@@ -128,7 +128,7 @@ begin
     )
   );
 end;
-$;
+$$;
 
 create or replace function public.no_thanks_play_action(
   p_room_id uuid,
