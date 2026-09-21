@@ -224,6 +224,14 @@ games/<game-id>/DEVELOPMENT.md
 
 한 게임에서만 필요한 예외를 위해 `games/shared/` API를 복잡하게 만들지 않는다.
 
+### MUST: 현재 플랫폼 규칙과 공통 가이드는 game-agnostic하게 유지한다
+
+Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는 경우를 제외하면, 현재 실행 규칙·공통 가이드·템플릿은 특정 platform-native 게임 이름, 경로, 상태 머신 또는 구현 세부사항을 신규 게임의 기준으로 삼지 않는다.
+
+- 신규 게임을 설명하는 예시는 `<game-id>`, `example-game` 같은 중립적인 placeholder를 사용한다.
+- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
+- 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
+- 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
 ### MUST: 출시 후 플랫폼 피드백 루프를 수행한다
 
 각 platform-native 게임을 출시한 뒤 구현 과정에서 나온 결정을 다음 세 종류로 다시 분류한다.
