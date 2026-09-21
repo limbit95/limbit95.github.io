@@ -12,7 +12,7 @@ returns integer
 language sql
 immutable
 set search_path = ''
-as $$
+as $
   with ordered as (
     select
       card,
@@ -29,7 +29,106 @@ as $$
     0
   )::integer
   from ordered;
-$$;
+$;
+
+create or replace function private.no_thanks_snapshot(
+  p_room_id uuid,
+  p_viewer_id uuid
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_room public.no_thanks_rooms%rowtype;
+  v_players jsonb;
+  v_counters jsonb;
+  v_viewer_counters integer;
+begin
+  if p_viewer_id is null or not private.is_approved_member() then
+    raise exception 'AUTH_REQUIRED';
+  end if;
+
+  if not exists (
+    select 1
+    from public.no_thanks_room_players as p
+    where p.room_id = p_room_id
+      and p.user_id = p_viewer_id
+      and p.membership_status = 'active'
+  ) then
+    raise exception 'ROOM_NOT_FOUND';
+  end if;
+
+  select *
+    into v_room
+  from public.no_thanks_rooms
+  where id = p_room_id;
+
+  if not found then
+    raise exception 'ROOM_NOT_FOUND';
+  end if;
+
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'userId', p.user_id,
+        'displayName', p.display_name,
+        'seat', p.seat,
+        'isReady', p.is_ready,
+        'cards', to_jsonb(p.cards)
+      )
+      order by p.seat
+    ),
+    '[]'::jsonb
+  )
+    into v_players
+  from public.no_thanks_room_players as p
+  where p.room_id = p_room_id
+    and (
+      p.membership_status = 'active'
+      or (
+        v_room.game_state ->> 'phase' = 'GAME_OVER'
+        and exists (
+          select 1
+          from jsonb_array_elements_text(
+            coalesce(v_room.game_state -> 'turnOrder', '[]'::jsonb)
+          ) as turn_player(player_id)
+          where turn_player.player_id = p.user_id::text
+        )
+      )
+    );
+
+  select s.player_counters
+    into v_counters
+  from public.no_thanks_room_private_state as s
+  where s.room_id = p_room_id;
+
+  if v_counters is not null and v_counters ? p_viewer_id::text then
+    v_viewer_counters := (v_counters ->> p_viewer_id::text)::integer;
+  else
+    v_viewer_counters := null;
+  end if;
+
+  return jsonb_build_object(
+    'version', v_room.version,
+    'room', jsonb_build_object(
+      'id', v_room.id,
+      'roomCode', v_room.room_code,
+      'hostUserId', v_room.host_user_id,
+      'status', v_room.status,
+      'maxPlayers', v_room.max_players
+    ),
+    'players', v_players,
+    'game', v_room.game_state,
+    'viewer', jsonb_build_object(
+      'playerId', p_viewer_id,
+      'counters', v_viewer_counters
+    )
+  );
+end;
+$;
 
 create or replace function public.no_thanks_play_action(
   p_room_id uuid,
