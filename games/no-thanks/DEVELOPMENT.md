@@ -5,14 +5,14 @@
 
 ## Current Status
 
-- Phase: 규칙 엔진
+- Phase: Access Gate + Common Game Shell
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase2-resume`
+- Active branch: `feature/no-thanks-game-phase3-shell`
 - 마지막 기록: 2026-09-21
 
 ## Completed
 
-- Game Platform 구조 개선 PR #345가 병합된 최신 `main` (`073d1fb7...`)을 기준으로 새 작업 브랜치를 만들고 기존 No Thanks!의 유효한 설계·규칙 엔진 작업만 다시 적용했습니다.
+- 규칙 엔진 재정렬 PR #347이 병합된 최신 `main` (`049493f8...`)을 기준으로 Phase 3 작업 브랜치를 생성했습니다.
 - 기존 #343/#344의 공통 foundation 전체 Registry 목록/개수 고정 변경은 새 Game Platform 규칙에 맞지 않아 가져오지 않았습니다.
 - 저장소 `AGENTS.md`와 게임 플랫폼 신규 게임 개발 규칙을 확인했습니다.
 - `games/shared/`의 공통 계약과 데이터베이스 통합 검증 계약을 확인했습니다.
@@ -34,18 +34,26 @@
 - 실행 코드가 시작됨에 따라 게임 등록부에 `no-thanks`를 등록했습니다.
 - No Thanks! Registry/capability 검증은 공통 foundation이 아니라 게임별 `tests/game-platform-no-thanks-registry.test.js`에서 수행하도록 새 구조에 맞췄습니다.
 - 아직 실제 제공 전이므로 `online`, `local`, `invite`, `presence` 기능은 모두 비활성 상태로 유지했습니다.
+- `games/no-thanks/index.html`에 신규 게임 전용 entry page를 추가하고 shared `game-shell.css`를 명시적으로 opt-in 했습니다.
+- `createGameAccessGate`를 사이트 `initializeAuth / getAuthState / subscribeAuth`와 연결해 로그인/승인회원 경계를 적용했습니다.
+- 승인된 사용자만 Common Game Shell을 볼 수 있고, 미로그인/미승인 사용자는 사이트 공통 로그인/승인 상태 화면으로 이동할 수 있게 했습니다.
+- 게임별 닉네임 입력을 만들지 않고 사이트 프로필의 `display_name`만 플레이어 표시 이름으로 사용하도록 연결했습니다.
+- 프로필 닉네임이 누락된 경우 임시 이름을 생성하지 않고 마이페이지 확인을 안내합니다.
+- 아직 방/로비 서버가 없으므로 방 생성·참가·게임 시작 기능을 노출하지 않고 준비 화면임을 명시했습니다.
+- 플레이 전과 화면 하단에서 다시 열 수 있는 No Thanks! 기본 규칙 dialog를 추가했습니다.
+- No Thanks! entry/shell 전용 정적 계약 테스트를 추가했습니다.
 
 ## Current Work
 
-- 최신 `main`의 관리자 대시보드 안정화 변경까지 동기화한 뒤 No Thanks! 규칙 엔진 소스와 Registry 테스트 책임을 다시 적용한 상태입니다.
+- 승인회원 Access Gate와 Common Game Shell의 최소 실행 화면 구현을 완료하고, 브랜치 검증과 PR 정리를 진행하는 단계입니다.
 
 ## Next Work
 
-1. 승인회원 접근 제어와 공통 게임 화면을 연결합니다.
-2. 최소 실행 화면과 로비 진입 구조를 만듭니다.
-3. 사이트 프로필 닉네임만 사용하도록 사용자 표시 경계를 연결합니다.
-4. 이후 방/로비 데이터베이스 및 RPC 기반 구조로 넘어갑니다.
-5. 서버에서 플레이 순서와 실제 24장 카드 구성을 생성하도록 구현합니다.
+1. 게임별 방/로비 DB schema와 RPC 경계를 설계합니다.
+2. 3~7명 세션 생성/참가와 승인회원 서버 권한 검증을 구현합니다.
+3. 서버에서 사이트 프로필 닉네임, 플레이 순서와 실제 24장 카드 구성을 확정하도록 구현합니다.
+4. 현재 shared Room/Lobby adapter가 No Thanks! lifecycle에 자연스럽게 맞는지 검토한 뒤 필요한 surface만 연결합니다.
+5. DB/Test Contract의 익명/미승인/create/join/snapshot 경계부터 단계적으로 검증합니다.
 
 ## Decisions
 
@@ -71,14 +79,24 @@
 - 게임 내부 닉네임 입력 또는 변경 기능: 제공하지 않음
 - 전체 게임 종료 권한: 방장만 가능
 - 게임 등록부 기능 상태: 현재 모두 비활성
+- Access Gate: shared `createGameAccessGate` 사용
+- 사용자 표시 이름: 사이트 프로필 `display_name`만 사용
+- Common Game Shell: shared `createGameShell` 사용
+- 현재 entry 단계의 플레이어 표시: 승인된 현재 사용자 1명만 접속 계정으로 표시
+- 방 생성/참가/게임 시작 UI: DB/RPC 구현 전에는 노출하지 않음
+- 게임 규칙 안내: game-local dialog로 제공하며 entry와 Shell action에서 다시 열 수 있음
 
 ## Validation
 
 - 완료:
-  - Game Platform 구조 개선 PR #345가 병합된 최신 `main` 커밋 `073d1fb74c86beab260bdd70df9358412340a4b9`에서 새 브랜치를 시작했습니다.
+  - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
   - Game Platform JavaScript syntax check, 사이트 ↔ `games/shared` module link check, `npm run test:game-platform`, Governance Guard가 모두 통과했습니다.
+  - Phase 3 PR #349에서 신규 `index.html / main.js / styles.css`의 JavaScript syntax와 module link 검증이 통과했습니다.
+  - `tests/game-platform-no-thanks-shell.test.js`를 포함한 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다.
+  - Access Gate의 인증 필요/승인 필요 사유를 runtime에서 명시적으로 분기하고 알 수 없는 접근 상태는 별도 오류 화면으로 처리하도록 보완했습니다.
+  - 최신 Phase 3 head의 Game Platform Governance Guard가 통과했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
@@ -95,12 +113,12 @@
 
 ## Known Issues / Deferred
 
-- 아직 승인회원 접근 제어와 실제 게임 화면은 연결하지 않았습니다.
+- 승인회원 접근 제어와 Common Game Shell 최소 화면은 연결했지만 아직 실제 방/로비와 플레이 화면은 없습니다.
 - 아직 방/로비 데이터베이스, RPC, 운영 환경 마이그레이션은 없습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 게임 진행 중 플레이어 이탈, 방장 이탈, 재대결 정책은 서버 권위 방/로비 설계 단계에서 확정합니다.
-- 현재 브랜치는 최신 Game Platform 기준으로 규칙 엔진 작업을 재개한 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 현재 브랜치는 Access Gate + Common Game Shell 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
