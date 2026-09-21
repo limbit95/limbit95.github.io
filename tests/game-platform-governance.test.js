@@ -52,6 +52,25 @@ function developmentDocument() {
   ].join("\n");
 }
 
+function releasedDevelopmentDocument({
+  activeBranch = "main",
+  includeRelease = true,
+} = {}) {
+  return [
+    "## Current Status",
+    "Phase: Phase 4",
+    "Status: RELEASED",
+    `Active branch: ${activeBranch}`,
+    "## Completed",
+    "## Current Work",
+    "## Next Work",
+    "## Decisions",
+    "## Validation",
+    "## Known Issues / Deferred",
+    ...(includeRelease ? ["## Release — 2026-09-21"] : []),
+  ].join("\n");
+}
+
 test("platform game path extraction excludes shared infrastructure", () => {
   assert.equal(platformGameIdFromPath("games/cant-stop/index.html"), "cant-stop");
   assert.equal(platformGameIdFromPath("games/shared/registry.js"), null);
@@ -129,6 +148,37 @@ test("repository state requires a development handoff document for each platform
     gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
     gameSpecDocuments: { "cant-stop": gameSpecDocument() },
     developmentDocuments: { "cant-stop": developmentDocument() },
+  }), []);
+});
+
+test("released platform games must point DEVELOPMENT.md at main and record release closeout", () => {
+  const base = {
+    gameDirectories: ["cant-stop"],
+    registry: [game({ id: "cant-stop", online: false })],
+    dbTestFiles: [],
+    gameFiles: { "cant-stop": ["DEVELOPMENT.md", "GAME_SPEC.md", "index.html"] },
+    gameSpecDocuments: { "cant-stop": gameSpecDocument() },
+  };
+
+  const staleBranch = validateRepositoryState({
+    ...base,
+    developmentDocuments: {
+      "cant-stop": releasedDevelopmentDocument({ activeBranch: "feature/cant-stop-release" }),
+    },
+  });
+  assert.match(staleBranch.join("\n"), /must set Active branch: main/u);
+
+  const missingRelease = validateRepositoryState({
+    ...base,
+    developmentDocuments: {
+      "cant-stop": `${releasedDevelopmentDocument({ includeRelease: false })}\n## Release Baseline`,
+    },
+  });
+  assert.match(missingRelease.join("\n"), /must record a dated ## Release/u);
+
+  assert.deepEqual(validateRepositoryState({
+    ...base,
+    developmentDocuments: { "cant-stop": releasedDevelopmentDocument() },
   }), []);
 });
 
@@ -252,6 +302,32 @@ test("Game Platform rules prohibit game-local nickname editing", () => {
     "utf8",
   );
 
-  assert.match(rules, /게임 로비에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다/u);
+  assert.match(rules, /게임별 entry\/lobby 화면에 닉네임 입력, 임시 닉네임, 게임별 닉네임 변경 UI를 제공하지 않는다/u);
   assert.match(rules, /프로필의 닉네임을 직접 조회/u);
+});
+
+test("core Game Platform rule documents remain game-agnostic", () => {
+  const rulePaths = [
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
+    path.join(repositoryRoot, "games", "GAME_SPEC_TEMPLATE.md"),
+  ];
+
+  for (const filename of rulePaths) {
+    const content = readFileSync(filename, "utf8");
+    assert.doesNotMatch(content, /Can[’']?t Stop|cant-stop/iu);
+  }
+});
+test("Game Platform rules codify release closeout and post-release feedback loop", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /Status: RELEASED/u);
+  assert.match(rules, /Active branch: main/u);
+  assert.match(rules, /출시 후 플랫폼 피드백 루프/u);
+  assert.match(rules, /모든 신규 게임 release 뒤 플랫폼 회고/u);
+  assert.match(rules, /게임 수가 늘어도 구조 이해 비용과 신규 개발 시간이 비례해서 증가하지 않도록/u);
+  assert.match(rules, /SHARED \/ GAME-LOCAL \/ RELEASE-OPERATIONS/u);
 });

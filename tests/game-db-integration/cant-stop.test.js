@@ -369,7 +369,7 @@ registerPlatformGameDbContract({
       expectDenied(result, "outsider cant_stop_get_lobby_snapshot", /ROOM_NOT_FOUND/u);
     },
 
-    non_host_start_denied: async () => {
+    start_authorization_enforced: async () => {
       const host = await createTestUser("start-host");
       const guest = await createTestUser("start-guest");
       const created = await createRoom(host);

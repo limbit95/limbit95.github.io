@@ -24,7 +24,7 @@ test("platform DB contract freezes the minimum multiplayer safety scenarios", ()
       "unapproved_entry_denied",
       "approved_entry_allowed",
       "non_member_snapshot_denied",
-      "non_host_start_denied",
+      "start_authorization_enforced",
       "stale_version_rejected",
       "duplicate_action_safe",
       "concurrent_action_single_commit",
@@ -41,7 +41,7 @@ test("platform DB contract requires every mandatory scenario", () => {
 
   assert.throws(
     () => definePlatformGameDbContract({
-      gameId: "cant-stop",
+      gameId: "example-game",
       createContext: async () => ({}),
       scenarios,
     }),
@@ -76,7 +76,7 @@ test("platform DB contract runner shares one disposable context across contract 
   };
 
   registerPlatformGameDbContract({
-    gameId: "cant-stop",
+    gameId: "example-game",
     async createContext() {
       lifecycle.push("create");
       return { roomId: "room-1" };
@@ -116,7 +116,7 @@ test("platform DB contract runner gives every scenario a stable game-scoped test
   const names = [];
 
   registerPlatformGameDbContract({
-    gameId: "cant-stop",
+    gameId: "example-game",
     createContext: async () => ({}),
     scenarios: completeScenarios(),
   }, {
@@ -128,5 +128,5 @@ test("platform DB contract runner gives every scenario a stable game-scoped test
   });
 
   assert.equal(names.length, PLATFORM_GAME_DB_SCENARIOS.length);
-  assert.ok(names.every((name) => name.startsWith("cant-stop: ")));
+  assert.ok(names.every((name) => name.startsWith("example-game: ")));
 });
