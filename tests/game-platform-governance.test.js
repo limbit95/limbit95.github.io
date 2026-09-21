@@ -326,6 +326,7 @@ test("platform document policy rejects platform-native game guidance in any curr
     documents: {
       "docs/game-platform-ui-rules.md": [
         "> **문서 분류:** CURRENT",
+        "현재 실행 규칙: docs/game-platform-development-rules.md",
         "sample-game 전용 구현을 모든 신규 게임의 기준으로 사용한다.",
       ].join("\n"),
       "games/NEW_GAME_GUIDE.md": "Sample Game 구현을 공통 기준으로 사용한다.",
