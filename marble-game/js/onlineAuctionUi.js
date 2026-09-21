@@ -1,6 +1,10 @@
+import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r2";
 import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260919-r13";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
+
+const BID_EVENT_HOLD_MS = 2200;
+const HIGHEST_BID_COUNT_MS = 700;
 
 function money(value) {
   return formatThemeMoney(value, CLASSIC_RULES.currency);
@@ -145,7 +149,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-online-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260921-r5", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260922-r1", import.meta.url).href;
   link.dataset.onlineAuctionStyle = "true";
   documentObject.head.append(link);
 }
@@ -327,51 +331,6 @@ function isPurchaseDeclineTarget(target) {
   return secondary?.dataset?.action === "decline";
 }
 
-function showAuctionUnsoldResult(documentObject, state, shownKeys) {
-  const event = state?.lastEvents?.find?.((candidate) => (
-    candidate.type === "AUCTION_VOTE_CLOSED"
-    && (candidate.participantPlayerIds?.length ?? 0) === 0
-  ));
-  if (!event) return;
-  const key = `unsold:${state.version ?? "v"}:${event.nodeId}`;
-  if (shownKeys.has(key)) return;
-  shownKeys.add(key);
-  const dialog = documentObject.createElement("dialog");
-  dialog.className = "auction-result-modal";
-  const title = documentObject.createElement("strong");
-  title.textContent = `${findNode(state, event.nodeId)?.label ?? event.nodeId} 경매가 유찰되었습니다`;
-  dialog.append(title);
-  documentObject.body?.append?.(dialog);
-  if (typeof dialog.showModal === "function") dialog.showModal();
-  else dialog.setAttribute("open", "");
-  globalThis.setTimeout?.(() => {
-    dialog.close?.();
-    dialog.remove();
-  }, 1800);
-}
-
-function showAutoPurchaseResult(documentObject, state, shownKeys, viewerPlayerId) {
-  const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_AUTO_PURCHASED");
-  if (!event || event.playerId !== viewerPlayerId) return;
-  const key = `${state.version ?? "v"}:${event.nodeId}:${event.playerId}:${event.amount}`;
-  if (shownKeys.has(key)) return;
-  shownKeys.add(key);
-  const dialog = documentObject.createElement("dialog");
-  dialog.className = "auction-result-modal";
-  const title = documentObject.createElement("strong");
-  title.textContent = "매입에 성공하셨습니다";
-  const detail = documentObject.createElement("p");
-  detail.textContent = `${playerName(findPlayer(state, event.playerId))} · ${findNode(state, event.nodeId)?.label ?? event.nodeId} · ${money(event.amount)}`;
-  dialog.append(title, detail);
-  documentObject.body?.append?.(dialog);
-  if (typeof dialog.showModal === "function") dialog.showModal();
-  else dialog.setAttribute("open", "");
-  globalThis.setTimeout?.(() => {
-    dialog.close?.();
-    dialog.remove();
-  }, 1800);
-}
-
 export function setupOnlineAuctionUi({
   roomId,
   session = getActiveOnlineClassicSession(roomId),
@@ -387,13 +346,15 @@ export function setupOnlineAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
+  elements.panel.addEventListener("pointerdown", prepareAuctionBidSound, { once: true });
   let disposed = false;
   let busy = false;
   let errorText = "";
   let deadlineTimer = null;
   let tickerTimer = null;
   let bidEventTimer = null;
-  const shownResultKeys = new Set();
+  let highestBidAnimationFrame = null;
+  let displayedHighestBid = null;
   const shownBidEventKeys = new Set();
 
   function nowMs() {
@@ -417,19 +378,68 @@ export function setupOnlineAuctionUi({
     shownBidEventKeys.add(key);
 
     const player = findPlayer(state, event.playerId);
-    elements.bidEventPlayer.textContent = `${playerName(player)} 입찰!`;
+    elements.bidEventPlayer.textContent = playerName(player);
     elements.bidEventAmount.textContent = money(event.amount);
     elements.bidEvent.hidden = false;
     elements.bidEvent.dataset.active = "false";
     void elements.bidEvent.offsetWidth;
     elements.bidEvent.dataset.active = "true";
+    playAuctionBidSound();
 
     if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
     bidEventTimer = setTimeoutFn?.(() => {
       bidEventTimer = null;
       elements.bidEvent.dataset.active = "false";
       elements.bidEvent.hidden = true;
-    }, 1250) ?? null;
+    }, BID_EVENT_HOLD_MS) ?? null;
+  }
+
+  function cancelHighestBidAnimation({ reset = false } = {}) {
+    if (highestBidAnimationFrame !== null && typeof globalThis.cancelAnimationFrame === "function") {
+      globalThis.cancelAnimationFrame(highestBidAnimationFrame);
+    }
+    highestBidAnimationFrame = null;
+    elements.primaryMetricValue.dataset.counting = "false";
+    if (reset) displayedHighestBid = null;
+  }
+
+  function renderHighestBid(value) {
+    const target = Number(value) || 0;
+    if (displayedHighestBid === null) {
+      displayedHighestBid = target;
+      elements.primaryMetricValue.textContent = money(target);
+      elements.primaryMetricValue.dataset.counting = "false";
+      return;
+    }
+    if (displayedHighestBid === target) return;
+
+    const startValue = displayedHighestBid;
+    displayedHighestBid = target;
+    cancelHighestBidAnimation();
+
+    const reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches === true;
+    if (target <= startValue || reduceMotion || typeof globalThis.requestAnimationFrame !== "function") {
+      elements.primaryMetricValue.textContent = money(target);
+      return;
+    }
+
+    elements.primaryMetricValue.dataset.counting = "true";
+    let startedAt = null;
+    const frame = (timestamp) => {
+      if (startedAt === null) startedAt = Number(timestamp);
+      const progress = Math.min(1, Math.max(0, (Number(timestamp) - startedAt) / HIGHEST_BID_COUNT_MS));
+      const eased = 1 - ((1 - progress) ** 3);
+      const currentValue = Math.round(startValue + ((target - startValue) * eased));
+      elements.primaryMetricValue.textContent = money(currentValue);
+      if (progress < 1) {
+        highestBidAnimationFrame = globalThis.requestAnimationFrame(frame);
+        return;
+      }
+      highestBidAnimationFrame = null;
+      elements.primaryMetricValue.textContent = money(target);
+      elements.primaryMetricValue.dataset.counting = "false";
+    };
+    highestBidAnimationFrame = globalThis.requestAnimationFrame(frame);
   }
 
   function updateTimer(model) {
@@ -465,12 +475,11 @@ export function setupOnlineAuctionUi({
 
   function render(state = session.getState()) {
     if (disposed) return;
-    showAuctionUnsoldResult(documentObject, state, shownResultKeys);
-    showAutoPurchaseResult(documentObject, state, shownResultKeys, session.getViewerPlayerId());
     showBidEvent(state);
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
     if (!model) {
       clearTimers();
+      cancelHighestBidAnimation({ reset: true });
       elements.panel.hidden = true;
       elements.panel.dataset.auctionStage = "";
       return;
@@ -490,6 +499,7 @@ export function setupOnlineAuctionUi({
     if (model.stage === "vote") {
       elements.badge.textContent = "경매 참가 투표";
       elements.status.textContent = errorText || "참가 또는 포기를 한 번만 선택할 수 있습니다";
+      cancelHighestBidAnimation({ reset: true });
       elements.primaryMetricLabel.textContent = "경매 시작가";
       elements.primaryMetricValue.textContent = money(model.openingBid);
       elements.secondaryMetricLabel.textContent = "내 보유 골드";
@@ -514,7 +524,7 @@ export function setupOnlineAuctionUi({
     } else {
       elements.badge.textContent = "경매 진행";
       elements.primaryMetricLabel.textContent = "현재 최고가";
-      elements.primaryMetricValue.textContent = money(model.highestBid);
+      renderHighestBid(model.highestBid);
       elements.secondaryMetricLabel.textContent = "다음 최소 입찰가";
       elements.secondaryMetricValue.textContent = money(model.minimumBid);
       elements.bidRow.hidden = !model.participant;
@@ -623,6 +633,7 @@ export function setupOnlineAuctionUi({
   return () => {
     disposed = true;
     clearTimers();
+    cancelHighestBidAnimation({ reset: true });
     if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
     unsubscribeState?.();
     documentObject.removeEventListener("click", handlePurchaseDecline, true);

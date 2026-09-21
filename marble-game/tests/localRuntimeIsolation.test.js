@@ -28,9 +28,9 @@ test("local play does not evaluate multiplayer or online lifecycle modules", asy
 
   assert.equal(mode, "local-play");
   assert.deepEqual(imports, [
-    "./app.js?v=20260921-r15",
+    "./app.js?v=20260922-r2",
     "./diceCharge.js?v=20260910-r7",
-    "./playWindow.js?v=20260921-r15",
+    "./playWindow.js?v=20260922-r2",
     "./ownershipVisualLoader.js?v=20260910-r10",
   ]);
   assert.equal(imports.some((specifier) => specifier.includes("multiplayerLobby")), false);

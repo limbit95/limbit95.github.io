@@ -57,7 +57,7 @@ if (onlineRoomId) {
 
   const OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
   const MOVE_COUNT_HOLD_MS = 1200;
-  const TURN_RESULT_HOLD_MS = 1800;
+  const TURN_RESULT_HOLD_MS = 2400;
   const OTHER_HUD_SLOTS = Object.freeze(["top-left", "top-right", "bottom-left"]);
   let session = null;
   let threeRenderer = null;
@@ -436,7 +436,9 @@ if (onlineRoomId) {
       if (event.type === "PROPERTY_BOUGHT") {
         const player = state.players.find((candidate) => candidate.id === event.playerId);
         const node = findNode(state, event.nodeId);
-        text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
+        text = event.reason === "AUCTION"
+          ? `${playerName(player)}이(가) ${node?.label ?? event.nodeId}을(를) ${money(event.amount)}에 낙찰받았습니다.`
+          : `${playerName(player)}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
         break;
       }
       if (event.type === "PROPERTY_BUILT") {
@@ -449,6 +451,45 @@ if (onlineRoomId) {
         const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
         const node = findNode(state, event.nodeId);
         text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매를 시작합니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_JOINED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = `${playerName(player)}이(가) 경매 참가를 선택했습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_PASSED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = `${playerName(player)}이(가) 경매 참가를 포기했습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_AUTO_PASSED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = event.reason === "TIMEOUT"
+          ? `${playerName(player)}이(가) 시간 내 응답하지 않아 경매 참가를 포기했습니다.`
+          : `${playerName(player)}이(가) 경매 참가에서 제외되었습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
+        const node = findNode(state, event.nodeId);
+        text = `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_STARTED") {
+        const node = findNode(state, event.nodeId);
+        text = `${node?.label ?? event.nodeId} 경매가 시작되었습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_PASSED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = `${playerName(player)}이(가) 입찰을 포기했습니다.`;
+        break;
+      }
+      if (event.type === "AUCTION_AUTO_PASSED") {
+        const player = state.players.find((candidate) => candidate.id === event.playerId);
+        text = event.reason === "INSUFFICIENT_GOLD"
+          ? `${playerName(player)}이(가) 보유 골드 부족으로 경매에서 제외되었습니다.`
+          : `${playerName(player)}이(가) 입찰 시간을 초과해 경매에서 제외되었습니다.`;
         break;
       }
       if (event.type === "CHOICE_DECLINED") {

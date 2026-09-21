@@ -7,6 +7,7 @@ const online2dSource = readFileSync(new URL("../js/onlineGameController2d.js", i
 const localSource = readFileSync(new URL("../js/app.js", import.meta.url), "utf8");
 const onlineAuctionUiSource = readFileSync(new URL("../js/onlineAuctionUi.js", import.meta.url), "utf8");
 const localAuctionUiSource = readFileSync(new URL("../js/localAuctionUi.js", import.meta.url), "utf8");
+const auctionCssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
 
 test("TURN_END is presentation-driven and no longer exposes a manual next-turn button", () => {
   for (const source of [onlineSource, online2dSource, localSource]) {
@@ -17,30 +18,37 @@ test("TURN_END is presentation-driven and no longer exposes a manual next-turn b
 });
 
 test("online controller advances the authoritative turn after the result hold", () => {
-  assert.match(onlineSource, /TURN_RESULT_HOLD_MS = 1800/);
+  assert.match(onlineSource, /TURN_RESULT_HOLD_MS = 2400/);
   assert.match(onlineSource, /async function maybeAutoAdvanceTurn\(state\)/);
   assert.match(onlineSource, /autoAdvancedTurnVersion === state\.version/);
   assert.match(onlineSource, /await session\.endTurn\(\)/);
   assert.match(onlineSource, /latest\.version !== state\.version/);
 });
 
-test("purchase, build, and auction decline results keep using the shared board notice", () => {
-  assert.match(onlineSource, /event\.type === "PROPERTY_BOUGHT"/);
-  assert.match(onlineSource, /구입했습니다/);
-  assert.match(onlineSource, /event\.type === "PROPERTY_BUILT"/);
-  assert.match(onlineSource, /건물을 건설했습니다/);
-  assert.match(onlineSource, /event\.type === "AUCTION_VOTE_OPENED"/);
-  assert.match(onlineSource, /구입을 포기했습니다/);
-  assert.doesNotMatch(onlineSource, /경매가 유찰되었습니다/);
-  assert.doesNotMatch(localSource, /경매가 유찰되었습니다/);
-});
-
-test("unsold Auction result is presented in the centered Auction result modal", () => {
-  for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
-    assert.match(source, /showAuctionUnsoldResult/);
-    assert.match(source, /auction-result-modal/);
+test("purchase and Auction lifecycle results use the shared board notice", () => {
+  for (const source of [onlineSource, localSource]) {
+    assert.match(source, /event\.type === "PROPERTY_BOUGHT"/);
+    assert.match(source, /event\.type === "PROPERTY_BUILT"/);
+    assert.match(source, /event\.type === "AUCTION_VOTE_OPENED"/);
+    assert.match(source, /event\.type === "AUCTION_VOTE_JOINED"/);
+    assert.match(source, /event\.type === "AUCTION_VOTE_PASSED"/);
+    assert.match(source, /event\.type === "AUCTION_VOTE_CLOSED"/);
+    assert.match(source, /event\.type === "AUCTION_STARTED"/);
+    assert.match(source, /event\.type === "AUCTION_PASSED"/);
+    assert.match(source, /event\.type === "AUCTION_AUTO_PASSED"/);
     assert.match(source, /경매가 유찰되었습니다/);
   }
+});
+
+test("shared result notice stays centered without an Auction dialog backdrop", () => {
+  for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
+    assert.doesNotMatch(source, /showAuctionUnsoldResult/);
+    assert.doesNotMatch(source, /auction-result-modal/);
+  }
+  assert.match(auctionCssSource, /\.important-notice,[\s\S]*top: 50%/);
+  assert.match(auctionCssSource, /transform: translate\(-50%, -50%\)/);
+  assert.match(auctionCssSource, /backdrop-filter: none/);
+  assert.doesNotMatch(auctionCssSource, /auction-result-modal::backdrop/);
 });
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
