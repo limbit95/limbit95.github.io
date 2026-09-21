@@ -18,16 +18,13 @@
 - Phase 완료 시와 사용자가 중간 checkpoint 기록을 요청할 때 `DEVELOPMENT.md`를 갱신합니다.
 - 게임 규칙, 턴 상태 머신, 승패 조건, 게임별 애니메이션은 각 게임에 남겨 둡니다.
 
-## Released reference game
+## Released game lifecycle
 
-Can’t Stop(`games/cant-stop/`)은 Game Platform 기반으로 처음부터 구현해 production까지 출시한 첫 platform-native 기준 사례입니다.
+출시가 끝난 platform-native 게임의 `DEVELOPMENT.md`는 `Status: RELEASED`, `Active branch: main`과 날짜가 있는 release 기록을 유지합니다.
 
-- `GAME_SPEC.md`: v1의 규칙/권위/플랫폼 경계 기준
-- `DEVELOPMENT.md`: `RELEASED / main` 기준 release baseline과 유지보수 인수인계
-- `tests/game-db-integration/cant-stop.test.js`: Phase 3E DB/Test Contract의 첫 실제 소비 사례
+후속 수정은 종료된 feature 브랜치를 재사용하지 않고 최신 `main`에서 새 브랜치로 시작합니다. 구현 중 발견한 플랫폼 교훈은 [Game Platform Development Rules](../docs/game-platform-development-rules.md)의 release feedback loop에 따라 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 다시 분류합니다.
 
-출시가 끝난 게임의 `DEVELOPMENT.md`는 과거 feature 브랜치를 active branch로 남기지 않습니다. 후속 수정은 최신 `main`에서 새 브랜치로 시작하며, 구현 중 발견한 플랫폼 교훈은 [Game Platform Development Rules](../docs/game-platform-development-rules.md)의 release feedback loop에 따라 다시 분류합니다.
-
+특정 platform-native 게임의 구현을 다른 신규 게임의 기준 사례로 삼지 않습니다. 현재 공통 계약과 규칙 문서, 템플릿을 기준으로 시작하고 게임별 구현은 해당 게임 디렉터리 안의 `GAME_SPEC.md`와 `DEVELOPMENT.md`에서만 정의합니다.
 ## Phase 3 foundation
 
 - `registry.js`: 게임 메타데이터와 capability Registry
