@@ -1,0 +1,222 @@
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(159, 207, 223, .22), transparent 30rem),
+    var(--forest-050);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.no-thanks-app {
+  min-height: 100vh;
+}
+
+.no-thanks-loading,
+.no-thanks-access {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.no-thanks-loading {
+  align-content: center;
+  gap: .8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.no-thanks-access__card {
+  width: min(100%, 520px);
+  display: grid;
+  gap: .8rem;
+  padding: clamp(1.4rem, 5vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.no-thanks-access__eyebrow,
+.no-thanks-entry__eyebrow,
+.no-thanks-rules__eyebrow {
+  margin: 0;
+  color: var(--coral-700);
+  font-size: .78rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.no-thanks-access__title,
+.no-thanks-access__message,
+.no-thanks-entry h2,
+.no-thanks-entry p,
+.no-thanks-note h2,
+.no-thanks-note p,
+.no-thanks-rules h2,
+.no-thanks-rules h3,
+.no-thanks-rules p,
+.no-thanks-rules ul {
+  margin: 0;
+}
+
+.no-thanks-access__title {
+  color: var(--forest-900);
+  font-size: clamp(1.55rem, 5vw, 2rem);
+}
+
+.no-thanks-access__message {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.no-thanks-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin-top: .3rem;
+}
+
+.no-thanks-entry {
+  min-height: min(58vh, 560px);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.no-thanks-entry__card {
+  width: clamp(120px, 28vw, 176px);
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  border: 8px solid #fff;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #a9d4e2, #6fa6b9);
+  box-shadow: 0 18px 42px rgba(72, 104, 117, .18);
+  color: #fff;
+  font-size: clamp(3.6rem, 12vw, 5.8rem);
+  font-weight: 950;
+}
+
+.no-thanks-entry__copy {
+  width: min(100%, 620px);
+  display: grid;
+  justify-items: center;
+  gap: .75rem;
+}
+
+.no-thanks-entry__copy h2 {
+  color: var(--forest-900);
+  font-size: clamp(1.25rem, 4vw, 1.7rem);
+}
+
+.no-thanks-entry__copy p {
+  color: var(--muted);
+  line-height: 1.75;
+}
+
+.no-thanks-note {
+  padding: 1rem;
+  display: grid;
+  gap: .5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.no-thanks-note h2 {
+  color: var(--forest-900);
+  font-size: 1rem;
+}
+
+.no-thanks-note p {
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.65;
+}
+
+.no-thanks-rules {
+  width: min(calc(100% - 2rem), 680px);
+  max-height: min(82vh, 780px);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(35, 55, 62, .24);
+}
+
+.no-thanks-rules::backdrop {
+  background: rgba(35, 55, 62, .48);
+  backdrop-filter: blur(3px);
+}
+
+.no-thanks-rules__content {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 4vw, 1.5rem);
+}
+
+.no-thanks-rules__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.no-thanks-rules__header > div {
+  display: grid;
+  gap: .25rem;
+}
+
+.no-thanks-rules__title {
+  color: var(--forest-900);
+  font-size: 1.45rem;
+}
+
+.no-thanks-rules__body {
+  display: grid;
+  gap: 1.2rem;
+  overflow-y: auto;
+  padding-right: .25rem;
+}
+
+.no-thanks-rules__body section {
+  display: grid;
+  gap: .45rem;
+}
+
+.no-thanks-rules__body h3 {
+  color: var(--forest-900);
+  font-size: 1rem;
+}
+
+.no-thanks-rules__body p,
+.no-thanks-rules__body li {
+  line-height: 1.7;
+}
+
+.no-thanks-rules__body ul {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: .35rem;
+}
+
+@media (max-width: 640px) {
+  .no-thanks-access__actions > * {
+    width: 100%;
+  }
+
+  .no-thanks-rules__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

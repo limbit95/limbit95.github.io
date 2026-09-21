@@ -1,31 +1,94 @@
 import { listCategories } from "../../api/activities.js";
 import {
-  listAllMembers,
-  listCategoryManagers,
+  listCategoryManagerAssignments,
+  listCategoryManagerCandidates,
   setCategoryManager,
 } from "../../api/admin.js";
 import { confirmDialog } from "../../components/modal.js";
 import { showToast } from "../../components/toast.js";
 import { el, formatDate, getErrorMessage, setBusy } from "../../ui.js";
 
+const CANDIDATE_LIMIT = 20;
+
 export async function renderManagers() {
-  const [membersRows, categoriesRows, managerRows] = await Promise.all([
-    listAllMembers(),
-    listCategories({ activeOnly: true }),
-    listCategoryManagers(),
+  const [candidateRows, categoriesRows, managerRows] = await Promise.all([
+    listCategoryManagerCandidates({ limit: CANDIDATE_LIMIT }),
+    listCategories(),
+    listCategoryManagerAssignments(),
   ]);
-  const approvedMembers = membersRows.filter((member) => member.status === "approved");
+  const activeCategories = categoriesRows.filter((category) => category.is_active);
+  const categoryMap = new Map(categoriesRows.map((category) => [Number(category.id), category]));
   const form = el("form", { className: "card form-grid form-grid--2" });
-  const memberSelect = el("select", { name: "user_id", required: true }, approvedMembers.map((member) => el("option", {
-    value: member.id,
-    text: `${member.display_name} (${member.join_request?.email ?? "이메일 없음"})`,
-  })));
-  const categorySelect = el("select", { name: "category_id", required: true }, categoriesRows.map((category) => el("option", {
+  const memberSearch = el("input", {
+    type: "search",
+    placeholder: "회원 검색",
+    "aria-label": "담당자 회원 검색",
+  });
+  const memberSelect = el("select", {
+    name: "user_id",
+    required: true,
+    "aria-label": "담당자 회원 선택",
+  });
+  const categorySelect = el("select", { name: "category_id", required: true }, activeCategories.map((category) => el("option", {
     value: category.id,
     text: `${category.icon} ${category.name}`,
   })));
+  let candidateSequence = 0;
+  let searchTimer = null;
+
+  const renderCandidateOptions = (rows, emptyText = "검색 결과가 없습니다.") => {
+    memberSelect.replaceChildren();
+    if (!rows.length) {
+      memberSelect.append(el("option", {
+        value: "",
+        text: emptyText,
+        selected: true,
+        disabled: true,
+      }));
+      memberSelect.disabled = true;
+      return;
+    }
+    memberSelect.disabled = false;
+    rows.forEach((member) => {
+      memberSelect.append(el("option", {
+        value: member.id,
+        text: member.email
+          ? `${member.display_name} (${member.email})`
+          : member.display_name,
+      }));
+    });
+  };
+
+  const loadCandidates = async () => {
+    const sequence = ++candidateSequence;
+    memberSelect.disabled = true;
+    memberSelect.replaceChildren(el("option", {
+      value: "",
+      text: "회원을 검색하는 중입니다…",
+      selected: true,
+      disabled: true,
+    }));
+    try {
+      const rows = await listCategoryManagerCandidates({
+        search: memberSearch.value,
+        limit: CANDIDATE_LIMIT,
+      });
+      if (sequence !== candidateSequence) return;
+      renderCandidateOptions(rows);
+    } catch (error) {
+      if (sequence !== candidateSequence) return;
+      renderCandidateOptions([], getErrorMessage(error, "회원 검색에 실패했습니다."));
+    }
+  };
+
+  renderCandidateOptions(candidateRows);
+  memberSearch.addEventListener("input", () => {
+    if (searchTimer) window.clearTimeout(searchTimer);
+    searchTimer = window.setTimeout(loadCandidates, 250);
+  });
+
   form.append(
-    labeled("회원", memberSelect),
+    memberField(memberSearch, memberSelect),
     labeled("담당 카테고리", categorySelect),
     el("div", { className: "form-actions field--full" }, [
       el("button", { className: "button button--coral", type: "submit", text: "담당자 지정" }),
@@ -33,6 +96,7 @@ export async function renderManagers() {
   );
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!memberSelect.value || !categorySelect.value) return;
     setBusy(form, true, "지정 중…");
     try {
       await setCategoryManager(memberSelect.value, categorySelect.value, true);
@@ -55,9 +119,10 @@ export async function renderManagers() {
   } else {
     const tableBody = el("tbody");
     managerRows.forEach((manager) => {
+      const category = categoryMap.get(Number(manager.category_id));
       tableBody.append(el("tr", {}, [
         el("td", { text: manager.profile?.display_name ?? "회원" }),
-        el("td", { text: `${manager.category?.icon ?? "🌿"} ${manager.category?.name ?? "카테고리"}` }),
+        el("td", { text: `${category?.icon ?? "🌿"} ${category?.name ?? "카테고리"}` }),
         el("td", { text: formatDate(manager.created_at, { weekday: false }) }),
         el("td", {}, actionButton("지정 해제", "button button--ghost", async () => {
           const confirmed = await confirmDialog({
@@ -92,6 +157,17 @@ export async function renderManagers() {
 
 function actionButton(text, className, handler) {
   return el("button", { className, type: "button", text, onClick: handler });
+}
+
+function memberField(search, select) {
+  const id = `admin-${crypto.randomUUID()}`;
+  search.id = id;
+  return el("div", { className: "field" }, [
+    el("label", { for: id, text: "회원" }),
+    search,
+    select,
+    el("span", { className: "small subtle", text: "승인 회원을 검색해 선택하세요." }),
+  ]);
 }
 
 function labeled(label, control) {

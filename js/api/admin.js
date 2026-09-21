@@ -2,21 +2,43 @@ import { listCategories } from "./activities.js";
 import { getPublicProfiles } from "./profiles.js";
 import { supabase, unwrap } from "./shared.js";
 
-export async function listCategoryManagers() {
+export async function listCategoryManagerAssignments() {
   const managers = unwrap(await supabase
     .from("category_managers")
     .select("category_id,user_id,created_at,created_by")
     .order("created_at", { ascending: false })) ?? [];
-  const [profiles, categories] = await Promise.all([
-    getPublicProfiles(managers.map((manager) => manager.user_id)),
-    listCategories(),
-  ]);
+  if (!managers.length) return [];
+
+  const profiles = await getPublicProfiles(managers.map((manager) => manager.user_id));
   const profileMap = new Map(profiles.map((profile) => [profile.id, profile]));
-  const categoryMap = new Map(categories.map((category) => [Number(category.id), category]));
   return managers.map((manager) => ({
     ...manager,
     profile: profileMap.get(manager.user_id) ?? null,
+  }));
+}
+
+export async function listCategoryManagers() {
+  const [managers, categories] = await Promise.all([
+    listCategoryManagerAssignments(),
+    listCategories(),
+  ]);
+  const categoryMap = new Map(categories.map((category) => [Number(category.id), category]));
+  return managers.map((manager) => ({
+    ...manager,
     category: categoryMap.get(Number(manager.category_id)) ?? null,
+  }));
+}
+
+export async function listCategoryManagerCandidates({ search = "", limit = 20 } = {}) {
+  const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
+  const rows = unwrap(await supabase.rpc("admin_list_category_manager_candidates", {
+    p_search: search.trim() || null,
+    p_limit: safeLimit,
+  })) ?? [];
+  return rows.map((row) => ({
+    id: row.id,
+    display_name: row.display_name,
+    email: row.email ?? null,
   }));
 }
 
