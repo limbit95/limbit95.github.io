@@ -532,6 +532,38 @@ test("no-thanks gameplay: only the active player can refuse and replay is idempo
   assert.equal(replay.game.activePlayerId, refused.game.activePlayerId);
 });
 
+test("no-thanks gameplay: concurrent duplicate retries converge on one snapshot", async () => {
+  const room = await startGame("gameplay-duplicate-concurrent");
+  const actor = playerById(room, room.started.game.activePlayerId);
+  const clientActionId = randomUUID();
+  const body = {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: clientActionId,
+  };
+
+  const [first, second] = await Promise.all([
+    rpc("no_thanks_play_action", body, actor.accessToken),
+    rpc("no_thanks_play_action", body, actor.accessToken),
+  ]);
+
+  const firstSnapshot = await expectOk(first, "first concurrent duplicate refuse");
+  const secondSnapshot = await expectOk(second, "second concurrent duplicate refuse");
+
+  assert.equal(Number(firstSnapshot.version), Number(room.started.version) + 1);
+  assert.equal(Number(secondSnapshot.version), Number(firstSnapshot.version));
+  assert.equal(firstSnapshot.game.centerCounters, 1);
+  assert.equal(secondSnapshot.game.centerCounters, 1);
+  assert.equal(secondSnapshot.game.activePlayerId, firstSnapshot.game.activePlayerId);
+
+  const authoritative = await expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: room.started.room.id,
+  }, actor.accessToken), "snapshot after concurrent duplicate refuse");
+  assert.equal(Number(authoritative.version), Number(firstSnapshot.version));
+  assert.equal(authoritative.game.centerCounters, 1);
+});
+
 test("no-thanks gameplay: taking a card collects center counters and keeps the turn", async () => {
   const room = await startGame("gameplay-take");
   const firstCard = room.started.game.currentCard;
