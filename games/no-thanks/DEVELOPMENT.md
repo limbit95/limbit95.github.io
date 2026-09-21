@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Server-authoritative gameplay actions
+- Phase: Multiplayer stability and reconnect
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase6-gameplay-actions`
+- Active branch: `feature/no-thanks-game-phase7-multiplayer-stability`
 - 마지막 기록: 2026-09-22
 
 ## Completed
@@ -79,17 +79,29 @@
 - gameplay adapter/controller/runtime/shell 정적 테스트와 disposable Supabase gameplay DB integration 시나리오를 추가했습니다.
 - 동일 `client_action_id` gameplay 요청이 동시에 두 번 도착하는 경우에도 room lock 획득 후 action row를 다시 확인해 첫 authoritative snapshot으로 수렴하도록 idempotency 경계를 보강했습니다.
 - concurrent duplicate retry가 둘 다 동일 snapshot을 반환하고 room version은 한 번만 증가하는 disposable DB integration 회귀 테스트를 추가했습니다.
+- 최신 `main` 커밋 `20bdc844d5bf3012dad38146814a09ae6e057257`에서 Phase 7 안정화 브랜치를 생성했습니다.
+- Supabase Realtime Presence를 사용하는 game-local `createNoThanksPresenceAdapter`를 추가했습니다.
+- Presence key는 브라우저 client 단위로 생성하고 payload에는 `userId / onlineAt`만 전송해 게임 상태나 비공개 칩 정보를 싣지 않도록 했습니다.
+- 같은 사용자가 여러 탭으로 접속한 경우 Presence state를 user id 기준으로 합쳐 한 명의 온라인 사용자로 표시하도록 구현했습니다.
+- Presence는 온라인/오프라인 UI 표시 전용이며 ready/start/turn/action 권한의 authoritative 조건에는 사용하지 않도록 분리했습니다.
+- 브라우저 `offline` 이벤트에서는 게임 상태를 변경하지 않고 connection banner만 오프라인으로 전환하며, `online / pageshow / visibility` 복귀 시 기존 shared reconnect refresh 경로로 authoritative snapshot을 다시 조회합니다.
+- 브라우저 종료·네트워크 단절 시 membership/turn/host 권한을 유지하고 재접속 시 기존 active room snapshot으로 복원하는 정책을 확정했습니다.
+- 방장이 연결을 잃어도 자동 방장 위임이나 자동 게임 종료를 하지 않고, 현재 차례 플레이어가 끊겨도 turn을 유지해 재접속 후 이어서 진행하도록 UI 안내를 추가했습니다.
+- roster에 Presence 기반 `재접속 대기` 상태와 현재 차례 표시를 연결했습니다.
+- 재대결은 terminal state를 같은 room에서 reset하지 않고, 방장이 결과방을 닫은 뒤 같은 최대 인원의 새 방을 만드는 방식으로 확정했습니다.
+- 새 게임 방 생성 시 기존 참가자는 새 방 코드로 다시 참가하도록 명시해 오래된 action/version/private state가 재사용되지 않도록 했습니다.
+- Presence lifecycle, 다중 탭 user merge, offline→online refresh, result-room→fresh-room 재대결 정책에 대한 회귀 테스트를 추가했습니다.
 
 ## Current Work
 
-- Phase 6 server-authoritative gameplay 구현과 자동 검증을 완료하고 PR #356의 최종 검토 상태를 정리하는 단계입니다.
+- Phase 7 multiplayer stability 정책과 Presence/reconnect/rematch runtime 구현을 완료하고 자동 검증과 PR 리뷰를 진행하는 단계입니다.
 
 ## Next Work
 
-1. 실제 3인·7인 다중 브라우저에서 turn 이동, 칩 비공개, Realtime invalidation, reconnect, 자연 종료와 수동 종료를 검증합니다.
-2. 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈 정책과 방장 연결 상실 정책을 별도 설계합니다.
-3. 재대결 시 같은 방을 유지할지 새 방을 만들지 game-local post-game 흐름을 확정합니다.
-4. 운영 migration과 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+1. 실제 3인·7인 다중 브라우저에서 Presence join/leave, active-player reconnect, host reconnect, 자연 종료를 점검합니다.
+2. 모바일 백그라운드/복귀와 네트워크 단절·복구에서 snapshot 복원이 안정적인지 실제 브라우저로 검증합니다.
+3. 운영 migration 적용 전 DB advisor와 production 적용 순서를 점검합니다.
+4. 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
 5. release 조건이 갖춰지면 production migration / capability activation / 게임 목록 노출을 별도 단계로 진행합니다.
 
 ## Decisions
@@ -141,6 +153,16 @@
 - 자연 종료: 마지막 카드 획득 시 서버가 `GAME_OVER / LAST_CARD_TAKEN`, 최종 점수와 공동 승자를 확정
 - 수동 종료: 방장 확인 dialog + 서버 방장 권한 검증 후 `GAME_OVER / HOST_TERMINATED`, 점수/승자 미계산
 - 결과방 이탈: GAME_OVER에서 허용하고 진행 중 PLAYING에서는 일반 leave를 차단
+- 연결 끊김 정책: 비정상 disconnect는 leave가 아니며 membership/turn/host 권한을 유지
+- Presence 용도: 접속 상태 표시 전용이며 server authorization이나 gameplay legality 판정에는 사용하지 않음
+- Presence payload: `userId / onlineAt`만 사용하고 game state/private counter는 포함하지 않음
+- 다중 탭: client별 Presence key를 사용하고 동일 user id는 온라인 1명으로 합산
+- 방장 disconnect: 자동 위임·자동 종료 없음, 재접속 시 기존 방장 권한 유지
+- 현재 차례 플레이어 disconnect: turn을 다른 사용자에게 넘기지 않고 재접속을 기다림
+- browser offline: local connection UI만 offline으로 표시하고 서버 state는 변경하지 않음
+- reconnect: `online / pageshow / visibility` 이벤트에서 authoritative snapshot 재조회
+- 재대결: 같은 room reset 대신 결과방 종료 후 새 room 생성
+- 재대결 참가: 새 room code를 공유하고 참가자가 다시 join
 
 ## Validation
 
@@ -192,8 +214,8 @@
 - Room/Lobby 및 gameplay 개발용 migration/RPC는 추가했지만 운영 환경 적용은 아직 하지 않았습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
-- 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈, 방장 연결 상실, 재대결 정책은 아직 확정하지 않았습니다.
-- 현재 브랜치는 server-authoritative gameplay action 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했으며 실제 3인·7인 브라우저 검증이 남아 있습니다.
+- 현재 브랜치는 multiplayer stability 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
