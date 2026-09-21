@@ -40,7 +40,7 @@ test("profile API centralizes availability lookup and unique-conflict recognitio
   assert.match(profilesApi, /profiles_active_display_name_uidx/);
 });
 
-test("signup uses button-driven nickname verification with no automatic availability checks", () => {
+test("signup uses button-only nickname verification with no automatic availability checks", () => {
   assert.doesNotMatch(signup, /DISPLAY_NAME_CHECK_DELAY_MS|scheduleDisplayNameCheck|runDisplayNameCheck|ensureDisplayNameAvailable|displayNameCheckTimer/);
   assert.match(signup, /className: "display-name-check-row"/);
   assert.match(signup, /text: "중복 확인"/);
