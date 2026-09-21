@@ -1,93 +1,96 @@
-# No Thanks! Development
+# No Thanks! 개발 진행
 
-> 이 문서는 현재 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다.
+> 이 문서는 현재 개발 상태를 다음 작업자나 다음 채팅으로 전달하기 위한 인수인계 문서입니다.
 > 게임 규칙과 구현 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다.
 
 ## Current Status
 
-- Phase: Bootstrap
+- Phase: 초기 설계
 - Status: IN_PROGRESS
 - Active branch: `feature/no-thanks-game-20260921`
-- Last checkpoint: 2026-09-21
+- 마지막 기록: 2026-09-21
 
 ## Completed
 
-- 최신 `main` 기준 작업 브랜치 생성
-- 저장소 `AGENTS.md` 및 Game Platform 신규 게임 개발 규칙 확인
-- `games/shared/` 공통 계약 및 DB/Test Contract 확인
-- AMIGO 공식 No Thanks! 최신 영문 규칙 확인
-- v1을 3–7인 classic base game으로 확정
-- 2024 재판의 22장 special-card expansion은 후속 Phase로 분리
-- 공식 규칙의 hidden counter를 viewer-private snapshot 요구사항으로 반영
-- 온라인 환경의 선 플레이어 결정은 server-random digital adaptation으로 확정
-- gameplay state / authority / privacy / validation 방향 정의
+- 최신 `main`을 기준으로 작업 브랜치를 생성했습니다.
+- 저장소 `AGENTS.md`와 게임 플랫폼 신규 게임 개발 규칙을 확인했습니다.
+- `games/shared/`의 공통 계약과 데이터베이스 통합 검증 계약을 확인했습니다.
+- AMIGO 공식 No Thanks! 영문 규칙서를 확인했습니다.
+- 첫 버전은 3–7인 기본 규칙으로 구현하기로 확정했습니다.
+- 2024년 재판의 22장 특수 카드 확장은 후속 개발 단계로 분리했습니다.
+- 공식 규칙의 보유 칩 비공개 원칙을 사용자별 비공개 스냅샷 요구사항에 반영했습니다.
+- 온라인 환경의 선 플레이어는 서버가 무작위로 결정하도록 확정했습니다.
+- 게임 상태, 서버 권위 범위, 비공개 정보 범위, 검증 방향을 정의했습니다.
+- 문서의 필수 영문 섹션명은 유지하되 세부 설명과 개발 기록은 한국어 중심으로 정리했습니다.
 
 ## Current Work
 
-- bootstrap 명세를 repository에 고정하고 governance 기준을 검증하는 단계
+- 초기 설계 문서를 저장소에 고정하고, 다음 규칙 엔진 구현 전에 개발 기준을 확정하는 단계입니다.
 
 ## Next Work
 
-1. `games/no-thanks/rules.js` deterministic rules engine 구현
-2. initial counter / refuse / take / turn / scoring / tie unit test 추가
-3. runtime 파일이 시작되는 같은 변경에서 Game Registry에 `no-thanks` 등록
-4. capability는 실제 제공 전까지 모두 false 유지
-5. 이후 Approved Member Access Gate + Common Game Shell 최소 runtime 연결
+1. `games/no-thanks/rules.js`에 순수 규칙 엔진을 구현합니다.
+2. 인원별 시작 칩, 카드 거절, 카드 가져오기, 차례 이동, 점수 계산, 공동 승리 단위 테스트를 추가합니다.
+3. 실제 실행 코드가 시작되는 변경에서 게임 등록부에 `no-thanks`를 등록합니다.
+4. 실제 제공 전까지 모든 기능 활성화 값은 비활성 상태로 유지합니다.
+5. 이후 승인회원 접근 제어와 공통 게임 화면을 연결합니다.
 
 ## Decisions
 
-- Game id: `no-thanks`
-- v1 players: 3–7명
-- v1 rules: classic base game only
-- number cards: 3–35
-- setup: 33장 중 9장 비공개 제외, 24장 사용
-- initial counters: 3–5인 11개 / 6인 9개 / 7인 7개
-- player counter count: 다른 플레이어에게 비공개
-- current card 위 center counter 수: 공개
-- acquired number cards: 공개
-- take 후 같은 플레이어가 다음 카드를 계속 처리
-- refuse 후 다음 플레이어로 turn 이동
-- counter 0이면 take 강제
-- scoring: 연속 숫자 chain의 최저값만 합산 후 남은 counter 수 차감
-- 최저 점수 동점은 공동 승리
-- first player: server-random digital adaptation
-- deck shuffle / excluded cards / draw order / counter legality / score는 server authoritative
-- special cards: deferred
-- game-local nickname UI: 없음
+- 게임 식별자: `no-thanks`
+- 지원 인원: 3–7명
+- 첫 버전 규칙: 기본 규칙만 구현
+- 숫자 카드: 3–35
+- 카드 준비: 33장 중 9장을 비공개로 제외하고 24장을 사용
+- 시작 칩: 3–5인 11개, 6인 9개, 7인 7개
+- 플레이어 보유 칩 수: 다른 플레이어에게 비공개
+- 현재 카드 위에 쌓인 칩 수: 공개
+- 각 플레이어가 획득한 숫자 카드: 공개
+- 카드를 가져간 뒤에는 같은 플레이어가 다음 카드도 계속 선택
+- 카드를 거절하면 다음 플레이어로 차례 이동
+- 칩이 0개라면 현재 카드를 반드시 가져가야 함
+- 점수 계산: 연속 숫자 묶음의 가장 낮은 숫자만 합산하고 남은 칩 수를 차감
+- 최저 점수 동점: 공동 승리
+- 선 플레이어: 서버가 무작위 결정
+- 카드 섞기, 제외 카드, 공개 순서, 칩 사용 가능 여부, 최종 점수는 서버가 최종 판단
+- 특수 카드: 후속 개발로 보류
+- 게임 내부 닉네임 입력 또는 변경 기능: 제공하지 않음
 
 ## Validation
 
-- Completed:
-  - 공식 AMIGO rulebook과 AMIGO product page 규칙 교차 확인
-  - Game Platform Development Rules 확인
-  - Game Platform DB/Test Contract 확인
-  - Released reference인 Can’t Stop의 bootstrap / rules-engine 진행 방식 확인
-- Pending:
-  - Game Platform governance/unit test
-  - rules engine unit test
-  - runtime syntax / shell test
-  - disposable Supabase DB integration
-  - browser multiplayer smoke
+- 완료:
+  - AMIGO 공식 규칙서와 공식 제품 페이지의 기본 규칙을 교차 확인했습니다.
+  - 게임 플랫폼 개발 규칙을 확인했습니다.
+  - 게임 플랫폼 데이터베이스 통합 검증 계약을 확인했습니다.
+  - 출시된 기준 사례인 Can’t Stop의 초기 설계와 규칙 엔진 개발 순서를 확인했습니다.
+  - `GAME_SPEC.md`와 `DEVELOPMENT.md`가 필요한 필수 섹션을 모두 유지하는지 확인했습니다.
+  - 현재 변경 범위가 No Thanks!의 두 문서에만 한정되어 있는지 확인했습니다.
+- 아직 필요하지 않은 검증:
+  - 규칙 엔진 단위 테스트
+  - 실행 코드 문법 및 공통 화면 테스트
+  - 데이터베이스 통합 테스트
+  - 실제 브라우저 멀티플레이 점검
+- 위 검증은 아직 관련 실행 코드나 데이터베이스 변경이 없으므로 다음 구현 단계부터 수행합니다.
 
 ## Known Issues / Deferred
 
-- 아직 runtime 파일, Registry 등록, DB migration, RPC, production 변경은 없습니다.
-- 게임 목록에는 노출하지 않습니다.
-- special-card expansion은 classic v1 이후 별도 설계가 필요합니다.
-- 진행 중 player leave/host leave/rematch 정책은 authoritative Room/Lobby 설계 단계에서 확정합니다.
-- 현재 브랜치는 bootstrap 시작 브랜치이며 main에는 병합하지 않습니다.
+- 아직 실행 코드, 게임 등록부 등록, 데이터베이스 마이그레이션, RPC, 운영 환경 변경은 없습니다.
+- 게임 목록에는 아직 노출하지 않습니다.
+- 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
+- 게임 진행 중 플레이어 이탈, 방장 이탈, 재대결 정책은 서버 권위 방/로비 설계 단계에서 확정합니다.
+- 현재 브랜치는 초기 설계 작업 브랜치이며 `main`에는 병합하지 않습니다.
 
 ## Release closeout 안내
 
-게임을 production에 공개해 `Status: RELEASED`로 전환할 때는 이 안내 섹션을 실제 날짜가 있는 release 기록으로 교체합니다.
+게임을 운영 환경에 공개해 `Status: RELEASED`로 전환할 때는 이 안내 부분을 실제 날짜가 있는 출시 기록으로 교체합니다.
 
 ```text
 ## Release — YYYY-MM-DD
 
-- production activation / migration 요약
-- 현재 Registry capability
+- 운영 환경 기능 활성화와 마이그레이션 요약
+- 현재 게임 등록부 기능 상태
 - 핵심 검증 결과
-- 유지보수 baseline 및 남은 관찰 항목
+- 유지보수 기준과 남은 확인 사항
 ```
 
-`RELEASED` 상태에서는 `Active branch: main`을 사용하고, 과거 feature branch를 현재 기준으로 남기지 않습니다.
+`RELEASED` 상태에서는 `Active branch: main`을 사용하고, 과거 작업 브랜치를 현재 기준으로 남기지 않습니다.
