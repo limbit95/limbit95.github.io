@@ -4,6 +4,8 @@ import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { GAME_REGISTRY } from "../games/shared/registry.js";
+
 import {
   platformGameIdFromPath,
   validatePullRequestChanges,
@@ -317,16 +319,23 @@ test("Game Platform rules separate Legacy protection from growing Registry entri
   assert.match(rules, /개별 platform-native 게임의 Registry 설정과 capability/u);
 });
 
-test("core Game Platform rule documents remain game-agnostic", () => {
+test("current Game Platform rule documents remain platform-native game-agnostic", () => {
   const rulePaths = [
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
     path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
+    path.join(repositoryRoot, "games", "README.md"),
     path.join(repositoryRoot, "games", "GAME_SPEC_TEMPLATE.md"),
+    path.join(repositoryRoot, "games", "DEVELOPMENT_TEMPLATE.md"),
   ];
+  const platformNativeGames = GAME_REGISTRY.filter((game) => game.platform === "shared");
 
   for (const filename of rulePaths) {
     const content = readFileSync(filename, "utf8");
-    assert.doesNotMatch(content, /Can[’']?t Stop|cant-stop/iu);
+    const normalizedContent = content.toLocaleLowerCase("en-US");
+    for (const game of platformNativeGames) {
+      assert.equal(normalizedContent.includes(game.id.toLocaleLowerCase("en-US")), false);
+      assert.equal(normalizedContent.includes(game.title.toLocaleLowerCase("en-US")), false);
+    }
   }
 });
 test("Game Platform rules codify release closeout and post-release feedback loop", () => {
