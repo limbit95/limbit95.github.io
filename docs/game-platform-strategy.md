@@ -1,5 +1,7 @@
 # Game Platform Strategy
 
+> **문서 분류:** HISTORY
+
 > **문서 성격:** 이 문서는 Game Platform을 구축한 전략과 단계별 결정 배경을 보존하는 참고 문서다. 신규 platform-native 게임의 현재 실행 규칙은 `docs/game-platform-development-rules.md`를 따르며, 실제 계약은 `games/shared/` 코드와 테스트를 기준으로 확인한다. 특정 게임명이나 당시 구현 내용이 등장하더라도 역사적 이력일 뿐 현재 신규 게임의 규칙·템플릿·구현 기준으로 사용하지 않는다.
 
 ## 1. 목적
