@@ -174,3 +174,44 @@ test("No Thanks! gameplay errors explain turn and forced-take boundaries", () =>
     /반드시 가져/u,
   );
 });
+
+
+test("No Thanks! presence marks disconnected host and active player without changing legal state", () => {
+  const source = snapshot();
+  source.room.status = "playing";
+  source.viewer.counters = 7;
+  source.game = {
+    phase: "PLAYING",
+    turnOrder: ["host", "guest-a", "guest-b"],
+    activePlayerId: "host",
+    currentCard: 18,
+    centerCounters: 2,
+    deckRemaining: 9,
+    winners: [],
+    finalScores: null,
+  };
+
+  const view = createNoThanksLobbyViewModel(source, "guest-a", {
+    presenceReady: true,
+    onlinePlayerIds: ["guest-a", "guest-b"],
+  });
+
+  assert.equal(view.hostConnected, false);
+  assert.equal(view.activePlayerConnected, false);
+  assert.equal(view.allPlayersConnected, false);
+  assert.deepEqual(view.disconnectedPlayerNames, ["Host"]);
+  assert.equal(view.canTake, false);
+  assert.equal(view.players.find((player) => player.id === "host")?.connected, false);
+});
+
+test("No Thanks! presence never becomes an authoritative start rule", () => {
+  const source = snapshot();
+
+  const view = createNoThanksLobbyViewModel(source, "guest-a", {
+    presenceReady: true,
+    onlinePlayerIds: ["guest-a", "guest-b"],
+  });
+
+  assert.equal(view.hostConnected, false);
+  assert.equal(view.canStart, true);
+});
