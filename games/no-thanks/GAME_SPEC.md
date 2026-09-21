@@ -242,6 +242,21 @@ action payload
 
 서버는 방 단위 잠금과 트랜잭션 안에서 방 참가 여부, 현재 차례, 게임 상태, `expected_version`, `client_action_id`를 검증한 뒤 상태를 한 번만 반영합니다.
 
+Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
+
+- `public.no_thanks_rooms`: room identity, host, waiting/playing status, max players, authoritative `version`, 공개 가능한 game state
+- `public.no_thanks_room_players`: room membership, seat, 사이트 프로필에서 확정한 `display_name`, ready state
+- `public.no_thanks_room_private_players`: 플레이어별 비공개 보유 칩 수
+- `public.no_thanks_room_secrets`: 아직 공개되지 않은 draw deck과 제외된 9장
+- `public.no_thanks_room_actions`: `client_action_id` 기반 lobby action replay/idempotency 기록
+- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`
+
+브라우저는 위 테이블을 직접 수정하지 않습니다. create/join RPC는 클라이언트가 전달한 임시 닉네임을 받지 않고 `auth.uid()`에 연결된 승인회원 프로필의 `display_name`을 서버에서 조회해 room player identity를 확정합니다.
+
+공개 room/player 테이블에는 멤버에게 보여도 되는 정보만 둡니다. 보유 칩과 미공개 카드 순서는 별도 private/secret 테이블에 두고 authenticated role에 직접 SELECT 권한을 주지 않습니다. snapshot RPC는 현재 사용자 자신의 칩 수만 `viewer.counters`로 조립하고 다른 플레이어의 칩과 draw deck, 제외 카드 목록은 반환하지 않습니다.
+
+게임 시작 RPC는 최소 3명, 최대 room 설정 인원, 전원 ready, host 권한을 서버에서 확인한 뒤 플레이 순서와 3–35 전체 카드 순서를 서버에서 무작위로 확정합니다. 첫 공개 카드 1장만 공개 game state에 넣고 나머지 23장과 제외 9장은 secret table에 저장합니다.
+
 ### 스냅샷 공개 범위
 
 모든 참여자에게 공개하는 상태:
