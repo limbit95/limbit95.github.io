@@ -43,6 +43,11 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
     expectedVersion: 5,
     clientActionId: "take-1",
   });
+  await adapter.endGame({
+    roomId: "room-1",
+    expectedVersion: 6,
+    clientActionId: "end-1",
+  });
 
   assert.deepEqual(client.calls, [
     ["no_thanks_play_action", {
@@ -57,6 +62,12 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
       p_expected_version: 5,
       p_client_action_id: "take-1",
     }],
+    ["no_thanks_play_action", {
+      p_room_id: "room-1",
+      p_action_type: "end_game",
+      p_expected_version: 6,
+      p_client_action_id: "end-1",
+    }],
   ]);
 });
 
@@ -67,6 +78,8 @@ test("No Thanks! gameplay migration keeps actions versioned, idempotent, and ser
   assert.match(migration, /ACTION_CONFLICT/u);
   assert.match(migration, /TURN_REQUIRED/u);
   assert.match(migration, /TAKE_REQUIRED/u);
+  assert.match(migration, /HOST_REQUIRED/u);
+  assert.match(migration, /HOST_TERMINATED/u);
   assert.match(migration, /for update/u);
   assert.match(migration, /no_thanks_room_private_state/u);
   assert.match(migration, /player_counters/u);
