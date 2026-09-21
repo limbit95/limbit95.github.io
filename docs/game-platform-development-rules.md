@@ -236,7 +236,8 @@ Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는
 - 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
 - `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
 - `CURRENT` 문서는 현재 Registry의 어떤 platform-native 게임명/ID도 공통 규칙으로 포함하지 않는다.
-- `HISTORY` 문서는 과거 구현 이력을 기록할 수 있지만 `docs/game-platform-development-rules.md`를 현재 실행 규칙으로 명시해야 한다.
+- 메인 규칙서 자신을 제외한 모든 `docs/game-platform-*.md`는 `docs/game-platform-development-rules.md`를 현재 rulebook으로 명시해야 한다.
+- `HISTORY` 문서는 과거 구현 이력을 기록할 수 있지만 현재 규칙·템플릿·구현 기준으로 사용하지 않는다.
 - `AGENTS.md`와 `games/` 최상위의 공통 Markdown 문서는 별도 표기가 없어도 `CURRENT`로 취급한다.
 ### MUST: 출시 후 플랫폼 피드백 루프를 수행한다
 
