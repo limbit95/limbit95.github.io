@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260921-r15";
+import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r1";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -58,7 +58,7 @@ const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 
 const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
 const MOVE_COUNT_HOLD_MS = 1200;
-const TURN_RESULT_HOLD_MS = 1800;
+const TURN_RESULT_HOLD_MS = 2400;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -512,7 +512,9 @@ function importantEventMessage(state) {
     if (event.type === "PROPERTY_BOUGHT") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
       const node = findNode(state, event.nodeId);
-      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
+      return event.reason === "AUCTION"
+        ? `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}을(를) ${money(event.amount)}에 낙찰받았습니다.`
+        : `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
     }
     if (event.type === "PROPERTY_BUILT") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
@@ -523,6 +525,38 @@ function importantEventMessage(state) {
       const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
       const node = findNode(state, event.nodeId);
       return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매를 시작합니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_JOINED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"}이(가) 경매 참가를 선택했습니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_PASSED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"}이(가) 경매 참가를 포기했습니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_AUTO_PASSED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return event.reason === "TIMEOUT"
+        ? `${player ? playerName(player) : "플레이어"}이(가) 시간 내 응답하지 않아 경매 참가를 포기했습니다.`
+        : `${player ? playerName(player) : "플레이어"}이(가) 경매 참가에서 제외되었습니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
+      const node = findNode(state, event.nodeId);
+      return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
+    }
+    if (event.type === "AUCTION_STARTED") {
+      const node = findNode(state, event.nodeId);
+      return `${node?.label ?? event.nodeId} 경매가 시작되었습니다.`;
+    }
+    if (event.type === "AUCTION_PASSED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"}이(가) 입찰을 포기했습니다.`;
+    }
+    if (event.type === "AUCTION_AUTO_PASSED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return event.reason === "INSUFFICIENT_GOLD"
+        ? `${player ? playerName(player) : "플레이어"}이(가) 보유 골드 부족으로 경매에서 제외되었습니다.`
+        : `${player ? playerName(player) : "플레이어"}이(가) 입찰 시간을 초과해 경매에서 제외되었습니다.`;
     }
     if (event.type === "CHOICE_DECLINED") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
