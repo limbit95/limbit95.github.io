@@ -5,7 +5,7 @@ alter table public.no_thanks_room_actions
 
 alter table public.no_thanks_room_actions
   add constraint no_thanks_room_actions_action_type_check
-  check (action_type in ('set_ready', 'start_game', 'refuse_card', 'take_card'));
+  check (action_type in ('set_ready', 'start_game', 'refuse_card', 'take_card', 'end_game'));
 
 create or replace function private.no_thanks_card_score(p_cards integer[])
 returns integer
@@ -73,7 +73,7 @@ begin
   if p_client_action_id is null or btrim(p_client_action_id) = '' then
     raise exception 'INVALID_ACTION_ID';
   end if;
-  if v_action_type not in ('refuse_card', 'take_card') then
+  if v_action_type not in ('refuse_card', 'take_card', 'end_game') then
     raise exception 'INVALID_GAME_ACTION';
   end if;
 
@@ -128,19 +128,37 @@ begin
   if v_game is null or v_game ->> 'phase' <> 'PLAYING' then
     raise exception 'GAME_NOT_PLAYING';
   end if;
-  if coalesce(v_game ->> 'activePlayerId', '') <> v_user_id::text then
-    raise exception 'TURN_REQUIRED';
-  end if;
 
-  v_actor_counters := coalesce(
-    (v_private.player_counters ->> v_user_id::text)::integer,
-    -1
-  );
-  if v_actor_counters < 0 then
-    raise exception 'GAME_STATE_REQUIRED';
-  end if;
+  if v_action_type = 'end_game' then
+    if v_room.host_user_id <> v_user_id then
+      raise exception 'HOST_REQUIRED';
+    end if;
 
-  v_center_counters := coalesce((v_game ->> 'centerCounters')::integer, 0);
+    v_game := jsonb_set(v_game, '{currentCard}', 'null'::jsonb, true);
+    v_game := jsonb_set(v_game, '{phase}', '"GAME_OVER"'::jsonb, true);
+    v_game := jsonb_set(
+      v_game,
+      '{endReason}',
+      '"HOST_TERMINATED"'::jsonb,
+      true
+    );
+    v_game := jsonb_set(v_game, '{finalScores}', 'null'::jsonb, true);
+    v_game := jsonb_set(v_game, '{winners}', '[]'::jsonb, true);
+  else
+    if coalesce(v_game ->> 'activePlayerId', '') <> v_user_id::text then
+      raise exception 'TURN_REQUIRED';
+    end if;
+
+    v_actor_counters := coalesce(
+      (v_private.player_counters ->> v_user_id::text)::integer,
+      -1
+    );
+    if v_actor_counters < 0 then
+      raise exception 'GAME_STATE_REQUIRED';
+    end if;
+
+    v_center_counters := coalesce((v_game ->> 'centerCounters')::integer, 0);
+  end if;
 
   if v_action_type = 'refuse_card' then
     if v_actor_counters = 0 then
