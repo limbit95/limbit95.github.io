@@ -343,17 +343,17 @@ begin
     raise exception 'ROOM_FULL';
   end if;
 
-  select seat
+  select s.seat
     into v_seat
-  from generate_series(0, v_room.max_players - 1) as seat
+  from generate_series(0, v_room.max_players - 1) as s(seat)
   where not exists (
     select 1
     from public.no_thanks_room_players as p
     where p.room_id = v_room.id
       and p.membership_status = 'active'
-      and p.seat = seat
+      and p.seat = s.seat
   )
-  order by seat
+  order by s.seat
   limit 1;
 
   insert into public.no_thanks_room_players(
