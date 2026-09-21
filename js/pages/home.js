@@ -158,6 +158,16 @@ export async function renderHome() {
   if (installCard) root.append(installCard);
   root.append(lowerGrid, upcomingSection);
 
+  if (auth.isAdmin) {
+    root.append(el("div", { className: "home-design-preview-link" }, [
+      el("a", {
+        className: "button button--ghost",
+        href: "https://chungpagachi.com/brand-gateway-compare.html",
+        text: "도안 보기",
+      }),
+    ]));
+  }
+
   dailyVersePromise.then((verse) => {
     if (dailyVerseCard.parentNode) dailyVerseCard.replaceWith(createDailyVerseCard(verse));
   });

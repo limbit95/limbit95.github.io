@@ -173,3 +173,9 @@
   .signup-review dl { grid-template-columns: 1fr; gap: .2rem; }
   .signup-review dd + dt { margin-top: .55rem; }
 }
+
+.home-design-preview-link {
+  display: flex;
+  justify-content: center;
+  padding-top: .25rem;
+}
