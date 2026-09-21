@@ -21,6 +21,14 @@ const adminDashboardPage = readFileSync(
   new URL("../js/pages/admin/dashboard.js", import.meta.url),
   "utf8",
 );
+const managerCandidateMigration = readFileSync(
+  new URL("../supabase/site/migrations/20260921130000_admin_category_manager_candidate_search.sql", import.meta.url),
+  "utf8",
+);
+const adminManagersPage = readFileSync(
+  new URL("../js/pages/admin/managers.js", import.meta.url),
+  "utf8",
+);
 const adminApi = readFileSync(
   new URL("../js/api/admin.js", import.meta.url),
   "utf8",
@@ -192,5 +200,35 @@ test("admin dashboard aggregate preserves scope, display semantics, and RPC hard
   assert.match(
     dashboardMigration,
     /grant execute on function public\.get_admin_dashboard_stats\(date\)[\s\S]*to authenticated/,
+  );
+});
+
+test("category manager member selection uses a bounded search read model", () => {
+  assert.match(adminApi, /export async function listCategoryManagerCandidates\(/);
+  assert.match(adminApi, /supabase\.rpc\("admin_list_category_manager_candidates"/);
+  assert.match(adminApi, /export async function listCategoryManagerAssignments\(/);
+  assert.match(adminManagersPage, /listCategoryManagerCandidates\(\{ limit: CANDIDATE_LIMIT \}\)/);
+  assert.match(adminManagersPage, /listCategoryManagerAssignments\(\)/);
+  assert.match(adminManagersPage, /type: "search"/);
+  assert.doesNotMatch(adminManagersPage, /\blistAllMembers\b/);
+  assert.doesNotMatch(adminManagersPage, /\blistCategoryManagers\b/);
+});
+
+test("category manager candidate RPC preserves operations and member-detail boundaries", () => {
+  assert.match(managerCandidateMigration, /security definer/);
+  assert.match(managerCandidateMigration, /set search_path = ''/);
+  assert.match(managerCandidateMigration, /private\.has_admin_permission\('operations'\)/);
+  assert.match(managerCandidateMigration, /v_can_member_details boolean := private\.has_admin_permission\('members'\)/);
+  assert.match(managerCandidateMigration, /where p\.status = 'approved'/);
+  assert.match(managerCandidateMigration, /case when v_can_member_details then jr\.email else null end/);
+  assert.match(managerCandidateMigration, /limit v_limit/);
+  assert.match(managerCandidateMigration, /least\(greatest\(coalesce\(p_limit, 20\), 1\), 50\)/);
+  assert.match(
+    managerCandidateMigration,
+    /revoke all on function public\.admin_list_category_manager_candidates\(text, integer\)[\s\S]*from public, anon, authenticated/,
+  );
+  assert.match(
+    managerCandidateMigration,
+    /grant execute on function public\.admin_list_category_manager_candidates\(text, integer\)[\s\S]*to authenticated/,
   );
 });
