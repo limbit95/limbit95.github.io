@@ -10,6 +10,7 @@ on:
       - "supabase/the-game/**/*.sql"
       - "supabase/marble/**/*.sql"
       - "supabase/cant-stop/**/*.sql"
+      - "supabase/no-thanks/**/*.sql"
       - "scripts/prepare-game-db-e2e.mjs"
       - "scripts/build-liar-canonical.mjs"
       - "tests/game-db-integration/**/*.js"
