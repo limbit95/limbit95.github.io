@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Room/Lobby DB + RPC foundation
+- Phase: Room/Lobby runtime UI
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase4-room-db`
+- Active branch: `feature/no-thanks-game-phase5-room-ui`
 - 마지막 기록: 2026-09-21
 
 ## Completed
@@ -53,18 +53,28 @@
 - ready/start에 `client_action_id` + request payload를 기록해 동일 요청 replay는 같은 snapshot을 반환하고 다른 payload 재사용은 거부하도록 구현했습니다.
 - shared `defineRoomLobbyAdapter` 계약에 맞는 `createNoThanksRoomLobbyAdapter`를 추가했습니다.
 - No Thanks! migration을 disposable Game DB integration harness에 포함하고 플랫폼 필수 10개 시나리오 테스트를 추가했습니다.
+- Phase 4 PR #353 head를 부모로 별도 Phase 5 브랜치를 생성해 DB foundation과 runtime 연결 변경을 분리했습니다.
+- No Thanks! entry에 Supabase browser client를 로드하고 `createNoThanksRoomLobbyAdapter`를 실제 runtime에 연결했습니다.
+- 방 만들기에서 최대 인원을 3–7명으로 선택하고, 코드 참가에서는 6자리 방 코드만 입력하도록 사용자 흐름을 추가했습니다.
+- 게임별 닉네임 입력은 추가하지 않았고 서버가 사이트 프로필 `display_name`을 확정하는 기존 권한 경계를 유지했습니다.
+- waiting room에서 authoritative snapshot의 room code, 인원, ready 상태, host를 Common Game Shell roster에 연결했습니다.
+- 일반 플레이어는 준비/준비 취소를, 방장은 최소 3명 + 일반 플레이어 전원 ready일 때만 게임 시작을 요청하도록 연결했습니다.
+- shared `createSnapshotCoordinator`와 `createReconnectRefreshTriggers`를 사용해 Realtime payload는 invalidation으로만 소비하고 RPC snapshot을 다시 읽도록 구현했습니다.
+- online/pageshow/visibility 복귀 시 최신 snapshot을 다시 조회하고, host가 waiting room을 닫아 `ROOM_NOT_FOUND`가 되면 다른 참가자도 entry로 복귀하도록 처리했습니다.
+- 게임 시작 후 서버가 확정한 첫 카드, 본인 칩 수, 남은 카드 수를 읽기 전용 preview로 표시하고 `REFUSE_CARD / TAKE_CARD` UI는 아직 노출하지 않았습니다.
+- No Thanks! 전용 lobby controller/runtime model 테스트를 추가하고 기존 shell 계약 테스트를 online lobby 단계에 맞게 갱신했습니다.
 
 ## Current Work
 
-- Room/Lobby DB/RPC foundation과 플랫폼 DB contract 검증을 진행하는 단계입니다.
+- Room/Lobby 실제 사용자 흐름과 authoritative snapshot/Realtime invalidation/reconnect 연결을 검증하는 단계입니다.
 
 ## Next Work
 
-1. 현재 DB/RPC foundation을 실제 No Thanks! entry/waiting room UI에 연결합니다.
-2. 방 생성/코드 참가/준비/방장 시작 흐름에서 `createNoThanksRoomLobbyAdapter`를 소비합니다.
-3. authoritative snapshot coordinator와 Realtime invalidation/reconnect를 runtime에 연결합니다.
-4. 이후 `REFUSE_CARD / TAKE_CARD` gameplay RPC와 private counter 갱신을 구현합니다.
-5. 운영 migration과 실제 다중 브라우저 검증 전까지 Registry capability는 비활성 상태로 유지합니다.
+1. 서버 권위 gameplay RPC의 첫 slice로 `REFUSE_CARD`를 구현합니다.
+2. `TAKE_CARD`에서 카드 획득, 중앙 칩 수령, 다음 카드 공개, 같은 플레이어 turn 유지까지 서버에서 처리합니다.
+3. 마지막 카드 획득 시 최종 점수와 공동 승자를 서버 snapshot에 확정합니다.
+4. gameplay action도 `expected_version + client_action_id` 계약과 private counter 경계를 유지합니다.
+5. gameplay UI를 authoritative snapshot에 연결한 뒤 운영 migration/다중 브라우저 검증 전까지 Registry capability는 비활성 상태로 유지합니다.
 
 ## Decisions
 
@@ -94,7 +104,7 @@
 - 사용자 표시 이름: 사이트 프로필 `display_name`만 사용
 - Common Game Shell: shared `createGameShell` 사용
 - 현재 entry 단계의 플레이어 표시: 승인된 현재 사용자 1명만 접속 계정으로 표시
-- 방 생성/참가/게임 시작 UI: DB/RPC 구현 전에는 노출하지 않음
+- 방 생성/코드 참가/준비/방장 시작 UI: Room/Lobby RPC에 연결 완료
 - 게임 규칙 안내: game-local dialog로 제공하며 entry와 Shell action에서 다시 열 수 있음
 - Room/Lobby DB namespace: `no_thanks_*` game-local 객체 사용
 - 방 최대 인원: 생성 시 3–7명 범위에서 서버 검증
@@ -105,6 +115,11 @@
 - 시작 시 서버 난수: turn order와 33장 카드 순서를 서버에서 생성
 - 공개 카드: 24장 중 첫 카드만 snapshot 공개, 남은 23장/제외 9장은 private
 - 초기 칩 수: 3–5인 11, 6인 9, 7인 7을 서버 private state에 저장
+- Room/Lobby runtime 상태: shared Snapshot Coordinator + reconnect refresh trigger 사용
+- Realtime payload 사용 방식: 화면 state로 직접 사용하지 않고 authoritative snapshot 재조회 신호로만 사용
+- entry 입력: 최대 인원 + 방 코드만 제공하고 game-local 닉네임 입력은 제공하지 않음
+- waiting room 방장 ready: 별도 버튼 없이 준비 완료로 간주하며 일반 플레이어 전원 ready를 시작 조건으로 계산
+- PLAYING preview: 현재 카드/본인 칩/남은 카드 수만 표시하고 gameplay action은 RPC 구현 전까지 숨김
 
 ## Validation
 
@@ -122,6 +137,15 @@
   - 첫 DB integration 실행에서 seat 빈자리 계산 alias가 모호해 join 시 `seat = null`이 되는 문제를 발견했고, `generate_series ... as s(seat)`로 명시해 수정한 뒤 재검증했습니다.
   - 수정 후 Game DB integration의 No Thanks! 시나리오와 기존 게임 DB integration 전체가 성공했습니다.
   - 최신 Phase 4 code head에서 Site static checks와 Game Platform governance가 모두 성공했습니다.
+  - Phase 5 stacked PR #354에서 No Thanks! lobby controller/runtime model/shell 계약 테스트를 포함한 `npm run test:game-platform`이 통과했습니다.
+  - Phase 5 최신 code head의 Game Platform JavaScript syntax, site ↔ `games/shared` module link, Governance Guard가 모두 통과했습니다.
+  - Phase 5는 DB/schema 변경이 없으므로 disposable Game DB integration은 #353에서 검증된 Room/Lobby foundation 결과를 그대로 전제로 하며 별도 DB workflow는 실행되지 않았습니다.
+  - Phase 5는 `games/**`와 `tests/game-platform-*.test.js` 범위만 변경해 CI 경계 정책에 따라 전체 Site static checks는 실행하지 않았습니다.
+  - PR #354 자동 리뷰에서 command 응답보다 늦게 도착한 stale refresh가 최신 ready/start 상태를 덮을 수 있는 race condition을 발견했고, 현재 렌더 snapshot보다 낮은 version은 game-local controller에서 거부하도록 수정했습니다.
+  - stale refresh가 command의 최신 snapshot을 덮지 못하는 회귀 테스트를 추가했습니다.
+  - 방장 waiting-room 이탈은 전체 대기실을 닫는 파괴적 동작이므로 즉시 RPC를 호출하지 않고 명시적 `방 닫기` 확인 dialog를 거치도록 수정했습니다.
+  - No Thanks! standalone HTML에 남아 있던 literal `\\n` 문자를 실제 줄바꿈으로 수정하고 회귀 테스트를 추가했습니다.
+  - 위 리뷰 수정이 포함된 최신 head에서도 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard가 모두 성공했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
@@ -137,12 +161,12 @@
 
 ## Known Issues / Deferred
 
-- 승인회원 접근 제어와 Common Game Shell 최소 화면, Room/Lobby DB/RPC foundation까지 구현했지만 아직 실제 방/로비 UI와 gameplay UI는 연결하지 않았습니다.
+- 승인회원 접근 제어, Common Game Shell, Room/Lobby DB/RPC와 실제 entry/waiting room UI까지 연결했지만 gameplay action UI는 아직 연결하지 않았습니다.
 - Room/Lobby 개발용 migration과 RPC는 추가했지만 운영 환경 적용과 gameplay RPC는 아직 없습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 게임 진행 중 플레이어 이탈, 방장 이탈, 재대결 정책은 서버 권위 방/로비 설계 단계에서 확정합니다.
-- 현재 브랜치는 Room/Lobby DB + RPC foundation 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 현재 브랜치는 Room/Lobby runtime UI 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
