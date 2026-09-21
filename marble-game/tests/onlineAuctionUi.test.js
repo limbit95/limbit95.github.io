@@ -19,6 +19,10 @@ const auctionVoteSql = readFileSync(
   "utf8",
 );
 const cssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
+const bidTimingSql = readFileSync(
+  new URL("../../supabase/marble/20260921143453_marble_auction_bid_turn_15s.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -91,6 +95,20 @@ test("vote UI exposes irreversible join/pass state and 15-second deadline", () =
   assert.equal(passed.canVotePass, false);
 });
 
+test("vote UI explains insufficient gold with a disabled single action", () => {
+  const poorState = state({
+    ...voteChoice(),
+    eligiblePlayerIds: ["p2"],
+  });
+  poorState.players[2] = { ...poorState.players[2], money: 100 };
+
+  const model = createOnlineAuctionUiModel(poorState, "p3");
+  assert.equal(model.eligible, false);
+  assert.equal(model.insufficientGold, true);
+  assert.equal(model.canJoin, false);
+  assert.equal(model.canVotePass, false);
+});
+
 test("participant cards expose authoritative join order and first bidder", () => {
   const model = createOnlineAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
   assert.deepEqual(model.participantCards.map((card) => [card.id, card.order, card.openingBidder]), [
@@ -117,6 +135,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.doesNotMatch(uiSource, /session\.withdrawAuction\(\)/);
   assert.match(uiSource, /경매 참가/);
   assert.match(uiSource, /경매 포기/);
+  assert.match(uiSource, /보유 골드 부족/);
+  assert.match(uiSource, /showAuctionUnsoldResult/);
+  assert.match(uiSource, /경매가 유찰되었습니다/);
   assert.match(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
@@ -133,6 +154,15 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /data-auction-stage="vote"/);
   assert.match(cssSource, /#172331/);
   assert.match(cssSource, /auction-action-panel__participants/);
+  assert.match(cssSource, /data-single-action="true"/);
+});
+
+test("server migration keeps every competitive bid turn at 15 seconds", () => {
+  assert.equal((bidTimingSql.match(/interval '15 seconds'/g) ?? []).length, 3);
+  assert.doesNotMatch(bidTimingSql, /interval '10 seconds'/);
+  assert.match(bidTimingSql, /private\.marble_auction_v3_finalize_vote/);
+  assert.match(bidTimingSql, /public\.marble_auction_bid/);
+  assert.match(bidTimingSql, /public\.marble_advance_auction_deadline/);
 });
 
 test("legacy controls cannot bypass Auction vote or competitive auction", () => {

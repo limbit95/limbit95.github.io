@@ -25,7 +25,7 @@ function requirePlayer(players, playerId) {
 
 export const AUCTION_TIMING = Object.freeze({
   voteMs: 15_000,
-  bidTurnMs: 10_000,
+  bidTurnMs: 15_000,
 });
 
 export function calculateAuctionOpeningBid(basePrice) {

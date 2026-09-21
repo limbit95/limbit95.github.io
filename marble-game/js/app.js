@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260921-r14";
+import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260921-r15";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -518,10 +518,6 @@ function importantEventMessage(state) {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
       const node = findNode(state, event.nodeId);
       return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}에 건물을 건설했습니다.`;
-    }
-    if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
-      const node = findNode(state, event.nodeId);
-      return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
     }
     if (event.type === "AUCTION_VOTE_OPENED") {
       const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);

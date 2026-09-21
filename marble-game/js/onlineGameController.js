@@ -445,11 +445,6 @@ if (onlineRoomId) {
         text = `${playerName(player)}이(가) ${node?.label ?? event.nodeId}에 건물을 건설했습니다.`;
         break;
       }
-      if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
-        const node = findNode(state, event.nodeId);
-        text = `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
-        break;
-      }
       if (event.type === "AUCTION_VOTE_OPENED") {
         const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
         const node = findNode(state, event.nodeId);

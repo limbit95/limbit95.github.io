@@ -76,7 +76,7 @@ test("all responded ends voting immediately and preserves join order as bid orde
   assert.equal(state.pendingChoice.auction.highestBidderId, "c");
   assert.equal(state.pendingChoice.auction.highestBid, 390);
   assert.equal(state.pendingChoice.auction.turnPlayerId, "b");
-  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 12_200);
+  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 17_200);
 });
 
 test("all eligible players joining starts the auction before the vote deadline", () => {
@@ -185,11 +185,11 @@ test("competitive bid timeout still automatically passes the current participant
 
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.throws(
-    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 12_099),
+    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 17_099),
     /deadline has not expired/i,
   );
 
-  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 12_100);
+  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 17_100);
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.boardState.properties.singapore.ownerId, "b");
   assert.equal(state.lastEvents.some((event) => (

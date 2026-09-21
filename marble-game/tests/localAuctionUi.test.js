@@ -123,6 +123,8 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
+  assert.match(uiSource, /showAuctionUnsoldResult/);
+  assert.match(uiSource, /경매가 유찰되었습니다/);
   assert.match(uiSource, /elements\.status\.hidden = model\.stage === "auction"/);
   assert.match(uiSource, /elements\.detail\.hidden = model\.stage === "auction"/);
   assert.match(cssSource, /auctionBidEvent/);
