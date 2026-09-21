@@ -5,10 +5,10 @@
 
 ## Current Status
 
-- Phase: Room/Lobby runtime UI
+- Phase: Server-authoritative gameplay actions
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase5-room-ui`
-- 마지막 기록: 2026-09-21
+- Active branch: `feature/no-thanks-game-phase6-gameplay-actions`
+- 마지막 기록: 2026-09-22
 
 ## Completed
 
@@ -63,18 +63,34 @@
 - online/pageshow/visibility 복귀 시 최신 snapshot을 다시 조회하고, host가 waiting room을 닫아 `ROOM_NOT_FOUND`가 되면 다른 참가자도 entry로 복귀하도록 처리했습니다.
 - 게임 시작 후 서버가 확정한 첫 카드, 본인 칩 수, 남은 카드 수를 읽기 전용 preview로 표시하고 `REFUSE_CARD / TAKE_CARD` UI는 아직 노출하지 않았습니다.
 - No Thanks! 전용 lobby controller/runtime model 테스트를 추가하고 기존 shell 계약 테스트를 online lobby 단계에 맞게 갱신했습니다.
+- 최신 `main` 커밋 `f47bf8bbb9d016c706b1c289cf4081646ddbabcd`에서 Phase 6 작업 브랜치를 생성했습니다.
+- 기존 Room/Lobby foundation migration을 수정하지 않고 후속 gameplay migration `20260922055300_no_thanks_gameplay_actions.sql`을 추가했습니다.
+- game-local `no_thanks_play_action` RPC가 `refuse_card / take_card / end_game`을 서버 권위로 처리하도록 구현했습니다.
+- gameplay action도 `expected_version + client_action_id`를 사용하고 room/private state를 transaction 안에서 잠가 stale/duplicate/concurrent action을 방어합니다.
+- `REFUSE_CARD`에서 현재 차례와 private counter를 서버가 검증하고 칩 1개 차감, 중앙 칩 증가, 다음 플레이어 이동을 구현했습니다.
+- `TAKE_CARD`에서 공개 카드 획득, 중앙 칩 수령, private draw deck의 다음 카드 공개, 같은 플레이어 turn 유지를 구현했습니다.
+- 마지막 카드 획득 시 공개 카드와 private counter를 기준으로 연속 카드 점수, 최종 점수, 공동 승자를 서버에서 계산해 `GAME_OVER / LAST_CARD_TAKEN`을 확정합니다.
+- 방장 전용 `END_GAME`을 추가하고 확인 dialog 뒤 서버가 방장 권한을 다시 검증해 `GAME_OVER / HOST_TERMINATED`으로 전환하도록 구현했습니다. 수동 종료 시 최종 점수와 승자는 계산하지 않습니다.
+- 자연 종료 또는 방장 수동 종료 후에는 결과방에서 참가자가 안전하게 leave할 수 있도록 terminal leave 경계를 확장했습니다.
+- `createNoThanksGameplayAdapter`를 추가하고 shared Room/Lobby 계약은 변경하지 않은 채 game-local controller에 gameplay command만 연결했습니다.
+- 실제 플레이 화면에 현재 카드, 중앙 칩, 본인 칩, 남은 카드, 모든 플레이어의 공개 획득 카드와 현재 차례를 표시하도록 연결했습니다.
+- 내 차례에서만 거절/가져오기 버튼을 활성화하고, 본인 칩이 0개라면 거절 버튼을 비활성화해 강제 가져오기 상태를 명확히 표시합니다.
+- 자연 종료 결과 화면에 최종 점수와 공동 승자를 표시하고, 방장 수동 종료는 별도 종료 사유를 표시하도록 구현했습니다.
+- gameplay adapter/controller/runtime/shell 정적 테스트와 disposable Supabase gameplay DB integration 시나리오를 추가했습니다.
+- 동일 `client_action_id` gameplay 요청이 동시에 두 번 도착하는 경우에도 room lock 획득 후 action row를 다시 확인해 첫 authoritative snapshot으로 수렴하도록 idempotency 경계를 보강했습니다.
+- concurrent duplicate retry가 둘 다 동일 snapshot을 반환하고 room version은 한 번만 증가하는 disposable DB integration 회귀 테스트를 추가했습니다.
 
 ## Current Work
 
-- Room/Lobby 실제 사용자 흐름과 authoritative snapshot/Realtime invalidation/reconnect 연결을 검증하는 단계입니다.
+- Phase 6 server-authoritative gameplay 구현과 자동 검증을 완료하고 PR #356의 최종 검토 상태를 정리하는 단계입니다.
 
 ## Next Work
 
-1. 서버 권위 gameplay RPC의 첫 slice로 `REFUSE_CARD`를 구현합니다.
-2. `TAKE_CARD`에서 카드 획득, 중앙 칩 수령, 다음 카드 공개, 같은 플레이어 turn 유지까지 서버에서 처리합니다.
-3. 마지막 카드 획득 시 최종 점수와 공동 승자를 서버 snapshot에 확정합니다.
-4. gameplay action도 `expected_version + client_action_id` 계약과 private counter 경계를 유지합니다.
-5. gameplay UI를 authoritative snapshot에 연결한 뒤 운영 migration/다중 브라우저 검증 전까지 Registry capability는 비활성 상태로 유지합니다.
+1. 실제 3인·7인 다중 브라우저에서 turn 이동, 칩 비공개, Realtime invalidation, reconnect, 자연 종료와 수동 종료를 검증합니다.
+2. 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈 정책과 방장 연결 상실 정책을 별도 설계합니다.
+3. 재대결 시 같은 방을 유지할지 새 방을 만들지 game-local post-game 흐름을 확정합니다.
+4. 운영 migration과 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+5. release 조건이 갖춰지면 production migration / capability activation / 게임 목록 노출을 별도 단계로 진행합니다.
 
 ## Decisions
 
@@ -119,7 +135,12 @@
 - Realtime payload 사용 방식: 화면 state로 직접 사용하지 않고 authoritative snapshot 재조회 신호로만 사용
 - entry 입력: 최대 인원 + 방 코드만 제공하고 game-local 닉네임 입력은 제공하지 않음
 - waiting room 방장 ready: 별도 버튼 없이 준비 완료로 간주하며 일반 플레이어 전원 ready를 시작 조건으로 계산
-- PLAYING preview: 현재 카드/본인 칩/남은 카드 수만 표시하고 gameplay action은 RPC 구현 전까지 숨김
+- PLAYING UI: 현재 카드/중앙 칩/본인 칩/남은 카드/공개 획득 카드 표시와 서버 권위 거절/가져오기 action 연결
+- gameplay RPC: shared 계약을 확장하지 않고 game-local `no_thanks_play_action` 하나에서 `refuse_card / take_card / end_game` 처리
+- gameplay mutation: room version, active player, private counter/deck을 서버 transaction에서 최종 검증
+- 자연 종료: 마지막 카드 획득 시 서버가 `GAME_OVER / LAST_CARD_TAKEN`, 최종 점수와 공동 승자를 확정
+- 수동 종료: 방장 확인 dialog + 서버 방장 권한 검증 후 `GAME_OVER / HOST_TERMINATED`, 점수/승자 미계산
+- 결과방 이탈: GAME_OVER에서 허용하고 진행 중 PLAYING에서는 일반 leave를 차단
 
 ## Validation
 
@@ -146,6 +167,12 @@
   - 방장 waiting-room 이탈은 전체 대기실을 닫는 파괴적 동작이므로 즉시 RPC를 호출하지 않고 명시적 `방 닫기` 확인 dialog를 거치도록 수정했습니다.
   - No Thanks! standalone HTML에 남아 있던 literal `\\n` 문자를 실제 줄바꿈으로 수정하고 회귀 테스트를 추가했습니다.
   - 위 리뷰 수정이 포함된 최신 head에서도 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard가 모두 성공했습니다.
+  - Phase 6 PR #356에서 server-authoritative gameplay adapter/controller/runtime/shell 계약을 포함한 Game Platform governance가 성공했습니다.
+  - Phase 6 변경을 포함한 Site static checks 전체 회귀 검증이 성공했습니다.
+  - disposable Supabase에서 Room/Lobby foundation + gameplay migration을 순서대로 replay하고 기존 플랫폼 필수 시나리오와 추가 gameplay 시나리오가 모두 성공했습니다.
+  - gameplay DB 검증에서 active-player refuse, private counter 감소, center counter 증가, turn 이동, take 후 중앙 칩 수령과 same-player turn 유지, concurrent conflict single commit, 마지막 카드 점수/공동 승자, host-only manual termination, terminal leave를 확인했습니다.
+  - `p_expected_version = null` 직접 RPC 호출도 `VERSION_CONFLICT`로 거부되는 것을 검증했습니다.
+  - 동일 `client_action_id`의 concurrent duplicate retry가 동일 authoritative snapshot으로 수렴하고 version을 두 번 증가시키지 않는 것을 검증했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
@@ -161,12 +188,12 @@
 
 ## Known Issues / Deferred
 
-- 승인회원 접근 제어, Common Game Shell, Room/Lobby DB/RPC와 실제 entry/waiting room UI까지 연결했지만 gameplay action UI는 아직 연결하지 않았습니다.
-- Room/Lobby 개발용 migration과 RPC는 추가했지만 운영 환경 적용과 gameplay RPC는 아직 없습니다.
+- 승인회원 접근 제어부터 Room/Lobby, server-authoritative gameplay action, 자연 종료와 방장 수동 종료 UI까지 연결했습니다.
+- Room/Lobby 및 gameplay 개발용 migration/RPC는 추가했지만 운영 환경 적용은 아직 하지 않았습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
-- 게임 진행 중 플레이어 이탈, 방장 이탈, 재대결 정책은 서버 권위 방/로비 설계 단계에서 확정합니다.
-- 현재 브랜치는 Room/Lobby runtime UI 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈, 방장 연결 상실, 재대결 정책은 아직 확정하지 않았습니다.
+- 현재 브랜치는 server-authoritative gameplay action 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 

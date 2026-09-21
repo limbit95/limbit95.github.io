@@ -24,8 +24,18 @@ function requireAdapter(adapter) {
   return adapter;
 }
 
+function requireGameplayAdapter(adapter) {
+  for (const method of ["refuseCard", "takeCard", "endGame"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`No Thanks! lobby controller requires gameplayAdapter.${method}().`);
+    }
+  }
+  return adapter;
+}
+
 function lobbyView(snapshot) {
   if (!snapshot?.room) return NO_THANKS_LOBBY_VIEW.ENTRY;
+  if (snapshot.game?.phase === "GAME_OVER") return NO_THANKS_LOBBY_VIEW.GAME_OVER;
   return snapshot.room.status === "playing"
     ? NO_THANKS_LOBBY_VIEW.PLAYING
     : NO_THANKS_LOBBY_VIEW.WAITING;
@@ -43,6 +53,7 @@ function errorText(error) {
 
 export function createNoThanksLobbyController({
   adapter,
+  gameplayAdapter,
   idFactory = createClientActionId,
   onState = () => {},
   onError = () => {},
@@ -50,6 +61,7 @@ export function createNoThanksLobbyController({
   documentTarget = globalThis.document,
 } = {}) {
   const roomLobby = requireAdapter(adapter);
+  const gameplay = requireGameplayAdapter(gameplayAdapter);
   if (typeof idFactory !== "function") {
     throw new TypeError("No Thanks! lobby controller requires idFactory().");
   }
@@ -230,6 +242,48 @@ export function createNoThanksLobbyController({
     });
   }
 
+  async function refuseCard() {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id) throw new Error("No Thanks! room is not active.");
+      const next = await gameplay.refuseCard({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
+      });
+      applySnapshot(next, { connection: "connected" });
+      return next;
+    });
+  }
+
+  async function takeCard() {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id) throw new Error("No Thanks! room is not active.");
+      const next = await gameplay.takeCard({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
+      });
+      applySnapshot(next, { connection: "connected" });
+      return next;
+    });
+  }
+
+  async function endGame() {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id) throw new Error("No Thanks! room is not active.");
+      const next = await gameplay.endGame({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
+      });
+      applySnapshot(next, { connection: "connected" });
+      return next;
+    });
+  }
+
   async function leaveRoom() {
     return command(async () => {
       const snapshot = state.snapshot;
@@ -290,6 +344,9 @@ export function createNoThanksLobbyController({
     joinRoom,
     setReady,
     startGame,
+    refuseCard,
+    takeCard,
+    endGame,
     leaveRoom,
     refresh,
     current,

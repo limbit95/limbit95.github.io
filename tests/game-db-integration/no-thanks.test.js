@@ -205,6 +205,38 @@ async function startGame(label) {
   return { ...room, started };
 }
 
+async function playAction(
+  user,
+  snapshot,
+  actionType,
+  actionId = randomUUID(),
+) {
+  return expectOk(await rpc("no_thanks_play_action", {
+    p_room_id: snapshot.room.id,
+    p_action_type: actionType,
+    p_expected_version: Number(snapshot.version),
+    p_client_action_id: actionId,
+  }, user.accessToken), `no_thanks_play_action ${actionType}`);
+}
+
+function playerById(room, playerId) {
+  return [room.host, room.guestA, room.guestB]
+    .find((player) => player.id === playerId);
+}
+
+async function patchPrivateState(roomId, body) {
+  return expectOk(await request(
+    `/rest/v1/no_thanks_room_private_state?room_id=eq.${roomId}`,
+    {
+      method: "PATCH",
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+      headers: { Prefer: "return=minimal" },
+      body,
+    },
+  ), "patch private No Thanks state");
+}
+
 registerPlatformGameDbContract({
   gameId: "no-thanks",
 
@@ -452,3 +484,226 @@ registerPlatformGameDbContract({
     },
   },
 }, { before, after, test });
+
+
+test("no-thanks gameplay: only the active player can refuse and replay is idempotent", async () => {
+  const room = await startGame("gameplay-refuse");
+  const active = playerById(room, room.started.game.activePlayerId);
+  const nonActive = [room.host, room.guestA, room.guestB]
+    .find((player) => player.id !== active.id);
+  const actionId = randomUUID();
+
+  const denied = await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: randomUUID(),
+  }, nonActive.accessToken);
+  expectDenied(denied, "non-active refuse", /TURN_REQUIRED/u);
+
+  const nullVersion = await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: null,
+    p_client_action_id: randomUUID(),
+  }, active.accessToken);
+  expectDenied(nullVersion, "null-version refuse", /VERSION_CONFLICT/u);
+
+  const refused = await playAction(active, room.started, "refuse_card", actionId);
+  assert.equal(Number(refused.version), Number(room.started.version) + 1);
+  assert.equal(refused.game.centerCounters, 1);
+  assert.notEqual(refused.game.activePlayerId, active.id);
+  assert.equal(refused.viewer.playerId, active.id);
+  assert.equal(refused.viewer.counters, 10);
+  assert.equal(
+    refused.players.some((player) => Object.hasOwn(player, "counters")),
+    false,
+  );
+
+  const replay = await expectOk(await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: actionId,
+  }, active.accessToken), "duplicate refuse replay");
+
+  assert.equal(Number(replay.version), Number(refused.version));
+  assert.equal(replay.game.centerCounters, 1);
+  assert.equal(replay.game.activePlayerId, refused.game.activePlayerId);
+});
+
+test("no-thanks gameplay: concurrent duplicate retries converge on one snapshot", async () => {
+  const room = await startGame("gameplay-duplicate-concurrent");
+  const actor = playerById(room, room.started.game.activePlayerId);
+  const clientActionId = randomUUID();
+  const body = {
+    p_room_id: room.started.room.id,
+    p_action_type: "refuse_card",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: clientActionId,
+  };
+
+  const [first, second] = await Promise.all([
+    rpc("no_thanks_play_action", body, actor.accessToken),
+    rpc("no_thanks_play_action", body, actor.accessToken),
+  ]);
+
+  const firstSnapshot = await expectOk(first, "first concurrent duplicate refuse");
+  const secondSnapshot = await expectOk(second, "second concurrent duplicate refuse");
+
+  assert.equal(Number(firstSnapshot.version), Number(room.started.version) + 1);
+  assert.equal(Number(secondSnapshot.version), Number(firstSnapshot.version));
+  assert.equal(firstSnapshot.game.centerCounters, 1);
+  assert.equal(secondSnapshot.game.centerCounters, 1);
+  assert.equal(secondSnapshot.game.activePlayerId, firstSnapshot.game.activePlayerId);
+
+  const authoritative = await expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: room.started.room.id,
+  }, actor.accessToken), "snapshot after concurrent duplicate refuse");
+  assert.equal(Number(authoritative.version), Number(firstSnapshot.version));
+  assert.equal(authoritative.game.centerCounters, 1);
+});
+
+test("no-thanks gameplay: taking a card collects center counters and keeps the turn", async () => {
+  const room = await startGame("gameplay-take");
+  const firstCard = room.started.game.currentCard;
+  const firstActor = playerById(room, room.started.game.activePlayerId);
+  const refused = await playAction(firstActor, room.started, "refuse_card");
+  const taker = playerById(room, refused.game.activePlayerId);
+
+  const taken = await playAction(taker, refused, "take_card");
+
+  assert.equal(Number(taken.version), Number(refused.version) + 1);
+  assert.equal(taken.game.activePlayerId, taker.id);
+  assert.equal(taken.game.centerCounters, 0);
+  assert.equal(taken.game.deckRemaining, 22);
+  assert.notEqual(taken.game.currentCard, firstCard);
+  assert.equal(taken.viewer.playerId, taker.id);
+  assert.equal(taken.viewer.counters, 12);
+  assert.equal(
+    taken.players.find((player) => player.userId === taker.id)?.cards.includes(firstCard),
+    true,
+  );
+  assert.equal(
+    taken.players.some((player) => Object.hasOwn(player, "counters")),
+    false,
+  );
+});
+
+test("no-thanks gameplay: concurrent conflicting actions make one authoritative commit", async () => {
+  const room = await startGame("gameplay-concurrent");
+  const actor = playerById(room, room.started.game.activePlayerId);
+  const expectedVersion = Number(room.started.version);
+
+  const results = await Promise.all([
+    rpc("no_thanks_play_action", {
+      p_room_id: room.started.room.id,
+      p_action_type: "refuse_card",
+      p_expected_version: expectedVersion,
+      p_client_action_id: randomUUID(),
+    }, actor.accessToken),
+    rpc("no_thanks_play_action", {
+      p_room_id: room.started.room.id,
+      p_action_type: "take_card",
+      p_expected_version: expectedVersion,
+      p_client_action_id: randomUUID(),
+    }, actor.accessToken),
+  ]);
+
+  const successes = results.filter((result) => result.response.ok);
+  const failures = results.filter((result) => !result.response.ok);
+  assert.equal(successes.length, 1);
+  assert.equal(failures.length, 1);
+  assert.match(failures[0].text, /VERSION_CONFLICT/u);
+
+  const authoritative = await expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: room.started.room.id,
+  }, actor.accessToken), "authoritative gameplay snapshot");
+  assert.equal(Number(authoritative.version), expectedVersion + 1);
+});
+
+test("no-thanks gameplay: last take finalizes joint winners and allows terminal leave", async () => {
+  const room = await startGame("gameplay-finish");
+  const actor = playerById(room, room.started.game.activePlayerId);
+  const currentCard = room.started.game.currentCard;
+  const counters = {
+    [room.host.id]: 0,
+    [room.guestA.id]: 0,
+    [room.guestB.id]: 0,
+    [actor.id]: currentCard,
+  };
+
+  await patchPrivateState(room.started.room.id, {
+    draw_deck: [],
+    player_counters: counters,
+  });
+
+  const finished = await playAction(actor, room.started, "take_card");
+
+  assert.equal(finished.game.phase, "GAME_OVER");
+  assert.equal(finished.game.currentCard, null);
+  assert.equal(finished.game.deckRemaining, 0);
+  assert.equal(finished.game.endReason, "LAST_CARD_TAKEN");
+  assert.deepEqual(
+    Object.values(finished.game.finalScores).sort((a, b) => a - b),
+    [0, 0, 0],
+  );
+  assert.deepEqual(
+    [...finished.game.winners].sort(),
+    [room.host.id, room.guestA.id, room.guestB.id].sort(),
+  );
+
+  const leaveResult = await expectOk(await rpc("no_thanks_leave_room", {
+    p_room_id: finished.room.id,
+    p_expected_version: Number(finished.version),
+  }, room.guestA.accessToken), "leave finished No Thanks room");
+  assert.equal(leaveResult.left, true);
+
+  const activeRoom = await expectOk(await rpc(
+    "no_thanks_get_my_active_room",
+    {},
+    room.guestA.accessToken,
+  ), "finished-room active lookup");
+  assert.equal(activeRoom, null);
+
+  const hostResult = await expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: finished.room.id,
+  }, room.host.accessToken), "host result after another player leaves");
+  assert.equal(hostResult.players.length, 3);
+  assert.deepEqual(
+    Object.values(hostResult.game.finalScores).sort((a, b) => a - b),
+    [0, 0, 0],
+  );
+  assert.deepEqual(
+    [...hostResult.game.winners].sort(),
+    [room.host.id, room.guestA.id, room.guestB.id].sort(),
+  );
+});
+
+
+test("no-thanks gameplay: only the host can terminate an in-progress game", async () => {
+  const room = await startGame("gameplay-host-end");
+
+  const denied = await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "end_game",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: randomUUID(),
+  }, room.guestA.accessToken);
+  expectDenied(denied, "non-host end game", /HOST_REQUIRED/u);
+
+  const ended = await playAction(room.host, room.started, "end_game");
+
+  assert.equal(Number(ended.version), Number(room.started.version) + 1);
+  assert.equal(ended.game.phase, "GAME_OVER");
+  assert.equal(ended.game.endReason, "HOST_TERMINATED");
+  assert.equal(ended.game.currentCard, null);
+  assert.equal(ended.game.finalScores, null);
+  assert.deepEqual(ended.game.winners, []);
+
+  const guestLeave = await expectOk(await rpc("no_thanks_leave_room", {
+    p_room_id: ended.room.id,
+    p_expected_version: Number(ended.version),
+  }, room.guestA.accessToken), "leave host-terminated No Thanks room");
+  assert.equal(guestLeave.left, true);
+});
