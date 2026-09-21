@@ -2,7 +2,7 @@
 
 이 문서는 신규 online platform-native 게임의 **현재 정식 DB/RPC 품질 계약**이다.
 
-게임별 테이블 구조, RPC 이름, 규칙 상태 머신은 각 게임에 남겨 두되, 모든 신규 온라인 게임은 아래 서버 경계와 테스트 시나리오를 만족해야 한다.
+게임별 테이블 구조, RPC 이름, 규칙 상태 머신과 session lifecycle은 각 게임에 남겨 두되, 모든 신규 온라인 게임은 아래 서버 경계와 테스트 시나리오를 만족해야 한다.
 
 공통 게임 DB 스키마나 공통 gameplay RPC를 강제하지 않는다. 공통화 대상은 SQL 구현 자체가 아니라 **반드시 검증해야 하는 안전성 계약**이다.
 
@@ -10,11 +10,11 @@
 
 모든 신규 온라인 platform-native 게임은 최소 다음 시나리오를 검증한다.
 
-1. 익명 사용자는 방을 생성하거나 참가할 수 없다.
-2. 승인되지 않은 회원은 방을 생성하거나 참가할 수 없다.
-3. 승인 회원은 정상적으로 방을 생성하고 다른 방에 참가할 수 있다.
-4. 방 멤버가 아닌 사용자는 방 snapshot을 읽을 수 없다.
-5. 방장이 아닌 사용자는 게임을 시작할 수 없다.
+1. 익명 사용자는 보호된 게임 세션에 진입할 수 없다.
+2. 승인되지 않은 회원은 보호된 게임 세션에 진입할 수 없다.
+3. 승인 회원은 해당 게임 정책이 허용하는 세션 진입을 수행할 수 있다.
+4. 세션 멤버가 아닌 사용자는 보호된 authoritative snapshot을 읽을 수 없다.
+5. 게임 시작 조건과 시작 권한은 서버가 해당 게임의 lifecycle 정책에 맞게 검증한다.
 6. 오래된 `expected_version` 명령은 거부된다.
 7. 동일한 `client_action_id` 재전송은 중복 적용되지 않는다.
 8. 동시에 충돌하는 명령은 하나의 authoritative commit만 만든다.
@@ -36,8 +36,8 @@ tests/game-db-integration/platformContract.js
 ```text
 tests/game-db-integration/
   foundation.test.js
-  cant-stop.test.js
-  future-game.test.js
+  <game-id>.test.js
+  <another-game-id>.test.js
 ```
 
 각 게임 테스트 파일은 자체 RPC 이름과 fixture 생성 방법을 유지하면서 `definePlatformGameDbContract` / `registerPlatformGameDbContract`를 사용한다.
@@ -46,7 +46,7 @@ tests/game-db-integration/
 
 ```js
 registerPlatformGameDbContract({
-  gameId: "cant-stop",
+  gameId: "example-game",
   createContext: async () => {
     // approved / pending / outsider users and a disposable room fixture
     return context;
@@ -55,11 +55,11 @@ registerPlatformGameDbContract({
     // test fixture cleanup
   },
   scenarios: {
-    anonymous_entry_denied: async (context) => { /* create + join RPC assertions */ },
-    unapproved_entry_denied: async (context) => { /* create + join RPC assertions */ },
-    approved_entry_allowed: async (context) => { /* create + join RPC assertions */ },
+    anonymous_entry_denied: async (context) => { /* session entry boundary assertions */ },
+    unapproved_entry_denied: async (context) => { /* session entry boundary assertions */ },
+    approved_entry_allowed: async (context) => { /* permitted session entry assertions */ },
     non_member_snapshot_denied: async (context) => { /* ... */ },
-    non_host_start_denied: async (context) => { /* ... */ },
+    start_authorization_enforced: async (context) => { /* game-specific start policy assertions */ },
     stale_version_rejected: async (context) => { /* ... */ },
     duplicate_action_safe: async (context) => { /* ... */ },
     concurrent_action_single_commit: async (context) => { /* ... */ },
@@ -88,7 +88,7 @@ Realtime은 invalidation 신호로 사용하고, 최종 상태 검증은 DB/RPC 
 
 ## Idempotency
 
-신규 상태 변경 RPC는 가능한 한 다음 값을 받는다.
+신규 상태 변경 RPC는 해당 게임의 action model에 맞는 경우 가능한 한 다음 값을 받는다.
 
 ```text
 room_id
@@ -103,6 +103,8 @@ client_action_id
 ## 동시성
 
 `concurrent_action_single_commit`은 동일한 버전을 기준으로 충돌하는 두 명령을 거의 동시에 보내고 다음을 확인한다.
+
+게임이 명시적 room/start 버튼을 사용하지 않더라도 이 계약의 핵심은 동일하다. 예를 들어 자동 시작 게임은 참가 인원/조건을 만족하지 않은 상태에서 클라이언트가 시작 상태를 임의로 만들 수 없음을 검증하고, host가 없는 게임은 특정 역할이 아니라 **게임이 정의한 시작 조건 자체가 서버에서 강제됨**을 검증한다.
 
 - 둘 다 상태 변경에 성공하지 않는다.
 - 최종 room version은 한 번만 진행된다.
