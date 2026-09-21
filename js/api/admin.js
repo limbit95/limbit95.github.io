@@ -119,6 +119,24 @@ export async function listAllMembers({ search = "" } = {}) {
   return items;
 }
 
+export async function getAdminDashboardStats(fromDate) {
+  const rows = unwrap(await supabase.rpc("get_admin_dashboard_stats", {
+    p_from_date: fromDate,
+  })) ?? [];
+  const row = rows[0] ?? {};
+  return {
+    pendingJoinRequests: Number(row.pending_join_requests ?? 0),
+    approvedMembers: Number(row.approved_members ?? 0),
+    suspendedMembers: Number(row.suspended_members ?? 0),
+    totalAccounts: Number(row.total_accounts ?? 0),
+    adminAccounts: Number(row.admin_accounts ?? 0),
+    upcomingEvents: Number(row.upcoming_events ?? 0),
+    upcomingScheduledEvents: Number(row.upcoming_scheduled_events ?? 0),
+    activeCategories: Number(row.active_categories ?? 0),
+    categoryManagerAssignments: Number(row.category_manager_assignments ?? 0),
+  };
+}
+
 export async function listMemberAccess({
   search = "",
   recency = "all",
