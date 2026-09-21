@@ -1,42 +1,44 @@
-# Game DB integration foundation
+# Game DB 통합 테스트 기반
 
-Phase 2-A provides a disposable Supabase integration harness before any stability fix changes existing game RPC/RLS behavior. Phase 2-B extends that harness to the current post-v1.0 Liar schema and uses it to protect the Liar / Drawing Spy entry boundary.
+이 문서는 게임 DB 통합 테스트 기반의 범위와 운영 원칙을 설명한다.
 
-## Current scope
+Phase 2-A에서 기존 게임 RPC/RLS 동작을 수정하기 전에 disposable Supabase 통합 테스트 환경을 먼저 구축했다. Phase 2-B에서는 이 기반을 당시 Liar v1.0 이후 스키마까지 확장하고 Liar / Drawing Spy 진입 권한 경계를 보호하도록 했다.
 
-- site baseline and operating migrations required by shared membership helpers
-- Liar Game / Drawing Spy v1.0.0 canonical fresh-install baseline plus the checked-in post-canonical v1.1/v1.2/v1.3 migrations
-- current checked-in The Game migrations recovered from the operating migration history
-- current checked-in Marble additive migrations
-- current checked-in Can’t Stop room/gameplay/invite/leave migrations
-- HTTP-level RPC checks for anonymous access, approved-member Liar entry/resume access, room membership, player-key possession, Marble optimistic version rejection, and Can’t Stop platform-native lifecycle/security contracts
+## 현재 범위
 
-Drawing Spy is covered by the Liar database baseline because it is a Liar game mode, not a separate application.
+- shared membership helper가 의존하는 site baseline 및 운영 migration
+- Liar Game / Drawing Spy v1.0.0 canonical fresh-install baseline과 저장소에 반영된 v1.1/v1.2/v1.3 후속 migration
+- 운영 migration history에서 복원해 저장소에 반영한 The Game migration
+- 저장소에 반영된 Marble additive migration
+- 저장소에 반영된 Can’t Stop room/gameplay/invite/leave migration
+- anonymous 접근, 승인회원 Liar 진입/복구, room membership, player-key 보유, Marble optimistic version 거부, Can’t Stop platform-native lifecycle/security contract에 대한 HTTP-level RPC 검증
 
-The Game migration history is now replayed by `scripts/prepare-game-db-e2e.mjs` in the disposable database. The current foundation assertions still focus on the Liar / Drawing Spy access boundary and Marble lobby/version boundary, so dedicated The Game RPC assertions can be expanded separately without changing existing game behavior.
+Drawing Spy는 별도 애플리케이션이 아니라 Liar Game의 게임 모드이므로 Liar DB baseline에서 함께 검증한다.
 
-## Safety boundaries
+The Game migration history는 현재 `scripts/prepare-game-db-e2e.mjs`가 disposable database에 replay한다. 기존 foundation assertion은 Liar / Drawing Spy 접근 경계와 Marble lobby/version 경계를 중심으로 유지하며, The Game 전용 RPC assertion이 더 필요해지면 기존 게임 동작을 변경하지 않는 별도 범위로 확장한다.
 
-- The harness only uses `.game-db-e2e`, a disposable local Supabase workdir.
-- It never connects to or migrates the production Supabase project.
-- Marble runtime/gameplay files are not modified; its migrations are only replayed in the disposable database.
-- Liar / Drawing Spy pending, rejected, and suspended accounts cannot create or join rooms; an account suspended after joining cannot rediscover/resume its room through the entry APIs.
-- Phase 2-B deliberately does not refactor Liar gameplay RPCs or introduce a broad mid-session revocation mechanism. That would require a separate lifecycle policy and regression pass rather than being hidden inside this narrow access-boundary fix.
+## 안전 경계
 
-## Running
+- harness는 disposable local Supabase workdir인 `.game-db-e2e`만 사용한다.
+- production Supabase 프로젝트에 연결하거나 migration을 적용하지 않는다.
+- Marble runtime/gameplay 파일은 수정하지 않으며 migration만 disposable database에 replay한다.
+- Liar / Drawing Spy의 pending, rejected, suspended 계정은 room을 생성하거나 참가할 수 없다. 참가 후 suspended 상태가 된 계정도 entry API를 통해 기존 room을 다시 찾거나 resume할 수 없다.
+- Phase 2-B는 Liar gameplay RPC를 리팩터링하거나 broad mid-session revocation mechanism을 추가하지 않는다. 이런 변경은 접근 경계 수정에 숨겨 넣지 않고 별도의 lifecycle 정책과 회귀 검증 범위로 다룬다.
 
-The `Game DB integration` GitHub Actions workflow runs automatically only for relevant game DB/harness pull requests and can also be started manually. It intentionally does not run on every feature-branch push to conserve Actions usage.
+## 실행
 
-The workflow checks out full Git history because the Liar canonical installer resolves immutable pinned Git blobs.
+`Game DB integration` GitHub Actions workflow는 관련 game DB/harness Pull Request에서만 자동 실행하며 필요할 때 수동 실행할 수 있다. GitHub Actions 사용량을 아끼기 위해 모든 feature branch push마다 실행하지 않는다.
 
-## Platform-native contract
+workflow는 Liar canonical installer가 immutable pinned Git blob을 해석해야 하므로 full Git history를 checkout한다.
 
-Phase 3E adds `platformContract.js` as the reusable server-boundary contract for new platform-native games.
+## Platform-native 계약
 
-It intentionally does **not** define a shared game schema or shared game RPC implementation. Each game keeps its own tables, RPC names, rule state, and fixtures.
+Phase 3E에서 `platformContract.js`를 신규 platform-native 게임이 재사용하는 server-boundary 계약으로 추가했다.
 
-A new online platform game should add its own `tests/game-db-integration/<game-id>.test.js` and register the ten mandatory scenarios documented in `docs/game-platform-db-test-contract.md`.
+이 계약은 공통 game schema나 공통 gameplay RPC 구현을 만들지 않는다. 각 게임은 자신의 table, RPC 이름, rule state, fixture를 유지한다.
 
-The workflow now runs every `tests/game-db-integration/*.test.js` file in the same disposable Supabase instance, so adding a new game contract test does not require another workflow.
+신규 online platform game은 `tests/game-db-integration/<game-id>.test.js`를 추가하고 `docs/game-platform-db-test-contract.md`에 정의된 필수 10개 시나리오를 등록해야 한다.
 
-Can’t Stop은 이 계약의 첫 production platform-native 소비 사례다. `tests/game-db-integration/cant-stop.test.js`는 승인회원/room membership/host 권한/stale version/idempotency/concurrent conflict/reconnect/private-state 경계에 더해 실제 Can’t Stop gameplay, Invite, rematch/leave lifecycle을 회귀 검증한다.
+workflow는 동일한 disposable Supabase instance에서 모든 `tests/game-db-integration/*.test.js`를 실행한다. 따라서 신규 게임 contract test를 추가할 때 별도의 workflow를 만들 필요가 없다.
+
+Can’t Stop은 이 계약의 첫 production platform-native 소비 사례다. `tests/game-db-integration/cant-stop.test.js`는 승인회원, room membership, host 권한, stale version, idempotency, concurrent conflict, reconnect, private-state 경계에 더해 Can’t Stop의 gameplay, Invite, rematch/leave lifecycle을 회귀 검증한다.
