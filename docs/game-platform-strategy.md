@@ -225,7 +225,6 @@ Can’t Stop v1은 2026-09-21 production release까지 완료되어 Registry `on
 Can’t Stop 구현을 통해 다음 경계는 유지할 가치가 확인됐다.
 
 - 인증/승인회원, Registry, Room/Lobby adapter, snapshot/reconnect, version/idempotency, Invite, DB contract는 SHARED 책임으로 재사용한다.
-- dice/pairing/runner, active-turn leave의 구체적 게임 의미, 설산 UI와 bust 연출은 GAME-LOCAL에 유지한다.
 - production migration과 capability activation은 소스 구현과 분리한다.
 - 게임 출시 시 문서 상태를 `RELEASED / main`으로 닫고, stacked PR과 임시 브랜치를 정리해야 다음 작업자가 과거 브랜치를 현재 기준으로 오해하지 않는다.
 - 한 게임에서 발견된 편의 기능은 곧바로 shared abstraction으로 승격하지 않는다. 두 번째 이후 게임에서 같은 플랫폼 책임이 반복될 때 계약을 확장한다.
