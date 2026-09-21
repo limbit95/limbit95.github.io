@@ -77,18 +77,20 @@
 - 내 차례에서만 거절/가져오기 버튼을 활성화하고, 본인 칩이 0개라면 거절 버튼을 비활성화해 강제 가져오기 상태를 명확히 표시합니다.
 - 자연 종료 결과 화면에 최종 점수와 공동 승자를 표시하고, 방장 수동 종료는 별도 종료 사유를 표시하도록 구현했습니다.
 - gameplay adapter/controller/runtime/shell 정적 테스트와 disposable Supabase gameplay DB integration 시나리오를 추가했습니다.
+- 동일 `client_action_id` gameplay 요청이 동시에 두 번 도착하는 경우에도 room lock 획득 후 action row를 다시 확인해 첫 authoritative snapshot으로 수렴하도록 idempotency 경계를 보강했습니다.
+- concurrent duplicate retry가 둘 다 동일 snapshot을 반환하고 room version은 한 번만 증가하는 disposable DB integration 회귀 테스트를 추가했습니다.
 
 ## Current Work
 
-- 서버 권위 gameplay RPC, 실제 행동 UI, 자연 종료/수동 종료 및 DB 통합 경계를 검증하는 단계입니다.
+- Phase 6 server-authoritative gameplay 구현과 자동 검증을 완료하고 PR #356의 최종 검토 상태를 정리하는 단계입니다.
 
 ## Next Work
 
-1. Phase 6의 Game Platform governance, Site static checks, disposable Game DB integration을 모두 통과시킵니다.
-2. 실제 3인·7인 다중 브라우저에서 turn 이동, 칩 비공개, Realtime invalidation, reconnect, 자연 종료와 수동 종료를 검증합니다.
-3. 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈 정책과 방장 연결 상실 정책을 별도 설계합니다.
-4. 재대결 시 같은 방을 유지할지 새 방을 만들지 game-local post-game 흐름을 확정합니다.
-5. 운영 migration과 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+1. 실제 3인·7인 다중 브라우저에서 turn 이동, 칩 비공개, Realtime invalidation, reconnect, 자연 종료와 수동 종료를 검증합니다.
+2. 게임 진행 중 브라우저 종료/네트워크 단절 같은 비정상 이탈 정책과 방장 연결 상실 정책을 별도 설계합니다.
+3. 재대결 시 같은 방을 유지할지 새 방을 만들지 game-local post-game 흐름을 확정합니다.
+4. 운영 migration과 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+5. release 조건이 갖춰지면 production migration / capability activation / 게임 목록 노출을 별도 단계로 진행합니다.
 
 ## Decisions
 
@@ -165,6 +167,12 @@
   - 방장 waiting-room 이탈은 전체 대기실을 닫는 파괴적 동작이므로 즉시 RPC를 호출하지 않고 명시적 `방 닫기` 확인 dialog를 거치도록 수정했습니다.
   - No Thanks! standalone HTML에 남아 있던 literal `\\n` 문자를 실제 줄바꿈으로 수정하고 회귀 테스트를 추가했습니다.
   - 위 리뷰 수정이 포함된 최신 head에서도 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard가 모두 성공했습니다.
+  - Phase 6 PR #356에서 server-authoritative gameplay adapter/controller/runtime/shell 계약을 포함한 Game Platform governance가 성공했습니다.
+  - Phase 6 변경을 포함한 Site static checks 전체 회귀 검증이 성공했습니다.
+  - disposable Supabase에서 Room/Lobby foundation + gameplay migration을 순서대로 replay하고 기존 플랫폼 필수 시나리오와 추가 gameplay 시나리오가 모두 성공했습니다.
+  - gameplay DB 검증에서 active-player refuse, private counter 감소, center counter 증가, turn 이동, take 후 중앙 칩 수령과 same-player turn 유지, concurrent conflict single commit, 마지막 카드 점수/공동 승자, host-only manual termination, terminal leave를 확인했습니다.
+  - `p_expected_version = null` 직접 RPC 호출도 `VERSION_CONFLICT`로 거부되는 것을 검증했습니다.
+  - 동일 `client_action_id`의 concurrent duplicate retry가 동일 authoritative snapshot으로 수렴하고 version을 두 번 증가시키지 않는 것을 검증했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
