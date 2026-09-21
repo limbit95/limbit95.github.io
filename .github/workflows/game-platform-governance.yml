@@ -33,6 +33,9 @@ jobs:
             node --check "$file"
           done < <(find games -type f -name '*.js' -print0)
 
+      - name: Link-check site modules consuming shared game modules
+        run: node --experimental-vm-modules scripts/check-community-modules.mjs
+
       - name: Test Game Platform contracts
         run: npm run test:game-platform
 
