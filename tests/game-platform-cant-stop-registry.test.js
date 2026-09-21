@@ -29,6 +29,6 @@ test("main games page exposes Can't Stop as a playable card", () => {
   );
 
   assert.match(gamesPage, /title: "Can’t Stop"/u);
-  assert.match(gamesPage, /href: "\\.\\/games\\/cant-stop\\/"?/u);
+  assert.match(gamesPage, /href: "\.\/games\/cant-stop\/"?/u);
   assert.match(gamesPage, /buttonText: "Can’t Stop 시작"/u);
 });
