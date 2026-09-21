@@ -1,7 +1,7 @@
 {
-  "entry": "assets/build/app-GERAMYXK.js",
+  "entry": "assets/build/app-V2H6Y4IK.js",
   "outputs": [
-    "assets/build/app-GERAMYXK.js",
+    "assets/build/app-V2H6Y4IK.js",
     "assets/build/chunks/access-6YUX5JI6.js",
     "assets/build/chunks/activities-IYJVAKOH.js",
     "assets/build/chunks/activityDetail-65GCVKFD.js",
@@ -45,6 +45,6 @@
     "assets/build/chunks/postDetail-656L3TSR.js",
     "assets/build/chunks/postForm-3LYNLSLG.js",
     "assets/build/chunks/push-onboarding-ORYDVF3H.js",
-    "assets/build/chunks/signup-UVYCPVN4.js"
+    "assets/build/chunks/signup-GB3L2KFJ.js"
   ]
 }
