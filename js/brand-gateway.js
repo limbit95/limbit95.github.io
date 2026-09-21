@@ -316,7 +316,7 @@
             el("span", { text: "THE PATH CONTINUES IN COMMUNITY" }),
             el("h2", { text: "이제 실제 ‘같이’ 안으로 들어갑니다." }),
             el("p", { text: "모임과 활동, 공동체 기능은 기존 청파 같이 서비스에서 이어집니다." }),
-            el("a", { href: "#/login" }, [el("span", { text: "청파 같이 시작하기" }), el("b", { text: "↗", "aria-hidden": "true" })]),
+            el("a", { href: "/" }, [el("span", { text: "청파 같이 시작하기" }), el("b", { text: "↗", "aria-hidden": "true" })]),
           ])
         : el("a", { className: "brand-ae-detail__next", href: content.next }, [
             el("span", { text: `NEXT PATH · ${content.nextLabel}` }),

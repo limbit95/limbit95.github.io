@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko" data-brand-public="true">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f0ede5">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="description" content="청파 같이 AE 브랜드 게이트웨이 작업용 프리뷰">
+    <title>청파 같이 · AE Preview</title>
+    <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./css/reset.css">
+    <link rel="stylesheet" href="./css/brand-gateway.css">
+    <script>
+      (() => {
+        if (!window.location.hash) {
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search + "#/gateway",
+          );
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="brand-gateway-root"></div>
+    <noscript>이 프리뷰를 보려면 JavaScript를 활성화해 주세요.</noscript>
+    <script src="./js/brand-gateway.js"></script>
+  </body>
+</html>
