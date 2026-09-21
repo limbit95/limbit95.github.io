@@ -165,6 +165,7 @@ function fakeAdapter({ activeSnapshot = null } = {}) {
 function fakeGameplayAdapter({
   refuseSnapshot = null,
   takeSnapshot = null,
+  endSnapshot = null,
 } = {}) {
   const calls = [];
   return {
@@ -186,6 +187,17 @@ function fakeGameplayAdapter({
         status: "playing",
         activePlayerId: "guest-a",
         counters: 11,
+      });
+    },
+    async endGame(input) {
+      calls.push(["endGame", input]);
+      return endSnapshot ?? snapshot({
+        version: input.expectedVersion + 1,
+        status: "playing",
+        gamePhase: "GAME_OVER",
+        activePlayerId: "host",
+        finalScores: null,
+        winners: [],
       });
     },
   };
@@ -427,4 +439,36 @@ test("No Thanks! controller enters the terminal result view from takeCard", asyn
 
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.GAME_OVER);
   assert.equal(controller.current().snapshot.game.phase, "GAME_OVER");
+});
+
+
+test("No Thanks! controller sends a versioned host termination action", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 30,
+      status: "playing",
+      activePlayerId: "guest-a",
+    }),
+  });
+  const gameplayAdapter = fakeGameplayAdapter({
+    endSnapshot: snapshot({
+      version: 31,
+      status: "playing",
+      gamePhase: "GAME_OVER",
+      activePlayerId: "guest-a",
+      finalScores: null,
+      winners: [],
+    }),
+  });
+  const controller = createController(roomAdapter, gameplayAdapter);
+
+  await controller.initialize();
+  await controller.endGame();
+
+  assert.deepEqual(gameplayAdapter.calls[0], ["endGame", {
+    roomId: "room-1",
+    expectedVersion: 30,
+    clientActionId: "action-1",
+  }]);
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.GAME_OVER);
 });
