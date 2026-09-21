@@ -1,6 +1,6 @@
 import {
   approveJoinRequest,
-  listJoinRequests,
+  listJoinRequestsPage,
   reviewJoinRequest,
 } from "../../api/admin.js";
 import { confirmDialog } from "../../components/modal.js";
@@ -8,68 +8,140 @@ import { showToast } from "../../components/toast.js";
 import { JOIN_REQUEST_STATUS_LABEL, PROFILE_STATUS_LABEL } from "../../constants.js";
 import { el, formatDateTime, getErrorMessage } from "../../ui.js";
 
+const PAGE_SIZE = 20;
+
 export async function renderApprovals(route) {
   const status = ["pending", "held", "rejected", "approved", "all"].includes(route.query.get("status"))
     ? route.query.get("status")
     : "pending";
-  const rows = await listJoinRequests(status);
   const wrapper = el("div", { className: "page-stack" });
-  wrapper.append(el("div", { className: "tabs", role: "tablist", "aria-label": "가입 신청 상태 필터" }, [
-    approvalTab("pending", "승인 대기", status),
-    approvalTab("held", "보류", status),
-    approvalTab("rejected", "거절", status),
-    approvalTab("approved", "승인 완료", status),
-    approvalTab("all", "전체", status),
-  ]));
-  if (!rows.length) {
-    wrapper.append(el("div", { className: "state-box" }, [
-      el("h2", { className: "section-title", text: "해당 상태의 가입 신청이 없습니다." }),
-      el("p", { className: "subtle", text: "새 신청이 접수되면 이곳에 표시됩니다." }),
+  const list = el("div", { className: "page-stack" });
+  const previousButton = el("button", { className: "button button--ghost", type: "button", text: "이전" });
+  const nextButton = el("button", { className: "button button--ghost", type: "button", text: "다음" });
+  const pageLabel = el("span", { className: "small subtle", text: "1 / 1" });
+  const pagination = el("div", { className: "form-actions", hidden: true }, [
+    previousButton,
+    pageLabel,
+    nextButton,
+  ]);
+  const state = {
+    page: 1,
+    totalPages: 1,
+  };
+  let requestSequence = 0;
+
+  const loadRequests = async () => {
+    const sequence = ++requestSequence;
+    list.replaceChildren(el("div", { className: "state-box" }, [
+      el("p", { text: "가입 신청을 불러오는 중입니다…" }),
     ]));
-    return wrapper;
-  }
-  rows.forEach((request) => {
-    const note = el("textarea", {
-      "aria-label": `${request.real_name} 관리자 안내`,
-      maxlength: "1000",
-      placeholder: "신청자에게 전달할 안내나 내부 확인 내용을 입력하세요.",
-      text: request.admin_note ?? "",
-      style: { minHeight: "90px" },
-    });
-    const card = el("article", { className: "card page-stack" }, [
-      el("div", { className: "page-header" }, [
-        el("div", {}, [
-          el("h2", { className: "section-title", text: request.real_name }),
-          el("p", { className: "small subtle", text: `${request.email} · ${request.church_group}` }),
-        ]),
-        requestBadge(request.status),
-      ]),
-      el("div", { className: "notice-box", text: request.request_message }),
-      el("dl", { className: "meta-list small" }, [
-        keyValue("표시 이름", request.profile?.display_name ?? "-"),
-        keyValue("신청일", formatDateTime(request.requested_at)),
-        keyValue("개인정보 동의", `${formatDateTime(request.privacy_consent_at)} · ${request.privacy_policy_version}`),
-      ]),
-      ["pending", "held"].includes(request.status)
-        ? el("div", { className: "field" }, [
-            el("label", { text: "관리자 안내" }),
-            note,
-          ])
-        : request.admin_note
-          ? el("div", { className: "notice-box notice-box--warning", text: `처리 메모: ${request.admin_note}` })
-          : null,
-    ]);
-    if (["pending", "held"].includes(request.status)) {
-      const actions = el("div", { className: "button-row" }, [
-        actionButton("승인", "button", () => processRequest(card, request, "approve", note.value)),
-        actionButton("보류", "button button--secondary", () => processRequest(card, request, "held", note.value)),
-        actionButton("거절", "button button--ghost", () => processRequest(card, request, "rejected", note.value)),
-      ]);
-      card.append(actions);
+    previousButton.disabled = true;
+    nextButton.disabled = true;
+
+    try {
+      const result = await listJoinRequestsPage({
+        status,
+        page: state.page,
+        pageSize: PAGE_SIZE,
+      });
+      if (sequence !== requestSequence) return;
+
+      state.totalPages = result.totalPages;
+      list.replaceChildren();
+      if (!result.items.length) {
+        list.append(emptyState());
+        pagination.hidden = true;
+        return;
+      }
+
+      result.items.forEach((request) => list.append(requestCard(request)));
+      pageLabel.textContent = `${state.page} / ${result.totalPages} · 전체 ${result.total}건`;
+      previousButton.disabled = state.page <= 1;
+      nextButton.disabled = state.page >= result.totalPages;
+      pagination.hidden = result.totalPages <= 1;
+    } catch (error) {
+      if (sequence !== requestSequence) return;
+      list.replaceChildren(el("div", {
+        className: "notice-box notice-box--danger",
+        role: "alert",
+        text: getErrorMessage(error, "가입 신청 목록을 불러오지 못했습니다."),
+      }));
+      pagination.hidden = true;
     }
-    wrapper.append(card);
+  };
+
+  previousButton.addEventListener("click", () => {
+    if (state.page <= 1) return;
+    state.page -= 1;
+    loadRequests();
   });
+  nextButton.addEventListener("click", () => {
+    if (state.page >= state.totalPages) return;
+    state.page += 1;
+    loadRequests();
+  });
+
+  wrapper.append(
+    el("div", { className: "tabs", role: "tablist", "aria-label": "가입 신청 상태 필터" }, [
+      approvalTab("pending", "승인 대기", status),
+      approvalTab("held", "보류", status),
+      approvalTab("rejected", "거절", status),
+      approvalTab("approved", "승인 완료", status),
+      approvalTab("all", "전체", status),
+    ]),
+    list,
+    pagination,
+  );
+  await loadRequests();
   return wrapper;
+}
+
+function requestCard(request) {
+  const note = el("textarea", {
+    "aria-label": `${request.real_name} 관리자 안내`,
+    maxlength: "1000",
+    placeholder: "신청자에게 전달할 안내나 내부 확인 내용을 입력하세요.",
+    text: request.admin_note ?? "",
+    style: { minHeight: "90px" },
+  });
+  const card = el("article", { className: "card page-stack" }, [
+    el("div", { className: "page-header" }, [
+      el("div", {}, [
+        el("h2", { className: "section-title", text: request.real_name }),
+        el("p", { className: "small subtle", text: `${request.email} · ${request.church_group}` }),
+      ]),
+      requestBadge(request.status),
+    ]),
+    el("div", { className: "notice-box", text: request.request_message }),
+    el("dl", { className: "meta-list small" }, [
+      keyValue("표시 이름", request.profile?.display_name ?? "-"),
+      keyValue("신청일", formatDateTime(request.requested_at)),
+      keyValue("개인정보 동의", `${formatDateTime(request.privacy_consent_at)} · ${request.privacy_policy_version}`),
+    ]),
+    ["pending", "held"].includes(request.status)
+      ? el("div", { className: "field" }, [
+          el("label", { text: "관리자 안내" }),
+          note,
+        ])
+      : request.admin_note
+        ? el("div", { className: "notice-box notice-box--warning", text: `처리 메모: ${request.admin_note}` })
+        : null,
+  ]);
+  if (["pending", "held"].includes(request.status)) {
+    card.append(el("div", { className: "button-row" }, [
+      actionButton("승인", "button", () => processRequest(card, request, "approve", note.value)),
+      actionButton("보류", "button button--secondary", () => processRequest(card, request, "held", note.value)),
+      actionButton("거절", "button button--ghost", () => processRequest(card, request, "rejected", note.value)),
+    ]));
+  }
+  return card;
+}
+
+function emptyState() {
+  return el("div", { className: "state-box" }, [
+    el("h2", { className: "section-title", text: "해당 상태의 가입 신청이 없습니다." }),
+    el("p", { className: "subtle", text: "새 신청이 접수되면 이곳에 표시됩니다." }),
+  ]);
 }
 
 async function processRequest(card, request, decision, note) {

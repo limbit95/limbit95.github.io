@@ -29,6 +29,14 @@ const adminManagersPage = readFileSync(
   new URL("../js/pages/admin/managers.js", import.meta.url),
   "utf8",
 );
+const approvalPaginationMigration = readFileSync(
+  new URL("../supabase/site/migrations/20260921134000_admin_join_request_pagination.sql", import.meta.url),
+  "utf8",
+);
+const adminApprovalsPage = readFileSync(
+  new URL("../js/pages/admin/approvals.js", import.meta.url),
+  "utf8",
+);
 const adminApi = readFileSync(
   new URL("../js/api/admin.js", import.meta.url),
   "utf8",
@@ -230,5 +238,34 @@ test("category manager candidate RPC preserves operations and member-detail boun
   assert.match(
     managerCandidateMigration,
     /grant execute on function public\.admin_list_category_manager_candidates\(text, integer\)[\s\S]*to authenticated/,
+  );
+});
+
+test("join request approvals use a paginated read model", () => {
+  assert.match(adminApi, /export async function listJoinRequestsPage\(/);
+  assert.match(adminApi, /supabase\.rpc\("admin_list_join_requests_page"/);
+  assert.match(adminApprovalsPage, /listJoinRequestsPage\(\{/);
+  assert.match(adminApprovalsPage, /const PAGE_SIZE = 20/);
+  assert.match(adminApprovalsPage, /previousButton/);
+  assert.match(adminApprovalsPage, /nextButton/);
+  assert.doesNotMatch(adminApprovalsPage, /\blistJoinRequests\b/);
+});
+
+test("join request pagination RPC preserves member scope and bounded reads", () => {
+  assert.match(approvalPaginationMigration, /security definer/);
+  assert.match(approvalPaginationMigration, /set search_path = ''/);
+  assert.match(approvalPaginationMigration, /private\.has_admin_permission\('members'\)/);
+  assert.match(approvalPaginationMigration, /v_status not in \('pending', 'held', 'rejected', 'approved'\)/);
+  assert.match(approvalPaginationMigration, /count\(\*\) over\(\) as total_count/);
+  assert.match(approvalPaginationMigration, /limit v_limit/);
+  assert.match(approvalPaginationMigration, /offset v_offset/);
+  assert.match(approvalPaginationMigration, /least\(greatest\(coalesce\(p_limit, 20\), 1\), 100\)/);
+  assert.match(
+    approvalPaginationMigration,
+    /revoke all on function public\.admin_list_join_requests_page\(text, integer, integer\)[\s\S]*from public, anon, authenticated/,
+  );
+  assert.match(
+    approvalPaginationMigration,
+    /grant execute on function public\.admin_list_join_requests_page\(text, integer, integer\)[\s\S]*to authenticated/,
   );
 });

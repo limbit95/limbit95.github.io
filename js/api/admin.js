@@ -77,6 +77,31 @@ export async function listJoinRequests(status = "pending") {
   }));
 }
 
+export async function listJoinRequestsPage({
+  status = "pending",
+  page = 1,
+  pageSize = 20,
+} = {}) {
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 20, 1), 100);
+  const safePage = Math.max(Number(page) || 1, 1);
+  const rows = unwrap(await supabase.rpc("admin_list_join_requests_page", {
+    p_status: status === "all" ? null : status,
+    p_limit: safePageSize,
+    p_offset: (safePage - 1) * safePageSize,
+  })) ?? [];
+  const total = Number(rows[0]?.total_count ?? 0);
+  return {
+    items: rows.map(({ total_count, display_name, ...row }) => ({
+      ...row,
+      profile: display_name ? { display_name } : null,
+    })),
+    total,
+    page: safePage,
+    pageSize: safePageSize,
+    totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+  };
+}
+
 export async function approveJoinRequest(userId, adminNote = null) {
   return unwrap(await supabase.rpc("admin_approve_join_request", {
     p_user_id: userId,
