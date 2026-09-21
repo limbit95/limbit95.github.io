@@ -171,10 +171,10 @@ test("released platform games must point DEVELOPMENT.md at main and record relea
   const missingRelease = validateRepositoryState({
     ...base,
     developmentDocuments: {
-      "cant-stop": releasedDevelopmentDocument({ includeRelease: false }),
+      "cant-stop": `${releasedDevelopmentDocument({ includeRelease: false })}\n## Release Baseline`,
     },
   });
-  assert.match(missingRelease.join("\n"), /must record a ## Release section/u);
+  assert.match(missingRelease.join("\n"), /must record a dated ## Release/u);
 
   assert.deepEqual(validateRepositoryState({
     ...base,
