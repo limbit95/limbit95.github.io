@@ -24,6 +24,7 @@ AGENTS.md
 
 - `games/<game-id>/` 디렉터리에 `GAME_SPEC.md`가 없거나 필수 설계 섹션이 빠진 경우
 - `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 인수인계 섹션이 빠진 경우
+- `DEVELOPMENT.md`가 `Status: RELEASED`인데 `Active branch: main`이 아니거나 `## Release` 기록이 없는 경우
 - Registry 미등록 bootstrap 디렉터리에 `GAME_SPEC.md` / `DEVELOPMENT.md` 외 runtime 파일이 추가된 경우
 - runtime이 있는 `games/<game-id>/` 디렉터리가 shared Game Registry에 등록되지 않은 경우
 - shared Game Registry에 등록했지만 실제 `games/<game-id>/` 디렉터리가 없는 경우
@@ -65,5 +66,7 @@ workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바
 Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`와 `DEVELOPMENT.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
 
 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
+
+Release 상태는 최소한의 기계적 정합성도 검사한다. `Status: RELEASED`인 게임은 production baseline이므로 `Active branch: main`이어야 하고 날짜가 포함된 `## Release` 섹션을 가져야 한다. 이는 실제 production migration 여부나 플레이 품질을 추론하는 검사가 아니라, 종료된 작업 브랜치가 현재 기준으로 남는 문서 오류를 막기 위한 guard다.
 
 Guard는 규칙 출처의 신뢰도, 게임 규칙의 의미적 정확성, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 해당 내용의 검토와 갱신 책임은 `docs/game-platform-development-rules.md`와 `AGENTS.md`의 작업 규칙으로 강제한다.
