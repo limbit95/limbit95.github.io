@@ -641,6 +641,8 @@ test("enforces member activity transitions and owner-safe removal in the databas
     await page.goto("/#/mypage/edit");
     await assertHealthyPage(page, "프로필 수정");
     await page.locator("#profile-display_name").fill("E2E 회원 수정");
+    await page.getByRole("button", { name: "중복 확인", exact: true }).click();
+    await expect(page.getByText("닉네임 중복 확인이 완료되었습니다.", { exact: false })).toBeVisible();
     await page.locator("#profile-bio").fill("프로필 쓰기 E2E 검증");
     const interests = page.locator('input[name="interests"]');
     expect(await interests.count()).toBeGreaterThanOrEqual(2);
@@ -662,6 +664,8 @@ test("enforces member activity transitions and owner-safe removal in the databas
     await page.goto("/#/mypage/edit");
     await assertHealthyPage(page, "프로필 수정");
     await page.locator("#profile-display_name").fill("E2E 회원");
+    await page.getByRole("button", { name: "중복 확인", exact: true }).click();
+    await expect(page.getByText("닉네임 중복 확인이 완료되었습니다.", { exact: false })).toBeVisible();
     await page.locator("#profile-bio").fill("");
     const restoreInterests = page.locator('input[name="interests"]');
     for (let index = 0; index < await restoreInterests.count(); index += 1) {

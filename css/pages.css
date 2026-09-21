@@ -152,7 +152,8 @@
 .agreement-item details { padding-left: 1.75rem; font-size: .875rem; color: var(--muted); }
 .agreement-item summary { cursor: pointer; color: var(--coral-700); font-weight: 700; }
 .agreement-item li + li { margin-top: .4rem; }
-.signup-email-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
+.signup-email-row,
+.display-name-check-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .75rem; }
 .signup-code-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; }
 .signup-verified { margin: 0; color: var(--success); font-weight: 700; }
 .form-actions.signup-actions { justify-content: center; }
@@ -165,8 +166,10 @@
 
 @media (max-width: 560px) {
   .signup-progress li strong { font-size: .7rem; }
-  .signup-email-row { grid-template-columns: 1fr; }
-  .signup-email-row > .button { justify-self: stretch; }
+  .signup-email-row,
+  .display-name-check-row { grid-template-columns: 1fr; }
+  .signup-email-row > .button,
+  .display-name-check-row > .button { justify-self: stretch; }
   .signup-review dl { grid-template-columns: 1fr; gap: .2rem; }
   .signup-review dd + dt { margin-top: .55rem; }
 }
