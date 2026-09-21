@@ -157,7 +157,7 @@ games/<game-id>/DEVELOPMENT.md
 3. Registry capability는 **소스가 존재한다는 이유만으로** 활성화하지 않는다. 실제 제공 가능한 기능만 activation PR에서 켠다.
 4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 release blocker가 없어야 한다.
 5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. 다만 correctness를 자동/운영 계약으로 충분히 검증했고 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 명시할 수 있다.
-6. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 `## Release` 기록에 activation, production migration, 주요 검증, 현재 capability를 남긴다.
+6. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 검증, 현재 capability를 남긴다.
 7. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
 8. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
 9. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
@@ -571,7 +571,7 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 - [ ] production DB 변경이 있다면 적용 이력과 권한 경계를 확인했다.
 - [ ] 사용자에게 제공할 capability만 true로 활성화했다.
 - [ ] 게임 목록/entry/invite 등 실제 노출 경로를 확인했다.
-- [ ] `DEVELOPMENT.md`가 `Status: RELEASED`, `Active branch: main`, `## Release` 기록을 가진다.
+- [ ] `DEVELOPMENT.md`가 `Status: RELEASED`, `Active branch: main`, 날짜가 있는 `## Release — YYYY-MM-DD` 기록을 가진다.
 - [ ] 현재 상태와 모순되는 개발 중 문구를 정리했다.
 - [ ] 통합되거나 대체된 PR을 닫고 불필요한 작업/임시 브랜치를 정리했다.
 - [ ] 이후 유지보수는 최신 `main`에서 새 브랜치로 시작한다.
