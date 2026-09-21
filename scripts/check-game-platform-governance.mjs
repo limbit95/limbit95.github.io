@@ -96,6 +96,16 @@ export function validateRepositoryState({
           errors.push(`games/${gameId}/DEVELOPMENT.md is missing required section: ${section}`);
         }
       }
+
+      const released = /^\s*-?\s*Status:\s*RELEASED\s*$/mu.test(development);
+      if (released) {
+        if (!/^\s*-?\s*Active branch:\s*main\s*$/mu.test(development)) {
+          errors.push(`Released platform game ${gameId} must set Active branch: main in DEVELOPMENT.md.`);
+        }
+        if (!/^## Release(?:\s|—|-|$)/mu.test(development)) {
+          errors.push(`Released platform game ${gameId} must record a ## Release section in DEVELOPMENT.md.`);
+        }
+      }
     }
 
     const game = sharedById.get(gameId);
