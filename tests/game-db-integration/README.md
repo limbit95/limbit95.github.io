@@ -8,7 +8,8 @@ Phase 2-A provides a disposable Supabase integration harness before any stabilit
 - Liar Game / Drawing Spy v1.0.0 canonical fresh-install baseline plus the checked-in post-canonical v1.1/v1.2/v1.3 migrations
 - current checked-in The Game migrations recovered from the operating migration history
 - current checked-in Marble additive migrations
-- HTTP-level RPC checks for anonymous access, approved-member Liar entry/resume access, room membership, player-key possession, and Marble optimistic version rejection
+- current checked-in Can’t Stop room/gameplay/invite/leave migrations
+- HTTP-level RPC checks for anonymous access, approved-member Liar entry/resume access, room membership, player-key possession, Marble optimistic version rejection, and Can’t Stop platform-native lifecycle/security contracts
 
 Drawing Spy is covered by the Liar database baseline because it is a Liar game mode, not a separate application.
 
@@ -37,3 +38,5 @@ It intentionally does **not** define a shared game schema or shared game RPC imp
 A new online platform game should add its own `tests/game-db-integration/<game-id>.test.js` and register the ten mandatory scenarios documented in `docs/game-platform-db-test-contract.md`.
 
 The workflow now runs every `tests/game-db-integration/*.test.js` file in the same disposable Supabase instance, so adding a new game contract test does not require another workflow.
+
+Can’t Stop은 이 계약의 첫 production platform-native 소비 사례다. `tests/game-db-integration/cant-stop.test.js`는 승인회원/room membership/host 권한/stale version/idempotency/concurrent conflict/reconnect/private-state 경계에 더해 실제 Can’t Stop gameplay, Invite, rematch/leave lifecycle을 회귀 검증한다.
