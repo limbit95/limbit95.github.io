@@ -35,3 +35,18 @@
 ## Known Issues / Deferred
 
 - <blocker / known issue / 보류 사항, 없으면 없음>
+
+## Release closeout 안내
+
+게임을 production에 공개해 `Status: RELEASED`로 전환할 때는 이 안내 섹션을 실제 날짜가 있는 다음 형식의 release 기록으로 교체합니다.
+
+```text
+## Release — YYYY-MM-DD
+
+- production activation / migration 요약
+- 현재 Registry capability
+- 핵심 검증 결과
+- 유지보수 baseline 및 남은 관찰 항목
+```
+
+`RELEASED` 상태에서는 `Active branch: main`을 사용하고, 과거 feature branch를 현재 기준으로 남기지 않습니다.
