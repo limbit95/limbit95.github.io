@@ -315,7 +315,7 @@ test("core Game Platform rule documents remain game-agnostic", () => {
 
   for (const filename of rulePaths) {
     const content = readFileSync(filename, "utf8");
-    assert.doesNotMatch(content, /Can[’\']?t Stop|cant-stop/iu);
+    assert.doesNotMatch(content, /Can[’']?t Stop|cant-stop/iu);
   }
 });
 test("Game Platform rules codify release closeout and post-release feedback loop", () => {
