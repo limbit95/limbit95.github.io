@@ -19,6 +19,10 @@ const auctionVoteSql = readFileSync(
   "utf8",
 );
 const cssSource = readFileSync(new URL("../css/auction-ui.css", import.meta.url), "utf8");
+const bidTimingSql = readFileSync(
+  new URL("../../supabase/marble/20260921143453_marble_auction_bid_turn_15s.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -151,6 +155,14 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /#172331/);
   assert.match(cssSource, /auction-action-panel__participants/);
   assert.match(cssSource, /data-single-action="true"/);
+});
+
+test("server migration keeps every competitive bid turn at 15 seconds", () => {
+  assert.equal((bidTimingSql.match(/interval '15 seconds'/g) ?? []).length, 3);
+  assert.doesNotMatch(bidTimingSql, /interval '10 seconds'/);
+  assert.match(bidTimingSql, /private\.marble_auction_v3_finalize_vote/);
+  assert.match(bidTimingSql, /public\.marble_auction_bid/);
+  assert.match(bidTimingSql, /public\.marble_advance_auction_deadline/);
 });
 
 test("legacy controls cannot bypass Auction vote or competitive auction", () => {
