@@ -56,6 +56,7 @@ fix/marble-stability-phase3-ci
 - `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
 - `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
 - Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
+- Legacy 보호 설명을 제외한 현재 Game Platform 공통 규칙·가이드·템플릿에는 특정 platform-native 게임명이나 그 게임만의 구현 세부사항을 기준 규칙으로 넣지 않습니다. 게임별 내용은 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둡니다.
 - 사용자가 새로운 게임 개발을 요청하면 gameplay/runtime 구현 전에 게임 규칙과 제품 범위를 조사하고 `games/<game-id>/GAME_SPEC.md`와 `games/<game-id>/DEVELOPMENT.md`를 먼저 생성합니다.
 - 공개된 기존 보드게임을 구현하는 경우 공식 규칙서나 신뢰 가능한 규칙 출처를 우선 확인하고 `GAME_SPEC.md`에 출처와 해석 결정을 남깁니다. 확인되지 않은 규칙은 추측하지 않고 미결정 사항으로 기록합니다.
 - `GAME_SPEC.md`는 "무엇을 어떤 규칙과 구조로 구현할지"를 정의하고, `DEVELOPMENT.md`는 "현재 어디까지 구현했는지"를 기록합니다.
