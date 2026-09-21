@@ -68,18 +68,7 @@ if (!template.includes(marker)) {
 
 const index = template.replace(
   marker,
-  `<script type="module">
-  let communityAppPromise;
-  const loadCommunityApp = () => {
-    communityAppPromise ||= import("./${entryRelative}");
-    return communityAppPromise;
-  };
-  if (document.documentElement.dataset.brandPublic === "true") {
-    window.addEventListener("brand:enter-app", loadCommunityApp, { once: true });
-  } else {
-    loadCommunityApp();
-  }
-</script>`,
+  `<script type="module" src="./${entryRelative}"></script>`,
 );
 await writeFile(indexPath, index, "utf8");
 

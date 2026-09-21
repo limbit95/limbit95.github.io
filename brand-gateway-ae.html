@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko" data-brand-public="true" data-brand-preview="true">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f0ede5">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="description" content="청파 같이 AE 브랜드 게이트웨이 미리보기">
+    <title>청파 같이 · AE 도안 미리보기</title>
+    <link rel="icon" href="./assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./css/brand-gateway.css">
+    <script>
+      (() => {
+        if (!window.location.hash) {
+          window.history.replaceState(null, "", window.location.pathname + window.location.search + "#/gateway");
+        }
+        window.addEventListener("brand:enter-app", () => {
+          window.location.href = "/#/login";
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="brand-gateway-root"></div>
+    <script src="./js/brand-gateway.js"></script>
+  </body>
+</html>
