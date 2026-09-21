@@ -18,8 +18,8 @@ const costEntrySource = readFileSync(new URL("../js/renderer/threeClassicCostPre
 const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260922-r1"/);
-  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260922-r1/);
+  assert.match(indexHtml, /data-marble-build="20260922-r2"/);
+  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260922-r2/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
   assert.match(indexHtml, /auction-ui\.css\?v=20260922-r1/);
@@ -29,8 +29,8 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /multiplayerLobby\.js\?v=20260914-r8/);
-  assert.match(bootstrapSource, /playWindow\.js\?v=20260922-r1/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260922-r1"/);
+  assert.match(bootstrapSource, /playWindow\.js\?v=20260922-r2/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260922-r2"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
