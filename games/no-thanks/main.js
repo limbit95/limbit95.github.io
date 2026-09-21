@@ -9,7 +9,15 @@ import {
   initializeAuth,
   subscribeAuth,
 } from "../../js/auth.js";
+import { supabase } from "../../js/supabaseClient.js";
 import { el } from "../../js/ui.js";
+import {
+  NO_THANKS_LOBBY_VIEW,
+  createNoThanksLobbyViewModel,
+  getNoThanksLobbyErrorMessage,
+} from "./runtimeModel.js";
+import { createNoThanksLobbyController } from "./lobbyController.js";
+import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
 
 const app = document.getElementById("app");
 
@@ -20,9 +28,18 @@ const accessGate = createGameAccessGate({
 });
 
 let unsubscribeAccess = null;
+let lobbyController = null;
+let lobbyUserId = null;
+let bootEpoch = 0;
 
 function replaceApp(node) {
   app.replaceChildren(node);
+}
+
+function disposeLobbyController() {
+  lobbyController?.dispose();
+  lobbyController = null;
+  lobbyUserId = null;
 }
 
 function createAccessNotice({
@@ -145,41 +162,462 @@ function profileDisplayName(authState) {
     : null;
 }
 
-function createEntryStage(displayName, openRules) {
-  return el("div", { className: "no-thanks-entry" }, [
-    el("div", { className: "no-thanks-entry__card", "aria-hidden": "true" }, [
-      el("span", { text: "?" }),
-    ]),
-    el("div", { className: "no-thanks-entry__copy" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "게임 준비" }),
-      el("h2", { text: `${displayName}님, 입장 준비가 완료됐어요.` }),
+function createField(label, control) {
+  return el("label", { className: "no-thanks-field" }, [
+    el("span", { className: "no-thanks-field__label", text: label }),
+    control,
+  ]);
+}
+
+function createInlineError(error) {
+  if (!error) return null;
+  return el("div", {
+    className: "no-thanks-inline-error",
+    role: "alert",
+    text: getNoThanksLobbyErrorMessage(error),
+  });
+}
+
+function createEntryPanel(state, displayName) {
+  const createForm = el("form", {
+    className: "no-thanks-entry-card",
+    onSubmit: async (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      try {
+        await lobbyController.createRoom({
+          maxPlayers: Number(data.get("maxPlayers")),
+        });
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    },
+  }, [
+    el("p", { className: "no-thanks-entry-card__eyebrow", text: "CREATE ROOM" }),
+    el("h2", { className: "no-thanks-entry-card__title", text: "새 방 만들기" }),
+    el("p", {
+      className: "no-thanks-entry-card__description",
+      text: `${displayName}님의 사이트 프로필 이름으로 새 방을 만들어요.`,
+    }),
+    createField("최대 인원", el("select", {
+      className: "no-thanks-input",
+      name: "maxPlayers",
+    }, [3, 4, 5, 6, 7].map((count) => el("option", {
+      value: String(count),
+      text: `${count}명`,
+      selected: count === 7,
+    })))),
+    el("button", {
+      className: "button no-thanks-entry-card__submit",
+      type: "submit",
+      text: state.busy ? "방 만드는 중…" : "방 만들기",
+      disabled: state.busy,
+    }),
+  ]);
+
+  const joinForm = el("form", {
+    className: "no-thanks-entry-card",
+    onSubmit: async (event) => {
+      event.preventDefault();
+      const data = new FormData(event.currentTarget);
+      try {
+        await lobbyController.joinRoom({
+          roomCode: String(data.get("roomCode") ?? ""),
+        });
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    },
+  }, [
+    el("p", { className: "no-thanks-entry-card__eyebrow", text: "JOIN ROOM" }),
+    el("h2", { className: "no-thanks-entry-card__title", text: "코드로 참가" }),
+    el("p", {
+      className: "no-thanks-entry-card__description",
+      text: "친구에게 받은 6자리 방 코드로 참가해요. 표시 이름은 사이트 프로필을 그대로 사용합니다.",
+    }),
+    createField("방 코드", el("input", {
+      className: "no-thanks-input no-thanks-input--code",
+      name: "roomCode",
+      type: "text",
+      minlength: "6",
+      maxlength: "6",
+      required: true,
+      autocapitalize: "characters",
+      autocomplete: "off",
+      placeholder: "ABC234",
+      onInput: (event) => {
+        event.currentTarget.value = event.currentTarget.value
+          .toUpperCase()
+          .replace(/[^A-HJ-NP-Z2-9]/gu, "")
+          .slice(0, 6);
+      },
+    })),
+    el("button", {
+      className: "button button--secondary no-thanks-entry-card__submit",
+      type: "submit",
+      text: state.busy ? "참가 중…" : "방 참가",
+      disabled: state.busy,
+    }),
+  ]);
+
+  return el("section", { className: "no-thanks-online-entry" }, [
+    el("div", { className: "no-thanks-online-entry__intro" }, [
+      el("p", { className: "no-thanks-entry__eyebrow", text: "ONLINE LOBBY" }),
+      el("h2", { text: "함께 플레이할 방을 준비해 주세요." }),
       el("p", {
-        text: "현재 단계에서는 승인회원 접근과 공통 게임 화면만 연결되어 있습니다. 방 생성·참가와 실제 멀티플레이는 다음 서버 단계에서 활성화됩니다.",
+        text: "방을 만들거나 친구의 코드를 입력해 참가할 수 있어요. 게임 안에서는 별도 이름을 만들지 않습니다.",
       }),
-      el("button", {
-        className: "game-platform-shell__button game-platform-shell__button--secondary",
-        type: "button",
-        text: "게임 규칙 보기",
-        onClick: openRules,
-      }),
+    ]),
+    createInlineError(state.error),
+    el("div", { className: "no-thanks-online-entry__grid" }, [
+      createForm,
+      joinForm,
     ]),
   ]);
 }
 
-function createStageNote() {
+function createWaitingPanel(view, state) {
+  return el("section", { className: "no-thanks-waiting" }, [
+    el("div", { className: "no-thanks-waiting__hero" }, [
+      el("p", { className: "no-thanks-entry__eyebrow", text: "WAITING ROOM" }),
+      el("h2", {
+        text: view.isHost ? "모두 준비되면 게임을 시작하세요." : "준비가 끝났다면 준비 완료를 눌러 주세요.",
+      }),
+      el("p", {
+        text: `현재 ${view.playerCount}명 · 최대 ${view.maxPlayers}명 · 상태 버전 ${view.version}`,
+      }),
+    ]),
+    el("div", { className: "no-thanks-room-code" }, [
+      el("span", { className: "no-thanks-room-code__label", text: "방 코드" }),
+      el("strong", { className: "no-thanks-room-code__value", text: view.roomCode }),
+      el("span", {
+        className: "no-thanks-room-code__hint",
+        text: "친구에게 이 코드를 전달해 주세요.",
+      }),
+    ]),
+    createInlineError(state.error),
+    el("div", { className: "no-thanks-waiting__status" }, [
+      el("div", { className: "no-thanks-status-card" }, [
+        el("span", { text: "내 상태" }),
+        el("strong", {
+          text: view.isHost ? "방장" : (view.isReady ? "준비 완료" : "대기 중"),
+        }),
+      ]),
+      el("div", { className: "no-thanks-status-card" }, [
+        el("span", { text: "시작 조건" }),
+        el("strong", {
+          text: view.canStart ? "시작 가능" : "3명 이상 · 일반 플레이어 전원 준비",
+        }),
+      ]),
+    ]),
+  ]);
+}
+
+function createPlayingPanel(view, state) {
+  return el("section", { className: "no-thanks-playing-preview" }, [
+    el("div", { className: "no-thanks-playing-preview__copy" }, [
+      el("p", { className: "no-thanks-entry__eyebrow", text: "SERVER GAME START" }),
+      el("h2", { text: "게임 시작 상태가 서버에서 확정됐어요." }),
+      el("p", {
+        text: "첫 카드와 내 칩 수, 남은 카드 수는 authoritative snapshot에서 읽고 있습니다. 거절/가져오기 동작은 다음 gameplay RPC 단계에서 연결합니다.",
+      }),
+    ]),
+    createInlineError(state.error),
+    el("div", { className: "no-thanks-playing-preview__state" }, [
+      el("article", { className: "no-thanks-current-card" }, [
+        el("span", { text: "현재 카드" }),
+        el("strong", {
+          text: view.currentCard == null ? "?" : String(view.currentCard),
+        }),
+      ]),
+      el("div", { className: "no-thanks-playing-preview__metrics" }, [
+        el("div", { className: "no-thanks-metric" }, [
+          el("span", { text: "내 칩" }),
+          el("strong", {
+            text: view.viewerCounters == null ? "—" : String(view.viewerCounters),
+          }),
+        ]),
+        el("div", { className: "no-thanks-metric" }, [
+          el("span", { text: "남은 카드" }),
+          el("strong", {
+            text: view.deckRemaining == null ? "—" : String(view.deckRemaining),
+          }),
+        ]),
+      ]),
+    ]),
+  ]);
+}
+
+function connectionFor(state) {
+  if (state.connection === "reconnecting") {
+    return {
+      state: GAME_CONNECTION_STATE.RECONNECTING,
+      label: "방 상태 동기화 중",
+      message: "서버의 최신 snapshot을 다시 불러오고 있어요.",
+    };
+  }
+  if (state.connection === "error") {
+    return {
+      state: GAME_CONNECTION_STATE.ERROR,
+      label: "방 연결 오류",
+      message: "최신 방 상태를 불러오지 못했어요.",
+    };
+  }
+  return {
+    state: GAME_CONNECTION_STATE.CONNECTED,
+    label: state.snapshot ? "방 상태 최신" : "온라인 로비 준비 완료",
+    message: state.snapshot
+      ? "서버 snapshot을 기준으로 화면을 표시하고 있어요."
+      : "새 방을 만들거나 방 코드로 참가할 수 있어요.",
+  };
+}
+
+function shellPlayers(access, displayName, view) {
+  if (!view) {
+    return [{
+      id: access.userId,
+      displayName,
+      connected: true,
+      ready: false,
+      statusLabel: "접속 계정",
+    }];
+  }
+
+  return view.players.map((player) => ({
+    id: player.id,
+    displayName: player.displayName,
+    connected: player.connected,
+    ready: player.id === view.hostUserId ? true : player.ready,
+    seat: player.seat,
+    statusLabel: player.id === view.hostUserId
+      ? "방장"
+      : (player.ready ? "준비 완료" : "대기 중"),
+  }));
+}
+
+function createSidebar(view) {
+  if (!view) {
+    return el("section", { className: "no-thanks-note" }, [
+      el("h2", { text: "온라인 플레이" }),
+      el("p", {
+        text: "승인회원의 사이트 프로필 이름을 서버가 직접 사용합니다. 게임 안에서 별도 닉네임을 입력하거나 변경하지 않습니다.",
+      }),
+    ]);
+  }
+
+  if (view.status === "playing") {
+    return el("section", { className: "no-thanks-note" }, [
+      el("h2", { text: "서버 상태" }),
+      el("p", {
+        text: "미공개 카드 순서와 다른 플레이어의 칩 수는 이 화면으로 전달되지 않습니다. Realtime은 변경 알림만 받고 RPC snapshot을 다시 읽습니다.",
+      }),
+    ]);
+  }
+
   return el("section", { className: "no-thanks-note" }, [
-    el("h2", { text: "현재 구현 상태" }),
+    el("h2", { text: "대기실 안내" }),
     el("p", {
-      text: "규칙 엔진은 준비되어 있지만 아직 방/로비 DB와 서버 RPC가 연결되지 않았습니다. 실제 제공 전까지 온라인 기능은 비활성 상태로 유지합니다.",
+      text: "최소 3명이 모여야 시작할 수 있습니다. 방장은 별도 준비 버튼 없이 일반 플레이어 전원이 준비되면 게임을 시작할 수 있어요.",
     }),
   ]);
 }
 
-function renderApproved(access) {
+function createRulesAction(openRules) {
+  return el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "게임 규칙",
+    onClick: openRules,
+  });
+}
+
+function createHostLeaveDialog(onConfirm) {
+  const dialog = el("dialog", {
+    className: "no-thanks-confirm",
+    "aria-labelledby": "no-thanks-host-leave-title",
+  });
+
+  dialog.append(el("div", { className: "no-thanks-confirm__content" }, [
+    el("p", { className: "no-thanks-entry__eyebrow", text: "방 닫기" }),
+    el("h2", {
+      id: "no-thanks-host-leave-title",
+      className: "no-thanks-confirm__title",
+      text: "대기실을 닫을까요?",
+    }),
+    el("p", {
+      className: "no-thanks-confirm__message",
+      text: "방장이 나가면 이 대기실이 닫히고 현재 참가자 모두가 방에서 나가게 됩니다.",
+    }),
+    el("div", { className: "no-thanks-confirm__actions" }, [
+      el("button", {
+        className: "button button--secondary",
+        type: "button",
+        text: "취소",
+        onClick: () => dialog.close(),
+      }),
+      el("button", {
+        className: "button",
+        type: "button",
+        text: "방 닫기",
+        onClick: async () => {
+          dialog.close();
+          await onConfirm();
+        },
+      }),
+    ]),
+  ]));
+
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  return dialog;
+}
+
+function createLobbyActions(view, state, openRules, openHostLeaveConfirm) {
+  const actions = [createRulesAction(openRules)];
+
+  if (!view) return actions;
+
+  if (view.status === "waiting") {
+    if (view.isHost) {
+      actions.unshift(el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: state.busy ? "처리 중…" : "게임 시작",
+        disabled: state.busy || !view.canStart,
+        onClick: async () => {
+          try {
+            await lobbyController.startGame();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }));
+    } else {
+      actions.unshift(el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: state.busy
+          ? "처리 중…"
+          : (view.isReady ? "준비 취소" : "준비 완료"),
+        disabled: state.busy,
+        onClick: async () => {
+          try {
+            await lobbyController.setReady(!view.isReady);
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }));
+    }
+
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--secondary",
+      type: "button",
+      text: "새로고침",
+      disabled: state.busy,
+      onClick: () => {
+        void lobbyController.refresh("manual").catch(() => {});
+      },
+    }));
+
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger",
+      type: "button",
+      text: state.busy ? "처리 중…" : (view.isHost ? "방 닫기" : "방 나가기"),
+      disabled: state.busy,
+      onClick: async () => {
+        if (view.isHost) {
+          openHostLeaveConfirm();
+          return;
+        }
+        try {
+          await lobbyController.leaveRoom();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+    return actions;
+  }
+
+  actions.push(el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "새로고침",
+    disabled: state.busy,
+    onClick: () => {
+      void lobbyController.refresh("manual-playing").catch(() => {});
+    },
+  }));
+
+  return actions;
+}
+
+function renderLobby(access, state) {
+  const authState = getAuthState();
+  const displayName = profileDisplayName(authState);
+  if (!displayName) return;
+
+  let view = null;
+  if (state.snapshot) {
+    try {
+      view = createNoThanksLobbyViewModel(state.snapshot, access.userId);
+    } catch (error) {
+      replaceApp(createAccessNotice({
+        title: "방 상태를 표시할 수 없어요",
+        message: getNoThanksLobbyErrorMessage(error),
+        retry: () => lobbyController?.refresh("invalid-snapshot"),
+      }));
+      return;
+    }
+  }
+
+  const rulesDialog = createRulesDialog();
+  const openRules = () => rulesDialog.showModal();
+  const hostLeaveDialog = view?.status === "waiting" && view.isHost
+    ? createHostLeaveDialog(async () => {
+      try {
+        await lobbyController.leaveRoom();
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    })
+    : null;
+  const openHostLeaveConfirm = () => hostLeaveDialog?.showModal();
+  const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
+    ? createEntryPanel(state, displayName)
+    : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
+      ? createPlayingPanel(view, state)
+      : createWaitingPanel(view, state);
+
+  const shell = createGameShell({
+    title: "No Thanks!",
+    description: "칩을 내고 거절할지, 카드와 쌓인 칩을 가져올지 선택하는 카드 게임",
+    backHref: "/#/games",
+    roomLabel: view?.roomCode ? `방 ${view.roomCode}` : null,
+    connection: connectionFor(state),
+    players: shellPlayers(access, displayName, view),
+    currentUserId: access.userId,
+    hostUserId: view?.hostUserId ?? null,
+    onRetryConnection: () => {
+      void lobbyController?.refresh("retry").catch(() => {});
+    },
+    main: [main, rulesDialog, hostLeaveDialog],
+    sidebar: createSidebar(view),
+    actions: createLobbyActions(view, state, openRules, openHostLeaveConfirm),
+  });
+
+  replaceApp(shell);
+}
+
+async function renderApproved(access, epoch) {
   const authState = getAuthState();
   const displayName = profileDisplayName(authState);
 
   if (!displayName) {
+    disposeLobbyController();
     replaceApp(createAccessNotice({
       title: "프로필 닉네임을 확인할 수 없어요",
       message: "게임에서는 별도 닉네임을 만들지 않고 청파 같이 프로필의 확정 닉네임을 사용합니다. 프로필 정보를 확인해 주세요.",
@@ -189,47 +627,52 @@ function renderApproved(access) {
     return;
   }
 
-  const rulesDialog = createRulesDialog();
-  const openRules = () => rulesDialog.showModal();
-
-  const shell = createGameShell({
-    title: "No Thanks!",
-    description: "칩을 내고 거절할지, 카드와 쌓인 칩을 가져올지 선택하는 카드 게임",
-    backHref: "/#/games",
-    connection: {
-      state: GAME_CONNECTION_STATE.CONNECTED,
-      label: "접근 확인 완료",
-      message: "승인회원 확인이 완료됐어요. 방/로비 연결은 다음 단계에서 추가됩니다.",
-    },
-    players: [{
-      id: access.userId,
-      displayName,
-      connected: true,
-      ready: false,
-      statusLabel: "접속 계정",
-    }],
-    currentUserId: access.userId,
-    main: [
-      createEntryStage(displayName, openRules),
-      rulesDialog,
-    ],
-    sidebar: createStageNote(),
-    actions: el("button", {
-      className: "game-platform-shell__button",
-      type: "button",
-      text: "게임 규칙 보기",
-      onClick: openRules,
-    }),
-  });
-
-  replaceApp(shell);
-}
-
-function renderAccess(access) {
-  if (access.allowed) {
-    renderApproved(access);
+  if (!supabase) {
+    disposeLobbyController();
+    replaceApp(createAccessNotice({
+      title: "게임 서버에 연결할 수 없어요",
+      message: "온라인 게임 연결 설정을 불러오지 못했습니다. 네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
+      retry: boot,
+    }));
     return;
   }
+
+  if (lobbyController && lobbyUserId === access.userId) {
+    renderLobby(access, lobbyController.current());
+    return;
+  }
+
+  disposeLobbyController();
+  lobbyUserId = access.userId;
+
+  const controller = createNoThanksLobbyController({
+    adapter: createNoThanksRoomLobbyAdapter({ client: supabase }),
+    onState: (state) => {
+      if (lobbyController === controller && epoch === bootEpoch) {
+        renderLobby(access, state);
+      }
+    },
+  });
+  lobbyController = controller;
+
+  renderLobby(access, controller.current());
+
+  try {
+    await controller.initialize();
+  } catch {
+    if (lobbyController === controller && epoch === bootEpoch) {
+      renderLobby(access, controller.current());
+    }
+  }
+}
+
+async function renderAccess(access, epoch = bootEpoch) {
+  if (access.allowed) {
+    await renderApproved(access, epoch);
+    return;
+  }
+
+  disposeLobbyController();
 
   if (access.reason === GAME_ACCESS_REASON.APPROVAL_REQUIRED) {
     replaceApp(createAccessNotice({
@@ -259,24 +702,29 @@ function renderAccess(access) {
 }
 
 async function boot() {
+  const epoch = ++bootEpoch;
+
   replaceApp(el("main", {
     className: "no-thanks-loading",
     role: "status",
     "aria-live": "polite",
   }, [
     el("div", { className: "spinner", "aria-hidden": "true" }),
-    el("p", { text: "게임 입장 권한을 확인하고 있어요." }),
+    el("p", { text: "게임 입장 권한과 참여 중인 방을 확인하고 있어요." }),
   ]));
 
   try {
     const access = await accessGate.initialize();
-    renderAccess(access);
+    if (epoch !== bootEpoch) return;
+    await renderAccess(access, epoch);
 
     unsubscribeAccess?.();
     unsubscribeAccess = accessGate.subscribe((nextAccess) => {
-      renderAccess(nextAccess);
+      void renderAccess(nextAccess, epoch);
     });
   } catch {
+    if (epoch !== bootEpoch) return;
+    disposeLobbyController();
     replaceApp(createAccessNotice({
       title: "입장 정보를 불러오지 못했어요",
       message: "네트워크 상태를 확인한 뒤 다시 시도해 주세요.",
@@ -288,6 +736,7 @@ async function boot() {
 window.addEventListener("pagehide", () => {
   unsubscribeAccess?.();
   unsubscribeAccess = null;
+  disposeLobbyController();
 });
 
 window.addEventListener("pageshow", (event) => {
