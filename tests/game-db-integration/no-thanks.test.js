@@ -626,3 +626,31 @@ test("no-thanks gameplay: last take finalizes joint winners and allows terminal 
   ), "finished-room active lookup");
   assert.equal(activeRoom, null);
 });
+
+
+test("no-thanks gameplay: only the host can terminate an in-progress game", async () => {
+  const room = await startGame("gameplay-host-end");
+
+  const denied = await rpc("no_thanks_play_action", {
+    p_room_id: room.started.room.id,
+    p_action_type: "end_game",
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: randomUUID(),
+  }, room.guestA.accessToken);
+  expectDenied(denied, "non-host end game", /HOST_REQUIRED/u);
+
+  const ended = await playAction(room.host, room.started, "end_game");
+
+  assert.equal(Number(ended.version), Number(room.started.version) + 1);
+  assert.equal(ended.game.phase, "GAME_OVER");
+  assert.equal(ended.game.endReason, "HOST_TERMINATED");
+  assert.equal(ended.game.currentCard, null);
+  assert.equal(ended.game.finalScores, null);
+  assert.deepEqual(ended.game.winners, []);
+
+  const guestLeave = await expectOk(await rpc("no_thanks_leave_room", {
+    p_room_id: ended.room.id,
+    p_expected_version: Number(ended.version),
+  }, room.guestA.accessToken), "leave host-terminated No Thanks room");
+  assert.equal(guestLeave.left, true);
+});
