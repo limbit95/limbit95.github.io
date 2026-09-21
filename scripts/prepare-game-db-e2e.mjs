@@ -12,6 +12,7 @@ const liarRoot = path.join(repositoryRoot, "supabase", "liar-game");
 const theGameRoot = path.join(repositoryRoot, "supabase", "the-game");
 const marbleRoot = path.join(repositoryRoot, "supabase", "marble");
 const cantStopRoot = path.join(repositoryRoot, "supabase", "cant-stop");
+const noThanksRoot = path.join(repositoryRoot, "supabase", "no-thanks");
 const productionPendingSiteMigrations = new Set([
   "20260909124500_enforce_native_auth_otp_signup.sql",
 ]);
@@ -61,6 +62,7 @@ await assertDirectory(path.join(liarRoot, "migrations"));
 await assertDirectory(theGameRoot);
 await assertDirectory(marbleRoot);
 await assertDirectory(cantStopRoot);
+await assertDirectory(noThanksRoot);
 await assertDirectory(workRoot);
 
 await rm(migrationsRoot, { recursive: true, force: true });
@@ -159,6 +161,19 @@ for (const [index, filename] of cantStopMigrations.entries()) {
   );
 }
 
+// Replay each platform-native game namespace independently in the disposable DB.
+const noThanksMigrations = (await readdir(noThanksRoot))
+  .filter((name) => /^\d{14}_.+\.sql$/u.test(name))
+  .sort((a, b) => a.localeCompare(b));
+
+for (const [index, filename] of noThanksMigrations.entries()) {
+  const migrationName = `${syntheticTimestamp("2098-08-01T00:00:00Z", index)}_no_thanks_${filename.replace(/^\d{14}_/u, "")}`;
+  await copyFile(
+    path.join(noThanksRoot, filename),
+    path.join(migrationsRoot, migrationName),
+  );
+}
+
 // Test-only bootstrap permissions for deterministic fixture creation and inspection.
 // Browser/game clients never receive service_role.
 await writeFile(
@@ -174,5 +189,5 @@ await writeFile(
 await copyFile(path.join(siteRoot, "seed.sql"), path.join(workRoot, "seed.sql"));
 
 console.log(
-  `Prepared game DB integration schema: ${baselineFiles.length} site baseline + ${operatingMigrations.length} site migrations + 1 Liar canonical baseline + ${liarPostCanonicalMigrations.length} post-canonical Liar migrations + ${theGameMigrations.length} The Game migrations + ${marbleMigrations.length} Marble migrations + ${cantStopMigrations.length} Can’t Stop migrations.`,
+  `Prepared game DB integration schema: ${baselineFiles.length} site baseline + ${operatingMigrations.length} site migrations + 1 Liar canonical baseline + ${liarPostCanonicalMigrations.length} post-canonical Liar migrations + ${theGameMigrations.length} The Game migrations + ${marbleMigrations.length} Marble migrations + ${cantStopMigrations.length} Can’t Stop migrations + ${noThanksMigrations.length} No Thanks! migrations.`,
 );
