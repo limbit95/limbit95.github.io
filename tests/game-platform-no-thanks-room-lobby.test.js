@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { ROOM_LOBBY_METHODS } from "../games/shared/roomLobbyContract.js";
 import { createNoThanksRoomLobbyAdapter } from "../games/no-thanks/roomLobby.js";
+
+const migration = readFileSync(
+  new URL(
+    "../supabase/no-thanks/20260921225000_no_thanks_room_lobby_foundation.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 function fakeClient() {
   const calls = [];
@@ -166,4 +175,28 @@ test("No Thanks! Room/Lobby adapter clears subscription identity after leaving",
     () => adapter.subscribeInvalidation(() => {}),
     /active room before subscription/u,
   );
+});
+
+test("No Thanks! DB foundation keeps private card and counter state outside public room state", () => {
+  assert.match(migration, /create table public\.no_thanks_room_private_state/u);
+  assert.match(migration, /draw_deck integer\[\]/u);
+  assert.match(migration, /excluded_cards integer\[\]/u);
+  assert.match(migration, /player_counters jsonb/u);
+  assert.match(
+    migration,
+    /revoke all on table public\.no_thanks_room_private_state from anon, authenticated/u,
+  );
+  assert.doesNotMatch(
+    migration,
+    /grant select on table public\.no_thanks_room_private_state to authenticated/u,
+  );
+});
+
+test("No Thanks! DB foundation owns nickname, start randomness, and viewer-only counters server-side", () => {
+  assert.match(migration, /private\.no_thanks_profile_display_name/u);
+  assert.match(migration, /from public\.profiles as p/u);
+  assert.match(migration, /array_agg\(user_id order by random\(\)\)/u);
+  assert.match(migration, /generate_series\(3, 35\)/u);
+  assert.match(migration, /'viewer'.*'counters'/su);
+  assert.doesNotMatch(migration, /p_nickname/u);
 });
