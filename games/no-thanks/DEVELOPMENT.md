@@ -94,7 +94,7 @@
 
 ## Current Work
 
-- Phase 7 multiplayer stability 정책과 Presence/reconnect/rematch runtime 구현을 완료하고 자동 검증과 PR 리뷰를 진행하는 단계입니다.
+- Phase 7 multiplayer stability 정책과 Presence/reconnect/rematch runtime 구현 및 자동 검증을 완료한 상태입니다.
 
 ## Next Work
 
@@ -195,6 +195,12 @@
   - gameplay DB 검증에서 active-player refuse, private counter 감소, center counter 증가, turn 이동, take 후 중앙 칩 수령과 same-player turn 유지, concurrent conflict single commit, 마지막 카드 점수/공동 승자, host-only manual termination, terminal leave를 확인했습니다.
   - `p_expected_version = null` 직접 RPC 호출도 `VERSION_CONFLICT`로 거부되는 것을 검증했습니다.
   - 동일 `client_action_id`의 concurrent duplicate retry가 동일 authoritative snapshot으로 수렴하고 version을 두 번 증가시키지 않는 것을 검증했습니다.
+  - Phase 7 PR #358의 최신 code head에서 Game Platform JavaScript syntax가 통과했습니다.
+  - Phase 7 PR #358의 site ↔ `games/shared` module link 검증이 통과했습니다.
+  - Presence lifecycle, 다중 탭 user merge, offline→online refresh, fresh-room rematch를 포함한 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다.
+  - Game Platform Governance Guard가 통과했습니다.
+  - Phase 7은 DB schema/RPC를 변경하지 않아 disposable Game DB integration은 실행 대상이 아닙니다. 서버 DB 경계는 Phase 6의 성공 결과를 그대로 유지합니다.
+  - 최신 main 대비 뒤처짐 없이 PR #358이 mergeable 상태임을 확인했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
