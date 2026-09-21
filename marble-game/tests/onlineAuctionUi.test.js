@@ -91,6 +91,20 @@ test("vote UI exposes irreversible join/pass state and 15-second deadline", () =
   assert.equal(passed.canVotePass, false);
 });
 
+test("vote UI explains insufficient gold with a disabled single action", () => {
+  const poorState = state({
+    ...voteChoice(),
+    eligiblePlayerIds: ["p2"],
+  });
+  poorState.players[2] = { ...poorState.players[2], money: 100 };
+
+  const model = createOnlineAuctionUiModel(poorState, "p3");
+  assert.equal(model.eligible, false);
+  assert.equal(model.insufficientGold, true);
+  assert.equal(model.canJoin, false);
+  assert.equal(model.canVotePass, false);
+});
+
 test("participant cards expose authoritative join order and first bidder", () => {
   const model = createOnlineAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
   assert.deepEqual(model.participantCards.map((card) => [card.id, card.order, card.openingBidder]), [
@@ -117,6 +131,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.doesNotMatch(uiSource, /session\.withdrawAuction\(\)/);
   assert.match(uiSource, /경매 참가/);
   assert.match(uiSource, /경매 포기/);
+  assert.match(uiSource, /보유 골드 부족/);
+  assert.match(uiSource, /showAuctionUnsoldResult/);
+  assert.match(uiSource, /경매가 유찰되었습니다/);
   assert.match(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
@@ -133,6 +150,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /data-auction-stage="vote"/);
   assert.match(cssSource, /#172331/);
   assert.match(cssSource, /auction-action-panel__participants/);
+  assert.match(cssSource, /data-single-action="true"/);
 });
 
 test("legacy controls cannot bypass Auction vote or competitive auction", () => {
