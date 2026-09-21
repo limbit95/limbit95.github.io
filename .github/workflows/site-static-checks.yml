@@ -9,6 +9,9 @@ on:
   pull_request:
     paths-ignore:
       - "**/*.md"
+      - "games/**"
+      - "tests/game-platform-*.test.js"
+      - "scripts/check-game-platform-governance.mjs"
 
 jobs:
   site-checks:
