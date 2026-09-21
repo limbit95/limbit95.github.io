@@ -519,10 +519,6 @@ function importantEventMessage(state) {
       const node = findNode(state, event.nodeId);
       return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}에 건물을 건설했습니다.`;
     }
-    if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
-      const node = findNode(state, event.nodeId);
-      return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
-    }
     if (event.type === "AUCTION_VOTE_OPENED") {
       const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
       const node = findNode(state, event.nodeId);
