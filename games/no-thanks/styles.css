@@ -667,3 +667,13 @@ body {
     display: none;
   }
 }
+
+
+.no-thanks-connection-note {
+  padding: .8rem 1rem;
+  border: 1px solid rgba(173, 127, 51, .25);
+  border-radius: var(--radius-md);
+  background: rgba(255, 236, 197, .55);
+  color: #72531f;
+  line-height: 1.6;
+}
