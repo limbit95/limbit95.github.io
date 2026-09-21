@@ -15,9 +15,14 @@ const styles = readFileSync(
   "utf8",
 );
 
-test("No Thanks! entry explicitly opts into the shared Game Shell", () => {
+test("No Thanks! entry loads Supabase before the shared Game Shell runtime", () => {
   assert.match(page, /\.\.\/shared\/game-shell\.css/u);
+  assert.match(page, /@supabase\/supabase-js@2/u);
   assert.match(page, /\.\/main\.js/u);
+  assert.ok(
+    page.indexOf("@supabase/supabase-js@2") < page.indexOf("./main.js"),
+    "Supabase browser client must load before the module runtime",
+  );
   assert.match(runtime, /createGameShell/u);
   assert.match(runtime, /GAME_CONNECTION_STATE/u);
 });
@@ -31,16 +36,34 @@ test("No Thanks! entry is protected by the approved-member Access Gate", () => {
   assert.match(runtime, /GAME_ACCESS_REASON\.APPROVAL_REQUIRED/u);
 });
 
-test("No Thanks! entry uses the site profile nickname without game-local nickname input", () => {
+test("No Thanks! entry uses the site profile name without game-local nickname authority", () => {
   assert.match(runtime, /profile\?\.display_name/u);
+  assert.match(runtime, /createNoThanksRoomLobbyAdapter/u);
   assert.doesNotMatch(runtime, /prompt\s*\(/u);
-  assert.doesNotMatch(runtime, /nickname|닉네임 입력|이름 입력/iu);
-  assert.doesNotMatch(page, /<input\b/iu);
+  assert.doesNotMatch(runtime, /name:\s*"nickname"|p_nickname/iu);
+  assert.doesNotMatch(runtime, /닉네임 입력|이름 입력/iu);
 });
 
-test("No Thanks! minimal shell exposes rules without pretending multiplayer is active", () => {
-  assert.match(runtime, /게임 규칙 보기/u);
-  assert.match(runtime, /방\/로비 연결은 다음 단계/u);
-  assert.match(runtime, /방 생성·참가와 실제 멀티플레이는 다음 서버 단계/u);
+test("No Thanks! shell exposes room flow while keeping gameplay actions deferred", () => {
+  assert.match(runtime, /새 방 만들기/u);
+  assert.match(runtime, /코드로 참가/u);
+  assert.match(runtime, /준비 완료/u);
+  assert.match(runtime, /게임 시작/u);
+  assert.match(runtime, /거절\/가져오기 동작은 다음 gameplay RPC 단계/u);
+  assert.match(runtime, /게임 규칙/u);
   assert.match(styles, /\.no-thanks-rules/u);
+  assert.match(styles, /\.no-thanks-online-entry/u);
+  assert.match(styles, /\.no-thanks-waiting/u);
+});
+
+
+test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
+  assert.match(runtime, /대기실을 닫을까요/u);
+  assert.match(runtime, /참가자 모두가 방에서 나가게 됩니다/u);
+  assert.match(runtime, /view\.isHost \? "방 닫기" : "방 나가기"/u);
+  assert.match(runtime, /hostLeaveDialog\?\.showModal/u);
+});
+
+test("No Thanks! page does not render a literal newline escape between scripts", () => {
+  assert.doesNotMatch(page, /<\/script>\\\\n\s*<script/u);
 });
