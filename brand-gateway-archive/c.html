@@ -1,0 +1,1241 @@
+<!doctype html>
+<!--
+  Brand Gateway archive snapshot
+  Variant: C
+  Source branch: feature/brand-gateway-c-20260916
+  Source commit: c554fd8858a260ab91d130a07e0263a5c256d60e
+-->
+<html lang="ko" data-brand-public="true">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#f3f1ea">
+    <title>Brand Gateway C · Archive</title>
+    <link rel="icon" href="../assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>html[data-brand-public="true"] {
+  background: #f2efe7;
+}
+
+html[data-brand-public="true"] body {
+  margin: 0;
+  background: #f2efe7;
+  color: #11120f;
+  overflow-x: hidden;
+}
+
+html[data-brand-public="true"] body > #app,
+html[data-brand-public="true"] body > #toast-region,
+html[data-brand-public="true"] body > #modal-root {
+  display: none !important;
+}
+
+html[data-brand-public="true"] #brand-gateway-root[hidden] {
+  display: block !important;
+}
+
+html[data-brand-public="true"] #skip-link {
+  position: fixed;
+  z-index: 200;
+}
+
+#brand-gateway-root,
+#brand-gateway-root * {
+  box-sizing: border-box;
+}
+
+#brand-gateway-root {
+  min-height: 100dvh;
+  font-family: Pretendard, "Pretendard Variable", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.brand-c-shell,
+.brand-c-detail {
+  --brand-c-accent: #11120f;
+  --brand-c-tint: #dedbd2;
+  --brand-c-pointer-x: 0;
+  --brand-c-pointer-y: 0;
+  min-height: 100dvh;
+  background:
+    linear-gradient(90deg, rgba(17, 18, 15, 0.055) 1px, transparent 1px) 0 0 / 25% 100%,
+    #f2efe7;
+  color: #11120f;
+  outline: none;
+  transition: background-color 320ms ease, color 320ms ease;
+}
+
+.brand-c-header {
+  min-height: 78px;
+  padding: 0 28px;
+  border-bottom: 1px solid rgba(17, 18, 15, 0.24);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  position: relative;
+  z-index: 10;
+}
+
+.brand-c-logo {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.brand-c-logo img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.brand-c-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.brand-c-header__meta span:not(:last-child)::after {
+  content: "/";
+  margin-left: 18px;
+  opacity: 0.34;
+}
+
+.brand-c-hero {
+  min-height: calc(100dvh - 126px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.03fr) minmax(460px, 0.97fr);
+}
+
+.brand-c-stage {
+  min-height: 650px;
+  position: relative;
+  padding: 34px 28px 32px;
+  border-right: 1px solid rgba(17, 18, 15, 0.24);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at calc(50% + (var(--brand-c-pointer-x) * 4%)) calc(50% + (var(--brand-c-pointer-y) * 4%)), var(--brand-c-tint) 0, transparent 43%);
+  transition: background 360ms ease;
+}
+
+.brand-c-stage::before {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.1;
+  left: calc(50% - 210px + (var(--brand-c-pointer-x) * 12px));
+  top: calc(50% - 210px + (var(--brand-c-pointer-y) * 12px));
+  transition: transform 500ms cubic-bezier(.2,.8,.2,1), border-color 280ms ease;
+  pointer-events: none;
+}
+
+.brand-c-shell[data-active]:not([data-active="default"]) .brand-c-stage::before {
+  transform: scale(1.18);
+  border-color: var(--brand-c-accent);
+}
+
+.brand-c-stage__meta {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.brand-c-stage__meta span:last-child {
+  color: var(--brand-c-accent);
+  transition: color 240ms ease;
+}
+
+.brand-c-stage__word-wrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 390px;
+  isolation: isolate;
+}
+
+.brand-c-stage__ghost {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  color: var(--brand-c-accent);
+  opacity: 0.075;
+  font-size: clamp(76px, 12.5vw, 216px);
+  line-height: 0.8;
+  font-weight: 950;
+  letter-spacing: -0.09em;
+  white-space: nowrap;
+  transition:
+    opacity 280ms ease,
+    color 280ms ease,
+    transform 480ms cubic-bezier(.2,.8,.2,1);
+  user-select: none;
+}
+
+.brand-c-shell[data-active]:not([data-active="default"]) .brand-c-stage__ghost {
+  opacity: 0.12;
+  transform: translate(-50%, -50%) rotate(-4deg) scale(1.05);
+}
+
+.brand-c-stage__word {
+  margin: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  color: #11120f;
+  font-size: clamp(138px, 20vw, 340px);
+  line-height: 0.75;
+  font-weight: 950;
+  letter-spacing: -0.13em;
+  transform:
+    translate(calc(var(--brand-c-pointer-x) * 4px), calc(var(--brand-c-pointer-y) * 4px));
+  transition: color 280ms ease, transform 320ms ease;
+}
+
+.brand-c-shell[data-active]:not([data-active="default"]) .brand-c-stage__word {
+  color: var(--brand-c-accent);
+}
+
+.brand-c-letter {
+  display: block;
+  transform-origin: 50% 100%;
+  animation: brand-c-letter-in 760ms cubic-bezier(.16,1,.3,1) both;
+}
+
+.brand-c-letter--two {
+  animation-delay: 90ms;
+}
+
+.brand-c-shell[data-active="like"] .brand-c-letter--one {
+  transform: translateY(-5px) rotate(-2deg);
+}
+
+.brand-c-shell[data-active="like"] .brand-c-letter--two {
+  transform: translateY(4px) rotate(2deg);
+}
+
+.brand-c-shell[data-active="value"] .brand-c-letter--one {
+  transform: translateX(-8px) skewY(-3deg);
+}
+
+.brand-c-shell[data-active="value"] .brand-c-letter--two {
+  transform: translateX(8px) skewY(3deg);
+}
+
+.brand-c-shell[data-active="together"] .brand-c-letter--one {
+  transform: translateX(4px) scaleX(0.96);
+}
+
+.brand-c-shell[data-active="together"] .brand-c-letter--two {
+  transform: translateX(-4px) scaleX(0.96);
+}
+
+.brand-c-letter--one,
+.brand-c-letter--two {
+  transition: transform 420ms cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes brand-c-letter-in {
+  from {
+    opacity: 0;
+    transform: translateY(36%) scaleY(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+.brand-c-stage__statement {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(220px, 1fr);
+  align-items: end;
+  gap: 30px;
+}
+
+.brand-c-stage__statement p {
+  margin: 0;
+  max-width: 8ch;
+  font-size: clamp(26px, 3vw, 52px);
+  line-height: 0.97;
+  letter-spacing: -0.06em;
+  font-weight: 900;
+}
+
+.brand-c-stage__statement span {
+  justify-self: end;
+  max-width: 330px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(17, 18, 15, 0.64);
+  text-align: right;
+}
+
+.brand-c-routes {
+  display: grid;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  min-height: 650px;
+}
+
+.brand-c-route {
+  position: relative;
+  min-height: 190px;
+  padding: 26px 30px;
+  border-bottom: 1px solid rgba(17, 18, 15, 0.24);
+  color: inherit;
+  text-decoration: none;
+  display: grid;
+  grid-template-columns: 54px minmax(135px, 0.6fr) minmax(180px, 0.8fr) minmax(220px, 1.2fr) 40px;
+  gap: 14px;
+  align-items: center;
+  overflow: hidden;
+  transition: color 280ms ease, background-color 280ms ease, padding 280ms ease;
+}
+
+.brand-c-route::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--route-tint, #dedbd2);
+  transform: scaleY(0);
+  transform-origin: 50% 100%;
+  transition: transform 360ms cubic-bezier(.16,1,.3,1);
+  z-index: 0;
+}
+
+.brand-c-route--like {
+  --route-accent: #496b52;
+  --route-tint: #dce7cf;
+}
+
+.brand-c-route--value {
+  --route-accent: #b95f48;
+  --route-tint: #efd5c9;
+}
+
+.brand-c-route--together {
+  --route-accent: #3459c7;
+  --route-tint: #d5dcf6;
+}
+
+.brand-c-route > * {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-c-route:hover::before,
+.brand-c-route:focus-visible::before {
+  transform: scaleY(1);
+}
+
+.brand-c-route:hover,
+.brand-c-route:focus-visible {
+  color: var(--route-accent);
+  outline: none;
+}
+
+.brand-c-route:focus-visible {
+  box-shadow: inset 0 0 0 3px var(--route-accent);
+}
+
+.brand-c-route__number {
+  align-self: start;
+  padding-top: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.brand-c-route__english {
+  font-size: clamp(34px, 4vw, 66px);
+  line-height: 0.86;
+  font-weight: 950;
+  letter-spacing: -0.075em;
+  transition: letter-spacing 300ms ease, transform 300ms ease;
+}
+
+.brand-c-route:hover .brand-c-route__english,
+.brand-c-route:focus-visible .brand-c-route__english {
+  letter-spacing: -0.035em;
+  transform: translateX(5px);
+}
+
+.brand-c-route__korean {
+  font-size: clamp(18px, 1.7vw, 28px);
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.brand-c-route__description {
+  max-width: 330px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(17, 18, 15, 0.58);
+  transition: color 280ms ease;
+}
+
+.brand-c-route:hover .brand-c-route__description,
+.brand-c-route:focus-visible .brand-c-route__description {
+  color: color-mix(in srgb, var(--route-accent) 72%, #11120f 28%);
+}
+
+.brand-c-route__arrow {
+  justify-self: end;
+  font-size: 24px;
+  transition: transform 280ms ease;
+}
+
+.brand-c-route:hover .brand-c-route__arrow,
+.brand-c-route:focus-visible .brand-c-route__arrow {
+  transform: translate(4px, -4px);
+}
+
+.brand-c-route:last-child {
+  border-bottom: 0;
+}
+
+.brand-c-footer {
+  min-height: 48px;
+  border-top: 1px solid rgba(17, 18, 15, 0.24);
+  padding: 0 28px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.brand-c-footer span:last-child {
+  justify-self: end;
+}
+
+.brand-c-detail {
+  min-height: 100dvh;
+}
+
+.brand-c-detail .brand-c-header {
+  border-color: color-mix(in srgb, var(--brand-c-accent) 30%, transparent);
+}
+
+.brand-c-detail__hero {
+  min-height: 520px;
+  position: relative;
+  padding: 44px 28px 38px;
+  border-bottom: 1px solid rgba(17, 18, 15, 0.24);
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) minmax(260px, 0.5fr);
+  gap: 30px;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, transparent 0 58%, color-mix(in srgb, var(--brand-c-tint) 72%, transparent) 58% 100%);
+}
+
+.brand-c-detail__index {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--brand-c-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.brand-c-detail__headline {
+  align-self: end;
+  position: relative;
+  z-index: 2;
+}
+
+.brand-c-detail__english {
+  margin: 0 0 12px;
+  color: var(--brand-c-accent);
+  font-size: clamp(62px, 10vw, 168px);
+  line-height: 0.78;
+  font-weight: 950;
+  letter-spacing: -0.08em;
+}
+
+.brand-c-detail__headline h1 {
+  margin: 0;
+  font-size: clamp(46px, 7vw, 112px);
+  line-height: 0.92;
+  letter-spacing: -0.07em;
+  font-weight: 900;
+}
+
+.brand-c-detail__description {
+  margin: 30px 0 0;
+  max-width: 620px;
+  font-size: 15px;
+  line-height: 1.72;
+  color: rgba(17, 18, 15, 0.68);
+}
+
+.brand-c-detail__mark {
+  align-self: center;
+  justify-self: stretch;
+  min-height: 260px;
+  border: 1px solid var(--brand-c-accent);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  color: var(--brand-c-accent);
+  font-size: clamp(88px, 9vw, 150px);
+  line-height: 0.7;
+  font-weight: 950;
+  letter-spacing: -0.12em;
+  opacity: 0.9;
+  transform: rotate(-8deg);
+}
+
+.brand-c-detail__mark span:last-child {
+  transform: rotate(16deg);
+}
+
+.brand-c-detail__list {
+  display: grid;
+}
+
+.brand-c-detail-row {
+  min-height: 146px;
+  padding: 22px 28px;
+  border-bottom: 1px solid rgba(17, 18, 15, 0.22);
+  display: grid;
+  grid-template-columns: 74px minmax(180px, 0.55fr) minmax(260px, 1fr) 86px;
+  gap: 24px;
+  align-items: center;
+  transition: background-color 260ms ease, color 260ms ease;
+}
+
+.brand-c-detail-row:hover {
+  background: var(--brand-c-tint);
+  color: var(--brand-c-accent);
+}
+
+.brand-c-detail-row__number {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.brand-c-detail-row h2 {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 48px);
+  line-height: 1;
+  letter-spacing: -0.055em;
+  font-weight: 900;
+}
+
+.brand-c-detail-row p {
+  margin: 0;
+  max-width: 560px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(17, 18, 15, 0.62);
+}
+
+.brand-c-detail-row:hover p {
+  color: color-mix(in srgb, var(--brand-c-accent) 72%, #11120f 28%);
+}
+
+.brand-c-detail-row__status {
+  justify-self: end;
+  padding: 7px 9px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.brand-c-detail__actions {
+  padding: 26px 28px 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand-c-detail__actions a {
+  color: inherit;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.brand-c-detail__actions a:hover,
+.brand-c-detail__actions a:focus-visible {
+  color: var(--brand-c-accent);
+}
+
+.brand-c-detail__together {
+  min-width: 230px;
+  padding: 16px 18px;
+  border: 1px solid currentColor;
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  transition: background-color 240ms ease, color 240ms ease;
+}
+
+.brand-c-detail__together:hover,
+.brand-c-detail__together:focus-visible {
+  background: var(--brand-c-accent);
+  color: #fff !important;
+  outline: none;
+}
+
+@media (max-width: 1180px) {
+  .brand-c-hero {
+    grid-template-columns: minmax(0, 0.95fr) minmax(430px, 1.05fr);
+  }
+
+  .brand-c-route {
+    grid-template-columns: 42px minmax(120px, 0.65fr) minmax(145px, 0.85fr) minmax(180px, 1fr) 28px;
+    padding-inline: 22px;
+  }
+
+  .brand-c-route__description {
+    font-size: 11px;
+  }
+
+  .brand-c-detail__hero {
+    grid-template-columns: 80px minmax(0, 1fr) 220px;
+  }
+}
+
+@media (max-width: 900px) {
+  .brand-c-shell,
+  .brand-c-detail {
+    background: #f2efe7;
+  }
+
+  .brand-c-header {
+    min-height: 66px;
+    padding: 0 18px;
+  }
+
+  .brand-c-header__meta {
+    gap: 8px;
+    font-size: 8px;
+  }
+
+  .brand-c-header__meta span:not(:last-child)::after {
+    margin-left: 8px;
+  }
+
+  .brand-c-hero {
+    display: block;
+    min-height: auto;
+  }
+
+  .brand-c-stage {
+    min-height: 610px;
+    padding: 26px 18px 24px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(17, 18, 15, 0.24);
+  }
+
+  .brand-c-stage__word-wrap {
+    min-height: 320px;
+  }
+
+  .brand-c-stage__word {
+    font-size: clamp(150px, 42vw, 300px);
+  }
+
+  .brand-c-stage__ghost {
+    font-size: clamp(74px, 20vw, 150px);
+  }
+
+  .brand-c-stage__statement {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+
+  .brand-c-routes {
+    min-height: auto;
+    display: block;
+  }
+
+  .brand-c-route {
+    min-height: 176px;
+    padding: 22px 18px;
+    grid-template-columns: 34px minmax(105px, 0.7fr) minmax(120px, 0.8fr) 28px;
+    grid-template-areas:
+      "number english korean arrow"
+      ". description description .";
+    gap: 12px;
+  }
+
+  .brand-c-route__number { grid-area: number; }
+  .brand-c-route__english { grid-area: english; }
+  .brand-c-route__korean { grid-area: korean; }
+  .brand-c-route__description { grid-area: description; }
+  .brand-c-route__arrow { grid-area: arrow; }
+
+  .brand-c-route__description {
+    max-width: 520px;
+  }
+
+  .brand-c-footer {
+    padding-inline: 18px;
+  }
+
+  .brand-c-detail__hero {
+    min-height: auto;
+    padding: 34px 18px 30px;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .brand-c-detail__mark {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: min(100%, 360px);
+    min-height: 200px;
+    margin-top: 26px;
+  }
+
+  .brand-c-detail-row {
+    padding: 22px 18px;
+    grid-template-columns: 48px minmax(150px, 0.7fr) minmax(0, 1fr) 76px;
+    gap: 16px;
+  }
+
+  .brand-c-detail__actions {
+    padding-inline: 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-c-logo span {
+    font-size: 10px;
+  }
+
+  .brand-c-header__meta {
+    display: none;
+  }
+
+  .brand-c-stage {
+    min-height: 565px;
+  }
+
+  .brand-c-stage__meta {
+    font-size: 8px;
+  }
+
+  .brand-c-stage__meta span:first-child {
+    max-width: 130px;
+  }
+
+  .brand-c-stage__word-wrap {
+    min-height: 290px;
+  }
+
+  .brand-c-stage__word {
+    font-size: clamp(132px, 47vw, 230px);
+    letter-spacing: -0.16em;
+  }
+
+  .brand-c-stage::before {
+    width: 300px;
+    height: 300px;
+    left: calc(50% - 150px);
+    top: calc(50% - 150px);
+  }
+
+  .brand-c-stage__statement {
+    display: block;
+  }
+
+  .brand-c-stage__statement p {
+    max-width: none;
+    font-size: 34px;
+  }
+
+  .brand-c-stage__statement span {
+    display: block;
+    margin-top: 16px;
+    max-width: 280px;
+    text-align: left;
+    justify-self: auto;
+  }
+
+  .brand-c-route {
+    min-height: 164px;
+    grid-template-columns: 28px 1fr 26px;
+    grid-template-areas:
+      "number english arrow"
+      ". korean ."
+      ". description .";
+    align-content: center;
+    row-gap: 8px;
+  }
+
+  .brand-c-route__english {
+    font-size: 50px;
+  }
+
+  .brand-c-route__korean {
+    font-size: 17px;
+  }
+
+  .brand-c-route__description {
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .brand-c-footer {
+    grid-template-columns: 1fr auto;
+    min-height: 44px;
+    font-size: 7px;
+  }
+
+  .brand-c-footer span:nth-child(2) {
+    display: none;
+  }
+
+  .brand-c-detail__hero {
+    display: block;
+  }
+
+  .brand-c-detail__index {
+    flex-direction: row;
+    gap: 12px;
+    margin-bottom: 30px;
+  }
+
+  .brand-c-detail__english {
+    font-size: clamp(72px, 22vw, 112px);
+  }
+
+  .brand-c-detail__headline h1 {
+    font-size: clamp(46px, 14vw, 76px);
+  }
+
+  .brand-c-detail__mark {
+    width: 250px;
+    min-height: 150px;
+    font-size: 78px;
+  }
+
+  .brand-c-detail-row {
+    min-height: 160px;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "number title status"
+      ". desc desc";
+    align-content: center;
+    row-gap: 10px;
+  }
+
+  .brand-c-detail-row__number { grid-area: number; }
+  .brand-c-detail-row h2 { grid-area: title; font-size: 30px; }
+  .brand-c-detail-row p { grid-area: desc; font-size: 11px; }
+  .brand-c-detail-row__status { grid-area: status; }
+
+  .brand-c-detail__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .brand-c-detail__together {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-c-letter,
+  .brand-c-stage__ghost,
+  .brand-c-stage__word,
+  .brand-c-stage::before,
+  .brand-c-route,
+  .brand-c-route::before,
+  .brand-c-route__english,
+  .brand-c-route__arrow,
+  .brand-c-detail-row,
+  .brand-c-detail__together {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+</style>
+  </head>
+  <body>
+    <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="brand-gateway-root"></div>
+    <div id="app"></div>
+    <div id="toast-region"></div>
+    <div id="modal-root"></div>
+    <script>(() => {
+  const routes = new Set(["/gateway","/like","/value"]);
+  const routePath = (hash) => {
+    const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
+    return ("/" + raw.split("?")[0]).replace(/\\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+  const showNotice = () => {
+    let notice = document.getElementById("archive-route-notice");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.id = "archive-route-notice";
+      Object.assign(notice.style, {
+        position: "fixed", left: "50%", bottom: "20px", zIndex: "2147483647",
+        transform: "translateX(-50%)", maxWidth: "min(560px, calc(100% - 32px))",
+        padding: "11px 15px", border: "1px solid rgba(20,28,24,.22)",
+        borderRadius: "999px", background: "rgba(255,253,248,.96)",
+        color: "#1c2420", boxShadow: "0 12px 36px rgba(20,28,24,.14)",
+        font: "700 12px/1.4 system-ui, sans-serif", textAlign: "center",
+        pointerEvents: "none"
+      });
+      document.body.append(notice);
+    }
+    notice.textContent = "아카이브 미리보기에서는 실제 서비스 경로 이동을 막았습니다.";
+    clearTimeout(window.__archiveNoticeTimer);
+    window.__archiveNoticeTimer = setTimeout(() => notice.remove(), 2200);
+  };
+  if (!routes.has(routePath(location.hash))) history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+  document.addEventListener("click", (event) => {
+    const anchor = event.target.closest?.("a[href^='#/']");
+    if (!anchor) return;
+    if (routes.has(routePath(anchor.getAttribute("href")))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showNotice();
+  }, true);
+  window.addEventListener("hashchange", (event) => {
+    if (routes.has(routePath(location.hash))) return;
+    history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+    event.stopImmediatePropagation();
+    showNotice();
+  });
+})();</script>
+    <script>(() => {
+  const PUBLIC_ROUTES = new Set(["/gateway", "/like", "/value"]);
+  const root = document.getElementById("brand-gateway-root");
+  if (!root) return;
+
+  const routePath = () => {
+    const raw = window.location.hash.replace(/^#/, "") || "/gateway";
+    return `/${raw.split("?")[0]}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+
+  const create = (tag, options = {}, children = []) => {
+    const node = document.createElement(tag);
+    Object.entries(options).forEach(([key, value]) => {
+      if (value == null || value === false) return;
+      if (key === "className") node.className = value;
+      else if (key === "text") node.textContent = String(value);
+      else if (key === "dataset") Object.assign(node.dataset, value);
+      else if (value === true) node.setAttribute(key, "");
+      else node.setAttribute(key, String(value));
+    });
+    const list = Array.isArray(children) ? children : [children];
+    list.forEach((child) => {
+      if (child == null || child === false) return;
+      node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    });
+    return node;
+  };
+
+  const header = (compact = false) => create("header", {
+    className: `brand-c-header${compact ? " brand-c-header--compact" : ""}`,
+  }, [
+    create("a", { className: "brand-c-logo", href: "#/gateway", "aria-label": "청파 같이 첫 화면" }, [
+      create("img", { src: "../assets/images/logo.svg", alt: "", width: "34", height: "34" }),
+      create("span", { text: "CHEONGPA GACHI" }),
+    ]),
+    create("div", { className: "brand-c-header__meta", "aria-hidden": "true" }, [
+      create("span", { text: "LIKE" }),
+      create("span", { text: "VALUE" }),
+      create("span", { text: "TOGETHER" }),
+    ]),
+  ]);
+
+  const routeData = [
+    {
+      number: "01",
+      type: "like",
+      english: "LIKE",
+      korean: "같이 닮다",
+      description: "예배와 말씀 안에서 예수님을 닮고, 청파의 신앙과 정신을 이어갑니다.",
+      href: "#/like",
+      accent: "#496b52",
+      tint: "#dce7cf",
+    },
+    {
+      number: "02",
+      type: "value",
+      english: "VALUE",
+      korean: "가치를 나누다",
+      description: "사람의 이야기와 생각, 프로젝트를 통해 우리가 믿는 가치를 세상과 나눕니다.",
+      href: "#/value",
+      accent: "#b95f48",
+      tint: "#efd5c9",
+    },
+    {
+      number: "03",
+      type: "together",
+      english: "TOGETHER",
+      korean: "같이 하다",
+      description: "소식과 모임, 활동을 연결하며 오늘의 청파청년부를 함께 만들어갑니다.",
+      href: "#/login",
+      accent: "#3459c7",
+      tint: "#d5dcf6",
+    },
+  ];
+
+  const routeLink = (item) => create("a", {
+    className: `brand-c-route brand-c-route--${item.type}`,
+    href: item.href,
+    dataset: { brandRoute: item.type, accent: item.accent, tint: item.tint },
+    "aria-label": `${item.english.charAt(0) + item.english.slice(1).toLowerCase()} — ${item.korean}`,
+  }, [
+    create("span", { className: "brand-c-route__number", text: item.number }),
+    create("span", { className: "brand-c-route__english", text: item.english }),
+    create("span", { className: "brand-c-route__korean", text: item.korean }),
+    create("span", { className: "brand-c-route__description", text: item.description }),
+    create("span", { className: "brand-c-route__arrow", text: "↗", "aria-hidden": "true" }),
+  ]);
+
+  function renderGateway() {
+    const stageGhost = create("span", { className: "brand-c-stage__ghost", text: "GACHI", "aria-hidden": "true" });
+    const stageCaption = create("span", { className: "brand-c-stage__caption", text: "ONE WORD / THREE DIRECTIONS" });
+
+    const shell = create("main", {
+      id: "brand-main-content",
+      className: "brand-c-shell",
+      tabindex: "-1",
+      dataset: { active: "default" },
+    }, [
+      header(),
+      create("section", { className: "brand-c-hero", "aria-labelledby": "brand-c-title" }, [
+        create("div", { className: "brand-c-stage" }, [
+          create("div", { className: "brand-c-stage__meta" }, [
+            create("span", { text: "CHEONGPA YOUTH COMMUNITY" }),
+            stageCaption,
+          ]),
+          create("div", { className: "brand-c-stage__word-wrap" }, [
+            stageGhost,
+            create("h1", { id: "brand-c-title", className: "brand-c-stage__word", "aria-label": "같이" }, [
+              create("span", { className: "brand-c-letter brand-c-letter--one", text: "같" }),
+              create("span", { className: "brand-c-letter brand-c-letter--two", text: "이" }),
+            ]),
+          ]),
+          create("div", { className: "brand-c-stage__statement" }, [
+            create("p", { text: "닮고, 나누고, 함께." }),
+            create("span", { text: "‘같이’라는 한 단어 안에 담긴 세 방향을 선택해 보세요." }),
+          ]),
+        ]),
+        create("nav", { className: "brand-c-routes", "aria-label": "청파 같이 세 가지 영역" }, routeData.map(routeLink)),
+      ]),
+      create("footer", { className: "brand-c-footer" }, [
+        create("span", { text: "CHEONGPA GACHI" }),
+        create("span", { text: "LIKE · VALUE · TOGETHER" }),
+        create("span", { text: "SEOUL · 2026" }),
+      ]),
+    ]);
+
+    root.replaceChildren(shell);
+
+    const resetStage = () => {
+      shell.dataset.active = "default";
+      shell.style.removeProperty("--brand-c-accent");
+      shell.style.removeProperty("--brand-c-tint");
+      stageGhost.textContent = "GACHI";
+      stageCaption.textContent = "ONE WORD / THREE DIRECTIONS";
+    };
+
+    const activateStage = (route) => {
+      const item = routeData.find((candidate) => candidate.type === route.dataset.brandRoute);
+      if (!item) return;
+      shell.dataset.active = item.type;
+      shell.style.setProperty("--brand-c-accent", item.accent);
+      shell.style.setProperty("--brand-c-tint", item.tint);
+      stageGhost.textContent = item.english;
+      stageCaption.textContent = `${item.number} / ${item.english}`;
+    };
+
+    shell.querySelectorAll("[data-brand-route]").forEach((route) => {
+      route.addEventListener("pointerenter", () => activateStage(route));
+      route.addEventListener("focus", () => activateStage(route));
+      route.addEventListener("pointerleave", resetStage);
+      route.addEventListener("blur", resetStage);
+    });
+
+    shell.addEventListener("pointermove", (event) => {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const rect = shell.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5) * 2;
+      const y = ((event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5) * 2;
+      shell.style.setProperty("--brand-c-pointer-x", x.toFixed(3));
+      shell.style.setProperty("--brand-c-pointer-y", y.toFixed(3));
+    });
+  }
+
+  const storyContent = {
+    like: {
+      number: "01",
+      english: "LIKE",
+      title: "같이 닮다",
+      accent: "#496b52",
+      tint: "#dce7cf",
+      description: "예배와 말씀 안에서 우리가 누구를 닮아가고 어떤 신앙의 방향을 이어갈지 담는 공간입니다.",
+      items: [
+        ["01", "청파의 정신", "청파교회와 청년부가 이어가는 믿음의 방향과 정신"],
+        ["02", "예배", "청파청년부 예배와 메시지를 다시 만나는 아카이브"],
+        ["03", "말씀", "함께 묵상하고 삶으로 이어갈 말씀과 기록"],
+      ],
+    },
+    value: {
+      number: "02",
+      english: "VALUE",
+      title: "가치를 나누다",
+      accent: "#b95f48",
+      tint: "#efd5c9",
+      description: "우리가 중요하게 여기는 가치가 사람의 이야기와 생각, 실천으로 이어지는 공간입니다.",
+      items: [
+        ["01", "이야기", "목회자와 청년들이 나누는 삶과 신앙의 이야기"],
+        ["02", "칼럼", "함께 생각해 보고 싶은 질문과 관점을 담은 글"],
+        ["03", "프로젝트", "봉사와 캠페인, 공동체 밖으로 이어지는 청년들의 실천"],
+      ],
+    },
+  };
+
+  function renderStory(type) {
+    const content = storyContent[type];
+    const shell = create("main", {
+      id: "brand-main-content",
+      className: `brand-c-detail brand-c-detail--${type}`,
+      tabindex: "-1",
+      style: `--brand-c-accent:${content.accent};--brand-c-tint:${content.tint}`,
+    }, [
+      header(true),
+      create("section", { className: "brand-c-detail__hero", "aria-labelledby": "brand-c-detail-title" }, [
+        create("div", { className: "brand-c-detail__index" }, [
+          create("span", { text: content.number }),
+          create("span", { text: content.english }),
+        ]),
+        create("div", { className: "brand-c-detail__headline" }, [
+          create("p", { className: "brand-c-detail__english", text: content.english }),
+          create("h1", { id: "brand-c-detail-title", text: content.title }),
+          create("p", { className: "brand-c-detail__description", text: content.description }),
+        ]),
+        create("div", { className: "brand-c-detail__mark", "aria-hidden": "true" }, [
+          create("span", { text: content.english.charAt(0) }),
+          create("span", { text: content.english.charAt(content.english.length - 1) }),
+        ]),
+      ]),
+      create("section", { className: "brand-c-detail__list", "aria-label": `${content.title} 콘텐츠 영역` },
+        content.items.map(([number, title, description]) => create("article", { className: "brand-c-detail-row" }, [
+          create("span", { className: "brand-c-detail-row__number", text: number }),
+          create("h2", { text: title }),
+          create("p", { text: description }),
+          create("span", { className: "brand-c-detail-row__status", text: "준비 중" }),
+        ]))),
+      create("footer", { className: "brand-c-detail__actions" }, [
+        create("a", { href: "#/gateway", text: "← 세 가지 의미로 돌아가기" }),
+        create("a", { className: "brand-c-detail__together", href: "#/login" }, [
+          create("span", { text: "Together 들어가기" }),
+          create("span", { text: "↗", "aria-hidden": "true" }),
+        ]),
+      ]),
+    ]);
+
+    root.replaceChildren(shell);
+  }
+
+  function setPublicMode(active) {
+    const wasPublic = document.documentElement.dataset.brandPublic === "true";
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+
+    if (active) {
+      document.documentElement.dataset.brandPublic = "true";
+      themeColor?.setAttribute("content", "#f2efe7");
+      root.hidden = false;
+      return;
+    }
+
+    delete document.documentElement.dataset.brandPublic;
+    themeColor?.setAttribute("content", "#9fcfdf");
+    root.hidden = true;
+    root.replaceChildren();
+    if (wasPublic) window.dispatchEvent(new Event("brand:enter-app"));
+  }
+
+  let hasRendered = false;
+
+  function render() {
+    const path = routePath();
+    const isPublic = PUBLIC_ROUTES.has(path);
+    setPublicMode(isPublic);
+    if (!isPublic) return;
+
+    if (path === "/like") {
+      document.title = "Like · 같이 닮다 | 청파 같이";
+      renderStory("like");
+    } else if (path === "/value") {
+      document.title = "Value · 가치를 나누다 | 청파 같이";
+      renderStory("value");
+    } else {
+      document.title = "청파 같이 | Like · Value · Together";
+      renderGateway();
+    }
+
+    window.requestAnimationFrame(() => {
+      if (hasRendered) {
+        document.getElementById("brand-main-content")?.focus({ preventScroll: true });
+      }
+      window.scrollTo({ top: 0, behavior: "auto" });
+      hasRendered = true;
+    });
+  }
+
+  document.getElementById("skip-link")?.addEventListener("click", (event) => {
+    if (!PUBLIC_ROUTES.has(routePath())) return;
+    event.stopImmediatePropagation();
+    document.getElementById("brand-main-content")?.focus();
+  });
+
+  window.addEventListener("hashchange", (event) => {
+    if (PUBLIC_ROUTES.has(routePath())) {
+      event.stopImmediatePropagation();
+      render();
+      return;
+    }
+    window.setTimeout(render, 0);
+  });
+
+  render();
+})();
+</script>
+  </body>
+</html>

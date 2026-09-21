@@ -1,0 +1,984 @@
+<!doctype html>
+<!--
+  Brand Gateway archive snapshot
+  Variant: Original
+  Source branch: feature/brand-gateway-20260916
+  Source commit: 464309a9b4e6c4eae8439ad324aac6305a7862e5
+-->
+<html lang="ko" data-brand-public="true">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#f3f1ea">
+    <title>Brand Gateway Original · Archive</title>
+    <link rel="icon" href="../assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>html[data-brand-public="true"] body {
+  background: #f3f1ea;
+  color: #17272d;
+}
+
+html[data-brand-public="true"] #app,
+html[data-brand-public="true"] #toast-region,
+html[data-brand-public="true"] #modal-root {
+  display: none !important;
+}
+
+#brand-gateway-root {
+  min-height: 100vh;
+}
+
+.brand-gateway-shell,
+.brand-story {
+  --brand-pointer-x: 50%;
+  --brand-pointer-y: 24%;
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  color: #17272d;
+  background:
+    radial-gradient(circle at var(--brand-pointer-x) var(--brand-pointer-y), rgba(255, 255, 255, .72), transparent 28rem),
+    #f3f1ea;
+}
+
+.brand-gateway-shell::before,
+.brand-story::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  opacity: .48;
+  background-image:
+    linear-gradient(rgba(23, 39, 45, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 39, 45, .045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 78%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .6), transparent 78%);
+}
+
+.brand-gateway-shell::after,
+.brand-story::after {
+  content: "";
+  position: fixed;
+  right: -14rem;
+  top: -18rem;
+  z-index: -1;
+  width: 38rem;
+  aspect-ratio: 1;
+  border: 1px solid rgba(23, 39, 45, .08);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5rem rgba(255, 255, 255, .1), 0 0 0 10rem rgba(255, 255, 255, .08);
+  pointer-events: none;
+}
+
+.brand-gateway__header {
+  width: min(100% - 3rem, 1480px);
+  margin-inline: auto;
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-bottom: 1px solid rgba(23, 39, 45, .14);
+  animation: brand-rise .7s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.brand-gateway__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .7rem;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+.brand-gateway__brand img {
+  width: 38px;
+  height: 38px;
+}
+
+.brand-gateway__meta {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  color: rgba(23, 39, 45, .58);
+  font-size: .69rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.brand-gateway__meta span + span::before {
+  content: "·";
+  margin-right: .55rem;
+  color: rgba(23, 39, 45, .28);
+}
+
+.brand-gateway__intro {
+  width: min(100% - 3rem, 1480px);
+  margin: clamp(1.7rem, 3.5vw, 3.8rem) auto clamp(1.5rem, 3vw, 3rem);
+  display: grid;
+  grid-template-columns: minmax(160px, .65fr) minmax(0, 2.35fr);
+  gap: clamp(1.5rem, 5vw, 7rem);
+  align-items: end;
+}
+
+.brand-gateway__intro-label {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: .35rem;
+  color: rgba(23, 39, 45, .52);
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  animation: brand-rise .75s .06s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.brand-gateway__intro-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, .7fr);
+  gap: clamp(1.5rem, 4vw, 5rem);
+  align-items: end;
+}
+
+.brand-gateway__title {
+  display: grid;
+  color: #15272d;
+  font-size: clamp(2.8rem, 6.2vw, 7.1rem);
+  font-weight: 900;
+  line-height: .92;
+  letter-spacing: -.075em;
+}
+
+.brand-gateway__title span {
+  animation: brand-rise .8s cubic-bezier(.16, .82, .28, 1) both;
+}
+
+.brand-gateway__title span:nth-child(1) { animation-delay: .08s; }
+.brand-gateway__title span:nth-child(2) { animation-delay: .14s; }
+.brand-gateway__title span:nth-child(3) { animation-delay: .2s; }
+
+.brand-gateway__lead {
+  max-width: 30rem;
+  padding-bottom: .35rem;
+  color: rgba(23, 39, 45, .68);
+  font-size: clamp(.96rem, 1.25vw, 1.15rem);
+  line-height: 1.75;
+  animation: brand-rise .75s .24s cubic-bezier(.2, .7, .2, 1) both;
+}
+
+.brand-portals {
+  width: min(100% - 3rem, 1480px);
+  min-height: clamp(330px, 43vh, 520px);
+  margin-inline: auto;
+  display: flex;
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid rgba(23, 39, 45, .18);
+  border-radius: 2px;
+  background: rgba(23, 39, 45, .16);
+  box-shadow: 0 28px 70px rgba(41, 54, 58, .09);
+}
+
+.brand-portal {
+  --portal-bg: #e8e5dc;
+  --portal-accent: #17272d;
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: clamp(1.25rem, 2.25vw, 2.3rem);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 1.4rem;
+  overflow: hidden;
+  background: var(--portal-bg);
+  transition: flex .58s cubic-bezier(.2, .72, .2, 1), filter .35s ease, background-color .35s ease;
+  animation: brand-panel-in .9s cubic-bezier(.16, .82, .28, 1) both;
+}
+
+.brand-portal:nth-child(1) { animation-delay: .18s; }
+.brand-portal:nth-child(2) { animation-delay: .26s; }
+.brand-portal:nth-child(3) { animation-delay: .34s; }
+
+.brand-portal--like {
+  --portal-bg: #dfe9e3;
+  --portal-accent: #496e5d;
+}
+
+.brand-portal--value {
+  --portal-bg: #efe5d6;
+  --portal-accent: #94754d;
+}
+
+.brand-portal--together {
+  --portal-bg: #d9eaf0;
+  --portal-accent: #447c90;
+}
+
+.brand-portals:has(.brand-portal:hover) .brand-portal,
+.brand-portals:has(.brand-portal:focus-visible) .brand-portal {
+  flex: .82 1 0;
+  filter: saturate(.84);
+}
+
+.brand-portals .brand-portal:hover,
+.brand-portals .brand-portal:focus-visible {
+  flex: 1.42 1 0;
+  filter: saturate(1.04);
+  outline: none;
+}
+
+.brand-portal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, .34), transparent 55%);
+  transition: opacity .35s ease;
+}
+
+.brand-portal:hover::after,
+.brand-portal:focus-visible::after { opacity: 1; }
+
+.brand-portal:focus-visible {
+  box-shadow: inset 0 0 0 3px rgba(23, 39, 45, .72);
+}
+
+.brand-portal__topline {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: rgba(23, 39, 45, .58);
+  font-size: .66rem;
+  font-weight: 850;
+  letter-spacing: .13em;
+}
+
+.brand-portal__index { color: var(--portal-accent); }
+.brand-portal__eyebrow { text-align: right; }
+
+.brand-portal__symbol {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+}
+
+.brand-symbol {
+  position: relative;
+  width: clamp(112px, 11vw, 172px);
+  aspect-ratio: 1;
+  display: block;
+  color: var(--portal-accent, currentColor);
+  transition: transform .6s cubic-bezier(.2, .72, .2, 1);
+}
+
+.brand-portal:hover .brand-symbol,
+.brand-portal:focus-visible .brand-symbol { transform: scale(1.1) rotate(-3deg); }
+
+.brand-symbol i {
+  position: absolute;
+  display: block;
+}
+
+.brand-symbol--like i:nth-child(1),
+.brand-symbol--like i:nth-child(2) {
+  top: 24%;
+  width: 56%;
+  aspect-ratio: 1;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.brand-symbol--like i:nth-child(1) { left: 5%; }
+.brand-symbol--like i:nth-child(2) { right: 5%; background: rgba(255, 255, 255, .14); }
+.brand-symbol--like i:nth-child(3) {
+  left: 50%;
+  top: 50%;
+  width: 12%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.brand-symbol--value i:nth-child(1),
+.brand-symbol--value i:nth-child(2) {
+  left: 50%;
+  top: 50%;
+  width: 56%;
+  aspect-ratio: 1;
+  border: 2px solid currentColor;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.brand-symbol--value i:nth-child(2) {
+  width: 30%;
+  background: rgba(255, 255, 255, .18);
+}
+.brand-symbol--value i:nth-child(3) {
+  left: 50%;
+  top: 8%;
+  width: 2px;
+  height: 84%;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.brand-symbol--together i {
+  top: 29%;
+  width: 52%;
+  aspect-ratio: 1;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+}
+.brand-symbol--together i:nth-child(1) { left: 2%; }
+.brand-symbol--together i:nth-child(2) { right: 2%; }
+.brand-symbol--together i:nth-child(3) {
+  left: 50%;
+  top: 46%;
+  width: 34%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, .18);
+}
+
+.brand-portal__body {
+  position: relative;
+  z-index: 2;
+  align-self: end;
+}
+
+.brand-portal__english {
+  margin-bottom: .35rem;
+  color: var(--portal-accent);
+  font-size: clamp(2.25rem, 4vw, 4.9rem);
+  font-weight: 950;
+  line-height: .92;
+  letter-spacing: -.065em;
+}
+
+.brand-portal__title {
+  color: #17272d;
+  font-size: clamp(1.15rem, 1.65vw, 1.6rem);
+  font-weight: 900;
+  letter-spacing: -.045em;
+}
+
+.brand-portal__description {
+  max-width: 29rem;
+  margin-top: .85rem;
+  color: rgba(23, 39, 45, .7);
+  font-size: .9rem;
+  line-height: 1.68;
+  opacity: .82;
+  transform: translateY(5px);
+  transition: opacity .32s ease, transform .32s ease;
+}
+
+.brand-portal:hover .brand-portal__description,
+.brand-portal:focus-visible .brand-portal__description {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.brand-portal__cta {
+  margin-top: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  color: #17272d;
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.brand-portal__arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid rgba(23, 39, 45, .38);
+  border-radius: 50%;
+  transition: transform .3s ease, background-color .3s ease, color .3s ease;
+}
+
+.brand-portal:hover .brand-portal__arrow,
+.brand-portal:focus-visible .brand-portal__arrow {
+  transform: translate(2px, -2px);
+  background: #17272d;
+  color: white;
+}
+
+.brand-gateway__footer {
+  width: min(100% - 3rem, 1480px);
+  min-height: 62px;
+  margin-inline: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  color: rgba(23, 39, 45, .48);
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .11em;
+}
+
+.brand-story {
+  padding-bottom: clamp(2rem, 5vw, 5rem);
+}
+
+.brand-story--like { --story-accent: #496e5d; --story-soft: #dfe9e3; }
+.brand-story--value { --story-accent: #94754d; --story-soft: #efe5d6; }
+
+.brand-story__hero,
+.brand-story__grid,
+.brand-story__actions {
+  width: min(100% - 3rem, 1480px);
+  margin-inline: auto;
+}
+
+.brand-story__hero {
+  min-height: min(65vh, 650px);
+  padding: clamp(2.5rem, 6vw, 6.5rem) 0 clamp(2rem, 4vw, 4rem);
+  display: grid;
+  grid-template-columns: .55fr 1.55fr .9fr;
+  gap: clamp(1.5rem, 4vw, 5rem);
+  align-items: center;
+  border-bottom: 1px solid rgba(23, 39, 45, .15);
+}
+
+.brand-story__marker {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--story-accent);
+  font-size: .68rem;
+  font-weight: 850;
+  letter-spacing: .13em;
+  animation: brand-rise .7s .06s both;
+}
+
+.brand-story__headline { animation: brand-rise .75s .1s both; }
+
+.brand-story__english {
+  color: var(--story-accent);
+  font-size: clamp(1rem, 1.3vw, 1.3rem);
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.brand-story__headline h1 {
+  margin-top: .5rem;
+  font-size: clamp(3.2rem, 8vw, 8.6rem);
+  font-weight: 950;
+  line-height: .92;
+  letter-spacing: -.075em;
+}
+
+.brand-story__description {
+  max-width: 42rem;
+  margin-top: clamp(1.5rem, 3vw, 2.4rem);
+  color: rgba(23, 39, 45, .7);
+  font-size: clamp(1rem, 1.35vw, 1.2rem);
+  line-height: 1.8;
+}
+
+.brand-story__visual {
+  display: grid;
+  place-items: center;
+  color: var(--story-accent);
+  animation: brand-rise .8s .18s both;
+}
+
+.brand-story__visual .brand-symbol {
+  width: min(100%, 270px);
+  filter: drop-shadow(0 26px 38px rgba(23, 39, 45, .08));
+}
+
+.brand-story__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid rgba(23, 39, 45, .15);
+}
+
+.brand-story-card {
+  min-height: 240px;
+  padding: clamp(1.5rem, 2.7vw, 2.8rem);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 2rem;
+  border-right: 1px solid rgba(23, 39, 45, .15);
+  transition: background-color .3s ease, transform .3s ease;
+  animation: brand-rise .75s both;
+}
+
+.brand-story-card:nth-child(1) { animation-delay: .18s; }
+.brand-story-card:nth-child(2) { animation-delay: .25s; }
+.brand-story-card:nth-child(3) { animation-delay: .32s; border-right: 0; }
+.brand-story-card:hover { background: var(--story-soft); }
+.brand-story-card__number { color: var(--story-accent); font-size: .7rem; font-weight: 900; letter-spacing: .12em; }
+.brand-story-card h2 { font-size: clamp(1.4rem, 2.3vw, 2.2rem); font-weight: 900; letter-spacing: -.05em; }
+.brand-story-card p { max-width: 24rem; margin-top: .65rem; color: rgba(23, 39, 45, .65); font-size: .92rem; line-height: 1.7; }
+.brand-story-card__status { justify-self: start; padding: .35rem .65rem; border: 1px solid rgba(23, 39, 45, .2); border-radius: 999px; color: rgba(23, 39, 45, .55); font-size: .68rem; font-weight: 800; }
+
+.brand-story__actions {
+  padding-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: .82rem;
+  font-weight: 850;
+}
+
+.brand-story__back { color: rgba(23, 39, 45, .62); }
+.brand-story__together {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(23, 39, 45, .28);
+  border-radius: 999px;
+  transition: background-color .25s ease, color .25s ease, transform .25s ease;
+}
+.brand-story__together:hover,
+.brand-story__together:focus-visible { background: #17272d; color: #fff; transform: translateY(-2px); outline: none; }
+
+@keyframes brand-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes brand-panel-in {
+  from { opacity: 0; transform: translateY(28px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 1080px) {
+  .brand-gateway__intro { grid-template-columns: 1fr; }
+  .brand-gateway__intro-label { flex-direction: row; }
+  .brand-gateway__intro-copy { grid-template-columns: 1.6fr .8fr; }
+  .brand-portals { min-height: 460px; }
+  .brand-portal { padding: 1.35rem; }
+  .brand-portal__eyebrow { display: none; }
+  .brand-story__hero { grid-template-columns: .4fr 1.5fr .7fr; }
+}
+
+@media (max-width: 760px) {
+  .brand-gateway-shell::before,
+  .brand-story::before { background-size: 42px 42px; }
+
+  .brand-gateway__header,
+  .brand-gateway__intro,
+  .brand-portals,
+  .brand-gateway__footer,
+  .brand-story__hero,
+  .brand-story__grid,
+  .brand-story__actions {
+    width: min(100% - 1.5rem, 1480px);
+  }
+
+  .brand-gateway__header { min-height: 72px; }
+  .brand-gateway__meta { display: none; }
+  .brand-gateway__intro { margin-top: 2.2rem; margin-bottom: 2rem; gap: 1.4rem; }
+  .brand-gateway__intro-label { font-size: .6rem; }
+  .brand-gateway__intro-copy { grid-template-columns: 1fr; gap: 1.1rem; }
+  .brand-gateway__title { font-size: clamp(2.75rem, 14vw, 5rem); line-height: .96; }
+  .brand-gateway__lead { max-width: 32rem; padding: 0; }
+
+  .brand-portals {
+    min-height: 0;
+    display: grid;
+    gap: .7rem;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .brand-portal,
+  .brand-portals:has(.brand-portal:hover) .brand-portal,
+  .brand-portals:has(.brand-portal:focus-visible) .brand-portal,
+  .brand-portals .brand-portal:hover,
+  .brand-portals .brand-portal:focus-visible {
+    min-height: 420px;
+    flex: initial;
+    border: 1px solid rgba(23, 39, 45, .15);
+    border-radius: 2px;
+  }
+
+  .brand-portal__symbol { place-items: center end; padding-right: 7%; }
+  .brand-symbol { width: 132px; }
+  .brand-portal__english { font-size: clamp(3rem, 14vw, 5rem); }
+  .brand-portal__description { max-width: 30rem; opacity: 1; transform: none; }
+  .brand-gateway__footer { min-height: 78px; }
+  .brand-gateway__footer span:last-child { display: none; }
+
+  .brand-story__hero {
+    min-height: auto;
+    padding: 3.5rem 0 3rem;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  .brand-story__marker { flex-direction: row; }
+  .brand-story__visual { justify-content: start; }
+  .brand-story__visual .brand-symbol { width: 150px; }
+  .brand-story__grid { grid-template-columns: 1fr; }
+  .brand-story-card { min-height: 210px; border-right: 0; border-bottom: 1px solid rgba(23, 39, 45, .15); }
+  .brand-story-card:last-child { border-bottom: 0; }
+  .brand-story__actions { align-items: stretch; flex-direction: column; }
+  .brand-story__together { justify-content: space-between; }
+}
+
+@media (max-width: 420px) {
+  .brand-gateway__intro-label span:last-child { display: none; }
+  .brand-portal { min-height: 390px; }
+  .brand-portal__topline { align-items: flex-start; }
+  .brand-story__headline h1 { font-size: clamp(3rem, 17vw, 5rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-gateway-shell *,
+  .brand-story * {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+</style>
+  </head>
+  <body>
+    <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="brand-gateway-root"></div>
+    <div id="app"></div>
+    <div id="toast-region"></div>
+    <div id="modal-root"></div>
+    <script>(() => {
+  const routes = new Set(["/gateway","/like","/value"]);
+  const routePath = (hash) => {
+    const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
+    return ("/" + raw.split("?")[0]).replace(/\\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+  const showNotice = () => {
+    let notice = document.getElementById("archive-route-notice");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.id = "archive-route-notice";
+      Object.assign(notice.style, {
+        position: "fixed", left: "50%", bottom: "20px", zIndex: "2147483647",
+        transform: "translateX(-50%)", maxWidth: "min(560px, calc(100% - 32px))",
+        padding: "11px 15px", border: "1px solid rgba(20,28,24,.22)",
+        borderRadius: "999px", background: "rgba(255,253,248,.96)",
+        color: "#1c2420", boxShadow: "0 12px 36px rgba(20,28,24,.14)",
+        font: "700 12px/1.4 system-ui, sans-serif", textAlign: "center",
+        pointerEvents: "none"
+      });
+      document.body.append(notice);
+    }
+    notice.textContent = "아카이브 미리보기에서는 실제 서비스 경로 이동을 막았습니다.";
+    clearTimeout(window.__archiveNoticeTimer);
+    window.__archiveNoticeTimer = setTimeout(() => notice.remove(), 2200);
+  };
+  if (!routes.has(routePath(location.hash))) history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+  document.addEventListener("click", (event) => {
+    const anchor = event.target.closest?.("a[href^='#/']");
+    if (!anchor) return;
+    if (routes.has(routePath(anchor.getAttribute("href")))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showNotice();
+  }, true);
+  window.addEventListener("hashchange", (event) => {
+    if (routes.has(routePath(location.hash))) return;
+    history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+    event.stopImmediatePropagation();
+    showNotice();
+  });
+})();</script>
+    <script>(() => {
+  const PUBLIC_ROUTES = new Set(["/gateway", "/like", "/value"]);
+  const root = document.getElementById("brand-gateway-root");
+  if (!root) return;
+
+  const routePath = () => {
+    const raw = window.location.hash.replace(/^#/, "") || "/gateway";
+    return `/${raw.split("?")[0]}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+
+  const create = (tag, options = {}, children = []) => {
+    const node = document.createElement(tag);
+    Object.entries(options).forEach(([key, value]) => {
+      if (value == null || value === false) return;
+      if (key === "className") node.className = value;
+      else if (key === "text") node.textContent = String(value);
+      else if (key === "dataset") Object.assign(node.dataset, value);
+      else if (value === true) node.setAttribute(key, "");
+      else node.setAttribute(key, String(value));
+    });
+    const list = Array.isArray(children) ? children : [children];
+    list.forEach((child) => {
+      if (child == null || child === false) return;
+      node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    });
+    return node;
+  };
+
+  const symbol = (type) => create("span", {
+    className: `brand-symbol brand-symbol--${type}`,
+    "aria-hidden": "true",
+  }, [create("i"), create("i"), create("i")]);
+
+  const gatewayHeader = (compact = false) => create("header", {
+    className: `brand-gateway__header${compact ? " brand-gateway__header--compact" : ""}`,
+  }, [
+    create("a", { className: "brand-gateway__brand", href: "#/gateway", "aria-label": "청파 같이 첫 화면" }, [
+      create("img", { src: "../assets/images/logo.svg", alt: "", width: "38", height: "38" }),
+      create("span", { text: "청파 같이" }),
+    ]),
+    create("div", { className: "brand-gateway__meta" }, [
+      create("span", { text: "LIKE" }),
+      create("span", { text: "VALUE" }),
+      create("span", { text: "TOGETHER" }),
+    ]),
+  ]);
+
+  const portal = ({ index, type, title, korean, description, eyebrow, href, cta }) => create("a", {
+    className: `brand-portal brand-portal--${type}`,
+    href,
+    dataset: { brandPortal: type },
+    "aria-label": `${title} — ${korean}`,
+  }, [
+    create("div", { className: "brand-portal__topline" }, [
+      create("span", { className: "brand-portal__index", text: index }),
+      create("span", { className: "brand-portal__eyebrow", text: eyebrow }),
+    ]),
+    create("div", { className: "brand-portal__symbol" }, symbol(type)),
+    create("div", { className: "brand-portal__body" }, [
+      create("p", { className: "brand-portal__english", text: title }),
+      create("h2", { className: "brand-portal__title", text: korean }),
+      create("p", { className: "brand-portal__description", text: description }),
+      create("span", { className: "brand-portal__cta" }, [
+        create("span", { text: cta }),
+        create("span", { className: "brand-portal__arrow", text: "↗", "aria-hidden": "true" }),
+      ]),
+    ]),
+  ]);
+
+  function renderGateway() {
+    const shell = create("main", {
+      id: "brand-main-content",
+      className: "brand-gateway-shell",
+      tabindex: "-1",
+    }, [
+      gatewayHeader(),
+      create("section", { className: "brand-gateway__intro", "aria-labelledby": "brand-gateway-title" }, [
+        create("div", { className: "brand-gateway__intro-label" }, [
+          create("span", { text: "CHEONGPA YOUTH COMMUNITY" }),
+          create("span", { text: "LIKE · VALUE · TOGETHER" }),
+        ]),
+        create("div", { className: "brand-gateway__intro-copy" }, [
+          create("h1", { id: "brand-gateway-title", className: "brand-gateway__title" }, [
+            create("span", { text: "같이 닮고," }),
+            create("span", { text: "가치를 나누며," }),
+            create("span", { text: "함께 살아갑니다." }),
+          ]),
+          create("p", {
+            className: "brand-gateway__lead",
+            text: "‘같이’라는 한 단어 안에 담긴 세 가지 의미를 따라 청파청년부의 예배와 이야기, 공동체를 만나보세요.",
+          }),
+        ]),
+      ]),
+      create("section", { className: "brand-portals", "aria-label": "청파 같이 세 가지 영역" }, [
+        portal({
+          index: "01",
+          type: "like",
+          title: "Like",
+          korean: "같이 닮다",
+          eyebrow: "WORSHIP · SPIRIT",
+          description: "예배와 말씀 안에서 신앙의 방향을 함께 배우고 닮아가며, 청파교회의 정신을 이어갑니다.",
+          href: "#/like",
+          cta: "Like 알아보기",
+        }),
+        portal({
+          index: "02",
+          type: "value",
+          title: "Value",
+          korean: "가치를 나누다",
+          eyebrow: "STORY · PROJECT",
+          description: "목회자와 청년의 이야기, 칼럼과 프로젝트를 통해 우리가 믿고 살아가는 가치를 나눕니다.",
+          href: "#/value",
+          cta: "Value 알아보기",
+        }),
+        portal({
+          index: "03",
+          type: "together",
+          title: "Together",
+          korean: "같이 하다",
+          eyebrow: "COMMUNITY · ACTIVITY",
+          description: "소식과 광고, 모임과 활동을 한곳에서 나누며 오늘의 청파청년부를 함께 만들어갑니다.",
+          href: "#/login",
+          cta: "Together 들어가기",
+        }),
+      ]),
+      create("footer", { className: "brand-gateway__footer" }, [
+        create("span", { text: "CHEONGPA GACHI" }),
+        create("span", { text: "세 가지 의미 중 하나를 선택해 보세요" }),
+      ]),
+    ]);
+
+    root.replaceChildren(shell);
+  }
+
+  const storyContent = {
+    like: {
+      index: "01",
+      english: "Like",
+      title: "같이 닮다",
+      kicker: "WORSHIP · SPIRIT",
+      description: "우리가 누구를 닮아가고 어떤 정신을 이어갈지 담는 공간입니다. 예배와 말씀, 청파교회의 정신을 가까이에서 만나며 같은 방향을 바라봅니다.",
+      items: [
+        ["01", "청파의 정신", "청파교회와 청년부가 이어가는 믿음의 방향과 정신"],
+        ["02", "예배", "청파청년부 예배와 메시지를 다시 만나는 아카이브"],
+        ["03", "말씀", "함께 묵상하고 삶으로 이어갈 말씀과 기록"],
+      ],
+    },
+    value: {
+      index: "02",
+      english: "Value",
+      title: "가치를 나누다",
+      kicker: "STORY · PROJECT",
+      description: "우리가 중요하게 여기는 가치가 이야기와 실천으로 이어지는 공간입니다. 목회자와 청년의 목소리, 칼럼과 프로젝트를 통해 공동체의 생각을 쌓아갑니다.",
+      items: [
+        ["01", "이야기", "목회자와 청년들이 나누는 삶과 신앙의 이야기"],
+        ["02", "칼럼", "함께 생각해 보고 싶은 질문과 관점을 담은 글"],
+        ["03", "프로젝트", "봉사와 캠페인, 공동체 밖으로 이어지는 청년들의 실천"],
+      ],
+    },
+  };
+
+  function renderStory(type) {
+    const content = storyContent[type];
+    const shell = create("main", {
+      id: "brand-main-content",
+      className: `brand-story brand-story--${type}`,
+      tabindex: "-1",
+    }, [
+      gatewayHeader(true),
+      create("section", { className: "brand-story__hero", "aria-labelledby": "brand-story-title" }, [
+        create("div", { className: "brand-story__marker" }, [
+          create("span", { text: content.index }),
+          create("span", { text: content.kicker }),
+        ]),
+        create("div", { className: "brand-story__headline" }, [
+          create("p", { className: "brand-story__english", text: content.english }),
+          create("h1", { id: "brand-story-title", text: content.title }),
+          create("p", { className: "brand-story__description", text: content.description }),
+        ]),
+        create("div", { className: "brand-story__visual", "aria-hidden": "true" }, symbol(type)),
+      ]),
+      create("section", { className: "brand-story__grid", "aria-label": `${content.title} 콘텐츠 영역` },
+        content.items.map(([number, title, description]) => create("article", { className: "brand-story-card" }, [
+          create("span", { className: "brand-story-card__number", text: number }),
+          create("div", {}, [
+            create("h2", { text: title }),
+            create("p", { text: description }),
+          ]),
+          create("span", { className: "brand-story-card__status", text: "준비 중" }),
+        ]))),
+      create("footer", { className: "brand-story__actions" }, [
+        create("a", { className: "brand-story__back", href: "#/gateway", text: "← 세 가지 의미로 돌아가기" }),
+        create("a", { className: "brand-story__together", href: "#/login" }, [
+          create("span", { text: "지금 Together 만나기" }),
+          create("span", { text: "↗", "aria-hidden": "true" }),
+        ]),
+      ]),
+    ]);
+    root.replaceChildren(shell);
+  }
+
+  function setPublicMode(active) {
+    const wasPublic = document.documentElement.dataset.brandPublic === "true";
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (active) {
+      document.documentElement.dataset.brandPublic = "true";
+      themeColor?.setAttribute("content", "#f3f1ea");
+      root.hidden = false;
+      return;
+    }
+
+    delete document.documentElement.dataset.brandPublic;
+    themeColor?.setAttribute("content", "#9fcfdf");
+    root.hidden = true;
+    root.replaceChildren();
+    if (wasPublic) {
+      window.dispatchEvent(new Event("brand:enter-app"));
+    }
+  }
+
+  let hasRendered = false;
+
+  function render() {
+    const path = routePath();
+    const isPublic = PUBLIC_ROUTES.has(path);
+    setPublicMode(isPublic);
+    if (!isPublic) return;
+
+    if (path === "/like") {
+      document.title = "Like · 같이 닮다 | 청파 같이";
+      renderStory("like");
+    } else if (path === "/value") {
+      document.title = "Value · 가치를 나누다 | 청파 같이";
+      renderStory("value");
+    } else {
+      document.title = "청파 같이 | Like · Value · Together";
+      renderGateway();
+    }
+
+    window.requestAnimationFrame(() => {
+      if (hasRendered) {
+        document.getElementById("brand-main-content")?.focus({ preventScroll: true });
+      }
+      window.scrollTo({ top: 0, behavior: "auto" });
+      hasRendered = true;
+    });
+  }
+
+  root.addEventListener("pointermove", (event) => {
+    const shell = root.querySelector(".brand-gateway-shell, .brand-story");
+    if (!shell) return;
+    const rect = shell.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    shell.style.setProperty("--brand-pointer-x", `${Math.max(0, Math.min(100, x))}%`);
+    shell.style.setProperty("--brand-pointer-y", `${Math.max(0, Math.min(100, y))}%`);
+  });
+
+  document.getElementById("skip-link")?.addEventListener("click", (event) => {
+    if (!PUBLIC_ROUTES.has(routePath())) return;
+    event.stopImmediatePropagation();
+    document.getElementById("brand-main-content")?.focus();
+  });
+
+  window.addEventListener("hashchange", (event) => {
+    if (PUBLIC_ROUTES.has(routePath())) {
+      event.stopImmediatePropagation();
+      render();
+      return;
+    }
+    window.setTimeout(render, 0);
+  });
+  render();
+})();
+</script>
+  </body>
+</html>

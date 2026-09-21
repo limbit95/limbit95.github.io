@@ -1,0 +1,1590 @@
+<!doctype html>
+<!--
+  Brand Gateway archive snapshot
+  Variant: AE
+  Source branch: feature/brand-gateway-ae-20260918
+  Source commit: 48fcb21e00a3d636baf39c6327be74a4e9c74834
+-->
+<html lang="ko" data-brand-public="true">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="theme-color" content="#f3f1ea">
+    <title>Brand Gateway AE · Archive</title>
+    <link rel="icon" href="../assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../css/reset.css">
+    <link rel="stylesheet" href="../css/variables.css">
+    <style>@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Serif+KR:wght@500;600;700&display=swap");
+
+:root {
+  --ae-paper: #f0ede5;
+  --ae-paper-deep: #e5e0d6;
+  --ae-ink: #222823;
+  --ae-muted: #6f766f;
+  --ae-line: rgba(34, 40, 35, 0.16);
+  --ae-value: #9d8376;
+  --ae-like: #7f9180;
+  --ae-together: #7d8e97;
+}
+
+html[data-brand-public="true"] {
+  background: var(--ae-paper);
+}
+
+html[data-brand-public="true"] body {
+  margin: 0;
+  background: var(--ae-paper);
+  color: var(--ae-ink);
+}
+
+html[data-brand-public="true"] #app,
+html[data-brand-public="true"] #toast-region,
+html[data-brand-public="true"] #modal-root {
+  display: none !important;
+}
+
+html[data-brand-public="true"] #brand-gateway-root {
+  display: block;
+  min-height: 100vh;
+}
+
+.brand-ae-shell,
+.brand-ae-detail {
+  position: relative;
+  min-height: 100vh;
+  overflow: clip;
+  background:
+    radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.68), transparent 28rem),
+    var(--ae-paper);
+  color: var(--ae-ink);
+  font-family: "DM Sans", Pretendard, "Noto Sans KR", sans-serif;
+}
+
+.brand-ae-shell::before,
+.brand-ae-detail::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(32, 38, 33, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(32, 38, 33, 0.035) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), transparent 78%);
+}
+
+.brand-ae-shell > *,
+.brand-ae-detail > * {
+  position: relative;
+  z-index: 1;
+}
+
+.brand-ae-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(280px, 1fr);
+  align-items: center;
+  min-height: 78px;
+  padding: 0 clamp(22px, 4vw, 68px);
+  border-bottom: 1px solid var(--ae-line);
+  background: rgba(240, 237, 229, 0.82);
+  backdrop-filter: blur(14px);
+}
+
+.brand-ae-header--compact {
+  position: relative;
+}
+
+.brand-ae-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  color: inherit;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+}
+
+.brand-ae-logo img {
+  width: 26px;
+  height: 26px;
+  opacity: 0.82;
+}
+
+.brand-ae-edition {
+  justify-self: center;
+  color: var(--ae-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.brand-ae-nav {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 2.4vw, 34px);
+}
+
+.brand-ae-nav a {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-ae-nav a span {
+  color: #8a908a;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.brand-ae-nav a strong {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.brand-ae-nav a:hover strong,
+.brand-ae-nav a:focus-visible strong {
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+.brand-ae-hero {
+  position: relative;
+  min-height: 100svh;
+  padding: 122px clamp(22px, 4vw, 68px) 48px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(270px, .8fr);
+  grid-template-rows: auto 1fr auto;
+  align-items: end;
+  border-bottom: 1px solid var(--ae-line);
+}
+
+.brand-ae-hero__meta {
+  grid-column: 1 / -1;
+  align-self: start;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 22px;
+  color: #757c75;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.brand-ae-weave {
+  position: absolute;
+  left: -2vw;
+  right: -2vw;
+  top: 18%;
+  width: 104vw;
+  height: 58%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.brand-ae-weave__path {
+  fill: none;
+  stroke-width: 2.4;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  opacity: 0.64;
+  stroke-dasharray: 9 9;
+  animation: ae-thread-drift 16s linear infinite;
+}
+
+.brand-ae-weave__path--value { stroke: var(--ae-value); }
+.brand-ae-weave__path--like { stroke: var(--ae-like); animation-duration: 19s; }
+.brand-ae-weave__path--together { stroke: var(--ae-together); animation-duration: 22s; }
+
+.brand-ae-weave__point {
+  stroke: var(--ae-paper);
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.brand-ae-weave__point--value { fill: var(--ae-value); }
+.brand-ae-weave__point--like { fill: var(--ae-like); }
+.brand-ae-weave__point--together { fill: var(--ae-together); }
+
+@keyframes ae-thread-drift {
+  to { stroke-dashoffset: -180; }
+}
+
+.brand-ae-hero__word {
+  position: relative;
+  align-self: end;
+  min-height: clamp(290px, 40vw, 590px);
+  display: flex;
+  align-items: flex-end;
+}
+
+.brand-ae-hero__word h1 {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(118px, 21vw, 330px);
+  font-weight: 600;
+  line-height: .76;
+  letter-spacing: -0.1em;
+}
+
+.brand-ae-hero__word > span {
+  position: absolute;
+  left: clamp(10px, 3vw, 48px);
+  top: 6%;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(34, 40, 35, .15);
+  font-size: clamp(70px, 12vw, 190px);
+  font-weight: 700;
+  letter-spacing: -.07em;
+  transform: rotate(-6deg);
+}
+
+.brand-ae-hero__copy {
+  align-self: end;
+  justify-self: end;
+  max-width: 510px;
+  padding: 0 0 clamp(18px, 3vw, 58px) clamp(16px, 2vw, 36px);
+}
+
+.brand-ae-hero__copy p {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(22px, 2.7vw, 42px);
+  font-weight: 600;
+  line-height: 1.48;
+  letter-spacing: -0.045em;
+}
+
+.brand-ae-hero__copy span {
+  display: block;
+  margin-top: 22px;
+  color: var(--ae-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.brand-ae-hero__scroll {
+  grid-column: 1 / -1;
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .15em;
+}
+
+.brand-ae-hero__scroll b {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ae-line);
+  border-radius: 50%;
+  font-size: 16px;
+}
+
+.brand-ae-paths {
+  position: relative;
+  padding: clamp(90px, 11vw, 170px) clamp(22px, 4vw, 68px) clamp(120px, 13vw, 210px);
+}
+
+.brand-ae-paths__intro {
+  width: min(680px, 100%);
+  margin: 0 auto clamp(110px, 12vw, 190px);
+  text-align: center;
+}
+
+.brand-ae-paths__intro > span {
+  color: var(--ae-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.brand-ae-paths__intro h2 {
+  margin: 20px 0 14px;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(34px, 4.4vw, 68px);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -.055em;
+}
+
+.brand-ae-paths__intro p {
+  margin: 0 auto;
+  max-width: 560px;
+  color: var(--ae-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.brand-ae-spine {
+  position: absolute;
+  top: clamp(330px, 31vw, 510px);
+  bottom: clamp(165px, 16vw, 255px);
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.brand-ae-spine__track,
+.brand-ae-spine__progress {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+}
+
+.brand-ae-spine__track {
+  background: rgba(34, 40, 35, .16);
+}
+
+.brand-ae-spine__progress {
+  transform-origin: top;
+  transform: scaleY(var(--ae-progress, 0));
+  background: linear-gradient(to bottom, var(--ae-value), var(--ae-like) 52%, var(--ae-together));
+  transition: transform 90ms linear;
+}
+
+.brand-ae-stops {
+  display: grid;
+  gap: clamp(100px, 12vw, 190px);
+}
+
+.brand-ae-stop {
+  position: relative;
+  min-height: clamp(320px, 39vw, 560px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px minmax(0, 1fr);
+  align-items: center;
+  opacity: .45;
+  transform: translateY(34px);
+  transition: opacity 600ms ease, transform 600ms ease;
+}
+
+.brand-ae-stop[data-visible="true"] {
+  opacity: .76;
+  transform: translateY(0);
+}
+
+.brand-ae-stop[data-active="true"] {
+  opacity: 1;
+}
+
+.brand-ae-stop__node {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ae-accent), transparent 28%);
+  background: var(--ae-paper);
+  box-shadow: 0 0 0 10px var(--ae-paper);
+  transition: background 260ms ease, color 260ms ease, transform 260ms ease;
+}
+
+.brand-ae-stop[data-active="true"] .brand-ae-stop__node {
+  background: var(--ae-accent);
+  color: #f7f4ed;
+  transform: scale(1.08);
+}
+
+.brand-ae-stop__node span {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.brand-ae-stop__copy {
+  position: relative;
+  width: min(560px, 94%);
+}
+
+.brand-ae-stop--left .brand-ae-stop__copy {
+  grid-column: 1;
+  justify-self: end;
+  padding-right: clamp(24px, 4vw, 72px);
+  text-align: right;
+}
+
+.brand-ae-stop--right .brand-ae-stop__copy {
+  grid-column: 3;
+  justify-self: start;
+  padding-left: clamp(24px, 4vw, 72px);
+  text-align: left;
+}
+
+.brand-ae-stop__eyebrow {
+  color: var(--ae-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.brand-ae-stop__title {
+  margin-top: 12px;
+}
+
+.brand-ae-stop__title strong {
+  display: block;
+  color: var(--ae-accent);
+  font-size: clamp(48px, 7vw, 100px);
+  line-height: .92;
+  letter-spacing: -.065em;
+}
+
+.brand-ae-stop__title h2 {
+  margin: 8px 0 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(24px, 2.5vw, 40px);
+  font-weight: 600;
+  letter-spacing: -.045em;
+}
+
+.brand-ae-stop__copy > p {
+  margin: 28px 0 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(17px, 1.5vw, 23px);
+  line-height: 1.75;
+  letter-spacing: -.025em;
+}
+
+.brand-ae-stop__meta {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--ae-accent), transparent 55%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--ae-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.brand-ae-stop--left .brand-ae-stop__meta {
+  flex-direction: row-reverse;
+}
+
+.brand-ae-stop__meta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ae-ink);
+  text-decoration: none;
+}
+
+.brand-ae-stop__meta a:hover,
+.brand-ae-stop__meta a:focus-visible {
+  color: var(--ae-accent);
+}
+
+.brand-ae-stop__echo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.brand-ae-stop__echo span {
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--ae-accent), transparent 76%);
+  font-size: clamp(130px, 20vw, 310px);
+  font-weight: 700;
+  line-height: 1;
+  opacity: .55;
+}
+
+.brand-ae-stop--left .brand-ae-stop__echo span:first-child,
+.brand-ae-stop--right .brand-ae-stop__echo span:last-child {
+  opacity: .08;
+}
+
+.brand-ae-convergence {
+  position: relative;
+  min-height: min(880px, 92svh);
+  padding: clamp(100px, 12vw, 180px) clamp(22px, 4vw, 68px) clamp(90px, 9vw, 140px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-top: 1px solid var(--ae-line);
+  border-bottom: 1px solid var(--ae-line);
+  background: #e8e4db;
+}
+
+.brand-ae-convergence__threads {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.brand-ae-convergence__threads i {
+  position: absolute;
+  left: 50%;
+  width: 58vw;
+  height: 1px;
+  transform-origin: left center;
+  opacity: .62;
+}
+
+.brand-ae-convergence__threads i:nth-child(1) {
+  top: 18%;
+  background: var(--ae-value);
+  transform: translateX(-50%) rotate(16deg);
+}
+
+.brand-ae-convergence__threads i:nth-child(2) {
+  top: 50%;
+  background: var(--ae-like);
+  transform: translateX(-50%) rotate(0deg);
+}
+
+.brand-ae-convergence__threads i:nth-child(3) {
+  top: 82%;
+  background: var(--ae-together);
+  transform: translateX(-50%) rotate(-16deg);
+}
+
+.brand-ae-convergence__label {
+  color: var(--ae-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.brand-ae-convergence h2 {
+  position: relative;
+  margin: 26px 0 22px;
+  padding: 0 .08em .08em 0;
+  background: #e8e4db;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(100px, 19vw, 300px);
+  font-weight: 600;
+  line-height: .82;
+  letter-spacing: -.1em;
+}
+
+.brand-ae-convergence p {
+  position: relative;
+  max-width: 650px;
+  margin: 0;
+  padding: 10px 18px;
+  background: #e8e4db;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(18px, 2vw, 30px);
+  line-height: 1.65;
+  letter-spacing: -.03em;
+}
+
+.brand-ae-convergence a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 42px;
+  padding: 14px 20px;
+  border: 1px solid rgba(34, 40, 35, .28);
+  background: #e8e4db;
+  color: inherit;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+
+.brand-ae-convergence a:hover,
+.brand-ae-convergence a:focus-visible {
+  background: var(--ae-ink);
+  color: #f5f2ea;
+}
+
+.brand-ae-footer {
+  min-height: 96px;
+  padding: 0 clamp(22px, 4vw, 68px);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 20px;
+  color: #707770;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .13em;
+}
+
+.brand-ae-footer span:last-child {
+  justify-self: end;
+}
+
+/* Detail */
+.brand-ae-detail__hero {
+  position: relative;
+  min-height: 72svh;
+  padding: clamp(78px, 8vw, 125px) clamp(22px, 4vw, 68px) clamp(70px, 8vw, 120px);
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) minmax(280px, 520px);
+  align-items: end;
+  gap: clamp(24px, 4vw, 70px);
+  border-bottom: 1px solid var(--ae-line);
+}
+
+.brand-ae-detail__threads {
+  position: absolute;
+  inset: 8% -5% auto;
+  height: 72%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.brand-ae-detail__threads i {
+  position: absolute;
+  left: -5%;
+  width: 110%;
+  height: 1px;
+  background: var(--detail-accent);
+  opacity: .28;
+}
+
+.brand-ae-detail__threads i:nth-child(1) { top: 20%; transform: rotate(4deg); }
+.brand-ae-detail__threads i:nth-child(2) { top: 48%; transform: rotate(-5deg); }
+.brand-ae-detail__threads i:nth-child(3) { top: 75%; transform: rotate(3deg); }
+
+.brand-ae-detail__index {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--ae-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .1em;
+}
+
+.brand-ae-detail__index > span {
+  color: var(--detail-accent);
+  font-size: clamp(54px, 6vw, 90px);
+  line-height: 1;
+}
+
+.brand-ae-detail__index a {
+  color: inherit;
+  text-decoration: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.brand-ae-detail__title {
+  align-self: end;
+}
+
+.brand-ae-detail__title > span {
+  color: var(--detail-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.brand-ae-detail__title strong {
+  display: block;
+  margin-top: 14px;
+  color: transparent;
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--detail-accent), #222 15%);
+  font-size: clamp(82px, 14vw, 220px);
+  line-height: .82;
+  letter-spacing: -.08em;
+}
+
+.brand-ae-detail__title h1 {
+  margin: 16px 0 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(34px, 4vw, 62px);
+  font-weight: 600;
+  letter-spacing: -.055em;
+}
+
+.brand-ae-detail__lead {
+  margin: 0;
+  padding: 22px 0 8px;
+  border-top: 1px solid color-mix(in srgb, var(--detail-accent), transparent 52%);
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(18px, 1.8vw, 26px);
+  line-height: 1.75;
+  letter-spacing: -.03em;
+}
+
+.brand-ae-detail__flow {
+  padding: clamp(70px, 8vw, 120px) clamp(22px, 4vw, 68px);
+}
+
+.brand-ae-detail__item {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr) auto;
+  gap: clamp(18px, 3vw, 42px);
+  align-items: start;
+  padding: clamp(28px, 3vw, 48px) 0;
+  border-top: 1px solid var(--ae-line);
+}
+
+.brand-ae-detail__item:last-child {
+  border-bottom: 1px solid var(--ae-line);
+}
+
+.brand-ae-detail__item > span {
+  color: var(--detail-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brand-ae-detail__item h2 {
+  margin: 0;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(26px, 3vw, 44px);
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+
+.brand-ae-detail__item p {
+  margin: 12px 0 0;
+  max-width: 670px;
+  color: var(--ae-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.brand-ae-detail__item em {
+  color: #8b918b;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.brand-ae-detail__next,
+.brand-ae-detail__community {
+  margin: 0 clamp(22px, 4vw, 68px) clamp(80px, 8vw, 130px);
+}
+
+.brand-ae-detail__next {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: 28px;
+  padding: 34px 0;
+  border-top: 1px solid var(--ae-line);
+  border-bottom: 1px solid var(--ae-line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-ae-detail__next span {
+  color: var(--ae-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+
+.brand-ae-detail__next strong {
+  justify-self: center;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(28px, 3.5vw, 54px);
+  font-weight: 600;
+  letter-spacing: -.05em;
+}
+
+.brand-ae-detail__next b {
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.brand-ae-detail__community {
+  padding: clamp(56px, 7vw, 100px);
+  background: #e6e2d8;
+  text-align: center;
+}
+
+.brand-ae-detail__community > span {
+  color: var(--ae-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.brand-ae-detail__community h2 {
+  max-width: 760px;
+  margin: 20px auto 12px;
+  font-family: "Noto Serif KR", serif;
+  font-size: clamp(34px, 4vw, 64px);
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -.055em;
+}
+
+.brand-ae-detail__community p {
+  margin: 0 auto;
+  max-width: 580px;
+  color: var(--ae-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.brand-ae-detail__community a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+  padding: 14px 20px;
+  border: 1px solid rgba(34,40,35,.28);
+  color: inherit;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.brand-ae-detail__community a:hover,
+.brand-ae-detail__community a:focus-visible {
+  background: var(--ae-ink);
+  color: #f5f2ea;
+}
+
+.brand-ae-footer--detail {
+  border-top: 1px solid var(--ae-line);
+}
+
+@media (max-width: 980px) {
+  .brand-ae-header {
+    grid-template-columns: 1fr auto;
+  }
+
+  .brand-ae-edition {
+    display: none;
+  }
+
+  .brand-ae-hero {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+    align-items: end;
+  }
+
+  .brand-ae-hero__word {
+    min-height: clamp(230px, 51vw, 410px);
+  }
+
+  .brand-ae-hero__copy {
+    justify-self: start;
+    max-width: 620px;
+    padding: 30px 0 0;
+  }
+
+  .brand-ae-hero__scroll {
+    margin-top: 44px;
+  }
+
+  .brand-ae-weave {
+    top: 25%;
+    height: 43%;
+  }
+
+  .brand-ae-stop {
+    grid-template-columns: minmax(0, 1fr) 62px minmax(0, 1fr);
+  }
+
+  .brand-ae-detail__hero {
+    grid-template-columns: 88px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+
+  .brand-ae-detail__lead {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 700px) {
+  .brand-ae-header {
+    min-height: 64px;
+    padding: 0 18px;
+  }
+
+  .brand-ae-logo span {
+    font-size: 9px;
+  }
+
+  .brand-ae-nav {
+    gap: 12px;
+  }
+
+  .brand-ae-nav a span {
+    display: none;
+  }
+
+  .brand-ae-nav a strong {
+    font-size: 9px;
+  }
+
+  .brand-ae-hero {
+    min-height: 92svh;
+    padding: 92px 18px 30px;
+  }
+
+  .brand-ae-hero__meta {
+    font-size: 8px;
+  }
+
+  .brand-ae-hero__meta span:nth-child(2) {
+    display: none;
+  }
+
+  .brand-ae-hero__word h1 {
+    font-size: clamp(108px, 38vw, 175px);
+  }
+
+  .brand-ae-hero__word > span {
+    font-size: clamp(66px, 21vw, 110px);
+  }
+
+  .brand-ae-hero__copy p {
+    font-size: 22px;
+  }
+
+  .brand-ae-paths {
+    padding: 78px 18px 110px;
+  }
+
+  .brand-ae-paths__intro {
+    margin-bottom: 100px;
+    text-align: left;
+  }
+
+  .brand-ae-paths__intro h2 {
+    font-size: 36px;
+  }
+
+  .brand-ae-spine {
+    left: 27px;
+    top: 350px;
+    bottom: 155px;
+  }
+
+  .brand-ae-stops {
+    gap: 108px;
+  }
+
+  .brand-ae-stop {
+    min-height: 300px;
+    display: grid;
+    grid-template-columns: 54px minmax(0, 1fr);
+  }
+
+  .brand-ae-stop__node,
+  .brand-ae-stop--left .brand-ae-stop__node,
+  .brand-ae-stop--right .brand-ae-stop__node {
+    grid-column: 1;
+    width: 40px;
+    height: 40px;
+    justify-self: start;
+    box-shadow: 0 0 0 6px var(--ae-paper);
+  }
+
+  .brand-ae-stop__copy,
+  .brand-ae-stop--left .brand-ae-stop__copy,
+  .brand-ae-stop--right .brand-ae-stop__copy {
+    grid-column: 2;
+    width: 100%;
+    justify-self: stretch;
+    padding: 0 0 0 18px;
+    text-align: left;
+  }
+
+  .brand-ae-stop__title strong {
+    font-size: 54px;
+  }
+
+  .brand-ae-stop__title h2 {
+    font-size: 26px;
+  }
+
+  .brand-ae-stop__copy > p {
+    font-size: 17px;
+  }
+
+  .brand-ae-stop__meta,
+  .brand-ae-stop--left .brand-ae-stop__meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brand-ae-stop__echo {
+    display: none;
+  }
+
+  .brand-ae-convergence {
+    min-height: 720px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .brand-ae-convergence h2 {
+    font-size: clamp(100px, 36vw, 150px);
+  }
+
+  .brand-ae-footer {
+    min-height: 118px;
+    padding: 20px 18px;
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
+    row-gap: 10px;
+  }
+
+  .brand-ae-footer span:nth-child(2) {
+    justify-self: end;
+  }
+
+  .brand-ae-footer span:last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .brand-ae-detail__hero {
+    min-height: auto;
+    padding: 54px 18px 62px;
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .brand-ae-detail__index {
+    min-height: auto;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .brand-ae-detail__index a {
+    writing-mode: initial;
+    transform: none;
+  }
+
+  .brand-ae-detail__index > span {
+    font-size: 52px;
+  }
+
+  .brand-ae-detail__title strong {
+    font-size: clamp(76px, 25vw, 116px);
+  }
+
+  .brand-ae-detail__lead {
+    grid-column: auto;
+    font-size: 18px;
+  }
+
+  .brand-ae-detail__flow {
+    padding: 48px 18px;
+  }
+
+  .brand-ae-detail__item {
+    grid-template-columns: 44px 1fr;
+  }
+
+  .brand-ae-detail__item em {
+    grid-column: 2;
+  }
+
+  .brand-ae-detail__next,
+  .brand-ae-detail__community {
+    margin-left: 18px;
+    margin-right: 18px;
+  }
+
+  .brand-ae-detail__next {
+    grid-template-columns: 1fr auto;
+  }
+
+  .brand-ae-detail__next span {
+    grid-column: 1 / -1;
+  }
+
+  .brand-ae-detail__next strong {
+    justify-self: start;
+  }
+
+  .brand-ae-detail__community {
+    padding: 54px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-ae-weave__path {
+    animation: none;
+  }
+
+  .brand-ae-stop,
+  .brand-ae-stop__node,
+  .brand-ae-spine__progress {
+    transition: none;
+  }
+}
+</style>
+  </head>
+  <body>
+    <button class="skip-link" id="skip-link" type="button">본문으로 바로가기</button>
+    <div id="brand-gateway-root"></div>
+    <div id="app"></div>
+    <div id="toast-region"></div>
+    <div id="modal-root"></div>
+    <script>(() => {
+  const routes = new Set(["/gateway","/value","/like","/together"]);
+  const routePath = (hash) => {
+    const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
+    return ("/" + raw.split("?")[0]).replace(/\\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+  const showNotice = () => {
+    let notice = document.getElementById("archive-route-notice");
+    if (!notice) {
+      notice = document.createElement("div");
+      notice.id = "archive-route-notice";
+      Object.assign(notice.style, {
+        position: "fixed", left: "50%", bottom: "20px", zIndex: "2147483647",
+        transform: "translateX(-50%)", maxWidth: "min(560px, calc(100% - 32px))",
+        padding: "11px 15px", border: "1px solid rgba(20,28,24,.22)",
+        borderRadius: "999px", background: "rgba(255,253,248,.96)",
+        color: "#1c2420", boxShadow: "0 12px 36px rgba(20,28,24,.14)",
+        font: "700 12px/1.4 system-ui, sans-serif", textAlign: "center",
+        pointerEvents: "none"
+      });
+      document.body.append(notice);
+    }
+    notice.textContent = "아카이브 미리보기에서는 실제 서비스 경로 이동을 막았습니다.";
+    clearTimeout(window.__archiveNoticeTimer);
+    window.__archiveNoticeTimer = setTimeout(() => notice.remove(), 2200);
+  };
+  if (!routes.has(routePath(location.hash))) history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+  document.addEventListener("click", (event) => {
+    const anchor = event.target.closest?.("a[href^='#/']");
+    if (!anchor) return;
+    if (routes.has(routePath(anchor.getAttribute("href")))) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showNotice();
+  }, true);
+  window.addEventListener("hashchange", (event) => {
+    if (routes.has(routePath(location.hash))) return;
+    history.replaceState(null, "", location.pathname + location.search + "#/gateway");
+    event.stopImmediatePropagation();
+    showNotice();
+  });
+})();</script>
+    <script>(() => {
+  const PUBLIC_ROUTES = new Set(["/gateway", "/value", "/like", "/together"]);
+  const root = document.getElementById("brand-gateway-root");
+  if (!root) return;
+
+  const directions = [
+    {
+      key: "value",
+      number: "01",
+      english: "VALUE",
+      korean: "청파의 가치",
+      title: "가치를 나누다",
+      meta: "STORY · THOUGHT · PRACTICE",
+      statement: "중요하게 여기는 것을 말하고, 삶의 실천으로 이어갑니다.",
+      href: "#/value",
+      accent: "#9d8376",
+    },
+    {
+      key: "like",
+      number: "02",
+      english: "LIKE",
+      korean: "청파의 같이",
+      title: "같이 닮다",
+      meta: "WORSHIP · WORD · FORMATION",
+      statement: "같은 방향을 바라보고, 예수님의 마음을 삶으로 닮아갑니다.",
+      href: "#/like",
+      accent: "#7f9180",
+    },
+    {
+      key: "together",
+      number: "03",
+      english: "TOGETHER",
+      korean: "청파와 같이",
+      title: "같이 하다",
+      meta: "NEWS · GATHERING · ACTIVITY",
+      statement: "서로의 오늘에 자리를 내어주며, 공동체의 삶을 함께 만듭니다.",
+      href: "#/together",
+      accent: "#7d8e97",
+    },
+  ];
+
+  const details = {
+    value: {
+      number: "01",
+      english: "VALUE",
+      title: "가치를 나누다",
+      eyebrow: "청파의 가치",
+      lead: "목회자와 청년들의 이야기, 질문과 생각, 프로젝트를 통해 우리가 중요하게 여기는 가치를 세상과 나눕니다.",
+      accent: "#9d8376",
+      items: [
+        ["01", "이야기", "목회자와 청년들의 삶과 신앙을 담는 인터뷰와 기록"],
+        ["02", "칼럼", "공동체와 세상을 함께 바라보며 질문하고 생각을 나누는 글"],
+        ["03", "프로젝트", "봉사와 캠페인처럼 가치가 실제 행동으로 이어지는 실천"],
+      ],
+      next: "#/like",
+      nextLabel: "02 / LIKE",
+      nextTitle: "같이 닮다",
+    },
+    like: {
+      number: "02",
+      english: "LIKE",
+      title: "같이 닮다",
+      eyebrow: "청파의 같이",
+      lead: "예배와 말씀 안에서 예수님의 마음을 배우고, 청파가 걸어온 신앙의 방향을 오늘의 삶으로 이어갑니다.",
+      accent: "#7f9180",
+      items: [
+        ["01", "청파의 정신", "약한 이의 곁에 서고 평화를 사랑하는 공동체의 방향"],
+        ["02", "예배", "함께 드린 예배와 메시지를 다시 만나는 기록"],
+        ["03", "말씀", "묵상과 질문을 일상의 선택과 실천으로 이어가는 콘텐츠"],
+      ],
+      next: "#/together",
+      nextLabel: "03 / TOGETHER",
+      nextTitle: "같이 하다",
+    },
+    together: {
+      number: "03",
+      english: "TOGETHER",
+      title: "같이 하다",
+      eyebrow: "청파와 같이",
+      lead: "청파의 오늘을 서로 나누고, 실제 모임과 활동 안에서 함께 살아가는 공간입니다.",
+      accent: "#7d8e97",
+      items: [
+        ["01", "청년부 소식", "예배와 공동체의 새로운 소식, 공지와 일정을 한곳에서 확인"],
+        ["02", "모임", "누구나 함께 제안하고 참여할 수 있는 작은 모임과 만남"],
+        ["03", "활동", "문화생활과 야외 활동을 포함한 기존 청파 같이 공동체 기능"],
+      ],
+      community: true,
+    },
+  };
+
+  const routePath = (hash = window.location.hash) => {
+    const raw = String(hash || "#/gateway").replace(/^#/, "") || "/gateway";
+    return (`/${raw.split("?")[0]}`).replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+  };
+
+  const el = (tag, attrs = {}, children = []) => {
+    const node = document.createElement(tag);
+    Object.entries(attrs).forEach(([key, value]) => {
+      if (value == null || value === false) return;
+      if (key === "className") node.className = value;
+      else if (key === "text") node.textContent = String(value);
+      else if (key === "dataset") Object.assign(node.dataset, value);
+      else if (key === "style") node.setAttribute("style", String(value));
+      else if (value === true) node.setAttribute(key, "");
+      else node.setAttribute(key, String(value));
+    });
+    (Array.isArray(children) ? children : [children]).forEach((child) => {
+      if (child == null || child === false) return;
+      node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+    });
+    return node;
+  };
+
+  const svgEl = (tag, attrs = {}) => {
+    const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, String(value)));
+    return node;
+  };
+
+  function header(compact = false) {
+    return el("header", { className: `brand-ae-header${compact ? " brand-ae-header--compact" : ""}` }, [
+      el("a", { className: "brand-ae-logo", href: "#/gateway", "aria-label": "청파 같이 첫 화면" }, [
+        el("img", { src: "../assets/images/logo.svg", alt: "", width: "28", height: "28" }),
+        el("span", { text: "CHUNGPA GACHI" }),
+      ]),
+      el("span", { className: "brand-ae-edition", text: "AE / WOVEN PATH", "aria-hidden": "true" }),
+      el("nav", { className: "brand-ae-nav", "aria-label": "청파 같이 세 방향" }, directions.map((item) =>
+        el("a", { href: item.href }, [el("span", { text: item.number }), el("strong", { text: item.english })])
+      )),
+    ]);
+  }
+
+  function heroWeave() {
+    const svg = svgEl("svg", {
+      class: "brand-ae-weave",
+      viewBox: "0 0 1000 520",
+      preserveAspectRatio: "none",
+      "aria-hidden": "true",
+    });
+    const paths = [
+      ["value", "M -40 118 C 188 74 286 338 505 258 S 786 94 1040 172"],
+      ["like", "M -40 258 C 204 342 294 70 505 188 S 782 392 1040 298"],
+      ["together", "M -40 398 C 182 346 326 458 505 320 S 806 222 1040 376"],
+    ];
+    paths.forEach(([key, d]) => svg.append(svgEl("path", { class: `brand-ae-weave__path brand-ae-weave__path--${key}`, d })));
+    [["value", 505, 258], ["like", 505, 188], ["together", 505, 320]].forEach(([key, cx, cy]) => {
+      svg.append(svgEl("circle", { class: `brand-ae-weave__point brand-ae-weave__point--${key}`, cx, cy, r: 7 }));
+    });
+    return svg;
+  }
+
+  function pathStop(item, index) {
+    return el("article", {
+      className: `brand-ae-stop brand-ae-stop--${item.key} ${index % 2 ? "brand-ae-stop--right" : "brand-ae-stop--left"}`,
+      dataset: { direction: item.key, active: "false", visible: "false" },
+      style: `--ae-accent:${item.accent}`,
+    }, [
+      el("div", { className: "brand-ae-stop__node", "aria-hidden": "true" }, [el("span", { text: item.number })]),
+      el("div", { className: "brand-ae-stop__copy" }, [
+        el("span", { className: "brand-ae-stop__eyebrow", text: item.korean }),
+        el("div", { className: "brand-ae-stop__title" }, [el("strong", { text: item.english }), el("h2", { text: item.title })]),
+        el("p", { text: item.statement }),
+        el("div", { className: "brand-ae-stop__meta" }, [el("span", { text: item.meta }), el("a", { href: item.href }, [el("span", { text: "FOLLOW THIS PATH" }), el("b", { text: "↗", "aria-hidden": "true" })])]),
+      ]),
+      el("div", { className: "brand-ae-stop__echo", "aria-hidden": "true" }, [el("span", { text: item.english.charAt(0) }), el("span", { text: item.english.charAt(item.english.length - 1) })]),
+    ]);
+  }
+
+  function bindGateway(main) {
+    const paths = main.querySelector(".brand-ae-paths");
+    const stops = [...main.querySelectorAll("[data-direction]")];
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!paths || !stops.length) return;
+
+    const activate = (key) => {
+      const item = directions.find((entry) => entry.key === key) || directions[0];
+      main.dataset.activeDirection = item.key;
+      main.style.setProperty("--ae-active", item.accent);
+      stops.forEach((stop) => { stop.dataset.active = String(stop.dataset.direction === item.key); });
+    };
+
+    if ("IntersectionObserver" in window) {
+      const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.dataset.visible = "true";
+        });
+      }, { threshold: .12, rootMargin: "0px 0px -8% 0px" });
+      stops.forEach((stop) => revealObserver.observe(stop));
+    } else {
+      stops.forEach((stop) => { stop.dataset.visible = "true"; });
+    }
+
+    let frame = 0;
+    const updateScrollState = () => {
+      frame = 0;
+      const viewport = window.innerHeight || document.documentElement.clientHeight || 1;
+      const activationLine = viewport * .52;
+      let closestStop = stops[0];
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      stops.forEach((stop) => {
+        const node = stop.querySelector(".brand-ae-stop__node") || stop;
+        const rect = node.getBoundingClientRect();
+        const center = rect.top + rect.height / 2;
+        const distance = Math.abs(center - activationLine);
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestStop = stop;
+        }
+      });
+      activate(closestStop.dataset.direction);
+
+      const rect = paths.getBoundingClientRect();
+      const start = viewport * .48;
+      const distance = Math.max(paths.offsetHeight - viewport * .55, 1);
+      const progress = Math.min(1, Math.max(0, (start - rect.top) / distance));
+      main.style.setProperty("--ae-progress", progress.toFixed(4));
+    };
+
+    const schedule = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(updateScrollState);
+    };
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    updateScrollState();
+
+    if (!reduced) {
+      stops.forEach((stop) => {
+        stop.addEventListener("focusin", () => activate(stop.dataset.direction));
+      });
+    }
+  }
+
+  function renderGateway() {
+    const main = el("main", {
+      id: "brand-main-content",
+      className: "brand-ae-shell",
+      tabindex: "-1",
+      dataset: { activeDirection: "value" },
+      style: "--ae-progress:0;--ae-active:#9d8376",
+    }, [
+      header(),
+      el("section", { className: "brand-ae-hero", "aria-labelledby": "brand-ae-title" }, [
+        el("div", { className: "brand-ae-hero__meta" }, [el("span", { text: "CHUNGPA YOUTH COMMUNITY" }), el("span", { text: "SEOUL · 2026" }), el("span", { text: "VALUE → LIKE → TOGETHER" })]),
+        heroWeave(),
+        el("div", { className: "brand-ae-hero__word" }, [
+          el("span", { text: "GACHI", "aria-hidden": "true" }),
+          el("h1", { id: "brand-ae-title", text: "같이" }),
+        ]),
+        el("div", { className: "brand-ae-hero__copy" }, [
+          el("p", { text: "같은 가치를 바라보고, 같이 닮아가며, 같이 살아가는 청파청년부." }),
+          el("span", { text: "세 방향은 따로 놓이지 않습니다. 서로를 지나며 하나의 공동체가 됩니다." }),
+        ]),
+        el("a", { className: "brand-ae-hero__scroll", href: "#brand-ae-paths" }, [el("span", { text: "FOLLOW THE PATH" }), el("b", { text: "↓", "aria-hidden": "true" })]),
+      ]),
+      el("section", { id: "brand-ae-paths", className: "brand-ae-paths", "aria-labelledby": "brand-ae-path-title" }, [
+        el("div", { className: "brand-ae-paths__intro" }, [
+          el("span", { text: "THREE DIRECTIONS / ONE PATH" }),
+          el("h2", { id: "brand-ae-path-title", text: "가치를 바라보고, 닮아가고, 함께합니다." }),
+          el("p", { text: "각 방향은 다음 방향으로 이어지고, 마지막에는 다시 하나의 ‘같이’로 모입니다." }),
+        ]),
+        el("div", { className: "brand-ae-spine", "aria-hidden": "true" }, [el("span", { className: "brand-ae-spine__track" }), el("span", { className: "brand-ae-spine__progress" })]),
+        el("div", { className: "brand-ae-stops" }, directions.map(pathStop)),
+      ]),
+      el("section", { className: "brand-ae-convergence" }, [
+        el("div", { className: "brand-ae-convergence__threads", "aria-hidden": "true" }, [el("i"), el("i"), el("i")]),
+        el("span", { className: "brand-ae-convergence__label", text: "ONE COMMUNITY / COMMON GROUND" }),
+        el("h2", { text: "같이" }),
+        el("p", { text: "약한 이의 곁에 서고, 평화를 사랑하며, 서로의 삶에 자리를 내어줍니다." }),
+        el("a", { href: "#/together" }, [el("span", { text: "청파와 같이 들어가기" }), el("b", { text: "↗", "aria-hidden": "true" })]),
+      ]),
+      el("footer", { className: "brand-ae-footer" }, [
+        el("span", { text: "CHUNGPA GACHI" }),
+        el("span", { text: "VALUE · LIKE · TOGETHER" }),
+        el("span", { text: "© 2026 CHUNGPA YOUTH COMMUNITY" }),
+      ]),
+    ]);
+    root.replaceChildren(main);
+    bindGateway(main);
+  }
+
+  function detailThreads(content) {
+    return el("div", { className: "brand-ae-detail__threads", "aria-hidden": "true", style: `--detail-accent:${content.accent}` }, [el("i"), el("i"), el("i")]);
+  }
+
+  function renderDetail(type) {
+    const content = details[type];
+    if (!content) return renderGateway();
+    const main = el("main", {
+      id: "brand-main-content",
+      className: `brand-ae-detail brand-ae-detail--${type}`,
+      tabindex: "-1",
+      style: `--detail-accent:${content.accent}`,
+    }, [
+      header(true),
+      el("section", { className: "brand-ae-detail__hero" }, [
+        detailThreads(content),
+        el("div", { className: "brand-ae-detail__index" }, [el("span", { text: content.number }), el("a", { href: "#/gateway", text: "← ALL PATHS" })]),
+        el("div", { className: "brand-ae-detail__title" }, [
+          el("span", { text: content.eyebrow }),
+          el("strong", { text: content.english }),
+          el("h1", { text: content.title }),
+        ]),
+        el("p", { className: "brand-ae-detail__lead", text: content.lead }),
+      ]),
+      el("section", { className: "brand-ae-detail__flow", "aria-label": `${content.title} 콘텐츠 구성` }, content.items.map((item) =>
+        el("article", { className: "brand-ae-detail__item" }, [
+          el("span", { text: item[0] }),
+          el("div", {}, [el("h2", { text: item[1] }), el("p", { text: item[2] })]),
+          el("em", { text: "COMING SOON" }),
+        ])
+      )),
+      content.community
+        ? el("section", { className: "brand-ae-detail__community" }, [
+            el("span", { text: "THE PATH CONTINUES IN COMMUNITY" }),
+            el("h2", { text: "이제 실제 ‘같이’ 안으로 들어갑니다." }),
+            el("p", { text: "모임과 활동, 공동체 기능은 기존 청파 같이 서비스에서 이어집니다." }),
+            el("a", { href: "#/login" }, [el("span", { text: "청파 같이 시작하기" }), el("b", { text: "↗", "aria-hidden": "true" })]),
+          ])
+        : el("a", { className: "brand-ae-detail__next", href: content.next }, [
+            el("span", { text: `NEXT PATH · ${content.nextLabel}` }),
+            el("strong", { text: content.nextTitle }),
+            el("b", { text: "→", "aria-hidden": "true" }),
+          ]),
+      el("footer", { className: "brand-ae-footer brand-ae-footer--detail" }, [el("span", { text: "CHUNGPA GACHI" }), el("span", { text: "VALUE → LIKE → TOGETHER" }), el("span", { text: "SEOUL · 2026" })]),
+    ]);
+    root.replaceChildren(main);
+  }
+
+  function setPublicMode(active) {
+    const wasPublic = document.documentElement.dataset.brandPublic === "true";
+    const theme = document.querySelector('meta[name="theme-color"]');
+    if (active) {
+      document.documentElement.dataset.brandPublic = "true";
+      theme?.setAttribute("content", "#f0ede5");
+      root.hidden = false;
+      return;
+    }
+    delete document.documentElement.dataset.brandPublic;
+    theme?.setAttribute("content", "#9fcfdf");
+    root.hidden = true;
+    root.replaceChildren();
+    if (wasPublic) window.dispatchEvent(new CustomEvent("brand:enter-app"));
+  }
+
+  function renderRoute() {
+    const path = routePath();
+    const isPublic = PUBLIC_ROUTES.has(path);
+    setPublicMode(isPublic);
+    if (!isPublic) return;
+
+    if (path === "/value") {
+      document.title = "가치를 나누다 | 청파 같이";
+      renderDetail("value");
+    } else if (path === "/like") {
+      document.title = "같이 닮다 | 청파 같이";
+      renderDetail("like");
+    } else if (path === "/together") {
+      document.title = "같이 하다 | 청파 같이";
+      renderDetail("together");
+    } else {
+      document.title = "청파 같이 | Value · Like · Together";
+      renderGateway();
+    }
+  }
+
+  root.addEventListener("click", (event) => {
+    const anchor = event.target.closest("a[href^='#/']");
+    if (!anchor) return;
+    const href = anchor.getAttribute("href");
+    const nextPath = routePath(href);
+    if (!PUBLIC_ROUTES.has(nextPath)) return;
+    event.preventDefault();
+    const navigate = () => {
+      window.history.pushState(null, "", href);
+      renderRoute();
+      window.scrollTo({ top: 0, behavior: "instant" });
+    };
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduced && typeof document.startViewTransition === "function") document.startViewTransition(navigate);
+    else navigate();
+  });
+
+  window.addEventListener("hashchange", renderRoute);
+  window.addEventListener("popstate", renderRoute);
+  document.getElementById("skip-link")?.addEventListener("click", () => {
+    if (document.documentElement.dataset.brandPublic === "true") document.getElementById("brand-main-content")?.focus();
+  });
+  renderRoute();
+})();</script>
+  </body>
+</html>
