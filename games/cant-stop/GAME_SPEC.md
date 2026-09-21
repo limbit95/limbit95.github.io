@@ -1,13 +1,15 @@
 # Can't Stop Game Spec
 
-> Phase 4에서 Game Platform을 처음 실제 신규 게임에 적용하기 위한 bootstrap 설계 문서입니다.
-> 원본 규칙을 장문 복제하지 않고 청파 같이 구현에 필요한 규칙과 기술 결정을 요약합니다.
+> Phase 4에서 Game Platform을 처음 실제 신규 게임에 적용해 v1까지 출시한 기준 명세입니다.
+> bootstrap 당시의 설계 의도와 최종 구현 결정을 함께 보존하되, 현재 동작과 충돌하는 미완료 표현은 release 기준으로 갱신합니다.
 
 ## Game Overview
 
 - Game id: `cant-stop`
 - Designer: Sid Sackson
 - Players: 2–4명
+- Release status: v1 RELEASED (2026-09-21)
+- Platform status: first production `platform: "shared"` game, `online=true`, `invite=true`
 - Core loop: 네 개의 주사위를 두 쌍으로 나눠 2–12 열을 전진하고, 현재 턴의 임시 진척을 확정할지 더 굴릴지 선택하는 push-your-luck 게임
 - Win condition: 서로 다른 세 개의 열을 먼저 claim한 플레이어가 승리
 - Board: 2–12의 11개 열
@@ -256,9 +258,11 @@ Realtime은 `cant_stop_rooms`와 `cant_stop_room_players` 변경만 invalidation
 - Game Shell patch 시 entry/waiting/playing state class를 기존 shell root에도 동기화해 waiting ready tint와 gameplay 900px board override가 실제 DOM에 즉시 적용되게 한다.
 - host manual-end confirmation dialog는 alpine sky/mountain/number marker visual language를 재사용하고 계속 플레이/게임 종료 선택을 명확한 bordered controls로 구분한다.
 - Room/Lobby Realtime은 화면 상태를 직접 덮어쓰지 않고 authoritative snapshot refresh만 유도한다.
-- 소스의 online 흐름 구현과 운영 배포 가능 상태를 구분한다. 운영 Supabase migration과 smoke test가 끝나기 전에는 Registry `online` capability와 게임 목록 노출을 활성화하지 않는다.
+- 소스의 online 흐름 구현과 운영 activation은 분리한다. v1에서는 production migration·RLS/grant/RPC 권한·관련 회귀 검증을 확인한 뒤 Registry `online`/`invite`와 게임 목록 노출을 별도 activation 단계에서 활성화했다. 사람 중심 다중 브라우저 exploratory playtest는 자동 검증을 대체하지 않으며, release blocker가 없고 잔여 UX 위험을 문서화한 경우 post-release 관찰로 이어갈 수 있다.
 
-## Implementation Plan
+## Implementation Plan — v1 Completed
+
+아래 순서는 v1에서 모두 구현·검증 완료했다. 후속 버전은 이 순서를 다시 수행하는 것이 아니라 변경 범위에 해당하는 계약과 회귀만 재검증한다.
 
 1. pure game-local rules engine
    - column constants
@@ -327,16 +331,18 @@ shared 계약으로 표현되지 않는 요구가 나오면 먼저 game-local로
 
 ## Open Questions / Deferred
 
-- GAME_OVER 이후 방 나가기, 같은 멤버 재대결, 새 방 생성 lifecycle은 online gameplay UI가 안정된 뒤 설계한다.
-- GAME_OVER에서는 모든 player가 방을 나갈 수 있고, 방장은 같은 room을 waiting으로 되돌려 재대결 준비를 시작할 수 있다.
-- 재대결 준비는 기존 active members / seats / room code를 유지하고 ready 상태만 초기화한 뒤 기존 ready/start 흐름을 재사용한다.
-- Invite는 shared `game_room` 계약과 사이트 공용 invite infrastructure를 사용한다.
-- invite token resolve 이후 실제 참가 권한은 `cant_stop_join_room_by_invite`가 token을 서버에서 다시 검증해 결정한다.
-- Invite 소스 연결과 Registry capability 활성화는 분리하며 운영 migration + live smoke test 전에는 `online/invite`를 활성화하지 않는다.
-- 현재 설산/2.5D 주사위/bust 연출은 첫 폴리싱 기준이며 실제 멀티브라우저 playtest 후 세부 속도·크기·강도를 조정한다.
+### Resolved in v1
 
+- GAME_OVER 이후 leave/rematch lifecycle을 구현했다. 모든 player는 종료 후 방을 나갈 수 있고, host는 같은 room을 waiting으로 되돌려 기존 active members / seats / room code를 유지한 채 재대결 준비를 시작할 수 있다.
+- 진행 중 non-host leave 정책을 확정했다. 자신의 턴에만 이탈 가능하며 3~4인에서는 2명 이상 남으면 계속 진행하고, 2인에서 한 명이 나가면 승자 없는 `PLAYER_LEFT` GAME_OVER로 종료한다.
+- Invite는 shared `game_room` 계약과 사이트 공용 invite infrastructure를 사용하며, 최종 참가 권한은 `cant_stop_join_room_by_invite`가 서버에서 token을 다시 검증해 결정한다.
+- production migration과 권한/회귀 검증 후 Registry `online=true`, `invite=true`와 사이트 게임 목록 노출을 활성화했다.
+- 정상 connected gameplay에서는 상단 연결 상태 카드를 숨기고 reconnect/error일 때만 필요한 연결 정보를 노출한다.
+- gameplay phase card, PUSH OR STOP action, bust 결과 카드 등 v1 presentation 기준을 확정했다.
 
-- 정상적인 connected gameplay에서는 상단 연결 상태 카드를 숨겨 플레이 화면을 단순화한다. reconnect/error 상태에서는 해당 배너를 다시 노출해 필요한 연결 정보만 보여준다.
-- gameplay phase card는 eyebrow와 굵은 핵심 제목만 표시하고 그 아래의 보조 설명 문구는 사용하지 않는다. ROLL / CHOOSE / PUSH OR STOP 모두 동일한 정보 밀도를 유지한다.
-- PUSH OR STOP phase는 선택 자체가 명확하므로 구현 설명 문구를 추가하지 않고 행동 제목과 실제 버튼에 집중한다.
-- bust 결과 안내 카드는 보드 중앙에서 설산/빙설 palette의 옅은 gradient surface, 좌측 accent, 절제된 shadow를 사용하고 텍스트는 좌측 정렬해 읽기 쉽도록 한다.
+### Post-release Deferred
+
+- 설산/2.5D 주사위/bust 연출의 속도·크기·강도는 실제 사용자 플레이 피드백이 누적되면 v1.1 이후 조정할 수 있다.
+- Web Audio 기반 remote bust 사운드는 브라우저 autoplay 정책 영향을 받으므로 실사용 관찰 대상으로 남긴다.
+- `local` / `presence` capability는 v1 제품 범위가 아니며 필요성이 생기기 전까지 false로 유지한다.
+- Can’t Stop에서 편리했던 game-local 규칙이나 UI를 한 사례만 보고 shared 계약으로 승격하지 않는다. 두 번째 이후 platform-native 게임에서도 같은 플랫폼 책임이 반복될 때 Game Platform 규칙과 계약 테스트를 확장한다.
