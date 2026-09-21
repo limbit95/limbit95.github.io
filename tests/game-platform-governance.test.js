@@ -315,5 +315,7 @@ test("Game Platform rules codify release closeout and post-release feedback loop
   assert.match(rules, /Status: RELEASED/u);
   assert.match(rules, /Active branch: main/u);
   assert.match(rules, /출시 후 플랫폼 피드백 루프/u);
+  assert.match(rules, /모든 신규 게임 release 뒤 플랫폼 회고/u);
+  assert.match(rules, /게임 수가 늘어도 구조 이해 비용과 신규 개발 시간이 비례해서 증가하지 않도록/u);
   assert.match(rules, /SHARED \/ GAME-LOCAL \/ RELEASE-OPERATIONS/u);
 });
