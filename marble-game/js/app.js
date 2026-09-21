@@ -58,6 +58,7 @@ const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 
 const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
 const MOVE_COUNT_HOLD_MS = 1200;
+const TURN_RESULT_HOLD_MS = 1800;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -72,6 +73,7 @@ let diceStageInit = null;
 let interactionLocked = false;
 let tileInfoChoiceAction = null;
 let choiceDeclinedPending = false;
+let autoAdvancedTurnVersion = null;
 let importantNoticeTimer = null;
 
 function money(value, options = {}) {
@@ -459,9 +461,8 @@ function renderActionControls(state) {
   }
 
   if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
-    gameMessage.textContent = "건너뛰기를 선택했습니다. 다음 턴을 눌러 차례를 넘겨 주세요.";
-    primaryActionButton.textContent = "다음 턴";
-    primaryActionButton.dataset.action = "endTurn";
+    gameMessage.textContent = "선택을 반영하고 있습니다.";
+    primaryActionButton.hidden = true;
     return;
   }
 
@@ -472,9 +473,8 @@ function renderActionControls(state) {
   }
 
   if (state.phase === TURN_PHASES.TURN_END) {
-    gameMessage.textContent = interactionLocked ? "연출을 재생하고 있습니다." : "이번 턴 처리가 끝났습니다.";
-    primaryActionButton.textContent = "다음 턴";
-    primaryActionButton.dataset.action = "endTurn";
+    gameMessage.textContent = "결과를 확인하는 중입니다. 잠시 후 다음 차례로 넘어갑니다.";
+    primaryActionButton.hidden = true;
     return;
   }
 
@@ -508,6 +508,29 @@ function importantEventMessage(state) {
     if (event.type === "PLAYER_BANKRUPT") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
       return `${player ? playerName(player) : "플레이어"}이(가) 파산했습니다.`;
+    }
+    if (event.type === "PROPERTY_BOUGHT") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      const node = findNode(state, event.nodeId);
+      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}을(를) 구입했습니다.`;
+    }
+    if (event.type === "PROPERTY_BUILT") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      const node = findNode(state, event.nodeId);
+      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId}에 건물을 건설했습니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
+      const node = findNode(state, event.nodeId);
+      return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
+    }
+    if (event.type === "AUCTION_VOTE_OPENED") {
+      const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
+      const node = findNode(state, event.nodeId);
+      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매를 시작합니다.`;
+    }
+    if (event.type === "CHOICE_DECLINED") {
+      const player = state.players.find((candidate) => candidate.id === event.playerId);
+      return `${player ? playerName(player) : "플레이어"}이(가) 도시 행동을 포기했습니다.`;
     }
     if (event.type === "EVENT_DRAWN") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
@@ -614,6 +637,27 @@ async function playStateEvents(state) {
   if (threeRendererReady) threeRenderer.renderState(state);
 }
 
+async function maybeAutoAdvanceLocalTurn(state) {
+  if (
+    !localSession
+    || state.status !== GAME_STATUS.PLAYING
+    || state.phase !== TURN_PHASES.TURN_END
+    || autoAdvancedTurnVersion === state.version
+  ) {
+    return;
+  }
+
+  autoAdvancedTurnVersion = state.version;
+  await wait(TURN_RESULT_HOLD_MS);
+  const latest = localSession.getState();
+  if (latest.version !== state.version || latest.phase !== TURN_PHASES.TURN_END) return;
+
+  localSession.endTurn();
+  choiceDeclinedPending = false;
+  appendEvents(localSession.getState());
+  renderPlaytest();
+}
+
 async function runSessionAction(actionName) {
   if (!localSession || interactionLocked || !actionName) return;
   const isChoiceAction = actionName === "buy" || actionName === "build";
@@ -644,6 +688,7 @@ async function runSessionAction(actionName) {
       const landedNodeId = latestLandedNodeId(state);
       if (landedNodeId) openTileInfo(state, landedNodeId, { source: "landing" });
     }
+    await maybeAutoAdvanceLocalTurn(state);
   } catch (error) {
     const message = error instanceof Error ? error.message : "게임 액션 처리 중 오류가 발생했습니다.";
     if (/cannot afford/i.test(message)) {
@@ -668,6 +713,7 @@ function startLocalPlaytest() {
   localSession = createLocalClassicSession();
   eventHistory = [];
   choiceDeclinedPending = false;
+  autoAdvancedTurnVersion = null;
   localSession.start();
   appendEvents(localSession.getState());
   localAuctionUi = setupLocalAuctionUi({
@@ -676,6 +722,7 @@ function startLocalPlaytest() {
       choiceDeclinedPending = false;
       appendEvents(state);
       renderPlaytest();
+      void maybeAutoAdvanceLocalTurn(state);
     },
   });
   playtestSection.hidden = false;
@@ -701,7 +748,7 @@ tileInfoDeclineButton?.addEventListener("click", () => {
   if (!localSession) return;
   choiceDeclinedPending = true;
   closeTileInfo({ force: true });
-  renderActionControls(localSession.getState());
+  void runSessionAction("endTurn");
 });
 tileInfoActionButton?.addEventListener("click", () => {
   if (tileInfoActionButton.disabled) return;
