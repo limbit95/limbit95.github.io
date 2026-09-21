@@ -1,5 +1,7 @@
 # Game Platform Development Rules
 
+> **문서 분류:** CURRENT
+
 이 문서는 청파 같이에서 **새로운 platform-native 게임을 구현하거나 수정할 때 기본적으로 따라야 하는 실행 규칙**이다.
 
 사용자가 매 작업마다 아래 규칙을 다시 설명하지 않아도, 신규 게임 작업은 이 문서를 기본 전제로 진행한다.
@@ -232,6 +234,10 @@ Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는
 - 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
 - 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
 - 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
+- `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
+- `CURRENT` 문서는 현재 Registry의 어떤 platform-native 게임명/ID도 공통 규칙으로 포함하지 않는다.
+- `HISTORY` 문서는 과거 구현 이력을 기록할 수 있지만 `docs/game-platform-development-rules.md`를 현재 실행 규칙으로 명시해야 한다.
+- `AGENTS.md`와 `games/` 최상위의 공통 Markdown 문서는 별도 표기가 없어도 `CURRENT`로 취급한다.
 ### MUST: 출시 후 플랫폼 피드백 루프를 수행한다
 
 각 platform-native 게임을 출시한 뒤 구현 과정에서 나온 결정을 다음 세 종류로 다시 분류한다.
