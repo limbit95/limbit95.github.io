@@ -53,7 +53,7 @@
 
 ## Current Work
 
-- Room/Lobby DB/RPC foundation과 adapter 구현을 완료하고 disposable Supabase DB contract 및 repository-level 검증을 진행하는 단계입니다.
+- Room/Lobby DB/RPC foundation과 adapter 구현을 완료하고 disposable Supabase DB contract까지 통과한 상태입니다.
 
 ## Next Work
 
@@ -121,11 +121,15 @@
   - 실제 브랜치의 `rules.js`, 단위 테스트, 게임 등록부 파일과 로컬 검증 파일의 Git blob SHA가 각각 일치하는지 확인했습니다.
   - 게임 등록부의 `no-thanks` 항목이 `platform: "shared"`이고 모든 기능 활성화 값이 `false`로 해석되는지 확인했습니다.
   - `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다.
+  - PR #352에서 Game Platform governance가 성공했습니다.
+  - PR #352에서 Site static checks 전체 회귀가 성공했습니다.
+  - PR #352의 disposable Supabase Game DB integration이 성공했고 No Thanks! 플랫폼 필수 10개 DB contract 시나리오가 모두 통과했습니다.
+  - local Supabase에서 migration replay, 승인회원 create/join, non-member snapshot 차단, host start 권한, stale version, duplicate action, concurrent conflict, reconnect snapshot, private state 비노출을 실제 HTTP-level RPC로 검증했습니다.
+  - private counter/secret deck table은 authenticated direct read가 차단되고 service-role fixture inspection에서는 3인 기준 각 11개 칩, draw deck 23장, excluded 9장이 유지됨을 확인했습니다.
 - 이번 단계에서 아직 수행하지 않는 검증:
-  - 데이터베이스 통합 테스트
   - 실제 브라우저 멀티플레이 점검
   - 운영 환경 마이그레이션 검증
-- 위 항목은 아직 관련 데이터베이스나 사용자 화면 코드가 없으므로 후속 단계에서 수행합니다.
+- 위 항목은 아직 Room/Lobby 사용자 UI 연결과 production 적용 단계가 아니므로 후속 단계에서 수행합니다.
 
 ## Known Issues / Deferred
 
