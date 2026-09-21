@@ -131,7 +131,7 @@ games/<game-id>/DEVELOPMENT.md
 ## Known Issues / Deferred
 ```
 
-`Current Status`에는 최소한 현재 Phase, 상태(`IN_PROGRESS` / `COMPLETED` / `BLOCKED`), 현재 작업 브랜치를 기록한다.
+`Current Status`에는 최소한 현재 Phase, 상태(`IN_PROGRESS` / `BLOCKED` / `RELEASED`), 현재 작업 브랜치를 기록한다. 전체 게임이 production에 공개된 상태는 `COMPLETED` 대신 `RELEASED`를 사용하고, 개별 Phase 완료 사실은 `Completed`에 기록한다.
 
 ### MUST: 작업 시작과 이어서 진행할 때
 
@@ -147,6 +147,22 @@ games/<game-id>/DEVELOPMENT.md
 - 완료한 Phase와 검증 결과를 `Completed` / `Validation`에 반영한다.
 - 다음 Phase 또는 다음 첫 작업을 `Next Work`에 구체적으로 남긴다.
 - 완료되지 않은 항목을 완료한 것처럼 기록하지 않는다.
+
+### MUST: 게임 출시 및 release closeout 시
+
+첫 production 공개는 구현 완료와 별개의 lifecycle 단계로 다룬다.
+
+1. 게임 runtime과 필요한 DB migration이 main에 들어갈 수 있는 상태인지 확인한다.
+2. production migration이 필요한 게임은 실제 적용 이력과 RLS/grant/RPC 권한 경계를 검증한다.
+3. Registry capability는 **소스가 존재한다는 이유만으로** 활성화하지 않는다. 실제 제공 가능한 기능만 activation PR에서 켠다.
+4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 release blocker가 없어야 한다.
+5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. 다만 correctness를 자동/운영 계약으로 충분히 검증했고 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 명시할 수 있다.
+6. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 `## Release` 기록에 activation, production migration, 주요 검증, 현재 capability를 남긴다.
+7. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
+8. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
+9. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
+
+`RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
 ### MUST: 사용자가 중간 진행 기록을 요청할 때
 
@@ -208,6 +224,18 @@ games/<game-id>/DEVELOPMENT.md
 
 한 게임에서만 필요한 예외를 위해 `games/shared/` API를 복잡하게 만들지 않는다.
 
+### MUST: 출시 후 플랫폼 피드백 루프를 수행한다
+
+각 platform-native 게임을 출시한 뒤 구현 과정에서 나온 결정을 다음 세 종류로 다시 분류한다.
+
+1. **SHARED 후보** — 인증, 권한, room/lobby, snapshot/reconnect, version/idempotency, invite, 공통 identity처럼 게임 규칙과 무관하게 반복될 플랫폼 책임
+2. **GAME-LOCAL 유지** — 규칙, 상태 머신, 플레이 중 이탈 정책의 게임별 의미, 보드/주사위/연출처럼 해당 게임의 도메인 책임
+3. **RELEASE-OPERATIONS 규칙** — production migration, capability activation, 문서 closeout, PR/브랜치 정리처럼 개발 lifecycle 책임
+
+첫 게임 한 번에서 편리했다는 이유만으로 SHARED 후보를 즉시 공통 API로 승격하지 않는다. 다음 게임에서도 같은 책임이 반복되거나 플랫폼 경계상 명백히 공통인 경우에만 shared 코드/계약을 확장하며, 그때 계약 테스트와 이 규칙 문서를 함께 갱신한다.
+
+Can’t Stop v1은 첫 production platform-native 기준 사례다. 따라서 그 구현 완료는 Game Platform 설계의 종료가 아니라 **첫 실전 데이터가 확보된 시점**이며, 다음 게임 구현에서 이 규칙의 일반성을 다시 검증한다.
+
 ## 5. Registry와 capability
 
 신규 게임의 bootstrap 문서 단계에서는 Registry 등록을 유예할 수 있다. 실제 runtime 구현을 시작하는 순간 Game Registry에 등록한다.
@@ -230,6 +258,23 @@ presence
 ```
 
 MUST NOT: 구현되지 않은 기능을 capability에 미리 선언하지 않는다.
+
+### MUST: 구현 완료와 production activation을 구분한다
+
+`online`, `invite`, `presence` 같은 capability가 true라는 것은 코드 파일이 존재한다는 뜻이 아니라 **현재 배포 환경에서 사용자에게 제공할 준비가 끝났다는 선언**이다.
+
+online capability를 활성화하기 전에는 최소한 다음을 확인한다.
+
+- 필요한 production migration 적용 여부
+- RLS / grant / RPC authorization 경계
+- 해당 게임의 DB/Test Contract
+- stale version / idempotency / reconnect 등 관련 회귀
+- 실제 entry route와 Registry href
+- release blocker 부재
+
+Invite를 활성화한다면 shared `game_room` routing과 서버-side token 재검증까지 확인한다.
+
+전체 사람이 직접 플레이하는 exploratory smoke는 자동 검증을 대체하지 않는다. 반대로 자동/운영 계약이 충분히 검증된 상태에서 남은 위험이 presentation·브라우저 정책 같은 관찰 항목뿐이라면 해당 항목을 `Known Issues / Deferred`에 남기고 post-release에서 확인할 수 있다.
 
 ## 6. Room / Lobby 계약
 
@@ -484,9 +529,14 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 13. Invite 연결 (지원하는 경우)
 14. 게임 고유 UI / 애니메이션 / 연출 확장
 15. 멀티클라이언트 및 reconnect 회귀 검증
+16. production migration / 권한 경계 검증
+17. Registry capability activation + 게임 목록/entry 노출
+18. RELEASED 문서 closeout
+19. stacked PR / 작업 브랜치 정리
+20. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
 ```
 
-이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다.
+이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
 
 ## 16. 완료 체크리스트
 
@@ -515,6 +565,17 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 - [ ] 기존 Legacy 게임을 불필요하게 수정하지 않았다.
 - [ ] 관련 unit / DB integration / E2E / build 검증을 실행했다.
 - [ ] shared 계약을 변경했다면 테스트와 문서를 함께 갱신했다.
+
+### RELEASED closeout
+
+- [ ] production DB 변경이 있다면 적용 이력과 권한 경계를 확인했다.
+- [ ] 사용자에게 제공할 capability만 true로 활성화했다.
+- [ ] 게임 목록/entry/invite 등 실제 노출 경로를 확인했다.
+- [ ] `DEVELOPMENT.md`가 `Status: RELEASED`, `Active branch: main`, `## Release` 기록을 가진다.
+- [ ] 현재 상태와 모순되는 개발 중 문구를 정리했다.
+- [ ] 통합되거나 대체된 PR을 닫고 불필요한 작업/임시 브랜치를 정리했다.
+- [ ] 이후 유지보수는 최신 `main`에서 새 브랜치로 시작한다.
+- [ ] 이번 게임에서 얻은 교훈을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 분류하고 필요한 플랫폼 문서/계약에 환류했다.
 
 ## 17. 문서 권위와 관련 문서
 
