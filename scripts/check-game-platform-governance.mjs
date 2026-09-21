@@ -102,8 +102,8 @@ export function validateRepositoryState({
         if (!/^\s*-?\s*Active branch:\s*main\s*$/mu.test(development)) {
           errors.push(`Released platform game ${gameId} must set Active branch: main in DEVELOPMENT.md.`);
         }
-        if (!/^## Release(?:\s|—|-|$)/mu.test(development)) {
-          errors.push(`Released platform game ${gameId} must record a ## Release section in DEVELOPMENT.md.`);
+        if (!/^## Release\s+[—-]\s+\d{4}-\d{2}-\d{2}\s*$/mu.test(development)) {
+          errors.push(`Released platform game ${gameId} must record a dated ## Release — YYYY-MM-DD section in DEVELOPMENT.md.`);
         }
       }
     }
