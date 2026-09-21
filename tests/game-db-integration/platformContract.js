@@ -3,23 +3,23 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 export const PLATFORM_GAME_DB_SCENARIOS = Object.freeze([
   Object.freeze({
     id: "anonymous_entry_denied",
-    title: "anonymous callers cannot create or join rooms",
+    title: "anonymous callers cannot enter protected game sessions",
   }),
   Object.freeze({
     id: "unapproved_entry_denied",
-    title: "unapproved members cannot create or join rooms",
+    title: "unapproved members cannot enter protected game sessions",
   }),
   Object.freeze({
     id: "approved_entry_allowed",
-    title: "approved members can create and join rooms",
+    title: "approved members can enter permitted game sessions",
   }),
   Object.freeze({
     id: "non_member_snapshot_denied",
-    title: "non-members cannot read room snapshots",
+    title: "non-members cannot read protected session snapshots",
   }),
   Object.freeze({
-    id: "non_host_start_denied",
-    title: "non-host members cannot start the game",
+    id: "start_authorization_enforced",
+    title: "game start conditions and authorization are enforced server-side",
   }),
   Object.freeze({
     id: "stale_version_rejected",
