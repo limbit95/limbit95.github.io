@@ -26,6 +26,7 @@ const eventLog = document.querySelector("[data-event-log]");
 let session = null;
 let interactionLocked = false;
 let choiceDeclinedPending = false;
+let autoAdvancedTurnVersion = null;
 let eventHistory = [];
 
 function money(value, options = {}) {
@@ -202,9 +203,8 @@ function renderActionControls(state) {
   }
 
   if (state.phase === TURN_PHASES.WAITING_CHOICE && choiceDeclinedPending) {
-    gameMessage.textContent = "선택을 건너뛰었습니다. 다음 턴으로 넘겨 주세요.";
-    primaryActionButton.textContent = "다음 턴";
-    primaryActionButton.dataset.action = "endTurn";
+    gameMessage.textContent = "선택을 반영하고 있습니다.";
+    primaryActionButton.hidden = true;
     return;
   }
 
@@ -234,9 +234,8 @@ function renderActionControls(state) {
   }
 
   if (state.phase === TURN_PHASES.TURN_END) {
-    gameMessage.textContent = interactionLocked ? "서버 결과를 처리하고 있습니다." : "이번 턴 처리가 끝났습니다.";
-    primaryActionButton.textContent = "다음 턴";
-    primaryActionButton.dataset.action = "endTurn";
+    gameMessage.textContent = "다음 차례로 자동 전환하는 중입니다.";
+    primaryActionButton.hidden = true;
     return;
   }
 
@@ -285,6 +284,33 @@ function connectionStatus(status) {
   else if (["RECONNECTING", "CHANNEL_ERROR", "TIMED_OUT"].includes(status)) gameMessage.textContent = "온라인 게임을 다시 연결하는 중입니다.";
 }
 
+async function maybeAutoAdvanceTurn(state) {
+  if (
+    !session
+    || state.status !== GAME_STATUS.PLAYING
+    || state.phase !== TURN_PHASES.TURN_END
+    || !viewerCanAct(state)
+    || autoAdvancedTurnVersion === state.version
+  ) {
+    return;
+  }
+
+  autoAdvancedTurnVersion = state.version;
+  await new Promise((resolve) => window.setTimeout(resolve, 900));
+  const latest = session.getState();
+  if (
+    latest.version !== state.version
+    || latest.phase !== TURN_PHASES.TURN_END
+    || !viewerCanAct(latest)
+  ) {
+    return;
+  }
+
+  const nextState = await session.endTurn();
+  choiceDeclinedPending = false;
+  renderUi(nextState, { appendHistory: true });
+}
+
 async function runAction(actionName) {
   if (!session || interactionLocked) return;
   const currentState = session.getState();
@@ -292,8 +318,11 @@ async function runAction(actionName) {
   if (isAuctionChoice(currentState) && ["decline", "endTurn"].includes(actionName)) return;
   if (actionName === "decline") {
     choiceDeclinedPending = true;
-    renderActionControls(currentState);
-    return;
+    if (currentState.pendingChoice?.type === "BUY_PROPERTY") {
+      actionName = "declineProperty";
+    } else {
+      actionName = "endTurn";
+    }
   }
 
   interactionLocked = true;
@@ -303,10 +332,12 @@ async function runAction(actionName) {
     if (actionName === "roll") state = await session.roll();
     else if (actionName === "buy") state = await session.buy();
     else if (actionName === "build") state = await session.build();
+    else if (actionName === "declineProperty") state = await session.declinePropertyForAuction();
     else if (actionName === "endTurn") state = await session.endTurn();
     else return;
     if (actionName === "endTurn") choiceDeclinedPending = false;
     renderUi(state, { appendHistory: true });
+    await maybeAutoAdvanceTurn(state);
   } catch (error) {
     const message = String(error?.message ?? error ?? "");
     if (message.includes("VERSION_CONFLICT") || message.includes("NOT_YOUR_TURN")) {
@@ -365,6 +396,7 @@ async function init({
     onRemoteState: async (state) => {
       if (state.phase !== TURN_PHASES.WAITING_CHOICE || !viewerCanAct(state)) choiceDeclinedPending = false;
       renderUi(state, { appendHistory: true });
+      await maybeAutoAdvanceTurn(state);
     },
     onConnectionStatus: connectionStatus,
   });
