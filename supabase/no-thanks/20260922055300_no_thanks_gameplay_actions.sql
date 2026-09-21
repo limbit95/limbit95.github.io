@@ -200,7 +200,7 @@ begin
   if not found or v_room.status <> 'playing' then
     raise exception 'ROOM_NOT_FOUND';
   end if;
-  if v_room.version <> p_expected_version then
+  if v_room.version is distinct from p_expected_version then
     raise exception 'VERSION_CONFLICT';
   end if;
   if not exists (
@@ -467,7 +467,7 @@ begin
   if v_room.status not in ('waiting', 'playing') then
     raise exception 'ROOM_NOT_FOUND';
   end if;
-  if v_room.version <> p_expected_version then
+  if v_room.version is distinct from p_expected_version then
     raise exception 'VERSION_CONFLICT';
   end if;
   if not exists (
