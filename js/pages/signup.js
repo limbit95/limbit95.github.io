@@ -142,6 +142,7 @@ export function renderSignup() {
   fields.display_name.root.insertBefore(displayNameRow, displayNameHelp ?? displayNameError);
   fields.display_name.root.insertBefore(displayNameVerification, displayNameError);
 
+  // Nickname availability is checked only when the user explicitly presses the button.
   let displayNameVerificationRequest = 0;
   let verifiedDisplayName = "";
   let displayNameVerificationPending = false;
