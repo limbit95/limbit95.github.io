@@ -399,17 +399,22 @@ function createGameOverPanel(view, state) {
     .filter((entry) => entry.winner)
     .map((entry) => entry.displayName)
     .join(", ");
+  const hostTerminated = view.endReason === "HOST_TERMINATED";
 
   return el("section", { className: "no-thanks-game-over" }, [
     el("div", { className: "no-thanks-game-over__hero" }, [
       el("p", { className: "no-thanks-entry__eyebrow", text: "GAME OVER" }),
       el("h2", {
-        text: winnerNames
-          ? `${winnerNames} 승리!`
-          : "게임이 종료됐어요.",
+        text: hostTerminated
+          ? "방장이 게임을 종료했어요."
+          : winnerNames
+            ? `${winnerNames} 승리!`
+            : "게임이 종료됐어요.",
       }),
       el("p", {
-        text: "연속된 숫자 묶음은 가장 낮은 카드만 더하고, 남은 칩 수를 뺀 최종 점수예요. 가장 낮은 점수가 승리합니다.",
+        text: hostTerminated
+          ? "이번 게임은 점수 계산 없이 종료됐습니다. 결과를 확인한 뒤 결과방에서 나갈 수 있어요."
+          : "연속된 숫자 묶음은 가장 낮은 카드만 더하고, 남은 칩 수를 뺀 최종 점수예요. 가장 낮은 점수가 승리합니다.",
       }),
     ]),
     createInlineError(state.error),
@@ -512,6 +517,49 @@ function createRulesAction(openRules) {
   });
 }
 
+function createGameEndDialog(onConfirm) {
+  const dialog = el("dialog", {
+    className: "no-thanks-confirm",
+    "aria-labelledby": "no-thanks-game-end-title",
+  });
+
+  dialog.append(el("div", { className: "no-thanks-confirm__content" }, [
+    el("p", { className: "no-thanks-entry__eyebrow", text: "게임 종료" }),
+    el("h2", {
+      id: "no-thanks-game-end-title",
+      className: "no-thanks-confirm__title",
+      text: "진행 중인 게임을 종료할까요?",
+    }),
+    el("p", {
+      className: "no-thanks-confirm__message",
+      text: "게임이 즉시 종료되고 점수와 승자는 계산하지 않습니다. 모든 참가자에게 같은 종료 상태가 표시됩니다.",
+    }),
+    el("div", { className: "no-thanks-confirm__actions" }, [
+      el("button", {
+        className: "button button--secondary",
+        type: "button",
+        text: "계속 플레이",
+        onClick: () => dialog.close(),
+      }),
+      el("button", {
+        className: "button",
+        type: "button",
+        text: "게임 종료",
+        onClick: async () => {
+          dialog.close();
+          await onConfirm();
+        },
+      }),
+    ]),
+  ]));
+
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  return dialog;
+}
+
 function createHostLeaveDialog({
   gameOver = false,
   onConfirm,
@@ -560,7 +608,7 @@ function createHostLeaveDialog({
   return dialog;
 }
 
-function createLobbyActions(view, state, openRules, openHostLeaveConfirm) {
+function createLobbyActions(view, state, openRules, openHostLeaveConfirm, openGameEndConfirm) {
   const actions = [createRulesAction(openRules)];
 
   if (!view) return actions;
@@ -696,6 +744,16 @@ function createLobbyActions(view, state, openRules, openHostLeaveConfirm) {
     },
   }));
 
+  if (view.gamePhase === "PLAYING" && view.isHost) {
+    actions.push(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger",
+      type: "button",
+      text: "게임 종료",
+      disabled: state.busy,
+      onClick: openGameEndConfirm,
+    }));
+  }
+
   return actions;
 }
 
@@ -734,6 +792,16 @@ function renderLobby(access, state) {
     })
     : null;
   const openHostLeaveConfirm = () => hostLeaveDialog?.showModal();
+  const gameEndDialog = view?.isHost && view.gamePhase === "PLAYING"
+    ? createGameEndDialog(async () => {
+      try {
+        await lobbyController.endGame();
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    })
+    : null;
+  const openGameEndConfirm = () => gameEndDialog?.showModal();
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
     : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
@@ -754,9 +822,9 @@ function renderLobby(access, state) {
     onRetryConnection: () => {
       void lobbyController?.refresh("retry").catch(() => {});
     },
-    main: [main, rulesDialog, hostLeaveDialog],
+    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog],
     sidebar: createSidebar(view),
-    actions: createLobbyActions(view, state, openRules, openHostLeaveConfirm),
+    actions: createLobbyActions(view, state, openRules, openHostLeaveConfirm, openGameEndConfirm),
   });
 
   replaceApp(shell);
