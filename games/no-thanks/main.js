@@ -18,6 +18,7 @@ import {
 } from "./runtimeModel.js";
 import { createNoThanksLobbyController } from "./lobbyController.js";
 import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
+import { createNoThanksGameplayAdapter } from "./gameplay.js";
 
 const app = document.getElementById("app");
 
@@ -313,13 +314,48 @@ function createWaitingPanel(view, state) {
   ]);
 }
 
+function createPlayerCards(view) {
+  return el("section", { className: "no-thanks-owned" }, [
+    el("h3", { className: "no-thanks-owned__title", text: "획득 카드" }),
+    el("div", { className: "no-thanks-owned__list" }, view.players.map((player) => (
+      el("article", {
+        className: `no-thanks-owned__player${player.id === view.activePlayerId ? " is-active" : ""}`,
+      }, [
+        el("div", { className: "no-thanks-owned__player-head" }, [
+          el("strong", { text: player.displayName }),
+          player.id === view.activePlayerId && view.gamePhase === "PLAYING"
+            ? el("span", { className: "no-thanks-owned__turn", text: "현재 차례" })
+            : null,
+        ]),
+        el("div", { className: "no-thanks-owned__cards" },
+          player.cards.length > 0
+            ? player.cards.map((card) => el("span", {
+              className: "no-thanks-owned__card",
+              text: String(card),
+            }))
+            : [el("span", {
+              className: "no-thanks-owned__empty",
+              text: "아직 획득한 카드가 없어요",
+            })],
+        ),
+      ])
+    ))),
+  ]);
+}
+
 function createPlayingPanel(view, state) {
+  const turnMessage = view.isMyTurn
+    ? "내 차례예요. 현재 카드를 거절하거나 가져오세요."
+    : `${view.activePlayerDisplayName ?? "다른 플레이어"}님의 차례를 기다리고 있어요.`;
+
   return el("section", { className: "no-thanks-playing-preview" }, [
     el("div", { className: "no-thanks-playing-preview__copy" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "SERVER GAME START" }),
-      el("h2", { text: "게임 시작 상태가 서버에서 확정됐어요." }),
+      el("p", { className: "no-thanks-entry__eyebrow", text: "PLAYING" }),
+      el("h2", { text: turnMessage }),
       el("p", {
-        text: "첫 카드와 내 칩 수, 남은 카드 수는 authoritative snapshot에서 읽고 있습니다. 거절/가져오기 동작은 다음 gameplay RPC 단계에서 연결합니다.",
+        text: view.viewerCounters === 0 && view.isMyTurn
+          ? "보유 칩이 없어 이번 카드는 반드시 가져와야 해요."
+          : "거절하면 칩 1개를 중앙에 놓고 다음 플레이어에게 차례가 넘어갑니다. 가져오면 카드와 중앙 칩을 받고 같은 플레이어가 다음 카드도 계속 선택합니다.",
       }),
     ]),
     createInlineError(state.error),
@@ -328,6 +364,11 @@ function createPlayingPanel(view, state) {
         el("span", { text: "현재 카드" }),
         el("strong", {
           text: view.currentCard == null ? "?" : String(view.currentCard),
+        }),
+        el("small", {
+          text: view.centerCounters > 0
+            ? `중앙 칩 ${view.centerCounters}개`
+            : "중앙 칩 없음",
         }),
       ]),
       el("div", { className: "no-thanks-playing-preview__metrics" }, [
@@ -338,6 +379,10 @@ function createPlayingPanel(view, state) {
           }),
         ]),
         el("div", { className: "no-thanks-metric" }, [
+          el("span", { text: "중앙 칩" }),
+          el("strong", { text: String(view.centerCounters) }),
+        ]),
+        el("div", { className: "no-thanks-metric" }, [
           el("span", { text: "남은 카드" }),
           el("strong", {
             text: view.deckRemaining == null ? "—" : String(view.deckRemaining),
@@ -345,6 +390,42 @@ function createPlayingPanel(view, state) {
         ]),
       ]),
     ]),
+    createPlayerCards(view),
+  ]);
+}
+
+function createGameOverPanel(view, state) {
+  const winnerNames = view.scoreboard
+    .filter((entry) => entry.winner)
+    .map((entry) => entry.displayName)
+    .join(", ");
+
+  return el("section", { className: "no-thanks-game-over" }, [
+    el("div", { className: "no-thanks-game-over__hero" }, [
+      el("p", { className: "no-thanks-entry__eyebrow", text: "GAME OVER" }),
+      el("h2", {
+        text: winnerNames
+          ? `${winnerNames} 승리!`
+          : "게임이 종료됐어요.",
+      }),
+      el("p", {
+        text: "연속된 숫자 묶음은 가장 낮은 카드만 더하고, 남은 칩 수를 뺀 최종 점수예요. 가장 낮은 점수가 승리합니다.",
+      }),
+    ]),
+    createInlineError(state.error),
+    el("div", { className: "no-thanks-scoreboard" }, view.scoreboard.map((entry, index) => (
+      el("article", {
+        className: `no-thanks-scoreboard__row${entry.winner ? " is-winner" : ""}`,
+      }, [
+        el("span", { className: "no-thanks-scoreboard__rank", text: String(index + 1) }),
+        el("strong", { className: "no-thanks-scoreboard__name", text: entry.displayName }),
+        entry.winner
+          ? el("span", { className: "no-thanks-scoreboard__badge", text: "승리" })
+          : null,
+        el("strong", { className: "no-thanks-scoreboard__score", text: `${entry.score}점` }),
+      ])
+    ))),
+    createPlayerCards(view),
   ]);
 }
 
@@ -431,7 +512,10 @@ function createRulesAction(openRules) {
   });
 }
 
-function createHostLeaveDialog(onConfirm) {
+function createHostLeaveDialog({
+  gameOver = false,
+  onConfirm,
+}) {
   const dialog = el("dialog", {
     className: "no-thanks-confirm",
     "aria-labelledby": "no-thanks-host-leave-title",
@@ -442,11 +526,13 @@ function createHostLeaveDialog(onConfirm) {
     el("h2", {
       id: "no-thanks-host-leave-title",
       className: "no-thanks-confirm__title",
-      text: "대기실을 닫을까요?",
+      text: gameOver ? "결과방을 닫을까요?" : "대기실을 닫을까요?",
     }),
     el("p", {
       className: "no-thanks-confirm__message",
-      text: "방장이 나가면 이 대기실이 닫히고 현재 참가자 모두가 방에서 나가게 됩니다.",
+      text: gameOver
+        ? "방장이 결과방을 닫으면 현재 참가자 모두가 이 게임 세션에서 나가게 됩니다."
+        : "방장이 나가면 이 대기실이 닫히고 현재 참가자 모두가 방에서 나가게 됩니다.",
     }),
     el("div", { className: "no-thanks-confirm__actions" }, [
       el("button", {
@@ -478,6 +564,29 @@ function createLobbyActions(view, state, openRules, openHostLeaveConfirm) {
   const actions = [createRulesAction(openRules)];
 
   if (!view) return actions;
+
+  if (view.gamePhase === "GAME_OVER") {
+    actions.unshift(el("button", {
+      className: "game-platform-shell__button game-platform-shell__button--danger",
+      type: "button",
+      text: state.busy
+        ? "처리 중…"
+        : (view.isHost ? "결과방 닫기" : "결과방 나가기"),
+      disabled: state.busy,
+      onClick: async () => {
+        if (view.isHost) {
+          openHostLeaveConfirm();
+          return;
+        }
+        try {
+          await lobbyController.leaveRoom();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }));
+    return actions;
+  }
 
   if (view.status === "waiting") {
     if (view.isHost) {
@@ -542,6 +651,41 @@ function createLobbyActions(view, state, openRules, openHostLeaveConfirm) {
     return actions;
   }
 
+  if (view.gamePhase === "PLAYING") {
+    actions.unshift(
+      el("button", {
+        className: "game-platform-shell__button game-platform-shell__button--secondary",
+        type: "button",
+        text: view.viewerCounters === 0
+          ? "칩 없음 · 거절 불가"
+          : "거절하기 · 칩 1개",
+        disabled: state.busy || !view.canRefuse,
+        onClick: async () => {
+          try {
+            await lobbyController.refuseCard();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }),
+      el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: view.centerCounters > 0
+          ? `카드 가져오기 · +${view.centerCounters}칩`
+          : "카드 가져오기",
+        disabled: state.busy || !view.canTake,
+        onClick: async () => {
+          try {
+            await lobbyController.takeCard();
+          } catch {
+            // Controller state renders the authoritative error.
+          }
+        },
+      }),
+    );
+  }
+
   actions.push(el("button", {
     className: "game-platform-shell__button game-platform-shell__button--secondary",
     type: "button",
@@ -576,21 +720,27 @@ function renderLobby(access, state) {
 
   const rulesDialog = createRulesDialog();
   const openRules = () => rulesDialog.showModal();
-  const hostLeaveDialog = view?.status === "waiting" && view.isHost
-    ? createHostLeaveDialog(async () => {
-      try {
-        await lobbyController.leaveRoom();
-      } catch {
-        // Controller state renders the authoritative error.
-      }
+  const hostLeaveDialog = view?.isHost
+    && (view.status === "waiting" || view.gamePhase === "GAME_OVER")
+    ? createHostLeaveDialog({
+      gameOver: view.gamePhase === "GAME_OVER",
+      onConfirm: async () => {
+        try {
+          await lobbyController.leaveRoom();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
     })
     : null;
   const openHostLeaveConfirm = () => hostLeaveDialog?.showModal();
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
-    : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
-      ? createPlayingPanel(view, state)
-      : createWaitingPanel(view, state);
+    : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
+      ? createGameOverPanel(view, state)
+      : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
+        ? createPlayingPanel(view, state)
+        : createWaitingPanel(view, state);
 
   const shell = createGameShell({
     title: "No Thanks!",
@@ -647,6 +797,7 @@ async function renderApproved(access, epoch) {
 
   const controller = createNoThanksLobbyController({
     adapter: createNoThanksRoomLobbyAdapter({ client: supabase }),
+    gameplayAdapter: createNoThanksGameplayAdapter({ client: supabase }),
     onState: (state) => {
       if (lobbyController === controller && epoch === bootEpoch) {
         renderLobby(access, state);
