@@ -194,7 +194,7 @@ begin
       to_jsonb(v_next_player),
       true
     );
-  else
+  elsif v_action_type = 'take_card' then
     v_current_card := (v_game ->> 'currentCard')::integer;
     if v_current_card is null or v_current_card < 3 or v_current_card > 35 then
       raise exception 'GAME_STATE_REQUIRED';
