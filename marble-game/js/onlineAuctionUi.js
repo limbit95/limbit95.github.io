@@ -161,6 +161,21 @@ function createPanel(documentObject, dock) {
   const status = documentObject.createElement("p");
   status.className = "auction-action-panel__status";
 
+  const bidEvent = documentObject.createElement("div");
+  bidEvent.className = "auction-action-panel__bid-event";
+  bidEvent.hidden = true;
+  bidEvent.setAttribute("aria-hidden", "true");
+  const bidEventPaddle = documentObject.createElement("span");
+  bidEventPaddle.className = "auction-action-panel__bid-paddle";
+  bidEventPaddle.textContent = "BID";
+  const bidEventCopy = documentObject.createElement("div");
+  const bidEventPlayer = documentObject.createElement("span");
+  bidEventPlayer.className = "auction-action-panel__bid-player";
+  const bidEventAmount = documentObject.createElement("strong");
+  bidEventAmount.className = "auction-action-panel__bid-amount";
+  bidEventCopy.append(bidEventPlayer, bidEventAmount);
+  bidEvent.append(bidEventPaddle, bidEventCopy);
+
   const summary = documentObject.createElement("div");
   summary.className = "auction-action-panel__summary";
   const primaryMetric = documentObject.createElement("div");
@@ -219,7 +234,7 @@ function createPanel(documentObject, dock) {
   passButton.textContent = "포기";
   bidRow.append(bidInput, bidButton, passButton);
 
-  panel.append(heading, status, summary, participantCard, detail, voteRow, bidRow);
+  panel.append(heading, status, bidEvent, summary, participantCard, detail, voteRow, bidRow);
   const modalHost = documentObject.body ?? dock;
   modalHost.prepend(panel);
   return {
@@ -228,6 +243,9 @@ function createPanel(documentObject, dock) {
     title,
     timer,
     status,
+    bidEvent,
+    bidEventPlayer,
+    bidEventAmount,
     primaryMetricLabel,
     primaryMetricValue,
     secondaryMetricLabel,
@@ -249,7 +267,7 @@ function renderParticipantList(documentObject, elements, model) {
   const cards = model.participantCards ?? [];
   elements.participantMeta.textContent = model.stage === "vote"
     ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount}`
-    : `${cards.length}명 · 입찰 순서`;
+    : `${cards.length}명 · 실시간 입찰 순서`;
 
   if (cards.length === 0) {
     const empty = documentObject.createElement("p");
@@ -262,6 +280,9 @@ function renderParticipantList(documentObject, elements, model) {
   elements.participantList.replaceChildren(...cards.map((card) => {
     const row = documentObject.createElement("div");
     row.className = "auction-action-panel__participant-row";
+    if (model.stage === "auction" && card.id === model.turnPlayerId) {
+      row.dataset.currentTurn = "true";
+    }
 
     const order = documentObject.createElement("span");
     order.className = "auction-action-panel__participant-order";
@@ -270,13 +291,22 @@ function renderParticipantList(documentObject, elements, model) {
     const name = documentObject.createElement("strong");
     name.textContent = card.name;
 
-    row.append(order, name);
+    const badges = documentObject.createElement("span");
+    badges.className = "auction-action-panel__participant-badges";
     if (card.openingBidder) {
       const firstBid = documentObject.createElement("span");
       firstBid.className = "auction-action-panel__first-bid";
       firstBid.textContent = "첫 입찰";
-      row.append(firstBid);
+      badges.append(firstBid);
     }
+    if (model.stage === "auction" && card.id === model.turnPlayerId) {
+      const currentTurn = documentObject.createElement("span");
+      currentTurn.className = "auction-action-panel__turn-badge";
+      currentTurn.textContent = "입찰 차례";
+      badges.append(currentTurn);
+    }
+
+    row.append(order, name, badges);
     return row;
   }));
 }
@@ -300,18 +330,14 @@ function showAutoPurchaseResult(documentObject, state, shownKeys, viewerPlayerId
   title.textContent = "매입에 성공하셨습니다";
   const detail = documentObject.createElement("p");
   detail.textContent = `${playerName(findPlayer(state, event.playerId))} · ${findNode(state, event.nodeId)?.label ?? event.nodeId} · ${money(event.amount)}`;
-  const button = documentObject.createElement("button");
-  button.type = "button";
-  button.className = "primary-button";
-  button.textContent = "확인";
-  button.addEventListener("click", () => {
-    dialog.close?.();
-    dialog.remove();
-  });
-  dialog.append(title, detail, button);
+  dialog.append(title, detail);
   documentObject.body?.append?.(dialog);
   if (typeof dialog.showModal === "function") dialog.showModal();
   else dialog.setAttribute("open", "");
+  globalThis.setTimeout?.(() => {
+    dialog.close?.();
+    dialog.remove();
+  }, 1800);
 }
 
 export function setupOnlineAuctionUi({
@@ -334,7 +360,9 @@ export function setupOnlineAuctionUi({
   let errorText = "";
   let deadlineTimer = null;
   let tickerTimer = null;
+  let bidEventTimer = null;
   const shownResultKeys = new Set();
+  const shownBidEventKeys = new Set();
 
   function nowMs() {
     if (typeof clock === "function") return Number(clock());
@@ -347,6 +375,29 @@ export function setupOnlineAuctionUi({
     if (tickerTimer !== null) clearTimeoutFn?.(tickerTimer);
     deadlineTimer = null;
     tickerTimer = null;
+  }
+
+  function showBidEvent(state) {
+    const event = state?.lastEvents?.find?.((candidate) => candidate.type === "AUCTION_BID_PLACED");
+    if (!event) return;
+    const key = `${state.version ?? "v"}:${event.playerId}:${event.amount}`;
+    if (shownBidEventKeys.has(key)) return;
+    shownBidEventKeys.add(key);
+
+    const player = findPlayer(state, event.playerId);
+    elements.bidEventPlayer.textContent = `${playerName(player)} 입찰!`;
+    elements.bidEventAmount.textContent = money(event.amount);
+    elements.bidEvent.hidden = false;
+    elements.bidEvent.dataset.active = "false";
+    void elements.bidEvent.offsetWidth;
+    elements.bidEvent.dataset.active = "true";
+
+    if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
+    bidEventTimer = setTimeoutFn?.(() => {
+      bidEventTimer = null;
+      elements.bidEvent.dataset.active = "false";
+      elements.bidEvent.hidden = true;
+    }, 1250) ?? null;
   }
 
   function updateTimer(model) {
@@ -383,6 +434,7 @@ export function setupOnlineAuctionUi({
   function render(state = session.getState()) {
     if (disposed) return;
     showAutoPurchaseResult(documentObject, state, shownResultKeys, session.getViewerPlayerId());
+    showBidEvent(state);
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
     if (!model) {
       clearTimers();
@@ -399,6 +451,8 @@ export function setupOnlineAuctionUi({
 
     elements.voteRow.hidden = model.stage !== "vote";
     elements.bidRow.hidden = model.stage !== "auction";
+    elements.status.hidden = model.stage === "auction";
+    elements.detail.hidden = model.stage === "auction";
 
     if (model.stage === "vote") {
       elements.badge.textContent = "경매 참가 투표";
@@ -416,12 +470,10 @@ export function setupOnlineAuctionUi({
       elements.secondaryButton.disabled = busy || !model.canVotePass;
     } else {
       elements.badge.textContent = "경매 진행";
-      elements.status.textContent = errorText || `현재 차례 · ${model.turnPlayerName ?? "-"}`;
       elements.primaryMetricLabel.textContent = "현재 최고가";
       elements.primaryMetricValue.textContent = money(model.highestBid);
       elements.secondaryMetricLabel.textContent = "다음 최소 입찰가";
       elements.secondaryMetricValue.textContent = money(model.minimumBid);
-      elements.detail.textContent = `현재 최고 입찰자 ${model.highestBidderName ?? "-"} · 내 보유 골드 ${money(model.viewerGold)}`;
       elements.bidRow.hidden = !model.participant;
       elements.bidInput.min = String(model.minimumBid);
       elements.bidInput.max = String(model.viewerGold);
@@ -528,6 +580,7 @@ export function setupOnlineAuctionUi({
   return () => {
     disposed = true;
     clearTimers();
+    if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
     unsubscribeState?.();
     documentObject.removeEventListener("click", handlePurchaseDecline, true);
     elements.panel.remove();
