@@ -332,6 +332,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 1. 초기 설계
    - `GAME_SPEC.md`
+   - `UI_DESIGN.md`
    - `DEVELOPMENT.md`
 2. 순수 규칙 엔진
    - 인원별 시작 칩 계산
