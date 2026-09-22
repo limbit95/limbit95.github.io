@@ -43,12 +43,17 @@ test("purchase and Auction lifecycle results use the shared board notice", () =>
   }
 });
 
-test("competitive Auction start uses a timed announcement and roulette before bid controls", () => {
+test("competitive Auction intro announces, spins, holds the result, then names the first bidder", () => {
   assert.match(auctionIntroUiSource, /경매가 곧 시작됩니다!/);
   assert.match(auctionIntroUiSource, /첫 입찰자를 정합니다/);
   assert.match(auctionIntroUiSource, /phase === "roulette" && spinningKey !== key/);
+  assert.match(auctionIntroUiSource, /now < rouletteStopsAt/);
+  assert.match(auctionIntroUiSource, /now < winnerNoticeAt/);
+  assert.match(auctionIntroUiSource, /님이 첫 입찰 순서입니다!/);
   assert.match(auctionIntroUiSource, /playAuctionStartSound\(\)/);
   assert.match(auctionCssSource, /auctionRouletteSpin/);
+  assert.match(auctionCssSource, /rotate\(2520deg\)/);
+  assert.match(auctionCssSource, /\.auction-intro__winner/);
   for (const source of [onlineSource, localSource]) {
     assert.match(source, /AUCTION_STARTING/);
   }
@@ -65,17 +70,25 @@ test("shared result notice stays centered without an Auction dialog backdrop", (
   assert.doesNotMatch(auctionCssSource, /auction-result-modal::backdrop/);
 });
 
-test("decisive Auction bid notice is concise and precedes purchase animation", () => {
+test("Auction resolution notice appears concurrently with its follow-up animation", () => {
   for (const source of [onlineSource, localSource]) {
     assert.match(source, /AUCTION_DECISIVE_BID/);
     assert.match(source, /보유 골드보다 높은/);
-    assert.match(source, /await presentDecisiveBidNotice\(state, event\)/);
-    assert.match(source, /DECISIVE_BID_NOTICE_HOLD_MS = 2000/);
-    assert.match(source, /AUCTION_BID_PLACED/);
-    assert.match(source, /event\.surge === true/);
-    assert.match(source, /큰 폭의 입찰!/);
-    assert.doesNotMatch(source, /승부를 결정했습니다![\s\S]{0,100}더 이상 입찰할 수 없어/);
+    assert.match(source, /isAuctionResolutionState\(state\)/);
+    assert.match(source, /if \(auctionResolution\) showImportantNotice\(state\)/);
+    assert.match(source, /if \(!auctionResolution\) showImportantNotice\(state\)/);
+    assert.doesNotMatch(source, /presentDecisiveBidNotice/);
+    assert.doesNotMatch(source, /DECISIVE_BID_NOTICE_HOLD_MS/);
   }
+});
+
+test("Auction notices stay above the active Auction panel", () => {
+  for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
+    assert.match(source, /auctionOverlayActive/);
+  }
+  assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
+  assert.match(auctionCssSource, /z-index: 3200/);
+  assert.match(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
 });
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
