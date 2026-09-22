@@ -146,8 +146,6 @@ export function validatePlatformDocumentPolicy({
 
   return errors;
 }
-export function validateRepositoryState({  return errors;
-}
 export function validateRepositoryState({
   gameDirectories,
   registry = GAME_REGISTRY,
