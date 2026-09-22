@@ -1,7 +1,7 @@
 # Can't Stop Development
 
 > 현재 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다.
-> 게임 규칙과 구현 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, UI/presentation 설계의 기준은 `UI_DESIGN.md`입니다.
 
 ## Current Status
 
