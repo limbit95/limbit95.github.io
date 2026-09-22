@@ -12,6 +12,7 @@
 
 ## Completed
 
+- Game Platform UI 규칙 도입에 맞춰 No Thanks!의 원본 디자인 조사 방향, Visual Identity, 카드/칩 layout, motion, result/rematch, responsive 구현 기준을 `UI_DESIGN.md`에 분리해 관리하기 시작했습니다.
 - 규칙 엔진 재정렬 PR #347이 병합된 최신 `main` (`049493f8...`)을 기준으로 Phase 3 작업 브랜치를 생성했습니다.
 - 기존 #343/#344의 공통 foundation 전체 Registry 목록/개수 고정 변경은 새 Game Platform 규칙에 맞지 않아 가져오지 않았습니다.
 - 저장소 `AGENTS.md`와 게임 플랫폼 신규 게임 개발 규칙을 확인했습니다.
@@ -234,7 +235,7 @@
   - 규칙 엔진 단위 테스트 12개가 모두 통과했습니다.
   - 실제 브랜치의 `rules.js`, 단위 테스트, 게임 등록부 파일과 로컬 검증 파일의 Git blob SHA가 각각 일치하는지 확인했습니다.
   - 게임 등록부의 `no-thanks` 항목이 `platform: "shared"`이고 모든 기능 활성화 값이 `false`로 해석되는지 확인했습니다.
-  - `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다.
+  - 당시 `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다. 현재 플랫폼 규칙 도입에 따라 `UI_DESIGN.md`를 추가하고 세 문서 체계로 관리합니다.
 - 이번 단계에서 아직 수행하지 않는 검증:
   - 승인회원 계정의 운영 create/join/snapshot/gameplay 브라우저 smoke test
   - 실제 데스크톱/모바일 브라우저의 Presence/reconnect 멀티플레이 점검
