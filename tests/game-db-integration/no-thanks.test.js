@@ -904,6 +904,22 @@ test("no-thanks multi-client: 7 independent sessions keep private counters isola
     true,
   );
 
+  for (const player of room.players) {
+    const viewer = await getRoomSnapshotFor(
+      player,
+      taken.room.id,
+      `7-player differentiated private counter snapshot ${player.id}`,
+    );
+    assert.equal(viewer.viewer.playerId, player.id);
+    assert.equal(viewer.viewer.counters, player.id === taker.id ? 13 : 6);
+    assert.equal(
+      viewer.players.some((entry) => Object.hasOwn(entry, "counters")),
+      false,
+    );
+    assert.equal(Object.hasOwn(viewer, "playerCounters"), false);
+    assert.equal(Object.hasOwn(viewer.game, "playerCounters"), false);
+  }
+
   const disconnectedThenReturned = room.players[6];
   const restored = await getActiveRoomFor(
     disconnectedThenReturned,
