@@ -25,7 +25,7 @@
 
 후속 수정은 종료된 feature 브랜치를 재사용하지 않고 최신 `main`에서 새 브랜치로 시작합니다. 구현 중 발견한 플랫폼 교훈은 [Game Platform Development Rules](../docs/game-platform-development-rules.md)의 release feedback loop에 따라 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 다시 분류합니다.
 
-특정 platform-native 게임의 구현을 다른 신규 게임의 기준 사례로 삼지 않습니다. 현재 공통 계약과 규칙 문서, 템플릿을 기준으로 시작하고 게임별 구현은 해당 게임 디렉터리 안의 `GAME_SPEC.md`와 `DEVELOPMENT.md`에서만 정의합니다.
+특정 platform-native 게임의 구현을 다른 신규 게임의 기준 사례로 삼지 않습니다. 현재 공통 계약과 규칙 문서, 템플릿을 기준으로 시작하고 게임별 구현은 해당 게임 디렉터리 안의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`에서 정의합니다.
 ## Phase 3 foundation
 
 - `registry.js`: 게임 메타데이터와 capability Registry
