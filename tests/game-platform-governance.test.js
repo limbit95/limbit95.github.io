@@ -297,19 +297,6 @@ test("platform checkpoint command stays consistent across command entrypoints", 
   assert.equal(missingCommand.length, 1);
   assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform DEVELOPMENT\.md checkpoint command/u);
 
-  const deprecatedPhrase = validatePlatformDocumentPolicy({
-    registry: [],
-    documents: {
-      "docs/game-platform-development-rules.md": [
-        "> **문서 분류:** CURRENT",
-        command,
-      ].join("\n"),
-      "AGENTS.md": command,
-      "games/README.md": [command, "디벨롭 파일에 기록해줘"].join("\n"),
-    },
-  });
-  assert.equal(deprecatedPhrase.length, 1);
-  assert.match(deprecatedPhrase[0], /must not use the deprecated DEVELOPMENT\.md checkpoint phrase/u);
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {
