@@ -22,7 +22,7 @@
 
 - Context / trigger: 실제 UI 개발 과정에서 세밀한 사용자 피드백과 디자인 수정이 반복됐지만, 최종 `UI_DESIGN.md`와 기능 중심 `DEVELOPMENT.md`만으로는 그 결정 이유와 폐기된 대안을 충분히 복원하기 어려웠습니다.
 - Previous / alternatives: 디자인 진행 이력을 `DEVELOPMENT.md`에 계속 누적하거나 `UI_DESIGN.md`를 changelog처럼 사용하는 방식을 검토할 수 있었습니다.
-- Decision: 현재 canonical 디자인 기준은 `UI_DESIGN.md`에 유지하고, 디자인 개발 진행·변경 배경·대안·결정 이유·검증 이력은 `UI_DECISIONS.md`로 분리합니다.
+- Decision: `UI_DESIGN.md`는 초기 baseline으로 보존하고, 디자인 개발 진행·변경 배경·대안·결정 이유·검증 이력과 이후 override는 `UI_DECISIONS.md`로 분리합니다.
 - Rationale: 기능 개발 기록과 디자인 이력을 분리하면서도 과거의 중요한 사용자 의도를 잃지 않기 위해서입니다.
 - Affected surfaces: 문서 관리 전반
 - Implementation status: IMPLEMENTED
@@ -41,5 +41,5 @@
 ## Open Follow-up
 
 - UI 작업을 다시 시작하기 전에 과거 No Thanks! 관련 PR/commit과 남아 있는 기록을 검토해, 현재 화면에 반영됐지만 문서화되지 않은 중요한 디자인 결정을 선별 복원합니다.
-- 디자인 복원 과정에서도 현재 canonical 결과는 `UI_DESIGN.md`와 main runtime을 우선하며, 폐기된 과거안을 현재 규칙으로 되살리지 않습니다.
+- 디자인 복원 과정에서는 `UI_DESIGN.md` 초기 baseline, main runtime, 확인 가능한 후속 사용자 결정을 함께 대조합니다. 같은 항목의 최신 non-superseded 결정이 baseline보다 우선하며 폐기된 과거안을 되살리지 않습니다.
 - Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 후속 polish는 UI 트랙 재개 시 여기서 진행 상태를 추적합니다.
