@@ -35,6 +35,10 @@ const auctionIntroPacingSql = readFileSync(
   new URL("../../supabase/marble/20260922124800_marble_auction_intro_pacing.sql", import.meta.url),
   "utf8",
 );
+const starterAuthoritySql = readFileSync(
+  new URL("../../supabase/marble/20260922143000_marble_auction_starter_authority.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -68,7 +72,7 @@ function auctionChoice() {
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
     openingBid: 360,
-    openingBidderPlayerId: "p2",
+    starterPlayerId: "p2",
     participantPlayerIds: ["p2", "p3"],
     auction: {
       type: "PROPERTY_AUCTION",
@@ -77,12 +81,12 @@ function auctionChoice() {
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
       participantPlayerIds: ["p2", "p3"],
-      openingBidderPlayerId: "p2",
-      bidPlayerIds: ["p2"],
+      starterPlayerId: "p2",
+      bidPlayerIds: [],
       passedPlayerIds: [],
-      highestBid: 360,
-      highestBidderId: "p2",
-      turnPlayerId: "p3",
+      highestBid: 0,
+      highestBidderId: null,
+      turnPlayerId: "p2",
       turnDeadlineAt: "2026-09-19T12:00:25Z",
       status: "OPEN",
     },
@@ -121,24 +125,26 @@ test("vote UI explains insufficient gold with a disabled single action", () => {
   assert.equal(model.canVotePass, false);
 });
 
-test("participant cards expose authoritative join order and first bidder", () => {
+test("participant cards expose authoritative participant order without legacy first-bid metadata", () => {
   const model = createOnlineAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
-  assert.deepEqual(model.participantCards.map((card) => [card.id, card.order, card.openingBidder]), [
-    ["p3", 1, true],
-    ["p2", 2, false],
+  assert.deepEqual(model.participantCards.map((card) => [card.id, card.order]), [
+    ["p3", 1],
+    ["p2", 2],
   ]);
+  assert.equal(model.participantCards.some((card) => "openingBidder" in card), false);
 });
 
 test("competitive UI keeps the participant order visible and turn-scoped controls", () => {
   const first = createOnlineAuctionUiModel(state(auctionChoice()), "p2");
-  assert.equal(first.highestBidderId, "p2");
-  assert.equal(first.minimumBid, 361);
-  assert.equal(first.canBid, false);
+  assert.equal(first.highestBidderId, null);
+  assert.equal(first.minimumBid, 360);
+  assert.equal(first.isTurn, true);
+  assert.equal(first.canBid, true);
 
   const bidder = createOnlineAuctionUiModel(state(auctionChoice()), "p3");
-  assert.equal(bidder.isTurn, true);
-  assert.equal(bidder.canBid, true);
-  assert.equal(bidder.canPass, true);
+  assert.equal(bidder.isTurn, false);
+  assert.equal(bidder.canBid, false);
+  assert.equal(bidder.canPass, false);
   assert.deepEqual(bidder.participantCards.map((card) => card.id), ["p2", "p3"]);
 });
 
@@ -150,7 +156,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /보유 골드 부족/);
   assert.doesNotMatch(uiSource, /showAuctionUnsoldResult/);
   assert.doesNotMatch(uiSource, /auction-result-modal/);
-  assert.match(uiSource, /첫 입찰/);
+  assert.doesNotMatch(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
   assert.match(uiSource, /playAuctionBidSound\(\)/);
@@ -162,7 +168,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
   assert.match(uiSource, /HIGHEST_BID_COUNT_MS = 700/);
-  assert.match(uiSource, /renderHighestBid\(model\.highestBid\)/);
+  assert.match(uiSource, /renderHighestBid\(model\.highestBid > 0 \? model\.highestBid : model\.openingBid\)/);
   assert.match(uiSource, /bidEvent\.dataset\.surge = event\.surge === true/);
   assert.match(uiSource, /elements\.status\.hidden = model\.stage === "auction"/);
   assert.match(uiSource, /elements\.detail\.hidden = model\.stage === "auction"/);
@@ -172,8 +178,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /auctionBidValueCount/);
   assert.match(cssSource, /auctionSurgeBidEvent/);
   assert.match(cssSource, /\.auction-intro/);
-  assert.match(cssSource, /\.auction-roulette/);
-  assert.match(cssSource, /auctionRouletteSpin/);
+  assert.match(cssSource, /\.auction-selector/);
+  assert.match(cssSource, /auctionSelectorChain/);
+  assert.doesNotMatch(cssSource, /\.auction-roulette/);
   assert.match(cssSource, /큰 폭의 입찰/);
   assert.match(cssSource, /content: " · 입찰"/);
   assert.match(cssSource, /body\[data-play-mode="window"\] \.important-notice/);
@@ -195,17 +202,18 @@ test("server migration keeps every competitive bid turn at 15 seconds", () => {
   assert.match(bidTimingSql, /public\.marble_advance_auction_deadline/);
 });
 
-test("server Auction start migration randomizes the first bidder and gates bidding until roulette completes", () => {
+test("server starter migration makes the random selection the actual first actionable turn", () => {
   assert.match(auctionStartSql, /AUCTION_STARTING/);
-  assert.match(auctionStartSql, /order by random\(\)/);
-  assert.match(auctionStartSql, /v_starts_at \+ interval '15 seconds'/);
-  assert.match(auctionStartSql, /AUCTION_NOT_STARTED/);
   assert.match(auctionIntroPacingSql, /interval '2 seconds'/);
-  assert.match(auctionIntroPacingSql, /interval '5\.2 seconds'/);
-  assert.match(auctionIntroPacingSql, /interval '7\.2 seconds'/);
-  assert.match(auctionIntroPacingSql, /interval '9\.2 seconds'/);
-  assert.match(auctionIntroPacingSql, /rouletteStopsAt/);
-  assert.match(auctionIntroPacingSql, /winnerNoticeAt/);
+  assert.match(starterAuthoritySql, /order by random\(\)/);
+  assert.match(starterAuthoritySql, /starterPlayerId/);
+  assert.match(starterAuthoritySql, /'highestBid', 0/);
+  assert.match(starterAuthoritySql, /'highestBidderId', null/);
+  assert.match(starterAuthoritySql, /'turnPlayerId', v_starter/);
+  assert.match(starterAuthoritySql, /interval '4\.8 seconds'/);
+  assert.match(starterAuthoritySql, /interval '5\.6 seconds'/);
+  assert.match(starterAuthoritySql, /AUCTION_NOT_STARTED/);
+  assert.doesNotMatch(starterAuthoritySql, /openingBidderPlayerId/);
 });
 
 test("server decisive-bid migration settles at the submitted amount and emits feedback metadata", () => {
