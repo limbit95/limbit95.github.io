@@ -101,6 +101,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /no-thanks-number-card__corner--top/u);
   assert.match(runtime, /no-thanks-number-card__corner--bottom/u);
   assert.match(runtime, /no-thanks-seat__avatar/u);
+  assert.match(runtime, /no-thanks-seat__name/u);
   assert.match(runtime, /getPublicProfiles/u);
   assert.match(runtime, /getSignedAvatarUrl/u);
   assert.match(runtime, /default-avatar\.svg/u);
@@ -111,6 +112,8 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /readBoardTransitionEffects/u);
   assert.match(runtime, /no-thanks-chip-flight/u);
   assert.match(runtime, /syncBoardAnimationGeometry/u);
+  assert.match(runtime, /boardPresentationEffect/u);
+  assert.match(runtime, /boardPresentationEffect\.started = true/u);
   assert.match(runtime, /no-thanks-table-card__inner/u);
   assert.match(runtime, /boardMode \? \[\] : lobbyActions/u);
   assert.match(runtime, /no-thanks-panel-tools/u);
@@ -137,12 +140,14 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /@keyframes no-thanks-chip-flight-to-pile/u);
   assert.match(styles, /rotateY\(180deg\)/u);
   assert.match(styles, /grid-template-columns:\s*192px\s+minmax\(0,\s*1fr\)/u);
-  assert.match(styles, /\.no-thanks-seat\.is-active\s*\{[\s\S]*?width:\s*164px[\s\S]*?height:\s*164px/u);
-  assert.match(styles, /\.no-thanks-panel-tools\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2/u);
+  assert.match(styles, /\.no-thanks-seat\.is-active\s*\{[\s\S]*?width:\s*107px[\s\S]*?height:\s*107px/u);
+  assert.match(styles, /\.no-thanks-panel-tools\s*\{[\s\S]*?grid-template-columns:\s*1fr/u);
   assert.match(styles, /nth-child\(16\)/u);
-  assert.match(styles, /min-height:\s*196px/u);
+  assert.match(styles, /min-height:\s*220px/u);
   assert.match(styles, /width:\s*86px/u);
   assert.match(styles, /\.no-thanks-hand-card:hover/u);
+  assert.match(styles, /top:\s*-24px/u);
+  assert.doesNotMatch(styles, /z-index:\s*80\s*!important/u);
   assert.match(
     styles,
     /@media \(max-width: 760px\)[\s\S]*?\.no-thanks-board-hud__badge,[\s\S]*?display:\s*inline-flex/u,
