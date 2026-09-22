@@ -281,6 +281,9 @@ async function openGame(gameSnapshot) {
     gameSnapshot,
     onReturnToLobby: (nextSnapshot) => openLobby(nextSnapshot, "재대결 대기방으로 돌아왔습니다. 모두 다시 준비해 주세요."),
   });
+  document.dispatchEvent(new CustomEvent("the-game:game-started", {
+    detail: { mode: "online" },
+  }));
 }
 
 function renderLobby() {

@@ -61,9 +61,18 @@ function createOverlay(documentObject) {
   result.className = "auction-roulette__result";
   roulette.append(rouletteTitle, wheelWrap, result);
 
-  overlay.append(announce, roulette);
+  const winnerNotice = documentObject.createElement("div");
+  winnerNotice.className = "auction-intro__winner";
+  winnerNotice.hidden = true;
+  const winnerEyebrow = documentObject.createElement("span");
+  winnerEyebrow.className = "auction-intro__eyebrow";
+  winnerEyebrow.textContent = "FIRST BID";
+  const winnerText = documentObject.createElement("strong");
+  winnerNotice.append(winnerEyebrow, winnerText);
+
+  overlay.append(announce, roulette, winnerNotice);
   (documentObject.body ?? documentObject.documentElement).append(overlay);
-  return { overlay, announce, roulette, wheel, result };
+  return { overlay, announce, roulette, wheel, result, winnerNotice, winnerText };
 }
 
 function renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId) {
@@ -86,7 +95,9 @@ function renderWheel(documentObject, elements, state, playerIds, openingBidderPl
     elements.wheel.append(label);
   });
 
-  elements.result.textContent = `${playerName(state, openingBidderPlayerId)} · 첫 입찰`;
+  const name = playerName(state, openingBidderPlayerId);
+  elements.result.textContent = `${name} · 첫 입찰`;
+  elements.winnerText.textContent = `${name}님이 첫 입찰 순서입니다!`;
 }
 
 export function createAuctionIntroPresenter({
@@ -111,6 +122,7 @@ export function createAuctionIntroPresenter({
     elements.overlay.hidden = true;
     elements.overlay.dataset.phase = "";
     elements.roulette.hidden = true;
+    elements.winnerNotice.hidden = true;
     elements.announce.hidden = false;
   }
 
@@ -118,8 +130,16 @@ export function createAuctionIntroPresenter({
     const pending = state?.pendingChoice;
     const auction = pending?.type === "PROPERTY_AUCTION" ? (pending.auction ?? {}) : null;
     const announcementEndsAt = timeMs(auction?.announcementEndsAt ?? pending?.announcementEndsAt);
+    const rouletteStopsAt = timeMs(auction?.rouletteStopsAt ?? pending?.rouletteStopsAt);
+    const winnerNoticeAt = timeMs(auction?.winnerNoticeAt ?? pending?.winnerNoticeAt);
     const startsAt = timeMs(auction?.startsAt ?? pending?.startsAt);
-    if (!auction || !Number.isFinite(announcementEndsAt) || !Number.isFinite(startsAt)) {
+    if (
+      !auction
+      || !Number.isFinite(announcementEndsAt)
+      || !Number.isFinite(rouletteStopsAt)
+      || !Number.isFinite(winnerNoticeAt)
+      || !Number.isFinite(startsAt)
+    ) {
       hide();
       activeKey = null;
       return false;
@@ -137,7 +157,13 @@ export function createAuctionIntroPresenter({
       ?? playerIds[0]
       ?? null;
     const key = `${pending.nodeId}:${startsAt}:${openingBidderPlayerId}`;
-    const phase = now < announcementEndsAt ? "announce" : "roulette";
+    const phase = now < announcementEndsAt
+      ? "announce"
+      : now < rouletteStopsAt
+        ? "roulette"
+        : now < winnerNoticeAt
+          ? "result"
+          : "winner";
 
     if (activeKey !== key) {
       activeKey = key;
@@ -161,10 +187,17 @@ export function createAuctionIntroPresenter({
     elements.overlay.hidden = false;
     elements.overlay.dataset.phase = phase;
     elements.announce.hidden = phase !== "announce";
-    elements.roulette.hidden = phase !== "roulette";
+    elements.roulette.hidden = !["roulette", "result"].includes(phase);
+    elements.winnerNotice.hidden = phase !== "winner";
 
     clearBoundary();
-    const nextBoundary = phase === "announce" ? announcementEndsAt : startsAt;
+    const nextBoundary = phase === "announce"
+      ? announcementEndsAt
+      : phase === "roulette"
+        ? rouletteStopsAt
+        : phase === "result"
+          ? winnerNoticeAt
+          : startsAt;
     boundaryTimer = setTimeoutFn?.(() => {
       boundaryTimer = null;
       onBoundary();

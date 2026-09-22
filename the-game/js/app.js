@@ -148,6 +148,9 @@ function startGame(playerCount) {
   passOverlay.hidden = true;
   resultOverlay.hidden = true;
   render();
+  document.dispatchEvent(new CustomEvent("the-game:game-started", {
+    detail: { mode: "local" },
+  }));
 }
 
 function renderPiles() {
