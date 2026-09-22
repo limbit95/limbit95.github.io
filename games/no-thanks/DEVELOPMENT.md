@@ -5,12 +5,17 @@
 
 ## Current Status
 
-- Phase: Production migration and manual browser QA
+- Phase: Rematch platform alignment before release
 - Status: IN_PROGRESS
-- Active branch: `chore/no-thanks-production-migration-20260922`
+- Active branch: `feature/no-thanks-rematch-platform-alignment-20260922`
 - 마지막 기록: 2026-09-22
 
 ## Completed
+
+- Game Platform 공통 재대결 규칙에 맞춰 새 room 생성 방식 대신 기존 room/player context를 유지하는 authoritative rematch lifecycle로 전환했습니다.
+- `no_thanks_prepare_rematch` RPC가 GAME_OVER → waiting reset, private state/획득 카드 초기화, ready/start 재사용을 처리하도록 추가했습니다.
+- GAME_OVER에서 방장이 나가면 남은 active player에게 host를 승계하도록 terminal leave 정책을 보완했습니다.
+- rematch lifecycle을 Game Platform DB/Test Contract 필수 시나리오로 승격하고 Can't Stop / No Thanks!가 각각 자기 RPC로 계약을 증명하도록 통합 테스트를 추가했습니다.
 
 - Game Platform UI 규칙 도입에 맞춰 No Thanks!의 원본 디자인 조사 방향, Visual Identity, 카드/칩 layout, motion, result/rematch, responsive 구현 기준을 `UI_DESIGN.md`에 분리해 관리하기 시작했습니다.
 - 규칙 엔진 재정렬 PR #347이 병합된 최신 `main` (`049493f8...`)을 기준으로 Phase 3 작업 브랜치를 생성했습니다.
@@ -89,9 +94,10 @@
 - 브라우저 종료·네트워크 단절 시 membership/turn/host 권한을 유지하고 재접속 시 기존 active room snapshot으로 복원하는 정책을 확정했습니다.
 - 방장이 연결을 잃어도 자동 방장 위임이나 자동 게임 종료를 하지 않고, 현재 차례 플레이어가 끊겨도 turn을 유지해 재접속 후 이어서 진행하도록 UI 안내를 추가했습니다.
 - roster에 Presence 기반 `재접속 대기` 상태와 현재 차례 표시를 연결했습니다.
-- 재대결은 terminal state를 같은 room에서 reset하지 않고, 방장이 결과방을 닫은 뒤 같은 최대 인원의 새 방을 만드는 방식으로 확정했습니다.
-- 새 게임 방 생성 시 기존 참가자는 새 방 코드로 다시 참가하도록 명시해 오래된 action/version/private state가 재사용되지 않도록 했습니다.
-- Presence lifecycle, 다중 탭 user merge, offline→online refresh, result-room→fresh-room 재대결 정책에 대한 회귀 테스트를 추가했습니다.
+- 재대결은 같은 room code와 active membership을 유지하면서 public/private gameplay state를 초기화하고 waiting/ready 상태로 돌아가는 방식으로 변경했습니다.
+- 재대결 준비는 host-only authoritative RPC이며 version/client_action_id 경계를 사용하고, 이전 private deck/counter와 획득 카드를 초기화합니다.
+- GAME_OVER에서 방장이 이탈하면 다음 active seat로 host를 승계해 남은 참가자의 재대결 흐름을 유지합니다.
+- Presence lifecycle, 다중 탭 user merge, offline→online refresh, same-room rematch/reconnect 정책에 대한 회귀 테스트를 유지·확장했습니다.
 - 최신 `main` 커밋 `2454e5e9d8a76a26002f794f8338255b62aababb`에서 Phase 8 검증 브랜치를 생성했습니다.
 - disposable Supabase에서 3개의 독립 승인회원 인증 세션이 같은 room에 참가해 각자 비공개 칩 snapshot을 받고, 세 플레이어가 한 번씩 거절한 뒤 자연 종료까지 진행하는 다중 클라이언트 통합 시나리오를 추가했습니다.
 - 3인 시나리오에서 명시적 leave 없이 `get_my_active_room`으로 재접속했을 때 최신 room/version/turn/center counter가 복원되는지 검증하도록 했습니다.
@@ -112,15 +118,17 @@
 
 ## Current Work
 
-- 운영 Supabase에 No Thanks! DB/RPC/Realtime migration을 적용했고, capability는 비활성 상태로 유지한 채 main 배포 화면에서 실제 브라우저 QA를 진행할 수 있는 단계입니다.
+- 새 same-room rematch migration과 client 흐름의 자동 검증을 완료했습니다. 기존 운영 migration은 적용되어 있지만 이번 rematch migration은 아직 production에 적용하지 않았습니다.
+- capability는 비활성 상태를 유지합니다.
 
 ## Next Work
 
-1. main 배포 화면에서 승인회원 계정으로 create/join/ready/start/refuse/take/종료 브라우저 smoke test를 수행합니다.
-2. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect 수동 게이트를 수행합니다.
-3. 3인과 가능하면 7인 실제 브라우저 세션에서 roster/turn/private counter/reconnect를 확인합니다.
-4. manual browser gate가 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
-5. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
+1. 이 PR 병합 후 rematch migration을 운영 Supabase에 적용하고 권한/RLS/RPC 경계를 다시 확인합니다.
+2. main 배포 화면에서 승인회원 계정으로 create/join/ready/start/refuse/take/종료/재대결 브라우저 smoke test를 수행합니다.
+3. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 수동 게이트를 수행합니다.
+4. 3인과 가능하면 7인 실제 브라우저 세션에서 roster/turn/private counter/reconnect/rematch를 확인합니다.
+5. manual browser gate가 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+6. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
 
 ## Decisions
 
@@ -179,8 +187,8 @@
 - 현재 차례 플레이어 disconnect: turn을 다른 사용자에게 넘기지 않고 재접속을 기다림
 - browser offline: local connection UI만 offline으로 표시하고 서버 state는 변경하지 않음
 - reconnect: `online / pageshow / visibility` 이벤트에서 authoritative snapshot 재조회
-- 재대결: 같은 room reset 대신 결과방 종료 후 새 room 생성
-- 재대결 참가: 새 room code를 공유하고 참가자가 다시 join
+- 재대결: GAME_OVER에서 host가 같은 room을 waiting으로 reset하고 기존 active membership / room code 유지
+- 재대결 참가: 일반 플레이어 ready 재설정 후 기존 start flow 재사용, 이탈자가 있으면 같은 room code로 replacement/rejoin 가능
 - 자동 multi-client 검증: disposable Supabase에서 독립 auth session 3개/7개를 실제 RPC client로 취급
 - 3인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + reconnect snapshot + 자연 종료
 - 7인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + private counter 독립성 + take/reconnect
@@ -220,7 +228,10 @@
   - 동일 `client_action_id`의 concurrent duplicate retry가 동일 authoritative snapshot으로 수렴하고 version을 두 번 증가시키지 않는 것을 검증했습니다.
   - Phase 7 PR #358의 최신 code head에서 Game Platform JavaScript syntax가 통과했습니다.
   - Phase 7 PR #358의 site ↔ `games/shared` module link 검증이 통과했습니다.
-  - Presence lifecycle, 다중 탭 user merge, offline→online refresh, fresh-room rematch를 포함한 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다.
+  - Presence lifecycle, 다중 탭 user merge, offline→online refresh를 포함한 당시 Phase 7 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다.
+  - same-room rematch, terminal host succession, replacement restart를 포함한 최신 `npm run test:game-platform`이 통과했습니다.
+  - 최신 Site static checks가 통과했습니다.
+  - isolated Supabase Game DB integration에서 No Thanks! same-room rematch 계약과 기존 Can't Stop rematch 계약이 모두 통과했습니다.
   - Game Platform Governance Guard가 통과했습니다.
   - Phase 7은 DB schema/RPC를 변경하지 않아 disposable Game DB integration은 실행 대상이 아닙니다. 서버 DB 경계는 Phase 6의 성공 결과를 그대로 유지합니다.
   - 최신 main 대비 뒤처짐 없이 PR #358이 mergeable 상태임을 확인했습니다.
@@ -243,13 +254,13 @@
 
 ## Known Issues / Deferred
 
-- Game Platform 공통 재대결 규칙 영향도 감사 결과: `MIGRATION_REQUIRED`. 현재 main의 fresh-room rematch는 동일 room/player context 유지 규칙과 충돌하며, 별도 기능 PR에서 same-room rematch로 전환해야 합니다.
+- Game Platform 공통 재대결 규칙 영향도 감사에서 확인된 `MIGRATION_REQUIRED` 항목은 이번 same-room rematch 구현으로 해소했습니다.
 
 - 승인회원 접근 제어부터 Room/Lobby, server-authoritative gameplay action, 자연 종료와 방장 수동 종료 UI까지 연결했습니다.
 - Room/Lobby, gameplay, Realtime publication, private helper permission hardening migration을 운영 Supabase에 적용했습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
-- 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
+- 비정상 disconnect와 Presence 정책은 Phase 7~8에서 검증했습니다. 재대결 정책은 Game Platform 공통 규칙에 맞춰 same-room lifecycle로 변경했고 자동 DB/contract 검증을 완료했습니다. 실제 브라우저 Presence/모바일 복귀/rematch 검증은 release manual gate로 남아 있습니다.
 - 현재 브랜치는 운영 migration 기록/재현성 보강 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내

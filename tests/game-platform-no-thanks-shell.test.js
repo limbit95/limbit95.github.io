@@ -83,7 +83,7 @@ test("No Thanks! in-progress host termination requires confirmation", () => {
 test("No Thanks! terminal screen distinguishes a host-terminated game", () => {
   assert.match(runtime, /HOST_TERMINATED/u);
   assert.match(runtime, /방장이 게임을 종료했어요/u);
-  assert.match(runtime, /결과방 닫기/u);
+  assert.match(runtime, /결과방 나가기/u);
 });
 
 
@@ -96,9 +96,10 @@ test("No Thanks! shell shows reconnect state without transferring host or turn a
   assert.match(styles, /\.no-thanks-connection-note/u);
 });
 
-test("No Thanks! rematch creates a fresh room instead of resetting terminal state", () => {
-  assert.match(runtime, /새 게임 방 만들기/u);
-  assert.match(runtime, /기존 결과방을 닫고 같은 최대 인원의 새 방/u);
-  assert.match(runtime, /lobbyController\.createRematchRoom\(\)/u);
-  assert.match(runtime, /새 방 코드로 다시 참가/u);
+test("No Thanks! rematch keeps the room and returns players to ready state", () => {
+  assert.match(runtime, /재대결 준비/u);
+  assert.match(runtime, /현재 방과 참가자는 유지/u);
+  assert.match(runtime, /lobbyController\.prepareRematch\(\)/u);
+  assert.match(runtime, /일반 플레이어가 다시 준비/u);
+  assert.doesNotMatch(runtime, /새 방 코드로 다시 참가/u);
 });

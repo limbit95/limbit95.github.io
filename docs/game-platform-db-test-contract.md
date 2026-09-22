@@ -23,9 +23,10 @@
 7. 동일한 `client_action_id` 재전송은 중복 적용되지 않는다.
 8. 동시에 충돌하는 명령은 하나의 authoritative commit만 만든다.
 9. 재접속 시 authoritative snapshot으로 현재 상태를 복원한다.
-10. 다른 플레이어의 private state가 snapshot에 노출되지 않는다.
+10. 멀티플레이 게임 종료 후 재대결은 기존 room/player context를 유지하고 gameplay state를 초기화한 준비 상태로 전환하며, 준비/시작 조건과 reconnect 복원이 서버 권위로 검증된다.
+11. 다른 플레이어의 private state가 snapshot에 노출되지 않는다.
 
-게임에 private state가 존재하지 않더라도 10번은 생략하지 않는다. 해당 게임의 snapshot에 private 정보가 없음을 명시적으로 검증한다.
+게임에 private state가 존재하지 않더라도 11번은 생략하지 않는다. 해당 게임의 snapshot에 private 정보가 없음을 명시적으로 검증한다.
 
 ## 사용 위치
 
@@ -68,6 +69,7 @@ registerPlatformGameDbContract({
     duplicate_action_safe: async (context) => { /* ... */ },
     concurrent_action_single_commit: async (context) => { /* ... */ },
     reconnect_snapshot_authoritative: async (context) => { /* ... */ },
+    rematch_lifecycle_authoritative: async (context) => { /* same room/player context + ready/start/reconnect */ },
     private_state_not_exposed: async (context) => { /* ... */ },
   },
 }, { before, after, test });
@@ -89,6 +91,18 @@ Client intent
 Realtime 이벤트 자체의 수신 여부는 DB 계약의 최종 성공 조건이 아니다.
 
 Realtime은 invalidation 신호로 사용하고, 최종 상태 검증은 DB/RPC snapshot으로 수행한다.
+
+## 재대결 lifecycle
+
+`rematch_lifecycle_authoritative`는 특정 RPC 이름이나 SQL 구조를 강제하지 않는다. 각 게임은 자체 구현으로 최소 다음을 증명한다.
+
+- terminal state 이후 재대결 준비가 기존 room과 남아 있는 active player identity를 유지한다.
+- 이전 gameplay state와 private state가 새 게임에 섞이지 않게 초기화된다.
+- 재대결 준비 후 ready/start 조건과 시작 권한을 서버가 다시 검증한다.
+- 재접속한 참가자는 같은 room의 authoritative rematch 준비 상태 또는 재시작된 새 게임 snapshot을 복원한다.
+- 재대결을 원하지 않는 참가자의 이탈과 필요한 host 승계가 서버 상태를 깨뜨리지 않는다.
+
+세부 인원수, host/ready 의미, 게임별 초기화 필드는 `GAME_SPEC.md`에 남겨 둔다.
 
 ## Idempotency
 

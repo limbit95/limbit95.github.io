@@ -25,7 +25,7 @@ function requireAdapter(adapter) {
 }
 
 function requireGameplayAdapter(adapter) {
-  for (const method of ["refuseCard", "takeCard", "endGame"]) {
+  for (const method of ["refuseCard", "takeCard", "endGame", "prepareRematch"]) {
     if (typeof adapter?.[method] !== "function") {
       throw new TypeError(`No Thanks! lobby controller requires gameplayAdapter.${method}().`);
     }
@@ -392,24 +392,20 @@ export function createNoThanksLobbyController({
     });
   }
 
-  async function createRematchRoom() {
+  async function prepareRematch() {
     return command(async () => {
       const snapshot = state.snapshot;
       if (!snapshot?.room?.id || snapshot.game?.phase !== "GAME_OVER") {
         throw new Error("No Thanks! rematch requires a finished room.");
       }
 
-      const maxPlayers = Number(snapshot.room.maxPlayers);
-      await roomLobby.leaveRoom({
+      const next = await gameplay.prepareRematch({
         roomId: snapshot.room.id,
         expectedVersion: Number(snapshot.version),
+        clientActionId: idFactory(),
       });
-
-      stopTracking();
-      applySnapshot(null, { connection: "connected" });
-
-      const next = await roomLobby.createRoom({ maxPlayers });
-      return trackRoom(next);
+      applySnapshot(next, { connection: "connected" });
+      return next;
     });
   }
 
@@ -469,7 +465,7 @@ export function createNoThanksLobbyController({
     takeCard,
     endGame,
     leaveRoom,
-    createRematchRoom,
+    prepareRematch,
     refresh,
     current,
     dispose,

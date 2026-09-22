@@ -274,7 +274,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - `public.no_thanks_room_players`: active membership, 사이트 프로필 `display_name`, seat, ready, 공개 획득 카드
 - `public.no_thanks_room_actions`: `client_action_id` 기반 ready/start/gameplay replay와 payload conflict 검증
 - `public.no_thanks_room_private_state`: 남은 draw deck, 제외된 9장, 플레이어별 비공개 칩 수
-- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`, `no_thanks_play_action`
+- public RPC: `no_thanks_create_room`, `no_thanks_join_room`, `no_thanks_get_my_active_room`, `no_thanks_get_lobby_snapshot`, `no_thanks_set_ready`, `no_thanks_leave_room`, `no_thanks_start_game`, `no_thanks_play_action`, `no_thanks_prepare_rematch`
 
 브라우저는 위 테이블을 직접 수정하지 않고 승인회원 RPC만 호출합니다. 특히 `no_thanks_room_private_state`에는 authenticated select 권한을 주지 않으며 Realtime 구독 대상에서도 제외합니다. 공개 room/player 변경은 invalidation 신호로만 사용하고, 실제 화면 상태는 RPC snapshot을 다시 조회해 복원합니다.
 
@@ -301,12 +301,16 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 ### 재대결 정책
 
-첫 버전에서는 종료된 room의 game/private/action state를 초기화해 재사용하지 않습니다.
+게임 종료 후에는 기존 room과 남아 있는 active player identity를 유지한 채 재대결 준비 상태로 돌아갑니다.
 
-- 방장만 결과 화면에서 `새 게임 방 만들기`를 선택할 수 있습니다.
-- 기존 결과방을 정상 종료한 뒤 동일한 최대 인원으로 새 room을 생성합니다.
-- 기존 참가자는 새 room code로 다시 참가합니다.
-- 이 방식으로 이전 게임의 version, action id, private deck/counter state가 다음 게임에 섞이지 않도록 경계를 단순하게 유지합니다.
+- 방장만 결과 화면에서 `재대결 준비`를 시작할 수 있습니다.
+- 서버는 room code / active membership / 현재 host를 유지하고 room을 `waiting`으로 되돌립니다.
+- 이전 게임의 public game state, private deck/counter state, 플레이어 획득 카드는 초기화합니다.
+- active player의 ready는 다시 false가 되며 기존 ready/start 권한 검증을 그대로 재사용합니다.
+- 결과 화면에서 재대결을 원하지 않는 플레이어는 안전하게 나갈 수 있습니다.
+- GAME_OVER에서 방장이 먼저 나가면 남은 active player 중 seat가 가장 빠른 플레이어에게 host를 승계해 남은 참가자가 재대결을 계속 선택할 수 있게 합니다.
+- 재대결 준비 후 인원이 최소 3명보다 적다면 같은 room code로 새 참가자 또는 이전 이탈자가 다시 참가할 수 있습니다.
+- 기존 room action history는 idempotency/replay 안전성을 위해 유지하되 새 gameplay state는 이전 게임 상태와 분리합니다.
 
 ## UI / UX Direction
 
@@ -326,7 +330,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 접속이 끊긴 플레이어는 roster에 `재접속 대기`로 표시합니다.
 - 현재 차례 플레이어가 오프라인이면 자동 진행하지 않고 재접속 후 이어진다는 안내를 표시합니다.
 - 방장이 오프라인이어도 자동 위임 또는 자동 종료가 발생하지 않는다는 안내를 표시합니다.
-- 결과 화면의 재대결은 같은 room reset이 아니라 새 room 생성임을 확인 dialog에서 명확히 안내합니다.
+- 결과 화면의 재대결은 같은 room/player context를 유지한 채 waiting/ready 상태로 전환된다는 점을 확인 dialog에서 명확히 안내합니다.
 
 ## Implementation Plan
 
@@ -374,7 +378,8 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
   - 공동 승리
   - 입력 상태를 직접 변경하지 않는지 확인
 - 게임 플랫폼 공통 계약과 관리 규칙 검증
-- 데이터베이스 통합 계약의 필수 시나리오 10개 검증
+- 데이터베이스 통합 계약의 필수 시나리오 11개 검증
+- 재대결의 same-room/player 유지, gameplay/private state reset, ready/start 권한, reconnect 복원 검증
 - 다른 플레이어의 칩 수가 노출되지 않는지 확인
 - 미공개 카드 순서와 제외 카드가 노출되지 않는지 확인
 - 오래된 버전 요청, 같은 요청의 중복 전송, 동시 요청 충돌 검증
@@ -390,5 +395,5 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
 - 명시적 leave는 WAITING 또는 GAME_OVER에서만 허용하고 PLAYING 중 비정상 disconnect는 membership을 유지합니다.
 - 방장 비정상 disconnect는 권한 위임이나 자동 종료 없이 재접속을 기다리는 정책으로 확정했습니다. 명시적 `게임 종료`만 방장 전용 서버 액션으로 처리합니다.
-- 재대결은 같은 방을 초기화하지 않고 새 room을 만드는 방식으로 확정했습니다.
+- 재대결은 같은 room/player context를 유지하면서 이전 gameplay/private state만 초기화하고 기존 ready/start 흐름을 재사용하는 방식으로 확정했습니다.
 - 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.
