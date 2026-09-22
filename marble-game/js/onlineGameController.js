@@ -33,6 +33,10 @@ if (onlineRoomId) {
   const secondaryActionButton = document.querySelector("[data-secondary-action]");
   const eventLog = document.querySelector("[data-event-log]");
   const importantNotice = document.querySelector("[data-important-notice]");
+  if (importantNotice && importantNotice.parentElement !== document.body) {
+    document.body.append(importantNotice);
+    importantNotice.dataset.noticeLayer = "global";
+  }
   const moveCountPop = document.querySelector("[data-move-count-pop]");
   const tileInfoModal = document.querySelector("[data-tile-info-modal]");
   const tileInfoType = document.querySelector("[data-tile-info-type]");
