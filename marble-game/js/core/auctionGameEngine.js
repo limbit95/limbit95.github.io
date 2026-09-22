@@ -265,38 +265,30 @@ function resolveAuctionVote(state, action, options, {
   const randomizedPlayerIds = participantPlayerIds.length > 1
     ? shuffleAuctionParticipants(participantPlayerIds, options.random)
     : participantPlayerIds;
-  const openingBidderPlayerId = randomizedPlayerIds[0];
+  const starterPlayerId = randomizedPlayerIds[0];
   const announcementEndsAt = participantPlayerIds.length > 1
     ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs)
     : null;
-  const rouletteStopsAt = participantPlayerIds.length > 1
+  const selectorStopsAt = participantPlayerIds.length > 1
     ? deadlineAt(
       options,
-      AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.rouletteSpinMs,
+      AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.selectorSpinMs,
     )
     : null;
-  const winnerNoticeAt = participantPlayerIds.length > 1
-    ? deadlineAt(
-      options,
-      AUCTION_TIMING.startAnnouncementMs
-        + AUCTION_TIMING.rouletteSpinMs
-        + AUCTION_TIMING.rouletteResultHoldMs,
-    )
-    : null;
-  const startsAt = participantPlayerIds.length > 1
+  const selectorResultEndsAt = participantPlayerIds.length > 1
     ? deadlineAt(
       options,
       AUCTION_TIMING.startAnnouncementMs
-        + AUCTION_TIMING.rouletteSpinMs
-        + AUCTION_TIMING.rouletteResultHoldMs
-        + AUCTION_TIMING.openingBidderNoticeMs,
+        + AUCTION_TIMING.selectorSpinMs
+        + AUCTION_TIMING.selectorResultHoldMs,
     )
     : null;
+  const startsAt = selectorResultEndsAt;
   const auction = createPropertyAuction({
     nodeId: vote.nodeId,
     openingBid: vote.openingBid,
     declinedByPlayerId: vote.declinedByPlayerId,
-    openingBidderPlayerId,
+    starterPlayerId,
     participantPlayerIds: randomizedPlayerIds,
     players: state.players,
     turnDeadlineAt: participantPlayerIds.length > 1
@@ -307,8 +299,8 @@ function resolveAuctionVote(state, action, options, {
     ? Object.freeze({
       ...auction,
       announcementEndsAt,
-      rouletteStopsAt,
-      winnerNoticeAt,
+      selectorStopsAt,
+      selectorResultEndsAt,
       startsAt,
     })
     : auction;
@@ -319,7 +311,7 @@ function resolveAuctionVote(state, action, options, {
       {
         type: "AUCTION_AUTO_PURCHASED",
         nodeId: vote.nodeId,
-        playerId: openingBidderPlayerId,
+        playerId: starterPlayerId,
         amount: vote.openingBid,
       },
     ]);
@@ -330,12 +322,11 @@ function resolveAuctionVote(state, action, options, {
       type: "PROPERTY_AUCTION",
       nodeId: vote.nodeId,
       openingBid: vote.openingBid,
-      openingBidderPlayerId,
-      requesterPlayerId: openingBidderPlayerId,
-      participantPlayerIds: Object.freeze(randomizedPlayerIds),
+      starterPlayerId,
+            participantPlayerIds: Object.freeze(randomizedPlayerIds),
       announcementEndsAt,
-      rouletteStopsAt,
-      winnerNoticeAt,
+      selectorStopsAt,
+      selectorResultEndsAt,
       startsAt,
       auction: timedAuction,
     }),
@@ -345,11 +336,11 @@ function resolveAuctionVote(state, action, options, {
         type: "AUCTION_STARTING",
         nodeId: vote.nodeId,
         openingBid: vote.openingBid,
-        openingBidderPlayerId,
+        starterPlayerId,
         participantPlayerIds: randomizedPlayerIds,
         announcementEndsAt,
-        rouletteStopsAt,
-        winnerNoticeAt,
+        selectorStopsAt,
+        selectorResultEndsAt,
         startsAt,
       },
     ]),
