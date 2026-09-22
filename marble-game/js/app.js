@@ -59,6 +59,8 @@ const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
 const MOVE_COUNT_HOLD_MS = 1200;
 const TURN_RESULT_HOLD_MS = 2400;
+const AUCTION_RESULT_HOLD_MS = 700;
+const DECISIVE_BID_NOTICE_HOLD_MS = 2000;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -160,7 +162,36 @@ function findNode(state, nodeId) {
 }
 
 function playerName(player) {
-  return player.name || player.id;
+  return player?.name || player?.id || "플레이어";
+}
+
+function honorificPlayerName(player) {
+  const name = playerName(player);
+  return name.endsWith("님") ? name : `${name}님`;
+}
+
+function decisiveBidEvent(state) {
+  return [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID") ?? null;
+}
+
+function decisiveBidNoticeText(state, event) {
+  const bidder = state.players.find((candidate) => candidate.id === event?.playerId);
+  const eliminated = (event?.eliminatedPlayerIds ?? [])
+    .map((playerId) => state.players.find((candidate) => candidate.id === playerId))
+    .filter(Boolean);
+  if (eliminated.length === 1) {
+    return `${honorificPlayerName(bidder)}이 ${honorificPlayerName(eliminated[0])}의 보유 골드를 넘는 ${money(event.amount)}를 입찰했습니다.`;
+  }
+  if (eliminated.length > 1) {
+    return `${honorificPlayerName(bidder)}이 ${honorificPlayerName(eliminated[0])} 외 ${eliminated.length - 1}명의 보유 골드를 넘는 ${money(event.amount)}를 입찰했습니다.`;
+  }
+  return `${honorificPlayerName(bidder)}이 상대의 보유 골드를 넘는 ${money(event.amount)}를 입찰했습니다.`;
+}
+
+function hasAuctionPurchaseResult(state) {
+  return state.lastEvents.some((event) => (
+    event.type === "PROPERTY_BOUGHT" && event.reason === "AUCTION"
+  ));
 }
 
 function playerMarker(player) {
@@ -499,10 +530,9 @@ function setInteractionLocked(locked) {
 }
 
 function importantEventMessage(state) {
-  const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
+  const decisiveBid = decisiveBidEvent(state);
   if (decisiveBid) {
-    const player = state.players.find((candidate) => candidate.id === decisiveBid.playerId);
-    return `${player ? playerName(player) : "플레이어"}이(가) ${money(decisiveBid.amount)}로 승부를 결정했습니다! 다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다.`;
+    return decisiveBidNoticeText(state, decisiveBid);
   }
 
   const surgeBid = [...state.lastEvents].reverse().find((event) => (
@@ -538,7 +568,7 @@ function importantEventMessage(state) {
     if (event.type === "AUCTION_VOTE_OPENED") {
       const player = state.players.find((candidate) => candidate.id === event.declinedByPlayerId);
       const node = findNode(state, event.nodeId);
-      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매를 시작합니다.`;
+      return `${player ? playerName(player) : "플레이어"}이(가) ${node?.label ?? event.nodeId} 구입을 포기했습니다. 경매 참가자를 모집합니다.`;
     }
     if (event.type === "AUCTION_VOTE_JOINED") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
@@ -557,10 +587,6 @@ function importantEventMessage(state) {
     if (event.type === "AUCTION_VOTE_CLOSED" && (event.participantPlayerIds?.length ?? 0) === 0) {
       const node = findNode(state, event.nodeId);
       return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
-    }
-    if (event.type === "AUCTION_STARTED") {
-      const node = findNode(state, event.nodeId);
-      return `${node?.label ?? event.nodeId} 경매가 시작되었습니다.`;
     }
     if (event.type === "AUCTION_PASSED") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
@@ -584,15 +610,24 @@ function importantEventMessage(state) {
   return null;
 }
 
-function showImportantNotice(state) {
+function hideImportantNotice() {
+  if (!importantNotice) return;
+  window.clearTimeout(importantNoticeTimer);
+  importantNoticeTimer = null;
+  importantNotice.hidden = true;
+}
+
+function showImportantNotice(state, { durationMs = 2400 } = {}) {
   const message = importantEventMessage(state);
-  if (!message || !importantNotice) return;
+  if (!message || !importantNotice) return false;
   window.clearTimeout(importantNoticeTimer);
   importantNotice.textContent = message;
   importantNotice.hidden = false;
   importantNoticeTimer = window.setTimeout(() => {
     importantNotice.hidden = true;
-  }, 2400);
+    importantNoticeTimer = null;
+  }, durationMs);
+  return true;
 }
 
 async function showMoveCount(total) {
@@ -692,7 +727,7 @@ async function maybeAutoAdvanceLocalTurn(state) {
   }
 
   autoAdvancedTurnVersion = state.version;
-  await wait(TURN_RESULT_HOLD_MS);
+  await wait(hasAuctionPurchaseResult(state) ? AUCTION_RESULT_HOLD_MS : TURN_RESULT_HOLD_MS);
   const latest = localSession.getState();
   if (latest.version !== state.version || latest.phase !== TURN_PHASES.TURN_END) return;
 
@@ -748,6 +783,29 @@ async function runSessionAction(actionName) {
   }
 }
 
+async function presentLocalAuctionStateChange(state) {
+  choiceDeclinedPending = false;
+  appendEvents(state);
+  setInteractionLocked(true);
+  try {
+    const decisiveBid = decisiveBidEvent(state);
+    if (decisiveBid) {
+      showImportantNotice(state, { durationMs: DECISIVE_BID_NOTICE_HOLD_MS });
+      await wait(DECISIVE_BID_NOTICE_HOLD_MS);
+      hideImportantNotice();
+      await playStateEvents(state);
+      renderPlaytest({ renderThree: false });
+    } else {
+      renderPlaytest({ renderThree: false });
+      await playStateEvents(state);
+      showImportantNotice(state);
+    }
+    await maybeAutoAdvanceLocalTurn(state);
+  } finally {
+    setInteractionLocked(false);
+  }
+}
+
 function startLocalPlaytest() {
   closeTileInfo({ force: true });
   closeTollNotice();
@@ -763,10 +821,7 @@ function startLocalPlaytest() {
   localAuctionUi = setupLocalAuctionUi({
     session: localSession,
     onStateChange(state) {
-      choiceDeclinedPending = false;
-      appendEvents(state);
-      renderPlaytest();
-      void maybeAutoAdvanceLocalTurn(state);
+      void presentLocalAuctionStateChange(state);
     },
   });
   playtestSection.hidden = false;
