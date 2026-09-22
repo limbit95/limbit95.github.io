@@ -44,7 +44,17 @@ export function createBgmController({
   audio.src = track.src;
   audio.preload = "auto";
   audio.loop = track.loop !== false;
-  audio.volume = readBgmVolume({ storage, fallback: track.defaultVolume });
+
+  const volumeMultiplier = Number.isFinite(Number(track.volumeMultiplier))
+    ? Math.max(0, Number(track.volumeMultiplier))
+    : 1;
+  let volume = readBgmVolume({ storage, fallback: track.defaultVolume });
+
+  function applyOutputVolume() {
+    audio.volume = Math.min(1, Math.max(0, volume * volumeMultiplier));
+  }
+
+  applyOutputVolume();
 
   const listeners = new Set();
   let status = BGM_STATE.IDLE;
@@ -60,7 +70,8 @@ export function createBgmController({
       status,
       hasEverPlayed,
       userPaused,
-      volume: Number(audio.volume),
+      volume,
+      outputVolume: Number(audio.volume),
       interactionBound,
       lastError,
     });
@@ -179,9 +190,9 @@ export function createBgmController({
   }
 
   function setVolume(value) {
-    if (destroyed) return Number(audio.volume);
-    const volume = writeBgmVolume(value, { storage });
-    audio.volume = volume;
+    if (destroyed) return volume;
+    volume = writeBgmVolume(value, { storage });
+    applyOutputVolume();
     emit();
     return volume;
   }
