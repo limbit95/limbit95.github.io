@@ -113,6 +113,8 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /function createDealFlight/u);
   assert.match(runtime, /className = "no-thanks-card-flight"/u);
   assert.match(runtime, /flight\.animate\(/u);
+  assert.match(runtime, /duration:\s*760/u);
+  assert.match(runtime, /offset:\s*\.22[\s\S]*?offset:\s*\.5[\s\S]*?offset:\s*\.78[\s\S]*?offset:\s*\.94/u);
   assert.match(runtime, /inner\.animate\(/u);
   assert.match(runtime, /landingTarget\?\.classList\.remove\("is-awaiting-deal"\)/u);
   assert.match(runtime, /event\.currentTarget\.classList\.add\("is-submitting"\)/u);
@@ -123,6 +125,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /chipPreviousCount/u);
   assert.match(runtime, /displayCount: effects\.chipFromPlayerId \? effects\.chipPreviousCount : null/u);
   assert.match(runtime, /commitCenterChipLanding\(board\)/u);
+  assert.match(runtime, /setTimeout\([\s\S]*?commitCenterChipLanding\(board\)[\s\S]*?,\s*100\)/u);
   assert.match(runtime, /syncBoardAnimationGeometry/u);
   assert.match(runtime, /boardPresentationEffect/u);
   assert.match(runtime, /boardPresentationEffect\.started = true/u);
