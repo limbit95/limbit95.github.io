@@ -97,6 +97,7 @@ export function createAuctionIntroPresenter({
 } = {}) {
   const elements = createOverlay(documentObject);
   let activeKey = null;
+  let spinningKey = null;
   let boundaryTimer = null;
   let playedSoundKey = null;
 
@@ -140,7 +141,13 @@ export function createAuctionIntroPresenter({
 
     if (activeKey !== key) {
       activeKey = key;
+      spinningKey = null;
       renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId);
+      elements.wheel.dataset.spinning = "false";
+    }
+
+    if (phase === "roulette" && spinningKey !== key) {
+      spinningKey = key;
       elements.wheel.dataset.spinning = "false";
       void elements.wheel.offsetWidth;
       elements.wheel.dataset.spinning = "true";
