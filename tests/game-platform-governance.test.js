@@ -255,14 +255,45 @@ test("document authority links are enforced only when the rulebook exists", () =
     registry: [],
     dbTestFiles: [],
     documents: {
-      "docs/game-platform-development-rules.md": "rules",
-      "AGENTS.md": "rules",
-      "games/README.md": "rules",
+      "docs/game-platform-development-rules.md": "rules\n체크포인트 기록하자",
+      "AGENTS.md": "rules\n체크포인트 기록하자",
+      "games/README.md": "rules\n체크포인트 기록하자",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
   });
   assert.equal(errors.length, 4);
+});
+
+test("platform checkpoint command stays consistent across command entrypoints", () => {
+  const command = "체크포인트 기록하자";
+
+  assert.deepEqual(validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        command,
+      ].join("\n"),
+      "AGENTS.md": command,
+      "games/README.md": command,
+    },
+  }), []);
+
+  const missingCommand = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        command,
+      ].join("\n"),
+      "AGENTS.md": command,
+      "games/README.md": "일반적인 진행상황 정리 요청",
+    },
+  });
+  assert.equal(missingCommand.length, 1);
+  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform DEVELOPMENT\.md checkpoint command/u);
+
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {

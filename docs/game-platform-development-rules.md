@@ -197,21 +197,26 @@ games/<game-id>/DEVELOPMENT.md
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
-### MUST: 사용자가 중간 진행 기록을 요청할 때
+### MUST: 사용자가 `체크포인트 기록하자`라고 요청할 때
 
-사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 현재 진행상황 저장을 명시적으로 요청하면 **Phase가 끝나지 않았더라도 즉시 checkpoint를 기록한다.**
+`체크포인트 기록하자`는 Game Platform의 명시적 handoff checkpoint 명령이다.
+
+사용자가 이 명령을 요청하면 해당 게임의 `games/<game-id>/DEVELOPMENT.md`를 현재 상태로 갱신하고, 유효한 현재 작업 브랜치에 commit해 다음 채팅이나 다음 작업자가 GitHub에서 바로 이어갈 수 있게 한다.
 
 이 경우:
 
-1. 현재 Phase 상태를 `IN_PROGRESS`로 유지한다.
-2. 마지막으로 실제 완료된 기능 작업과 UI/presentation 작업, 아직 완료되지 않은 항목을 `GAME_SPEC.md`와 `UI_DESIGN.md` 기준으로 구분한다.
-3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남기고, 기능/DB/UI 중 어떤 설계를 이어가는 작업인지 알 수 있게 한다.
-4. 지금까지 실행한 테스트와 UI/브라우저/반응형 검증, 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
-5. UI 설계 변경이나 자산/라이선스 판단이 아직 미확정이면 관련 `UI_DESIGN.md` 항목과 함께 `Known Issues / Deferred`에 남긴다.
-6. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
-7. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
+1. 현재 Phase가 진행 중이면 상태를 `IN_PROGRESS`로 유지한다.
+2. 실제 완료된 기능/UI 작업과 아직 완료되지 않은 항목을 구분한다.
+3. 다음 작업을 `Next Work`에 구체적으로 남긴다.
+4. 수행한 검증과 아직 수행하지 않은 검증을 `Validation`에 구분한다.
+5. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
+6. 기능 또는 UI 설계가 변경됐다면 책임 문서인 `GAME_SPEC.md` 또는 `UI_DESIGN.md`를 먼저 정합화한다.
 
-중간 checkpoint를 남기기 위해 별도의 새 브랜치를 만들거나 Phase를 완료 처리하지 않는다.
+이 명령이 아닌 일반적인 `새 채팅에서 이어서 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 요청은 자동으로 repository checkpoint 명령으로 확대 해석하지 않는다.
+
+이 사용자 명령은 중간 handoff checkpoint를 즉시 남기는 방법일 뿐이며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 설계 변경, blocker/known issue 발생 등 이 문서가 이미 정한 `DEVELOPMENT.md` 갱신 시점을 대체하거나 제한하지 않는다.
+
+중간 checkpoint를 남긴다는 이유만으로 Phase를 완료 처리하지 않는다. 진행 중 유효한 작업 브랜치가 있으면 그 브랜치를 계속 사용하며, 유효한 작업 브랜치가 없다면 저장소의 일반 브랜치 작업 규칙을 따른다.
 
 ### SHOULD: 갱신 빈도
 
@@ -219,7 +224,7 @@ games/<game-id>/DEVELOPMENT.md
 
 - Phase 시작 또는 작업 범위가 확정될 때
 - Phase 완료 시
-- 사용자가 명시적으로 중간 진행 기록을 요청할 때
+- 사용자가 `체크포인트 기록하자`라고 요청할 때
 - 중요한 아키텍처/게임 규칙 결정이 바뀔 때
 - `UI_DESIGN.md`의 Visual Identity, page/layout, 핵심 component, motion, responsive, 자산 사용 판단처럼 실제 UI 구현 방향이 바뀔 때
 - 다음 작업자에게 반드시 전달해야 할 blocker나 known issue가 생길 때

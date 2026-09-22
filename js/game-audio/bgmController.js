@@ -30,6 +30,22 @@ function isUsefulKeyboardActivation(event) {
   return event.key === "Enter" || event.key === " ";
 }
 
+function mapOutputVolume(volume, defaultVolume, defaultOutputVolume) {
+  const logicalVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+  const pivot = Math.min(1, Math.max(0, Number(defaultVolume) || 0));
+  const outputPivot = Math.min(1, Math.max(0, Number(defaultOutputVolume) || 0));
+
+  if (pivot <= 0) return logicalVolume;
+  if (logicalVolume <= pivot) {
+    return outputPivot * (logicalVolume / pivot);
+  }
+
+  if (pivot >= 1 || outputPivot >= 1) return 1;
+
+  const progress = (logicalVolume - pivot) / (1 - pivot);
+  return outputPivot + ((1 - outputPivot) * progress);
+}
+
 export function createBgmController({
   track,
   audioFactory = createDefaultAudio,
@@ -41,10 +57,31 @@ export function createBgmController({
   }
 
   const audio = audioFactory();
-  audio.src = track.src;
-  audio.preload = "auto";
-  audio.loop = track.loop !== false;
-  audio.volume = readBgmVolume({ storage, fallback: track.defaultVolume });
+  let currentTrack = track;
+  let defaultVolume = Number(currentTrack.defaultVolume);
+  let defaultOutputVolume = Number(currentTrack.defaultOutputVolume);
+
+  function applyTrack(nextTrack) {
+    if (!nextTrack?.src || !nextTrack?.gameId) {
+      throw new TypeError("BGM controller requires a track with gameId and src.");
+    }
+    currentTrack = nextTrack;
+    defaultVolume = Number(currentTrack.defaultVolume);
+    defaultOutputVolume = Number(currentTrack.defaultOutputVolume);
+    audio.src = currentTrack.src;
+    audio.preload = "auto";
+    audio.loop = currentTrack.loop !== false;
+  }
+
+  applyTrack(currentTrack);
+
+  let volume = readBgmVolume({ storage, fallback: defaultVolume });
+
+  function applyOutputVolume() {
+    audio.volume = mapOutputVolume(volume, defaultVolume, defaultOutputVolume);
+  }
+
+  applyOutputVolume();
 
   const listeners = new Set();
   let status = BGM_STATE.IDLE;
@@ -58,9 +95,11 @@ export function createBgmController({
   function snapshot() {
     return Object.freeze({
       status,
+      track: currentTrack,
       hasEverPlayed,
       userPaused,
-      volume: Number(audio.volume),
+      volume,
+      outputVolume: Number(audio.volume),
       interactionBound,
       lastError,
     });
@@ -178,10 +217,46 @@ export function createBgmController({
       : playByUser();
   }
 
+  async function switchTrack(nextTrack, { autoplayRequested = true } = {}) {
+    if (destroyed || playInFlight) return false;
+    if (!nextTrack?.src || !nextTrack?.gameId) {
+      throw new TypeError("BGM controller requires a track with gameId and src.");
+    }
+
+    const sameSource = currentTrack.src === nextTrack.src;
+    if (!sameSource) {
+      try {
+        audio.pause();
+      } catch {
+        // Track switching is best-effort if the browser audio element is tearing down.
+      }
+      removeInteractionListeners();
+    }
+
+    applyTrack(nextTrack);
+    applyOutputVolume();
+    lastError = null;
+
+    if (sameSource) {
+      emit();
+      return status === BGM_STATE.PLAYING;
+    }
+
+    if (userPaused) {
+      status = BGM_STATE.PAUSED_BY_USER;
+      emit();
+      return false;
+    }
+
+    setStatus(BGM_STATE.READY);
+    if (!autoplayRequested) return false;
+    return tryPlay("track-change");
+  }
+
   function setVolume(value) {
-    if (destroyed) return Number(audio.volume);
-    const volume = writeBgmVolume(value, { storage });
-    audio.volume = volume;
+    if (destroyed) return volume;
+    volume = writeBgmVolume(value, { storage });
+    applyOutputVolume();
     emit();
     return volume;
   }
@@ -206,9 +281,12 @@ export function createBgmController({
   }
 
   return Object.freeze({
-    track,
+    get track() {
+      return currentTrack;
+    },
     start,
     notifyGameStarted,
+    switchTrack,
     pauseByUser,
     playByUser,
     toggleByUser,

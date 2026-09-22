@@ -26,7 +26,6 @@ function iconButton(label, text, className) {
 
 export function mountBgmPlayer({ controller, mount = document.body } = {}) {
   if (!controller || !mount) return null;
-  const { track } = controller;
 
   const root = element("aside", {
     className: "game-bgm-player",
@@ -44,7 +43,7 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
   volumeButton.setAttribute("aria-expanded", "false");
   const sourceButton = iconButton(
     "음악 출처 보기",
-    `${track.title} · 출처`,
+    "음악 출처",
     "game-bgm-player__source-button",
   );
   sourceButton.setAttribute("aria-expanded", "false");
@@ -67,34 +66,42 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     className: "game-bgm-player__popover game-bgm-player__source-popover",
   });
   sourcePanel.hidden = true;
-  const sourceItems = [
-    element("strong", { text: track.title }),
-    element("span", { text: track.artist }),
-    track.isrc ? element("span", { text: `ISRC ${track.isrc}` }) : null,
-    element("span", { text: track.license }),
-    element("a", {
-      href: track.sourceUrl,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      text: "공식 출처 ↗",
-    }),
-    track.previewUrl ? element("a", {
-      href: track.previewUrl,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      text: "YouTube 영상 ↗",
-    }) : null,
-    element("a", {
-      href: track.licenseUrl,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      text: "라이선스 ↗",
-    }),
-  ].filter(Boolean);
-  sourcePanel.append(...sourceItems);
+  let renderedTrack = null;
+
+  function renderTrack(track) {
+    if (!track || track === renderedTrack) return;
+    renderedTrack = track;
+    sourceButton.textContent = `${track.title} · 출처`;
+    sourcePanel.replaceChildren(...[
+      element("strong", { text: track.title }),
+      element("span", { text: track.artist }),
+      track.isrc ? element("span", { text: `ISRC ${track.isrc}` }) : null,
+      element("span", { text: track.license }),
+      element("a", {
+        href: track.sourceUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        text: "공식 출처 ↗",
+      }),
+      track.previewUrl ? element("a", {
+        href: track.previewUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        text: "YouTube 영상 ↗",
+      }) : null,
+      element("a", {
+        href: track.licenseUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        text: "라이선스 ↗",
+      }),
+    ].filter(Boolean));
+  }
 
   root.append(equalizer, toggle, volumeButton, sourceButton, volumePanel, sourcePanel);
   mount.append(root);
+
+  const ownerDocument = root.ownerDocument ?? document;
 
   function closePopovers(except = null) {
     if (except !== volumePanel) {
@@ -131,7 +138,14 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     controller.setVolume(volumeInput.value);
   });
 
+  function onOutsidePointerDown(event) {
+    if (!root.contains(event.target)) closePopovers();
+  }
+
+  ownerDocument.addEventListener("pointerdown", onOutsidePointerDown);
+
   const unsubscribe = controller.subscribe((state) => {
+    renderTrack(state.track ?? controller.track);
     const playing = state.status === BGM_STATE.PLAYING;
     root.dataset.bgmState = state.status;
     root.classList.toggle("is-playing", playing && state.volume > 0);
@@ -147,6 +161,7 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     root,
     destroy() {
       unsubscribe();
+      ownerDocument.removeEventListener("pointerdown", onOutsidePointerDown);
       root.remove();
     },
   });
