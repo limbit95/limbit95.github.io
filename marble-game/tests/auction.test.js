@@ -4,8 +4,10 @@ import assert from "node:assert/strict";
 import {
   calculateAuctionOpeningBid,
   createPropertyAuction,
+  getAuctionSurgeThreshold,
   getPropertyAuctionMinimumBid,
   getPropertyAuctionSettlement,
+  isAuctionSurgeBid,
   reducePropertyAuction,
 } from "../js/core/auction.js";
 
@@ -126,6 +128,66 @@ test("players who cannot afford the next minimum bid are auto-passed", () => {
     && event.playerId === "d"
     && event.reason === "INSUFFICIENT_GOLD"
   )), true);
+});
+
+test("a bid above every remaining opponent's gold settles at the submitted final amount", () => {
+  const participantState = players({
+    b: { money: 1200 },
+    c: { money: 500 },
+  });
+  const initial = createPropertyAuction({
+    nodeId: "singapore",
+    openingBid: 390,
+    declinedByPlayerId: "a",
+    openingBidderPlayerId: "b",
+    participantPlayerIds: ["b", "c"],
+    players: participantState,
+  });
+
+  const first = reducePropertyAuction(initial, participantState, { playerId: "c", amount: 400 });
+  assert.equal(first.auction.highestBid, 400);
+  assert.equal(first.auction.turnPlayerId, "b");
+
+  const final = reducePropertyAuction(first.auction, participantState, { playerId: "b", amount: 600 });
+  assert.equal(final.auction.status, "WON");
+  assert.equal(final.auction.winnerPlayerId, "b");
+  assert.equal(final.auction.winningBid, 600);
+  assert.deepEqual(getPropertyAuctionSettlement(final.auction), {
+    nodeId: "singapore",
+    winnerPlayerId: "b",
+    amount: 600,
+  });
+
+  const bid = final.events.find((event) => event.type === "AUCTION_BID_PLACED");
+  assert.deepEqual(
+    {
+      amount: bid.amount,
+      previousAmount: bid.previousAmount,
+      increase: bid.increase,
+      surge: bid.surge,
+    },
+    { amount: 600, previousAmount: 400, increase: 200, surge: true },
+  );
+
+  const decisive = final.events.find((event) => event.type === "AUCTION_DECISIVE_BID");
+  assert.deepEqual(decisive, {
+    type: "AUCTION_DECISIVE_BID",
+    playerId: "b",
+    nodeId: "singapore",
+    amount: 600,
+    previousAmount: 400,
+    increase: 200,
+    eliminatedPlayerIds: ["c"],
+  });
+});
+
+test("large-bid threshold requires both meaningful absolute and relative movement", () => {
+  assert.equal(getAuctionSurgeThreshold(360), 108);
+  assert.equal(getAuctionSurgeThreshold(1000), 300);
+  assert.equal(isAuctionSurgeBid(360, 467), false);
+  assert.equal(isAuctionSurgeBid(360, 468), true);
+  assert.equal(isAuctionSurgeBid(1000, 1200), false);
+  assert.equal(isAuctionSurgeBid(1000, 1300), true);
 });
 
 test("timeout pass uses the same irreversible pass rule", () => {

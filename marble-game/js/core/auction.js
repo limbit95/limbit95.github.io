@@ -60,6 +60,21 @@ export function getPropertyAuctionMinimumBid(auction) {
   return auction.highestBid > 0 ? auction.highestBid + 1 : auction.openingBid;
 }
 
+export function getAuctionSurgeThreshold(previousAmount) {
+  const amount = Number(previousAmount);
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new Error("Previous auction amount must be a non-negative integer.");
+  }
+  return Math.max(100, Math.ceil(amount * 0.3));
+}
+
+export function isAuctionSurgeBid(previousAmount, amount) {
+  const previous = Number(previousAmount);
+  const next = Number(amount);
+  if (!Number.isSafeInteger(next) || next <= previous) return false;
+  return next - previous >= getAuctionSurgeThreshold(previous);
+}
+
 function getActiveIds(auction) {
   const passed = new Set(auction.passedPlayerIds);
   return auction.participantPlayerIds.filter((playerId) => !passed.has(playerId));
@@ -236,11 +251,13 @@ export function reducePropertyAuction(auction, players, action) {
     });
   } else {
     const amount = Number(action?.amount);
+    const previousAmount = Number(auction.highestBid) || 0;
     const minimumBid = getPropertyAuctionMinimumBid(auction);
     if (!Number.isSafeInteger(amount) || amount < minimumBid) {
       throw new Error(`Auction bid must be at least ${minimumBid}.`);
     }
     if (amount > Number(player.money)) throw new Error("Player cannot afford this auction bid.");
+    const increase = amount - previousAmount;
     nextAuction = freezeAuction({
       ...auction,
       bidPlayerIds: auction.bidPlayerIds.includes(playerId)
@@ -251,7 +268,15 @@ export function reducePropertyAuction(auction, players, action) {
       turnPlayerId: null,
       turnDeadlineAt: null,
     });
-    events.push({ type: "AUCTION_BID_PLACED", playerId, nodeId: auction.nodeId, amount });
+    events.push({
+      type: "AUCTION_BID_PLACED",
+      playerId,
+      nodeId: auction.nodeId,
+      amount,
+      previousAmount,
+      increase,
+      surge: isAuctionSurgeBid(previousAmount, amount),
+    });
   }
 
   const prepared = prepareNextTurn(nextAuction, players, playerId);
@@ -262,6 +287,23 @@ export function reducePropertyAuction(auction, players, action) {
       playerId: autoPassedPlayerId,
       nodeId: auction.nodeId,
       reason: "INSUFFICIENT_GOLD",
+    });
+  }
+
+  if (
+    nextAuction.status === "WON"
+    && action?.pass !== true
+    && prepared.autoPassedPlayerIds.length > 0
+  ) {
+    const bidEvent = events.find((event) => event.type === "AUCTION_BID_PLACED");
+    events.push({
+      type: "AUCTION_DECISIVE_BID",
+      playerId,
+      nodeId: auction.nodeId,
+      amount: nextAuction.winningBid,
+      previousAmount: bidEvent?.previousAmount ?? auction.highestBid,
+      increase: bidEvent?.increase ?? nextAuction.winningBid - auction.highestBid,
+      eliminatedPlayerIds: [...prepared.autoPassedPlayerIds],
     });
   }
 
