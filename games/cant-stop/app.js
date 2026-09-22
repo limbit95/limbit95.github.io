@@ -38,8 +38,15 @@ import {
   playCantStopBlizzardSound,
   playCantStopDiceRollSound,
 } from "./audio.js";
+import {
+  CANT_STOP_BGM_MODE,
+  createCantStopBgmSession,
+} from "./bgm.js";
 
 const root = document.getElementById("cant-stop-app");
+const cantStopBgm = createCantStopBgmSession();
+
+void cantStopBgm.start();
 
 const accessGate = createGameAccessGate({
   initialize: initializeAuth,
@@ -1329,6 +1336,12 @@ function patchGameShell(nextShell) {
 function renderApprovedRuntime(state) {
   if (!root) return;
 
+  void cantStopBgm.setMode(
+    state.view === CANT_STOP_LOBBY_VIEW.PLAYING
+      ? CANT_STOP_BGM_MODE.PLAYING
+      : CANT_STOP_BGM_MODE.LOBBY,
+  );
+
   presentActionError(state.error, state.snapshot?.version);
 
   if (state.effect?.type === "bust") {
@@ -1471,6 +1484,7 @@ function renderAccess(access) {
 
   const view = resolveCantStopAccessView(access);
   if (view === CANT_STOP_ACCESS_VIEW.AUTHENTICATION_REQUIRED) {
+    void cantStopBgm.setMode(CANT_STOP_BGM_MODE.LOBBY);
     bootEpoch += 1;
     disposeLobby();
     root.replaceChildren(createAccessPage({
@@ -1483,6 +1497,7 @@ function renderAccess(access) {
   }
 
   if (view === CANT_STOP_ACCESS_VIEW.APPROVAL_REQUIRED) {
+    void cantStopBgm.setMode(CANT_STOP_BGM_MODE.LOBBY);
     bootEpoch += 1;
     disposeLobby();
     root.replaceChildren(createAccessPage({
@@ -1499,6 +1514,7 @@ function renderAccess(access) {
 }
 
 function cleanup() {
+  cantStopBgm.destroy();
   accessUnsubscribe?.();
   accessUnsubscribe = null;
   disposeLobby();

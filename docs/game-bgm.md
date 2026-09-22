@@ -20,7 +20,7 @@ BGM이 등록된 게임 페이지에 진입하면 가능한 환경에서 즉시 
 - `js/game-audio/bgmPlayer.js`: 작은 Floating Player UI
 - `css/game-bgm-player.css`: 공통 Player 스타일
 
-The Game과 Liar Game에서 같은 utility를 재사용하고 있다. formal Game Platform shared 계약 승격은 Game Platform 게임에서도 같은 책임이 반복되는지 확인한 뒤 별도로 검토한다.
+The Game, Liar Game, Can’t Stop에서 같은 site-level utility를 재사용하고 있다. Can’t Stop의 상태별 BGM도 `games/shared/` 계약을 확장하지 않고 game-local presentation에서 utility를 소비한다. formal Game Platform shared 계약 승격은 별도의 공통화 근거가 충분해질 때 검토한다.
 
 ## 3. 재생 정책
 
@@ -47,27 +47,29 @@ Player UI는 다음 네 요소만 유지한다.
 
 사용자가 일시정지를 누르면 상태는 `PAUSED_BY_USER`가 되며 전역 interaction listener를 설치하지 않는다. 다시 듣고 싶을 때는 Player의 재생 버튼만 사용한다.
 
-볼륨은 `localStorage`에 저장한다. Player의 slider 값은 사용자 설정값으로 그대로 유지하고, 게임별 `defaultOutputVolume`은 기본 slider 위치에서의 실제 Audio 출력을 별도로 정의한다. The Game은 저장된 사용자 설정이 없을 때 slider를 70%로 시작하고 실제 초기 출력은 0.6으로 맞춘다. 이후 slider는 100%까지 계속 증가해 최대 출력 1.0에 도달한다. 새 document가 생성되면 `hasEverPlayed`, interaction 대기 여부 같은 runtime 상태는 다시 초기화한다.
+볼륨은 `localStorage`에 저장한다. Player의 slider 값은 사용자 설정값으로 그대로 유지하고, 게임별 `defaultOutputVolume`은 기본 slider 위치에서의 실제 Audio 출력을 별도로 정의한다. The Game은 저장된 사용자 설정이 없을 때 slider를 70%로 시작하고 실제 초기 출력은 0.6으로 맞춘다. 이후 slider는 100%까지 계속 증가해 최대 출력 1.0에 도달한다. 같은 document 안에서 track이 전환되면 현재 slider 값, `hasEverPlayed`, 사용자 pause 상태를 유지하고 Player의 곡명/출처 metadata만 현재 track에 맞게 갱신한다. 새 document가 생성되면 runtime 상태는 다시 초기화한다.
 
 ## 5. The Game Pilot
 
-- Track: Invariance
-- Artist: Kevin MacLeod
-- ISRC: USUAN1100847
-- Official source: Incompetech
-- Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
-- License: CC BY 4.0
-- Default slider volume: 0.70
-- Default output volume: 0.60
-- Loop: enabled
+The Game은 같은 document 안에서 대기/설정과 실제 gameplay의 BGM을 구분한다.
 
-Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지, 사용자가 제공한 YouTube 확인 영상, CC BY 4.0 라이선스를 함께 표시한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
+- Page entry / mode / local setup / online entry / online waiting / rematch waiting: **Constance — Kevin MacLeod**
+  - ISRC: USUAN1100850
+  - Official source: Incompetech
+  - License: CC BY 4.0
+- Local/online gameplay 시작 이후 / result presentation: **Invariance — Kevin MacLeod**
+  - ISRC: USUAN1100847
+  - Official source: Incompetech
+  - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
+  - License: CC BY 4.0
+- 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다.
+- `the-game:lobby-entered` presentation event는 mode/setup/online waiting/rematch waiting 진입을 알리고 Constance로 복귀시킨다.
+- 기존 `the-game:game-started` presentation event는 local/online gameplay 시작을 알리고 Invariance로 전환시킨다.
+- BGM event는 게임 상태를 변경하지 않으며, 사용자 pause와 저장 volume은 track 전환보다 우선한다.
 
-사용자가 제공한 MP3는 3분 38초, 192 kbps, 44.1 kHz stereo 파일로 확인했으며 ID3에는 곡명·아티스트·라이선스가 아닌 encoder 정보만 들어 있었다. 따라서 해당 파일은 곡 확인 자료로 사용하되, 출처와 사용 권한의 근거로 취급하지 않는다.
+Player의 출처 영역은 현재 재생 중인 곡의 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지와 CC BY 4.0 라이선스를 표시한다. Invariance에는 기존 YouTube reference도 함께 유지한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
 
-현재 Pilot은 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다.
-
-The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the-game:game-started` presentation event를 발생시킨다. 이 이벤트는 게임 상태를 바꾸지 않고 BGM fallback에만 사용한다.
+현재 두 곡 모두 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다.
 
 ## 6. Liar Game
 
@@ -83,7 +85,24 @@ The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the
 
 Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/player를 mount하고 즉시 재생을 시도한다. autoplay가 차단되면 기존 공통 interaction fallback을 사용하며 게임 인증, 방 생성/참가, Realtime 상태와는 독립적으로 동작한다.
 
-## 7. 경계
+## 7. Can’t Stop
+
+Can’t Stop은 하나의 게임 안에서 상태에 따라 BGM을 전환하는 첫 사례다.
+
+- Page entry / entry / waiting / rematch waiting: **Frozen Star — Kevin MacLeod**
+  - ISRC: USUAN1100356
+  - Official source: Incompetech
+  - License: CC BY 4.0
+- Authoritative room status `playing` / gameplay / GAME_OVER presentation: **Mountain Emperor — Kevin MacLeod**
+  - ISRC: USUAN1700012
+  - Official source: Incompetech
+  - License: CC BY 4.0
+- 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다.
+- 기존 dice/blizzard Web Audio SFX는 BGM과 분리된 game-local 효과음으로 유지한다.
+- BGM 전환은 authoritative snapshot을 변경하지 않고 `CANT_STOP_LOBBY_VIEW`를 읽는 presentation-only 동작이다.
+- 사용자가 Player에서 pause한 상태라면 lobby/gameplay 전환이 음악을 자동으로 다시 재생하지 않는다.
+
+## 8. 경계
 
 - BGM 오류는 방 생성, 참가, 준비, 게임 시작, Realtime, reconnect에 영향을 주지 않는다.
 - 기존 SFX/Web Audio 구현은 수정하지 않는다.
@@ -91,7 +110,7 @@ Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/play
 - 음악 선택, 기본 음량, 재생 연출은 각 게임의 presentation 책임으로 남긴다.
 - 저작권 또는 라이선스가 불명확한 음원을 catalog에 등록하지 않는다.
 
-## 8. 검증
+## 9. 검증
 
 자동 검증은 `the-game/tests/bgm.test.js`에서 수행한다.
 
@@ -102,5 +121,8 @@ Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/play
 - autoplay 차단 후 자연스러운 interaction 성공 시 listener 즉시 제거
 - 한 번 재생 후 사용자 pause 시 게임 interaction으로 재생되지 않음
 - authoritative gameplay 시작 fallback
+- 재생 성공 이력과 사용자 pause를 보존하는 track switching
+- The Game lobby/setup/rematch ↔ gameplay BGM mapping
+- Can’t Stop lobby ↔ gameplay BGM mapping
 
 브라우저 수동 검증에서는 desktop/mobile에서 Player가 핵심 게임 action을 가리지 않는지, autoplay 차단 환경에서 첫 interaction fallback이 동작하는지 확인한다.
