@@ -108,6 +108,10 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /min-height:\s*196px/u);
   assert.match(styles, /width:\s*86px/u);
   assert.match(styles, /\.no-thanks-hand-card:hover/u);
+  assert.match(
+    styles,
+    /@media \(max-width: 760px\)[\s\S]*?\.no-thanks-board-hud__badge,[\s\S]*?display:\s*inline-flex/u,
+  );
   assert.match(styles, /@keyframes no-thanks-seat-arrive/u);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/u);
 });
