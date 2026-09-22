@@ -58,6 +58,9 @@ if (onlineRoomId) {
   const OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
   const MOVE_COUNT_HOLD_MS = 1200;
   const TURN_RESULT_HOLD_MS = 2400;
+  const AUCTION_RESULT_HOLD_MS = 1200;
+  const DECISIVE_AUCTION_RESULT_HOLD_MS = 700;
+  const DECISIVE_BID_NOTICE_HOLD_MS = 2000;
   const OTHER_HUD_SLOTS = Object.freeze(["top-left", "top-right", "bottom-left"]);
   let session = null;
   let threeRenderer = null;
@@ -72,6 +75,7 @@ if (onlineRoomId) {
   let autoAdvancedTurnVersion = null;
   let eventHistory = [];
   let importantNoticeTimer = null;
+  let presentedDecisiveNoticeVersion = null;
   let lastAnimatedVersion = 0;
   let disposePresence = null;
 
@@ -418,6 +422,26 @@ if (onlineRoomId) {
     }
   }
 
+  function decisiveBidNoticeText(state, event) {
+    const bidder = state.players.find((candidate) => candidate.id === event.playerId);
+    const eliminatedIds = event.eliminatedPlayerIds ?? [];
+    const eliminated = state.players.find((candidate) => candidate.id === eliminatedIds[0]);
+    const targetName = eliminated
+      ? `${playerName(eliminated)}님${eliminatedIds.length > 1 ? " 등" : ""}`
+      : "상대 플레이어";
+    return `${playerName(bidder)}님이 ${targetName}의 보유 골드보다 높은 ${money(event.amount)}를 입찰했습니다!`;
+  }
+
+  async function presentDecisiveBidNotice(state, event) {
+    if (!importantNotice || presentedDecisiveNoticeVersion === state.version) return;
+    presentedDecisiveNoticeVersion = state.version;
+    window.clearTimeout(importantNoticeTimer);
+    importantNotice.textContent = decisiveBidNoticeText(state, event);
+    importantNotice.hidden = false;
+    await wait(DECISIVE_BID_NOTICE_HOLD_MS);
+    if (presentedDecisiveNoticeVersion === state.version) importantNotice.hidden = true;
+  }
+
   function showImportantNotice(state) {
     if (!importantNotice) return;
     const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
@@ -425,9 +449,11 @@ if (onlineRoomId) {
       event.type === "AUCTION_BID_PLACED" && event.surge === true
     ));
     let text = null;
+    if (decisiveBid && presentedDecisiveNoticeVersion === state.version) {
+      return;
+    }
     if (decisiveBid) {
-      const player = state.players.find((candidate) => candidate.id === decisiveBid.playerId);
-      text = `${playerName(player)}이(가) ${money(decisiveBid.amount)}로 승부를 결정했습니다! 다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다.`;
+      text = decisiveBidNoticeText(state, decisiveBid);
     } else if (surgeBid) {
       const player = state.players.find((candidate) => candidate.id === surgeBid.playerId);
       text = `큰 폭의 입찰! ${playerName(player)}이(가) ${money(surgeBid.amount)}로 ${money(surgeBid.increase)} 올렸습니다.`;
@@ -486,10 +512,8 @@ if (onlineRoomId) {
         text = `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
         break;
       }
-      if (event.type === "AUCTION_STARTED") {
-        const node = findNode(state, event.nodeId);
-        text = `${node?.label ?? event.nodeId} 경매가 시작되었습니다.`;
-        break;
+      if (event.type === "AUCTION_STARTING") {
+        continue;
       }
       if (event.type === "AUCTION_PASSED") {
         const player = state.players.find((candidate) => candidate.id === event.playerId);
@@ -629,6 +653,9 @@ if (onlineRoomId) {
         diceStage?.hide();
         pendingMoveTotal = null;
       }
+      if (event.type === "AUCTION_DECISIVE_BID") {
+        await presentDecisiveBidNotice(state, event);
+      }
       if (threeRendererReady) await threeRenderer.playEvent(event);
     }
     threeRenderer?.renderState(state);
@@ -652,7 +679,17 @@ if (onlineRoomId) {
     }
 
     autoAdvancedTurnVersion = state.version;
-    await wait(TURN_RESULT_HOLD_MS);
+    const decisiveAuction = state.lastEvents.some((event) => event.type === "AUCTION_DECISIVE_BID");
+    const auctionPurchase = state.lastEvents.some((event) => (
+      event.type === "PROPERTY_BOUGHT" && event.reason === "AUCTION"
+    ));
+    await wait(
+      decisiveAuction
+        ? DECISIVE_AUCTION_RESULT_HOLD_MS
+        : auctionPurchase
+          ? AUCTION_RESULT_HOLD_MS
+          : TURN_RESULT_HOLD_MS,
+    );
 
     const latest = session?.getState();
     if (
