@@ -2,6 +2,7 @@
 
 > Phase 4에서 Game Platform을 처음 실제 신규 게임에 적용해 v1까지 출시한 기준 명세입니다.
 > bootstrap 당시의 설계 의도와 최종 구현 결정을 함께 보존하되, 현재 동작과 충돌하는 미완료 표현은 release 기준으로 갱신합니다.
+> 상세 UI/presentation 기준은 같은 디렉터리의 `UI_DESIGN.md`에서 관리합니다.
 
 ## Game Overview
 
