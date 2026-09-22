@@ -9,6 +9,7 @@
 ## Current Design Track
 
 - Status: PAUSED
+- Lifecycle stage: MANUAL_DESIGN_REVIEW (PAUSED)
 - Current UI phase / scope: Board UI Phase A–D 이후 detail polish / Phase E 후보는 잠시 중단
 - Active branch: main
 - Last updated: 2026-09-23
@@ -18,17 +19,9 @@
 
 ## Decision Log
 
-### 2026-09-23 — UI decision history를 별도 문서로 분리
-
-- Context / trigger: 실제 UI 개발 과정에서 세밀한 사용자 피드백과 디자인 수정이 반복됐지만, 최종 `UI_DESIGN.md`와 기능 중심 `DEVELOPMENT.md`만으로는 그 결정 이유와 폐기된 대안을 충분히 복원하기 어려웠습니다.
-- Previous / alternatives: 디자인 진행 이력을 `DEVELOPMENT.md`에 계속 누적하거나 `UI_DESIGN.md`를 changelog처럼 사용하는 방식을 검토할 수 있었습니다.
-- Decision: `UI_DESIGN.md`는 초기 baseline으로 보존하고, 디자인 개발 진행·변경 배경·대안·결정 이유·검증 이력과 이후 override는 `UI_DECISIONS.md`로 분리합니다.
-- Rationale: 기능 개발 기록과 디자인 이력을 분리하면서도 과거의 중요한 사용자 의도를 잃지 않기 위해서입니다.
-- Affected surfaces: 문서 관리 전반
-- Implementation status: IMPLEMENTED
-- Validation: 문서/거버넌스 검증 대상
-- Baseline relation: 문서 관리 방식만 변경하며 기존 `UI_DESIGN.md` baseline과 runtime 디자인을 변경하지 않습니다.
-- Related functional boundary: `GAME_SPEC.md`와 `DEVELOPMENT.md`의 기능 책임은 유지합니다.
+- 아직 이 문서 체계 기준으로 복원·확정된 post-baseline 게임 디자인 decision은 없습니다.
+- 과거 수동 브라우저 QA와 개발자 피드백으로 실제 반영된 디자인 수정은 별도 복원 작업에서 증거를 확인한 뒤 Decision ID를 부여해 추가합니다.
+- 문서 체계 도입 자체는 게임 화면 디자인 결정이 아니므로 Decision Log에 기록하지 않습니다.
 
 ## Superseded / Rejected
 
