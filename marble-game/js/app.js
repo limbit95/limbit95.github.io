@@ -61,7 +61,6 @@ const MOVE_COUNT_HOLD_MS = 1200;
 const TURN_RESULT_HOLD_MS = 2400;
 const AUCTION_RESULT_HOLD_MS = 1200;
 const DECISIVE_AUCTION_RESULT_HOLD_MS = 700;
-const DECISIVE_BID_NOTICE_HOLD_MS = 2000;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -78,7 +77,6 @@ let tileInfoChoiceAction = null;
 let choiceDeclinedPending = false;
 let autoAdvancedTurnVersion = null;
 let importantNoticeTimer = null;
-let presentedDecisiveNoticeVersion = null;
 
 function money(value, options = {}) {
   return formatThemeMoney(value, CLASSIC_RULES.currency, options);
@@ -515,20 +513,9 @@ function decisiveBidNoticeText(state, event) {
   return `${bidderName}님이 ${targetName}의 보유 골드보다 높은 ${money(event.amount)}를 입찰했습니다!`;
 }
 
-async function presentDecisiveBidNotice(state, event) {
-  if (!importantNotice || presentedDecisiveNoticeVersion === state.version) return;
-  presentedDecisiveNoticeVersion = state.version;
-  window.clearTimeout(importantNoticeTimer);
-  importantNotice.textContent = decisiveBidNoticeText(state, event);
-  importantNotice.hidden = false;
-  await wait(DECISIVE_BID_NOTICE_HOLD_MS);
-  if (presentedDecisiveNoticeVersion === state.version) importantNotice.hidden = true;
-}
-
 function importantEventMessage(state) {
   const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
   if (decisiveBid) {
-    if (presentedDecisiveNoticeVersion === state.version) return null;
     return decisiveBidNoticeText(state, decisiveBid);
   }
 
@@ -700,12 +687,16 @@ async function playStateEvents(state) {
       diceStage?.hide();
       pendingMoveTotal = null;
     }
-    if (event.type === "AUCTION_DECISIVE_BID") {
-      await presentDecisiveBidNotice(state, event);
-    }
     if (threeRendererReady) await threeRenderer.playEvent(event);
   }
   if (threeRendererReady) threeRenderer.renderState(state);
+}
+
+function isAuctionResolutionState(state) {
+  return state.phase === TURN_PHASES.TURN_END && state.lastEvents.some((event) => (
+    event.type?.startsWith("AUCTION_")
+    || (event.type === "PROPERTY_BOUGHT" && event.reason === "AUCTION")
+  ));
 }
 
 async function maybeAutoAdvanceLocalTurn(state) {
@@ -759,8 +750,10 @@ async function runSessionAction(actionName) {
     appendEvents(state);
     setInteractionLocked(true);
     renderPlaytest({ renderThree: false });
+    const auctionResolution = isAuctionResolutionState(state);
+    if (auctionResolution) showImportantNotice(state);
     await playStateEvents(state);
-    showImportantNotice(state);
+    if (!auctionResolution) showImportantNotice(state);
 
     const tollNotice = createClassicTollNotice(state);
     if (tollNotice) {
@@ -804,9 +797,11 @@ function startLocalPlaytest() {
       appendEvents(state);
       setInteractionLocked(true);
       renderPlaytest({ renderThree: false });
+      const auctionResolution = isAuctionResolutionState(state);
+      if (auctionResolution) showImportantNotice(state);
       void playStateEvents(state)
         .then(() => {
-          showImportantNotice(state);
+          if (!auctionResolution) showImportantNotice(state);
           return maybeAutoAdvanceLocalTurn(state);
         })
         .finally(() => setInteractionLocked(false));
