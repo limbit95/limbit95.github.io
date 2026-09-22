@@ -26,9 +26,8 @@ function requirePlayer(players, playerId) {
 export const AUCTION_TIMING = Object.freeze({
   voteMs: 15_000,
   startAnnouncementMs: 2_000,
-  rouletteSpinMs: 3_200,
-  rouletteResultHoldMs: 2_000,
-  openingBidderNoticeMs: 2_000,
+  selectorSpinMs: 2_800,
+  selectorResultHoldMs: 800,
   bidTurnMs: 15_000,
 });
 
@@ -158,8 +157,7 @@ export function createPropertyAuction({
   nodeId,
   openingBid,
   declinedByPlayerId,
-  openingBidderPlayerId,
-  requesterPlayerId = null,
+  starterPlayerId,
   participantPlayerIds,
   players,
   turnDeadlineAt = null,
@@ -174,9 +172,8 @@ export function createPropertyAuction({
     openingBid: normalizedOpeningBid,
     players,
   });
-  const firstBidderPlayerId = openingBidderPlayerId ?? requesterPlayerId;
-  if (!eligiblePlayerIds.includes(firstBidderPlayerId)) {
-    throw new Error("Auction opening bidder must be eligible for this auction.");
+  if (!eligiblePlayerIds.includes(starterPlayerId)) {
+    throw new Error("Auction starter must be eligible for this auction.");
   }
   if (!Array.isArray(participantPlayerIds) || participantPlayerIds.length === 0) {
     throw new Error("Auction participants are required.");
@@ -185,38 +182,31 @@ export function createPropertyAuction({
   if (uniqueParticipants.length !== participantPlayerIds.length) {
     throw new Error("Auction participant ids must be unique.");
   }
-  if (uniqueParticipants[0] !== firstBidderPlayerId) {
-    throw new Error("Auction opening bidder must be the first participant.");
+  if (!uniqueParticipants.includes(starterPlayerId)) {
+    throw new Error("Auction starter must be a participant.");
   }
   if (uniqueParticipants.some((playerId) => !eligiblePlayerIds.includes(playerId))) {
     throw new Error("Auction participants must be eligible.");
   }
 
-  const initial = freezeAuction({
+  return freezeAuction({
     type: "PROPERTY_AUCTION",
     nodeId,
     openingBid: normalizedOpeningBid,
     declinedByPlayerId,
     eligiblePlayerIds,
     participantPlayerIds: uniqueParticipants,
-    openingBidderPlayerId: firstBidderPlayerId,
-    requesterPlayerId: firstBidderPlayerId,
+    starterPlayerId,
     requestedByPlayerIds: [],
-    bidPlayerIds: [firstBidderPlayerId],
+    bidPlayerIds: [],
     passedPlayerIds: [],
-    highestBid: normalizedOpeningBid,
-    highestBidderId: firstBidderPlayerId,
-    turnPlayerId: null,
+    highestBid: 0,
+    highestBidderId: null,
+    turnPlayerId: starterPlayerId,
     turnDeadlineAt,
     status: "OPEN",
     winnerPlayerId: null,
     winningBid: 0,
-  });
-
-  const prepared = prepareNextTurn(initial, players, firstBidderPlayerId);
-  return freezeAuction({
-    ...prepared.auction,
-    turnDeadlineAt: prepared.auction.status === "OPEN" ? turnDeadlineAt : null,
   });
 }
 
@@ -279,7 +269,7 @@ export function reducePropertyAuction(auction, players, action) {
       amount,
       previousAmount,
       increase,
-      surge: isAuctionSurgeBid(previousAmount, amount),
+      surge: previousAmount > 0 && isAuctionSurgeBid(previousAmount, amount),
     });
   }
 
