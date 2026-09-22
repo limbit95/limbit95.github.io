@@ -262,80 +262,75 @@ function resolveAuctionVote(state, action, options, {
     }, action);
   }
 
-  const randomizedPlayerIds = participantPlayerIds.length > 1
-    ? shuffleAuctionParticipants(participantPlayerIds, options.random)
-    : participantPlayerIds;
-  const openingBidderPlayerId = randomizedPlayerIds[0];
-  const announcementEndsAt = participantPlayerIds.length > 1
-    ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs)
-    : null;
-  const rouletteStopsAt = participantPlayerIds.length > 1
-    ? deadlineAt(
-      options,
-      AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.rouletteSpinMs,
-    )
-    : null;
-  const winnerNoticeAt = participantPlayerIds.length > 1
-    ? deadlineAt(
-      options,
-      AUCTION_TIMING.startAnnouncementMs
-        + AUCTION_TIMING.rouletteSpinMs
-        + AUCTION_TIMING.rouletteResultHoldMs,
-    )
-    : null;
-  const startsAt = participantPlayerIds.length > 1
-    ? deadlineAt(
-      options,
-      AUCTION_TIMING.startAnnouncementMs
-        + AUCTION_TIMING.rouletteSpinMs
-        + AUCTION_TIMING.rouletteResultHoldMs
-        + AUCTION_TIMING.openingBidderNoticeMs,
-    )
-    : null;
-  const auction = createPropertyAuction({
-    nodeId: vote.nodeId,
-    openingBid: vote.openingBid,
-    declinedByPlayerId: vote.declinedByPlayerId,
-    openingBidderPlayerId,
-    participantPlayerIds: randomizedPlayerIds,
-    players: state.players,
-    turnDeadlineAt: participantPlayerIds.length > 1
-      ? Number(startsAt) + AUCTION_TIMING.bidTurnMs
-      : null,
-  });
-  const timedAuction = participantPlayerIds.length > 1
-    ? Object.freeze({
-      ...auction,
-      announcementEndsAt,
-      rouletteStopsAt,
-      winnerNoticeAt,
-      startsAt,
-    })
-    : auction;
-
-  if (participantPlayerIds.length === 1 || timedAuction.status === "WON") {
-    return settleAuctionWinner(state, action, timedAuction, [
+  if (participantPlayerIds.length === 1) {
+    const playerId = participantPlayerIds[0];
+    const autoPurchaseAuction = Object.freeze({
+      ...createPropertyAuction({
+        nodeId: vote.nodeId,
+        openingBid: vote.openingBid,
+        declinedByPlayerId: vote.declinedByPlayerId,
+        starterPlayerId: playerId,
+        participantPlayerIds,
+        players: state.players,
+      }),
+      bidPlayerIds: Object.freeze([playerId]),
+      highestBid: vote.openingBid,
+      highestBidderId: playerId,
+      turnPlayerId: null,
+      turnDeadlineAt: null,
+      status: "WON",
+      winnerPlayerId: playerId,
+      winningBid: vote.openingBid,
+    });
+    return settleAuctionWinner(state, action, autoPurchaseAuction, [
       ...events,
       {
         type: "AUCTION_AUTO_PURCHASED",
         nodeId: vote.nodeId,
-        playerId: openingBidderPlayerId,
+        playerId,
         amount: vote.openingBid,
       },
     ]);
   }
+
+  const randomizedPlayerIds = shuffleAuctionParticipants(participantPlayerIds, options.random);
+  const starterPlayerId = randomizedPlayerIds[0];
+  const announcementEndsAt = deadlineAt(options, AUCTION_TIMING.startAnnouncementMs);
+  const selectorStopsAt = deadlineAt(
+    options,
+    AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.selectorSpinMs,
+  );
+  const startsAt = deadlineAt(
+    options,
+    AUCTION_TIMING.startAnnouncementMs
+      + AUCTION_TIMING.selectorSpinMs
+      + AUCTION_TIMING.selectorResultHoldMs,
+  );
+  const auction = createPropertyAuction({
+    nodeId: vote.nodeId,
+    openingBid: vote.openingBid,
+    declinedByPlayerId: vote.declinedByPlayerId,
+    starterPlayerId,
+    participantPlayerIds: randomizedPlayerIds,
+    players: state.players,
+    turnDeadlineAt: Number(startsAt) + AUCTION_TIMING.bidTurnMs,
+  });
+  const timedAuction = Object.freeze({
+    ...auction,
+    announcementEndsAt,
+    selectorStopsAt,
+    startsAt,
+  });
 
   return withVersion(state, {
     pendingChoice: Object.freeze({
       type: "PROPERTY_AUCTION",
       nodeId: vote.nodeId,
       openingBid: vote.openingBid,
-      openingBidderPlayerId,
-      requesterPlayerId: openingBidderPlayerId,
+      starterPlayerId,
       participantPlayerIds: Object.freeze(randomizedPlayerIds),
       announcementEndsAt,
-      rouletteStopsAt,
-      winnerNoticeAt,
+      selectorStopsAt,
       startsAt,
       auction: timedAuction,
     }),
@@ -345,11 +340,10 @@ function resolveAuctionVote(state, action, options, {
         type: "AUCTION_STARTING",
         nodeId: vote.nodeId,
         openingBid: vote.openingBid,
-        openingBidderPlayerId,
+        starterPlayerId,
         participantPlayerIds: randomizedPlayerIds,
         announcementEndsAt,
-        rouletteStopsAt,
-        winnerNoticeAt,
+        selectorStopsAt,
         startsAt,
       },
     ]),
