@@ -734,6 +734,23 @@ body[data-play-mode="window"] .important-notice {
   color: #ffe29a;
   font-size: 1rem;
   font-weight: 950;
+  opacity: 0;
+}
+
+.auction-intro[data-phase="roulette"] .auction-roulette__result {
+  animation: auctionRouletteResult 3.12s ease-out both;
+}
+
+@keyframes auctionRouletteResult {
+  0%,
+  88% {
+    opacity: 0;
+    transform: translateY(5px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @keyframes auctionIntroPop {
