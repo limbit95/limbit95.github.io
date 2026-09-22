@@ -3,6 +3,201 @@
 > 이 문서는 현재 개발 상태를 다음 작업자나 다음 채팅으로 전달하기 위한 인수인계 문서입니다.
 > 게임 규칙과 구현 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다.
 
+## Latest Handoff Snapshot — 2026-09-22 17:06 KST
+
+이 절은 **새 ChatGPT 채팅에서 "이어서 작업하자", "가장 최근 개발 진행 기록을 검토하고 이어서 작업하자"라고 요청했을 때 가장 먼저 읽어야 하는 최신 인수인계 기록**입니다. 아래 기록과 `GAME_SPEC.md`를 함께 기준으로 삼고, 오래된 Phase 기록보다 이 절의 현재 상태를 우선합니다.
+
+### Repository / Branch / PR
+
+- Repository: `limbit95/limbit95.github.io`
+- Base branch: `main`
+- 현재 작업 브랜치: `feature/no-thanks-board-ui-phase1-a-d`
+- Pull Request: **#364**
+- PR 상태: **OPEN / mergeable**
+- 사용자 승인 전에는 main에 병합하지 않습니다.
+- 마지막 기능 검증 implementation HEAD: `6d31f3f6c6c17dd903212031d9786d670005822b`
+- 해당 시점 최신 main: `cf8bf1185efdbeeaa71de2e5410489082f916a8a`
+- 해당 시점 compare: **ahead 73 / behind 0**
+- 이후 문서-only handoff commit이 추가될 수 있으므로 새 채팅에서는 반드시 branch 최신 HEAD와 최신 main을 다시 조회합니다.
+- 같은 No Thanks! UI 개선의 연속 작업이면 **새 브랜치를 만들지 말고 이 브랜치/PR #364를 계속 사용**합니다. 단, PR이 이미 병합/종료된 상태라면 최신 main에서 새 작업 브랜치를 만듭니다.
+
+### 새 채팅 시작 시 복원 순서
+
+1. 최신 `main`, 위 작업 브랜치, PR #364의 state / head SHA / mergeability를 확인합니다.
+2. `docs/game-platform-development-rules.md`를 읽습니다.
+3. `games/no-thanks/DEVELOPMENT.md`의 이 Latest Handoff Snapshot과 `games/no-thanks/GAME_SPEC.md`를 읽습니다.
+4. 수정 대상에 따라 `main.js`, `styles.css`, `boardLayout.js`, `lobbyController.js`, `gameplay.js`, Supabase No Thanks migrations와 관련 테스트를 확인합니다.
+5. 기존 동작/서버 권위/데이터 구조를 유지하면서 요청 범위만 최소 수정합니다.
+6. `games/**` 변경 후 Game Platform governance를 확인하고, DB migration 변경 시 Game DB integration까지 확인합니다.
+7. 사용자 명시 승인 없이 main에 merge하지 않습니다.
+
+### 현재 구현 상태 — Board UI
+
+- WAITING / PLAYING은 같은 대형 게임 보드 scene을 사용합니다.
+- 3–7인 좌석은 viewer가 항상 6시 방향이 되도록 **표현 순서만 회전**하며 authoritative seat/order는 변경하지 않습니다.
+- 원형 테이블은 보드 중앙에 배치되고, 좌석은 테이블 테두리를 살짝 걸친 채 대부분 바깥쪽에 위치합니다.
+- 현재 차례 좌석은 기본 크기보다 약 30% 확대됩니다.
+  - desktop: 82px → 107px
+  - tablet: 72px → 94px
+  - mobile: 62px → 81px
+- 좌석 프로필 아래에 사이트 프로필 닉네임을 표시합니다.
+- 사이트 공개 프로필 avatar를 사용하고 실패/미설정 시 `../../assets/images/default-avatar.svg`로 fallback 합니다.
+- 보드 우측 상단 HUD에 room code / 인원 / ready / connection / host 상태를 표시합니다.
+- Presence 비연결 표시는 `자리이탈`입니다.
+- 개인 패널:
+  - chip 열 desktop 192px
+  - PLAYING 하단 차례 반복 문구 제거
+  - 우측 보조 액션은 한 행에 한 버튼씩 1열
+  - min-height 220px
+  - hand 영역 160px
+  - 보유 카드 hover/focus는 z-index/scale로 주변 카드를 덮지 않고 `top: -24px`로 위로 올라옵니다.
+- 현재 카드 자체 클릭은 기존 `lobbyController.takeCard()`를 호출합니다.
+- `칩 1개 내기`는 기존 `lobbyController.refuseCard()`를 호출합니다.
+- 중앙 칩이 0개이면 `0개` count 텍스트는 렌더하지 않습니다.
+- draw deck visual depth는 실제 장수를 그대로 복제하지 않고 `getNoThanksDeckVisualCount()` 단계 규칙을 따릅니다.
+  - 0→0, 1→1, 2–3→2, 4–7→3, 8–11→4, 12–15→5, 16–19→6, 20+→7
+- 개인 chip cluster는 시각 cap 16, compact cap 7입니다.
+
+### 현재 구현 상태 — 카드 공개 애니메이션
+
+사용자는 **The Game의 카드 이동/뒤집기 애니메이션처럼 끊김 없이 자연스러운 느낌**을 기준으로 보고 있습니다. 현재 구현은 그 구조를 직접 참고해 다음 방식입니다.
+
+- The Game `the-game/js/cardMotion.js`와 `the-game/css/gameplay-enhancements.css`의 moving-card handoff 패턴을 참고했습니다.
+- 최종 current-card DOM 자체를 이동시키지 않습니다.
+- draw deck 최상단 카드의 실제 `getBoundingClientRect()`를 출발점으로 측정합니다.
+- 별도의 `position: fixed` flight card를 생성합니다.
+- flight card와 내부 face flip을 Web Animations API로 독립 재생합니다.
+- 이동/flip 시간은 **760ms**입니다.
+- path는 The Game과 유사하게 22% / 50% / 78% / 94% 중간 지점을 사용하고 약간 위로 뜨는 arc를 만듭니다.
+- inner face는 **rotateY(180deg → 360deg)**로 뒤집히며, 초반 20%까지 backside를 유지해 뒤집는 느낌을 더 분명하게 합니다.
+- 실제 current card는 landing 전 `.is-awaiting-deal` 상태에서 숨겨집니다.
+- flight가 target에 도착한 프레임에 실제 current card를 노출하고 flight를 약 **130ms settle/fade**한 뒤 제거합니다.
+- draw deck 자체 visual layer는 애니메이션 때문에 숨기거나 줄이지 않습니다. 덱 depth는 오직 남은 카드 단계 규칙으로만 변합니다.
+- 사용자가 카드 motion을 계속 시각 QA 중이므로, 다음 피드백이 오면 **The Game의 flight card/flip 타이밍과 비교해서 path·duration·perspective를 미세 조정**하되 server state나 deck depth 규칙은 건드리지 않습니다.
+
+### 현재 구현 상태 — 칩 이동 애니메이션
+
+사용자는 현재 칩 이동 경로 자체는 만족한 상태이며 **도착과 pile 증가 타이밍**을 중요하게 보고 있습니다.
+
+- refuse snapshot이 먼저 도착해도 중앙 pile/count는 즉시 최종 값으로 표시하지 않습니다.
+- `chipPreviousCount`를 presentation state로 보존합니다.
+- 작은 red chip flight가 행동 플레이어 좌석 프로필 위치에서 실제 중앙 chip zone으로 이동합니다.
+- token 크기: 26px
+- flight duration: 약 780ms
+- 이동 중 opacity를 유지해 경로가 확실히 보입니다.
+- 중앙 chip pile/count는 flight 동안 **이전 개수**를 유지합니다.
+- flight가 target에 완전히 도착한 뒤 **100ms landing dwell**을 둡니다.
+- 그 다음 `commitCenterChipLanding()`을 호출해 중앙 pile/count를 최종 값으로 +1 반영합니다.
+- 의도한 사용자 체감 순서는 정확히:
+  `좌석 프로필에서 칩 출발 → 칩 더미 존 도착 → 짧게 안착 → 칩 더미 +1`
+- 다음 수정에서 chip flight 자체를 화려하게 바꾸지 말고, 피드백이 있다면 **landing dwell / target geometry / pile handoff timing** 위주로 조정합니다.
+
+### 현재 구현 상태 — gameplay action 렌더 성능
+
+- 기존 take/refuse는 `busy=true 전체 render → authoritative snapshot render → busy=false 전체 render`로 최대 3회 전체 render가 발생할 수 있었습니다.
+- 현재는 gameplay action에 silent busy lock을 사용합니다.
+- 클릭한 current card / refuse button은 DOM에서 즉시 disabled 처리해 중복 입력을 막습니다.
+- RPC 전 busy-only 전체 render는 생략합니다.
+- authoritative result snapshot에 `busy=false`를 함께 적용해 성공 경로를 **전체 render 1회**로 줄였습니다.
+- 서버 권위, expected version, client action id 계약은 유지합니다.
+
+### 현재 구현 상태 — 재대결
+
+**이 부분은 기존 fresh-room 정책에서 사용자의 의도에 맞게 변경되었습니다. 오래된 기록의 “새 방 생성/새 코드 재참가” 설명을 현재 정책으로 사용하면 안 됩니다.**
+
+현재 의도는:
+`게임 종료 → 재대결 → 기존 게임 참가자/좌석 그대로 WAITING → 일반 플레이어 다시 준비 완료 → 방장이 즉시 새 게임 시작`
+
+구현:
+
+- 신규 migration:
+  `supabase/no-thanks/20260922170000_no_thanks_rematch_lobby.sql`
+- 신규 RPC:
+  `public.no_thanks_prepare_rematch(room_id, expected_version, client_action_id)`
+- 방장만 GAME_OVER 상태에서 호출할 수 있습니다.
+- 서버에서 room lock / host / expected version / GAME_OVER / 기존 turnOrder 참가자 전원 active 여부를 검증합니다.
+- 유지:
+  - room id
+  - room code
+  - host
+  - active membership
+  - seat
+- 초기화:
+  - active player `is_ready = false`
+  - 획득 `cards = {}`
+  - `game_state = null`
+  - 이전 `no_thanks_room_private_state` row 삭제
+- room status는 `waiting`으로 돌아가고 version이 증가합니다.
+- 이후 일반 플레이어들이 다시 ready하면 기존 `no_thanks_start_game`으로 다음 게임을 시작합니다.
+- 이전 action row는 삭제하지 않고 새 client_action_id / 새 version으로 다음 게임을 구분합니다.
+- 결과 화면에서 이미 명시적으로 나간 참가자가 있으면 `REMATCH_PLAYERS_CHANGED`로 same-member rematch를 거부합니다.
+- UI dialog 문구도 “새 방 만들기”가 아니라 **같은 멤버로 재대결 / 현재 참가자와 좌석 유지 / 다시 준비 완료** 흐름으로 변경했습니다.
+- 기존 controller 메서드 이름 `createRematchRoom()`은 현재 내부적으로 `gameplay.prepareRematch()`를 호출합니다. 이름은 레거시지만 동작은 더 이상 새 room 생성이 아닙니다. 불필요한 리네임 리팩터링은 하지 않았습니다.
+
+### 최신 주요 변경 파일
+
+- `games/no-thanks/main.js`
+  - board scene / player panel / flight-card animation / chip landing handoff / rematch UI
+- `games/no-thanks/styles.css`
+  - board/table/seat/panel/card/chip/flight visual rules
+- `games/no-thanks/boardLayout.js`
+  - 3–7인 seat rotation / centered edge anchoring / deck/chip visual helpers
+- `games/no-thanks/lobbyController.js`
+  - gameplay render optimization / same-room rematch command
+- `games/no-thanks/gameplay.js`
+  - refuse/take/end + prepareRematch adapter
+- `games/no-thanks/runtimeModel.js`
+  - rematch error messages 포함 runtime view mapping
+- `supabase/no-thanks/20260922170000_no_thanks_rematch_lobby.sql`
+  - same-room rematch RPC
+- `tests/game-platform-no-thanks-board-layout.test.js`
+- `tests/game-platform-no-thanks-lobby-controller.test.js`
+- `tests/game-platform-no-thanks-gameplay.test.js`
+- `tests/game-platform-no-thanks-shell.test.js`
+- `games/no-thanks/GAME_SPEC.md`
+- `games/no-thanks/DEVELOPMENT.md`
+
+### 최신 검증 상태
+
+implementation HEAD `6d31f3f6c6c17dd903212031d9786d670005822b` 기준:
+
+- Game Platform governance **run #327 — SUCCESS**
+  - Game Platform JavaScript syntax
+  - shared module link check
+  - `npm run test:game-platform`
+  - Game Platform boundary guard
+- Site static checks **run #3351 — SUCCESS**
+- Game DB integration **run #217 — SUCCESS**
+  - isolated Supabase services 기동
+  - No Thanks migrations 포함 DB 준비
+  - Game DB integration tests 성공
+- PR #364: OPEN / mergeable
+- unresolved review thread: 0
+- 최신 main 대비 behind: 0
+- main에는 아직 병합하지 않았습니다.
+
+### 다음 작업에서 특히 주의할 점
+
+- 카드 공개 애니메이션은 사용자가 계속 감각적으로 검토 중입니다. “The Game처럼 더 자연스럽게” 요청이 오면 먼저 The Game의 실제 flight/flip 구현과 현재 No Thanks 구현을 나란히 비교합니다.
+- 칩 이동 애니메이션의 이동 자체는 만족한 상태이므로 **불필요하게 디자인/경로를 다시 만들지 않습니다.** 타이밍 피드백이 오면 landing dwell만 우선 조정합니다.
+- 중앙 chip snapshot은 서버상 이미 증가해 있어도 animation presentation 동안 직전 값을 보여주는 의도적 UI hold가 있습니다. 이 presentation hold를 authoritative DB 값 변경과 혼동하지 않습니다.
+- same-room rematch는 새로 추가된 서버 기능입니다. 재대결 관련 수정 시 fresh-room 정책으로 되돌리지 않습니다.
+- 재대결 중 누군가 이미 결과방에서 leave한 경우에는 같은 멤버 복원 기능을 구현하지 않았습니다. 현재는 안전하게 `REMATCH_PLAYERS_CHANGED`로 거부합니다.
+- `styles.css`에는 여러 iterative override section이 누적되어 있습니다. 현재는 마지막 선언 우선으로 정상 동작하며, 사용자 요청 없이 대규모 CSS 정리/리팩터링을 하지 않습니다.
+- 아직 후속으로 남아 있는 시각 기능:
+  - 다른 플레이어 공개 카드 popover (Phase E)
+  - TAKE_CARD 시 가져간 기존 current card + 중앙 칩이 획득 플레이어 쪽으로 이동하는 추가 연출
+- 사용자 명시 승인 전에는 PR #364를 main에 merge하지 않습니다.
+
+### 새 채팅에서 사용자가 이렇게 말하면
+
+- **“이어서 작업하자”**
+  - 이 Latest Handoff Snapshot을 기준으로 PR #364/작업 브랜치 최신 상태를 확인한 뒤 바로 이어갑니다.
+- **“이어서 작업하려는데 가장 최근 개발 진행 기록을 검토 먼저 해봐”**
+  - 이 절과 `GAME_SPEC.md`를 먼저 검토하고, 최신 branch/main/PR/CI 상태를 재확인한 뒤 현재 상태와 다음 작업 포인트를 요약합니다.
+- **“main에 병합하자” / “병합해”**
+  - 명시적 merge 승인입니다. 먼저 최신 main과 PR #364의 current head, mergeability, CI, unresolved review를 다시 확인한 뒤 이상 없으면 PR을 통해 main에 병합합니다. main에 직접 commit/push하지 않습니다.
+
 ## Current Status
 
 - Phase: Board UI redesign — Phase A–D
