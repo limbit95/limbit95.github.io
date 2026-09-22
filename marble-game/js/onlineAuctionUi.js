@@ -160,7 +160,11 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
       ?? participantPlayerIds[0]
       ?? null,
     participantPlayerIds: Object.freeze([...participantPlayerIds]),
-    participantCards: participantCards(state, participantPlayerIds),
+    participantCards: participantCards(
+      state,
+      participantPlayerIds,
+      auction.openingBidderPlayerId ?? pending.openingBidderPlayerId ?? null,
+    ),
     participant,
     passed,
     turnPlayerId,
