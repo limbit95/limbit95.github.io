@@ -3200,3 +3200,13 @@ body {
     animation: none;
   }
 }
+
+
+/* Deal handoff lifecycle: keep the real current card hidden until the fixed flight lands. */
+.no-thanks-table-card.is-awaiting-deal {
+  pointer-events: none;
+}
+
+.no-thanks-take-chip-flight {
+  animation: none !important;
+}

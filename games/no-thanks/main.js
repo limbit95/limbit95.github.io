@@ -364,10 +364,11 @@ function createTakeCardFlight(sourceCard) {
   return flight;
 }
 
-function createTakeChipFlights() {
+function createTakeChipFlights(expectedCount) {
+  const count = Math.max(0, Math.floor(Number(expectedCount) || 0));
   const chips = [...app.querySelectorAll(
     ".no-thanks-center-chips__visual .no-thanks-chip",
-  )];
+  )].slice(0, count);
 
   return chips.map((chip, index) => {
     const sourceRect = rectSnapshot(chip.getBoundingClientRect());
@@ -383,6 +384,7 @@ function createTakeChipFlights() {
       height: sourceRect.height.toFixed(2) + "px",
       zIndex: String(100 + index),
     });
+    flight.dataset.transferIndex = String(index);
     document.body.append(flight);
     return flight;
   }).filter(Boolean);
@@ -402,8 +404,9 @@ function beginTakePresentation(view, sourceCard) {
     cardValue: Number(view.currentCard),
     previousViewerCounters: Number(view.viewerCounters) || 0,
     previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+    chipCount: Math.max(0, Math.floor(Number(view.centerCounters) || 0)),
     cardFlight,
-    chipFlights: createTakeChipFlights(),
+    chipFlights: createTakeChipFlights(view.centerCounters),
   };
   pendingTakePresentation = presentation;
   return presentation;
@@ -783,7 +786,13 @@ function readBoardTransitionEffects(view) {
       boardPresentationEffect
       && boardPresentationEffect.roomId === current.roomId
       && boardPresentationEffect.version === current.version
-      && boardPresentationEffect.started !== true
+      && (
+        boardPresentationEffect.started !== true
+        || (
+          boardPresentationEffect.dealCard
+          && boardPresentationEffect.completed !== true
+        )
+      )
     ) {
       return boardPresentationEffect;
     }
@@ -847,6 +856,8 @@ function readBoardTransitionEffects(view) {
         ? takePresentation.previousViewerCards
         : null,
       started: false,
+      running: false,
+      completed: false,
     }
     : null;
 
@@ -1097,20 +1108,24 @@ function commitViewerChipLanding() {
   container.dataset.visibleCount = String(finalCount);
 }
 
-function commitTakeCardLanding(target) {
+function commitTakeCardLanding() {
+  const target = app.querySelector(".no-thanks-hand-card.is-awaiting-take-landing");
   if (!target) return;
   target.classList.remove("is-awaiting-take-landing");
   target.classList.add("is-take-landed");
   const count = app.querySelector(".no-thanks-my-panel__card-count[data-final-count]");
   if (count) count.textContent = count.dataset.finalCount + "장";
-  window.setTimeout(() => target.classList.remove("is-take-landed"), 180);
+  window.setTimeout(() => {
+    app.querySelector(".no-thanks-hand-card.is-take-landed")
+      ?.classList.remove("is-take-landed");
+  }, 180);
 }
 
 async function animateTakeCardToHand(presentation) {
   const flight = presentation?.cardFlight;
   const target = app.querySelector(".no-thanks-hand-card.is-awaiting-take-landing");
   if (!flight?.isConnected || !target?.isConnected || typeof flight.animate !== "function") {
-    commitTakeCardLanding(target);
+    commitTakeCardLanding();
     flight?.remove();
     return;
   }
@@ -1168,7 +1183,7 @@ async function animateTakeCardToHand(presentation) {
   });
 
   await path.finished.catch(() => {});
-  commitTakeCardLanding(target);
+  commitTakeCardLanding();
 
   const settle = flight.animate([
     {
@@ -1194,8 +1209,10 @@ async function animateTakeCardToHand(presentation) {
 }
 
 async function animateTakeChipsToPanel(presentation) {
-  const flights = presentation?.chipFlights ?? [];
-  if (flights.length === 0) {
+  const expectedCount = Math.max(0, Math.floor(Number(presentation?.chipCount) || 0));
+  const flights = (presentation?.chipFlights ?? []).slice(0, expectedCount);
+  if (expectedCount === 0 || flights.length === 0) {
+    flights.forEach((flight) => flight.remove());
     commitViewerChipLanding();
     return;
   }
@@ -1210,33 +1227,42 @@ async function animateTakeChipsToPanel(presentation) {
 
   const destinationX = targetRect.left + (targetRect.width / 2);
   const destinationY = targetRect.top + (targetRect.height / 2);
+  const durationMs = 620;
+  const staggerMs = 26;
   const animations = flights.map((flight, index) => {
     if (typeof flight.animate !== "function") return Promise.resolve();
 
     const rect = flight.getBoundingClientRect();
     const startX = rect.left + (rect.width / 2);
     const startY = rect.top + (rect.height / 2);
-    const spread = (index - ((flights.length - 1) / 2)) * 3.5;
-    const dx = destinationX + spread - startX;
-    const dy = destinationY + ((index % 2 === 0) ? -4 : 4) - startY;
+    const spread = (index - ((flights.length - 1) / 2)) * 5;
+    const endX = destinationX + spread - startX;
+    const endY = destinationY + ((index % 2 === 0) ? -4 : 4) - startY;
+    const midX = endX * .5;
+    const midY = (endY * .5) - 58 - (index * 3);
 
     const animation = flight.animate([
       {
-        transform: "translate3d(0, 0, 0) scale(1) rotate(0deg)",
+        transform: "translate3d(0, 0, 0) scale(.94) rotate(0deg)",
+        opacity: 1,
+      },
+      {
+        offset: .12,
+        transform: "translate3d(0, -4px, 0) scale(1) rotate(70deg)",
         opacity: 1,
       },
       {
         offset: .52,
-        transform: `translate3d(${dx * .5}px, ${dy * .5 - 58 - (index * 2)}px, 0) scale(1.1) rotate(250deg)`,
+        transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.1) rotate(250deg)`,
         opacity: 1,
       },
       {
-        transform: `translate3d(${dx}px, ${dy}px, 0) scale(.78) rotate(560deg)`,
+        transform: `translate3d(${endX}px, ${endY}px, 0) scale(.78) rotate(560deg)`,
         opacity: 1,
       },
     ], {
-      duration: 700,
-      delay: index * 38,
+      duration: durationMs,
+      delay: index * staggerMs,
       easing: "cubic-bezier(.18, .78, .22, 1)",
       fill: "forwards",
     });
@@ -1244,13 +1270,47 @@ async function animateTakeChipsToPanel(presentation) {
   });
 
   await Promise.all(animations);
-  commitViewerChipLanding();
+  // Remove the transfer batch and expose the authoritative destination state
+  // in the same task so no extra/duplicate chip is painted at the end.
   flights.forEach((flight) => flight.remove());
+  commitViewerChipLanding();
 }
 
-async function animatePendingTakePresentation(board) {
+function completeBoardPresentationEffect(effect) {
+  if (!effect) return;
+  effect.running = false;
+  effect.completed = true;
+}
+
+async function runDealPresentation(effect) {
+  const board = app.querySelector(".no-thanks-game-board");
+  const dealingCard = board?.querySelector(".no-thanks-table-card");
+  const deck = board?.querySelector(".no-thanks-draw-deck__stack");
+  const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
+
+  if (!dealingCard || !deckTopCard) {
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  dealingCard.classList.add("is-awaiting-deal");
+  if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+    dealingCard.classList.remove("is-awaiting-deal");
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  dealingCard.classList.add("is-flight-started");
+  await animateDealFlight(dealingCard, deckTopCard);
+  completeBoardPresentationEffect(effect);
+}
+
+async function animatePendingTakePresentation(effect) {
   const presentation = pendingTakePresentation;
-  if (!presentation) return;
+  if (!presentation) {
+    completeBoardPresentationEffect(effect);
+    return;
+  }
 
   await Promise.all([
     animateTakeCardToHand(presentation),
@@ -1258,19 +1318,11 @@ async function animatePendingTakePresentation(board) {
   ]);
   clearPendingTakePresentation(presentation);
 
-  if (!board.isConnected) return;
-  const dealingCard = board.querySelector(".no-thanks-table-card.is-awaiting-deal");
-  const deck = board.querySelector(".no-thanks-draw-deck__stack");
-  const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
-  if (!dealingCard || !deckTopCard) return;
-
-  if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
-    dealingCard.classList.remove("is-awaiting-deal");
+  if (effect?.dealCard) {
+    await runDealPresentation(effect);
     return;
   }
-
-  dealingCard.classList.add("is-flight-started");
-  await animateDealFlight(dealingCard, deckTopCard);
+  completeBoardPresentationEffect(effect);
 }
 
 function syncBoardAnimationGeometry() {
@@ -1281,24 +1333,25 @@ function syncBoardAnimationGeometry() {
     if (!board.isConnected) return;
     syncBoardSeatGeometry(board);
 
-    if (boardPresentationEffect?.takeByViewer && pendingTakePresentation) {
-      boardPresentationEffect.started = true;
-      void animatePendingTakePresentation(board);
+    const effect = boardPresentationEffect;
+    if (effect?.dealCard && effect.completed !== true) {
+      board.querySelector(".no-thanks-table-card")?.classList.add("is-awaiting-deal");
+    }
+
+    if (effect?.running === true) return;
+
+    if (effect?.takeByViewer && pendingTakePresentation) {
+      effect.started = true;
+      effect.running = true;
+      void animatePendingTakePresentation(effect);
       return;
     }
 
-    let started = false;
-    const dealingCard = board.querySelector(".no-thanks-table-card.is-awaiting-deal");
-    const deck = board.querySelector(".no-thanks-draw-deck__stack");
-    const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
-    if (dealingCard && deckTopCard) {
-      if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
-        dealingCard.classList.remove("is-awaiting-deal");
-      } else {
-        dealingCard.classList.add("is-flight-started");
-        void animateDealFlight(dealingCard, deckTopCard);
-      }
-      started = true;
+    if (effect?.dealCard) {
+      effect.started = true;
+      effect.running = true;
+      void runDealPresentation(effect);
+      return;
     }
 
     const chipFlight = board.querySelector(".no-thanks-chip-flight");
@@ -1321,13 +1374,10 @@ function syncBoardAnimationGeometry() {
         }, 100);
       }, { once: true });
       chipFlight.classList.add("is-motion-ready");
-      started = true;
-    } else if (boardPresentationEffect?.chipFromPlayerId && prefersReducedMotion()) {
+      if (effect) effect.started = true;
+    } else if (effect?.chipFromPlayerId && prefersReducedMotion()) {
       commitCenterChipLanding(board);
-    }
-
-    if (started && boardPresentationEffect) {
-      boardPresentationEffect.started = true;
+      effect.started = true;
     }
   });
 }

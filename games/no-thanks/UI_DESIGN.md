@@ -78,9 +78,9 @@
 
 ## Motion / Interaction
 
-- 카드 공개: draw deck의 실제 위치에서 별도 fixed flight card가 출발해 약 760ms 동안 arc 이동과 flip을 수행하고, 중앙 zone 도착 프레임에 실제 current card로 handoff한 뒤 약 130ms settle/fade합니다. deck visual depth는 남은 카드 단계 규칙으로만 변합니다.
+- 카드 공개: draw deck의 실제 위치에서 별도 fixed flight card가 출발해 약 760ms 동안 arc 이동과 flip을 수행합니다. presentation effect는 시작 시점이 아니라 landing 완료 시점까지 유지하며, 동일 snapshot 재렌더가 중간에 발생해도 실제 current card는 `is-awaiting-deal` 상태로 숨겨 둡니다. 이동 카드가 도착한 프레임에 최신 current-card DOM을 공개하고 약 130ms settle/fade로 handoff합니다. deck visual depth는 남은 카드 단계 규칙으로만 변합니다.
 - 칩 제출: 약 26px token이 플레이어 seat에서 중앙 pile까지 약 780ms 이동하고, 도착 후 약 100ms landing dwell을 거친 뒤 presentation count를 authoritative 최종 값으로 handoff합니다.
-- 카드 가져오기: TAKE_CARD 직전 중앙 공개 카드와 실제 중앙 칩 DOM을 fixed overlay로 보존해 authoritative snapshot render 때 원본이 먼저 사라져 보이지 않게 합니다. 공개 카드는 개인 패널의 기존 보유 카드가 없으면 맨 왼쪽, 있으면 현재 가장 오른쪽 카드 다음 transient slot으로 The Game과 같은 22% / 50% / 78% / 94% arc timing을 따라 이동·안착합니다. 중앙 칩은 부루마블 money transfer처럼 각 칩의 실제 출발 위치에서 내 보유 칩 영역으로 stagger된 곡선 이동을 수행하고, 각 flight가 끝난 뒤에만 개인 칩 count/cluster를 authoritative 최종 값으로 handoff합니다. 그 다음 draw deck의 다음 카드 공개 motion을 시작합니다.
+- 카드 가져오기: TAKE_CARD 직전 중앙 공개 카드와 실제 중앙 칩 DOM을 fixed overlay로 보존해 authoritative snapshot render 때 원본이 먼저 사라져 보이지 않게 합니다. 공개 카드는 개인 패널의 기존 보유 카드가 없으면 맨 왼쪽, 있으면 현재 가장 오른쪽 카드 다음 transient slot으로 The Game과 같은 22% / 50% / 78% / 94% arc timing을 따라 이동·안착합니다. 중앙 칩은 TAKE 시점의 authoritative center count를 batch count로 고정하고 그 수만 한 번 소비합니다. 부루마블 money transfer처럼 각 visible chip의 실제 출발 위치에서 내 보유 칩 영역으로 짧은 stagger 곡선 이동을 수행하며, batch 전체가 끝난 같은 task에서 overlay를 제거하고 개인 칩 count/cluster를 authoritative 최종 값으로 handoff합니다. 카드/칩 handoff가 끝난 뒤에만 draw deck의 다음 카드 공개 motion을 시작합니다.
 - turn transition: action 완료 presentation 이후 다음 active player를 강조합니다.
 - timing 원칙: 상태 숫자 증가가 구성물 도착보다 먼저 보여 원인/결과가 뒤집히지 않게 합니다.
 - server-authoritative state와 presentation의 동기화 기준: 서버 결과가 truth이며 animation은 그 결과를 설명하는 presentation layer로만 동작합니다.

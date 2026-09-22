@@ -127,6 +127,12 @@
 
 ## Current Work
 
+- TAKE_CARD presentation lifecycle을 `started → running → completed`로 보강해 동일 snapshot 재렌더가 애니메이션 중 끼어도 effect를 landing 전까지 유지하도록 수정했습니다.
+- 다음 current card는 deal flight가 실제로 도착할 때까지 최신 DOM에서도 `is-awaiting-deal`로 숨기며, landing 순간에만 공개하도록 The Game handoff 패턴을 다시 적용했습니다.
+- TAKE card/chip handoff 이후에는 이전 board DOM이 아니라 현재 `app`의 최신 board/deck/current-card DOM을 다시 찾아 다음 deal animation을 이어가도록 변경했습니다.
+- 중앙 칩 획득은 TAKE 클릭 시점의 center count를 batch count로 고정하고 해당 수의 flight만 한 번 실행하도록 변경했습니다.
+- chip batch는 약 620ms + 26ms stagger로 정리하고 모든 flight 완료 후 overlay 제거와 개인 칩 상태 handoff를 같은 task에서 처리해 끝부분의 추가 칩/중복 칩 느낌을 제거했습니다.
+
 - 좌석 프로필 중심점을 실제 타원형 테이블 외곽선에 맞추도록 post-render geometry sync를 보완했습니다.
 - 개인 패널의 `내 칩` 표기를 `내 보유 칩`으로 변경했습니다.
 - TAKE_CARD 시 RPC 직전 중앙 카드/칩 DOM을 overlay로 보존하고, authoritative snapshot 이후 실제 구성물이 개인 패널로 이동한 뒤 최종 hand/chip state로 handoff하는 presentation을 구현했습니다.

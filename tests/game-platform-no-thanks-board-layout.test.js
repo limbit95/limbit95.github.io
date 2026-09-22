@@ -161,6 +161,20 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /animatePendingTakePresentation\(board\)/u);
   assert.match(runtime, /await Promise\.all\(\[[\s\S]*?animateTakeCardToHand[\s\S]*?animateTakeChipsToPanel/u);
   assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard\)/u);
+  assert.match(runtime, /boardPresentationEffect\.dealCard[\s\S]*?boardPresentationEffect\.completed !== true/u);
+  assert.match(runtime, /running:\s*false[\s\S]*?completed:\s*false/u);
+  assert.match(runtime, /function completeBoardPresentationEffect/u);
+  assert.match(runtime, /function runDealPresentation/u);
+  assert.match(runtime, /effect\?\.running === true/u);
+  assert.match(runtime, /app\.querySelector\("\.no-thanks-game-board"\)/u);
+  assert.match(runtime, /dealingCard\.classList\.add\("is-awaiting-deal"\)/u);
+  assert.match(runtime, /function commitTakeCardLanding\(\)/u);
+  assert.match(runtime, /createTakeChipFlights\(view\.centerCounters\)/u);
+  assert.match(runtime, /chipCount: Math\.max\(0, Math\.floor\(Number\(view\.centerCounters\)/u);
+  assert.match(runtime, /\.slice\(0, expectedCount\)/u);
+  assert.match(runtime, /durationMs = 620/u);
+  assert.match(runtime, /staggerMs = 26/u);
+  assert.match(runtime, /flights\.forEach\(\(flight\) => flight\.remove\(\)\);[\s\S]*?commitViewerChipLanding\(\)/u);
 
   assert.match(styles, /\.no-thanks-shell--board \.game-platform-shell__sidebar\s*\{[\s\S]*?display:\s*none/u);
   assert.match(styles, /\.no-thanks-game-board/u);
@@ -199,5 +213,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /\.no-thanks-take-card-flight/u);
   assert.match(styles, /\.no-thanks-take-chip-flight/u);
   assert.match(styles, /\.no-thanks-hand-card\.is-awaiting-take-landing/u);
+  assert.match(styles, /\.no-thanks-table-card\.is-awaiting-deal\s*\{[\s\S]*?pointer-events:\s*none/u);
+  assert.match(styles, /\.no-thanks-take-chip-flight\s*\{[\s\S]*?animation:\s*none\s*!important/u);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/u);
 });
