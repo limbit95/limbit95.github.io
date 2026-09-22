@@ -510,8 +510,10 @@ function createTableCard(view, state, {
       "aria-label": value == null
         ? "현재 카드 없음"
         : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : ""),
-      onClick: async () => {
+      onClick: async (event) => {
         if (!canTake) return;
+        event.currentTarget.disabled = true;
+        event.currentTarget.classList.add("is-submitting");
         try {
           await lobbyController.takeCard();
         } catch {
@@ -553,14 +555,16 @@ function createTableCard(view, state, {
   ]);
 }
 
-function createDrawDeck(view) {
+function createDrawDeck(view, { dealing = false } = {}) {
   const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
   return el("div", {
     className: "no-thanks-draw-deck",
     "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
   }, [
     el("div", {
-      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
+      className: "no-thanks-draw-deck__stack"
+        + (visualCount === 0 ? " is-empty" : "")
+        + (dealing ? " is-dealing" : ""),
       "aria-hidden": "true",
     }, Array.from({ length: visualCount }, (_, index) => {
       const depth = visualCount - index - 1;
@@ -592,17 +596,21 @@ function createCenterChipAction(view, state) {
         className: "no-thanks-center-chips__empty-mark",
         text: "NO CHIP",
       }),
-    el("strong", {
-      className: "no-thanks-center-chips__count",
-      text: String(count) + "개",
-    }),
+    count > 0
+      ? el("strong", {
+        className: "no-thanks-center-chips__count",
+        text: String(count) + "개",
+      })
+      : null,
     el("button", {
       className: "button button--secondary no-thanks-center-chips__action",
       type: "button",
       disabled: !canRefuse,
       text: view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기",
-      onClick: async () => {
+      onClick: async (event) => {
         if (!canRefuse) return;
+        event.currentTarget.disabled = true;
+        event.currentTarget.classList.add("is-submitting");
         try {
           await lobbyController.refuseCard();
         } catch {
@@ -717,6 +725,13 @@ function syncBoardAnimationGeometry() {
         - (cardRect.top + (cardRect.height / 2));
       dealingCard.style.setProperty("--no-thanks-deal-x", dealX.toFixed(2) + "px");
       dealingCard.style.setProperty("--no-thanks-deal-y", dealY.toFixed(2) + "px");
+      dealingCard.style.setProperty("--no-thanks-deal-mid-x", (dealX * .48).toFixed(2) + "px");
+      dealingCard.style.setProperty("--no-thanks-deal-mid-y", (dealY * .48 - 12).toFixed(2) + "px");
+      dealingCard.addEventListener("animationend", (event) => {
+        if (event.target !== dealingCard || event.animationName !== "no-thanks-card-deal-path") return;
+        dealingCard.classList.remove("is-dealing", "is-motion-ready", "is-submitting");
+        deck.classList.remove("is-dealing");
+      }, { once: true });
       dealingCard.classList.add("is-motion-ready");
       started = true;
     }
@@ -735,6 +750,9 @@ function syncBoardAnimationGeometry() {
       chipFlight.style.setProperty("--no-thanks-chip-mid-y", (dy * .42 - 28).toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
+      chipFlight.addEventListener("animationend", () => {
+        chipFlight.remove();
+      }, { once: true });
       chipFlight.classList.add("is-motion-ready");
       started = true;
     }
@@ -760,7 +778,7 @@ function createRoundTable(view, state, effects) {
 
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
-      createDrawDeck(view),
+      createDrawDeck(view, { dealing: effects.dealCard }),
       createTableCard(view, state, { dealIn: effects.dealCard }),
       createCenterChipAction(view, state),
     ]),
