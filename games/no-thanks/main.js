@@ -1057,8 +1057,17 @@ function syncBoardSeatGeometry(board) {
 
   const centerX = tableRect.left - boardRect.left + (tableRect.width / 2);
   const centerY = tableRect.top - boardRect.top + (tableRect.height / 2);
-  const radiusX = tableRect.width / 2;
-  const radiusY = tableRect.height / 2;
+  const tableStyle = window.getComputedStyle?.(table);
+  const borderX = (
+    (Number.parseFloat(tableStyle?.borderLeftWidth) || 0)
+    + (Number.parseFloat(tableStyle?.borderRightWidth) || 0)
+  ) / 2;
+  const borderY = (
+    (Number.parseFloat(tableStyle?.borderTopWidth) || 0)
+    + (Number.parseFloat(tableStyle?.borderBottomWidth) || 0)
+  ) / 2;
+  const radiusX = Math.max(0, (tableRect.width / 2) - (borderX / 2));
+  const radiusY = Math.max(0, (tableRect.height / 2) - (borderY / 2));
 
   board.querySelectorAll(".no-thanks-seat").forEach((seat) => {
     const index = Number(seat.dataset.visualIndex);

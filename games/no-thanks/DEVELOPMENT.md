@@ -140,12 +140,11 @@
 
 ## Next Work
 
-1. 최신 main 정합화 이후 Game Platform governance / Site static checks / Game DB integration을 확인합니다.
-2. 실제 데스크톱 브라우저에서 3–7인 좌석/HUD 겹침, 보드 높이, 개인 패널 카드 overlap을 시각 QA합니다.
-3. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 seat 근처 interaction으로 추가합니다.
-4. Phase F 잔여 범위로 TAKE_CARD 시 현재 카드와 중앙 칩이 획득 플레이어 쪽으로 이동하는 presentation을 완성합니다.
-5. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤을 확인합니다.
-6. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 production migration/capability activation을 계속 수행합니다.
+1. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
+2. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 seat 근처 interaction으로 추가합니다.
+3. TAKE_CARD card/chip flight의 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
+4. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤과 take animation destination을 확인합니다.
+5. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 production migration/capability activation을 계속 수행합니다.
 
 ## Decisions
 

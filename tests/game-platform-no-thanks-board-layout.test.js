@@ -145,6 +145,8 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /text: "내 보유 칩"/u);
   assert.match(runtime, /function syncBoardSeatGeometry/u);
   assert.match(runtime, /tableRect\.width \/ 2/u);
+  assert.match(runtime, /borderLeftWidth/u);
+  assert.match(runtime, /\(tableRect\.width \/ 2\) - \(borderX \/ 2\)/u);
   assert.match(runtime, /visualIndex: String\(index\)/u);
   assert.match(runtime, /function beginTakePresentation/u);
   assert.match(runtime, /createTakeCardFlight/u);
