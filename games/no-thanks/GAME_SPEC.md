@@ -377,8 +377,11 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 미공개 카드 순서와 제외 카드가 노출되지 않는지 확인
 - 오래된 버전 요청, 같은 요청의 중복 전송, 동시 요청 충돌 검증
 - 재접속 시 서버 상태 복원 검증
-- 3인과 7인 실제 브라우저 멀티플레이 점검
+- disposable Supabase에서 3개 독립 인증 세션의 자연 종료까지 다중 클라이언트 검증
+- disposable Supabase에서 7개 독립 인증 세션의 full refuse cycle, private counter 격리, take/reconnect 검증
+- 실제 브라우저 Presence join/leave, host/active-player reconnect, 모바일 background/foreground는 release manual gate로 검증
 - 모바일과 데스크톱에서 규칙 모달과 행동 버튼 배치 확인
+- release gate 전체 상태는 `RELEASE_CHECKLIST.md`에서 추적
 
 ## Open Questions / Deferred
 
