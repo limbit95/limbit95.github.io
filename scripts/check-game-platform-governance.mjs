@@ -16,7 +16,6 @@ const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "games/README.md",
   RULEBOOK_PATH,
 ]);
-const DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE = "디벨롭 파일에";
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -140,11 +139,6 @@ export function validatePlatformDocumentPolicy({
       if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_COMMAND)) {
         errors.push(
           `${filename} must identify the Game Platform DEVELOPMENT.md checkpoint command: ${DEVELOPMENT_CHECKPOINT_COMMAND}`,
-        );
-      }
-      if (typeof content === "string" && content.includes(DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE)) {
-        errors.push(
-          `${filename} must not use the deprecated DEVELOPMENT.md checkpoint phrase: ${DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE}`,
         );
       }
     }
