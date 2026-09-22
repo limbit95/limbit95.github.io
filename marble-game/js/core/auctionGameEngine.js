@@ -269,8 +269,28 @@ function resolveAuctionVote(state, action, options, {
   const announcementEndsAt = participantPlayerIds.length > 1
     ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs)
     : null;
+  const rouletteStopsAt = participantPlayerIds.length > 1
+    ? deadlineAt(
+      options,
+      AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.rouletteSpinMs,
+    )
+    : null;
+  const winnerNoticeAt = participantPlayerIds.length > 1
+    ? deadlineAt(
+      options,
+      AUCTION_TIMING.startAnnouncementMs
+        + AUCTION_TIMING.rouletteSpinMs
+        + AUCTION_TIMING.rouletteResultHoldMs,
+    )
+    : null;
   const startsAt = participantPlayerIds.length > 1
-    ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.rouletteMs)
+    ? deadlineAt(
+      options,
+      AUCTION_TIMING.startAnnouncementMs
+        + AUCTION_TIMING.rouletteSpinMs
+        + AUCTION_TIMING.rouletteResultHoldMs
+        + AUCTION_TIMING.openingBidderNoticeMs,
+    )
     : null;
   const auction = createPropertyAuction({
     nodeId: vote.nodeId,
@@ -284,7 +304,13 @@ function resolveAuctionVote(state, action, options, {
       : null,
   });
   const timedAuction = participantPlayerIds.length > 1
-    ? Object.freeze({ ...auction, announcementEndsAt, startsAt })
+    ? Object.freeze({
+      ...auction,
+      announcementEndsAt,
+      rouletteStopsAt,
+      winnerNoticeAt,
+      startsAt,
+    })
     : auction;
 
   if (participantPlayerIds.length === 1 || timedAuction.status === "WON") {
@@ -308,6 +334,8 @@ function resolveAuctionVote(state, action, options, {
       requesterPlayerId: openingBidderPlayerId,
       participantPlayerIds: Object.freeze(randomizedPlayerIds),
       announcementEndsAt,
+      rouletteStopsAt,
+      winnerNoticeAt,
       startsAt,
       auction: timedAuction,
     }),
@@ -320,6 +348,8 @@ function resolveAuctionVote(state, action, options, {
         openingBidderPlayerId,
         participantPlayerIds: randomizedPlayerIds,
         announcementEndsAt,
+        rouletteStopsAt,
+        winnerNoticeAt,
         startsAt,
       },
     ]),

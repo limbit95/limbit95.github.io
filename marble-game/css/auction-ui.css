@@ -548,9 +548,18 @@
 body[data-play-mode="window"] .important-notice {
   top: 50%;
   left: 50%;
+  z-index: 2800;
   transform: translate(-50%, -50%);
   backdrop-filter: none;
   pointer-events: none;
+}
+
+body[data-auction-overlay-active="true"] .important-notice,
+body[data-play-mode="window"][data-auction-overlay-active="true"] .important-notice {
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 3200;
+  max-width: min(680px, calc(100vw - 28px));
+  transform: translateX(-50%);
 }
 
 @media (max-width: 640px) {
@@ -686,7 +695,7 @@ body[data-play-mode="window"] .important-notice {
 }
 
 .auction-roulette__wheel[data-spinning="true"] {
-  animation: auctionRouletteSpin 3.05s cubic-bezier(0.12, 0.72, 0.12, 1) both;
+  animation: auctionRouletteSpin 3.2s cubic-bezier(0.06, 0.72, 0.08, 1) both;
 }
 
 .auction-roulette__hub {
@@ -737,15 +746,58 @@ body[data-play-mode="window"] .important-notice {
   opacity: 0;
 }
 
-.auction-intro[data-phase="roulette"] .auction-roulette__result {
-  animation: auctionRouletteResult 3.12s ease-out both;
+.auction-intro[data-phase="result"] .auction-roulette__result {
+  opacity: 1;
+  animation: auctionRouletteResult 240ms ease-out both;
+}
+
+.auction-intro__winner {
+  display: grid;
+  min-width: min(420px, calc(100vw - 36px));
+  gap: 8px;
+  padding: 22px 28px;
+  border: 1px solid rgba(255, 226, 154, 0.76);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 226, 154, 0.24), transparent 48%),
+    linear-gradient(145deg, rgba(42, 54, 68, 0.99), rgba(18, 27, 39, 0.99));
+  box-shadow:
+    0 26px 74px rgba(0, 0, 0, 0.46),
+    0 0 42px rgba(243, 194, 83, 0.2);
+  text-align: center;
+  animation: auctionWinnerNoticePop 340ms cubic-bezier(0.18, 0.9, 0.25, 1) both;
+}
+
+.auction-intro__winner[hidden] {
+  display: none;
+}
+
+.auction-intro__winner strong {
+  color: #fff9e7;
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+  font-weight: 1000;
+  letter-spacing: -0.04em;
 }
 
 @keyframes auctionRouletteResult {
-  0%,
-  88% {
+  0% {
     opacity: 0;
     transform: translateY(5px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes auctionWinnerNoticePop {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.92);
+  }
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.03);
   }
   100% {
     opacity: 1;
@@ -768,19 +820,29 @@ body[data-play-mode="window"] .important-notice {
   0% {
     transform: rotate(0deg) scale(0.96);
   }
-  12% {
-    transform: rotate(540deg) scale(1);
+  16% {
+    transform: rotate(1080deg) scale(1);
   }
-  78% {
-    transform: rotate(1310deg);
+  42% {
+    transform: rotate(1800deg) scale(1);
+  }
+  65% {
+    transform: rotate(2250deg) scale(1);
+  }
+  82% {
+    transform: rotate(2460deg) scale(1);
+  }
+  94% {
+    transform: rotate(2510deg) scale(1);
   }
   100% {
-    transform: rotate(1440deg);
+    transform: rotate(2520deg) scale(1);
   }
 }
 
 @media (max-width: 640px) {
-  .auction-intro__announce {
+  .auction-intro__announce,
+  .auction-intro__winner {
     min-width: min(360px, calc(100vw - 24px));
     padding: 18px 20px;
   }
@@ -806,6 +868,7 @@ body[data-play-mode="window"] .important-notice {
 
 @media (prefers-reduced-motion: reduce) {
   .auction-intro__announce,
+  .auction-intro__winner,
   .auction-roulette,
   .auction-roulette__wheel[data-spinning="true"] {
     animation-duration: 1ms;

@@ -31,6 +31,10 @@ const auctionStartSql = readFileSync(
   new URL("../../supabase/marble/20260922114345_marble_auction_start_roulette.sql", import.meta.url),
   "utf8",
 );
+const auctionIntroPacingSql = readFileSync(
+  new URL("../../supabase/marble/20260922124800_marble_auction_intro_pacing.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -152,7 +156,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
   assert.match(uiSource, /createAuctionIntroPresenter/);
-  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r1/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r2/);
   assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
@@ -194,10 +198,14 @@ test("server migration keeps every competitive bid turn at 15 seconds", () => {
 test("server Auction start migration randomizes the first bidder and gates bidding until roulette completes", () => {
   assert.match(auctionStartSql, /AUCTION_STARTING/);
   assert.match(auctionStartSql, /order by random\(\)/);
-  assert.match(auctionStartSql, /interval '2\.4 seconds'/);
-  assert.match(auctionStartSql, /interval '5\.8 seconds'/);
   assert.match(auctionStartSql, /v_starts_at \+ interval '15 seconds'/);
   assert.match(auctionStartSql, /AUCTION_NOT_STARTED/);
+  assert.match(auctionIntroPacingSql, /interval '2 seconds'/);
+  assert.match(auctionIntroPacingSql, /interval '5\.2 seconds'/);
+  assert.match(auctionIntroPacingSql, /interval '7\.2 seconds'/);
+  assert.match(auctionIntroPacingSql, /interval '9\.2 seconds'/);
+  assert.match(auctionIntroPacingSql, /rouletteStopsAt/);
+  assert.match(auctionIntroPacingSql, /winnerNoticeAt/);
 });
 
 test("server decisive-bid migration settles at the submitted amount and emits feedback metadata", () => {

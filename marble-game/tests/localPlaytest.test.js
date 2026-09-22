@@ -63,10 +63,12 @@ test("local Classic session completes the 15 second Auction vote flow", () => {
   assert.equal(state.pendingChoice.auction.highestBidderId, "player-c");
   assert.equal(state.pendingChoice.auction.highestBid, 390);
   assert.equal(state.pendingChoice.auction.turnPlayerId, "player-b");
-  assert.equal(state.pendingChoice.announcementEndsAt, 5_400);
-  assert.equal(state.pendingChoice.startsAt, 8_800);
+  assert.equal(state.pendingChoice.announcementEndsAt, 5_000);
+  assert.equal(state.pendingChoice.rouletteStopsAt, 8_200);
+  assert.equal(state.pendingChoice.winnerNoticeAt, 10_200);
+  assert.equal(state.pendingChoice.startsAt, 12_200);
 
-  now = 8_800;
+  now = 12_200;
   state = session.auctionPass("player-b");
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
