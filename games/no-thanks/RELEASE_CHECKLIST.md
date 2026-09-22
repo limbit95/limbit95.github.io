@@ -30,11 +30,23 @@
 
 ## Production database gates
 
-- [ ] 운영 DB에 No Thanks! migration 적용 전 migration 순서 재확인
-- [ ] 운영 적용 직전 Supabase security/performance advisor 확인
-- [ ] 운영 migration 적용 후 승인회원 create/join/snapshot smoke test
-- [ ] private table이 authenticated REST/Realtime 경로에 노출되지 않는지 운영 환경 재확인
-- [ ] gameplay RPC execute 권한이 authenticated에만 허용되는지 운영 환경 재확인
+- [x] 운영 DB migration 적용 순서 재확인
+- [x] Room/Lobby foundation 운영 migration 적용
+- [x] Gameplay actions 운영 migration 적용
+- [x] 공개 room/player 테이블만 Supabase Realtime publication에 등록
+- [x] private helper 함수 EXECUTE 권한을 `PUBLIC / anon / authenticated`에서 회수하고 RLS helper만 authenticated에 유지
+- [x] 운영 적용 직전/직후 Supabase security/performance advisor 확인
+- [ ] 운영 migration 적용 후 승인회원 create/join/snapshot/gameplay 브라우저 smoke test
+- [x] private table이 authenticated SELECT 및 Realtime publication에 노출되지 않는지 운영 환경 재확인
+- [x] public gameplay/create RPC execute 권한이 authenticated에만 허용되는지 운영 환경 재확인
+
+운영 migration history:
+- `no_thanks_room_lobby_foundation`
+- `no_thanks_gameplay_actions`
+- `no_thanks_realtime_publication`
+- `no_thanks_private_helper_permissions`
+
+Advisor에서 No Thanks! 관련으로 남는 항목 중 `no_thanks_room_actions / no_thanks_room_private_state`의 RLS-without-policy는 직접 table access를 막는 의도적인 deny-all 경계입니다. public `SECURITY DEFINER` RPC 경고는 authenticated 사용자에게 의도적으로 노출한 API이며 각 함수가 승인회원/room/turn/version 권한을 서버에서 다시 검증합니다. FK covering index 2건은 현재 QA 차단 이슈가 아닌 INFO 항목으로 release hardening에서 재검토합니다.
 
 ## Activation gates
 
