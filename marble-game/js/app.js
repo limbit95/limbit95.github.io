@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r3";
+import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r4";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -59,6 +59,9 @@ const tollConfirmButton = document.querySelector("[data-toll-confirm]");
 const TOLL_OWNER_COLORS = Object.freeze(["#61b8ff", "#ff8c9f", "#ffd55a", "#8bd48a"]);
 const MOVE_COUNT_HOLD_MS = 1200;
 const TURN_RESULT_HOLD_MS = 2400;
+const AUCTION_RESULT_HOLD_MS = 1200;
+const DECISIVE_AUCTION_RESULT_HOLD_MS = 700;
+const DECISIVE_BID_NOTICE_HOLD_MS = 2000;
 
 let selectedThemeId = "classic";
 let localSession = null;
@@ -75,6 +78,7 @@ let tileInfoChoiceAction = null;
 let choiceDeclinedPending = false;
 let autoAdvancedTurnVersion = null;
 let importantNoticeTimer = null;
+let presentedDecisiveNoticeVersion = null;
 
 function money(value, options = {}) {
   return formatThemeMoney(value, CLASSIC_RULES.currency, options);
@@ -401,6 +405,8 @@ function eventText(state, event) {
     case "EVENT_DRAWN": return `${playerLabel} · ${event.label}`;
     case "REST_ASSIGNED": return `${playerLabel} · ${event.skipTurns}턴 휴식`;
     case "TURN_SKIPPED": return `${playerLabel} · 휴식으로 턴 건너뜀`;
+    case "AUCTION_STARTING": return "경매 시작 준비 · 첫 입찰자 추첨";
+    case "AUCTION_DECISIVE_BID": return `${playerLabel} · 결정적 입찰 ${money(event.amount)}`;
     case "CHOICE_DECLINED": return `${playerLabel} · 선택 건너뜀`;
     case "PLAYER_BANKRUPT": return `${playerLabel} · 파산`;
     case "GAME_FINISHED": {
@@ -498,11 +504,32 @@ function setInteractionLocked(locked) {
   if (localSession) renderActionControls(localSession.getState());
 }
 
+function decisiveBidNoticeText(state, event) {
+  const bidder = state.players.find((candidate) => candidate.id === event.playerId);
+  const eliminatedIds = event.eliminatedPlayerIds ?? [];
+  const eliminated = state.players.find((candidate) => candidate.id === eliminatedIds[0]);
+  const bidderName = bidder ? playerName(bidder) : "플레이어";
+  const targetName = eliminated
+    ? `${playerName(eliminated)}님${eliminatedIds.length > 1 ? " 등" : ""}`
+    : "상대 플레이어";
+  return `${bidderName}님이 ${targetName}의 보유 골드보다 높은 ${money(event.amount)}를 입찰했습니다!`;
+}
+
+async function presentDecisiveBidNotice(state, event) {
+  if (!importantNotice || presentedDecisiveNoticeVersion === state.version) return;
+  presentedDecisiveNoticeVersion = state.version;
+  window.clearTimeout(importantNoticeTimer);
+  importantNotice.textContent = decisiveBidNoticeText(state, event);
+  importantNotice.hidden = false;
+  await wait(DECISIVE_BID_NOTICE_HOLD_MS);
+  if (presentedDecisiveNoticeVersion === state.version) importantNotice.hidden = true;
+}
+
 function importantEventMessage(state) {
   const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
   if (decisiveBid) {
-    const player = state.players.find((candidate) => candidate.id === decisiveBid.playerId);
-    return `${player ? playerName(player) : "플레이어"}이(가) ${money(decisiveBid.amount)}로 승부를 결정했습니다! 다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다.`;
+    if (presentedDecisiveNoticeVersion === state.version) return null;
+    return decisiveBidNoticeText(state, decisiveBid);
   }
 
   const surgeBid = [...state.lastEvents].reverse().find((event) => (
@@ -558,10 +585,7 @@ function importantEventMessage(state) {
       const node = findNode(state, event.nodeId);
       return `${node?.label ?? event.nodeId} 경매가 유찰되었습니다.`;
     }
-    if (event.type === "AUCTION_STARTED") {
-      const node = findNode(state, event.nodeId);
-      return `${node?.label ?? event.nodeId} 경매가 시작되었습니다.`;
-    }
+    if (event.type === "AUCTION_STARTING") continue;
     if (event.type === "AUCTION_PASSED") {
       const player = state.players.find((candidate) => candidate.id === event.playerId);
       return `${player ? playerName(player) : "플레이어"}이(가) 입찰을 포기했습니다.`;
@@ -676,6 +700,9 @@ async function playStateEvents(state) {
       diceStage?.hide();
       pendingMoveTotal = null;
     }
+    if (event.type === "AUCTION_DECISIVE_BID") {
+      await presentDecisiveBidNotice(state, event);
+    }
     if (threeRendererReady) await threeRenderer.playEvent(event);
   }
   if (threeRendererReady) threeRenderer.renderState(state);
@@ -692,7 +719,17 @@ async function maybeAutoAdvanceLocalTurn(state) {
   }
 
   autoAdvancedTurnVersion = state.version;
-  await wait(TURN_RESULT_HOLD_MS);
+  const decisiveAuction = state.lastEvents.some((event) => event.type === "AUCTION_DECISIVE_BID");
+  const auctionPurchase = state.lastEvents.some((event) => (
+    event.type === "PROPERTY_BOUGHT" && event.reason === "AUCTION"
+  ));
+  await wait(
+    decisiveAuction
+      ? DECISIVE_AUCTION_RESULT_HOLD_MS
+      : auctionPurchase
+        ? AUCTION_RESULT_HOLD_MS
+        : TURN_RESULT_HOLD_MS,
+  );
   const latest = localSession.getState();
   if (latest.version !== state.version || latest.phase !== TURN_PHASES.TURN_END) return;
 
@@ -765,8 +802,14 @@ function startLocalPlaytest() {
     onStateChange(state) {
       choiceDeclinedPending = false;
       appendEvents(state);
-      renderPlaytest();
-      void maybeAutoAdvanceLocalTurn(state);
+      setInteractionLocked(true);
+      renderPlaytest({ renderThree: false });
+      void playStateEvents(state)
+        .then(() => {
+          showImportantNotice(state);
+          return maybeAutoAdvanceLocalTurn(state);
+        })
+        .finally(() => setInteractionLocked(false));
     },
   });
   playtestSection.hidden = false;

@@ -125,7 +125,9 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(uiSource, /AUCTION_BID_PLACED/);
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r3/);
+  assert.match(uiSource, /createAuctionIntroPresenter/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r1/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
   assert.doesNotMatch(uiSource, /showAuctionUnsoldResult/);
   assert.doesNotMatch(uiSource, /auction-result-modal/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
@@ -137,6 +139,9 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(cssSource, /auctionBidEvent/);
   assert.match(cssSource, /auctionBidValueCount/);
   assert.match(cssSource, /auctionSurgeBidEvent/);
+  assert.match(cssSource, /\.auction-intro/);
+  assert.match(cssSource, /\.auction-roulette/);
+  assert.match(cssSource, /auctionRouletteSpin/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.auctionBid\(selectedPlayerId, amount\)/);
   assert.match(uiSource, /session\.auctionPass\(selectedPlayerId\)/);
