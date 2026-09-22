@@ -446,64 +446,88 @@ test("Marble Auction vote RPCs enforce 15-second voting, randomized opening bidd
     [...(auction?.participantPlayerIds ?? [])].sort(),
     [bobPlayer.id, carolPlayer.id].sort(),
   );
-  assert.ok([bobPlayer.id, carolPlayer.id].includes(auction?.openingBidderPlayerId));
-  assert.equal(auction?.highestBidderId, auction?.openingBidderPlayerId);
-  assert.equal(auction?.highestBid, 390);
-  assert.ok([bobPlayer.id, carolPlayer.id].includes(auction?.turnPlayerId));
-  assert.notEqual(auction?.turnPlayerId, auction?.openingBidderPlayerId);
+
+  const starterId = auction?.starterPlayerId;
+  assert.ok([bobPlayer.id, carolPlayer.id].includes(starterId));
+  assert.equal(carolJoined.game.pendingChoice?.starterPlayerId, starterId);
+  assert.equal(auction?.turnPlayerId, starterId);
+  assert.equal(auction?.highestBidderId, null);
+  assert.equal(auction?.highestBid, 0);
+  assert.deepEqual(auction?.bidPlayerIds, []);
   assert.equal(carolJoined.game.lastEvents?.at(-1)?.type, "AUCTION_STARTING");
+  assert.equal(carolJoined.game.lastEvents?.at(-1)?.starterPlayerId, starterId);
 
   const announcementEndsAt = Date.parse(String(auction?.announcementEndsAt));
-  const rouletteStopsAt = Date.parse(String(auction?.rouletteStopsAt));
-  const winnerNoticeAt = Date.parse(String(auction?.winnerNoticeAt));
+  const selectorStopsAt = Date.parse(String(auction?.selectorStopsAt));
   const startsAt = Date.parse(String(auction?.startsAt));
   const serverNow = Date.parse(String(carolJoined.serverNow));
   assert.ok([
     announcementEndsAt,
-    rouletteStopsAt,
-    winnerNoticeAt,
+    selectorStopsAt,
     startsAt,
     serverNow,
   ].every(Number.isFinite));
   assert.ok(announcementEndsAt - serverNow >= 1_500 && announcementEndsAt - serverNow <= 2_500);
-  assert.ok(rouletteStopsAt - serverNow >= 4_700 && rouletteStopsAt - serverNow <= 5_700);
-  assert.ok(winnerNoticeAt - serverNow >= 6_700 && winnerNoticeAt - serverNow <= 7_700);
-  assert.ok(startsAt - serverNow >= 8_700 && startsAt - serverNow <= 9_700);
+  assert.ok(selectorStopsAt - serverNow >= 4_300 && selectorStopsAt - serverNow <= 5_300);
+  assert.ok(startsAt - serverNow >= 5_100 && startsAt - serverNow <= 6_100);
 
-  const turnUser = auction?.turnPlayerId === bobPlayer.id ? auctionBob : auctionCarol;
-  const winnerId = auction?.openingBidderPlayerId;
-  const passActionId = randomUUID();
+  const starterUser = starterId === bobPlayer.id ? auctionBob : auctionCarol;
+  const otherId = starterId === bobPlayer.id ? carolPlayer.id : bobPlayer.id;
+  const otherUser = otherId === bobPlayer.id ? auctionBob : auctionCarol;
 
-  const earlyPass = await rpc("marble_auction_bid", {
+  const earlyBid = await rpc("marble_auction_bid", {
     p_room_id: created.room.id,
     p_expected_version: Number(carolJoined.game.version),
     p_client_action_id: randomUUID(),
-    p_amount: null,
-    p_pass: true,
-  }, turnUser.accessToken);
-  expectDenied(earlyPass, "auction bid before roulette completes", /AUCTION_NOT_STARTED/);
+    p_amount: 390,
+    p_pass: false,
+  }, starterUser.accessToken);
+  expectDenied(earlyBid, "auction bid before selector completes", /AUCTION_NOT_STARTED/);
 
   await new Promise((resolve) => setTimeout(resolve, Math.max(0, startsAt - Date.now()) + 150));
 
-  const settled = await expectOk(await rpc("marble_auction_bid", {
+  const starterBid = await expectOk(await rpc("marble_auction_bid", {
     p_room_id: created.room.id,
     p_expected_version: Number(carolJoined.game.version),
+    p_client_action_id: randomUUID(),
+    p_amount: 390,
+    p_pass: false,
+  }, starterUser.accessToken), "randomized starter places the first real bid");
+
+  assert.equal(starterBid.game.pendingChoice?.type, "PROPERTY_AUCTION");
+  assert.equal(starterBid.game.pendingChoice?.auction?.highestBidderId, starterId);
+  assert.equal(starterBid.game.pendingChoice?.auction?.highestBid, 390);
+  assert.equal(starterBid.game.pendingChoice?.auction?.turnPlayerId, otherId);
+  assert.equal(
+    starterBid.game.lastEvents?.some((event) => (
+      event.type === "AUCTION_BID_PLACED"
+      && event.playerId === starterId
+      && event.amount === 390
+      && event.surge === false
+    )),
+    true,
+  );
+
+  const passActionId = randomUUID();
+  const settled = await expectOk(await rpc("marble_auction_bid", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(starterBid.game.version),
     p_client_action_id: passActionId,
     p_amount: null,
     p_pass: true,
-  }, turnUser.accessToken), "auction randomized turn player passes competitive bid");
+  }, otherUser.accessToken), "other participant passes after starter bid");
 
   assert.equal(settled.game.phase, "TURN_END");
   assert.equal(settled.game.pendingChoice, null);
-  assert.equal(settled.properties.singapore.ownerId, winnerId);
+  assert.equal(settled.properties.singapore.ownerId, starterId);
   assert.equal(
-    settled.players.find((player) => player.id === winnerId)?.money,
+    settled.players.find((player) => player.id === starterId)?.money,
     1110,
   );
   assert.equal(
     settled.game.lastEvents?.some((event) => (
       event.type === "PROPERTY_BOUGHT"
-      && event.playerId === winnerId
+      && event.playerId === starterId
       && event.amount === 390
       && event.reason === "AUCTION"
     )),
@@ -512,16 +536,16 @@ test("Marble Auction vote RPCs enforce 15-second voting, randomized opening bidd
 
   const replayedPass = await expectOk(await rpc("marble_auction_bid", {
     p_room_id: created.room.id,
-    p_expected_version: Number(carolJoined.game.version),
+    p_expected_version: Number(starterBid.game.version),
     p_client_action_id: passActionId,
     p_amount: null,
     p_pass: true,
-  }, turnUser.accessToken), "auction competitive pass replay");
+  }, otherUser.accessToken), "auction competitive pass replay");
 
   assert.equal(replayedPass.game.version, settled.game.version);
-  assert.equal(replayedPass.properties.singapore.ownerId, winnerId);
+  assert.equal(replayedPass.properties.singapore.ownerId, starterId);
   assert.equal(
-    replayedPass.players.find((player) => player.id === winnerId)?.money,
+    replayedPass.players.find((player) => player.id === starterId)?.money,
     1110,
   );
 });
