@@ -16,9 +16,9 @@ export function getBoardSeatCoordinates(index, total) {
   const count = Math.max(Number(total) || 0, 1);
   const safeIndex = Math.max(0, Math.min(Number(index) || 0, count - 1));
   const angle = (Math.PI / 2) + ((Math.PI * 2 * safeIndex) / count);
-  const centerX = count >= 6 ? 40 : 44.5;
-  const radiusX = count <= 3 ? 34 : (count >= 6 ? 34.5 : 37);
-  const radiusY = count <= 3 ? 36 : (count >= 6 ? 40 : 38);
+  const centerX = 50;
+  const radiusX = count <= 3 ? 38 : (count >= 6 ? 40 : 41);
+  const radiusY = count <= 3 ? 32 : 35;
 
   return Object.freeze({
     left: centerX + (Math.cos(angle) * radiusX),
