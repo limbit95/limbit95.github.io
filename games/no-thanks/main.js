@@ -33,6 +33,8 @@ let unsubscribeAccess = null;
 let lobbyController = null;
 let lobbyUserId = null;
 let bootEpoch = 0;
+let boardRoomId = null;
+let seatedPlayerIds = new Set();
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -42,6 +44,8 @@ function disposeLobbyController() {
   lobbyController?.dispose();
   lobbyController = null;
   lobbyUserId = null;
+  boardRoomId = null;
+  seatedPlayerIds = new Set();
 }
 
 function createAccessNotice({
@@ -278,48 +282,445 @@ function createEntryPanel(state, displayName) {
   ]);
 }
 
-function createWaitingPanel(view, state) {
-  return el("section", { className: "no-thanks-waiting" }, [
-    el("div", { className: "no-thanks-waiting__hero" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "WAITING ROOM" }),
-      el("h2", {
-        text: view.isHost ? "모두 준비되면 게임을 시작하세요." : "준비가 끝났다면 준비 완료를 눌러 주세요.",
-      }),
-      el("p", {
-        text: `현재 ${view.playerCount}명 · 최대 ${view.maxPlayers}명 · 상태 버전 ${view.version}`,
-      }),
-    ]),
-    el("div", { className: "no-thanks-room-code" }, [
-      el("span", { className: "no-thanks-room-code__label", text: "방 코드" }),
-      el("strong", { className: "no-thanks-room-code__value", text: view.roomCode }),
-      el("span", {
-        className: "no-thanks-room-code__hint",
-        text: "친구에게 이 코드를 전달해 주세요.",
-      }),
-    ]),
-    createInlineError(state.error),
-    el("div", { className: "no-thanks-waiting__status" }, [
-      el("div", { className: "no-thanks-status-card" }, [
-        el("span", { text: "내 상태" }),
-        el("strong", {
-          text: view.isHost ? "방장" : (view.isReady ? "준비 완료" : "대기 중"),
-        }),
-      ]),
-      el("div", { className: "no-thanks-status-card" }, [
-        el("span", { text: "시작 조건" }),
-        el("strong", {
-          text: view.canStart ? "시작 가능" : "3명 이상 · 일반 플레이어 전원 준비",
-        }),
-      ]),
-    ]),
-    view.presenceReady && !view.allPlayersConnected
-      ? el("div", {
-        className: "no-thanks-connection-note",
-        role: "status",
-        text: `${view.disconnectedPlayerNames.join(", ")}님의 연결이 끊겨 있어요. 방 상태는 유지되며 재접속하면 그대로 이어집니다.`,
+function cardTone(value) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric <= 10) return "blue";
+  if (numeric <= 18) return "teal";
+  if (numeric <= 26) return "yellow";
+  return "pink";
+}
+
+function compactChipCount(count) {
+  const numeric = Number(count);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return Math.min(Math.floor(numeric), 7);
+}
+
+function createChipCluster(count, {
+  compact = false,
+  label = null,
+} = {}) {
+  const visibleCount = compactChipCount(count);
+  return el("div", {
+    className: "no-thanks-chip-cluster" + (compact ? " no-thanks-chip-cluster--compact" : ""),
+    "aria-label": label ?? "칩 " + String(Number(count) || 0) + "개",
+  }, visibleCount > 0
+    ? Array.from({ length: visibleCount }, () => el("span", {
+      className: "no-thanks-chip",
+      "aria-hidden": "true",
+    }))
+    : [el("span", {
+      className: "no-thanks-chip-cluster__empty",
+      text: "0",
+      "aria-hidden": "true",
+    })]);
+}
+
+function prepareBoardSeats(view) {
+  const ordered = [...view.players].sort((left, right) => left.seat - right.seat);
+  const viewerIndex = ordered.findIndex((player) => player.id === view.currentUserId);
+  const normalizedViewerIndex = viewerIndex >= 0 ? viewerIndex : 0;
+  const rotated = [
+    ...ordered.slice(normalizedViewerIndex),
+    ...ordered.slice(0, normalizedViewerIndex),
+  ];
+
+  const seatedNow = new Set(
+    view.players
+      .filter((player) => (
+        view.gamePhase === "PLAYING"
+        || player.id === view.hostUserId
+        || player.ready
+      ))
+      .map((player) => player.id),
+  );
+
+  let arrivingIds = new Set();
+  if (boardRoomId !== view.roomId) {
+    boardRoomId = view.roomId;
+    seatedPlayerIds = seatedNow;
+  } else {
+    arrivingIds = new Set(
+      [...seatedNow].filter((playerId) => !seatedPlayerIds.has(playerId)),
+    );
+    seatedPlayerIds = seatedNow;
+  }
+
+  return rotated.map((player) => ({
+    player,
+    seated: seatedNow.has(player.id),
+    arriving: arrivingIds.has(player.id),
+  }));
+}
+
+function boardSeatCoordinates(index, total) {
+  const count = Math.max(total, 1);
+  const angle = (Math.PI / 2) + ((Math.PI * 2 * index) / count);
+  const centerX = count >= 6 ? 43.5 : 44.5;
+  const radiusX = count <= 3 ? 34 : (count >= 6 ? 39 : 37);
+  const radiusY = count <= 3 ? 32.5 : (count >= 6 ? 37 : 35);
+
+  return {
+    left: centerX + (Math.cos(angle) * radiusX),
+    top: 50 + (Math.sin(angle) * radiusY),
+  };
+}
+
+function createBoardSeat(view, seatInfo, index, total) {
+  const { player, seated, arriving } = seatInfo;
+  const position = boardSeatCoordinates(index, total);
+  const active = view.gamePhase === "PLAYING" && player.id === view.activePlayerId;
+  const classes = [
+    "no-thanks-seat",
+    player.id === view.currentUserId ? "is-me" : "",
+    active ? "is-active" : "",
+    !seated ? "is-pending" : "",
+    arriving ? "is-arriving" : "",
+  ].filter(Boolean).join(" ");
+
+  return el("article", {
+    className: classes,
+    style: {
+      left: position.left.toFixed(3) + "%",
+      top: position.top.toFixed(3) + "%",
+    },
+    dataset: {
+      playerId: player.id,
+      seat: String(player.seat),
+    },
+    "aria-label": player.displayName + (active ? " 현재 차례" : ""),
+  }, [
+    el("strong", {
+      className: "no-thanks-seat__name",
+      text: player.displayName,
+    }),
+    active
+      ? el("span", {
+        className: "no-thanks-seat__turn",
+        text: "현재 차례",
       })
       : null,
   ]);
+}
+
+function createBoardHud(view) {
+  const players = [...view.players].sort((left, right) => left.seat - right.seat);
+  return el("aside", {
+    className: "no-thanks-board-hud",
+    "aria-label": "방 현황",
+  }, [
+    el("div", { className: "no-thanks-board-hud__header" }, [
+      el("div", {}, [
+        el("span", { className: "no-thanks-board-hud__label", text: "ROOM" }),
+        el("strong", { className: "no-thanks-board-hud__code", text: view.roomCode }),
+      ]),
+      el("strong", {
+        className: "no-thanks-board-hud__count",
+        text: String(view.playerCount) + " / " + String(view.maxPlayers),
+      }),
+    ]),
+    el("ol", { className: "no-thanks-board-hud__players" }, players.map((player) => (
+      el("li", {
+        className: "no-thanks-board-hud__player",
+        dataset: { connected: player.connected ? "true" : "false" },
+      }, [
+        el("span", {
+          className: "no-thanks-board-hud__name",
+          text: player.displayName,
+        }),
+        el("span", { className: "no-thanks-board-hud__badges" }, [
+          player.id === view.hostUserId
+            ? el("span", {
+              className: "no-thanks-board-hud__badge no-thanks-board-hud__badge--host",
+              text: "방장",
+            })
+            : el("span", {
+              className: "no-thanks-board-hud__badge",
+              text: player.ready ? "준비" : "대기",
+            }),
+          el("span", {
+            className: "no-thanks-board-hud__badge no-thanks-board-hud__badge--connection",
+            text: player.connected ? "온라인" : "재접속",
+          }),
+        ]),
+      ])
+    ))),
+  ]);
+}
+
+function createTableCard(value) {
+  const displayValue = value == null ? "?" : String(value);
+  return el("article", {
+    className: "no-thanks-table-card",
+    dataset: { tone: cardTone(value) },
+    "aria-label": value == null ? "현재 카드 없음" : "현재 카드 " + displayValue,
+  }, [
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+      text: displayValue,
+    }),
+    el("span", {
+      className: "no-thanks-table-card__label",
+      text: "CURRENT",
+    }),
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+      text: displayValue,
+    }),
+  ]);
+}
+
+function createDrawDeck(view) {
+  return el("div", {
+    className: "no-thanks-draw-deck",
+    "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
+  }, [
+    el("div", { className: "no-thanks-draw-deck__stack", "aria-hidden": "true" }, [
+      el("span", {}),
+      el("span", {}),
+      el("span", {}),
+    ]),
+    el("strong", {
+      className: "no-thanks-draw-deck__count",
+      text: String(view.deckRemaining ?? "—") + "장",
+    }),
+  ]);
+}
+
+function createRoundTable(view) {
+  if (view.status === "waiting") {
+    return el("div", { className: "no-thanks-round-table" }, [
+      el("div", { className: "no-thanks-round-table__waiting" }, [
+        el("span", { text: "NO THANKS!" }),
+        el("strong", { text: "게임 테이블 준비 중" }),
+        el("p", {
+          text: "준비를 마친 플레이어가 자리를 채우면 이 테이블에서 바로 게임이 시작됩니다.",
+        }),
+      ]),
+    ]);
+  }
+
+  return el("div", { className: "no-thanks-round-table" }, [
+    el("div", { className: "no-thanks-round-table__objects" }, [
+      createDrawDeck(view),
+      createTableCard(view.currentCard),
+      el("div", { className: "no-thanks-center-chips" }, [
+        createChipCluster(view.centerCounters, {
+          compact: true,
+          label: "중앙 칩 " + String(view.centerCounters) + "개",
+        }),
+        el("span", { text: "중앙 칩" }),
+        el("strong", { text: String(view.centerCounters) }),
+      ]),
+    ]),
+  ]);
+}
+
+function handOverlap(cardCount) {
+  if (cardCount <= 5) return -8;
+  if (cardCount <= 9) return -18;
+  if (cardCount <= 14) return -30;
+  if (cardCount <= 19) return -40;
+  return -50;
+}
+
+function createHandCard(card, index, overlap) {
+  const value = String(card);
+  return el("button", {
+    className: "no-thanks-hand-card",
+    type: "button",
+    dataset: { tone: cardTone(card) },
+    style: {
+      marginLeft: index === 0 ? "0" : String(overlap) + "px",
+      zIndex: String(index + 1),
+    },
+    "aria-label": "획득 카드 " + value,
+  }, [
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+      text: value,
+    }),
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+      text: value,
+    }),
+  ]);
+}
+
+function createWaitingPrimaryAction(view, state) {
+  if (view.isHost) {
+    return el("button", {
+      className: "button no-thanks-my-panel__primary-action",
+      type: "button",
+      text: state.busy ? "처리 중…" : "게임 시작",
+      disabled: state.busy || !view.canStart,
+      onClick: async () => {
+        try {
+          await lobbyController.startGame();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    });
+  }
+
+  return el("button", {
+    className: "button no-thanks-my-panel__primary-action",
+    type: "button",
+    text: state.busy
+      ? "처리 중…"
+      : (view.isReady ? "준비 취소" : "준비 완료"),
+    disabled: state.busy,
+    onClick: async () => {
+      try {
+        await lobbyController.setReady(!view.isReady);
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    },
+  });
+}
+
+function createPlayingPrimaryActions(view, state) {
+  return [
+    el("button", {
+      className: "button button--secondary no-thanks-my-panel__action",
+      type: "button",
+      text: view.viewerCounters === 0
+        ? "칩 없음 · 거절 불가"
+        : "거절하기 · 칩 1개 내기",
+      disabled: state.busy || !view.canRefuse,
+      onClick: async () => {
+        try {
+          await lobbyController.refuseCard();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }),
+    el("button", {
+      className: "button no-thanks-my-panel__action",
+      type: "button",
+      text: view.centerCounters > 0
+        ? "카드 가져오기 · +" + String(view.centerCounters) + "칩"
+        : "카드 가져오기",
+      disabled: state.busy || !view.canTake,
+      onClick: async () => {
+        try {
+          await lobbyController.takeCard();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }),
+  ];
+}
+
+function createMyPanel(view, state) {
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const cards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
+  const overlap = handOverlap(cards.length);
+  const waiting = view.status === "waiting";
+  const statusText = waiting
+    ? (view.isHost ? "방장은 항상 준비된 자리로 표시됩니다." : (view.isReady ? "준비 완료 · 게임 시작을 기다리고 있어요." : "준비 완료를 누르면 테이블에 착석합니다."))
+    : !view.activePlayerConnected
+      ? (view.activePlayerDisplayName ?? "현재 플레이어") + "님의 재접속을 기다리고 있어요."
+      : view.isMyTurn
+        ? (view.viewerCounters === 0
+          ? "내 차례 · 칩이 없어 현재 카드를 반드시 가져와야 해요."
+          : "내 차례 · 거절하거나 카드를 가져오세요.")
+        : (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
+
+  return el("section", {
+    className: "no-thanks-my-panel" + (waiting ? " no-thanks-my-panel--waiting" : ""),
+    "aria-label": "내 플레이 패널",
+  }, [
+    el("div", { className: "no-thanks-my-panel__chips" }, waiting
+      ? [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 상태" }),
+        el("strong", {
+          className: "no-thanks-my-panel__value",
+          text: view.isHost ? "방장" : (view.isReady ? "준비 완료" : "준비 필요"),
+        }),
+        el("small", { text: "내 자리는 항상 6시 방향입니다." }),
+      ]
+      : [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 칩" }),
+        el("strong", {
+          className: "no-thanks-my-panel__value",
+          text: view.viewerCounters == null ? "—" : String(view.viewerCounters),
+        }),
+        createChipCluster(view.viewerCounters ?? 0, {
+          label: "내 칩 " + String(view.viewerCounters ?? 0) + "개",
+        }),
+      ]),
+    el("div", { className: "no-thanks-my-panel__cards" }, [
+      el("div", { className: "no-thanks-my-panel__cards-head" }, [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 보유 카드" }),
+        el("strong", { text: String(cards.length) + "장" }),
+      ]),
+      cards.length > 0
+        ? el("div", { className: "no-thanks-hand" },
+          cards.map((card, index) => createHandCard(card, index, overlap)))
+        : el("div", {
+          className: "no-thanks-hand no-thanks-hand--empty",
+          text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
+        }),
+    ]),
+    el("div", { className: "no-thanks-my-panel__actions" }, [
+      el("p", { className: "no-thanks-my-panel__message", text: statusText }),
+      el("div", {
+        className: "no-thanks-my-panel__action-row" + (waiting ? " is-single" : ""),
+      }, waiting
+        ? [createWaitingPrimaryAction(view, state)]
+        : createPlayingPrimaryActions(view, state)),
+    ]),
+  ]);
+}
+
+function boardStatusMessage(view) {
+  if (view.status === "waiting") {
+    if (view.isHost) {
+      return view.canStart
+        ? "모두 준비됐어요. 게임을 시작할 수 있습니다."
+        : "3명 이상 모이고 일반 플레이어가 모두 준비하면 시작할 수 있어요.";
+    }
+    return view.isReady
+      ? "준비 완료 · 게임 시작을 기다리고 있어요."
+      : "준비 완료를 누르면 테이블에 자리를 잡습니다.";
+  }
+
+  if (!view.activePlayerConnected) {
+    return (view.activePlayerDisplayName ?? "현재 플레이어") + "님의 재접속을 기다리고 있어요.";
+  }
+  if (view.isMyTurn) return "내 차례예요.";
+  return (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
+}
+
+function createBoardScene(view, state) {
+  const seats = prepareBoardSeats(view);
+  return el("section", { className: "no-thanks-board-view" }, [
+    createInlineError(state.error),
+    el("section", {
+      className: "no-thanks-game-board",
+      "aria-label": view.status === "waiting" ? "No Thanks 대기 테이블" : "No Thanks 게임 보드",
+    }, [
+      el("div", { className: "no-thanks-board__status" }, [
+        el("span", {
+          text: view.status === "waiting" ? "WAITING ROOM" : "PLAYING",
+        }),
+        el("strong", { text: boardStatusMessage(view) }),
+      ]),
+      createRoundTable(view),
+      ...seats.map((seatInfo, index) => createBoardSeat(view, seatInfo, index, seats.length)),
+      createBoardHud(view),
+    ]),
+    createMyPanel(view, state),
+  ]);
+}
+
+function createWaitingPanel(view, state) {
+  return createBoardScene(view, state);
 }
 
 function createPlayerCards(view) {
@@ -327,7 +728,7 @@ function createPlayerCards(view) {
     el("h3", { className: "no-thanks-owned__title", text: "획득 카드" }),
     el("div", { className: "no-thanks-owned__list" }, view.players.map((player) => (
       el("article", {
-        className: `no-thanks-owned__player${player.id === view.activePlayerId ? " is-active" : ""}`,
+        className: "no-thanks-owned__player" + (player.id === view.activePlayerId ? " is-active" : ""),
       }, [
         el("div", { className: "no-thanks-owned__player-head" }, [
           el("strong", { text: player.displayName }),
@@ -352,56 +753,7 @@ function createPlayerCards(view) {
 }
 
 function createPlayingPanel(view, state) {
-  const turnMessage = !view.activePlayerConnected
-    ? `${view.activePlayerDisplayName ?? "현재 플레이어"}님의 연결이 끊겼어요. 재접속하면 이어서 진행합니다.`
-    : view.isMyTurn
-      ? "내 차례예요. 현재 카드를 거절하거나 가져오세요."
-      : `${view.activePlayerDisplayName ?? "다른 플레이어"}님의 차례를 기다리고 있어요.`;
-
-  return el("section", { className: "no-thanks-playing-preview" }, [
-    el("div", { className: "no-thanks-playing-preview__copy" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "PLAYING" }),
-      el("h2", { text: turnMessage }),
-      el("p", {
-        text: view.viewerCounters === 0 && view.isMyTurn
-          ? "보유 칩이 없어 이번 카드는 반드시 가져와야 해요."
-          : "거절하면 칩 1개를 중앙에 놓고 다음 플레이어에게 차례가 넘어갑니다. 가져오면 카드와 중앙 칩을 받고 같은 플레이어가 다음 카드도 계속 선택합니다.",
-      }),
-    ]),
-    createInlineError(state.error),
-    el("div", { className: "no-thanks-playing-preview__state" }, [
-      el("article", { className: "no-thanks-current-card" }, [
-        el("span", { text: "현재 카드" }),
-        el("strong", {
-          text: view.currentCard == null ? "?" : String(view.currentCard),
-        }),
-        el("small", {
-          text: view.centerCounters > 0
-            ? `중앙 칩 ${view.centerCounters}개`
-            : "중앙 칩 없음",
-        }),
-      ]),
-      el("div", { className: "no-thanks-playing-preview__metrics" }, [
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "내 칩" }),
-          el("strong", {
-            text: view.viewerCounters == null ? "—" : String(view.viewerCounters),
-          }),
-        ]),
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "중앙 칩" }),
-          el("strong", { text: String(view.centerCounters) }),
-        ]),
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "남은 카드" }),
-          el("strong", {
-            text: view.deckRemaining == null ? "—" : String(view.deckRemaining),
-          }),
-        ]),
-      ]),
-    ]),
-    createPlayerCards(view),
-  ]);
+  return createBoardScene(view, state);
 }
 
 function createGameOverPanel(view, state) {
@@ -731,49 +1083,19 @@ function createLobbyActions(
     return actions;
   }
 
+  actions.push(el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "새로고침",
+    disabled: state.busy,
+    onClick: () => {
+      void lobbyController.refresh(
+        view.gamePhase === "PLAYING" ? "manual-playing" : "manual",
+      ).catch(() => {});
+    },
+  }));
+
   if (view.status === "waiting") {
-    if (view.isHost) {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy ? "처리 중…" : "게임 시작",
-        disabled: state.busy || !view.canStart,
-        onClick: async () => {
-          try {
-            await lobbyController.startGame();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }));
-    } else {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy
-          ? "처리 중…"
-          : (view.isReady ? "준비 취소" : "준비 완료"),
-        disabled: state.busy,
-        onClick: async () => {
-          try {
-            await lobbyController.setReady(!view.isReady);
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }));
-    }
-
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--secondary",
-      type: "button",
-      text: "새로고침",
-      disabled: state.busy,
-      onClick: () => {
-        void lobbyController.refresh("manual").catch(() => {});
-      },
-    }));
-
     actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
@@ -793,51 +1115,6 @@ function createLobbyActions(
     }));
     return actions;
   }
-
-  if (view.gamePhase === "PLAYING") {
-    actions.unshift(
-      el("button", {
-        className: "game-platform-shell__button game-platform-shell__button--secondary",
-        type: "button",
-        text: view.viewerCounters === 0
-          ? "칩 없음 · 거절 불가"
-          : "거절하기 · 칩 1개",
-        disabled: state.busy || !view.canRefuse,
-        onClick: async () => {
-          try {
-            await lobbyController.refuseCard();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }),
-      el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: view.centerCounters > 0
-          ? `카드 가져오기 · +${view.centerCounters}칩`
-          : "카드 가져오기",
-        disabled: state.busy || !view.canTake,
-        onClick: async () => {
-          try {
-            await lobbyController.takeCard();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }),
-    );
-  }
-
-  actions.push(el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--secondary",
-    type: "button",
-    text: "새로고침",
-    disabled: state.busy,
-    onClick: () => {
-      void lobbyController.refresh("manual-playing").catch(() => {});
-    },
-  }));
 
   if (view.gamePhase === "PLAYING" && view.isHost) {
     actions.push(el("button", {
@@ -941,6 +1218,10 @@ function renderLobby(access, state) {
       openRematchConfirm,
     ),
   });
+
+  if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
+    shell.classList.add("no-thanks-shell--board");
+  }
 
   replaceApp(shell);
 }
