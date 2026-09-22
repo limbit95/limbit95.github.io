@@ -117,6 +117,20 @@ MUST NOT: 후속 디자인 수정에 맞춰 `UI_DESIGN.md`를 계속 최신 화�
 
 MUST NOT: 모든 spacing, CSS 숫자, 작은 commit을 changelog처럼 기록하지 않는다. 과거 결정을 뒤에서 바꾸더라도 기존 항목을 삭제하지 않고 새 항목을 추가해 `SUPERSEDED` 또는 `REVERTED` 관계를 남긴다.
 
+### MUST: 기능 완료 이후 디자인 수동 리뷰 gate
+
+신규 게임의 기능 구현이 충분히 완료되어 release 전 검증·마무리 단계에 들어가면, 자동 테스트 통과만으로 UI를 최종 완료 처리하지 않는다.
+
+이 시점에는 `docs/game-platform-ui-rules.md`의 **Developer Manual Design Review / Detail Polish** 단계를 적용한다.
+
+- 개발자가 실제 브라우저에서 게임을 플레이하며 초기 `UI_DESIGN.md` 구현 결과를 직접 확인한다.
+- 이 과정에서 개발자가 요청한 의미 있는 디자인 수정은 `UI_DECISIONS.md`에 확정 결정 단위로 남긴다.
+- 연속된 미세 조정은 요청별 changelog로 남기지 않고 해당 디자인 영역이 안정화된 시점에 하나의 decision으로 정리한다.
+- 디자인 작업을 merge/close하거나 release closeout으로 넘어가기 전에 기록 누락이 없는지 확인한다.
+- 기능 개발의 완료 상태와 디자인 polish 완료 상태를 같은 것으로 취급하지 않는다.
+
+디자인 전용 checkpoint 명령은 별도로 정의할 수 있으며, 그 명령의 존재 여부와 관계없이 UI Rules의 lifecycle 기반 기록 규칙은 적용한다.
+
 ### MUST: 게임별 네 문서의 권위와 충돌 해결
 
 네 문서는 서로 대체 관계가 아니라 책임이 다른 authoritative/record 문서다.
@@ -208,13 +222,14 @@ games/<game-id>/DEVELOPMENT.md
 1. 게임 runtime과 필요한 DB migration이 main에 들어갈 수 있는 상태인지 확인한다.
 2. production migration이 필요한 게임은 실제 적용 이력과 RLS/grant/RPC 권한 경계를 검증한다.
 3. Registry capability는 **소스가 존재한다는 이유만으로** 활성화하지 않는다. 실제 제공 가능한 기능만 activation PR에서 켠다.
-4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 release blocker가 없어야 한다.
-5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. `UI_DESIGN.md`의 Validation Checklist와 `UI_DECISIONS.md`의 실제 디자인 validation 이력을 production 구현과 대조한다. 남은 UI 항목이 blocker가 아니라 후속 polish라면 `UI_DECISIONS.md / Open Follow-up`에 남긴다.
-6. release 기준의 기능 설계는 `GAME_SPEC.md`, 현재 UI/presentation 설계는 `UI_DESIGN.md`, 실제 기능 진행은 `DEVELOPMENT.md`, 의미 있는 디자인 결정/검증 이력은 `UI_DECISIONS.md`와 production 상태가 일치하는지 확인한다.
-7. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 기능/게임플레이 검증, 현재 capability와 디자인 release gate 참조를 남긴다. `UI_DECISIONS.md`의 design track도 release 또는 후속 polish 상태를 명확히 한다.
-8. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
-9. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
-10. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
+4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 기능 release blocker가 없어야 한다.
+5. 기능 구현이 충분히 완료되면 `docs/game-platform-ui-rules.md`의 Developer Manual Design Review / Detail Polish를 거쳐 개발자의 실제 브라우저 수동 검토와 디자인 수정 단계를 수행한다. 이 단계에서 확정된 의미 있는 변경은 `UI_DECISIONS.md`에 기록한다.
+6. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. `UI_DESIGN.md`의 초기 Validation Checklist와 `UI_DECISIONS.md`의 실제 디자인 validation/override 이력을 production 구현과 대조한다. 남은 UI 항목이 blocker가 아니라 후속 polish라면 `UI_DECISIONS.md / Open Follow-up`에 남긴다.
+7. release 기준의 기능 설계는 `GAME_SPEC.md`, 기능 진행은 `DEVELOPMENT.md`, 디자인은 `UI_DESIGN.md` baseline + 최신 non-superseded `UI_DECISIONS.md` overrides와 production 상태가 일치하는지 확인한다.
+8. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 기능/게임플레이 검증, 현재 capability와 디자인 release gate 참조를 남긴다. `UI_DECISIONS.md`의 design track도 release 또는 후속 polish 상태를 명확히 한다.
+9. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
+10. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
+11. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
