@@ -24,6 +24,7 @@ import { createNoThanksPresenceAdapter } from "./presence.js";
 import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
+  getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
@@ -46,6 +47,7 @@ let boardRoomId = null;
 let seatedPlayerIds = new Set();
 let boardAvatarUrls = new Map();
 let boardAvatarLoadingIds = new Set();
+let boardPresentationState = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -59,6 +61,7 @@ function disposeLobbyController() {
   seatedPlayerIds = new Set();
   boardAvatarUrls = new Map();
   boardAvatarLoadingIds = new Set();
+  boardPresentationState = null;
 }
 
 function createAccessNotice({
@@ -417,13 +420,19 @@ function createBoardSeat(view, seatInfo, index, total) {
     title: player.displayName,
     "aria-label": player.displayName + (active ? " 현재 차례" : ""),
   }, [
-    el("img", {
-      className: "no-thanks-seat__avatar",
-      src: boardAvatarUrls.get(player.id) ?? DEFAULT_BOARD_AVATAR_URL,
-      alt: "",
-      width: "76",
-      height: "76",
-    }),
+    el("span", { className: "no-thanks-seat__avatar-frame" }, [
+      el("img", {
+        className: "no-thanks-seat__avatar",
+        src: boardAvatarUrls.get(player.id) ?? DEFAULT_BOARD_AVATAR_URL,
+        alt: "",
+        width: "76",
+        height: "76",
+        onError: (event) => {
+          if (event.currentTarget.src.endsWith("/assets/images/default-avatar.svg")) return;
+          event.currentTarget.src = DEFAULT_BOARD_AVATAR_URL;
+        },
+      }),
+    ]),
     active
       ? el("span", {
         className: "no-thanks-seat__turn",
@@ -478,42 +487,74 @@ function createBoardHud(view) {
   ]);
 }
 
-function createTableCard(value) {
+function createTableCard(view, state, {
+  dealIn = false,
+} = {}) {
+  const value = view.currentCard;
   const displayValue = value == null ? "?" : String(value);
-  return el("article", {
-    className: "no-thanks-table-card",
-    dataset: { tone: getNoThanksCardTone(value) },
-    "aria-label": value == null ? "현재 카드 없음" : "현재 카드 " + displayValue,
-  }, [
+  const canTake = !state.busy && view.canTake;
+  return el("div", { className: "no-thanks-table-card-action" }, [
+    el("button", {
+      className: "no-thanks-table-card"
+        + (dealIn ? " is-dealing" : ""),
+      type: "button",
+      disabled: !canTake,
+      dataset: { tone: getNoThanksCardTone(value) },
+      title: canTake ? "이 카드를 가져옵니다." : "현재 차례에만 카드를 가져올 수 있어요.",
+      "aria-label": value == null
+        ? "현재 카드 없음"
+        : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : ""),
+      onClick: async () => {
+        if (!canTake) return;
+        try {
+          await lobbyController.takeCard();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }, [
+      el("span", {
+        className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+        text: displayValue,
+      }),
+      el("span", {
+        className: "no-thanks-table-card__label",
+        text: "CURRENT",
+      }),
+      el("strong", {
+        className: "no-thanks-table-card__value",
+        text: displayValue,
+      }),
+      el("span", {
+        className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+        text: displayValue,
+      }),
+    ]),
     el("span", {
-      className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
-      text: displayValue,
-    }),
-    el("span", {
-      className: "no-thanks-table-card__label",
-      text: "CURRENT",
-    }),
-    el("strong", {
-      className: "no-thanks-table-card__value",
-      text: displayValue,
-    }),
-    el("span", {
-      className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
-      text: displayValue,
+      className: "no-thanks-table-card-action__hint",
+      text: canTake ? "카드를 눌러 가져오기" : "현재 차례만 선택 가능",
     }),
   ]);
 }
 
 function createDrawDeck(view) {
+  const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
   return el("div", {
     className: "no-thanks-draw-deck",
     "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
   }, [
-    el("div", { className: "no-thanks-draw-deck__stack", "aria-hidden": "true" }, [
-      el("span", {}),
-      el("span", {}),
-      el("span", {}),
-    ]),
+    el("div", {
+      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
+      "aria-hidden": "true",
+    }, Array.from({ length: visualCount }, (_, index) => {
+      const depth = visualCount - index - 1;
+      return el("span", {
+        style: {
+          transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
+          zIndex: String(index + 1),
+        },
+      });
+    })),
     el("strong", {
       className: "no-thanks-draw-deck__count",
       text: String(view.deckRemaining ?? "—") + "장",
@@ -521,7 +562,98 @@ function createDrawDeck(view) {
   ]);
 }
 
-function createRoundTable(view) {
+function createCenterChipAction(view, state) {
+  const canRefuse = !state.busy && view.canRefuse;
+  const count = Number(view.centerCounters) || 0;
+  return el("div", {
+    className: "no-thanks-center-chips" + (count === 0 ? " no-thanks-center-chips--empty" : ""),
+  }, [
+    count > 0
+      ? createChipCluster(count, {
+        label: "현재 카드 위 칩 " + String(count) + "개",
+      })
+      : el("strong", {
+        className: "no-thanks-center-chips__empty-mark",
+        text: "NO CHIP",
+      }),
+    el("strong", {
+      className: "no-thanks-center-chips__count",
+      text: String(count) + "개",
+    }),
+    el("button", {
+      className: "button button--secondary no-thanks-center-chips__action",
+      type: "button",
+      disabled: !canRefuse,
+      text: view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기",
+      onClick: async () => {
+        if (!canRefuse) return;
+        try {
+          await lobbyController.refuseCard();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }),
+  ]);
+}
+
+function readBoardTransitionEffects(view) {
+  const current = {
+    roomId: view.roomId,
+    version: view.version,
+    gamePhase: view.gamePhase,
+    currentCard: view.currentCard,
+    deckRemaining: view.deckRemaining,
+    centerCounters: view.centerCounters,
+    activePlayerId: view.activePlayerId,
+  };
+  const previous = boardPresentationState;
+  boardPresentationState = current;
+
+  if (
+    !previous
+    || previous.roomId !== current.roomId
+    || previous.gamePhase !== "PLAYING"
+    || current.gamePhase !== "PLAYING"
+    || previous.version === current.version
+  ) {
+    return Object.freeze({
+      dealCard: false,
+      chipFromPlayerId: null,
+    });
+  }
+
+  const dealCard = Number.isInteger(previous.currentCard)
+    && Number.isInteger(current.currentCard)
+    && previous.currentCard !== current.currentCard
+    && Number(current.deckRemaining) < Number(previous.deckRemaining);
+  const chipFromPlayerId = Number(current.centerCounters) > Number(previous.centerCounters)
+    ? previous.activePlayerId
+    : null;
+
+  return Object.freeze({
+    dealCard,
+    chipFromPlayerId,
+  });
+}
+
+function createChipFlight(view, playerId) {
+  if (!playerId) return null;
+  const ordered = orderBoardPlayers(view.players, view.currentUserId);
+  const index = ordered.findIndex((player) => player.id === playerId);
+  if (index < 0) return null;
+  const position = getBoardSeatCoordinates(index, ordered.length);
+  return el("span", {
+    className: "no-thanks-chip no-thanks-chip-flight",
+    style: {
+      left: position.left.toFixed(3) + "%",
+      top: position.top.toFixed(3) + "%",
+    },
+    "aria-hidden": "true",
+  });
+}
+
+function createRoundTable(view, state, effects) {
   if (view.status === "waiting") {
     return el("div", { className: "no-thanks-round-table" }, [
       el("div", { className: "no-thanks-round-table__waiting" }, [
@@ -537,23 +669,8 @@ function createRoundTable(view) {
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
       createDrawDeck(view),
-      createTableCard(view.currentCard),
-      view.centerCounters > 0
-        ? el("div", { className: "no-thanks-center-chips" }, [
-          createChipCluster(view.centerCounters, {
-            compact: true,
-            label: "중앙 칩 " + String(view.centerCounters) + "개",
-          }),
-          el("span", { text: "중앙 칩" }),
-          el("strong", { text: String(view.centerCounters) }),
-        ])
-        : el("div", { className: "no-thanks-center-chips no-thanks-center-chips--empty" }, [
-          el("strong", {
-            className: "no-thanks-center-chips__empty-mark",
-            text: "NO CHIP",
-          }),
-          el("small", { text: "중앙 칩 없음" }),
-        ]),
+      createTableCard(view, state, { dealIn: effects.dealCard }),
+      createCenterChipAction(view, state),
     ]),
   ]);
 }
@@ -615,41 +732,6 @@ function createWaitingPrimaryAction(view, state) {
   });
 }
 
-function createPlayingPrimaryActions(view, state) {
-  return [
-    el("button", {
-      className: "button button--secondary no-thanks-my-panel__action",
-      type: "button",
-      text: view.viewerCounters === 0
-        ? "칩 없음 · 거절 불가"
-        : "거절하기 · 칩 1개 내기",
-      disabled: state.busy || !view.canRefuse,
-      onClick: async () => {
-        try {
-          await lobbyController.refuseCard();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
-    }),
-    el("button", {
-      className: "button no-thanks-my-panel__action",
-      type: "button",
-      text: view.centerCounters > 0
-        ? "카드 가져오기 · +" + String(view.centerCounters) + "칩"
-        : "카드 가져오기",
-      disabled: state.busy || !view.canTake,
-      onClick: async () => {
-        try {
-          await lobbyController.takeCard();
-        } catch {
-          // Controller state renders the authoritative error.
-        }
-      },
-    }),
-  ];
-}
-
 function createMyPanel(view, state) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
   const cards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
@@ -662,11 +744,11 @@ function createMyPanel(view, state) {
       : view.isMyTurn
         ? (view.viewerCounters === 0
           ? "내 차례 · 칩이 없어 현재 카드를 반드시 가져와야 해요."
-          : "내 차례 · 거절하거나 카드를 가져오세요.")
+          : "내 차례 · 가운데 카드를 누르거나 오른쪽 칩 영역에서 칩을 내세요.")
         : (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
 
   return el("section", {
-    className: "no-thanks-my-panel" + (waiting ? " no-thanks-my-panel--waiting" : ""),
+    className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
     "aria-label": "내 플레이 패널",
   }, [
     el("div", { className: "no-thanks-my-panel__chips" }, waiting
@@ -702,14 +784,17 @@ function createMyPanel(view, state) {
           text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
         }),
     ]),
-    el("div", { className: "no-thanks-my-panel__actions" }, [
-      el("p", { className: "no-thanks-my-panel__message", text: statusText }),
-      el("div", {
-        className: "no-thanks-my-panel__action-row" + (waiting ? " is-single" : ""),
-      }, waiting
-        ? [createWaitingPrimaryAction(view, state)]
-        : createPlayingPrimaryActions(view, state)),
-    ]),
+    waiting
+      ? el("div", { className: "no-thanks-my-panel__actions" }, [
+        el("p", { className: "no-thanks-my-panel__message", text: statusText }),
+        el("div", {
+          className: "no-thanks-my-panel__action-row is-single",
+        }, [createWaitingPrimaryAction(view, state)]),
+      ])
+      : el("p", {
+        className: "no-thanks-my-panel__message no-thanks-my-panel__message--playing",
+        text: statusText,
+      }),
   ]);
 }
 
@@ -733,6 +818,7 @@ function boardStatusMessage(view) {
 }
 
 function createBoardScene(view, state) {
+  const effects = readBoardTransitionEffects(view);
   const seats = prepareBoardSeats(view);
   return el("section", { className: "no-thanks-board-view" }, [
     createInlineError(state.error),
@@ -746,8 +832,9 @@ function createBoardScene(view, state) {
         }),
         el("strong", { text: boardStatusMessage(view) }),
       ]),
-      createRoundTable(view),
+      createRoundTable(view, state, effects),
       ...seats.map((seatInfo, index) => createBoardSeat(view, seatInfo, index, seats.length)),
+      createChipFlight(view, effects.chipFromPlayerId),
       createBoardHud(view),
     ]),
     createMyPanel(view, state),
