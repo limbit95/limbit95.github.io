@@ -30,7 +30,7 @@ export function createLocalClassicSession({
       type,
       playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
-    }), { nowMs: Number(clock()) });
+    }), { nowMs: Number(clock()), random });
     return state;
   }
 
