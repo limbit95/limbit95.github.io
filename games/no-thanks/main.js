@@ -502,7 +502,7 @@ function createTableCard(view, state, {
   return el("div", { className: "no-thanks-table-card-action" }, [
     el("button", {
       className: "no-thanks-table-card"
-        + (dealIn ? " is-dealing" : ""),
+        + (dealIn ? " is-awaiting-deal" : ""),
       type: "button",
       disabled: !canTake,
       dataset: { tone: getNoThanksCardTone(value) },
@@ -580,24 +580,36 @@ function createDrawDeck(view) {
   ]);
 }
 
-function createCenterChipAction(view, state) {
+function createCenterChipAction(view, state, {
+  displayCount = null,
+} = {}) {
   const canRefuse = !state.busy && view.canRefuse;
   const count = Number(view.centerCounters) || 0;
+  const visibleCount = Number.isInteger(displayCount)
+    ? Math.max(0, displayCount)
+    : count;
+  const visual = visibleCount > 0
+    ? createChipCluster(visibleCount, {
+      label: "현재 카드 위 칩 " + String(visibleCount) + "개",
+    })
+    : el("strong", {
+      className: "no-thanks-center-chips__empty-mark",
+      text: "NO CHIP",
+    });
+
   return el("div", {
-    className: "no-thanks-center-chips" + (count === 0 ? " no-thanks-center-chips--empty" : ""),
+    className: "no-thanks-center-chips"
+      + (visibleCount === 0 ? " no-thanks-center-chips--empty" : ""),
+    dataset: {
+      finalCount: String(count),
+      visibleCount: String(visibleCount),
+    },
   }, [
-    count > 0
-      ? createChipCluster(count, {
-        label: "현재 카드 위 칩 " + String(count) + "개",
-      })
-      : el("strong", {
-        className: "no-thanks-center-chips__empty-mark",
-        text: "NO CHIP",
-      }),
-    count > 0
+    el("div", { className: "no-thanks-center-chips__visual" }, [visual]),
+    visibleCount > 0
       ? el("strong", {
         className: "no-thanks-center-chips__count",
-        text: String(count) + "개",
+        text: String(visibleCount) + "개",
       })
       : null,
     el("button", {
@@ -617,6 +629,44 @@ function createCenterChipAction(view, state) {
       },
     }),
   ]);
+}
+
+function commitCenterChipLanding(board) {
+  const container = board.querySelector(".no-thanks-center-chips");
+  if (!container) return;
+
+  const count = Number(container.dataset.finalCount) || 0;
+  const visibleCount = Number(container.dataset.visibleCount) || 0;
+  if (visibleCount === count) return;
+
+  const visual = container.querySelector(".no-thanks-center-chips__visual");
+  const action = container.querySelector(".no-thanks-center-chips__action");
+  if (!visual || !action) return;
+
+  visual.replaceChildren(
+    count > 0
+      ? createChipCluster(count, {
+        label: "현재 카드 위 칩 " + String(count) + "개",
+      })
+      : el("strong", {
+        className: "no-thanks-center-chips__empty-mark",
+        text: "NO CHIP",
+      }),
+  );
+
+  const currentCount = container.querySelector(".no-thanks-center-chips__count");
+  if (count > 0) {
+    const countElement = currentCount ?? el("strong", {
+      className: "no-thanks-center-chips__count",
+    });
+    countElement.textContent = String(count) + "개";
+    if (!currentCount) container.insertBefore(countElement, action);
+  } else {
+    currentCount?.remove();
+  }
+
+  container.dataset.visibleCount = String(count);
+  container.classList.toggle("no-thanks-center-chips--empty", count === 0);
 }
 
 function readBoardTransitionEffects(view) {
@@ -646,6 +696,7 @@ function readBoardTransitionEffects(view) {
     return Object.freeze({
       dealCard: false,
       chipFromPlayerId: null,
+      chipPreviousCount: null,
     });
   }
 
@@ -671,6 +722,9 @@ function readBoardTransitionEffects(view) {
   const chipFromPlayerId = Number(current.centerCounters) > Number(previous.centerCounters)
     ? previous.activePlayerId
     : null;
+  const chipPreviousCount = chipFromPlayerId
+    ? Number(previous.centerCounters) || 0
+    : null;
 
   boardPresentationEffect = dealCard || chipFromPlayerId
     ? {
@@ -678,6 +732,7 @@ function readBoardTransitionEffects(view) {
       version: current.version,
       dealCard,
       chipFromPlayerId,
+      chipPreviousCount,
       started: false,
     }
     : null;
@@ -704,6 +759,171 @@ function createChipFlight(view, playerId) {
   });
 }
 
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+}
+
+function createDealFlight(target, sourceRect) {
+  const targetRect = target.getBoundingClientRect();
+  if (
+    !sourceRect
+    || targetRect.width <= 0
+    || targetRect.height <= 0
+    || prefersReducedMotion()
+  ) {
+    target.classList.remove("is-awaiting-deal");
+    return null;
+  }
+
+  const startLeft = sourceRect.left + ((sourceRect.width - targetRect.width) / 2);
+  const startTop = sourceRect.top + ((sourceRect.height - targetRect.height) / 2);
+  const flight = document.createElement("div");
+  flight.className = "no-thanks-card-flight";
+  flight.dataset.tone = target.dataset.tone ?? "blue";
+  flight.setAttribute("aria-hidden", "true");
+
+  const inner = target.querySelector(".no-thanks-table-card__inner")?.cloneNode(true);
+  if (!inner) {
+    target.classList.remove("is-awaiting-deal");
+    return null;
+  }
+
+  flight.append(inner);
+  Object.assign(flight.style, {
+    left: startLeft.toFixed(2) + "px",
+    top: startTop.toFixed(2) + "px",
+    width: targetRect.width.toFixed(2) + "px",
+    height: targetRect.height.toFixed(2) + "px",
+  });
+  document.body.append(flight);
+
+  return {
+    flight,
+    inner,
+    targetRect,
+    startLeft,
+    startTop,
+    startScale: Math.max(
+      .5,
+      Math.min(1, Math.min(
+        sourceRect.width / targetRect.width,
+        sourceRect.height / targetRect.height,
+      )),
+    ),
+  };
+}
+
+async function animateDealFlight(target, source) {
+  if (!target?.isConnected || !source?.isConnected) return false;
+
+  const sourceRect = source.getBoundingClientRect();
+  const created = createDealFlight(target, sourceRect);
+  if (!created) return false;
+
+  const {
+    flight,
+    inner,
+    targetRect,
+    startLeft,
+    startTop,
+    startScale,
+  } = created;
+  const dx = targetRect.left - startLeft;
+  const dy = targetRect.top - startTop;
+  const scaleAt = (progress) => startScale + ((1 - startScale) * progress);
+
+  target.classList.add("is-receiving-card");
+
+  try {
+    const pathAnimation = flight.animate([
+      {
+        transform: `translate3d(0, 0, 0) scale(${startScale}) rotateZ(0deg)`,
+        opacity: 1,
+        offset: 0,
+      },
+      {
+        transform: `translate3d(${dx * .2}px, ${dy * .12 - 18}px, 0) scale(${scaleAt(.12)}) rotateZ(-1.5deg)`,
+        opacity: 1,
+        offset: .22,
+      },
+      {
+        transform: `translate3d(${dx * .52}px, ${dy * .42 - 28}px, 0) scale(${scaleAt(.38)}) rotateZ(2.4deg)`,
+        opacity: 1,
+        offset: .5,
+      },
+      {
+        transform: `translate3d(${dx * .82}px, ${dy * .76 - 14}px, 0) scale(${scaleAt(.72)}) rotateZ(-1deg)`,
+        opacity: 1,
+        offset: .78,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy - 4}px, 0) scale(.992) rotateZ(.35deg)`,
+        opacity: 1,
+        offset: .94,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1) rotateZ(0deg)`,
+        opacity: 1,
+        offset: 1,
+      },
+    ], {
+      duration: 570,
+      easing: "cubic-bezier(.18, .72, .2, 1)",
+      fill: "forwards",
+    });
+
+    const flipAnimation = inner.animate([
+      { transform: "rotateY(180deg) rotateX(0deg)", offset: 0 },
+      { transform: "rotateY(180deg) rotateX(1deg)", offset: .18 },
+      { transform: "rotateY(224deg) rotateX(-3deg)", offset: .42 },
+      { transform: "rotateY(286deg) rotateX(2deg)", offset: .64 },
+      { transform: "rotateY(338deg) rotateX(-1deg)", offset: .84 },
+      { transform: "rotateY(360deg) rotateX(0deg)", offset: 1 },
+    ], {
+      duration: 570,
+      easing: "cubic-bezier(.3, .08, .18, 1)",
+      fill: "forwards",
+    });
+
+    await Promise.all([
+      pathAnimation.finished.catch(() => {}),
+      flipAnimation.finished.catch(() => {}),
+    ]);
+
+    const landingTarget = document.querySelector(".no-thanks-table-card.is-awaiting-deal")
+      ?? target;
+    landingTarget?.classList.remove("is-awaiting-deal");
+    landingTarget?.classList.add("is-deal-landed");
+
+    const settle = flight.animate([
+      {
+        opacity: 1,
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1)`,
+      },
+      {
+        opacity: 1,
+        transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(.992)`,
+        offset: .5,
+      },
+      {
+        opacity: 0,
+        transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(1)`,
+      },
+    ], {
+      duration: 110,
+      easing: "cubic-bezier(.2, .72, .2, 1)",
+      fill: "forwards",
+    });
+    await settle.finished.catch(() => {});
+    landingTarget?.classList.remove("is-deal-landed");
+  } finally {
+    flight.remove();
+    target.classList.remove("is-receiving-card");
+  }
+
+  return true;
+}
+
 function syncBoardAnimationGeometry() {
   const board = app.querySelector(".no-thanks-game-board");
   if (!board) return;
@@ -712,39 +932,21 @@ function syncBoardAnimationGeometry() {
     if (!board.isConnected) return;
     let started = false;
 
-    const dealingCard = board.querySelector(".no-thanks-table-card.is-dealing");
+    const dealingCard = board.querySelector(".no-thanks-table-card.is-awaiting-deal");
     const deck = board.querySelector(".no-thanks-draw-deck__stack");
     const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
     if (dealingCard && deckTopCard) {
-      const cardRect = dealingCard.getBoundingClientRect();
-      const deckRect = deckTopCard.getBoundingClientRect();
-      const dealX = (deckRect.left + (deckRect.width / 2))
-        - (cardRect.left + (cardRect.width / 2));
-      const dealY = (deckRect.top + (deckRect.height / 2))
-        - (cardRect.top + (cardRect.height / 2));
-      const startScale = Math.max(
-        .5,
-        Math.min(1, Math.min(
-          deckRect.width / cardRect.width,
-          deckRect.height / cardRect.height,
-        )),
-      );
-      dealingCard.style.setProperty("--no-thanks-deal-x", dealX.toFixed(2) + "px");
-      dealingCard.style.setProperty("--no-thanks-deal-y", dealY.toFixed(2) + "px");
-      dealingCard.style.setProperty("--no-thanks-deal-mid-x", (dealX * .48).toFixed(2) + "px");
-      dealingCard.style.setProperty("--no-thanks-deal-mid-y", (dealY * .48 - 12).toFixed(2) + "px");
-      dealingCard.style.setProperty("--no-thanks-deal-start-scale", startScale.toFixed(4));
-      dealingCard.addEventListener("animationend", (event) => {
-        if (event.target !== dealingCard || event.animationName !== "no-thanks-card-deal-path") return;
-        dealingCard.classList.remove("is-dealing", "is-motion-ready", "is-submitting");
-      }, { once: true });
-      dealingCard.classList.add("is-motion-ready");
+      if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+        dealingCard.classList.remove("is-awaiting-deal");
+      } else {
+        dealingCard.classList.add("is-flight-started");
+        void animateDealFlight(dealingCard, deckTopCard);
+      }
       started = true;
     }
 
     const chipFlight = board.querySelector(".no-thanks-chip-flight");
-    const chipTarget = board.querySelector(".no-thanks-center-chips .no-thanks-chip-cluster")
-      ?? board.querySelector(".no-thanks-center-chips");
+    const chipTarget = board.querySelector(".no-thanks-center-chips__visual");
     if (chipFlight && chipTarget) {
       const flightRect = chipFlight.getBoundingClientRect();
       const targetRect = chipTarget.getBoundingClientRect();
@@ -757,10 +959,13 @@ function syncBoardAnimationGeometry() {
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
       chipFlight.addEventListener("animationend", () => {
+        commitCenterChipLanding(board);
         chipFlight.remove();
       }, { once: true });
       chipFlight.classList.add("is-motion-ready");
       started = true;
+    } else if (boardPresentationEffect?.chipFromPlayerId && prefersReducedMotion()) {
+      commitCenterChipLanding(board);
     }
 
     if (started && boardPresentationEffect) {
@@ -786,7 +991,9 @@ function createRoundTable(view, state, effects) {
     el("div", { className: "no-thanks-round-table__objects" }, [
       createDrawDeck(view),
       createTableCard(view, state, { dealIn: effects.dealCard }),
-      createCenterChipAction(view, state),
+      createCenterChipAction(view, state, {
+        displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
+      }),
     ]),
   ]);
 }
