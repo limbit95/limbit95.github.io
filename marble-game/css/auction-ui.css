@@ -165,7 +165,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .auction-action-panel__participants-heading strong {
@@ -359,8 +359,8 @@
   gap: 12px;
   width: fit-content;
   min-width: 0;
-  max-width: min(300px, calc(100% - 36px));
-  padding: 16px 18px;
+  max-width: min(240px, calc(100% - 36px));
+  padding: 14px 16px;
   border: 1px solid rgba(255, 226, 154, 0.55);
   border-radius: 18px;
   background:
@@ -404,8 +404,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 58px;
-  height: 72px;
+  width: 52px;
+  height: 66px;
   border: 2px solid #ffe29a;
   border-radius: 12px 12px 8px 8px;
   background: linear-gradient(160deg, #fff4cf, #f3c253);
@@ -780,6 +780,10 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.auction-selector__track[data-result="true"] {
+  transform: translateX(var(--selector-target-x));
 }
 
 .auction-selector__track[data-result="true"] .auction-selector__profile {
