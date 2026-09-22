@@ -20,7 +20,7 @@ BGM이 등록된 게임 페이지에 진입하면 가능한 환경에서 즉시 
 - `js/game-audio/bgmPlayer.js`: 작은 Floating Player UI
 - `css/game-bgm-player.css`: 공통 Player 스타일
 
-The Game에서 검증한 뒤 둘 이상의 게임에서 같은 책임이 반복되는지 확인하고, 그때만 formal Game Platform shared 계약 승격 여부를 검토한다.
+The Game과 Liar Game에서 같은 utility를 재사용하고 있다. formal Game Platform shared 계약 승격은 Game Platform 게임에서도 같은 책임이 반복되는지 확인한 뒤 별도로 검토한다.
 
 ## 3. 재생 정책
 
@@ -69,7 +69,21 @@ Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 �
 
 The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the-game:game-started` presentation event를 발생시킨다. 이 이벤트는 게임 상태를 바꾸지 않고 BGM fallback에만 사용한다.
 
-## 6. 경계
+## 6. Liar Game
+
+- Track: Deadly Roulette
+- Artist: Kevin MacLeod
+- ISRC: USUAN1600033
+- Official source: Incompetech
+- Reference video: Kevin MacLeod: Deadly Roulette (`Hnbv_KNxVo8`)
+- License: CC BY 4.0
+- Default slider volume: 0.35
+- Default output volume: 0.35
+- Loop: enabled
+
+Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/player를 mount하고 즉시 재생을 시도한다. autoplay가 차단되면 기존 공통 interaction fallback을 사용하며 게임 인증, 방 생성/참가, Realtime 상태와는 독립적으로 동작한다.
+
+## 7. 경계
 
 - BGM 오류는 방 생성, 참가, 준비, 게임 시작, Realtime, reconnect에 영향을 주지 않는다.
 - 기존 SFX/Web Audio 구현은 수정하지 않는다.
@@ -77,7 +91,7 @@ The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the
 - 음악 선택, 기본 음량, 재생 연출은 각 게임의 presentation 책임으로 남긴다.
 - 저작권 또는 라이선스가 불명확한 음원을 catalog에 등록하지 않는다.
 
-## 7. 검증
+## 8. 검증
 
 자동 검증은 `the-game/tests/bgm.test.js`에서 수행한다.
 
