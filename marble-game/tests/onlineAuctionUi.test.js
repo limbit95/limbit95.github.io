@@ -188,7 +188,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /content: " · 입찰"/);
   assert.match(cssSource, /important-notice\[data-notice-layer="global"\]/);
   assert.match(cssSource, /--auction-notice-bottom/);
-  assert.match(cssSource, /max-width: min\(300px, calc\(100% - 36px\)\)/);
+  assert.match(cssSource, /max-width: min\(240px, calc\(100% - 36px\)\)/);
   assert.match(cssSource, /font-size: clamp\(1\.3rem, 4vw, 1\.6rem\)/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
