@@ -143,6 +143,10 @@
 - 중앙 칩 pile/count/action 간 row gap을 더 넓혔습니다.
 - GAME_OVER 화면의 방장에게 기존 `createRematchRoom()` fresh-room 흐름을 호출하는 `재대결` 버튼을 추가했습니다.
 - 애니메이션 미노출 원인을 action snapshot 적용 직후 `busy=false` emit이 같은 version DOM을 즉시 다시 그리는 문제로 확인했습니다. presentation effect를 `requestAnimationFrame`에서 실제 연결된 최종 DOM 모션이 시작될 때까지 유지하도록 수정했습니다.
+- 중앙 칩이 0개일 때 `0개` count text를 제거하고 칩이 존재할 때만 count를 렌더합니다.
+- 새 카드 공개 시 draw deck의 최상단 visual layer를 motion 동안 숨겨 moving card가 실제 맨 위 카드에서 빠져나와 오른쪽 current-card 위치로 이동하는 인상을 강화했습니다.
+- chip flight를 26px / 780ms로 조정하고 경로 중 opacity를 유지해 acting avatar → center pile 이동이 명확하게 보이도록 보정했습니다.
+- refuse/take 성공 경로는 silent busy lock + result snapshot의 `busy=false` 동시 적용으로 busy-only/full snapshot/final busy render의 3단계를 authoritative result 1회 render로 축소했습니다. 클릭 대상은 DOM에서 즉시 disabled 처리해 중복 입력을 막습니다.
 
 ## Current Work
 
@@ -242,6 +246,7 @@
   - 테이블 직접 조작 후 정적 검증에서 main.js syntax, 3–7인 좌석 bounds, 단계형 deck layer(15→5, 11→4, 7→3, 1→1), avatar clipping frame, red chip skin, current-card click/center-chip refuse action, card-deal/chip-flight animation 계약과 CSS brace balance를 확인했습니다.
   - 중앙 정렬 pass 후 정적 검증에서 3–7인 viewer 좌석 x=50 / 6시 고정, active avatar 164px, personal chip 192px, panel tool relocation, PLAYING 하단 turn message 제거, measured chip flight, 3D card flip front/back contract와 CSS brace balance를 확인했습니다.
   - polish pass 정적 검증에서 3–7인 viewer seat y=90.5% edge anchoring, active seat 107px, seat nickname, 1열 panel tools, 220px panel/160px hand, top-only card hover, expanded center-chip spacing, host rematch button, same-version animation effect persistence와 CSS brace balance를 확인했습니다.
+  - motion/performance pass 정적 검증에서 zero-chip count conditional, measured deck top-card flight, 26px/780ms chip flight, immediate DOM input lock, silent gameplay busy lock, authoritative result single-render contract와 CSS brace balance를 확인했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
