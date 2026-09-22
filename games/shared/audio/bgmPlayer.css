@@ -1,0 +1,153 @@
+.game-bgm-player {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 1200;
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, auto);
+  align-items: center;
+  gap: 6px;
+  max-width: min(360px, calc(100vw - 28px));
+  min-height: 42px;
+  padding: 6px 8px;
+  color: #f5f5f5;
+  background: rgba(18, 18, 18, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font: inherit;
+}
+
+.game-bgm-player__equalizer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 22px;
+  height: 24px;
+}
+
+.game-bgm-player__equalizer-bar {
+  width: 3px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.75;
+  transform-origin: center bottom;
+}
+
+.game-bgm-player.is-playing .game-bgm-player__equalizer-bar {
+  animation: game-bgm-equalizer 0.78s ease-in-out infinite alternate;
+}
+
+.game-bgm-player.is-playing .game-bgm-player__equalizer-bar:nth-child(2) {
+  animation-delay: -0.28s;
+}
+
+.game-bgm-player.is-playing .game-bgm-player__equalizer-bar:nth-child(3) {
+  animation-delay: -0.52s;
+}
+
+.game-bgm-player__control,
+.game-bgm-player__source-button {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 5px 7px;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.game-bgm-player__control:hover,
+.game-bgm-player__source-button:hover,
+.game-bgm-player__control:focus-visible,
+.game-bgm-player__source-button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+.game-bgm-player__source-button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  text-align: left;
+}
+
+.game-bgm-player.needs-interaction .game-bgm-player__toggle {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.game-bgm-player__popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  padding: 10px;
+  color: #f5f5f5;
+  background: rgba(18, 18, 18, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.game-bgm-player__volume-popover {
+  width: min(210px, calc(100vw - 28px));
+}
+
+.game-bgm-player__volume-range {
+  width: 100%;
+}
+
+.game-bgm-player__source-popover {
+  display: grid;
+  gap: 5px;
+  min-width: 210px;
+  max-width: min(280px, calc(100vw - 28px));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.game-bgm-player__source-popover a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+.game-bgm-player__popover[hidden] {
+  display: none;
+}
+
+@keyframes game-bgm-equalizer {
+  from { transform: scaleY(0.55); opacity: 0.5; }
+  to { transform: scaleY(1.45); opacity: 1; }
+}
+
+@media (max-width: 520px) {
+  .game-bgm-player {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 20px);
+  }
+
+  .game-bgm-player__source-button {
+    max-width: 76px;
+    font-size: 0;
+  }
+
+  .game-bgm-player__source-button::after {
+    content: "출처";
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-bgm-player.is-playing .game-bgm-player__equalizer-bar {
+    animation: none;
+  }
+}

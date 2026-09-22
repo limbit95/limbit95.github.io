@@ -232,3 +232,9 @@ UI 구현을 완료했다고 판단하기 전에 최소 다음을 확인한다.
 게임 규칙과 무관하게 여러 신규 게임에서 반복되는 접근성, 연결 상태, Room/Lobby 같은 책임만 기존 Game Platform 규칙에 따라 SHARED 후보로 검토한다.
 
 Visual Identity와 game-specific presentation은 기본적으로 GAME-LOCAL에 유지한다.
+
+## 13. Game BGM
+
+게임에서 BGM을 사용하는 경우 세부 재생 lifecycle, 사용자 interaction fallback, Player UI, attribution 규칙은 `docs/game-platform-bgm.md`를 따른다.
+
+음악 자체의 선택과 게임 분위기에 맞춘 연출은 GAME-LOCAL presentation 책임으로 유지한다. 공통 BGM foundation은 브라우저 재생 정책 대응과 사용자 제어처럼 여러 게임에서 반복되는 책임만 담당하며, 기존 Room/Lobby 또는 gameplay 계약을 BGM 때문에 확장하지 않는다.
