@@ -5,12 +5,26 @@
 
 ## Current Status
 
-- Phase: Board UI redesign — latest main platform alignment
+- Phase: Board UI Phase A–D merged — detail polish / Phase E pending
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-board-ui-phase1-a-d`
-- 마지막 기록: 2026-09-22
+- Active branch: `main` (현재 구현 브랜치 없음; 이 checkpoint가 main에 반영된 뒤 handoff baseline으로 사용)
+- Phase A–D merge baseline: `66531c7820285b37dc8d1e2961156ab95560758f`
+- 마지막 기록: 2026-09-23
 
 ## Completed
+
+- Board UI Phase A–D 작업 PR #364 (`feature/no-thanks-board-ui-phase1-a-d`)을 최신 `main`과 충돌 없이 재동기화한 뒤 2026-09-22에 병합했습니다. 병합 commit은 `66531c7820285b37dc8d1e2961156ab95560758f`입니다.
+- WAITING / PLAYING 공통 대형 board scene, 3–7인 viewer 6시 기준 좌석 회전, compact HUD, site profile avatar, 실제 타원 table border 중심선 기반 좌석 geometry를 현재 main baseline으로 확정했습니다.
+- 개인 패널의 `내 보유 칩`, 정확한 own chip count/cluster, 오름차순 획득 카드, 동적 overlap, corner number, top-only hover/focus를 구현했습니다.
+- TAKE_CARD presentation은 중앙 공개 카드 → 내 보유 카드, 중앙 칩 batch → 내 보유 칩, 이후 draw deck → 다음 current card 순서로 handoff하도록 구현했습니다.
+- TAKE 카드/칩 landing과 다음 deal lifecycle을 분리해 same-snapshot rerender 중 획득 카드가 잠깐 사라지거나 이전 카드가 다시 숨겨지는 race condition을 수정했습니다.
+- 카드 landing 대상은 generic hidden slot이 아니라 `data-card-value` 기준 최신 DOM으로 한정하고, `takeCardLanded / takeChipsLanded` 상태 이후에는 authoritative final hand/chip state를 유지하도록 했습니다.
+- deal presentation lifecycle을 `started → running → completed`로 관리하고 실제 landing 전까지 current card를 `is-awaiting-deal`로 숨겨 새 카드와 flight card가 겹치는 문제를 막았습니다.
+- `roomId:version:currentCard:deckRemaining` 기반 `lastSettledDealKey`를 기록해 브라우저 최소화/다른 탭 이동 후 `visibilitychange / pageshow` refresh가 발생해도 이미 공개 완료된 카드의 deal animation이 재생되지 않도록 수정했습니다.
+- 중앙 칩 획득은 TAKE 시점 center count를 고정 batch로 소비하고 약 620ms + 26ms stagger의 단일 Web Animation batch로 처리해 중복/추가 칩처럼 보이는 tail 현상을 정리했습니다.
+- draw deck → current card는 약 760ms fixed flight/flip + 약 130ms settle/handoff로 유지하며, 실제 current card DOM은 landing 시점에만 공개합니다.
+- Phase A–D 작업 동안 기능/DB authority와 same-room rematch lifecycle은 기존 main 구현을 보존했고, UI/presentation 결정은 `UI_DESIGN.md`에 반영했습니다.
+
 
 - 최신 `main` `fda8e2294356...`의 Game Platform Development/UI 규칙과 No Thanks! same-room rematch lifecycle을 현재 UI 작업 브랜치에 통합했습니다.
 - 새 규칙에 따라 UI/presentation 결정은 `UI_DESIGN.md`를 권위 문서로 사용하고, #364에서 중복 추가했던 rematch migration/옛 rematch error 계약은 최신 main 구현을 따르도록 제거했습니다.
@@ -127,40 +141,19 @@
 
 ## Current Work
 
-- 카드 공개가 완료된 뒤 브라우저 최소화/다른 탭 이동 후 복귀하면 동일 deal animation이 드물게 다시 재생되는 현상을 추적했습니다.
-- 공통 reconnect trigger가 `visibilitychange` 복귀 시 authoritative snapshot refresh를 수행하며, presentation state가 lifecycle 과정에서 재구성될 경우 동일 snapshot을 이미 소비했다는 별도 기록이 없던 것이 원인이었습니다.
-- `roomId:version:currentCard:deckRemaining` 기반 `lastSettledDealKey`를 추가했습니다. deal landing 완료 또는 초기 PLAYING snapshot 표시 시 key를 settled로 기록하고, 이후 같은 authoritative deal identity는 presentation transition으로 다시 만들지 않습니다.
-- settled deal key는 단순 controller dispose/visibility refresh에서는 초기화하지 않아 같은 페이지 lifecycle 내 focus 복귀 재생을 차단합니다.
-
-- 간헐적으로 TAKE 카드가 안착 직후 사라지거나 다음 TAKE에서 직전 카드가 다시 숨겨지는 race condition을 추적했습니다.
-- 원인은 `takeByViewer` effect가 카드 landing 이후에도 다음 deal 완료까지 유지되어, 동일 snapshot 재렌더가 들어오면 개인 패널이 다시 pre-landing transient state로 생성되는 것이었습니다.
-- presentation effect에 `takeCardLanded` / `takeChipsLanded`를 분리하고, 각 구성요소가 실제 landing한 순간부터는 authoritative final hand/chip state를 사용하도록 수정했습니다.
-- 카드 landing selector도 generic hidden card가 아니라 `data-card-value` 기준의 해당 카드 최신 DOM을 찾도록 변경해 이전/다음 take slot이 섞일 가능성을 제거했습니다.
-
-- TAKE_CARD presentation lifecycle을 `started → running → completed`로 보강해 동일 snapshot 재렌더가 애니메이션 중 끼어도 effect를 landing 전까지 유지하도록 수정했습니다.
-- 다음 current card는 deal flight가 실제로 도착할 때까지 최신 DOM에서도 `is-awaiting-deal`로 숨기며, landing 순간에만 공개하도록 The Game handoff 패턴을 다시 적용했습니다.
-- TAKE card/chip handoff 이후에는 이전 board DOM이 아니라 현재 `app`의 최신 board/deck/current-card DOM을 다시 찾아 다음 deal animation을 이어가도록 변경했습니다.
-- 중앙 칩 획득은 TAKE 클릭 시점의 center count를 batch count로 고정하고 해당 수의 flight만 한 번 실행하도록 변경했습니다.
-- chip batch는 약 620ms + 26ms stagger로 정리하고 모든 flight 완료 후 overlay 제거와 개인 칩 상태 handoff를 같은 task에서 처리해 끝부분의 추가 칩/중복 칩 느낌을 제거했습니다.
-
-- 좌석 프로필 중심점을 실제 타원형 테이블 외곽선에 맞추도록 post-render geometry sync를 보완했습니다.
-- 개인 패널의 `내 칩` 표기를 `내 보유 칩`으로 변경했습니다.
-- TAKE_CARD 시 RPC 직전 중앙 카드/칩 DOM을 overlay로 보존하고, authoritative snapshot 이후 실제 구성물이 개인 패널로 이동한 뒤 최종 hand/chip state로 handoff하는 presentation을 구현했습니다.
-- 카드 flight는 기존 카드가 없으면 hand 맨 왼쪽, 기존 카드가 있으면 현재 가장 오른쪽 카드 다음 transient slot을 목적지로 사용하며, 이동 완료 뒤 다음 draw-card 공개 animation을 이어서 재생합니다.
-- chip flight는 부루마블 money transfer의 stagger/arc 원칙을 참고해 중앙 pile의 실제 visible chip 각각이 내 보유 칩 cluster로 이동하도록 구현했습니다.
-
-- PR #364의 Board UI Phase A–D 구현을 최신 main의 플랫폼 규칙과 lifecycle 위에 재정합화했습니다.
-- 기능/DB 권위는 main의 구현을 사용하고, 현재 브랜치에는 board/presentation UI와 gameplay render 최적화만 남기는 방향으로 정리했습니다.
-- 새 UI 규칙에 맞춰 board/motion/responsive 결정은 `UI_DESIGN.md`에 반영했습니다.
-- rematch production migration 적용과 release capability 활성화는 기존 release gate 범위로 남아 있습니다.
+- Phase A–D 구현과 안정화는 PR #364 병합으로 완료했습니다.
+- 이 문서는 Phase A–D 병합 이후 다음 채팅/작업을 위한 handoff checkpoint이며, checkpoint 반영 후 현재 구현 브랜치는 `main`을 baseline으로 둡니다.
+- 아직 게임을 `RELEASED`로 전환하지 않았으며 Registry capability 활성화와 실제 운영 브라우저 release gate는 남아 있습니다.
+- 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 그 브랜치를 이어가고, 없다면 종료된 `feature/no-thanks-board-ui-phase1-a-d`를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
 
 ## Next Work
 
-1. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
-2. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 seat 근처 interaction으로 추가합니다.
-3. TAKE_CARD card/chip flight의 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
-4. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤과 take animation destination을 확인합니다.
-5. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 production migration/capability activation을 계속 수행합니다.
+1. 다음 구현 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `UI_DESIGN.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 해당 브랜치를 이어가고, 없을 때만 최신 `main`에서 새 No Thanks! 작업 브랜치를 생성합니다.
+2. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
+3. Phase E 후보인 다른 플레이어 공개 획득 카드 popover를 seat 근처 interaction으로 구현합니다.
+4. TAKE_CARD card/chip flight는 현재 구조를 유지하고 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
+5. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤, take animation destination, background→foreground 복귀를 확인합니다.
+6. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 Registry capability activation을 완료한 뒤 release closeout 여부를 판단합니다.
 
 ## Decisions
 
@@ -230,6 +223,10 @@
 ## Validation
 
 - 완료:
+  - Phase A–D 최종 브랜치 head `71ac396077628e53bebe1bbbc862c1c7383f64b9`를 당시 최신 main과 동기화한 상태에서 PR #364가 mergeable / behind 0임을 확인했습니다.
+  - 최종 브랜치에서 Game Platform JavaScript syntax, shared module link, Game Platform contract tests, Governance Guard와 `build-assets`가 모두 통과했습니다.
+  - PR #364 병합 후 main commit `66531c7820285b37dc8d1e2961156ab95560758f`에서 `build`, 전체 `site-checks`, `report-build-status`, `deploy`가 모두 성공했습니다.
+  - 병합 후 전체 site-checks에서 Game Platform contracts뿐 아니라 The Game rules, Marble foundation, Web Push/signup/admin/activity 권한 검사, module/link/file-integrity 검사까지 성공했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
@@ -293,7 +290,7 @@
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 비정상 disconnect와 Presence 정책은 Phase 7~8에서 검증했습니다. 재대결 정책은 Game Platform 공통 규칙에 맞춰 same-room lifecycle로 변경했고 자동 DB/contract 검증을 완료했습니다. 실제 브라우저 Presence/모바일 복귀/rematch 검증은 release manual gate로 남아 있습니다.
-- 현재 브랜치는 운영 migration 기록/재현성 보강 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- Phase A–D 구현 브랜치는 이미 PR #364로 main에 병합됐으며 후속 구현에서는 해당 종료 브랜치를 재사용하지 않습니다. 다음 구현 시에는 먼저 No Thanks! 관련 진행 중 브랜치 존재 여부를 확인합니다.
 
 ## Release closeout 안내
 
