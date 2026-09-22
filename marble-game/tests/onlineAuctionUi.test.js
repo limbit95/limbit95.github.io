@@ -8,7 +8,7 @@ const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 const {
   createOnlineClassicSession,
   getActiveOnlineClassicSession,
-} = await import("../js/onlineSession.js?v=20260919-r13");
+} = await import("../js/onlineSession.js?v=20260923-r1");
 globalThis.window = originalWindow;
 
 const uiSource = readFileSync(new URL("../js/onlineAuctionUi.js", import.meta.url), "utf8");
@@ -160,8 +160,8 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
   assert.match(uiSource, /createAuctionIntroPresenter/);
-  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r2/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260923-r1/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260923-r1/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
