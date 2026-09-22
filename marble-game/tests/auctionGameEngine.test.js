@@ -128,11 +128,11 @@ test("competitive bids are blocked until the selector window ends", () => {
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
 
   assert.throws(
-    () => reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 7_699),
+    () => reduce(state, ACTION_TYPES.AUCTION_BID, "b", { amount: 400 }, 7_699),
     /has not started yet/i,
   );
 
-  state = reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 7_700);
+  state = reduce(state, ACTION_TYPES.AUCTION_BID, "b", { amount: 400 }, 7_700);
   assert.equal(state.pendingChoice.auction.highestBid, 400);
 });
 
@@ -235,11 +235,13 @@ test("competitive bid timeout still automatically passes the current participant
   );
 
   state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_700);
-  assert.equal(state.phase, TURN_PHASES.TURN_END);
-  assert.equal(state.boardState.properties.singapore.ownerId, "b");
+  assert.equal(state.phase, TURN_PHASES.WAITING_CHOICE);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.highestBidderId, null);
+  assert.equal(state.boardState.properties.singapore.ownerId, null);
   assert.equal(state.lastEvents.some((event) => (
     event.type === "AUCTION_AUTO_PASSED"
-    && event.playerId === "c"
+    && event.playerId === "b"
     && event.reason === "TIMEOUT"
   )), true);
 });
