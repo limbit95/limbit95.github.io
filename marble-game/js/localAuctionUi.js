@@ -1,4 +1,9 @@
-import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r3";
+import {
+  playAuctionBidSound,
+  playAuctionStartSound,
+  prepareAuctionBidSound,
+} from "./auctionBidSound.js?v=20260922-r4";
+import { createAuctionStartSequenceView } from "./auctionStartSequenceUi.js?v=20260922-r1";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -34,27 +39,33 @@ function deadlineMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function participantCards(state, playerIds = []) {
+function participantCards(state, playerIds = [], openingBidderPlayerId = null) {
   return Object.freeze(playerIds.map((playerId, index) => Object.freeze({
     id: playerId,
     name: playerName(findPlayer(state, playerId)),
     order: index + 1,
-    openingBidder: index === 0,
+    openingBidder: playerId === openingBidderPlayerId,
   })));
 }
 
 export function createLocalAuctionUiModel(state, selectedPlayerId = null) {
   const pending = state?.pendingChoice;
-  if (!pending || !["AUCTION_VOTE", "PROPERTY_AUCTION"].includes(pending.type)) {
+  if (!pending || !["AUCTION_VOTE", "AUCTION_START_SEQUENCE", "PROPERTY_AUCTION"].includes(pending.type)) {
     return null;
   }
 
   const node = findNode(state, pending.nodeId);
-  const stage = pending.type === "AUCTION_VOTE" ? "vote" : "auction";
+  const stage = pending.type === "AUCTION_VOTE"
+    ? "vote"
+    : pending.type === "AUCTION_START_SEQUENCE"
+      ? (pending.stage === "ROULETTE" ? "roulette" : "start_notice")
+      : "auction";
   const auction = stage === "auction" ? (pending.auction ?? {}) : null;
   const playerIds = stage === "auction"
     ? (auction?.participantPlayerIds ?? [])
-    : (pending.eligiblePlayerIds ?? []);
+    : stage === "vote"
+      ? (pending.eligiblePlayerIds ?? [])
+      : (pending.participantPlayerIds ?? []);
   const activePlayerId = choosePlayerId(playerIds, selectedPlayerId);
   const activePlayer = findPlayer(state, activePlayerId);
   const openingBid = Number(pending.openingBid ?? auction?.openingBid) || 0;
@@ -77,6 +88,20 @@ export function createLocalAuctionUiModel(state, selectedPlayerId = null) {
       });
     }),
   };
+
+  if (stage === "start_notice" || stage === "roulette") {
+    const participantPlayerIds = pending.participantPlayerIds ?? [];
+    return Object.freeze({
+      ...base,
+      participantPlayerIds: Object.freeze([...participantPlayerIds]),
+      participantCards: participantCards(
+        state,
+        participantPlayerIds,
+        pending.openingBidderPlayerId ?? null,
+      ),
+      openingBidderPlayerId: pending.openingBidderPlayerId ?? null,
+    });
+  }
 
   if (stage === "vote") {
     const participantPlayerIds = pending.participantPlayerIds ?? [];
@@ -124,7 +149,11 @@ export function createLocalAuctionUiModel(state, selectedPlayerId = null) {
   return Object.freeze({
     ...base,
     participantPlayerIds: Object.freeze([...participantPlayerIds]),
-    participantCards: participantCards(state, participantPlayerIds),
+    participantCards: participantCards(
+      state,
+      participantPlayerIds,
+      auction.openingBidderPlayerId ?? pending.openingBidderPlayerId ?? null,
+    ),
     highestBid,
     highestBidderId,
     highestBidderName: highestBidderId ? playerName(findPlayer(state, highestBidderId)) : null,
@@ -292,8 +321,8 @@ function createPanel(documentObject, dock) {
 function renderParticipantList(documentObject, elements, model) {
   const cards = model.participantCards ?? [];
   elements.participantMeta.textContent = model.stage === "vote"
-    ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount}`
-    : `${cards.length}명 · 실시간 입찰 순서`;
+    ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount} · 순서는 룰렛 결정`
+    : `${cards.length}명 · 룰렛 결정 입찰 순서`;
 
   if (cards.length === 0) {
     const empty = documentObject.createElement("p");
@@ -312,14 +341,14 @@ function renderParticipantList(documentObject, elements, model) {
 
     const order = documentObject.createElement("span");
     order.className = "auction-action-panel__participant-order";
-    order.textContent = String(card.order);
+    order.textContent = model.stage === "vote" ? "•" : String(card.order);
 
     const name = documentObject.createElement("strong");
     name.textContent = card.name;
 
     const badges = documentObject.createElement("span");
     badges.className = "auction-action-panel__participant-badges";
-    if (card.openingBidder) {
+    if (model.stage === "auction" && card.openingBidder) {
       const firstBid = documentObject.createElement("span");
       firstBid.className = "auction-action-panel__first-bid";
       firstBid.textContent = "첫 입찰";
@@ -493,11 +522,20 @@ export function setupLocalAuctionUi({
     if (disposed) return;
     showBidEvent(state);
     const model = createLocalAuctionUiModel(state, selectedPlayerId);
+    startSequenceView.render(model);
     if (!model) {
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
       elements.panel.hidden = true;
       elements.panel.dataset.auctionStage = "";
+      return;
+    }
+
+    if (model.stage === "start_notice" || model.stage === "roulette") {
+      cancelHighestBidAnimation({ reset: true });
+      elements.panel.hidden = true;
+      elements.panel.dataset.auctionStage = model.stage;
+      scheduleDeadline(model);
       return;
     }
 
@@ -522,7 +560,7 @@ export function setupLocalAuctionUi({
       elements.primaryMetricValue.textContent = money(model.openingBid);
       elements.secondaryMetricLabel.textContent = `${model.selectedPlayerName} 보유 골드`;
       elements.secondaryMetricValue.textContent = money(model.selectedPlayerGold);
-      elements.detail.textContent = "15초 안에 모든 플레이어가 결정하면 즉시 마감됩니다. 미응답은 시간 종료 시 경매 포기로 처리됩니다.";
+      elements.detail.textContent = "15초 안에 모두 결정하면 모집이 마감됩니다. 참가 순서와 관계없이 경매 시작 전 룰렛으로 첫 입찰자를 정합니다.";
       elements.primaryButton.textContent = model.participant ? "참가 확정" : "경매 참가";
       elements.secondaryButton.textContent = model.passed ? "포기 확정" : "경매 포기";
       elements.primaryButton.disabled = busy || !model.canJoin;
@@ -614,6 +652,7 @@ export function setupLocalAuctionUi({
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
       if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
+      startSequenceView.dispose();
       elements.panel.remove();
     },
   });
