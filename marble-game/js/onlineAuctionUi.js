@@ -663,6 +663,8 @@ export function setupOnlineAuctionUi({
     if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
     unsubscribeState?.();
     documentObject.removeEventListener("click", handlePurchaseDecline, true);
+    setAuctionOverlayActive(false);
+    introPresenter.dispose();
     elements.panel.remove();
   };
 }
