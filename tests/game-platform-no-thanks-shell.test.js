@@ -60,6 +60,10 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
   assert.match(styles, /\.no-thanks-rules/u);
   assert.match(styles, /\.no-thanks-online-entry/u);
   assert.match(styles, /\.no-thanks-scoreboard/u);
+  assert.match(runtime, /const boardMode = Boolean/u);
+  assert.match(runtime, /actions: boardMode \? \[\] : lobbyActions/u);
+  assert.match(runtime, /no-thanks-panel-tools/u);
+  assert.match(styles, /\.no-thanks-shell--board \.game-platform-shell__actions:empty/u);
 });
 
 
