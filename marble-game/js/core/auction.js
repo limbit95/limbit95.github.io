@@ -220,6 +220,7 @@ export function reducePropertyAuction(auction, players, action) {
 
   const events = [];
   let nextAuction = auction;
+  let submittedBidAmount = null;
 
   if (action?.pass === true) {
     nextAuction = freezeAuction({
@@ -236,11 +237,15 @@ export function reducePropertyAuction(auction, players, action) {
     });
   } else {
     const amount = Number(action?.amount);
+    const previousAmount = Number(auction.highestBid) || 0;
     const minimumBid = getPropertyAuctionMinimumBid(auction);
     if (!Number.isSafeInteger(amount) || amount < minimumBid) {
       throw new Error(`Auction bid must be at least ${minimumBid}.`);
     }
     if (amount > Number(player.money)) throw new Error("Player cannot afford this auction bid.");
+    submittedBidAmount = amount;
+    const increase = amount - previousAmount;
+    const surgeThreshold = Math.max(100, Math.ceil(previousAmount * 0.3));
     nextAuction = freezeAuction({
       ...auction,
       bidPlayerIds: auction.bidPlayerIds.includes(playerId)
@@ -251,11 +256,30 @@ export function reducePropertyAuction(auction, players, action) {
       turnPlayerId: null,
       turnDeadlineAt: null,
     });
-    events.push({ type: "AUCTION_BID_PLACED", playerId, nodeId: auction.nodeId, amount });
+    events.push({
+      type: "AUCTION_BID_PLACED",
+      playerId,
+      nodeId: auction.nodeId,
+      amount,
+      previousAmount,
+      increase,
+      surge: increase >= surgeThreshold,
+    });
   }
 
   const prepared = prepareNextTurn(nextAuction, players, playerId);
   nextAuction = prepared.auction;
+  if (
+    submittedBidAmount !== null
+    && nextAuction.status === "WON"
+    && nextAuction.winnerPlayerId === playerId
+  ) {
+    nextAuction = freezeAuction({
+      ...nextAuction,
+      highestBid: submittedBidAmount,
+      winningBid: submittedBidAmount,
+    });
+  }
   for (const autoPassedPlayerId of prepared.autoPassedPlayerIds) {
     events.push({
       type: "AUCTION_AUTO_PASSED",
