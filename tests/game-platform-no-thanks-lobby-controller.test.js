@@ -17,6 +17,8 @@ class FakeDocument extends EventTarget {
 
 function snapshot({
   version = 0,
+  roomId = "room-1",
+  roomCode = "ABC234",
   status = "waiting",
   readyA = false,
   readyB = false,
@@ -30,8 +32,8 @@ function snapshot({
   return {
     version,
     room: {
-      id: "room-1",
-      roomCode: "ABC234",
+      id: roomId,
+      roomCode,
       hostUserId: "host",
       status,
       maxPlayers: 7,
@@ -79,7 +81,10 @@ function snapshot({
   };
 }
 
-function fakeAdapter({ activeSnapshot = null } = {}) {
+function fakeAdapter({
+  activeSnapshot = null,
+  createdSnapshot = null,
+} = {}) {
   const calls = [];
   let currentSnapshot = activeSnapshot;
   let invalidationListener = null;
@@ -107,7 +112,7 @@ function fakeAdapter({ activeSnapshot = null } = {}) {
     },
     async createRoom(input) {
       calls.push(["createRoom", input]);
-      currentSnapshot = snapshot({ version: 0 });
+      currentSnapshot = createdSnapshot ?? snapshot({ version: 0 });
       return currentSnapshot;
     },
     async joinRoom(input) {
@@ -471,4 +476,169 @@ test("No Thanks! controller sends a versioned host termination action", async ()
     clientActionId: "action-1",
   }]);
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.GAME_OVER);
+});
+
+
+function fakePresenceAdapter() {
+  const calls = [];
+  let handlers = null;
+  let unsubscribed = 0;
+
+  return {
+    calls,
+    sync(userIds) {
+      handlers?.onSync(userIds);
+    },
+    status(value) {
+      handlers?.onStatus(value);
+    },
+    unsubscribed() {
+      return unsubscribed;
+    },
+    subscribe(input) {
+      calls.push(["subscribe", {
+        roomId: input.roomId,
+        userId: input.userId,
+      }]);
+      handlers = input;
+      return () => {
+        handlers = null;
+        unsubscribed += 1;
+      };
+    },
+  };
+}
+
+test("No Thanks! presence updates connectivity without mutating authoritative snapshot", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 4,
+      status: "playing",
+      activePlayerId: "host",
+    }),
+  });
+  const presenceAdapter = fakePresenceAdapter();
+  const windowTarget = new EventTarget();
+  const controller = createNoThanksLobbyController({
+    adapter: roomAdapter,
+    gameplayAdapter: fakeGameplayAdapter(),
+    presenceAdapter,
+    idFactory: () => "presence-action",
+    windowTarget,
+    documentTarget: new FakeDocument(),
+  });
+
+  await controller.initialize();
+
+  assert.deepEqual(presenceAdapter.calls[0], ["subscribe", {
+    roomId: "room-1",
+    userId: "guest-a",
+  }]);
+
+  presenceAdapter.sync(["guest-a", "guest-b"]);
+
+  assert.equal(controller.current().presence.ready, true);
+  assert.deepEqual(
+    [...controller.current().presence.onlinePlayerIds].sort(),
+    ["guest-a", "guest-b"],
+  );
+  assert.equal(controller.current().snapshot.version, 4);
+
+  windowTarget.dispatchEvent(new Event("offline"));
+  assert.equal(controller.current().connection, "offline");
+
+  roomAdapter.setSnapshot(snapshot({
+    version: 5,
+    status: "playing",
+    activePlayerId: "host",
+  }));
+  windowTarget.dispatchEvent(new Event("online"));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().connection, "connected");
+  assert.equal(controller.current().snapshot.version, 5);
+
+  controller.dispose();
+  assert.equal(presenceAdapter.unsubscribed(), 1);
+});
+
+test("No Thanks! rematch policy closes the result room and creates a fresh room", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 40,
+      status: "playing",
+      gamePhase: "GAME_OVER",
+      finalScores: {
+        host: 8,
+        "guest-a": 10,
+        "guest-b": 12,
+      },
+      winners: ["host"],
+    }),
+  });
+  const controller = createController(roomAdapter);
+
+  await controller.initialize();
+  await controller.createRematchRoom();
+
+  assert.deepEqual(
+    roomAdapter.calls.find(([name]) => name === "leaveRoom"),
+    ["leaveRoom", {
+      roomId: "room-1",
+      expectedVersion: 40,
+    }],
+  );
+  assert.deepEqual(
+    roomAdapter.calls.find(([name]) => name === "createRoom"),
+    ["createRoom", { maxPlayers: 7 }],
+  );
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
+  assert.equal(controller.current().snapshot.version, 0);
+});
+
+
+test("No Thanks! rematch ignores a late snapshot from the closed result room", async () => {
+  const oldResult = snapshot({
+    version: 40,
+    roomId: "room-old",
+    roomCode: "OLD234",
+    status: "playing",
+    gamePhase: "GAME_OVER",
+    finalScores: {
+      host: 8,
+      "guest-a": 10,
+      "guest-b": 12,
+    },
+    winners: ["host"],
+  });
+  const freshRoom = snapshot({
+    version: 0,
+    roomId: "room-new",
+    roomCode: "NEW234",
+  });
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: oldResult,
+    createdSnapshot: freshRoom,
+  });
+  const controller = createController(roomAdapter);
+
+  await controller.initialize();
+
+  const resolveOldRefresh = roomAdapter.deferNextSnapshot();
+  const oldRefresh = controller.refresh("old-result-race");
+  await new Promise((resolve) => setImmediate(resolve));
+
+  await controller.createRematchRoom();
+
+  assert.equal(controller.current().snapshot.room.id, "room-new");
+  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
+
+  resolveOldRefresh(oldResult);
+  await oldRefresh;
+
+  assert.equal(controller.current().snapshot.room.id, "room-new");
+  assert.equal(controller.current().snapshot.room.roomCode, "NEW234");
+  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
 });

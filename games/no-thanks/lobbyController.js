@@ -33,6 +33,20 @@ function requireGameplayAdapter(adapter) {
   return adapter;
 }
 
+function requirePresenceAdapter(adapter) {
+  if (adapter == null) {
+    return Object.freeze({
+      subscribe() {
+        return () => {};
+      },
+    });
+  }
+  if (typeof adapter.subscribe !== "function") {
+    throw new TypeError("No Thanks! lobby controller requires presenceAdapter.subscribe().");
+  }
+  return adapter;
+}
+
 function lobbyView(snapshot) {
   if (!snapshot?.room) return NO_THANKS_LOBBY_VIEW.ENTRY;
   if (snapshot.game?.phase === "GAME_OVER") return NO_THANKS_LOBBY_VIEW.GAME_OVER;
@@ -54,6 +68,7 @@ function errorText(error) {
 export function createNoThanksLobbyController({
   adapter,
   gameplayAdapter,
+  presenceAdapter = null,
   idFactory = createClientActionId,
   onState = () => {},
   onError = () => {},
@@ -62,6 +77,7 @@ export function createNoThanksLobbyController({
 } = {}) {
   const roomLobby = requireAdapter(adapter);
   const gameplay = requireGameplayAdapter(gameplayAdapter);
+  const presence = requirePresenceAdapter(presenceAdapter);
   if (typeof idFactory !== "function") {
     throw new TypeError("No Thanks! lobby controller requires idFactory().");
   }
@@ -75,10 +91,18 @@ export function createNoThanksLobbyController({
     busy: false,
     connection: "connected",
     error: null,
+    presence: Object.freeze({
+      ready: false,
+      status: "idle",
+      onlinePlayerIds: Object.freeze([]),
+    }),
   });
   let coordinator = null;
   let reconnectTriggers = null;
+  let unsubscribePresence = null;
   let trackedRoomId = null;
+  let trackingGeneration = 0;
+  let offlineListenerAttached = false;
   let disposed = false;
 
   function emit(patch = {}) {
@@ -108,12 +132,41 @@ export function createNoThanksLobbyController({
     });
   }
 
+  function resetPresenceState() {
+    state = freezeState({
+      ...state,
+      presence: Object.freeze({
+        ready: false,
+        status: "idle",
+        onlinePlayerIds: Object.freeze([]),
+      }),
+    });
+  }
+
   function stopTracking() {
+    trackingGeneration += 1;
     reconnectTriggers?.stop();
     reconnectTriggers = null;
     coordinator?.dispose();
     coordinator = null;
+    unsubscribePresence?.();
+    unsubscribePresence = null;
+    if (offlineListenerAttached) {
+      windowTarget.removeEventListener("offline", onOffline);
+      offlineListenerAttached = false;
+    }
     trackedRoomId = null;
+    resetPresenceState();
+  }
+
+  function onOffline() {
+    emit({ connection: "offline" });
+  }
+
+  function isCurrentTracking(generation, roomId) {
+    return !disposed
+      && generation === trackingGeneration
+      && trackedRoomId === roomId;
   }
 
   function recoverMissingRoom(error) {
@@ -138,39 +191,80 @@ export function createNoThanksLobbyController({
 
     stopTracking();
     trackedRoomId = roomId;
+    const generation = trackingGeneration;
 
-    coordinator = createSnapshotCoordinator({
+    const viewerId = snapshot?.viewer?.playerId;
+    if (typeof viewerId !== "string" || !viewerId.trim()) {
+      throw new TypeError("No Thanks! presence requires snapshot.viewer.playerId.");
+    }
+
+    unsubscribePresence = presence.subscribe({
+      roomId,
+      userId: viewerId,
+      onSync: (onlinePlayerIds) => {
+        if (!isCurrentTracking(generation, roomId)) return;
+        emit({
+          presence: Object.freeze({
+            ready: true,
+            status: "connected",
+            onlinePlayerIds: Object.freeze([...onlinePlayerIds]),
+          }),
+        });
+      },
+      onStatus: (status) => {
+        if (!isCurrentTracking(generation, roomId)) return;
+        emit({
+          presence: Object.freeze({
+            ...state.presence,
+            status,
+          }),
+        });
+      },
+    });
+
+    windowTarget.addEventListener("offline", onOffline);
+    offlineListenerAttached = true;
+
+    const roomCoordinator = createSnapshotCoordinator({
       loadSnapshot: () => roomLobby.getLobbySnapshot({ roomId }),
       subscribeInvalidation: roomLobby.subscribeInvalidation,
       onSnapshot: (nextSnapshot) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         applySnapshot(nextSnapshot, { connection: "connected" });
       },
       onError: (error) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         if (recoverMissingRoom(error)) return;
         emit({ connection: "error", error });
         onError(error);
       },
     });
+    coordinator = roomCoordinator;
 
-    reconnectTriggers = createReconnectRefreshTriggers({
+    const roomReconnectTriggers = createReconnectRefreshTriggers({
       refresh: async (reason) => {
+        if (!isCurrentTracking(generation, roomId)) return null;
         emit({ connection: "reconnecting", error: null });
-        const result = await coordinator.refresh(reason);
+        const result = await roomCoordinator.refresh(reason);
+        if (!isCurrentTracking(generation, roomId)) return result;
         emit({ connection: "connected" });
         return result;
       },
       windowTarget,
       documentTarget,
       onError: (error) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         if (recoverMissingRoom(error)) return;
         emit({ connection: "error", error });
         onError(error);
       },
     });
+    reconnectTriggers = roomReconnectTriggers;
 
     applySnapshot(snapshot, { connection: "connected" });
-    await coordinator.start();
-    reconnectTriggers.start();
+    await roomCoordinator.start();
+    if (!isCurrentTracking(generation, roomId)) return state.snapshot;
+    roomReconnectTriggers.start();
     return state.snapshot;
   }
 
@@ -298,6 +392,27 @@ export function createNoThanksLobbyController({
     });
   }
 
+  async function createRematchRoom() {
+    return command(async () => {
+      const snapshot = state.snapshot;
+      if (!snapshot?.room?.id || snapshot.game?.phase !== "GAME_OVER") {
+        throw new Error("No Thanks! rematch requires a finished room.");
+      }
+
+      const maxPlayers = Number(snapshot.room.maxPlayers);
+      await roomLobby.leaveRoom({
+        roomId: snapshot.room.id,
+        expectedVersion: Number(snapshot.version),
+      });
+
+      stopTracking();
+      applySnapshot(null, { connection: "connected" });
+
+      const next = await roomLobby.createRoom({ maxPlayers });
+      return trackRoom(next);
+    });
+  }
+
   async function refresh(reason = "manual") {
     if (disposed) throw new Error("No Thanks! lobby controller has been disposed.");
 
@@ -315,12 +430,18 @@ export function createNoThanksLobbyController({
       }
     }
 
+    const activeCoordinator = coordinator;
+    const activeRoomId = trackedRoomId;
+    const generation = trackingGeneration;
+
     emit({ connection: "reconnecting", error: null });
     try {
-      const result = await coordinator.refresh(reason);
+      const result = await activeCoordinator.refresh(reason);
+      if (!isCurrentTracking(generation, activeRoomId)) return result;
       emit({ connection: "connected" });
       return result;
     } catch (error) {
+      if (!isCurrentTracking(generation, activeRoomId)) return null;
       if (recoverMissingRoom(error)) return null;
       emit({ connection: "error", error });
       onError(error);
@@ -348,6 +469,7 @@ export function createNoThanksLobbyController({
     takeCard,
     endGame,
     leaveRoom,
+    createRematchRoom,
     refresh,
     current,
     dispose,

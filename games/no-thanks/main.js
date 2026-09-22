@@ -19,6 +19,7 @@ import {
 import { createNoThanksLobbyController } from "./lobbyController.js";
 import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
 import { createNoThanksGameplayAdapter } from "./gameplay.js";
+import { createNoThanksPresenceAdapter } from "./presence.js";
 
 const app = document.getElementById("app");
 
@@ -311,6 +312,13 @@ function createWaitingPanel(view, state) {
         }),
       ]),
     ]),
+    view.presenceReady && !view.allPlayersConnected
+      ? el("div", {
+        className: "no-thanks-connection-note",
+        role: "status",
+        text: `${view.disconnectedPlayerNames.join(", ")}님의 연결이 끊겨 있어요. 방 상태는 유지되며 재접속하면 그대로 이어집니다.`,
+      })
+      : null,
   ]);
 }
 
@@ -344,9 +352,11 @@ function createPlayerCards(view) {
 }
 
 function createPlayingPanel(view, state) {
-  const turnMessage = view.isMyTurn
-    ? "내 차례예요. 현재 카드를 거절하거나 가져오세요."
-    : `${view.activePlayerDisplayName ?? "다른 플레이어"}님의 차례를 기다리고 있어요.`;
+  const turnMessage = !view.activePlayerConnected
+    ? `${view.activePlayerDisplayName ?? "현재 플레이어"}님의 연결이 끊겼어요. 재접속하면 이어서 진행합니다.`
+    : view.isMyTurn
+      ? "내 차례예요. 현재 카드를 거절하거나 가져오세요."
+      : `${view.activePlayerDisplayName ?? "다른 플레이어"}님의 차례를 기다리고 있어요.`;
 
   return el("section", { className: "no-thanks-playing-preview" }, [
     el("div", { className: "no-thanks-playing-preview__copy" }, [
@@ -435,6 +445,13 @@ function createGameOverPanel(view, state) {
 }
 
 function connectionFor(state) {
+  if (state.connection === "offline") {
+    return {
+      state: GAME_CONNECTION_STATE.OFFLINE,
+      label: "네트워크 연결 끊김",
+      message: "게임 상태는 서버에 유지됩니다. 연결이 복구되면 자동으로 최신 상태를 다시 불러옵니다.",
+    };
+  }
   if (state.connection === "reconnecting") {
     return {
       state: GAME_CONNECTION_STATE.RECONNECTING,
@@ -475,9 +492,14 @@ function shellPlayers(access, displayName, view) {
     connected: player.connected,
     ready: player.id === view.hostUserId ? true : player.ready,
     seat: player.seat,
-    statusLabel: player.id === view.hostUserId
-      ? "방장"
-      : (player.ready ? "준비 완료" : "대기 중"),
+    turnLabel: view.gamePhase === "PLAYING" && player.id === view.activePlayerId
+      ? "현재 차례"
+      : null,
+    statusLabel: !player.connected
+      ? "재접속 대기"
+      : player.id === view.hostUserId
+        ? "방장"
+        : (player.ready ? "준비 완료" : "대기 중"),
   }));
 }
 
@@ -491,12 +513,25 @@ function createSidebar(view) {
     ]);
   }
 
-  if (view.status === "playing") {
+  if (view.gamePhase === "GAME_OVER") {
     return el("section", { className: "no-thanks-note" }, [
-      el("h2", { text: "서버 상태" }),
+      el("h2", { text: "재대결 정책" }),
       el("p", {
-        text: "미공개 카드 순서와 다른 플레이어의 칩 수는 이 화면으로 전달되지 않습니다. Realtime은 변경 알림만 받고 RPC snapshot을 다시 읽습니다.",
+        text: "이번 버전의 재대결은 기존 결과방을 초기화하지 않고 새 방을 만드는 방식입니다. 방장이 새 방을 만들면 기존 결과방은 닫히고 참가자는 새 방 코드로 다시 참가합니다.",
       }),
+    ]);
+  }
+
+  if (view.status === "playing") {
+    const connectionMessage = !view.hostConnected
+      ? "방장 연결이 끊겨도 방장 권한은 자동 위임되지 않고 게임도 자동 종료되지 않습니다. 방장이 재접속하면 기존 상태로 복원됩니다."
+      : !view.activePlayerConnected
+        ? "현재 차례 플레이어의 연결이 끊겼습니다. turn은 유지되며 해당 플레이어가 재접속하면 이어서 진행합니다."
+        : "미공개 카드 순서와 다른 플레이어의 칩 수는 이 화면으로 전달되지 않습니다. Realtime은 변경 알림만 받고 RPC snapshot을 다시 읽습니다.";
+
+    return el("section", { className: "no-thanks-note" }, [
+      el("h2", { text: "멀티플레이 상태" }),
+      el("p", { text: connectionMessage }),
     ]);
   }
 
@@ -560,6 +595,49 @@ function createGameEndDialog(onConfirm) {
   return dialog;
 }
 
+function createRematchDialog(onConfirm) {
+  const dialog = el("dialog", {
+    className: "no-thanks-confirm",
+    "aria-labelledby": "no-thanks-rematch-title",
+  });
+
+  dialog.append(el("div", { className: "no-thanks-confirm__content" }, [
+    el("p", { className: "no-thanks-entry__eyebrow", text: "새 게임" }),
+    el("h2", {
+      id: "no-thanks-rematch-title",
+      className: "no-thanks-confirm__title",
+      text: "새 게임 방을 만들까요?",
+    }),
+    el("p", {
+      className: "no-thanks-confirm__message",
+      text: "기존 결과방을 닫고 같은 최대 인원의 새 방을 만듭니다. 다른 참가자들은 새 방 코드로 다시 참가해야 합니다.",
+    }),
+    el("div", { className: "no-thanks-confirm__actions" }, [
+      el("button", {
+        className: "button button--secondary",
+        type: "button",
+        text: "취소",
+        onClick: () => dialog.close(),
+      }),
+      el("button", {
+        className: "button",
+        type: "button",
+        text: "새 방 만들기",
+        onClick: async () => {
+          dialog.close();
+          await onConfirm();
+        },
+      }),
+    ]),
+  ]));
+
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  return dialog;
+}
+
 function createHostLeaveDialog({
   gameOver = false,
   onConfirm,
@@ -608,13 +686,30 @@ function createHostLeaveDialog({
   return dialog;
 }
 
-function createLobbyActions(view, state, openRules, openHostLeaveConfirm, openGameEndConfirm) {
+function createLobbyActions(
+  view,
+  state,
+  openRules,
+  openHostLeaveConfirm,
+  openGameEndConfirm,
+  openRematchConfirm,
+) {
   const actions = [createRulesAction(openRules)];
 
   if (!view) return actions;
 
   if (view.gamePhase === "GAME_OVER") {
-    actions.unshift(el("button", {
+    if (view.isHost) {
+      actions.unshift(el("button", {
+        className: "game-platform-shell__button",
+        type: "button",
+        text: state.busy ? "처리 중…" : "새 게임 방 만들기",
+        disabled: state.busy,
+        onClick: openRematchConfirm,
+      }));
+    }
+
+    actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
       text: state.busy
@@ -765,7 +860,10 @@ function renderLobby(access, state) {
   let view = null;
   if (state.snapshot) {
     try {
-      view = createNoThanksLobbyViewModel(state.snapshot, access.userId);
+      view = createNoThanksLobbyViewModel(state.snapshot, access.userId, {
+        presenceReady: state.presence?.ready === true,
+        onlinePlayerIds: state.presence?.onlinePlayerIds ?? [],
+      });
     } catch (error) {
       replaceApp(createAccessNotice({
         title: "방 상태를 표시할 수 없어요",
@@ -802,6 +900,16 @@ function renderLobby(access, state) {
     })
     : null;
   const openGameEndConfirm = () => gameEndDialog?.showModal();
+  const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
+    ? createRematchDialog(async () => {
+      try {
+        await lobbyController.createRematchRoom();
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    })
+    : null;
+  const openRematchConfirm = () => rematchDialog?.showModal();
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
     : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
@@ -822,9 +930,16 @@ function renderLobby(access, state) {
     onRetryConnection: () => {
       void lobbyController?.refresh("retry").catch(() => {});
     },
-    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog],
+    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, rematchDialog],
     sidebar: createSidebar(view),
-    actions: createLobbyActions(view, state, openRules, openHostLeaveConfirm, openGameEndConfirm),
+    actions: createLobbyActions(
+      view,
+      state,
+      openRules,
+      openHostLeaveConfirm,
+      openGameEndConfirm,
+      openRematchConfirm,
+    ),
   });
 
   replaceApp(shell);
@@ -866,6 +981,7 @@ async function renderApproved(access, epoch) {
   const controller = createNoThanksLobbyController({
     adapter: createNoThanksRoomLobbyAdapter({ client: supabase }),
     gameplayAdapter: createNoThanksGameplayAdapter({ client: supabase }),
+    presenceAdapter: createNoThanksPresenceAdapter({ client: supabase }),
     onState: (state) => {
       if (lobbyController === controller && epoch === bootEpoch) {
         renderLobby(access, state);

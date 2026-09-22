@@ -9,24 +9,33 @@ function playerId(player) {
   return String(player?.userId ?? player?.id ?? "");
 }
 
-export function createNoThanksLobbyViewModel(snapshot, currentUserId) {
+export function createNoThanksLobbyViewModel(snapshot, currentUserId, {
+  presenceReady = false,
+  onlinePlayerIds = [],
+} = {}) {
   if (!snapshot?.room || !Array.isArray(snapshot.players)) {
     throw new TypeError("No Thanks! lobby view requires an authoritative room snapshot.");
   }
 
   const viewerId = String(snapshot.viewer?.playerId ?? currentUserId ?? "");
-  const players = snapshot.players.map((player, index) => Object.freeze({
-    id: playerId(player),
-    displayName: String(player.displayName ?? `플레이어 ${index + 1}`),
-    ready: player.isReady === true,
-    connected: player.connected !== false,
-    seat: Number.isInteger(player.seat) && player.seat >= 0 ? player.seat : index,
-    cards: Object.freeze(
-      Array.isArray(player.cards)
-        ? player.cards.map(Number).filter(Number.isInteger)
-        : [],
-    ),
-  }));
+  const connectedIds = presenceReady
+    ? new Set(onlinePlayerIds.map(String))
+    : null;
+  const players = snapshot.players.map((player, index) => {
+    const id = playerId(player);
+    return Object.freeze({
+      id,
+      displayName: String(player.displayName ?? `플레이어 ${index + 1}`),
+      ready: player.isReady === true,
+      connected: connectedIds ? connectedIds.has(id) : player.connected !== false,
+      seat: Number.isInteger(player.seat) && player.seat >= 0 ? player.seat : index,
+      cards: Object.freeze(
+        Array.isArray(player.cards)
+          ? player.cards.map(Number).filter(Number.isInteger)
+          : [],
+      ),
+    });
+  });
   const viewer = players.find((player) => player.id === viewerId);
   if (!viewer) {
     throw new TypeError("No Thanks! lobby snapshot does not include the current player.");
@@ -41,6 +50,11 @@ export function createNoThanksLobbyViewModel(snapshot, currentUserId) {
   const activePlayerId = snapshot.game?.activePlayerId == null
     ? null
     : String(snapshot.game.activePlayerId);
+  const hostConnected = players.find((player) => player.id === hostUserId)?.connected ?? true;
+  const activePlayerConnected = activePlayerId == null
+    ? true
+    : (players.find((player) => player.id === activePlayerId)?.connected ?? true);
+  const disconnectedPlayers = players.filter((player) => !player.connected);
   const viewerCounters = Number.isInteger(snapshot.viewer?.counters)
     ? snapshot.viewer.counters
     : null;
@@ -89,6 +103,12 @@ export function createNoThanksLobbyViewModel(snapshot, currentUserId) {
       : 0,
     activePlayerId,
     activePlayerDisplayName: players.find((player) => player.id === activePlayerId)?.displayName ?? null,
+    presenceReady,
+    hostConnected,
+    activePlayerConnected,
+    disconnectedPlayerIds: Object.freeze(disconnectedPlayers.map((player) => player.id)),
+    disconnectedPlayerNames: Object.freeze(disconnectedPlayers.map((player) => player.displayName)),
+    allPlayersConnected: presenceReady ? disconnectedPlayers.length === 0 : true,
     isMyTurn: gamePhase === "PLAYING" && activePlayerId === viewerId,
     canRefuse: gamePhase === "PLAYING"
       && activePlayerId === viewerId
