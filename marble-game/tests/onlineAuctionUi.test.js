@@ -23,6 +23,10 @@ const bidTimingSql = readFileSync(
   new URL("../../supabase/marble/20260921143453_marble_auction_bid_turn_15s.sql", import.meta.url),
   "utf8",
 );
+const decisiveBidSql = readFileSync(
+  new URL("../../supabase/marble/20260922041409_marble_auction_decisive_bid_feedback.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -143,18 +147,21 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /AUCTION_BID_PLACED/);
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r2/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r3/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
   assert.match(uiSource, /HIGHEST_BID_COUNT_MS = 700/);
   assert.match(uiSource, /renderHighestBid\(model\.highestBid\)/);
+  assert.match(uiSource, /bidEvent\.dataset\.surge = event\.surge === true/);
   assert.match(uiSource, /elements\.status\.hidden = model\.stage === "auction"/);
   assert.match(uiSource, /elements\.detail\.hidden = model\.stage === "auction"/);
   assert.doesNotMatch(uiSource, /현재 최고 입찰자 \$\{model\.highestBidderName/);
   assert.match(cssSource, /data-current-turn="true"/);
   assert.match(cssSource, /auctionBidPaddleRaise/);
   assert.match(cssSource, /auctionBidValueCount/);
+  assert.match(cssSource, /auctionSurgeBidEvent/);
+  assert.match(cssSource, /큰 폭의 입찰/);
   assert.match(cssSource, /content: " · 입찰"/);
   assert.match(cssSource, /body\[data-play-mode="window"\] \.important-notice/);
   assert.match(uiSource, /15초/);
@@ -173,6 +180,14 @@ test("server migration keeps every competitive bid turn at 15 seconds", () => {
   assert.match(bidTimingSql, /private\.marble_auction_v3_finalize_vote/);
   assert.match(bidTimingSql, /public\.marble_auction_bid/);
   assert.match(bidTimingSql, /public\.marble_advance_auction_deadline/);
+});
+
+test("server decisive-bid migration settles at the submitted amount and emits feedback metadata", () => {
+  assert.match(decisiveBidSql, /jsonb_set\(v_auction,'\{highestBid\}',to_jsonb\(p_amount\)\)/);
+  assert.match(decisiveBidSql, /AUCTION_DECISIVE_BID/);
+  assert.match(decisiveBidSql, /previousAmount/);
+  assert.match(decisiveBidSql, /increase/);
+  assert.match(decisiveBidSql, /greatest\(100, ceil\(v_previous_highest::numeric \* 0\.30\)/);
 });
 
 test("legacy controls cannot bypass Auction vote or competitive auction", () => {
