@@ -160,7 +160,7 @@ games/<game-id>/UI_DECISIONS.md
 - 의미 있는 layout/component/interaction/motion/responsive 변경
 - 구현 상태와 UI/browser validation
 - 다음 디자인 작업 또는 미확정 polish
-- canonical `UI_DESIGN.md` 반영 여부
+- 어떤 초기 `UI_DESIGN.md` Phase/항목을 유지·보정·대체하는지
 
 모든 CSS 수치나 commit을 기록하지 않는다. 현재 화면만 보고도 자명한 미세 조정은 생략하고, 다음 작업자가 동일한 시행착오를 반복하거나 사용자 의도를 잃을 수 있는 결정만 남긴다.
 
@@ -177,6 +177,46 @@ effective design
 ```
 
 `SUPERSEDED` 또는 `REVERTED` 처리된 과거 결정은 현재 override로 사용하지 않는다.
+
+### MUST: 디자인 개발 lifecycle과 UI_DECISIONS 기록 타이밍
+
+platform-native 게임의 디자인 개발은 기본적으로 다음 네 단계로 본다.
+
+1. **Design Research / Baseline**
+   - 신규 게임 runtime 개발 전에 원본 디자인을 전수 조사·분석한다.
+   - Visual Identity, layout, component, motion, responsive, 최초 UI Phase를 `UI_DESIGN.md`에 기록한다.
+   - 이 단계는 아직 후속 수정이 없으므로 `UI_DECISIONS.md / Decision Log`를 억지로 채우지 않는다. 문서 구조와 빈 current track만 준비할 수 있다.
+2. **Baseline Implementation**
+   - `UI_DESIGN.md`에 수립한 Phase와 규칙대로 최초 UI를 구현한다.
+   - baseline을 그대로 구현한 사실 자체는 `UI_DECISIONS.md`의 decision으로 기록하지 않는다.
+   - 다만 실제 구현 제약이나 검증 때문에 baseline에서 의미 있게 벗어나기로 확정했다면 그 시점부터 `UI_DECISIONS.md`에 기록한다.
+3. **Developer Manual Design Review / Detail Polish**
+   - 기능 구현이 충분히 완료되고 release 전 검증·마무리 단계에 들어가면 개발자가 실제 브라우저에서 직접 플레이하며 디자인을 수동 검토한다.
+   - 이 단계에서 발생하는 개발자의 구체적인 layout, component, spacing 관계, interaction, motion, responsive, 시각적 우선순위 수정 요청은 `UI_DECISIONS.md`의 핵심 기록 대상이다.
+   - 여러 번의 미세 조정 요청을 요청 횟수대로 기록하지 않고, 하나의 디자인 영역이 안정화되어 최종 방향이 정해졌을 때 하나의 의미 있는 decision으로 정리한다.
+4. **Design Closeout**
+   - 주요 디자인 영역의 수동 검토와 수정이 끝나면 `UI_DECISIONS.md / Current Design Track`에서 현재 상태, active overrides, superseded/reverted decisions, 남은 follow-up을 정리한다.
+   - 최종 결과를 만들기 위해 `UI_DESIGN.md` baseline을 현재 화면으로 덮어쓰지 않는다. 최종 유효 디자인은 baseline + 최신 decision overrides로 복원 가능해야 한다.
+
+`UI_DECISIONS.md`의 기록 단위는 **수정 요청 하나**가 아니라 **확정된 디자인 결정 하나**다.
+
+예를 들어 개발자가 한 영역에 대해 위치를 올렸다가 내리고, 크기를 키웠다가 줄이는 여러 요청을 연속으로 했더라도 그 영역이 안정화되기 전까지 각각을 별도 decision으로 만들지 않는다. 최종적으로 채택된 상태, 변경 이유, 버린 대안과 영향 범위를 하나의 decision으로 기록한다.
+
+#### MUST: 기록 트리거
+
+다음 시점에는 아직 문서화되지 않은 의미 있는 디자인 결정이 있는지 확인하고, 있다면 `UI_DECISIONS.md`를 갱신한다.
+
+- `UI_DESIGN.md` baseline에서 벗어나는 의미 있는 구현 방향이 확정됐을 때
+- 개발자의 수동 브라우저 디자인 리뷰에서 하나의 component/layout/interaction/motion 영역이 안정화되고 다른 영역으로 넘어갈 때
+- 디자인 Phase 또는 detail-polish 작업 범위를 완료할 때
+- 해당 디자인 작업 PR을 merge/close하거나 작업 브랜치를 종료하기 전
+- 다른 큰 기능 작업이나 release closeout으로 전환하기 전
+
+SHOULD: 같은 디자인 영역이 아직 빠르게 반복 수정 중이면 매 수정마다 문서를 갱신하지 않고 안정화 시점에 묶어서 기록한다.
+
+MUST NOT: 디자인 작업 PR이나 브랜치를 종료하면서 아직 복원 가치가 있는 개발자 피드백과 확정 디자인 결정을 코드에만 남기고 `UI_DECISIONS.md` 기록 없이 버리지 않는다.
+
+전용 디자인 checkpoint 명령은 별도 규칙으로 정의될 수 있으며, 그 명령이 없더라도 위 lifecycle 기반 기록 타이밍은 계속 적용한다.
 
 ### MUST: Phase를 이어갈 때 디자인 회귀 방지
 
@@ -195,7 +235,7 @@ MUST NOT: Phase 체크리스트를 순서대로 완료하는 과정에서 후속
 
 `DEVELOPMENT.md`는 기능 개발 handoff를 책임진다. 디자인 작업이 release 판단에 영향을 주는 경우 현재 design track을 짧게 참조할 수 있지만 UI 세부 진행·변경 이력은 `UI_DECISIONS.md`에 둔다.
 
-완료되지 않은 UI 항목을 `UI_DESIGN.md`에서 삭제해 현재 구현처럼 보이게 하지 않고, canonical 설계 변경인지 단순 미구현인지 `UI_DECISIONS.md`에서 구분한다.
+완료되지 않은 UI 항목을 `UI_DESIGN.md`에서 삭제해 현재 구현처럼 보이게 하지 않고, 초기 baseline의 단순 미구현인지 후속 decision으로 변경·대체된 것인지 `UI_DECISIONS.md`에서 구분한다.
 
 ## 7. 실제 보드게임의 공간 구조 반영
 
@@ -209,7 +249,7 @@ MUST NOT: Phase 체크리스트를 순서대로 완료하는 과정에서 후속
 - 공개 정보와 비공개 정보의 시각적 구분
 - 보드에서 진행 방향과 상태를 읽는 방식
 
-원본 배치를 그대로 복제하는 것이 가독성을 해치면 웹 환경에 맞게 재구성할 수 있다. 현재 채택된 재배치 기준은 `UI_DESIGN.md`, 왜 그 방향을 선택했는지와 이전 대안은 `UI_DECISIONS.md`에 남긴다.
+원본 배치를 그대로 복제하는 것이 가독성을 해치면 웹 환경에 맞게 재구성할 수 있다. 최초 adaptation 계획은 `UI_DESIGN.md`에 두고, 개발 시작 후 실제 브라우저 검토로 그 배치를 수정했다면 최신 유효 결정과 이유를 `UI_DECISIONS.md`에 남긴다.
 
 ## 8. 모션과 행동 피드백
 
