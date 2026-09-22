@@ -165,6 +165,13 @@ export function validateRepositoryState({
           errors.push(`games/${gameId}/GAME_SPEC.md is missing required section: ${section}`);
         }
       }
+      if (documents[UI_RULEBOOK_PATH] != null) {
+        for (const linkedDocument of ["UI_DESIGN.md", "DEVELOPMENT.md"]) {
+          if (!gameSpec.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/GAME_SPEC.md must reference ${linkedDocument}.`);
+          }
+        }
+      }
     }
 
     if (documents[UI_RULEBOOK_PATH] != null) {
@@ -177,6 +184,11 @@ export function validateRepositoryState({
             errors.push(`games/${gameId}/UI_DESIGN.md is missing required section: ${section}`);
           }
         }
+        for (const linkedDocument of ["GAME_SPEC.md", "DEVELOPMENT.md"]) {
+          if (!uiDesign.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/UI_DESIGN.md must reference ${linkedDocument}.`);
+          }
+        }
       }
     }
 
@@ -187,6 +199,13 @@ export function validateRepositoryState({
       for (const section of DEVELOPMENT_REQUIRED_SECTIONS) {
         if (!development.includes(section)) {
           errors.push(`games/${gameId}/DEVELOPMENT.md is missing required section: ${section}`);
+        }
+      }
+      if (documents[UI_RULEBOOK_PATH] != null) {
+        for (const linkedDocument of ["GAME_SPEC.md", "UI_DESIGN.md"]) {
+          if (!development.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/DEVELOPMENT.md must reference ${linkedDocument}.`);
+          }
         }
       }
 
