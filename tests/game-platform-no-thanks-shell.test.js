@@ -102,11 +102,11 @@ test("No Thanks! shell shows reconnect state without transferring host or turn a
   assert.match(styles, /\.no-thanks-connection-note/u);
 });
 
-test("No Thanks! rematch creates a fresh room instead of resetting terminal state", () => {
-  assert.match(runtime, /재대결 방을 만들까요/u);
-  assert.match(runtime, /재대결 방 만들기/u);
+test("No Thanks! rematch returns the same participants to the waiting lobby", () => {
+  assert.match(runtime, /같은 멤버로 재대결할까요/u);
+  assert.match(runtime, /재대결 준비/u);
   assert.match(runtime, /className: "button no-thanks-game-over__rematch"/u);
   assert.match(runtime, /lobbyController\.createRematchRoom\(\)/u);
-  assert.match(runtime, /기존 결과방을 닫고 같은 최대 인원의 새 방/u);
-  assert.match(runtime, /새 방 코드로 다시 참가/u);
+  assert.match(runtime, /현재 참가자와 좌석을 그대로 유지한 채 대기실/u);
+  assert.doesNotMatch(runtime, /새 방 코드로 다시 참가/u);
 });
