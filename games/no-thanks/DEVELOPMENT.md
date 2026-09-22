@@ -123,19 +123,25 @@
 - 개인 칩은 정확한 숫자를 유지하면서 시각 pile은 최대 16개까지 렌더해 보유량에 따른 풍성함을 강화했습니다.
 - 중앙 칩 0개 상태는 0이 적힌 가짜 칩 대신 `NO CHIP` 텍스트 상태로 변경했습니다.
 - HUD Presence 비연결 문구를 `자리이탈`로 변경했습니다.
+- 좌석 avatar에 clipping frame을 추가해 원형 외곽 ring 안에서 이미지가 항상 보존되도록 수정했습니다.
+- 원형 테이블 좌우 폭을 더 넓히고 개인 칩 열을 데스크톱 96px 기준으로 축소해 보유 카드 영역을 확장했습니다.
+- 개인/중앙 칩은 동일한 38px 붉은 textured token 스타일을 사용하도록 통일했습니다.
+- PLAYING 핵심 액션을 개인 패널에서 테이블로 이동했습니다. 현재 카드를 직접 클릭해 가져오고, 오른쪽 칩 더미 아래 버튼으로 칩 1개를 내도록 연결했습니다.
+- 남은 deck 장수는 1–7개 시각 layer 단계로 축약해 실제 남은 장수가 줄어들수록 deck stack도 점진적으로 얕아지도록 구현했습니다.
+- authoritative snapshot 변화에 맞춰 `REFUSE_CARD` 후 직전 active seat에서 중앙 칩으로 날아가는 연출과 `TAKE_CARD` 후 draw deck에서 새 current card가 들어오는 연출을 추가했습니다.
 
 ## Current Work
 
 - Phase A–D 소스 구현과 자동 검증을 완료했고 PR #364에서 리뷰 중입니다.
 - UI 개편은 game-local 표현 계층만 변경하고 기존 DB/RPC/server authority/private-state/reconnect 계약은 변경하지 않습니다.
-- Phase A–D 후속 디테일 조정으로 데스크톱 보드 800px 확대, 테이블/중앙 오브젝트 확대, HUD 폭 축소, 좌석 avatar 전환, 중앙 0-chip 빈 상태, 개인 chip pile 강화, 개인 패널/카드 확대와 액션 열 축소를 반영했습니다.
+- Phase A–D 후속 디테일 조정에 이어 테이블 직접 조작 UX, red chip skin, dynamic deck depth, avatar clipping, snapshot 기반 card/chip 이동 애니메이션까지 반영했습니다.
 
 ## Next Work
 
 1. Phase A–D PR의 Game Platform governance에서 JavaScript syntax, module link, `npm run test:game-platform`, boundary guard를 통과시킵니다.
 2. PR 검토 후 실제 데스크톱 브라우저에서 3–7인 좌석/HUD 겹침, 보드 높이, 개인 패널 카드 겹침을 수동 시각 QA합니다.
 3. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 좌석 근처 control로 추가합니다.
-4. Phase F에서 refuse chip → center, take card/chips → player, next-card reveal 애니메이션을 authoritative snapshot과 분리해 추가합니다.
+4. Phase F 잔여 범위로 카드/중앙 칩이 획득 플레이어 쪽으로 이동하는 후속 애니메이션과 실제 브라우저 타이밍을 추가 조정합니다.
 5. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect 운영 브라우저 gate와 Registry capability activation은 UI 후속 단계와 별도로 계속 유지합니다.
 
 ## Decisions
@@ -205,9 +211,9 @@
 - WAITING/PLAYING 보드 구조: 동일한 대형 게임 보드와 원형/타원형 테이블을 유지하고 상태 전환 시 공간 구조를 교체하지 않음
 - 좌석 방향: 서버 seat 값을 변경하지 않고 viewer 기준 화면 배열만 회전해 본인을 항상 6시 방향에 표시
 - 좌석 기본 정보: 닉네임 + 현재 차례만 노출하고 ready/connection/host 상세는 보드 HUD로 분리
-- 개인 패널: 본인의 정확한 칩, 보유 카드, refuse/take 핵심 action을 보드 바로 아래 동일 폭 영역에 통합
+- 개인 패널: 본인의 정확한 칩과 보유 카드를 보드 바로 아래 동일 폭 영역에 유지하고, PLAYING refuse/take 핵심 action은 테이블 오브젝트 직접 조작으로 이동
 - 보유 카드 UI: 오름차순 + 수평 겹침 + 값 구간별 색상 + 좌상단/우하단 숫자 + hover/focus raise
-- 후속 UI 범위: 공개 카드 popover는 Phase E, gameplay 이동 애니메이션은 Phase F로 분리
+- 후속 UI 범위: 공개 카드 popover는 Phase E, Phase F 중 take 결과 카드/칩 → player 이동 연출은 잔여 범위로 유지
 
 ## Validation
 
@@ -219,6 +225,7 @@
   - Game Platform Governance Guard가 통과해 shared/DB/RPC 경계 변경이 없음을 확인했습니다.
   - PR 전 실제 브랜치 파일 기반 추가 검증에서 3/4/5/6/7인 좌표 유일성, viewer 6시 고정, authoritative seat 보존, 카드 tone/hand overlap, Phase A–D DOM/CSS 계약과 CSS brace balance를 확인했습니다.
   - 디테일 조정 후 브랜치 파일 기반 검증에서 3–7인 확대 좌석 좌표, 800px 보드 규격, 16개 personal chip cap / 7개 compact chip cap, 공개 프로필 avatar fallback, `NO CHIP`, HUD `자리이탈`, 확대 카드/개인 패널 CSS 계약과 brace balance를 확인했습니다.
+  - 테이블 직접 조작 후 정적 검증에서 main.js syntax, 3–7인 좌석 bounds, 단계형 deck layer(15→5, 11→4, 7→3, 1→1), avatar clipping frame, red chip skin, current-card click/center-chip refuse action, card-deal/chip-flight animation 계약과 CSS brace balance를 확인했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
@@ -279,7 +286,7 @@
 - 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
 - 현재 브랜치는 보드 UI Phase A–D 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 - Phase A–D 자동 계약은 통과했지만 실제 3–7인 데스크톱 브라우저에서 좌석/HUD 간격과 카드 손패 밀도를 눈으로 확인하는 시각 QA는 PR 후속 확인 항목입니다.
-- 다른 플레이어 공개 카드 popover(Phase E)와 카드/칩 이동 애니메이션(Phase F)은 이번 PR 범위에 포함하지 않습니다.
+- 다른 플레이어 공개 카드 popover(Phase E)는 아직 포함하지 않습니다. Phase F는 refuse chip → center와 next-card reveal까지만 구현했으며, 획득 카드/중앙 칩 → player 이동 연출은 후속으로 남아 있습니다.
 
 ## Release closeout 안내
 
