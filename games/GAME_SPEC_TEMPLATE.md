@@ -1,7 +1,7 @@
 # <Game Title> Game Spec
 
 > 이 문서는 이 게임이 무엇이며 청파 같이에서 어떤 규칙과 구조로 구현할지 정의하는 game-local 설계 기준입니다.
-> 상세 UI/presentation 현재 기준은 같은 디렉터리의 `UI_DESIGN.md`, 디자인 개발 결정·이력은 `UI_DECISIONS.md`, 기능 구현 진행상황은 `DEVELOPMENT.md`에서 관리합니다.
+> UI/presentation은 같은 디렉터리의 `UI_DESIGN.md`에 소스 개발 전 초기 baseline을 두고, 개발 시작 후 변경·결정·검증과 override는 `UI_DECISIONS.md`에서 관리합니다. 기능 구현 진행상황은 `DEVELOPMENT.md`에서 관리합니다.
 > 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 
 ## Game Overview
