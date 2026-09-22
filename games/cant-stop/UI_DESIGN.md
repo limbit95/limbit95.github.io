@@ -1,7 +1,7 @@
 # Can't Stop UI Design
 
 > 이 문서는 현재 Can't Stop v1의 game-local UI/presentation baseline과 후속 개선 기준을 기록합니다.
-> 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
+> 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 디자인 개발 진행·결정 이력은 `UI_DECISIONS.md`, 기능 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
 >
 > v1 RELEASED 이후 UI Design 규칙을 도입하면서 기존 구현을 소급 문서화한 baseline이며, 이 문서 추가만으로 release runtime을 변경하지 않습니다.
 
