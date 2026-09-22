@@ -1,13 +1,9 @@
 import { playAuctionStartSound } from "./auctionBidSound.js?v=20260922-r4";
 
-const ROULETTE_COLORS = Object.freeze([
-  "#ff6b6b",
-  "#ffd43b",
-  "#69db7c",
-  "#4dabf7",
-  "#9775fa",
-  "#f783ac",
-]);
+const DEFAULT_AVATAR = "../assets/images/default-avatar.svg";
+const SELECTOR_ITEM_WIDTH = 72;
+const SELECTOR_ITEM_STEP = 92;
+const SELECTOR_CYCLES = 6;
 
 function timeMs(value) {
   if (value === null || value === undefined) return null;
@@ -17,8 +13,37 @@ function timeMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function findPlayer(state, playerId) {
+  return state?.players?.find((player) => player.id === playerId) ?? null;
+}
+
 function playerName(state, playerId) {
-  return state?.players?.find((player) => player.id === playerId)?.name || playerId || "플레이어";
+  const player = findPlayer(state, playerId);
+  return player?.name || playerId || "플레이어";
+}
+
+function normalizeAvatarUrl(url) {
+  if (!url) return DEFAULT_AVATAR;
+  if (url.startsWith("./assets/")) return `../${url.slice(2)}`;
+  return url;
+}
+
+async function loadAvatarUrls(state, playerIds) {
+  const players = playerIds.map((playerId) => findPlayer(state, playerId)).filter(Boolean);
+  const userIds = [...new Set(players.map((player) => player.userId).filter(Boolean))];
+  if (!userIds.length) return new Map();
+
+  try {
+    const { getPublicProfiles, getSignedAvatarUrl } = await import("../../js/api/profiles.js");
+    const profiles = await getPublicProfiles(userIds);
+    const avatarEntries = await Promise.all((profiles ?? []).map(async (profile) => [
+      profile.id,
+      normalizeAvatarUrl(await getSignedAvatarUrl(profile.avatar_path)),
+    ]));
+    return new Map(avatarEntries);
+  } catch {
+    return new Map();
+  }
 }
 
 function createOverlay(documentObject) {
@@ -36,68 +61,78 @@ function createOverlay(documentObject) {
   const announceTitle = documentObject.createElement("strong");
   announceTitle.textContent = "경매가 곧 시작됩니다!";
   const announceDetail = documentObject.createElement("span");
-  announceDetail.textContent = "첫 입찰자를 정한 뒤 바로 경매를 시작합니다";
+  announceDetail.textContent = "경매 시작 플레이어를 정한 뒤 바로 시작합니다";
   announce.append(announceEyebrow, announceTitle, announceDetail);
 
-  const roulette = documentObject.createElement("div");
-  roulette.className = "auction-roulette";
-  roulette.hidden = true;
-  const rouletteTitle = documentObject.createElement("strong");
-  rouletteTitle.className = "auction-roulette__title";
-  rouletteTitle.textContent = "첫 입찰자를 정합니다";
-  const wheelWrap = documentObject.createElement("div");
-  wheelWrap.className = "auction-roulette__wheel-wrap";
-  const pointer = documentObject.createElement("span");
-  pointer.className = "auction-roulette__pointer";
-  pointer.textContent = "▼";
-  const wheel = documentObject.createElement("div");
-  wheel.className = "auction-roulette__wheel";
-  const hub = documentObject.createElement("span");
-  hub.className = "auction-roulette__hub";
-  hub.textContent = "BID";
-  wheel.append(hub);
-  wheelWrap.append(pointer, wheel);
-  const result = documentObject.createElement("span");
-  result.className = "auction-roulette__result";
-  roulette.append(rouletteTitle, wheelWrap, result);
+  const selector = documentObject.createElement("div");
+  selector.className = "auction-selector";
+  selector.hidden = true;
+  const selectorTitle = documentObject.createElement("strong");
+  selectorTitle.className = "auction-selector__title";
+  selectorTitle.textContent = "경매 시작 플레이어를 정합니다";
+  const viewport = documentObject.createElement("div");
+  viewport.className = "auction-selector__viewport";
+  const marker = documentObject.createElement("span");
+  marker.className = "auction-selector__marker";
+  marker.setAttribute("aria-hidden", "true");
+  const track = documentObject.createElement("div");
+  track.className = "auction-selector__track";
+  viewport.append(track, marker);
+  const result = documentObject.createElement("strong");
+  result.className = "auction-selector__result";
+  selector.append(selectorTitle, viewport, result);
 
-  const winnerNotice = documentObject.createElement("div");
-  winnerNotice.className = "auction-intro__winner";
-  winnerNotice.hidden = true;
-  const winnerEyebrow = documentObject.createElement("span");
-  winnerEyebrow.className = "auction-intro__eyebrow";
-  winnerEyebrow.textContent = "FIRST BID";
-  const winnerText = documentObject.createElement("strong");
-  winnerNotice.append(winnerEyebrow, winnerText);
-
-  overlay.append(announce, roulette, winnerNotice);
+  overlay.append(announce, selector);
   (documentObject.body ?? documentObject.documentElement).append(overlay);
-  return { overlay, announce, roulette, wheel, result, winnerNotice, winnerText };
+  return { overlay, announce, selector, viewport, track, result };
 }
 
-function renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId) {
-  const count = Math.max(1, playerIds.length);
-  const segment = 360 / count;
-  const gradient = playerIds.map((_, index) => {
-    const start = index * segment;
-    const end = (index + 1) * segment;
-    return `${ROULETTE_COLORS[index % ROULETTE_COLORS.length]} ${start}deg ${end}deg`;
-  }).join(", ");
-  elements.wheel.style.background = `conic-gradient(from ${-(segment / 2)}deg, ${gradient})`;
-  elements.wheel.querySelectorAll(".auction-roulette__label").forEach((label) => label.remove());
+function selectorSequence(playerIds, starterPlayerId) {
+  const sequence = [];
+  for (let cycle = 0; cycle < SELECTOR_CYCLES; cycle += 1) {
+    sequence.push(...playerIds);
+  }
+  const starterIndex = playerIds.indexOf(starterPlayerId);
+  if (starterIndex < 0) return { sequence, targetIndex: Math.max(0, sequence.length - 1) };
+  sequence.push(...playerIds.slice(0, starterIndex + 1));
+  return { sequence, targetIndex: sequence.length - 1 };
+}
 
-  playerIds.forEach((playerId, index) => {
-    const angle = index * segment;
-    const label = documentObject.createElement("span");
-    label.className = "auction-roulette__label";
-    label.style.setProperty("--roulette-angle", `${angle}deg`);
-    label.textContent = playerName(state, playerId);
-    elements.wheel.append(label);
+function renderSelector(documentObject, elements, state, playerIds, starterPlayerId) {
+  const { sequence, targetIndex } = selectorSequence(playerIds, starterPlayerId);
+  const nodes = sequence.map((playerId, index) => {
+    const player = findPlayer(state, playerId);
+    const card = documentObject.createElement("div");
+    card.className = "auction-selector__player";
+    card.dataset.playerId = playerId;
+    if (index === targetIndex) card.dataset.selected = "true";
+
+    const image = documentObject.createElement("img");
+    image.className = "auction-selector__avatar";
+    image.src = DEFAULT_AVATAR;
+    image.alt = "";
+    image.width = SELECTOR_ITEM_WIDTH;
+    image.height = SELECTOR_ITEM_WIDTH;
+    if (player?.userId) image.dataset.userId = player.userId;
+
+    const name = documentObject.createElement("span");
+    name.textContent = playerName(state, playerId);
+    card.append(image, name);
+    return card;
   });
 
-  const name = playerName(state, openingBidderPlayerId);
-  elements.result.textContent = `${name} · 첫 입찰`;
-  elements.winnerText.textContent = `${name}님이 첫 입찰 순서입니다!`;
+  elements.track.replaceChildren(...nodes);
+  elements.track.dataset.spinning = "false";
+  elements.track.style.removeProperty("--selector-start");
+  elements.track.style.removeProperty("--selector-target");
+  elements.result.textContent = `${playerName(state, starterPlayerId)}님부터 경매를 시작합니다!`;
+  return targetIndex;
+}
+
+function applyAvatarUrls(elements, avatarUrls) {
+  elements.track.querySelectorAll("img[data-user-id]").forEach((image) => {
+    image.src = avatarUrls.get(image.dataset.userId) ?? DEFAULT_AVATAR;
+  });
 }
 
 export function createAuctionIntroPresenter({
@@ -109,8 +144,10 @@ export function createAuctionIntroPresenter({
   const elements = createOverlay(documentObject);
   let activeKey = null;
   let spinningKey = null;
+  let avatarLoadKey = null;
   let boundaryTimer = null;
   let playedSoundKey = null;
+  let targetIndex = 0;
 
   function clearBoundary() {
     if (boundaryTimer !== null) clearTimeoutFn?.(boundaryTimer);
@@ -121,23 +158,33 @@ export function createAuctionIntroPresenter({
     clearBoundary();
     elements.overlay.hidden = true;
     elements.overlay.dataset.phase = "";
-    elements.roulette.hidden = true;
-    elements.winnerNotice.hidden = true;
+    elements.selector.hidden = true;
     elements.announce.hidden = false;
+  }
+
+  function startSelectorAnimation(key) {
+    if (spinningKey === key) return;
+    spinningKey = key;
+    const viewportWidth = elements.viewport.getBoundingClientRect?.().width || 340;
+    const start = (viewportWidth / 2) - (SELECTOR_ITEM_WIDTH / 2);
+    const target = start - (targetIndex * SELECTOR_ITEM_STEP);
+    elements.track.style.setProperty("--selector-start", `${start}px`);
+    elements.track.style.setProperty("--selector-target", `${target}px`);
+    elements.track.dataset.spinning = "false";
+    void elements.track.offsetWidth;
+    elements.track.dataset.spinning = "true";
   }
 
   function render(state, onBoundary = () => {}) {
     const pending = state?.pendingChoice;
     const auction = pending?.type === "PROPERTY_AUCTION" ? (pending.auction ?? {}) : null;
     const announcementEndsAt = timeMs(auction?.announcementEndsAt ?? pending?.announcementEndsAt);
-    const rouletteStopsAt = timeMs(auction?.rouletteStopsAt ?? pending?.rouletteStopsAt);
-    const winnerNoticeAt = timeMs(auction?.winnerNoticeAt ?? pending?.winnerNoticeAt);
+    const selectorStopsAt = timeMs(auction?.selectorStopsAt ?? pending?.selectorStopsAt);
     const startsAt = timeMs(auction?.startsAt ?? pending?.startsAt);
     if (
       !auction
       || !Number.isFinite(announcementEndsAt)
-      || !Number.isFinite(rouletteStopsAt)
-      || !Number.isFinite(winnerNoticeAt)
+      || !Number.isFinite(selectorStopsAt)
       || !Number.isFinite(startsAt)
     ) {
       hide();
@@ -152,31 +199,39 @@ export function createAuctionIntroPresenter({
     }
 
     const playerIds = [...(auction.participantPlayerIds ?? pending.participantPlayerIds ?? [])];
-    const openingBidderPlayerId = auction.openingBidderPlayerId
-      ?? pending.openingBidderPlayerId
-      ?? playerIds[0]
+    const starterPlayerId = auction.starterPlayerId
+      ?? pending.starterPlayerId
+      ?? auction.turnPlayerId
       ?? null;
-    const key = `${pending.nodeId}:${startsAt}:${openingBidderPlayerId}`;
+    if (!starterPlayerId || !playerIds.includes(starterPlayerId)) {
+      hide();
+      return false;
+    }
+
+    const key = `${pending.nodeId}:${startsAt}:${starterPlayerId}`;
     const phase = now < announcementEndsAt
       ? "announce"
-      : now < rouletteStopsAt
-        ? "roulette"
-        : now < winnerNoticeAt
-          ? "result"
-          : "winner";
+      : now < selectorStopsAt
+        ? "selector"
+        : "result";
 
     if (activeKey !== key) {
       activeKey = key;
       spinningKey = null;
-      renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId);
-      elements.wheel.dataset.spinning = "false";
+      targetIndex = renderSelector(
+        documentObject,
+        elements,
+        state,
+        playerIds,
+        starterPlayerId,
+      );
     }
 
-    if (phase === "roulette" && spinningKey !== key) {
-      spinningKey = key;
-      elements.wheel.dataset.spinning = "false";
-      void elements.wheel.offsetWidth;
-      elements.wheel.dataset.spinning = "true";
+    if (avatarLoadKey !== key) {
+      avatarLoadKey = key;
+      void loadAvatarUrls(state, playerIds).then((avatarUrls) => {
+        if (activeKey === key) applyAvatarUrls(elements, avatarUrls);
+      });
     }
 
     if (playedSoundKey !== key) {
@@ -187,17 +242,16 @@ export function createAuctionIntroPresenter({
     elements.overlay.hidden = false;
     elements.overlay.dataset.phase = phase;
     elements.announce.hidden = phase !== "announce";
-    elements.roulette.hidden = !["roulette", "result"].includes(phase);
-    elements.winnerNotice.hidden = phase !== "winner";
+    elements.selector.hidden = phase === "announce";
+
+    if (phase === "selector") startSelectorAnimation(key);
 
     clearBoundary();
     const nextBoundary = phase === "announce"
       ? announcementEndsAt
-      : phase === "roulette"
-        ? rouletteStopsAt
-        : phase === "result"
-          ? winnerNoticeAt
-          : startsAt;
+      : phase === "selector"
+        ? selectorStopsAt
+        : startsAt;
     boundaryTimer = setTimeoutFn?.(() => {
       boundaryTimer = null;
       onBoundary();
