@@ -72,15 +72,14 @@ test("all responded ends voting immediately and preserves join order as bid orde
 
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.deepEqual(state.pendingChoice.participantPlayerIds, ["c", "b"]);
-  assert.equal(state.pendingChoice.openingBidderPlayerId, "c");
-  assert.equal(state.pendingChoice.auction.highestBidderId, "c");
-  assert.equal(state.pendingChoice.auction.highestBid, 390);
-  assert.equal(state.pendingChoice.auction.turnPlayerId, "b");
+  assert.equal(state.pendingChoice.starterPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.highestBidderId, null);
+  assert.equal(state.pendingChoice.auction.highestBid, 0);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
   assert.equal(state.pendingChoice.announcementEndsAt, 4_200);
-  assert.equal(state.pendingChoice.rouletteStopsAt, 7_400);
-  assert.equal(state.pendingChoice.winnerNoticeAt, 9_400);
-  assert.equal(state.pendingChoice.startsAt, 11_400);
-  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 26_400);
+  assert.equal(state.pendingChoice.selectorStopsAt, 7_000);
+  assert.equal(state.pendingChoice.startsAt, 7_800);
+  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 22_800);
   assert.equal(state.lastEvents.at(-1).type, "AUCTION_STARTING");
 });
 
@@ -92,11 +91,12 @@ test("all eligible players joining starts the auction before the vote deadline",
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
 
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.equal(state.pendingChoice.auction.highestBidderId, "b");
-  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.highestBidderId, null);
+  assert.equal(state.pendingChoice.auction.highestBid, 0);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, state.pendingChoice.starterPlayerId);
 });
 
-test("two-or-more participants use authority randomness for the first bidder", () => {
+test("two-or-more participants use authority randomness for the actual starter turn", () => {
   let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a", 1_000);
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "b", {}, 2_000);
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
@@ -112,26 +112,29 @@ test("two-or-more participants use authority randomness for the first bidder", (
   });
 
   assert.deepEqual(state.pendingChoice.participantPlayerIds, ["c", "d", "b"]);
-  assert.equal(state.pendingChoice.openingBidderPlayerId, "c");
-  assert.equal(state.pendingChoice.auction.highestBidderId, "c");
+  assert.equal(state.pendingChoice.starterPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.highestBidderId, null);
+  assert.equal(state.pendingChoice.auction.highestBid, 0);
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
   assert.equal(state.pendingChoice.announcementEndsAt, 4_200);
-  assert.equal(state.pendingChoice.rouletteStopsAt, 7_400);
-  assert.equal(state.pendingChoice.winnerNoticeAt, 9_400);
-  assert.equal(state.pendingChoice.startsAt, 11_400);
+  assert.equal(state.pendingChoice.selectorStopsAt, 7_000);
+  assert.equal(state.pendingChoice.startsAt, 7_800);
 });
 
-test("competitive bids are blocked until the roulette start window ends", () => {
+test("competitive bids are blocked until the profile selector window ends", () => {
   let state = declinePurchase(roll(start(["a", "b", "c"]), "a", [1, 2]), "a", 1_000);
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "b", {}, 2_000);
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
 
   assert.throws(
-    () => reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 11_299),
+    () => reduce(state, ACTION_TYPES.AUCTION_BID, "b", { amount: 390 }, 7_699),
     /has not started yet/i,
   );
 
-  state = reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 11_300);
-  assert.equal(state.pendingChoice.auction.highestBid, 400);
+  state = reduce(state, ACTION_TYPES.AUCTION_BID, "b", { amount: 390 }, 7_700);
+  assert.equal(state.pendingChoice.auction.highestBid, 390);
+  assert.equal(state.pendingChoice.auction.highestBidderId, "b");
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
 });
 
 test("one join plus all other passes immediately auto-buys at the opening bid", () => {
@@ -228,11 +231,11 @@ test("competitive bid timeout still automatically passes the current participant
 
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.throws(
-    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 26_299),
+    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_799),
     /deadline has not expired/i,
   );
 
-  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 26_300);
+  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_800);
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.boardState.properties.singapore.ownerId, "b");
   assert.equal(state.lastEvents.some((event) => (
