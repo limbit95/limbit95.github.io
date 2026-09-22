@@ -467,8 +467,8 @@ test("Marble Auction vote RPCs enforce 15-second voting, randomized opening bidd
   ].every(Number.isFinite));
   assert.ok(announcementEndsAt - serverNow >= 1_500 && announcementEndsAt - serverNow <= 2_500);
   assert.ok(rouletteStopsAt - serverNow >= 4_700 && rouletteStopsAt - serverNow <= 5_700);
-  assert.ok(winnerNoticeAt - serverNow >= 6_700 && winnerNoticeAt - serverNow <= 7_700);
-  assert.ok(startsAt - serverNow >= 8_700 && startsAt - serverNow <= 9_700);
+  assert.ok(winnerNoticeAt - serverNow >= 5_500 && winnerNoticeAt - serverNow <= 6_500);
+  assert.ok(startsAt - serverNow >= 7_500 && startsAt - serverNow <= 8_500);
 
   const turnUser = auction?.turnPlayerId === bobPlayer.id ? auctionBob : auctionCarol;
   const winnerId = auction?.openingBidderPlayerId;
