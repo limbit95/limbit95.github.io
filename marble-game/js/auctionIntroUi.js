@@ -1,10 +1,20 @@
-import { supabase } from "../../js/supabaseClient.js";
 import { playAuctionStartSound } from "./auctionBidSound.js?v=20260922-r4";
 
 const AVATAR_BUCKET = "avatars";
 const CHAIN_REPEAT_COUNT = 6;
 const AVATAR_SIGNED_URL_TTL_SECONDS = 600;
 const avatarUrlCache = new Map();
+let supabaseClientPromise = null;
+
+async function getSupabaseClient() {
+  if (typeof window === "undefined") return null;
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = import("../../js/supabaseClient.js")
+      .then((module) => module.supabase ?? null)
+      .catch(() => null);
+  }
+  return supabaseClientPromise;
+}
 
 function timeMs(value) {
   if (value === null || value === undefined) return null;
@@ -27,9 +37,11 @@ function playerInitial(player, fallbackId = null) {
 }
 
 async function signedAvatarUrl(avatarPath) {
-  if (!avatarPath || !supabase?.storage) return null;
+  if (!avatarPath) return null;
   if (!avatarUrlCache.has(avatarPath)) {
     avatarUrlCache.set(avatarPath, (async () => {
+      const supabase = await getSupabaseClient();
+      if (!supabase?.storage) return null;
       const { data, error } = await supabase.storage
         .from(AVATAR_BUCKET)
         .createSignedUrl(avatarPath, AVATAR_SIGNED_URL_TTL_SECONDS);
