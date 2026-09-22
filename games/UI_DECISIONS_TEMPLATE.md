@@ -48,7 +48,8 @@
 - 해당 component/layout/interaction/motion 영역이 안정화되어 다음 영역으로 넘어갈 때 최종 결정을 하나로 정리합니다.
 - 디자인 Phase/detail-polish 범위 완료, 디자인 PR merge/close, 작업 브랜치 종료, release closeout 진입 전에는 기록 누락이 없는지 확인합니다.
 - 코드에만 남은 복원 가치가 있는 디자인 결정을 브랜치 정리와 함께 잃어버리지 않습니다.
-- 별도 디자인 checkpoint 명령은 추후 정의할 수 있으며, 그 명령이 없어도 위 lifecycle 기반 기록 타이밍은 적용됩니다.
+- 사용자가 `디자인 체크포인트 기록하자`라고 요청하면 현재까지 안정화된 확정 decision을 이 문서에 즉시 정리합니다.
+- 이 명령은 디자인 Phase 완료나 `FINAL`을 의미하지 않으며, lifecycle 기반 기록 타이밍도 별도로 계속 적용됩니다.
 
 ## Superseded / Rejected
 
