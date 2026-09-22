@@ -61,7 +61,6 @@ function freezeAuctionState(auction) {
   return Object.freeze({
     ...auction,
     eligiblePlayerIds: freezeStringList(auction.eligiblePlayerIds),
-    requestedByPlayerIds: freezeStringList(auction.requestedByPlayerIds),
     participantPlayerIds: freezeStringList(auction.participantPlayerIds),
     bidPlayerIds: freezeStringList(auction.bidPlayerIds),
     passedPlayerIds: freezeStringList(auction.passedPlayerIds),
@@ -113,7 +112,6 @@ function freezePendingChoice(pendingChoice) {
   if (pendingChoice.type === "PROPERTY_AUCTION") {
     return Object.freeze({
       ...pendingChoice,
-      requestedByPlayerIds: freezeStringList(pendingChoice.requestedByPlayerIds),
       participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
       auction: freezeAuctionState(pendingChoice.auction),
     });
