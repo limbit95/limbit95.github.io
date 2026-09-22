@@ -75,7 +75,7 @@ checkpoint 명령의 상세 절차는 Development Rules가 소유한다. DB/UI/H
 
 네 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
 
-`UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result-rematch, motion, responsive, 구현 가이드, validation 섹션의 구조적 존재를 확인한다. `UI_DECISIONS.md` 검사는 현재 design track, decision log, superseded/rejected, validation history, open follow-up 구조를 확인한다. 특정 색상이나 디자인의 미적 적합성, decision의 품질은 CI가 판단하지 않으며 그 의미적 검토는 `docs/game-platform-ui-rules.md`와 실제 브라우저 검증이 담당한다.
+`UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result/rematch, motion, responsive, 구현 가이드, validation 섹션의 구조적 존재를 확인한다. `UI_DECISIONS.md` 검사는 현재 design track, decision log, superseded/rejected, validation history, open follow-up 구조를 확인한다. 특정 색상이나 디자인의 미적 적합성, developer manual review에서 어느 수정이 "안정화된 결정"인지, 실제로 중요한 결정이 빠짐없이 기록됐는지는 CI가 판단할 수 없으며 그 의미적 검토는 `docs/game-platform-ui-rules.md`의 lifecycle과 실제 브라우저 검증이 담당한다.
 
 네 문서가 각각 독립 파일로만 존재하고 서로 고립되는 것을 막기 위해 game-local cross-link도 검사한다.
 
@@ -88,4 +88,4 @@ checkpoint 명령의 상세 절차는 Development Rules가 소유한다. DB/UI/H
 
 Release 상태는 최소한의 기계적 정합성도 검사한다. `Status: RELEASED`인 게임은 production baseline이므로 `Active branch: main`이어야 하고 날짜가 포함된 `## Release` 섹션을 가져야 한다. 이는 실제 production migration 여부나 플레이 품질을 추론하는 검사가 아니라, 종료된 작업 브랜치가 현재 기준으로 남는 문서 오류를 막기 위한 guard다.
 
-Guard는 규칙/디자인 출처의 신뢰도, 게임 규칙의 의미적 정확성, Visual Identity의 품질, `UI_DECISIONS.md`에 기록된 선택 이유의 타당성, 자산 사용 권리의 법적 판단, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 또한 각 게임의 재대결 구현이 실제 멀티클라이언트에서 완전한지를 문서 구조만으로 추론하지 않는다. 해당 내용은 `docs/game-platform-development-rules.md`, `docs/game-platform-ui-rules.md`, 게임별 테스트와 실제 브라우저 검증으로 확인한다.
+Guard는 규칙/디자인 출처의 신뢰도, 게임 규칙의 의미적 정확성, Visual Identity의 품질, `UI_DECISIONS.md`에 기록된 선택 이유의 타당성, 수동 브라우저 디자인 리뷰의 완료 여부, 자산 사용 권리의 법적 판단, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 또한 각 게임의 재대결 구현이 실제 멀티클라이언트에서 완전한지를 문서 구조만으로 추론하지 않는다. 해당 내용은 `docs/game-platform-development-rules.md`, `docs/game-platform-ui-rules.md`, 게임별 테스트와 실제 브라우저 검증으로 확인한다.
