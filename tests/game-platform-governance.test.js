@@ -313,6 +313,39 @@ test("platform checkpoint command stays consistent across command entrypoints", 
 
 });
 
+test("platform entrypoints preserve the manual UI decision review lifecycle", () => {
+  const checkpoint = "체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+
+  const documents = {
+    "docs/game-platform-development-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-ui-rules.md",
+      checkpoint,
+      lifecycle,
+    ].join("\n"),
+    "docs/game-platform-ui-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-development-rules.md",
+      lifecycle,
+    ].join("\n"),
+    "AGENTS.md": [checkpoint, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "games/README.md": [checkpoint, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+  };
+
+  assert.deepEqual(validatePlatformDocumentPolicy({ registry: [], documents }), []);
+
+  const missingManualReview = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      ...documents,
+      "AGENTS.md": [checkpoint, "UI_DECISIONS.md"].join("\n"),
+    },
+  });
+  assert.equal(missingManualReview.length, 1);
+  assert.match(missingManualReview[0], /manual-browser design review lifecycle/u);
+});
+
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {
   const errors = validatePullRequestChanges({
     changedFiles: [
@@ -606,13 +639,32 @@ test("UI phase continuation cannot revert later user design decisions", () => {
   );
 
   assert.match(uiRules, /Phase를 이어갈 때 디자인 회귀 방지/u);
+  assert.match(uiRules, /디자인 개발 lifecycle과 UI_DECISIONS 기록 타이밍/u);
+  assert.match(uiRules, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(uiRules, /하나의 디자인 영역이 안정화/u);
+  assert.match(uiRules, /디자인 작업 PR을 merge\/close하거나 작업 브랜치를 종료하기 전/u);
   assert.match(uiRules, /초기 Phase 문구와 최신 유효 결정이 충돌하면 최신 `UI_DECISIONS\.md`를 적용/u);
   assert.match(uiRules, /과거 설계안으로 원복/u);
+  assert.match(developmentRules, /기능 완료 이후 디자인 수동 리뷰 gate/u);
+  assert.match(developmentRules, /기능 개발의 완료 상태와 디자인 polish 완료 상태를 같은 것으로 취급하지 않는다/u);
   assert.match(developmentRules, /이미 반영된 사용자 디자인 수정을 회귀시키지 않는다/u);
   assert.match(developmentRules, /UI_DESIGN\.md.*baseline.*UI_DECISIONS\.md.*최신 non-superseded/su);
+  assert.match(decisionsTemplate, /Lifecycle stage:/u);
+  assert.match(decisionsTemplate, /## Recording Timing/u);
+  assert.match(decisionsTemplate, /developer manual browser review/u);
   assert.match(decisionsTemplate, /Decision ID:/u);
   assert.match(decisionsTemplate, /Supersedes:/u);
   assert.match(decisionsTemplate, /UI_DESIGN\.md \+ UI_DECISIONS\.md overrides/u);
+});
+
+test("actual game platform entry docs route work through developer manual design review", () => {
+  const agents = readFileSync(path.join(repositoryRoot, "AGENTS.md"), "utf8");
+  const readme = readFileSync(path.join(repositoryRoot, "games", "README.md"), "utf8");
+
+  assert.match(agents, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(agents, /디자인 PR merge\/close, 작업 브랜치 종료, release closeout 전/u);
+  assert.match(readme, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(readme, /최초 `UI_DESIGN\.md`를 계획대로 구현한 사실 자체는 `UI_DECISIONS\.md`에 중복 기록하지 않는다/u);
 });
 
 test("development handoff stays functional while UI decisions track design progress", () => {
