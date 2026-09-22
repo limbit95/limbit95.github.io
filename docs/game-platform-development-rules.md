@@ -6,7 +6,7 @@
 
 사용자가 매 작업마다 아래 규칙을 다시 설명하지 않아도, 신규 게임 작업은 이 문서를 기본 전제로 진행한다.
 
-`AGENTS.md`의 저장소 전체 작업 규칙은 그대로 적용되며, 이 문서는 Game Platform 영역의 추가 규칙이다. 문서 간 설명이 충돌하거나 현재 코드와 맞지 않는 경우 임의로 해석하지 않고 실제 코드와 테스트를 확인한 뒤 최소 범위로 정리한다.
+`AGENTS.md`의 저장소 전체 작업 규칙은 그대로 적용되며, 이 문서는 Game Platform 영역의 추가 규칙이다. 게임별 UI/UX 조사·설계·구현은 `docs/game-platform-ui-rules.md`를 함께 필수 기준으로 적용한다. 문서 간 설명이 충돌하거나 현재 코드와 맞지 않는 경우 임의로 해석하지 않고 실제 코드와 테스트를 확인한 뒤 최소 범위로 정리한다.
 
 ## 1. 적용 대상
 
@@ -39,9 +39,9 @@ Legacy의 현재 동작 보호가 우선이며, 신규 플랫폼과 맞추기 �
 신규 게임 작업자는 소스 수정 전에 다음을 확인해야 한다.
 
 1. 최신 `main`에서 작업 브랜치를 만든다.
-2. **이 문서를 필수 실행 기준으로 읽는다.**
+2. **이 문서와 `docs/game-platform-ui-rules.md`를 필수 실행 기준으로 읽는다.**
 3. `games/shared/`의 현재 공통 계약과 관련 테스트를 확인한다.
-4. `games/GAME_SPEC_TEMPLATE.md`와 `games/DEVELOPMENT_TEMPLATE.md`를 기준으로 초기 문서를 준비한다.
+4. `games/GAME_SPEC_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`를 기준으로 초기 문서를 준비한다.
 5. DB/RPC가 포함되면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인한다.
 6. Legacy 게임 코드를 신규 게임의 기본 구조로 복사하지 않는다.
 
@@ -55,18 +55,20 @@ games/<game-id>/
 
 `game-id`는 lowercase kebab-case를 사용하고 Game Registry에도 동일한 ID를 등록한다.
 
-## 3A. 신규 게임 초기 세팅과 GAME_SPEC
+## 3A. 신규 게임 초기 세팅과 설계 문서
 
-사용자가 `새 게임 만들자`, `<게임명> 개발 시작하자`처럼 신규 게임 개발을 요청하면 gameplay/runtime 코드부터 작성하지 않는다. 먼저 게임 자체와 구현 경계를 복원할 수 있는 bootstrap 문서를 만든다.
+사용자가 `새 게임 만들자`, `<게임명> 개발 시작하자`처럼 신규 게임 개발을 요청하면 gameplay/runtime 코드부터 작성하지 않는다. 먼저 게임 규칙과 제품 범위뿐 아니라 원본 디자인과 Visual Identity까지 조사해 다음 작업자가 구현 방향을 복원할 수 있는 bootstrap 문서를 만든다.
 
 기본 순서는 다음과 같다.
 
 1. 게임의 원본 규칙과 구성요소를 조사한다.
-2. 이번 웹게임에서 지원할 인원, 규칙 버전/변형, online/local 범위와 제외 범위를 정한다.
-3. `games/<game-id>/GAME_SPEC.md`를 생성해 게임 규칙과 구현 설계를 기록한다.
-4. `games/<game-id>/DEVELOPMENT.md`를 생성해 현재 작업 상태와 다음 작업을 기록한다.
-5. 규칙 해석이 불명확한 항목은 임의로 확정하지 않고 `Open Questions / Deferred`에 남긴다.
-6. 위 문서가 최소 기준을 충족한 뒤 게임 규칙 엔진, Registry, DB/RPC, UI 등 실제 구현을 시작한다.
+2. 공식/퍼블리셔 자료와 실제 구성물을 기준으로 색상, 심볼, 카드/보드/칩 구조, 레이아웃, 타이포그래피, 분위기와 자산 사용 가능 범위를 조사한다.
+3. 이번 웹게임에서 지원할 인원, 규칙 버전/변형, online/local 범위와 제외 범위를 정한다.
+4. `games/<game-id>/GAME_SPEC.md`를 생성해 게임 규칙과 기능 구현 설계를 기록한다.
+5. `games/<game-id>/UI_DESIGN.md`를 생성해 디자인 조사 결과, Visual Identity, 독립 페이지 경험, UI 구현 계획과 validation 기준을 기록한다.
+6. `games/<game-id>/DEVELOPMENT.md`를 생성해 두 설계의 현재 구현 상태와 다음 작업을 기록한다.
+7. 규칙 해석, 디자인 출처, 자산 사용 권리가 불명확한 항목은 임의로 확정하지 않고 각 문서의 `Open Questions / Deferred`에 남긴다.
+8. 세 문서가 최소 기준을 충족한 뒤 게임 규칙 엔진, Registry, DB/RPC, UI 등 실제 구현을 시작한다.
 
 공개된 기존 보드게임을 웹게임으로 구현하는 경우 공식 규칙서, 퍼블리셔 자료 또는 신뢰 가능한 규칙 문서를 우선 확인한다. `GAME_SPEC.md`에는 사용한 출처와 구현상 해석 결정을 남긴다. 규칙 원문을 장문 복제하지 않고 구현에 필요한 사실과 결정만 요약한다.
 
@@ -90,12 +92,37 @@ games/<game-id>/
 
 게임 규칙, 상태 머신, 도메인 모델 또는 구현 경계가 바뀌면 현재 설계와 일치하도록 `GAME_SPEC.md`를 갱신한다. 작은 commit 내역을 쌓는 changelog로 사용하지 않는다.
 
+### MUST: UI_DESIGN의 역할
+
+`UI_DESIGN.md`는 **이 게임이 어떻게 보여지고 느껴져야 하는지 정의하는 game-local presentation 설계 기준**이다. 세부 작성 규칙과 필수 섹션은 `docs/game-platform-ui-rules.md`와 `games/UI_DESIGN_TEMPLATE.md`를 따른다.
+
+최소한 디자인 조사 출처, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result/rematch 방향, 핵심 motion, responsive 전략, 구현 계획, validation 기준을 유지한다.
+
+목표 판본, 대표 색상, 핵심 레이아웃, 주요 구성물 표현, motion 원칙, 자산 사용 판단처럼 실제 구현 방향을 바꾸는 결정이 변경되면 `UI_DESIGN.md`도 현재 기준으로 갱신한다. 작은 CSS 값이나 commit 내역을 쌓는 changelog로 사용하지 않는다.
+
+`DEVELOPMENT.md`는 `GAME_SPEC.md`와 `UI_DESIGN.md`의 실제 구현 진행상태를 Completed / Current Work / Next Work / Validation에서 추적한다.
+
+### MUST: 게임별 세 문서의 권위와 충돌 해결
+
+세 문서는 서로 대체 관계가 아니라 책임이 다른 authoritative 문서다.
+
+- `GAME_SPEC.md`: 게임 규칙, 상태 머신, 기능 lifecycle, 도메인 모델, 서버 권위와 기능 범위의 기준
+- `UI_DESIGN.md`: Visual Identity, page/layout, 구성물 표현, motion, responsive, presentation의 기준
+- `DEVELOPMENT.md`: 위 두 설계가 실제로 어디까지 구현·검증됐는지 나타내는 현재 진행상태의 기준
+
+같은 주제가 여러 문서에 등장하면 **그 주제의 책임 문서가 최종 기준**이다. 예를 들어 재대결이 같은 room을 유지하는지 여부는 기능 lifecycle이므로 `GAME_SPEC.md`, 재대결 준비 화면의 시각 표현은 `UI_DESIGN.md`, 현재 구현 완료 여부는 `DEVELOPMENT.md`가 기준이다.
+
+MUST NOT: `DEVELOPMENT.md`에서 새로운 게임 규칙이나 UI 설계를 독자적으로 확정하지 않는다. 구현 과정에서 설계가 바뀌면 먼저 책임 문서를 갱신하고 `DEVELOPMENT.md`에는 변경 결정과 실제 구현 상태를 반영한다.
+
+문서끼리 모순이 발견되면 runtime 구현을 계속 진행하기 전에 실제 코드/테스트와 사용자 결정을 확인하고 책임 문서 기준으로 정합화한다.
+
 ### MUST: bootstrap 상태와 Registry 노출 경계
 
-신규 게임은 설계를 먼저 확정하기 위해 `games/<game-id>/`에 다음 두 파일만 존재하는 **bootstrap 상태**를 가질 수 있다.
+신규 게임은 설계를 먼저 확정하기 위해 `games/<game-id>/`에 다음 세 파일만 존재하는 **bootstrap 상태**를 가질 수 있다.
 
 ```text
 GAME_SPEC.md
+UI_DESIGN.md
 DEVELOPMENT.md
 ```
 
@@ -119,7 +146,7 @@ MUST NOT: 구현 예정이라는 이유만으로 `online`, `invite`, `presence` 
 games/<game-id>/DEVELOPMENT.md
 ```
 
-`DEVELOPMENT.md`는 긴 작업 일지나 commit changelog가 아니라 **다음 작업자가 현재 개발 상태를 즉시 복원하기 위한 단일 인수인계 문서**다.
+`DEVELOPMENT.md`는 긴 작업 일지나 commit changelog가 아니라 **다음 작업자가 현재 개발 상태를 즉시 복원하기 위한 단일 인수인계 문서**다. 기능 구현 상태는 `GAME_SPEC.md`, UI/presentation 구현 상태는 `UI_DESIGN.md`와 대조해 기록하며, 어느 설계가 아직 미구현인지 문서만 읽고 구분할 수 있어야 한다.
 
 문서는 최소 다음 섹션을 유지한다.
 
@@ -138,7 +165,7 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: 작업 시작과 이어서 진행할 때
 
 - 신규 게임의 첫 구현 단계에서 `DEVELOPMENT.md`를 함께 생성한다.
-- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽는다.
+- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽고, 현재 작업 범위와 관련된 `GAME_SPEC.md` 및 `UI_DESIGN.md`의 최신 설계도 함께 확인한다.
 - `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
 - 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
 - 게임별 Phase 브랜치명은 가능하면 game id와 작업 범위를 포함해 `feature/game-platform-<phase>-<game-id>-<scope>`처럼 다른 채팅에서도 검색 가능한 형태로 유지한다.
@@ -146,7 +173,10 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: Phase 완료 시
 
 - Phase 완료 PR에는 `DEVELOPMENT.md` 갱신을 포함한다.
-- 완료한 Phase와 검증 결과를 `Completed` / `Validation`에 반영한다.
+- `GAME_SPEC.md`에서 실제 구현 완료한 기능과 `UI_DESIGN.md`에서 실제 구현 완료한 UI/presentation 항목을 `Completed`에 구분 가능하게 반영한다.
+- 기능 테스트뿐 아니라 해당 Phase에서 수행한 UI/브라우저/반응형/animation 검증이 있다면 `Validation`에 함께 기록한다.
+- 설계에는 존재하지만 아직 구현하지 않은 기능/UI 항목은 `Current Work`, `Next Work`, `Known Issues / Deferred` 중 적절한 위치에 남긴다.
+- Phase 중 기능 또는 UI 설계 자체가 변경됐다면 대응하는 `GAME_SPEC.md` 또는 `UI_DESIGN.md`를 먼저 최신화하고, `DEVELOPMENT.md`에는 그 결정과 실제 구현 상태를 기록한다.
 - 다음 Phase 또는 다음 첫 작업을 `Next Work`에 구체적으로 남긴다.
 - 완료되지 않은 항목을 완료한 것처럼 기록하지 않는다.
 
@@ -158,11 +188,12 @@ games/<game-id>/DEVELOPMENT.md
 2. production migration이 필요한 게임은 실제 적용 이력과 RLS/grant/RPC 권한 경계를 검증한다.
 3. Registry capability는 **소스가 존재한다는 이유만으로** 활성화하지 않는다. 실제 제공 가능한 기능만 activation PR에서 켠다.
 4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 release blocker가 없어야 한다.
-5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. 다만 correctness를 자동/운영 계약으로 충분히 검증했고 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 명시할 수 있다.
-6. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 검증, 현재 capability를 남긴다.
-7. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
-8. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
-9. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
+5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. `UI_DESIGN.md`의 Validation Checklist도 실제 구현과 대조하며, 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 `DEVELOPMENT.md`에 명시할 수 있다.
+6. release 기준의 기능 설계는 `GAME_SPEC.md`, UI/presentation 설계는 `UI_DESIGN.md`와 실제 production 상태가 일치하는지 확인한다.
+7. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 기능/게임플레이 검증, 주요 UI/반응형 검증, 현재 capability를 남긴다.
+8. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
+9. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
+10. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
@@ -173,11 +204,12 @@ games/<game-id>/DEVELOPMENT.md
 이 경우:
 
 1. 현재 Phase 상태를 `IN_PROGRESS`로 유지한다.
-2. 마지막으로 실제 완료된 작업과 아직 완료되지 않은 작업을 구분한다.
-3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남긴다.
-4. 지금까지 실행한 테스트와 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
-5. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
-6. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
+2. 마지막으로 실제 완료된 기능 작업과 UI/presentation 작업, 아직 완료되지 않은 항목을 `GAME_SPEC.md`와 `UI_DESIGN.md` 기준으로 구분한다.
+3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남기고, 기능/DB/UI 중 어떤 설계를 이어가는 작업인지 알 수 있게 한다.
+4. 지금까지 실행한 테스트와 UI/브라우저/반응형 검증, 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
+5. UI 설계 변경이나 자산/라이선스 판단이 아직 미확정이면 관련 `UI_DESIGN.md` 항목과 함께 `Known Issues / Deferred`에 남긴다.
+6. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
+7. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
 
 중간 checkpoint를 남기기 위해 별도의 새 브랜치를 만들거나 Phase를 완료 처리하지 않는다.
 
@@ -189,6 +221,7 @@ games/<game-id>/DEVELOPMENT.md
 - Phase 완료 시
 - 사용자가 명시적으로 중간 진행 기록을 요청할 때
 - 중요한 아키텍처/게임 규칙 결정이 바뀔 때
+- `UI_DESIGN.md`의 Visual Identity, page/layout, 핵심 component, motion, responsive, 자산 사용 판단처럼 실제 UI 구현 방향이 바뀔 때
 - 다음 작업자에게 반드시 전달해야 할 blocker나 known issue가 생길 때
 
 ## 4. 플랫폼과 게임 규칙의 경계
@@ -218,7 +251,8 @@ games/<game-id>/DEVELOPMENT.md
 - 보드, 카드, 주사위 등 도메인 모델
 - 게임별 상태와 계산
 - 게임 특유의 애니메이션과 연출
-- 게임 테마와 시각 표현
+- 게임 테마와 Visual Identity, 독립 페이지 레이아웃, 카드/보드/칩 등 구성물 표현
+- 게임-local UI의 상세 설계는 `UI_DESIGN.md`와 `docs/game-platform-ui-rules.md`를 따른다.
 
 ### MUST NOT: 한 게임의 특수 규칙을 shared 계약에 넣지 않는다
 
@@ -231,7 +265,7 @@ games/<game-id>/DEVELOPMENT.md
 Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는 경우를 제외하면, 현재 실행 규칙·공통 가이드·템플릿은 특정 platform-native 게임 이름, 경로, 상태 머신 또는 구현 세부사항을 신규 게임의 기준으로 삼지 않는다.
 
 - 신규 게임을 설명하는 예시는 `<game-id>`, `example-game` 같은 중립적인 placeholder를 사용한다.
-- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
+- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
 - 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
 - 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
 - `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
@@ -465,6 +499,8 @@ Shell이 담당하는 범위:
 
 MUST NOT: 공통 Shell을 이유로 게임 고유 보드, 카드, 주사위, 3D, 애니메이션, 테마를 획일화하지 않는다.
 
+MUST: 게임 목록에서 진입한 뒤의 entry/lobby/gameplay/result/rematch는 `docs/game-platform-ui-rules.md`에 따라 해당 게임의 독립적인 Visual Identity를 갖도록 설계한다.
+
 ## 10A. 게임 규칙 안내와 게임 종료
 
 모든 platform-native 게임은 처음 플레이하는 사용자가 외부 검색 없이 게임을 이해하고 안전하게 세션을 끝낼 수 있어야 한다.
@@ -484,8 +520,41 @@ MUST NOT: 공통 Shell을 이유로 게임 고유 보드, 카드, 주사위, 3D,
 - 온라인 멀티플레이에서 게임 전체를 종료하는 권한은 게임별로 명확히 정의하며, 다른 플레이어의 세션에 영향을 주는 종료는 서버가 최종 권한을 검증한다.
 - 파괴적 종료는 확인 modal/dialog를 거쳐 오조작을 방지한다.
 - 종료 후 모든 클라이언트가 authoritative snapshot 또는 명시적 terminal state로 동일한 결과를 복구할 수 있어야 한다.
-- 종료된 사용자가 active session에 영구히 묶이지 않도록 해당 게임에 필요한 leave, restart/rematch, entry return 등의 후속 경로를 정의한다.
+- 종료된 사용자가 active session에 영구히 묶이지 않도록 leave, rematch, entry return 등 후속 경로를 정의한다.
 - 브라우저를 닫거나 단순히 다른 페이지로 이동하는 것을 authoritative 게임 종료로 간주하지 않는다.
+
+## 10B. 멀티플레이 재대결 lifecycle
+
+모든 멀티플레이 platform-native 게임은 정상 종료 또는 재대결을 허용하는 terminal state 이후 **같은 참여 맥락에서 다시 플레이할 수 있는 재대결 기능**을 기본 제품 요구사항으로 제공한다.
+
+기본 사용자 흐름은 다음과 같다.
+
+```text
+GAME_OVER / TERMINAL
+→ 결과 확인
+→ 재대결 선택
+→ 기존 room / active player identity를 유지한 준비 상태
+→ 참여 플레이어가 준비 완료
+→ 시작 가능한 인원과 준비 조건 충족
+→ 방장이 게임 시작
+→ 이전 gameplay state 초기화
+→ 새 게임 시작
+```
+
+### MUST
+
+- 재대결을 위해 사용자가 새 방을 생성하거나 방 코드를 다시 입력하도록 강제하지 않는다.
+- 기존 room, 참여 player identity, host와 플랫폼 세션 맥락은 가능한 범위에서 유지한다.
+- 이전 게임의 점수, 카드, 보드, 칩, 주사위, 턴, 승패, 임시 효과 등 gameplay state는 새 게임 기준으로 초기화한다.
+- 재대결 준비 상태에서 참여 플레이어의 ready 상태와 방장의 시작 가능 조건을 명확히 표현한다.
+- 새 게임 시작 조건과 권한은 서버가 최종 검증한다.
+- 재대결을 원하지 않는 플레이어는 안전하게 이탈할 수 있어야 하며, 이탈 후 최소 플레이 인원과 host 승계 등 필요한 조건을 authoritative하게 다시 검증한다.
+- reconnect가 발생해도 authoritative snapshot으로 재대결 준비 상태 또는 새 게임 상태를 복구할 수 있어야 한다.
+- 결과와 재대결 presentation은 `docs/game-platform-ui-rules.md`에 따라 게임 고유 Visual Identity 안에서 이어진다.
+
+재대결이 공통 제품 요구사항이라는 이유만으로 모든 게임에 동일한 RPC 이름이나 `games/shared/` adapter method를 즉시 강제하지 않는다. 현재 Room/Lobby 계약으로 자연스럽게 표현되면 재사용하고, 여러 게임에서 반복되는 구현 책임이 확인될 때만 shared 계약 승격을 검토한다.
+
+초기 게임 시작에 ready/host 개념이 없는 특수한 게임이라도 재대결에서는 사용자가 다시 플레이하겠다는 의사를 명시하고 방장이 시작 가능한 준비 화면으로 전환하는 청파 같이 공통 UX를 제공한다. 게임 규칙상 방장 자체가 성립하지 않는 구조를 도입하려면 별도 플랫폼 규칙 변경으로 다룬다.
 
 ## 11. Invite
 
@@ -575,34 +644,65 @@ Legacy에서 확인된 패턴은 참고 자료일 뿐 신규 플랫폼의 계약
 
 Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 실제 장애/보안/데이터/동기화 위험인지 별도로 검토한다.
 
+## 14B. 공통 규칙 변경 시 기존 게임 영향도 감사
+
+Game Platform의 CURRENT 규칙, shared 계약, DB/Test Contract 또는 공통 lifecycle을 변경하는 작업은 **새 게임에만 적용하고 끝내지 않는다.** 현재 Registry에서 `platform: "shared"`인 모든 게임을 전수 검토한다.
+
+각 게임은 최소 다음 중 하나로 분류한다.
+
+- `COMPLIANT`: 현재 구현·게임별 문서·테스트가 새 규칙과 이미 일치한다.
+- `MIGRATION_REQUIRED`: 현재 구현이나 문서가 새 규칙과 충돌하며 후속 수정이 필요하다.
+- `NOT_APPLICABLE`: 게임 구조상 해당 규칙이 적용되지 않으며 그 이유가 명확하다.
+
+### MUST
+
+- 규칙 변경 PR의 작업 결과 또는 PR 설명에 영향도 감사 결과를 남긴다.
+- `IN_PROGRESS` 게임이 `MIGRATION_REQUIRED`라면 release 전에 충돌을 해소한다.
+- `RELEASED` 게임이 `MIGRATION_REQUIRED`라면 현재 동작을 임의로 같은 PR에서 바꾸지 않고 별도 migration/follow-up 범위를 정한다.
+- 게임별 문서와 실제 코드/테스트가 서로 다른 정책을 말하면 문서만 맞춰 적지 말고 runtime 영향까지 확인한다.
+- 특정 게임의 예외를 허용해야 한다면 공통 규칙을 조용히 위반하게 두지 않고 적용 제외 근거 또는 플랫폼 규칙 변경으로 명시한다.
+
+Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도의 의미적 판단까지 자동화할 수는 없다. 따라서 공통 규칙 변경 시 영향도 감사는 작업자의 필수 검토 절차다.
+
 ## 15. 신규 게임 구현 순서
 
 특별한 이유가 없다면 다음 순서로 개발한다.
 
 ```text
-1. 원본 규칙/출처 조사와 제품 범위 결정
-2. GAME_SPEC.md + DEVELOPMENT.md bootstrap
-3. 게임 규칙과 상태 머신 구현 및 unit test
-4. 첫 runtime 구현과 함께 Game Registry 등록
-5. Access Gate 연결
-6. 게임별 DB schema / RPC 설계
-7. Room/Session adapter 연결 (해당 lifecycle을 사용하는 경우)
-8. DB/Test Contract 연결 (online인 경우)
-9. authoritative snapshot 구현 (stateful online인 경우)
-10. Versioned / Idempotent Action 연결 (상태 변경 action이 있는 경우)
-11. Realtime invalidation + reconnect 연결 (online realtime을 사용하는 경우)
-12. Common Game Shell / player UI 연결 (필요한 공통 surface만)
-13. Invite 연결 (지원하는 경우)
-14. 게임 고유 UI / 애니메이션 / 연출 확장
-15. 멀티클라이언트 및 reconnect 회귀 검증
-16. production migration / 권한 경계 검증
-17. Registry capability activation + 게임 목록/entry 노출
-18. RELEASED 문서 closeout
-19. stacked PR / 작업 브랜치 정리
-20. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
+1. 원본 규칙/출처와 실제 구성물 조사
+2. 원본 디자인/Visual Identity/자산 사용 가능 범위 조사
+3. GAME_SPEC.md + UI_DESIGN.md + DEVELOPMENT.md bootstrap
+4. 게임 규칙과 상태 머신 구현 및 unit test
+5. 첫 runtime 구현과 함께 Game Registry 등록
+6. Access Gate 연결
+7. 게임별 DB schema / RPC 설계
+8. Room/Session adapter 연결 (해당 lifecycle을 사용하는 경우)
+9. DB/Test Contract 연결 (online인 경우)
+10. authoritative snapshot 구현 (stateful online인 경우)
+11. Versioned / Idempotent Action 연결 (상태 변경 action이 있는 경우)
+12. Realtime invalidation + reconnect 연결 (online realtime을 사용하는 경우)
+13. Common Game Shell / player UI 연결 (필요한 공통 surface만)
+14. UI_DESIGN 기준의 게임 고유 page/lobby/gameplay UI 구현
+15. 멀티플레이 게임의 result/rematch lifecycle 구현
+16. 게임 고유 animation / interaction / responsive polish
+17. 멀티클라이언트 및 reconnect 회귀 검증
+18. UI_DESIGN validation checklist와 실제 브라우저 경험 검증
+19. production migration / 권한 경계 검증
+20. Registry capability activation + 게임 목록/entry 노출
+21. RELEASED 문서 closeout
+22. stacked PR / 작업 브랜치 정리
+23. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
 ```
 
-이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
+이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다.
+
+세 문서의 `Implementation Plan`과 진행 기록은 다음 책임으로 구분한다.
+
+- `GAME_SPEC.md / Implementation Plan`: 기능·상태 머신·DB/RPC·플랫폼 연결의 설계 순서
+- `UI_DESIGN.md / Implementation Plan`: Visual Identity·layout·component·motion·responsive의 presentation 구현 순서
+- `DEVELOPMENT.md / Next Work`: 지금 실제 작업에서 다음으로 수행할 구체적인 행동
+
+같은 TODO를 세 문서에 복제해 각각 따로 관리하지 않는다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
 
 ## 16. 완료 체크리스트
 
@@ -610,7 +710,8 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 
 - [ ] `games/<game-id>/`에 게임이 독립적으로 위치한다.
 - [ ] `games/<game-id>/GAME_SPEC.md`가 현재 게임 규칙, 구현 범위, 상태 머신, 플랫폼 경계를 반영한다.
-- [ ] `games/<game-id>/DEVELOPMENT.md`가 현재 Phase/브랜치/다음 작업/검증 상태를 반영한다.
+- [ ] `games/<game-id>/UI_DESIGN.md`가 디자인 조사 출처, 자산 사용 경계, Visual Identity, 독립 페이지 방향, motion/responsive/구현 계획을 반영한다.
+- [ ] `games/<game-id>/DEVELOPMENT.md`가 GAME_SPEC/UI_DESIGN의 현재 Phase/브랜치/다음 작업/검증 상태를 반영한다.
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
 - [ ] 실제 구현된 capability만 선언되어 있다.
 - [ ] Approved Member / Access Gate를 사용한다.
@@ -624,7 +725,10 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 - [ ] 구독/listener 정리 경로가 있다.
 - [ ] 플레이 시작 전 entry/setup 화면에서 상세 게임 규칙을 확인할 수 있고 플레이 중에도 다시 접근할 수 있다.
 - [ ] 진행 중 세션을 안전하게 끝낼 수 있는 게임 종료 경로와 종료 후 복구/이탈 흐름이 있다.
+- [ ] 멀티플레이 게임이라면 GAME_OVER → 재대결 준비 → 참여자 ready → 방장 시작 → 새 게임의 흐름이 있고 reconnect/이탈/최소 인원 조건을 authoritative하게 처리한다.
 - [ ] Common Game Shell 사용 여부와 게임-local UI 경계가 명확하다.
+- [ ] entry/lobby/gameplay/result/rematch가 `UI_DESIGN.md`의 Visual Identity를 유지하고 일반 청파 같이 페이지와 구별되는 독립적인 게임 공간으로 느껴진다.
+- [ ] UI_DESIGN validation checklist와 desktop/mobile 핵심 동작을 확인했다.
 - [ ] Invite를 제공한다면 `game_room` 계약을 사용한다.
 - [ ] DB/Test Contract 필수 시나리오를 모두 구현한다.
 - [ ] 다른 플레이어의 private state가 노출되지 않는다.
@@ -648,9 +752,10 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 신규 platform-native 게임 구현에서 문서 우선순위는 다음과 같다.
 
 1. **이 문서** — 현재 실행 규칙의 최상위 기준
-2. **실제 `games/shared/` 코드와 계약 테스트** — 현재 구현된 계약의 최종 확인
-3. **`docs/game-platform-db-test-contract.md`** — DB/RPC 작업 시 적용하는 정식 품질 계약
-4. **`games/README.md`** — 현재 shared 모듈과 디렉터리 안내
+2. **`docs/game-platform-ui-rules.md`** — 신규 게임 UI 조사·Visual Identity·UI_DESIGN 관리와 presentation 실행 규칙
+3. **실제 `games/shared/` 코드와 계약 테스트** — 현재 구현된 계약의 최종 확인
+4. **`docs/game-platform-db-test-contract.md`** — DB/RPC 작업 시 적용하는 정식 품질 계약
+5. **`games/README.md`** — 현재 shared 모듈과 디렉터리 안내
 
 다음 문서는 **배경/이력 참고용**이며 신규 게임 개발의 필수 선행 문서가 아니다.
 

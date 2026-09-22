@@ -38,6 +38,10 @@ export const PLATFORM_GAME_DB_SCENARIOS = Object.freeze([
     title: "reconnect restores the authoritative snapshot",
   }),
   Object.freeze({
+    id: "rematch_lifecycle_authoritative",
+    title: "rematch preserves participant context and authoritative restart conditions",
+  }),
+  Object.freeze({
     id: "private_state_not_exposed",
     title: "room snapshots do not expose another player private state",
   }),

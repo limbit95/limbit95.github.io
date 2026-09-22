@@ -13,7 +13,7 @@ const migration = readFileSync(
 );
 const rematchMigration = readFileSync(
   new URL(
-    "../supabase/no-thanks/20260922170000_no_thanks_rematch_lobby.sql",
+    "../supabase/no-thanks/20260922085900_no_thanks_rematch.sql",
     import.meta.url,
   ),
   "utf8",
@@ -113,13 +113,21 @@ test("No Thanks! gameplay migration calculates terminal scores without exposing 
 });
 
 
-test("No Thanks! rematch migration preserves membership while resetting game state", () => {
+test("No Thanks! rematch migration preserves the room and resets gameplay state authoritatively", () => {
   assert.match(rematchMigration, /create or replace function public\.no_thanks_prepare_rematch/u);
+  assert.match(rematchMigration, /'prepare_rematch'/u);
   assert.match(rematchMigration, /HOST_REQUIRED/u);
-  assert.match(rematchMigration, /REMATCH_NOT_READY/u);
-  assert.match(rematchMigration, /REMATCH_PLAYERS_CHANGED/u);
-  assert.match(rematchMigration, /set is_ready = false,[\s\S]*?cards = '\{\}'::integer\[\]/u);
+  assert.match(rematchMigration, /VERSION_CONFLICT/u);
+  assert.match(rematchMigration, /REMATCH_NOT_AVAILABLE/u);
+  assert.match(rematchMigration, /set status = 'waiting'/u);
+  assert.match(rematchMigration, /game_state = null/u);
   assert.match(rematchMigration, /delete from public\.no_thanks_room_private_state/u);
-  assert.match(rematchMigration, /set status = 'waiting',[\s\S]*?game_state = null/u);
-  assert.doesNotMatch(rematchMigration, /membership_status = 'left'/u);
+  assert.match(rematchMigration, /cards = '\{\}'::integer\[\]/u);
+  assert.match(rematchMigration, /expires_at = now\(\) \+ interval '8 hours'/u);
+});
+
+test("No Thanks! terminal host leave transfers host instead of closing the remaining result room", () => {
+  assert.match(rematchMigration, /select p\.user_id[\s\S]*order by p\.seat[\s\S]*limit 1/u);
+  assert.match(rematchMigration, /set host_user_id = v_next_host/u);
+  assert.match(rematchMigration, /v_room\.status = 'waiting' and v_room\.host_user_id = v_user_id/u);
 });

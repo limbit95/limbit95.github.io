@@ -399,7 +399,7 @@ export function createNoThanksLobbyController({
     });
   }
 
-  async function createRematchRoom() {
+  async function prepareRematch() {
     return command(async () => {
       const snapshot = state.snapshot;
       if (!snapshot?.room?.id || snapshot.game?.phase !== "GAME_OVER") {
@@ -411,7 +411,7 @@ export function createNoThanksLobbyController({
         expectedVersion: Number(snapshot.version),
         clientActionId: idFactory(),
       });
-      applySnapshot(next, { connection: "connected", busy: false });
+      applySnapshot(next, { connection: "connected" });
       return next;
     });
   }
@@ -472,7 +472,7 @@ export function createNoThanksLobbyController({
     takeCard,
     endGame,
     leaveRoom,
-    createRematchRoom,
+    prepareRematch,
     refresh,
     current,
     dispose,

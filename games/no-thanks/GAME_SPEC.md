@@ -2,6 +2,7 @@
 
 > 이 문서는 No Thanks!가 어떤 게임이며 청파 같이에서 어떤 규칙과 구조로 구현할지 정의하는 게임별 설계 기준입니다.
 > 실제 개발 진행 상황은 같은 디렉터리의 `DEVELOPMENT.md`에서 관리합니다.
+> 상세 UI/presentation 기준은 같은 디렉터리의 `UI_DESIGN.md`에서 관리합니다.
 
 ## Game Overview
 
@@ -300,70 +301,42 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 ### 재대결 정책
 
-재대결은 종료된 게임의 참가자와 좌석을 유지한 채 같은 room을 다시 WAITING 상태로 전환합니다.
+게임 종료 후에는 기존 room과 남아 있는 active player identity를 유지한 채 재대결 준비 상태로 돌아갑니다.
 
-- 방장만 `GAME_OVER` 결과 화면에서 재대결 준비를 요청할 수 있습니다.
-- `no_thanks_prepare_rematch` RPC가 room lock, host, expected version, GAME_OVER 상태, 기존 turn order 참가자가 모두 active인지 서버에서 검증합니다.
-- 재대결 준비 시 room id / room code / host / active membership / seat는 유지합니다.
-- 모든 active player의 `is_ready`를 false로, 획득 카드를 빈 배열로 초기화합니다.
-- 이전 게임의 private draw deck / excluded cards / counters row를 삭제하고 room `game_state`를 null로 초기화합니다.
-- room은 `waiting`으로 전환되고 version은 증가합니다. 일반 플레이어가 다시 준비 완료하면 기존 `no_thanks_start_game` 계약으로 다음 게임을 시작합니다.
-- 이전 게임의 action 기록은 삭제하지 않고 새 `client_action_id`를 사용해 다음 게임의 action과 구분합니다.
-- 결과 화면에서 이미 나간 참가자가 있으면 같은 멤버 재대결을 허용하지 않고 새 방 생성을 안내합니다.
+- 방장만 결과 화면에서 `재대결 준비`를 시작할 수 있습니다.
+- 서버는 room code / active membership / 현재 host를 유지하고 room을 `waiting`으로 되돌립니다.
+- 이전 게임의 public game state, private deck/counter state, 플레이어 획득 카드는 초기화합니다.
+- active player의 ready는 다시 false가 되며 기존 ready/start 권한 검증을 그대로 재사용합니다.
+- 결과 화면에서 재대결을 원하지 않는 플레이어는 안전하게 나갈 수 있습니다.
+- GAME_OVER에서 방장이 먼저 나가면 남은 active player 중 seat가 가장 빠른 플레이어에게 host를 승계해 남은 참가자가 재대결을 계속 선택할 수 있게 합니다.
+- 재대결 준비 후 인원이 최소 3명보다 적다면 같은 room code로 새 참가자 또는 이전 이탈자가 다시 참가할 수 있습니다.
+- 기존 room action history는 idempotency/replay 안전성을 위해 유지하되 새 gameplay state는 이전 게임 상태와 분리합니다.
 
 ## UI / UX Direction
 
-- WAITING과 PLAYING은 서로 다른 화면으로 교체하지 않고 동일한 대형 게임 보드 공간을 사용합니다.
-- 데스크톱에서는 공통 사이트 여백만 남기고 게임 보드가 가로 폭 대부분을 사용하며, 보드와 하단 개인 패널이 핵심 플레이 화면의 중심이 됩니다.
-- 보드 중앙에는 원형/타원형 테이블을 두고 현재 공개 카드, 남은 카드 더미, 중앙 칩을 배치합니다. 이 영역은 후속 카드/칩 이벤트 애니메이션의 무대로도 사용합니다.
-- 3–7인 플레이어 좌석은 테이블 둘레 좌표를 동적으로 계산합니다. 서버의 실제 seat/turn order는 변경하지 않고 화면 배열만 회전하여 현재 viewer의 좌석을 항상 6시 방향에 고정합니다.
-- 좌석 본체에는 닉네임과 현재 차례 여부만 기본 노출하며, current turn 강조로 좌석 크기나 좌표가 흔들리지 않게 합니다.
-- WAITING에서도 방장은 기본 착석 상태로 표시하고 일반 플레이어는 ready 완료 시 좌석에 들어오는 짧은 착석 애니메이션을 사용합니다. reduced-motion 환경에서는 이를 최소화합니다.
-- 기존 우측 대형 player roster 대신 보드 내부 우측 상단의 compact HUD에서 방 코드, 현재/최대 인원, ready, connection/reconnect, host 상태를 표시합니다.
-- 보드 바로 아래에는 같은 폭의 개인 패널을 두고 본인의 정확한 칩 수, 시각적 칩 cluster, 본인 공개 획득 카드, 현재 가능한 핵심 액션을 한 곳에 모읍니다.
-- 본인 카드가 많아져도 개인 패널 높이가 계속 커지지 않도록 카드를 수평으로 겹쳐 배치합니다. 카드 수가 많을수록 겹침 폭을 늘리되 왼쪽 상단 숫자는 계속 읽을 수 있게 합니다.
-- 카드 색상은 숫자 구간에 따라 blue / teal / yellow / pink-red 계열을 사용하고 숫자는 왼쪽 상단과 오른쪽 하단에 표시합니다.
-- 개인 패널 카드 hover/focus 시 해당 카드를 위로 올리고 확대하여 겹친 손패에서도 개별 카드를 확인할 수 있게 합니다.
-- 플레이 핵심 액션은 테이블 오브젝트 자체에 연결합니다. 현재 공개 카드를 직접 클릭하면 `TAKE_CARD`, 오른쪽 공개 칩 더미 아래 `칩 1개 내기`를 누르면 `REFUSE_CARD`를 호출하며, 본인 turn/칩 보유 여부에 대한 기존 server-authoritative 가능 조건은 그대로 유지합니다.
-- 게임 규칙, server authority, room version, client action id, 공개/비공개 state 경계, Realtime invalidation, Presence authorization, reconnect 경계는 유지합니다. 재대결 정책은 같은 참가자를 유지하는 same-room WAITING reset으로 명시 변경했습니다.
-- 데스크톱 보드 높이는 별도 660px 상한 근거가 없어 800px 기준으로 확장하고 원형 테이블, 현재 카드, draw deck, 중앙 오브젝트도 같은 방향으로 확대합니다.
-- 테이블 둘레 좌석은 닉네임 텍스트 대신 사이트 공개 프로필의 원형 avatar를 사용합니다. avatar 미설정 또는 signed URL 조회 실패 시 사이트 기본 사람 아이콘을 사용하고 닉네임은 HUD와 접근성 label에서 유지합니다.
-- 중앙 칩이 0개일 때는 가짜 칩에 숫자 0을 표시하지 않고 `NO CHIP` 빈 상태로 표현합니다.
-- 개인 패널의 칩 cluster는 정확한 보유 수와 별개로 최대 16개까지 시각 칩을 겹쳐 표시해 보유량 증가가 더 풍성하게 느껴지게 합니다.
-- PLAYING 개인 패널에서는 핵심 액션 버튼을 제거하고 내 칩/보유 카드 중심의 2열 구조로 단순화합니다. 내 칩 열은 기존보다 크게 줄이고, 카드 영역은 그만큼 넓게 사용합니다.
-- 보드 HUD의 Presence 비연결 상태 표시는 사용자 경험상 `자리이탈`로 표현합니다.
-- 플레이어 avatar는 별도 원형 clipping frame 안에 넣어 프로필 이미지가 외곽 ring을 침범하지 않게 합니다.
-- 실제 컴포넌트 감각에 맞춰 칩은 붉은 계열의 다중 ring/highlight 질감으로 표현하고 개인/중앙 칩 모두 동일한 시각 크기를 사용합니다.
-- draw deck의 시각 카드 수는 실제 남은 장수를 그대로 복제하지 않고 1–7장의 단계형 depth로 축약합니다. 12–15장은 5장, 8–11장은 4장처럼 남은 카드가 줄수록 겹쳐 보이는 layer도 단계적으로 감소합니다.
-- PLAYING 개인 패널의 내 칩 열은 192px 기준으로 조정하고, 게임 규칙/새로고침/게임 종료 같은 보조 액션은 페이지 하단 footer 대신 개인 패널 오른쪽 compact grid에 둡니다.
-- PLAYING 개인 패널에서는 현재 차례 안내 문구를 별도로 반복하지 않고 보드 좌석과 상단 상태 메시지로만 전달합니다.
-- 현재 차례 플레이어의 원형 avatar seat는 기본 좌석의 2배 크기로 확대해 turn 인지를 우선합니다.
-- 원형 테이블과 좌석 배치는 HUD 보정 오프셋 없이 보드의 수평/수직 중앙을 기준으로 배치합니다. HUD와 실제 좌석 충돌이 확인되면 인원별 보정은 후속 시각 QA에서 다룹니다.
-- 현재 차례 플레이어의 avatar seat는 기본 좌석보다 약 30%만 확대하고, 각 좌석 아래에는 사이트 프로필 닉네임을 compact label로 표시합니다.
-- 좌석 중심은 원형 테이블 경계보다 소폭 바깥쪽에 두어 원형 테두리를 살짝 걸치면서 좌석 대부분이 테이블 밖에 보이도록 배치합니다.
-- 개인 패널 오른쪽 보조 액션은 한 행에 한 버튼씩 세로로 배치합니다.
-- 개인 패널/보유 카드 영역의 상하 여백을 소폭 늘리고, 보유 카드 hover/focus는 scale/z-index 우선 노출 대신 카드 자체의 `top`만 충분히 위로 이동해 좌상단 숫자가 드러나도록 합니다.
-- 중앙 칩 cluster / 공개 개수 / refuse 버튼 사이의 세로 간격을 테이블 여유 공간에 맞춰 더 분리합니다.
-- 게임 종료 화면에서 방장은 `재대결`을 눌러 같은 참가자·좌석을 유지한 WAITING 대기실로 전환할 수 있습니다.
-- `REFUSE_CARD` 연출은 행동 플레이어 avatar 중심에서 작은 red chip이 실제 중앙 chip cluster 위치로 이동하도록 렌더 후 geometry를 측정합니다.
-- snapshot 반영 직후 `busy=false`로 다시 렌더되는 같은-version 화면이 animation DOM을 제거하지 않도록 presentation effect를 최종 DOM의 motion 시작 시점까지 보존합니다.
-- 중앙 chip count는 1개 이상일 때만 표시하며, 0개 상태는 `NO CHIP`과 refuse action만 남깁니다.
-- next-card reveal은 draw deck의 visual layer를 건드리지 않고, The Game과 동일한 handoff 원칙을 사용합니다. 현재 렌더된 덱 최상단 카드 위치에서 별도의 fixed flight card를 생성해 경로 이동과 3D flip을 독립 수행하고, 도착 프레임에서 실제 current-card를 노출한 뒤 flight card를 짧게 settle/fade하여 끊김 없는 연결을 만듭니다. 덱 layer 수는 `getNoThanksDeckVisualCount()`의 남은 카드 단계 규칙으로만 줄어듭니다.
-- refuse chip flight는 이동 중 거의 완전한 opacity를 유지하고 26px token / 약 780ms 경로로 조정해 출발 avatar부터 center pile까지 시선으로 추적할 수 있게 합니다.
-- refuse 결과 snapshot이 먼저 도착해도 중앙 pile/count는 flight가 끝날 때까지 직전 개수를 유지하고, chip이 도착한 animation end 시점에만 최종 pile/count로 handoff합니다.
-- PLAYING gameplay command는 중복 실행 방지를 위한 busy lock은 유지하되 RPC 전 busy-only 전체 render는 생략하고, authoritative result snapshot에 `busy=false`를 함께 적용해 성공 경로를 한 번의 전체 render로 줄입니다. 클릭한 카드/칩 버튼은 DOM에서 즉시 disabled 처리합니다.
-- 다음 카드 공개는 `The Game`의 card flight 원리처럼 이동 경로와 3D front/back face를 분리하고, draw deck 위치에서 중앙까지 이동하며 `rotateY`로 뒷면에서 앞면으로 뒤집히는 연출을 사용합니다.
-- 다른 플레이어 공개 카드 popover는 후속 Phase E로 유지합니다. Phase F 중 `REFUSE_CARD` 시 직전 active seat에서 중앙 칩 더미로 칩이 이동하는 연출과 `TAKE_CARD` 후 draw deck에서 새 공개 카드가 들어오는 연출은 구현했고, 카드/중앙 칩이 획득 플레이어 쪽으로 이동하는 추가 연출은 후속으로 남깁니다.
+- 공통 게임 화면 골격을 사용합니다.
+- 데스크톱에서는 중앙에 현재 카드와 칩 더미를 크게 두고, 주변에 플레이어별 획득 카드와 참가자 정보를 배치합니다.
+- 모바일에서는 현재 카드와 선택 버튼을 첫 화면에서 가장 먼저 볼 수 있게 배치하고, 다른 플레이어 정보는 세로 흐름으로 정리합니다.
+- 자신의 보유 칩 수는 명확하게 표시하지만 다른 플레이어의 칩 수는 숫자로 보여주지 않습니다.
+- 현재 카드 위에 쌓인 칩 수는 모든 플레이어에게 공개합니다.
+- 핵심 선택 버튼은 두 개만 강조합니다.
+  - `거절하기 (-1)`
+  - `카드 가져오기 (+쌓인 칩)`
+- 칩이 0개라면 거절 버튼을 숨기거나 비활성화하되, 최종 가능 여부는 서버가 다시 검증합니다.
+- 획득한 숫자 카드는 연속된 숫자 묶음을 쉽게 확인할 수 있도록 정렬하고 묶어서 보여줍니다.
 - 로비와 실제 플레이 화면 모두 `게임 규칙` 진입점을 유지합니다.
 - 사이트 프로필 닉네임을 사용하며 게임 안에서 별도의 닉네임 입력이나 변경 기능을 제공하지 않습니다.
 - 게임 전체 종료는 방장에게만 제공하며, 확인 화면을 거친 뒤 서버가 방장 권한을 다시 검증하고 최종 상태를 변경합니다.
-- 현재 차례 플레이어가 오프라인이면 자동 진행하지 않고 재접속 후 이어지며, 방장이 오프라인이어도 자동 위임 또는 자동 종료가 발생하지 않습니다.
-- 결과 화면의 재대결은 같은 room의 참가자·좌석을 유지하고 ready/game/private state만 초기화하는 정책을 사용합니다.
+- 접속이 끊긴 플레이어는 roster에 `재접속 대기`로 표시합니다.
+- 현재 차례 플레이어가 오프라인이면 자동 진행하지 않고 재접속 후 이어진다는 안내를 표시합니다.
+- 방장이 오프라인이어도 자동 위임 또는 자동 종료가 발생하지 않는다는 안내를 표시합니다.
+- 결과 화면의 재대결은 같은 room/player context를 유지한 채 waiting/ready 상태로 전환된다는 점을 확인 dialog에서 명확히 안내합니다.
 
 ## Implementation Plan
 
 1. 초기 설계
    - `GAME_SPEC.md`
+   - `UI_DESIGN.md`
    - `DEVELOPMENT.md`
 2. 순수 규칙 엔진
    - 인원별 시작 칩 계산
@@ -405,7 +378,8 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
   - 공동 승리
   - 입력 상태를 직접 변경하지 않는지 확인
 - 게임 플랫폼 공통 계약과 관리 규칙 검증
-- 데이터베이스 통합 계약의 필수 시나리오 10개 검증
+- 데이터베이스 통합 계약의 필수 시나리오 11개 검증
+- 재대결의 same-room/player 유지, gameplay/private state reset, ready/start 권한, reconnect 복원 검증
 - 다른 플레이어의 칩 수가 노출되지 않는지 확인
 - 미공개 카드 순서와 제외 카드가 노출되지 않는지 확인
 - 오래된 버전 요청, 같은 요청의 중복 전송, 동시 요청 충돌 검증
@@ -421,5 +395,5 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
 - 명시적 leave는 WAITING 또는 GAME_OVER에서만 허용하고 PLAYING 중 비정상 disconnect는 membership을 유지합니다.
 - 방장 비정상 disconnect는 권한 위임이나 자동 종료 없이 재접속을 기다리는 정책으로 확정했습니다. 명시적 `게임 종료`만 방장 전용 서버 액션으로 처리합니다.
-- 재대결은 같은 room에서 기존 참가자·좌석을 유지한 채 WAITING 상태로 초기화하는 방식으로 확정했습니다.
+- 재대결은 같은 room/player context를 유지하면서 이전 gameplay/private state만 초기화하고 기존 ready/start 흐름을 재사용하는 방식으로 확정했습니다.
 - 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.

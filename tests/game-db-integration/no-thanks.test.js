@@ -495,6 +495,60 @@ registerPlatformGameDbContract({
       );
     },
 
+    rematch_lifecycle_authoritative: async () => {
+      const room = await startGame("contract-rematch");
+      const actor = playerById(room, room.started.game.activePlayerId);
+      const counters = {
+        [room.host.id]: 0,
+        [room.guestA.id]: 0,
+        [room.guestB.id]: 0,
+        [actor.id]: Number(room.started.game.currentCard),
+      };
+
+      await patchPrivateState(room.started.room.id, {
+        draw_deck: [],
+        player_counters: counters,
+      });
+
+      const finished = await playAction(actor, room.started, "take_card");
+      assert.equal(finished.game.phase, "GAME_OVER");
+
+      const waiting = await expectOk(await rpc("no_thanks_prepare_rematch", {
+        p_room_id: finished.room.id,
+        p_expected_version: Number(finished.version),
+        p_client_action_id: randomUUID(),
+      }, room.host.accessToken), "contract no_thanks_prepare_rematch");
+
+      assert.equal(waiting.room.id, finished.room.id);
+      assert.equal(waiting.room.roomCode, finished.room.roomCode);
+      assert.equal(waiting.room.status, "waiting");
+      assert.equal(waiting.game, null);
+      assert.equal(waiting.players.length, 3);
+      assert.equal(waiting.players.every((player) => player.isReady === false), true);
+      assert.equal(waiting.players.every((player) => player.cards.length === 0), true);
+
+      const reconnected = await expectOk(await rpc(
+        "no_thanks_get_my_active_room",
+        {},
+        room.guestA.accessToken,
+      ), "contract No Thanks rematch reconnect");
+      assert.equal(reconnected.room.id, finished.room.id);
+      assert.equal(reconnected.room.status, "waiting");
+
+      const guestAReady = await setReady(room.guestA, waiting, true);
+      const guestBReady = await setReady(room.guestB, guestAReady, true);
+      const restarted = await expectOk(await rpc("no_thanks_start_game", {
+        p_room_id: guestBReady.room.id,
+        p_expected_version: Number(guestBReady.version),
+        p_client_action_id: randomUUID(),
+      }, room.host.accessToken), "contract No Thanks rematch restart");
+
+      assert.equal(restarted.room.id, finished.room.id);
+      assert.equal(restarted.room.status, "playing");
+      assert.equal(restarted.game.phase, "PLAYING");
+      assert.equal(restarted.game.deckRemaining, 23);
+    },
+
     private_state_not_exposed: async () => {
       const { host, guestA, guestB, started } = await startGame("privacy");
 
@@ -929,4 +983,116 @@ test("no-thanks multi-client: 7 independent sessions keep private counters isola
   assert.equal(Number(restored.version), Number(taken.version));
   assert.equal(restored.players.length, 7);
   assert.equal(restored.game.activePlayerId, taken.game.activePlayerId);
+});
+
+
+test("no-thanks: rematch is terminal-only, host-only, and idempotent", async () => {
+  const room = await startGame("rematch-authority");
+
+  const activeAttempt = await rpc("no_thanks_prepare_rematch", {
+    p_room_id: room.started.room.id,
+    p_expected_version: Number(room.started.version),
+    p_client_action_id: randomUUID(),
+  }, room.host.accessToken);
+  expectDenied(activeAttempt, "active-game rematch", /REMATCH_NOT_AVAILABLE/u);
+
+  const actor = playerById(room, room.started.game.activePlayerId);
+  await patchPrivateState(room.started.room.id, {
+    draw_deck: [],
+    player_counters: {
+      [room.host.id]: 0,
+      [room.guestA.id]: 0,
+      [room.guestB.id]: 0,
+      [actor.id]: Number(room.started.game.currentCard),
+    },
+  });
+  const finished = await playAction(actor, room.started, "take_card");
+
+  const guestAttempt = await rpc("no_thanks_prepare_rematch", {
+    p_room_id: finished.room.id,
+    p_expected_version: Number(finished.version),
+    p_client_action_id: randomUUID(),
+  }, room.guestA.accessToken);
+  expectDenied(guestAttempt, "non-host rematch", /HOST_REQUIRED/u);
+
+  const actionId = randomUUID();
+  const waiting = await expectOk(await rpc("no_thanks_prepare_rematch", {
+    p_room_id: finished.room.id,
+    p_expected_version: Number(finished.version),
+    p_client_action_id: actionId,
+  }, room.host.accessToken), "host rematch");
+
+  assert.equal(waiting.room.id, finished.room.id);
+  assert.equal(waiting.room.roomCode, finished.room.roomCode);
+  assert.equal(waiting.room.status, "waiting");
+  assert.equal(waiting.game, null);
+  assert.equal(waiting.players.every((player) => player.isReady === false), true);
+  assert.equal(waiting.players.every((player) => player.cards.length === 0), true);
+
+  const replay = await expectOk(await rpc("no_thanks_prepare_rematch", {
+    p_room_id: finished.room.id,
+    p_expected_version: Number(finished.version),
+    p_client_action_id: actionId,
+  }, room.host.accessToken), "replayed host rematch");
+  assert.equal(Number(replay.version), Number(waiting.version));
+  assert.equal(replay.room.id, waiting.room.id);
+});
+
+test("no-thanks: host leaving GAME_OVER transfers rematch control and supports a replacement", async () => {
+  const room = await startGame("rematch-host-succession");
+  const actor = playerById(room, room.started.game.activePlayerId);
+
+  await patchPrivateState(room.started.room.id, {
+    draw_deck: [],
+    player_counters: {
+      [room.host.id]: 0,
+      [room.guestA.id]: 0,
+      [room.guestB.id]: 0,
+      [actor.id]: Number(room.started.game.currentCard),
+    },
+  });
+  const finished = await playAction(actor, room.started, "take_card");
+
+  await expectOk(await rpc("no_thanks_leave_room", {
+    p_room_id: finished.room.id,
+    p_expected_version: Number(finished.version),
+  }, room.host.accessToken), "host leaves finished room");
+
+  const transferred = await getRoomSnapshotFor(
+    room.guestA,
+    finished.room.id,
+    "successor sees transferred host",
+  );
+  assert.equal(transferred.room.hostUserId, room.guestA.id);
+  assert.equal(transferred.game.phase, "GAME_OVER");
+
+  const waiting = await expectOk(await rpc("no_thanks_prepare_rematch", {
+    p_room_id: transferred.room.id,
+    p_expected_version: Number(transferred.version),
+    p_client_action_id: randomUUID(),
+  }, room.guestA.accessToken), "successor prepares rematch");
+
+  assert.equal(waiting.room.id, finished.room.id);
+  assert.equal(waiting.room.hostUserId, room.guestA.id);
+  assert.equal(waiting.room.status, "waiting");
+  assert.equal(waiting.players.length, 2);
+
+  const replacement = await createTestUser("rematch-replacement");
+  const joined = await joinRoom(replacement, waiting);
+  const guestReady = await setReady(room.guestB, joined, true);
+  const replacementReady = await setReady(replacement, guestReady, true);
+
+  const restarted = await expectOk(await rpc("no_thanks_start_game", {
+    p_room_id: replacementReady.room.id,
+    p_expected_version: Number(replacementReady.version),
+    p_client_action_id: randomUUID(),
+  }, room.guestA.accessToken), "successor restarts with replacement");
+
+  assert.equal(restarted.room.id, finished.room.id);
+  assert.equal(restarted.room.status, "playing");
+  assert.equal(restarted.game.phase, "PLAYING");
+  assert.deepEqual(
+    new Set(restarted.game.turnOrder),
+    new Set([room.guestA.id, room.guestB.id, replacement.id]),
+  );
 });

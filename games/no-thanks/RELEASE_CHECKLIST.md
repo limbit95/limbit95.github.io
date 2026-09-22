@@ -15,6 +15,14 @@
 - [x] 3개 독립 인증 세션 자연 종료 통합 검증
 - [x] 7개 독립 인증 세션 full refuse cycle / private counter 격리 통합 검증
 
+## Rematch / post-game
+
+- [ ] 자연 종료 후 방장이 `재대결 준비`를 누르면 room code와 참가자 context가 유지된 채 waiting 상태로 돌아간다.
+- [ ] 일반 플레이어 ready를 다시 완료한 뒤 방장이 같은 room에서 새 게임을 시작할 수 있다.
+- [ ] 재대결 준비 상태에서 새로고침/재접속해도 같은 room의 authoritative waiting snapshot을 복원한다.
+- [ ] GAME_OVER에서 방장이 나가면 남은 active player에게 host가 승계되고 새 host가 재대결 준비를 실행할 수 있다.
+- [ ] 결과방에서 이탈한 플레이어가 있어 최소 인원 미만이면 새 참가자 또는 이탈자가 같은 room code로 참가한 뒤 다시 시작할 수 있다.
+
 ## Manual browser gates
 
 아래 항목은 자동 DB 통합 테스트가 대체하지 않습니다.

@@ -9,6 +9,7 @@ import { GAME_REGISTRY } from "../games/shared/registry.js";
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
+const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -25,6 +26,21 @@ const GAME_SPEC_REQUIRED_SECTIONS = Object.freeze([
   "## Validation Plan",
   "## Open Questions / Deferred",
 ]);
+const UI_DESIGN_REQUIRED_SECTIONS = Object.freeze([
+  "## Design Research",
+  "## Copyright / Asset Usage",
+  "## Visual Identity",
+  "## Page Identity",
+  "## Lobby / Setup Design",
+  "## Gameplay Layout",
+  "## Components",
+  "## Motion / Interaction",
+  "## Result / Rematch Presentation",
+  "## Responsive Strategy",
+  "## Implementation Plan",
+  "## Validation Checklist",
+  "## Open Questions / Deferred",
+]);
 const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
   "## Current Status",
   "## Completed",
@@ -36,6 +52,7 @@ const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
 ]);
 const BOOTSTRAP_ALLOWED_FILES = Object.freeze(new Set([
   "GAME_SPEC.md",
+  "UI_DESIGN.md",
   "DEVELOPMENT.md",
 ]));
 
@@ -118,6 +135,7 @@ export function validateRepositoryState({
   dbTestFiles,
   gameFiles = {},
   gameSpecDocuments = {},
+  uiDesignDocuments = {},
   developmentDocuments = {},
   documents = {},
 }) {
@@ -147,6 +165,31 @@ export function validateRepositoryState({
           errors.push(`games/${gameId}/GAME_SPEC.md is missing required section: ${section}`);
         }
       }
+      if (documents[UI_RULEBOOK_PATH] != null) {
+        for (const linkedDocument of ["UI_DESIGN.md", "DEVELOPMENT.md"]) {
+          if (!gameSpec.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/GAME_SPEC.md must reference ${linkedDocument}.`);
+          }
+        }
+      }
+    }
+
+    if (documents[UI_RULEBOOK_PATH] != null) {
+      const uiDesign = uiDesignDocuments[gameId];
+      if (typeof uiDesign !== "string") {
+        errors.push(`Platform game ${gameId} requires games/${gameId}/UI_DESIGN.md.`);
+      } else {
+        for (const section of UI_DESIGN_REQUIRED_SECTIONS) {
+          if (!uiDesign.includes(section)) {
+            errors.push(`games/${gameId}/UI_DESIGN.md is missing required section: ${section}`);
+          }
+        }
+        for (const linkedDocument of ["GAME_SPEC.md", "DEVELOPMENT.md"]) {
+          if (!uiDesign.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/UI_DESIGN.md must reference ${linkedDocument}.`);
+          }
+        }
+      }
     }
 
     const development = developmentDocuments[gameId];
@@ -156,6 +199,13 @@ export function validateRepositoryState({
       for (const section of DEVELOPMENT_REQUIRED_SECTIONS) {
         if (!development.includes(section)) {
           errors.push(`games/${gameId}/DEVELOPMENT.md is missing required section: ${section}`);
+        }
+      }
+      if (documents[UI_RULEBOOK_PATH] != null) {
+        for (const linkedDocument of ["GAME_SPEC.md", "UI_DESIGN.md"]) {
+          if (!development.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/DEVELOPMENT.md must reference ${linkedDocument}.`);
+          }
         }
       }
 
@@ -211,6 +261,22 @@ export function validateRepositoryState({
     }
   }
 
+  if (documents[UI_RULEBOOK_PATH] != null) {
+    const requiredUiLinks = [
+      ["AGENTS.md", documents["AGENTS.md"]],
+      [RULEBOOK_PATH, documents[RULEBOOK_PATH]],
+      ["games/README.md", documents["games/README.md"]],
+      ["games/GAME_SPEC_TEMPLATE.md", documents["games/GAME_SPEC_TEMPLATE.md"]],
+      ["games/DEVELOPMENT_TEMPLATE.md", documents["games/DEVELOPMENT_TEMPLATE.md"]],
+      ["games/UI_DESIGN_TEMPLATE.md", documents["games/UI_DESIGN_TEMPLATE.md"]],
+    ];
+    for (const [filename, content] of requiredUiLinks) {
+      if (typeof content !== "string" || !content.includes(UI_RULEBOOK_PATH)) {
+        errors.push(`${filename} must identify ${UI_RULEBOOK_PATH} when the UI rulebook exists.`);
+      }
+    }
+  }
+
   return errors;
 }
 
@@ -237,6 +303,7 @@ export function validatePullRequestChanges({
     const gamePaths = paths.filter((file) => platformGameIdFromPath(file) === gameId);
     const allowed = new Set([
       `games/${gameId}/GAME_SPEC.md`,
+      `games/${gameId}/UI_DESIGN.md`,
       `games/${gameId}/DEVELOPMENT.md`,
     ]);
     return gamePaths.some((file) => !allowed.has(file));
@@ -384,6 +451,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   const dbTestFiles = readDbTestFiles(path.join(repositoryRoot, "tests", "game-db-integration"));
   const gameFiles = readGameFiles(gamesDirectory, gameDirectories);
   const gameSpecDocuments = readGameDocuments(gamesDirectory, gameDirectories, "GAME_SPEC.md");
+  const uiDesignDocuments = readGameDocuments(gamesDirectory, gameDirectories, "UI_DESIGN.md");
   const developmentDocuments = readGameDocuments(gamesDirectory, gameDirectories, "DEVELOPMENT.md");
   const documents = readPlatformPolicyDocuments(repositoryRoot);
 
@@ -393,6 +461,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     dbTestFiles,
     gameFiles,
     gameSpecDocuments,
+    uiDesignDocuments,
     developmentDocuments,
     documents,
   });

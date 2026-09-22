@@ -51,22 +51,24 @@ fix/marble-stability-phase3-ci
 
 ## Game Platform 신규 게임 필수 규칙
 
-- `games/<game-id>/` 아래 신규 platform-native 게임을 생성하거나 수정하기 전에 반드시 `docs/game-platform-development-rules.md`를 읽고 따릅니다.
-- 사용자가 매번 Game Platform 규칙을 다시 명시하지 않아도 해당 문서를 신규 게임 작업의 기본 전제로 적용합니다.
+- `games/<game-id>/` 아래 신규 platform-native 게임을 생성하거나 수정하기 전에 반드시 `docs/game-platform-development-rules.md`와 `docs/game-platform-ui-rules.md`를 읽고 따릅니다.
+- 사용자가 매번 Game Platform 규칙이나 UI 조사/설계 규칙을 다시 명시하지 않아도 두 문서를 신규 게임 작업의 기본 전제로 적용합니다.
 - `games/shared/`의 현재 코드와 계약 테스트를 함께 확인하고, DB/RPC 작업이면 정식 계약 문서인 `docs/game-platform-db-test-contract.md`를 추가로 확인합니다.
 - `docs/game-platform-strategy.md`와 `docs/game-platform-invite-analysis.md`는 배경/이력 참고 문서이며 신규 게임 작업의 필수 선행 문서로 취급하지 않습니다.
 - Legacy 게임 소스는 참고 자료일 뿐 신규 게임의 기본 구조나 공통 계약으로 사용하지 않습니다.
-- Legacy 보호 설명을 제외한 현재 Game Platform 공통 규칙·가이드·템플릿에는 특정 platform-native 게임명이나 그 게임만의 구현 세부사항을 기준 규칙으로 넣지 않습니다. 게임별 내용은 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둡니다.
-- 사용자가 새로운 게임 개발을 요청하면 gameplay/runtime 구현 전에 게임 규칙과 제품 범위를 조사하고 `games/<game-id>/GAME_SPEC.md`와 `games/<game-id>/DEVELOPMENT.md`를 먼저 생성합니다.
-- 공개된 기존 보드게임을 구현하는 경우 공식 규칙서나 신뢰 가능한 규칙 출처를 우선 확인하고 `GAME_SPEC.md`에 출처와 해석 결정을 남깁니다. 확인되지 않은 규칙은 추측하지 않고 미결정 사항으로 기록합니다.
-- `GAME_SPEC.md`는 "무엇을 어떤 규칙과 구조로 구현할지"를 정의하고, `DEVELOPMENT.md`는 "현재 어디까지 구현했는지"를 기록합니다.
-- bootstrap 단계에서는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 있는 게임 디렉터리를 Registry 등록 전 상태로 둘 수 있습니다. 실제 runtime 파일을 추가하는 순간 Game Registry와 기존 platform-native 규칙을 함께 적용합니다.
+- Legacy 보호 설명을 제외한 현재 Game Platform 공통 규칙·가이드·템플릿에는 특정 platform-native 게임명이나 그 게임만의 구현 세부사항을 기준 규칙으로 넣지 않습니다. 게임별 내용은 해당 게임의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`, 게임별 테스트에 둡니다.
+- 사용자가 새로운 게임 개발을 요청하면 gameplay/runtime 구현 전에 게임 규칙·제품 범위와 원본 디자인·구성물·Visual Identity·자산 사용 가능 범위를 조사하고 `games/<game-id>/GAME_SPEC.md`, `games/<game-id>/UI_DESIGN.md`, `games/<game-id>/DEVELOPMENT.md`를 먼저 생성합니다.
+- 공개된 기존 보드게임을 구현하는 경우 공식 규칙서나 신뢰 가능한 규칙 출처를 우선 확인하고 `GAME_SPEC.md`에 출처와 해석 결정을 남깁니다. UI는 공식/퍼블리셔 자료와 실제 구성물을 조사하고 `UI_DESIGN.md`에 디자인 출처, 목표 판본, Visual Identity, 저작권·라이선스 판단과 구현 계획을 기록합니다. 확인되지 않은 규칙이나 자산 사용 권리는 추측하지 않습니다.
+- `GAME_SPEC.md`는 "무엇을 어떤 규칙과 구조로 구현할지", `UI_DESIGN.md`는 "어떻게 보여지고 느껴지게 구현할지", `DEVELOPMENT.md`는 두 설계를 "현재 어디까지 구현했는지"를 기록합니다.
+- bootstrap 단계에서는 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`만 있는 게임 디렉터리를 Registry 등록 전 상태로 둘 수 있습니다. 실제 runtime 파일을 추가하는 순간 Game Registry와 기존 platform-native 규칙을 함께 적용합니다.
 - 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 현재 개발상태의 인수인계 문서로 유지합니다.
 - 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
 - 사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 checkpoint 기록을 요청하면 Phase 완료 여부와 관계없이 즉시 `DEVELOPMENT.md`를 현재 상태로 갱신하고 현재 작업 브랜치에 commit합니다.
 - 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 - 모든 platform-native 게임은 로비 또는 시작 전 화면에서 처음 플레이하는 사용자도 이해할 수 있는 상세 규칙 안내를 제공하고, 플레이 중에도 다시 확인할 수 있는 진입점을 유지합니다.
 - 모든 platform-native 게임은 진행 중 세션을 안전하게 끝낼 수 있는 명시적 게임 종료 경로를 제공하며, 온라인 멀티플레이 종료는 서버 권위와 확인 UI를 적용합니다.
+- 모든 멀티플레이 platform-native 게임은 게임 종료 후 기존 room/player context를 유지하는 재대결 흐름을 기본 기능으로 제공하고, 참여 플레이어 준비 완료 후 방장이 다시 시작할 수 있어야 합니다. 세부 lifecycle과 서버 권위는 `docs/game-platform-development-rules.md`를 따릅니다.
+- Game Platform CURRENT 규칙, shared 계약 또는 필수 lifecycle을 변경하는 작업은 현재 Registry의 모든 platform-native 게임을 전수 검토하고 각 게임을 `COMPLIANT` / `MIGRATION_REQUIRED` / `NOT_APPLICABLE`로 분류합니다. `IN_PROGRESS` 게임의 충돌은 release 전에 해소하고, `RELEASED` 게임은 별도 migration/follow-up 필요 여부를 작업 결과와 PR에 남깁니다.
 
 ## 작업 전 확인
 

@@ -1331,7 +1331,7 @@ function createSidebar(view) {
     return el("section", { className: "no-thanks-note" }, [
       el("h2", { text: "재대결 정책" }),
       el("p", {
-        text: "재대결을 선택하면 현재 참가자와 좌석을 유지한 채 같은 방의 대기실로 돌아갑니다. 일반 플레이어가 다시 준비 완료하면 방장이 다음 게임을 시작할 수 있어요.",
+        text: "방장이 재대결 준비를 시작하면 같은 방과 참가자를 유지한 채 대기실로 돌아갑니다. 일반 플레이어가 다시 준비를 마치면 방장이 새 게임을 시작할 수 있어요.",
       }),
     ]);
   }
@@ -1420,11 +1420,11 @@ function createRematchDialog(onConfirm) {
     el("h2", {
       id: "no-thanks-rematch-title",
       className: "no-thanks-confirm__title",
-      text: "같은 멤버로 재대결할까요?",
+      text: "같은 멤버로 재대결을 준비할까요?",
     }),
     el("p", {
       className: "no-thanks-confirm__message",
-      text: "현재 참가자와 좌석을 그대로 유지한 채 대기실로 돌아갑니다. 일반 플레이어가 다시 준비 완료하면 방장이 바로 다음 게임을 시작할 수 있어요.",
+      text: "현재 방과 참가자는 유지하고 이전 게임 상태만 초기화합니다. 대기실로 돌아가 일반 플레이어가 다시 준비하면 방장이 새 게임을 시작할 수 있어요.",
     }),
     el("div", { className: "no-thanks-confirm__actions" }, [
       el("button", {
@@ -1453,7 +1453,6 @@ function createRematchDialog(onConfirm) {
 }
 
 function createHostLeaveDialog({
-  gameOver = false,
   onConfirm,
 }) {
   const dialog = el("dialog", {
@@ -1466,13 +1465,11 @@ function createHostLeaveDialog({
     el("h2", {
       id: "no-thanks-host-leave-title",
       className: "no-thanks-confirm__title",
-      text: gameOver ? "결과방을 닫을까요?" : "대기실을 닫을까요?",
+      text: "대기실을 닫을까요?",
     }),
     el("p", {
       className: "no-thanks-confirm__message",
-      text: gameOver
-        ? "방장이 결과방을 닫으면 현재 참가자 모두가 이 게임 세션에서 나가게 됩니다."
-        : "방장이 나가면 이 대기실이 닫히고 현재 참가자 모두가 방에서 나가게 됩니다.",
+      text: "방장이 나가면 이 대기실이 닫히고 현재 참가자 모두가 방에서 나가게 됩니다.",
     }),
     el("div", { className: "no-thanks-confirm__actions" }, [
       el("button", {
@@ -1516,15 +1513,9 @@ function createLobbyActions(
     actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
-      text: state.busy
-        ? "처리 중…"
-        : (view.isHost ? "결과방 닫기" : "결과방 나가기"),
+      text: state.busy ? "처리 중…" : "결과방 나가기",
       disabled: state.busy,
       onClick: async () => {
-        if (view.isHost) {
-          openHostLeaveConfirm();
-          return;
-        }
         try {
           await lobbyController.leaveRoom();
         } catch {
@@ -1605,10 +1596,8 @@ function renderLobby(access, state) {
 
   const rulesDialog = createRulesDialog();
   const openRules = () => rulesDialog.showModal();
-  const hostLeaveDialog = view?.isHost
-    && (view.status === "waiting" || view.gamePhase === "GAME_OVER")
+  const hostLeaveDialog = view?.isHost && view.status === "waiting"
     ? createHostLeaveDialog({
-      gameOver: view.gamePhase === "GAME_OVER",
       onConfirm: async () => {
         try {
           await lobbyController.leaveRoom();
@@ -1632,7 +1621,7 @@ function renderLobby(access, state) {
   const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
     ? createRematchDialog(async () => {
       try {
-        await lobbyController.createRematchRoom();
+        await lobbyController.prepareRematch();
       } catch {
         // Controller state renders the authoritative error.
       }
