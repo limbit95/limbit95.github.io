@@ -694,7 +694,8 @@ test("development rules promote parent-conflicting lower-level needs to architec
   assert.match(rules, /하위에서 먼저 발견했다는 사실은 그 변경에 상위 권위를 부여하지 않는다/u);
   assert.match(rules, /토의·승격 없이.*불허용/su);
   assert.match(rules, /소스 수정 전에.*상위 규칙.*shared contract.*영향/su);
-  assert.match(rules, /플랫폼 전반에 필요한 변경이라고 명시적으로 합의되면.*ARCHITECTURE CHANGE/su);
+  assert.match(rules, /Game Platform 전반에 필요한 변경이라고 명시적으로 합의되면.*ARCHITECTURE CHANGE/su);
+  assert.match(rules, /shared runtime\/API가 비호환으로 바뀌는 경우.*RELEASED consumer.*공통 계약만 먼저 merge하지 않는다/su);
   assert.match(agents, /Game Platform ARCHITECTURE CHANGE/u);
 });
 
