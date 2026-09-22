@@ -5,11 +5,13 @@
 > 기능 설계는 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 > 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 >
-> 모든 CSS 수치 변경이나 commit을 기록하지 않습니다. 다음 작업자가 현재 UI만 보고는 복원하기 어려운 의미 있는 디자인/interaction 결정, 대안, 변경 이유, 검증 결과를 기록합니다.
+> 모든 CSS 수치 변경이나 commit을 기록하지 않습니다. 이 문서의 핵심은 초기 `UI_DESIGN.md` 구현 이후 개발자가 실제 브라우저에서 확인하며 요청·확정한 의미 있는 디자인/interaction 수정과 그 이유를 보존하는 것입니다.
+> 계획대로 baseline을 구현한 사실은 decision으로 만들지 않고, baseline에서 벗어나기로 확정했거나 수동 디자인 리뷰에서 하나의 영역이 안정화된 경우에 기록합니다.
 
 ## Current Design Track
 
-- Status: <ACTIVE / PAUSED / RELEASED>
+- Status: <ACTIVE / PAUSED / FINAL / RELEASED>
+- Lifecycle stage: <BASELINE_IMPLEMENTATION / MANUAL_DESIGN_REVIEW / DESIGN_CLOSEOUT / RELEASED>
 - Current UI phase / scope: <현재 디자인 작업 범위>
 - Active branch: <branch or main>
 - Last updated: <YYYY-MM-DD>
@@ -24,6 +26,7 @@
 - Decision ID: <UI-001>
 - Applies to: <UI_DESIGN Phase / component / layout / interaction>
 - Supersedes: <이전 Decision ID 또는 없음>
+- Source: <developer manual browser review / implementation constraint / responsive QA / other>
 - Context / trigger: <어떤 문제·피드백·관찰 때문에 결정이 필요했는지>
 - Previous / alternatives: <UI_DESIGN 초기안 또는 검토한 대안>
 - Decision: <최종 선택>
@@ -35,6 +38,16 @@
 - Related functional boundary: <필요한 경우 GAME_SPEC.md 기능 규칙 참조>
 
 > 같은 결정을 뒤에서 바꾸더라도 과거 항목을 삭제하지 않습니다. 새 결정 항목을 추가하고 이전 항목은 `SUPERSEDED` 또는 `REVERTED`로 표시합니다.
+
+## Recording Timing
+
+- 초기 `UI_DESIGN.md`를 그대로 구현한 내용은 기록하지 않습니다.
+- baseline에서 의미 있게 벗어나는 방향이 확정되면 기록합니다.
+- 개발자 수동 브라우저 리뷰에서 같은 영역을 여러 번 미세 조정하는 중에는 매 요청마다 기록하지 않습니다.
+- 해당 component/layout/interaction/motion 영역이 안정화되어 다음 영역으로 넘어갈 때 최종 결정을 하나로 정리합니다.
+- 디자인 Phase/detail-polish 범위 완료, 디자인 PR merge/close, 작업 브랜치 종료, release closeout 진입 전에는 기록 누락이 없는지 확인합니다.
+- 코드에만 남은 복원 가치가 있는 디자인 결정을 브랜치 정리와 함께 잃어버리지 않습니다.
+- 별도 디자인 checkpoint 명령은 추후 정의할 수 있으며, 그 명령이 없어도 위 lifecycle 기반 기록 타이밍은 적용됩니다.
 
 ## Superseded / Rejected
 
