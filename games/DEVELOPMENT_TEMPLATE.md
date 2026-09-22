@@ -3,6 +3,7 @@
 > 이 문서는 현재 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다. 긴 changelog 대신 현재 상태와 다음 행동을 유지합니다.
 >
 > 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, UI/presentation 설계의 기준은 `UI_DESIGN.md`이며, 이 문서는 두 설계를 실제로 어디까지 구현했는지를 추적합니다.
+> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 
 ## Current Status
 
