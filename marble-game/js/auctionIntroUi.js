@@ -157,19 +157,26 @@ function buildChain(documentObject, elements, state, playerIds, starterPlayerId)
   return targetIndex;
 }
 
-function startChainAnimation(elements, targetIndex) {
+function prepareChainTarget(elements, targetIndex) {
   const item = elements.track.querySelector(".auction-selector__profile");
-  if (!item) return;
+  if (!item) return false;
   const itemWidth = item.getBoundingClientRect().width;
+  const viewportWidth = elements.viewport.getBoundingClientRect().width;
+  if (!(itemWidth > 0) || !(viewportWidth > 0)) return false;
   const trackStyle = getComputedStyle(elements.track);
   const gap = Number.parseFloat(trackStyle.columnGap || trackStyle.gap || "0") || 0;
   const step = itemWidth + gap;
-  const viewportWidth = elements.viewport.getBoundingClientRect().width;
   const offset = Math.max(0, (targetIndex * step) - ((viewportWidth - itemWidth) / 2));
   elements.track.style.setProperty("--selector-target-x", `${-offset}px`);
+  return true;
+}
+
+function startChainAnimation(elements, targetIndex) {
+  if (!prepareChainTarget(elements, targetIndex)) return false;
   elements.track.dataset.spinning = "false";
   void elements.track.offsetWidth;
   elements.track.dataset.spinning = "true";
+  return true;
 }
 
 export function createAuctionIntroPresenter({
@@ -230,9 +237,9 @@ export function createAuctionIntroPresenter({
     }
 
     const playerIds = [...(auction.participantPlayerIds ?? pending.participantPlayerIds ?? [])];
-    const starterPlayerId = auction.starterPlayerId
+    const starterPlayerId = auction.turnPlayerId
+      ?? auction.starterPlayerId
       ?? pending.starterPlayerId
-      ?? playerIds[0]
       ?? null;
     const key = `${pending.nodeId}:${startsAt}:${starterPlayerId}`;
     const phase = now < announcementEndsAt
@@ -247,11 +254,6 @@ export function createAuctionIntroPresenter({
       targetIndex = buildChain(documentObject, elements, state, playerIds, starterPlayerId);
     }
 
-    if (phase === "selector" && spinningKey !== key && Number.isInteger(targetIndex)) {
-      spinningKey = key;
-      startChainAnimation(elements, targetIndex);
-    }
-
     if (playedSoundKey !== key) {
       playedSoundKey = key;
       playAuctionStartSound();
@@ -262,6 +264,13 @@ export function createAuctionIntroPresenter({
     elements.track.dataset.result = phase === "result" ? "true" : "false";
     elements.announce.hidden = phase !== "announce";
     elements.selector.hidden = phase === "announce";
+
+    if (phase !== "announce" && Number.isInteger(targetIndex)) {
+      prepareChainTarget(elements, targetIndex);
+    }
+    if (phase === "selector" && spinningKey !== key && Number.isInteger(targetIndex)) {
+      if (startChainAnimation(elements, targetIndex)) spinningKey = key;
+    }
 
     clearBoundary();
     const nextBoundary = phase === "announce"
