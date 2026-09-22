@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 const originalWindow = globalThis.window;
 globalThis.window = globalThis.window ?? {};
-const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260923-r1");
+const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260923-r2");
 const { createOnlineGameApi } = await import("../js/onlineGameApi.js");
 const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 globalThis.window = originalWindow;
