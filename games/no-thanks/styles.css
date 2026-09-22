@@ -3145,3 +3145,58 @@ body {
   display: grid;
   place-items: center;
 }
+
+
+/* Take-card physical handoff + exact table-edge seat positioning — 2026-09-22 */
+.no-thanks-take-card-flight {
+  z-index: 98;
+}
+
+.no-thanks-take-card-flight .no-thanks-table-card__inner {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-take-chip-flight {
+  position: fixed;
+  z-index: 99;
+  margin: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 8px 12px rgba(87, 25, 20, .3));
+}
+
+.no-thanks-hand-card.is-awaiting-take-landing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.no-thanks-hand-card.is-take-landed {
+  animation: no-thanks-hand-card-land .18s cubic-bezier(.2, .72, .2, 1);
+}
+
+@keyframes no-thanks-hand-card-land {
+  0% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-take-card-flight,
+  .no-thanks-take-chip-flight {
+    display: none;
+  }
+
+  .no-thanks-hand-card.is-awaiting-take-landing {
+    opacity: 1;
+  }
+
+  .no-thanks-hand-card.is-take-landed {
+    animation: none;
+  }
+}

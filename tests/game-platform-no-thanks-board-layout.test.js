@@ -49,6 +49,10 @@ test("No Thanks! board rotates presentation so the viewer stays at six o'clock",
       Math.abs(viewer.left - 50) < 0.000001,
       String(count) + "-player viewer seat must stay horizontally centered",
     );
+    assert.ok(
+      Math.abs(viewer.top - 89) < 0.000001,
+      String(count) + "-player viewer seat fallback center must align with the desktop table border",
+    );
     assert.equal(
       new Set(coordinates.map((position) => (
         position.left.toFixed(4) + ":" + position.top.toFixed(4)
@@ -138,6 +142,23 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /is-arriving/u);
   assert.match(runtime, /lobbyController\.refuseCard\(\)/u);
   assert.match(runtime, /lobbyController\.takeCard\(\)/u);
+  assert.match(runtime, /text: "내 보유 칩"/u);
+  assert.match(runtime, /function syncBoardSeatGeometry/u);
+  assert.match(runtime, /tableRect\.width \/ 2/u);
+  assert.match(runtime, /visualIndex: String\(index\)/u);
+  assert.match(runtime, /function beginTakePresentation/u);
+  assert.match(runtime, /createTakeCardFlight/u);
+  assert.match(runtime, /createTakeChipFlights/u);
+  assert.match(runtime, /no-thanks-take-card-flight/u);
+  assert.match(runtime, /no-thanks-take-chip-flight/u);
+  assert.match(runtime, /is-awaiting-take-landing/u);
+  assert.match(runtime, /takePreviousViewerCards/u);
+  assert.match(runtime, /previousCards, effects\.takeCardValue/u);
+  assert.match(runtime, /duration:\s*700/u);
+  assert.match(runtime, /delay:\s*index \* 38/u);
+  assert.match(runtime, /animatePendingTakePresentation\(board\)/u);
+  assert.match(runtime, /await Promise\.all\(\[[\s\S]*?animateTakeCardToHand[\s\S]*?animateTakeChipsToPanel/u);
+  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard\)/u);
 
   assert.match(styles, /\.no-thanks-shell--board \.game-platform-shell__sidebar\s*\{[\s\S]*?display:\s*none/u);
   assert.match(styles, /\.no-thanks-game-board/u);
@@ -173,5 +194,8 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
     /@media \(max-width: 760px\)[\s\S]*?\.no-thanks-board-hud__badge,[\s\S]*?display:\s*inline-flex/u,
   );
   assert.match(styles, /@keyframes no-thanks-seat-arrive/u);
+  assert.match(styles, /\.no-thanks-take-card-flight/u);
+  assert.match(styles, /\.no-thanks-take-chip-flight/u);
+  assert.match(styles, /\.no-thanks-hand-card\.is-awaiting-take-landing/u);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/u);
 });

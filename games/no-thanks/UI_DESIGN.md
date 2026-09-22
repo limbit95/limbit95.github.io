@@ -54,7 +54,7 @@
 
 - WAITING과 PLAYING은 같은 대형 직사각형 game board scene을 사용하고, 중앙에는 타원형 table을 둡니다.
 - 3–7인 좌석은 authoritative seat/turn order를 바꾸지 않고 viewer 기준 표현 순서만 회전해 자신의 좌석이 항상 6시 방향에 오게 합니다.
-- 좌석은 테이블 edge를 살짝 걸치도록 배치하고 현재 차례 avatar만 약 30% 확대해 턴을 읽게 합니다.
+- 좌석 프로필 이미지의 중심점이 타원형 테이블의 실제 외곽 테두리 중심선에 오도록 배치하고, 현재 차례 avatar만 약 30% 확대해 턴을 읽게 합니다.
 - 보드 우측 상단에는 room code / 인원 / ready / connection / host를 compact HUD로 표시하며, board mode에서는 공통 대형 sidebar roster를 숨깁니다.
 - 모바일에서도 host/ready/connection 상태는 compact indicator로 유지하고 핵심 상태를 통째로 숨기지 않습니다.
 - 보드 아래 개인 패널은 보드와 같은 폭을 사용하며 desktop chip 열은 약 192px, hand 영역은 많은 카드를 수용하도록 동적 overlap을 사용합니다.
@@ -80,7 +80,7 @@
 
 - 카드 공개: draw deck의 실제 위치에서 별도 fixed flight card가 출발해 약 760ms 동안 arc 이동과 flip을 수행하고, 중앙 zone 도착 프레임에 실제 current card로 handoff한 뒤 약 130ms settle/fade합니다. deck visual depth는 남은 카드 단계 규칙으로만 변합니다.
 - 칩 제출: 약 26px token이 플레이어 seat에서 중앙 pile까지 약 780ms 이동하고, 도착 후 약 100ms landing dwell을 거친 뒤 presentation count를 authoritative 최종 값으로 handoff합니다.
-- 카드 가져오기: 중앙 카드와 쌓인 칩이 획득 플레이어의 영역으로 이동한 뒤 다음 카드 공개로 이어지는 연출을 후속 단계에서 완성합니다.
+- 카드 가져오기: TAKE_CARD 직전 중앙 공개 카드와 실제 중앙 칩 DOM을 fixed overlay로 보존해 authoritative snapshot render 때 원본이 먼저 사라져 보이지 않게 합니다. 공개 카드는 개인 패널의 기존 보유 카드가 없으면 맨 왼쪽, 있으면 현재 가장 오른쪽 카드 다음 transient slot으로 The Game과 같은 22% / 50% / 78% / 94% arc timing을 따라 이동·안착합니다. 중앙 칩은 부루마블 money transfer처럼 각 칩의 실제 출발 위치에서 내 보유 칩 영역으로 stagger된 곡선 이동을 수행하고, 각 flight가 끝난 뒤에만 개인 칩 count/cluster를 authoritative 최종 값으로 handoff합니다. 그 다음 draw deck의 다음 카드 공개 motion을 시작합니다.
 - turn transition: action 완료 presentation 이후 다음 active player를 강조합니다.
 - timing 원칙: 상태 숫자 증가가 구성물 도착보다 먼저 보여 원인/결과가 뒤집히지 않게 합니다.
 - server-authoritative state와 presentation의 동기화 기준: 서버 결과가 truth이며 animation은 그 결과를 설명하는 presentation layer로만 동작합니다.

@@ -49,6 +49,7 @@ let boardAvatarUrls = new Map();
 let boardAvatarLoadingIds = new Set();
 let boardPresentationState = null;
 let boardPresentationEffect = null;
+let pendingTakePresentation = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -64,6 +65,7 @@ function disposeLobbyController() {
   boardAvatarLoadingIds = new Set();
   boardPresentationState = null;
   boardPresentationEffect = null;
+  clearPendingTakePresentation();
 }
 
 function createAccessNotice({
@@ -323,6 +325,90 @@ function createChipCluster(count, {
     })]);
 }
 
+
+function rectSnapshot(rect) {
+  if (!rect) return null;
+  const snapshot = {
+    left: Number(rect.left),
+    top: Number(rect.top),
+    width: Number(rect.width),
+    height: Number(rect.height),
+  };
+  return Object.values(snapshot).every(Number.isFinite) ? snapshot : null;
+}
+
+function clearPendingTakePresentation(expected = pendingTakePresentation) {
+  if (!expected || pendingTakePresentation !== expected) return;
+  expected.cardFlight?.remove();
+  expected.chipFlights?.forEach((flight) => flight.remove());
+  pendingTakePresentation = null;
+}
+
+function createTakeCardFlight(sourceCard) {
+  const sourceRect = rectSnapshot(sourceCard?.getBoundingClientRect?.());
+  const inner = sourceCard?.querySelector?.(".no-thanks-table-card__inner")?.cloneNode?.(true);
+  if (!sourceRect || !inner) return null;
+
+  const flight = document.createElement("div");
+  flight.className = "no-thanks-card-flight no-thanks-take-card-flight";
+  flight.dataset.tone = sourceCard.dataset.tone ?? "blue";
+  flight.setAttribute("aria-hidden", "true");
+  flight.append(inner);
+  Object.assign(flight.style, {
+    left: sourceRect.left.toFixed(2) + "px",
+    top: sourceRect.top.toFixed(2) + "px",
+    width: sourceRect.width.toFixed(2) + "px",
+    height: sourceRect.height.toFixed(2) + "px",
+  });
+  document.body.append(flight);
+  return flight;
+}
+
+function createTakeChipFlights() {
+  const chips = [...app.querySelectorAll(
+    ".no-thanks-center-chips__visual .no-thanks-chip",
+  )];
+
+  return chips.map((chip, index) => {
+    const sourceRect = rectSnapshot(chip.getBoundingClientRect());
+    if (!sourceRect) return null;
+
+    const flight = chip.cloneNode(true);
+    flight.className = "no-thanks-chip no-thanks-take-chip-flight";
+    flight.setAttribute("aria-hidden", "true");
+    Object.assign(flight.style, {
+      left: sourceRect.left.toFixed(2) + "px",
+      top: sourceRect.top.toFixed(2) + "px",
+      width: sourceRect.width.toFixed(2) + "px",
+      height: sourceRect.height.toFixed(2) + "px",
+      zIndex: String(100 + index),
+    });
+    document.body.append(flight);
+    return flight;
+  }).filter(Boolean);
+}
+
+function beginTakePresentation(view, sourceCard) {
+  clearPendingTakePresentation();
+  if (prefersReducedMotion()) return null;
+
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const cardFlight = createTakeCardFlight(sourceCard);
+  if (!cardFlight) return null;
+
+  const presentation = {
+    roomId: view.roomId,
+    sourceVersion: Number(view.version),
+    cardValue: Number(view.currentCard),
+    previousViewerCounters: Number(view.viewerCounters) || 0,
+    previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+    cardFlight,
+    chipFlights: createTakeChipFlights(),
+  };
+  pendingTakePresentation = presentation;
+  return presentation;
+}
+
 async function ensureBoardAvatarUrls(view, access) {
   const missingIds = view.players
     .map((player) => player.id)
@@ -418,6 +504,8 @@ function createBoardSeat(view, seatInfo, index, total) {
     dataset: {
       playerId: player.id,
       seat: String(player.seat),
+      visualIndex: String(index),
+      visualTotal: String(total),
     },
     title: player.displayName,
     "aria-label": player.displayName + (active ? " 현재 차례" : ""),
@@ -512,11 +600,13 @@ function createTableCard(view, state, {
         : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : ""),
       onClick: async (event) => {
         if (!canTake) return;
+        const takePresentation = beginTakePresentation(view, event.currentTarget);
         event.currentTarget.disabled = true;
         event.currentTarget.classList.add("is-submitting");
         try {
           await lobbyController.takeCard();
         } catch {
+          clearPendingTakePresentation(takePresentation);
           // Controller state renders the authoritative error.
         }
       },
@@ -670,6 +760,7 @@ function commitCenterChipLanding(board) {
 }
 
 function readBoardTransitionEffects(view) {
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
   const current = {
     roomId: view.roomId,
     version: view.version,
@@ -678,6 +769,9 @@ function readBoardTransitionEffects(view) {
     deckRemaining: view.deckRemaining,
     centerCounters: view.centerCounters,
     activePlayerId: view.activePlayerId,
+    currentUserId: view.currentUserId,
+    viewerCounters: Number(view.viewerCounters) || 0,
+    viewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
   };
   const previous = boardPresentationState;
   const sameVersion = previous
@@ -697,6 +791,7 @@ function readBoardTransitionEffects(view) {
       dealCard: false,
       chipFromPlayerId: null,
       chipPreviousCount: null,
+      takeByViewer: false,
     });
   }
 
@@ -712,6 +807,7 @@ function readBoardTransitionEffects(view) {
     return Object.freeze({
       dealCard: false,
       chipFromPlayerId: null,
+      takeByViewer: false,
     });
   }
 
@@ -725,14 +821,31 @@ function readBoardTransitionEffects(view) {
   const chipPreviousCount = chipFromPlayerId
     ? Number(previous.centerCounters) || 0
     : null;
+  const takePresentation = pendingTakePresentation;
+  const takeByViewer = Boolean(
+    takePresentation
+    && takePresentation.roomId === current.roomId
+    && takePresentation.sourceVersion === Number(previous.version)
+    && takePresentation.cardValue === Number(previous.currentCard)
+    && previous.activePlayerId === current.currentUserId
+    && current.viewerCards.includes(takePresentation.cardValue),
+  );
 
-  boardPresentationEffect = dealCard || chipFromPlayerId
+  boardPresentationEffect = dealCard || chipFromPlayerId || takeByViewer
     ? {
       roomId: current.roomId,
       version: current.version,
       dealCard,
       chipFromPlayerId,
       chipPreviousCount,
+      takeByViewer,
+      takeCardValue: takeByViewer ? takePresentation.cardValue : null,
+      takePreviousViewerCounters: takeByViewer
+        ? takePresentation.previousViewerCounters
+        : null,
+      takePreviousViewerCards: takeByViewer
+        ? takePresentation.previousViewerCards
+        : null,
       started: false,
     }
     : null;
@@ -740,6 +853,7 @@ function readBoardTransitionEffects(view) {
   return boardPresentationEffect ?? Object.freeze({
     dealCard: false,
     chipFromPlayerId: null,
+    takeByViewer: false,
   });
 }
 
@@ -925,14 +1039,246 @@ async function animateDealFlight(target, source) {
   return true;
 }
 
+
+function syncBoardSeatGeometry(board) {
+  const table = board.querySelector(".no-thanks-round-table");
+  if (!table) return;
+
+  const boardRect = board.getBoundingClientRect();
+  const tableRect = table.getBoundingClientRect();
+  if (
+    boardRect.width <= 0
+    || boardRect.height <= 0
+    || tableRect.width <= 0
+    || tableRect.height <= 0
+  ) {
+    return;
+  }
+
+  const centerX = tableRect.left - boardRect.left + (tableRect.width / 2);
+  const centerY = tableRect.top - boardRect.top + (tableRect.height / 2);
+  const radiusX = tableRect.width / 2;
+  const radiusY = tableRect.height / 2;
+
+  board.querySelectorAll(".no-thanks-seat").forEach((seat) => {
+    const index = Number(seat.dataset.visualIndex);
+    const total = Number(seat.dataset.visualTotal);
+    if (!Number.isInteger(index) || !Number.isInteger(total) || total <= 0) return;
+
+    const angle = (Math.PI / 2) + ((Math.PI * 2 * index) / total);
+    seat.style.left = (centerX + (Math.cos(angle) * radiusX)).toFixed(2) + "px";
+    seat.style.top = (centerY + (Math.sin(angle) * radiusY)).toFixed(2) + "px";
+  });
+}
+
+function commitViewerChipLanding() {
+  const container = app.querySelector(".no-thanks-my-panel__chips[data-final-count]");
+  if (!container) return;
+
+  const finalCount = Math.max(0, Number(container.dataset.finalCount) || 0);
+  const value = container.querySelector(".no-thanks-my-panel__value");
+  const cluster = container.querySelector(".no-thanks-chip-cluster");
+  if (value) value.textContent = String(finalCount);
+  if (cluster) {
+    cluster.replaceWith(createChipCluster(finalCount, {
+      label: "내 보유 칩 " + String(finalCount) + "개",
+      emptyText: "칩 없음",
+    }));
+  }
+  container.dataset.visibleCount = String(finalCount);
+}
+
+function commitTakeCardLanding(target) {
+  if (!target) return;
+  target.classList.remove("is-awaiting-take-landing");
+  target.classList.add("is-take-landed");
+  const count = app.querySelector(".no-thanks-my-panel__card-count[data-final-count]");
+  if (count) count.textContent = count.dataset.finalCount + "장";
+  window.setTimeout(() => target.classList.remove("is-take-landed"), 180);
+}
+
+async function animateTakeCardToHand(presentation) {
+  const flight = presentation?.cardFlight;
+  const target = app.querySelector(".no-thanks-hand-card.is-awaiting-take-landing");
+  if (!flight?.isConnected || !target?.isConnected || typeof flight.animate !== "function") {
+    commitTakeCardLanding(target);
+    flight?.remove();
+    return;
+  }
+
+  const flightRect = flight.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const endLeft = targetRect.left + ((targetRect.width - flightRect.width) / 2);
+  const endTop = targetRect.top + ((targetRect.height - flightRect.height) / 2);
+  const dx = endLeft - flightRect.left;
+  const dy = endTop - flightRect.top;
+  const landingScale = Math.max(
+    .58,
+    Math.min(1, Math.min(
+      targetRect.width / flightRect.width,
+      targetRect.height / flightRect.height,
+    )),
+  );
+  const scaleAt = (progress) => 1 + ((landingScale - 1) * progress);
+
+  const path = flight.animate([
+    {
+      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      opacity: 1,
+      offset: 0,
+    },
+    {
+      transform: `translate3d(${dx * .2}px, ${dy * .12 - 24}px, 0) scale(${scaleAt(.12)}) rotateZ(-2deg)`,
+      opacity: 1,
+      offset: .22,
+    },
+    {
+      transform: `translate3d(${dx * .52}px, ${dy * .42 - 34}px, 0) scale(${scaleAt(.36)}) rotateZ(3.2deg)`,
+      opacity: 1,
+      offset: .5,
+    },
+    {
+      transform: `translate3d(${dx * .82}px, ${dy * .76 - 18}px, 0) scale(${scaleAt(.7)}) rotateZ(-1.5deg)`,
+      opacity: 1,
+      offset: .78,
+    },
+    {
+      transform: `translate3d(${dx}px, ${dy - 5}px, 0) scale(${scaleAt(.94)}) rotateZ(.7deg)`,
+      opacity: 1,
+      offset: .94,
+    },
+    {
+      transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale}) rotateZ(0deg)`,
+      opacity: 1,
+      offset: 1,
+    },
+  ], {
+    duration: 700,
+    easing: "cubic-bezier(.18, .72, .2, 1)",
+    fill: "forwards",
+  });
+
+  await path.finished.catch(() => {});
+  commitTakeCardLanding(target);
+
+  const settle = flight.animate([
+    {
+      opacity: 1,
+      transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale})`,
+    },
+    {
+      opacity: 1,
+      transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(${landingScale * .992})`,
+      offset: .46,
+    },
+    {
+      opacity: 0,
+      transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(${landingScale})`,
+    },
+  ], {
+    duration: 120,
+    easing: "cubic-bezier(.2, .72, .2, 1)",
+    fill: "forwards",
+  });
+  await settle.finished.catch(() => {});
+  flight.remove();
+}
+
+async function animateTakeChipsToPanel(presentation) {
+  const flights = presentation?.chipFlights ?? [];
+  if (flights.length === 0) {
+    commitViewerChipLanding();
+    return;
+  }
+
+  const target = app.querySelector(".no-thanks-my-panel__chips .no-thanks-chip-cluster");
+  const targetRect = target?.getBoundingClientRect?.();
+  if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
+    flights.forEach((flight) => flight.remove());
+    commitViewerChipLanding();
+    return;
+  }
+
+  const destinationX = targetRect.left + (targetRect.width / 2);
+  const destinationY = targetRect.top + (targetRect.height / 2);
+  const animations = flights.map((flight, index) => {
+    if (typeof flight.animate !== "function") return Promise.resolve();
+
+    const rect = flight.getBoundingClientRect();
+    const startX = rect.left + (rect.width / 2);
+    const startY = rect.top + (rect.height / 2);
+    const spread = (index - ((flights.length - 1) / 2)) * 3.5;
+    const dx = destinationX + spread - startX;
+    const dy = destinationY + ((index % 2 === 0) ? -4 : 4) - startY;
+
+    const animation = flight.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(1) rotate(0deg)",
+        opacity: 1,
+      },
+      {
+        offset: .52,
+        transform: `translate3d(${dx * .5}px, ${dy * .5 - 58 - (index * 2)}px, 0) scale(1.1) rotate(250deg)`,
+        opacity: 1,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(.78) rotate(560deg)`,
+        opacity: 1,
+      },
+    ], {
+      duration: 700,
+      delay: index * 38,
+      easing: "cubic-bezier(.18, .78, .22, 1)",
+      fill: "forwards",
+    });
+    return animation.finished.catch(() => {});
+  });
+
+  await Promise.all(animations);
+  commitViewerChipLanding();
+  flights.forEach((flight) => flight.remove());
+}
+
+async function animatePendingTakePresentation(board) {
+  const presentation = pendingTakePresentation;
+  if (!presentation) return;
+
+  await Promise.all([
+    animateTakeCardToHand(presentation),
+    animateTakeChipsToPanel(presentation),
+  ]);
+  clearPendingTakePresentation(presentation);
+
+  if (!board.isConnected) return;
+  const dealingCard = board.querySelector(".no-thanks-table-card.is-awaiting-deal");
+  const deck = board.querySelector(".no-thanks-draw-deck__stack");
+  const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
+  if (!dealingCard || !deckTopCard) return;
+
+  if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+    dealingCard.classList.remove("is-awaiting-deal");
+    return;
+  }
+
+  dealingCard.classList.add("is-flight-started");
+  await animateDealFlight(dealingCard, deckTopCard);
+}
+
 function syncBoardAnimationGeometry() {
   const board = app.querySelector(".no-thanks-game-board");
   if (!board) return;
 
   window.requestAnimationFrame(() => {
     if (!board.isConnected) return;
-    let started = false;
+    syncBoardSeatGeometry(board);
 
+    if (boardPresentationEffect?.takeByViewer && pendingTakePresentation) {
+      boardPresentationEffect.started = true;
+      void animatePendingTakePresentation(board);
+      return;
+    }
+
+    let started = false;
     const dealingCard = board.querySelector(".no-thanks-table-card.is-awaiting-deal");
     const deck = board.querySelector(".no-thanks-draw-deck__stack");
     const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
@@ -1001,12 +1347,18 @@ function createRoundTable(view, state, effects) {
   ]);
 }
 
-function createHandCard(card, index, overlap) {
+function createHandCard(card, index, overlap, {
+  incoming = false,
+} = {}) {
   const value = String(card);
   return el("button", {
-    className: "no-thanks-hand-card",
+    className: "no-thanks-hand-card" + (incoming ? " is-awaiting-take-landing" : ""),
     type: "button",
-    dataset: { tone: getNoThanksCardTone(card) },
+    dataset: {
+      tone: getNoThanksCardTone(card),
+      cardValue: value,
+      incoming: incoming ? "true" : "false",
+    },
     style: {
       marginLeft: index === 0 ? "0" : String(overlap) + "px",
       zIndex: String(index + 1),
@@ -1058,11 +1410,23 @@ function createWaitingPrimaryAction(view, state) {
   });
 }
 
-function createMyPanel(view, state, panelActions = []) {
+function createMyPanel(view, state, panelActions = [], effects = null) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
-  const cards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
+  const finalCards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
+  const takingCard = Boolean(effects?.takeByViewer && Number.isInteger(effects.takeCardValue));
+  const previousCards = takingCard
+    ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
+    : finalCards;
+  const cards = takingCard
+    ? [...previousCards, effects.takeCardValue]
+    : finalCards;
   const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
+  const finalCounters = Number(view.viewerCounters) || 0;
+  const displayCounters = takingCard
+    ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
+    : finalCounters;
+  const visibleCardCount = takingCard ? previousCards.length : cards.length;
   const statusText = waiting
     ? (view.isHost
       ? "방장은 항상 준비된 자리로 표시됩니다."
@@ -1075,7 +1439,15 @@ function createMyPanel(view, state, panelActions = []) {
     className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
     "aria-label": "내 플레이 패널",
   }, [
-    el("div", { className: "no-thanks-my-panel__chips" }, waiting
+    el("div", {
+      className: "no-thanks-my-panel__chips",
+      dataset: waiting
+        ? {}
+        : {
+          finalCount: String(finalCounters),
+          visibleCount: String(displayCounters),
+        },
+    }, waiting
       ? [
         el("span", { className: "no-thanks-my-panel__label", text: "내 상태" }),
         el("strong", {
@@ -1085,24 +1457,30 @@ function createMyPanel(view, state, panelActions = []) {
         el("small", { text: "내 자리는 항상 6시 방향입니다." }),
       ]
       : [
-        el("span", { className: "no-thanks-my-panel__label", text: "내 칩" }),
+        el("span", { className: "no-thanks-my-panel__label", text: "내 보유 칩" }),
         el("strong", {
           className: "no-thanks-my-panel__value",
-          text: view.viewerCounters == null ? "—" : String(view.viewerCounters),
+          text: String(displayCounters),
         }),
-        createChipCluster(view.viewerCounters ?? 0, {
-          label: "내 칩 " + String(view.viewerCounters ?? 0) + "개",
+        createChipCluster(displayCounters, {
+          label: "내 보유 칩 " + String(displayCounters) + "개",
           emptyText: "칩 없음",
         }),
       ]),
     el("div", { className: "no-thanks-my-panel__cards" }, [
       el("div", { className: "no-thanks-my-panel__cards-head" }, [
         el("span", { className: "no-thanks-my-panel__label", text: "내 보유 카드" }),
-        el("strong", { text: String(cards.length) + "장" }),
+        el("strong", {
+          className: "no-thanks-my-panel__card-count",
+          dataset: { finalCount: String(finalCards.length) },
+          text: String(visibleCardCount) + "장",
+        }),
       ]),
       cards.length > 0
         ? el("div", { className: "no-thanks-hand" },
-          cards.map((card, index) => createHandCard(card, index, overlap)))
+          cards.map((card, index) => createHandCard(card, index, overlap, {
+            incoming: takingCard && index === cards.length - 1,
+          })))
         : el("div", {
           className: "no-thanks-hand no-thanks-hand--empty",
           text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
@@ -1166,7 +1544,7 @@ function createBoardScene(view, state, panelActions = []) {
       createChipFlight(view, effects.chipFromPlayerId),
       createBoardHud(view),
     ]),
-    createMyPanel(view, state, panelActions),
+    createMyPanel(view, state, panelActions, effects),
   ]);
 }
 
@@ -1592,6 +1970,10 @@ function renderLobby(access, state) {
       }));
       return;
     }
+  }
+
+  if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
+    clearPendingTakePresentation();
   }
 
   const rulesDialog = createRulesDialog();

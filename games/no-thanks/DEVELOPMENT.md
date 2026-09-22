@@ -127,6 +127,12 @@
 
 ## Current Work
 
+- 좌석 프로필 중심점을 실제 타원형 테이블 외곽선에 맞추도록 post-render geometry sync를 보완했습니다.
+- 개인 패널의 `내 칩` 표기를 `내 보유 칩`으로 변경했습니다.
+- TAKE_CARD 시 RPC 직전 중앙 카드/칩 DOM을 overlay로 보존하고, authoritative snapshot 이후 실제 구성물이 개인 패널로 이동한 뒤 최종 hand/chip state로 handoff하는 presentation을 구현했습니다.
+- 카드 flight는 기존 카드가 없으면 hand 맨 왼쪽, 기존 카드가 있으면 현재 가장 오른쪽 카드 다음 transient slot을 목적지로 사용하며, 이동 완료 뒤 다음 draw-card 공개 animation을 이어서 재생합니다.
+- chip flight는 부루마블 money transfer의 stagger/arc 원칙을 참고해 중앙 pile의 실제 visible chip 각각이 내 보유 칩 cluster로 이동하도록 구현했습니다.
+
 - PR #364의 Board UI Phase A–D 구현을 최신 main의 플랫폼 규칙과 lifecycle 위에 재정합화했습니다.
 - 기능/DB 권위는 main의 구현을 사용하고, 현재 브랜치에는 board/presentation UI와 gameplay render 최적화만 남기는 방향으로 정리했습니다.
 - 새 UI 규칙에 맞춰 board/motion/responsive 결정은 `UI_DESIGN.md`에 반영했습니다.
