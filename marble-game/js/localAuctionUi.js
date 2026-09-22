@@ -345,11 +345,30 @@ export function setupLocalAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
+  const syncAuctionNoticeAnchor = () => {
+    if (!documentObject.body || elements.panel.hidden) {
+      documentObject.body?.style?.removeProperty("--auction-notice-top");
+      return;
+    }
+    const rect = elements.panel.getBoundingClientRect?.();
+    if (!rect || !Number.isFinite(rect.top)) return;
+    documentObject.body.style.setProperty(
+      "--auction-notice-top",
+      `${Math.max(12, rect.top - 10)}px`,
+    );
+  };
   const setAuctionOverlayActive = (active) => {
     if (!documentObject.body?.dataset) return;
-    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
-    else delete documentObject.body.dataset.auctionOverlayActive;
+    if (active) {
+      documentObject.body.dataset.auctionOverlayActive = "true";
+    } else {
+      delete documentObject.body.dataset.auctionOverlayActive;
+      documentObject.body.style.removeProperty("--auction-notice-top");
+    }
   };
+  const windowObject = documentObject.defaultView ?? globalThis.window;
+  const handleResize = () => syncAuctionNoticeAnchor();
+  windowObject?.addEventListener?.("resize", handleResize);
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
     clock,
@@ -520,6 +539,7 @@ export function setupLocalAuctionUi({
     setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
+    syncAuctionNoticeAnchor();
     elements.title.textContent = model.nodeLabel;
     syncPlayerOptions(model);
     updateTimer(model);
@@ -631,6 +651,7 @@ export function setupLocalAuctionUi({
       cancelHighestBidAnimation({ reset: true });
       if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
       setAuctionOverlayActive(false);
+      windowObject?.removeEventListener?.("resize", handleResize);
       introPresenter.dispose();
       elements.panel.remove();
     },
