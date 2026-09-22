@@ -51,23 +51,25 @@ Player UI는 다음 네 요소만 유지한다.
 
 ## 5. The Game Pilot
 
-- Track: Invariance
-- Artist: Kevin MacLeod
-- ISRC: USUAN1100847
-- Official source: Incompetech
-- Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
-- License: CC BY 4.0
-- Default slider volume: 0.70
-- Default output volume: 0.60
-- Loop: enabled
+The Game은 같은 document 안에서 대기/설정과 실제 gameplay의 BGM을 구분한다.
 
-Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지, 사용자가 제공한 YouTube 확인 영상, CC BY 4.0 라이선스를 함께 표시한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
+- Page entry / mode / local setup / online entry / online waiting / rematch waiting: **Constance — Kevin MacLeod**
+  - ISRC: USUAN1100850
+  - Official source: Incompetech
+  - License: CC BY 4.0
+- Local/online gameplay 시작 이후 / result presentation: **Invariance — Kevin MacLeod**
+  - ISRC: USUAN1100847
+  - Official source: Incompetech
+  - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
+  - License: CC BY 4.0
+- 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다.
+- `the-game:lobby-entered` presentation event는 mode/setup/online waiting/rematch waiting 진입을 알리고 Constance로 복귀시킨다.
+- 기존 `the-game:game-started` presentation event는 local/online gameplay 시작을 알리고 Invariance로 전환시킨다.
+- BGM event는 게임 상태를 변경하지 않으며, 사용자 pause와 저장 volume은 track 전환보다 우선한다.
 
-사용자가 제공한 MP3는 3분 38초, 192 kbps, 44.1 kHz stereo 파일로 확인했으며 ID3에는 곡명·아티스트·라이선스가 아닌 encoder 정보만 들어 있었다. 따라서 해당 파일은 곡 확인 자료로 사용하되, 출처와 사용 권한의 근거로 취급하지 않는다.
+Player의 출처 영역은 현재 재생 중인 곡의 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지와 CC BY 4.0 라이선스를 표시한다. Invariance에는 기존 YouTube reference도 함께 유지한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
 
-현재 Pilot은 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다.
-
-The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the-game:game-started` presentation event를 발생시킨다. 이 이벤트는 게임 상태를 바꾸지 않고 BGM fallback에만 사용한다.
+현재 두 곡 모두 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다.
 
 ## 6. Liar Game
 
@@ -120,6 +122,7 @@ Can’t Stop은 하나의 게임 안에서 상태에 따라 BGM을 전환하는 
 - 한 번 재생 후 사용자 pause 시 게임 interaction으로 재생되지 않음
 - authoritative gameplay 시작 fallback
 - 재생 성공 이력과 사용자 pause를 보존하는 track switching
+- The Game lobby/setup/rematch ↔ gameplay BGM mapping
 - Can’t Stop lobby ↔ gameplay BGM mapping
 
 브라우저 수동 검증에서는 desktop/mobile에서 Player가 핵심 게임 action을 가리지 않는지, autoplay 차단 환경에서 첫 interaction fallback이 동작하는지 확인한다.
