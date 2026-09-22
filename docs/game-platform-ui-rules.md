@@ -112,9 +112,9 @@ MUST NOT: 조사 없이 청파 같이 일반 페이지의 색상과 컴포넌트
 games/<game-id>/UI_DESIGN.md
 ```
 
-이 문서는 **현재 구현이 따라야 할 게임-local UI/presentation 설계의 기준 문서**다.
+이 문서는 **runtime/UI 소스 개발을 시작하기 전에 게임 디자인을 전수 조사·분석해 수립하는 game-local 초기 UI/presentation baseline**이다.
 
-`GAME_SPEC.md`가 게임 규칙과 기능 구조를 정의하고, `DEVELOPMENT.md`가 기능 개발 진행을 추적하며, `UI_DESIGN.md`는 현재 보이는 방식과 느껴지는 방식의 canonical 기준을 정의하고, `UI_DECISIONS.md`는 디자인 개발의 진행·변경 이유·검증 이력을 보존한다.
+`GAME_SPEC.md`가 게임 규칙과 기능 구조를 정의하고, `DEVELOPMENT.md`가 기능 개발 진행을 추적한다. 디자인은 `UI_DESIGN.md`가 최초 조사·설계와 Phase 계획의 출발점을 보존하고, `UI_DECISIONS.md`가 개발 시작 후 발생한 사용자 피드백·실제 화면 관찰·디자인 변경과 검증 이력을 누적한다.
 
 ### 생성 시점
 
@@ -129,20 +129,21 @@ UI_DECISIONS.md
 
 `games/UI_DESIGN_TEMPLATE.md`와 `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 작성한다.
 
-### MUST: 갱신이 필요한 경우
+### MUST: baseline 보존
 
-- 목표 판본 또는 디자인 출처가 바뀐 경우
-- 대표 색상/배경/심볼/타이포그래피 방향이 바뀐 경우
-- page identity 또는 핵심 레이아웃이 바뀐 경우
-- 카드/보드/칩/토큰 등 핵심 구성물 표현이 바뀐 경우
-- 주요 motion/interaction 원칙이 바뀐 경우
-- responsive 전략이 바뀐 경우
-- 자산 사용 권리 판단 때문에 구현 방향이 바뀐 경우
-- 사용자와 합의한 Visual Identity가 변경된 경우
+`UI_DESIGN.md`는 신규 게임 소스 개발 전에 확정한 조사·분석·설계 baseline을 보존한다. 개발 시작 후 발생하는 디자인 수정 때문에 이 문서를 현재 화면에 맞춰 계속 덮어쓰지 않는다.
 
-작은 spacing 값이나 commit 단위 변경을 쌓는 changelog로 사용하지 않는다.
+다음과 같은 후속 변경은 `UI_DECISIONS.md`에 기록한다.
 
-현재 디자인 기준을 바꾸는 결정이 발생하면 `UI_DESIGN.md`를 최신 결과로 정합화하고, 왜 바뀌었는지·어떤 대안을 버렸는지·실제 구현/검증 상태는 `UI_DECISIONS.md`에 기록한다.
+- 사용자 피드백으로 대표 색상/배경/심볼/타이포그래피 방향을 수정한 경우
+- 실제 브라우저 QA로 page identity 또는 핵심 레이아웃을 바꾼 경우
+- 카드/보드/칩/토큰 등 핵심 구성물 표현을 조정한 경우
+- 주요 motion/interaction 원칙이나 responsive 전략을 수정한 경우
+- 구현하면서 기존 Phase 계획의 일부를 폐기하거나 다른 방식으로 대체한 경우
+
+작은 spacing 값이나 commit 단위 변경을 쌓는 changelog로 사용하지 않는 원칙은 `UI_DECISIONS.md`에도 동일하다.
+
+예외적으로 초기 조사 문서 자체의 출처 오기나 명백한 사실 오류를 고칠 수는 있지만, 왜 고쳤는지는 `UI_DECISIONS.md`에서 추적 가능해야 한다.
 
 ### UI_DECISIONS.md와의 연결
 
@@ -165,7 +166,30 @@ games/<game-id>/UI_DECISIONS.md
 
 과거 결정이 뒤에서 바뀌어도 기존 기록을 삭제하지 않고 새 결정으로 대체하며 이전 항목을 `SUPERSEDED` 또는 `REVERTED`로 표시한다.
 
-`UI_DECISIONS.md`와 `UI_DESIGN.md`가 충돌하면 **현재 canonical 디자인 기준은 `UI_DESIGN.md`**다. 충돌이 발견되면 이력 문서를 현재 기준처럼 재해석하지 말고 실제 코드/사용자 결정과 대조해 정합화한다.
+`UI_DESIGN.md`와 `UI_DECISIONS.md`가 같은 UI 항목에서 충돌하면 **개발 시작 후 확정된 최신 non-superseded `UI_DECISIONS.md` 결정이 우선한다.** `UI_DESIGN.md`은 최초 baseline이므로 후속 변경을 되돌리는 근거로 사용할 수 없다.
+
+현재 유효 디자인은 다음처럼 해석한다.
+
+```text
+effective design
+= pre-development UI_DESIGN baseline
++ latest applicable UI_DECISIONS overrides
+```
+
+`SUPERSEDED` 또는 `REVERTED` 처리된 과거 결정은 현재 override로 사용하지 않는다.
+
+### MUST: Phase를 이어갈 때 디자인 회귀 방지
+
+`UI_DESIGN.md / Implementation Plan`에 정의된 다음 Phase를 구현하거나 과거에 미완료였던 UI 작업을 재개할 때는 소스 수정 전에 반드시 다음을 수행한다.
+
+1. 해당 Phase의 초기 `UI_DESIGN.md` 요구사항을 확인한다.
+2. `UI_DECISIONS.md`에서 그 Phase, component, layout, interaction, motion과 관련된 후속 결정을 확인한다.
+3. 이미 runtime에 반영된 디자인과 후속 결정이 초기 계획보다 발전한 상태라면 그 상태를 보존한다.
+4. 초기 Phase 문구와 최신 유효 결정이 충돌하면 최신 `UI_DECISIONS.md`를 적용한다.
+5. 폐기되거나 supersede된 안을 "원래 계획"이라는 이유로 다시 구현하지 않는다.
+6. 작업 완료 전 변경 범위가 기존 유효 decision을 회귀시키지 않았는지 확인한다.
+
+MUST NOT: Phase 체크리스트를 순서대로 완료하는 과정에서 후속 사용자 수정, 실제 브라우저 QA 결과, 이미 채택된 interaction을 과거 설계안으로 원복한다.
 
 ### DEVELOPMENT.md와의 연결
 
