@@ -258,14 +258,11 @@ test("document authority links are enforced only when the rulebook exists", () =
       "docs/game-platform-development-rules.md": "rules\n체크포인트 기록하자",
       "AGENTS.md": "rules\n체크포인트 기록하자",
       "games/README.md": "rules\n체크포인트 기록하자",
-      "games/GAME_SPEC_TEMPLATE.md": "rules",
-      "games/DEVELOPMENT_TEMPLATE.md": "rules",
-      "games/UI_DESIGN_TEMPLATE.md": "rules",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
   });
-  assert.equal(errors.length, 7);
+  assert.equal(errors.length, 4);
 });
 
 test("platform checkpoint command stays consistent across command entrypoints", () => {
@@ -455,9 +452,9 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -497,9 +494,9 @@ test("UI rulebook authority links are enforced across game entry documents and t
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -579,9 +576,9 @@ test("game-local documents must cross-reference the other design and handoff doc
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };

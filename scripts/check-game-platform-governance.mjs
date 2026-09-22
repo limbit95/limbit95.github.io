@@ -268,9 +268,6 @@ export function validateRepositoryState({
     const requiredLinks = [
       ["AGENTS.md", documents["AGENTS.md"]],
       ["games/README.md", documents["games/README.md"]],
-      ["games/GAME_SPEC_TEMPLATE.md", documents["games/GAME_SPEC_TEMPLATE.md"]],
-      ["games/DEVELOPMENT_TEMPLATE.md", documents["games/DEVELOPMENT_TEMPLATE.md"]],
-      ["games/UI_DESIGN_TEMPLATE.md", documents["games/UI_DESIGN_TEMPLATE.md"]],
       ["docs/game-platform-strategy.md", documents["docs/game-platform-strategy.md"]],
       ["docs/game-platform-invite-analysis.md", documents["docs/game-platform-invite-analysis.md"]],
     ];
