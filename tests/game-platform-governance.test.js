@@ -522,7 +522,7 @@ test("development handoff rules track GAME_SPEC and UI_DESIGN implementation sta
   );
 
   assert.match(rules, /GAME_SPEC\.md.*UI_DESIGN\.md.*실제 구현 상태/us);
-  assert.match(rules, /UI\/presentation.*Validation/u);
+  assert.match(rules, /UI\/presentation[\\s\\S]*Validation/u);
   assert.match(rules, /Visual Identity, page\/layout, 핵심 component, motion, responsive/u);
   assert.match(rules, /UI_DESIGN\.md.*Validation Checklist/u);
   assert.match(template, /UI \/ presentation:/u);
