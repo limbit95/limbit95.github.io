@@ -110,23 +110,32 @@ function resetLocalState() {
   resultOverlay.hidden = true;
 }
 
+function announceLobbyEntered(mode) {
+  document.dispatchEvent(new CustomEvent("the-game:lobby-entered", {
+    detail: { mode },
+  }));
+}
+
 function showMode() {
   resetLocalState();
   onlineLobbyModule?.closeOnlineLobby?.();
   modeScreen.hidden = false;
   modeMessage.textContent = "";
+  announceLobbyEntered("mode");
 }
 
 function showSetup() {
   resetLocalState();
   modeScreen.hidden = true;
   setupScreen.hidden = false;
+  announceLobbyEntered("local-setup");
 }
 
 async function showOnline() {
   resetLocalState();
   modeScreen.hidden = true;
   modeMessage.textContent = "";
+  announceLobbyEntered("online-entry");
   try {
     onlineLobbyModule ??= await import("./onlineLobby.js");
     await onlineLobbyModule.openOnlineLobby();
