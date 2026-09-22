@@ -2996,11 +2996,6 @@ body {
 .no-thanks-table-card.is-submitting {
   filter: brightness(.96);
 }
-
-.no-thanks-draw-deck__stack.is-dealing span:last-child {
-  opacity: 0;
-}
-
 .no-thanks-table-card.is-dealing {
   animation-duration: .72s;
 }
@@ -3014,7 +3009,7 @@ body {
     opacity: 1;
     transform:
       translate3d(var(--no-thanks-deal-x, -220px), var(--no-thanks-deal-y, 0px), 0)
-      scale(.96)
+      scale(var(--no-thanks-deal-start-scale, .72))
       rotateZ(-2deg);
     filter: drop-shadow(0 12px 18px rgba(12, 34, 30, .24));
   }
