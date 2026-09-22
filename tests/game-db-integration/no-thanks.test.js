@@ -224,6 +224,67 @@ function playerById(room, playerId) {
     .find((player) => player.id === playerId);
 }
 
+async function createReadyRoomWithPlayers(label, playerCount) {
+  assert.ok(
+    Number.isInteger(playerCount) && playerCount >= 3 && playerCount <= 7,
+    "multi-client playerCount must be between 3 and 7",
+  );
+
+  const players = [];
+  for (let index = 0; index < playerCount; index += 1) {
+    players.push(await createTestUser(`${label}-player-${index + 1}`));
+  }
+
+  const host = players[0];
+  let current = await createRoom(host, playerCount);
+
+  for (const guest of players.slice(1)) {
+    current = await joinRoom(guest, current);
+  }
+
+  for (const guest of players.slice(1)) {
+    current = await setReady(guest, current, true);
+  }
+
+  return {
+    players,
+    host,
+    snapshot: current,
+  };
+}
+
+async function startReadyRoomWithPlayers(label, playerCount) {
+  const room = await createReadyRoomWithPlayers(label, playerCount);
+  const started = await expectOk(await rpc("no_thanks_start_game", {
+    p_room_id: room.snapshot.room.id,
+    p_expected_version: Number(room.snapshot.version),
+    p_client_action_id: randomUUID(),
+  }, room.host.accessToken), `${label} start ${playerCount}-player room`);
+
+  return {
+    ...room,
+    started,
+  };
+}
+
+function userById(players, userId) {
+  return players.find((player) => player.id === userId);
+}
+
+async function getRoomSnapshotFor(user, roomId, label) {
+  return expectOk(await rpc("no_thanks_get_lobby_snapshot", {
+    p_room_id: roomId,
+  }, user.accessToken), label);
+}
+
+async function getActiveRoomFor(user, label) {
+  return expectOk(await rpc(
+    "no_thanks_get_my_active_room",
+    {},
+    user.accessToken,
+  ), label);
+}
+
 async function patchPrivateState(roomId, body) {
   return expectOk(await request(
     `/rest/v1/no_thanks_room_private_state?room_id=eq.${roomId}`,
@@ -706,4 +767,150 @@ test("no-thanks gameplay: only the host can terminate an in-progress game", asyn
     p_expected_version: Number(ended.version),
   }, room.guestA.accessToken), "leave host-terminated No Thanks room");
   assert.equal(guestLeave.left, true);
+});
+
+
+test("no-thanks multi-client: 3 independent sessions complete a natural game and reconnect to the same authority", async () => {
+  const room = await startReadyRoomWithPlayers("multi3", 3);
+
+  assert.equal(room.started.players.length, 3);
+  assert.equal(room.started.game.turnOrder.length, 3);
+  assert.equal(new Set(room.started.game.turnOrder).size, 3);
+
+  for (const player of room.players) {
+    const viewer = await getRoomSnapshotFor(
+      player,
+      room.started.room.id,
+      `3-player initial snapshot ${player.id}`,
+    );
+    assert.equal(viewer.viewer.playerId, player.id);
+    assert.equal(viewer.viewer.counters, 11);
+    assert.equal(viewer.players.length, 3);
+    assert.equal(
+      viewer.players.some((entry) => Object.hasOwn(entry, "counters")),
+      false,
+    );
+    assert.equal(Object.hasOwn(viewer.game, "drawDeck"), false);
+    assert.equal(Object.hasOwn(viewer.game, "excludedCards"), false);
+  }
+
+  let authoritative = room.started;
+  const firstActiveId = authoritative.game.activePlayerId;
+
+  for (let index = 0; index < 3; index += 1) {
+    const actor = userById(room.players, authoritative.game.activePlayerId);
+    assert.ok(actor, "active player must resolve to one of the 3 client sessions");
+    authoritative = await playAction(actor, authoritative, "refuse_card");
+  }
+
+  assert.equal(authoritative.game.activePlayerId, firstActiveId);
+  assert.equal(authoritative.game.centerCounters, 3);
+
+  const reconnectingPlayer = room.players[1];
+  const reconnected = await getActiveRoomFor(
+    reconnectingPlayer,
+    "3-player reconnect snapshot after one refuse cycle",
+  );
+  assert.equal(reconnected.room.id, authoritative.room.id);
+  assert.equal(Number(reconnected.version), Number(authoritative.version));
+  assert.equal(reconnected.game.activePlayerId, authoritative.game.activePlayerId);
+  assert.equal(reconnected.game.centerCounters, 3);
+
+  let safety = 30;
+  while (authoritative.game.phase === "PLAYING" && safety > 0) {
+    const actor = userById(room.players, authoritative.game.activePlayerId);
+    assert.ok(actor, "active player must remain a valid 3-player client");
+    authoritative = await playAction(actor, authoritative, "take_card");
+    safety -= 1;
+  }
+
+  assert.ok(safety > 0, "3-player natural game should terminate within the 24-card deck");
+  assert.equal(authoritative.game.phase, "GAME_OVER");
+  assert.equal(authoritative.game.endReason, "LAST_CARD_TAKEN");
+  assert.equal(authoritative.game.deckRemaining, 0);
+  assert.equal(Object.keys(authoritative.game.finalScores).length, 3);
+  assert.ok(authoritative.game.winners.length >= 1);
+
+  for (const player of room.players) {
+    const finalSnapshot = await getRoomSnapshotFor(
+      player,
+      authoritative.room.id,
+      `3-player final snapshot ${player.id}`,
+    );
+    assert.equal(finalSnapshot.game.phase, "GAME_OVER");
+    assert.deepEqual(finalSnapshot.game.finalScores, authoritative.game.finalScores);
+    assert.deepEqual(finalSnapshot.game.winners, authoritative.game.winners);
+  }
+});
+
+test("no-thanks multi-client: 7 independent sessions keep private counters isolated through a full refuse cycle", async () => {
+  const room = await startReadyRoomWithPlayers("multi7", 7);
+
+  assert.equal(room.started.room.maxPlayers, 7);
+  assert.equal(room.started.players.length, 7);
+  assert.equal(room.started.game.turnOrder.length, 7);
+  assert.equal(new Set(room.started.game.turnOrder).size, 7);
+
+  for (const player of room.players) {
+    const viewer = await getRoomSnapshotFor(
+      player,
+      room.started.room.id,
+      `7-player initial snapshot ${player.id}`,
+    );
+    assert.equal(viewer.viewer.counters, 7);
+    assert.equal(viewer.players.length, 7);
+    assert.equal(
+      viewer.players.some((entry) => Object.hasOwn(entry, "counters")),
+      false,
+    );
+  }
+
+  let authoritative = room.started;
+  const initialActiveId = authoritative.game.activePlayerId;
+
+  for (let index = 0; index < 7; index += 1) {
+    const actor = userById(room.players, authoritative.game.activePlayerId);
+    assert.ok(actor, "active player must resolve to one of the 7 client sessions");
+    authoritative = await playAction(actor, authoritative, "refuse_card");
+  }
+
+  assert.equal(authoritative.game.centerCounters, 7);
+  assert.equal(authoritative.game.activePlayerId, initialActiveId);
+
+  for (const player of room.players) {
+    const viewer = await getRoomSnapshotFor(
+      player,
+      authoritative.room.id,
+      `7-player private counter snapshot ${player.id}`,
+    );
+    assert.equal(viewer.viewer.counters, 6);
+    assert.equal(
+      viewer.players.some((entry) => Object.hasOwn(entry, "counters")),
+      false,
+    );
+    assert.equal(Object.hasOwn(viewer, "playerCounters"), false);
+    assert.equal(Object.hasOwn(viewer.game, "playerCounters"), false);
+  }
+
+  const taker = userById(room.players, authoritative.game.activePlayerId);
+  const currentCard = authoritative.game.currentCard;
+  const taken = await playAction(taker, authoritative, "take_card");
+
+  assert.equal(taken.game.activePlayerId, taker.id);
+  assert.equal(taken.game.centerCounters, 0);
+  assert.equal(taken.viewer.counters, 13);
+  assert.equal(
+    taken.players.find((player) => player.userId === taker.id)?.cards.includes(currentCard),
+    true,
+  );
+
+  const disconnectedThenReturned = room.players[6];
+  const restored = await getActiveRoomFor(
+    disconnectedThenReturned,
+    "7-player reconnect snapshot without explicit leave",
+  );
+  assert.equal(restored.room.id, taken.room.id);
+  assert.equal(Number(restored.version), Number(taken.version));
+  assert.equal(restored.players.length, 7);
+  assert.equal(restored.game.activePlayerId, taken.game.activePlayerId);
 });
