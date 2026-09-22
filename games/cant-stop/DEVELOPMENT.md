@@ -8,7 +8,7 @@
 - Phase: Phase 4
 - Status: RELEASED
 - Active branch: main
-- Last checkpoint: 2026-09-21 09:00 KST
+- Last checkpoint: 2026-09-23
 
 ## Release Baseline
 
@@ -20,6 +20,7 @@
 
 ## Completed
 
+- 2026-09-23 BGM polish: page entry/entry/waiting/rematch waiting에는 `Frozen Star`, authoritative `PLAYING` 상태에는 `Mountain Emperor`를 적용했다. 기존 공통 BGM Player와 저장 volume/pause 정책을 재사용하고 dice/blizzard Web Audio SFX는 분리 유지했다.
 - 2026-09-22 Game Platform UI 규칙 도입에 맞춰 현재 v1의 Visual Identity, page/lobby/gameplay/result-rematch presentation 기준을 `UI_DESIGN.md`에 소급 문서화했다. runtime 동작은 변경하지 않았다.
 - 최신 Game Platform 규칙과 shared 계약을 확인했다.
 - 당시 신규 게임 초기 세팅에 `GAME_SPEC.md`를 의무화하는 bootstrap 규칙 방향을 확정했다. 현재 플랫폼 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 3문서 bootstrap이다.
@@ -100,12 +101,14 @@
 
 ## Current Work
 
+- v1 release baseline 위에서 상태별 BGM maintenance PR을 검증 중이다. core rules / DB / RPC / Registry capability는 변경하지 않는다.
 - Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출, 최종 인수인계 문서 정리까지 완료했다.
 - Can’t Stop 자체는 유지보수 단계로 전환했다. 현재 진행 중인 필수 기능 작업은 없다.
 - Can’t Stop에서 얻은 첫 platform-native 실전 피드백은 Game Platform 규칙/거버넌스에 환류하며, 이후 게임에서 공통성이 다시 검증될 때 shared 계약을 확장한다.
 
 ## Next Work
 
+- 실제 플레이에서 `Frozen Star` → `Mountain Emperor` 전환 체감과 BGM/SFX 상대 음량을 관찰하고 필요할 때 game-local polish로 조정한다.
 - 실제 사용자 플레이에서 발견되는 UX/안정성 문제는 v1.1 이후 유지보수 작업으로 분리한다.
 - 2~4인 다중 브라우저 exploratory playtest는 자동 회귀 검증과 별개인 post-release 관찰 항목으로 계속 수행할 수 있다.
 - 특히 remote bust audio는 브라우저 autoplay 정책 때문에 사용자 상호작용 전에는 소리가 제한될 수 있으므로 실사용에서 확인한다.
@@ -113,6 +116,7 @@
 
 ## Decisions
 
+- BGM은 Game Platform shared contract로 올리지 않고 site-level `js/game-audio/` utility를 game-local presentation에서 소비한다. entry/waiting/rematch waiting은 `Frozen Star`, authoritative room `playing`은 `Mountain Emperor`로 고정한다. 사용자 pause는 상태 전환보다 우선한다.
 - 공식 로드맵 단계명은 `Phase 4`를 사용하며 임의의 `Phase 4A`를 만들지 않는다.
 - Can’t Stop은 기존 게임을 복사하지 않고 `games/cant-stop/`에서 처음부터 platform-native로 개발한다.
 - bootstrap 당시에는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두는 기준을 사용했으나, 현재 신규 게임 공통 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 세 문서다. Can't Stop은 release baseline을 보존하면서 현재 UI 기준을 `UI_DESIGN.md`에 소급 문서화했다.
@@ -145,6 +149,7 @@
 
 ## Validation
 
+- 상태별 BGM catalog / controller track switching / Can’t Stop mode mapping 자동 회귀 테스트를 추가했다. 최종 CI 결과는 이 PR 검증 후 갱신한다.
 - PR #327 최종 기능 브랜치: Game Platform Governance / Site static checks / Game DB integration SUCCESS 후 main 병합 완료.
 - 규칙 감사: JS rules engine + 운영 Supabase legal pairing/stop 계산 + 정식 기본 규칙을 대조했고 core gameplay 차이 없음.
 - active leave 회귀: 4→3, 3→2 계속 진행 / 2→1 PLAYER_LEFT GAME_OVER / out-of-turn leave 거부 / active host leave 거부 / 이탈자 progress·claim·runner 정리 / replacement 재대결 재시작 검증 완료.

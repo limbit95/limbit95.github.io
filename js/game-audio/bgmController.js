@@ -57,12 +57,24 @@ export function createBgmController({
   }
 
   const audio = audioFactory();
-  audio.src = track.src;
-  audio.preload = "auto";
-  audio.loop = track.loop !== false;
+  let currentTrack = track;
+  let defaultVolume = Number(currentTrack.defaultVolume);
+  let defaultOutputVolume = Number(currentTrack.defaultOutputVolume);
 
-  const defaultVolume = Number(track.defaultVolume);
-  const defaultOutputVolume = Number(track.defaultOutputVolume);
+  function applyTrack(nextTrack) {
+    if (!nextTrack?.src || !nextTrack?.gameId) {
+      throw new TypeError("BGM controller requires a track with gameId and src.");
+    }
+    currentTrack = nextTrack;
+    defaultVolume = Number(currentTrack.defaultVolume);
+    defaultOutputVolume = Number(currentTrack.defaultOutputVolume);
+    audio.src = currentTrack.src;
+    audio.preload = "auto";
+    audio.loop = currentTrack.loop !== false;
+  }
+
+  applyTrack(currentTrack);
+
   let volume = readBgmVolume({ storage, fallback: defaultVolume });
 
   function applyOutputVolume() {
@@ -83,6 +95,7 @@ export function createBgmController({
   function snapshot() {
     return Object.freeze({
       status,
+      track: currentTrack,
       hasEverPlayed,
       userPaused,
       volume,
@@ -204,6 +217,42 @@ export function createBgmController({
       : playByUser();
   }
 
+  async function switchTrack(nextTrack, { autoplayRequested = true } = {}) {
+    if (destroyed || playInFlight) return false;
+    if (!nextTrack?.src || !nextTrack?.gameId) {
+      throw new TypeError("BGM controller requires a track with gameId and src.");
+    }
+
+    const sameSource = currentTrack.src === nextTrack.src;
+    if (!sameSource) {
+      try {
+        audio.pause();
+      } catch {
+        // Track switching is best-effort if the browser audio element is tearing down.
+      }
+      removeInteractionListeners();
+    }
+
+    applyTrack(nextTrack);
+    applyOutputVolume();
+    lastError = null;
+
+    if (sameSource) {
+      emit();
+      return status === BGM_STATE.PLAYING;
+    }
+
+    if (userPaused) {
+      status = BGM_STATE.PAUSED_BY_USER;
+      emit();
+      return false;
+    }
+
+    setStatus(BGM_STATE.READY);
+    if (!autoplayRequested) return false;
+    return tryPlay("track-change");
+  }
+
   function setVolume(value) {
     if (destroyed) return volume;
     volume = writeBgmVolume(value, { storage });
@@ -232,9 +281,12 @@ export function createBgmController({
   }
 
   return Object.freeze({
-    track,
+    get track() {
+      return currentTrack;
+    },
     start,
     notifyGameStarted,
+    switchTrack,
     pauseByUser,
     playByUser,
     toggleByUser,
