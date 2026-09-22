@@ -35,6 +35,10 @@ const auctionIntroPacingSql = readFileSync(
   new URL("../../supabase/marble/20260922124800_marble_auction_intro_pacing.sql", import.meta.url),
   "utf8",
 );
+const auctionResultHoldSql = readFileSync(
+  new URL("../../supabase/marble/20260922133000_marble_auction_result_hold_800ms.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -176,7 +180,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /auctionRouletteSpin/);
   assert.match(cssSource, /큰 폭의 입찰/);
   assert.match(cssSource, /content: " · 입찰"/);
-  assert.match(cssSource, /body\[data-play-mode="window"\] \.important-notice/);
+  assert.match(cssSource, /important-notice\[data-notice-layer="global"\]/);
+  assert.match(cssSource, /max-width: min\(300px, calc\(100% - 36px\)\)/);
+  assert.match(cssSource, /font-size: clamp\(1\.3rem, 4vw, 1\.6rem\)/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.advanceAuctionDeadline\(\)/);
   assert.match(uiSource, /session\.getServerNowMs\?\.\(\)/);
@@ -202,10 +208,10 @@ test("server Auction start migration randomizes the first bidder and gates biddi
   assert.match(auctionStartSql, /AUCTION_NOT_STARTED/);
   assert.match(auctionIntroPacingSql, /interval '2 seconds'/);
   assert.match(auctionIntroPacingSql, /interval '5\.2 seconds'/);
-  assert.match(auctionIntroPacingSql, /interval '7\.2 seconds'/);
-  assert.match(auctionIntroPacingSql, /interval '9\.2 seconds'/);
   assert.match(auctionIntroPacingSql, /rouletteStopsAt/);
   assert.match(auctionIntroPacingSql, /winnerNoticeAt/);
+  assert.match(auctionResultHoldSql, /interval '6 seconds'/);
+  assert.match(auctionResultHoldSql, /interval '8 seconds'/);
 });
 
 test("server decisive-bid migration settles at the submitted amount and emits feedback metadata", () => {
