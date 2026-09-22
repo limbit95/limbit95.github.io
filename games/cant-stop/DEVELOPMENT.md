@@ -1,7 +1,7 @@
 # Can't Stop Development
 
 > 현재 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다.
-> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI/presentation은 `UI_DESIGN.md` baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서의 기존 UI 관련 항목은 과거 release 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI/presentation은 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서의 기존 UI 관련 항목은 과거 release 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
 
 ## Current Status
 
@@ -47,7 +47,7 @@
 - 게임 시작 시 서버가 turn order를 무작위로 확정해 authoritative `game_state`에 저장하도록 구현했다.
 - `createCantStopRoomLobbyAdapter`를 Shared `defineRoomLobbyAdapter` 계약에 연결하고 Realtime Postgres Changes를 invalidation 신호로만 사용하도록 구현했다.
 - Game DB integration harness가 Can’t Stop migration을 disposable Supabase에 replay하도록 확장했다.
-- `tests/game-db-integration/cant-stop.test.js`에 플랫폼 필수 10개 DB 시나리오를 등록했다.
+- 당시 `tests/game-db-integration/cant-stop.test.js`에 플랫폼 필수 10개 DB 시나리오를 등록했다. 이후 공통 계약에 same-room rematch가 추가되어 현재는 11개 필수 시나리오를 구현한다.
 - 기존 DB integration workflow에 `supabase/cant-stop/**/*.sql` 경로만 추가했으며 별도 workflow는 만들지 않았다.
 - 승인회원 runtime에 방 만들기 / 코드 참가 / 준비 / 준비 취소 / 방장 시작 / 나가기 사용자 흐름을 연결했다.
 - authoritative lobby snapshot을 Common Game Shell roster와 room label에 연결했다.
