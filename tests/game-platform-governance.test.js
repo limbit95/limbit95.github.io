@@ -272,9 +272,9 @@ test("document authority links are enforced only when the rulebook exists", () =
     registry: [],
     dbTestFiles: [],
     documents: {
-      "docs/game-platform-development-rules.md": "rules\n체크포인트 기록하자",
-      "AGENTS.md": "rules\n체크포인트 기록하자",
-      "games/README.md": "rules\n체크포인트 기록하자",
+      "docs/game-platform-development-rules.md": "rules\n기능 체크포인트 기록하자",
+      "AGENTS.md": "rules\n기능 체크포인트 기록하자",
+      "games/README.md": "rules\n기능 체크포인트 기록하자",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
@@ -282,8 +282,8 @@ test("document authority links are enforced only when the rulebook exists", () =
   assert.equal(errors.length, 4);
 });
 
-test("platform checkpoint command stays consistent across command entrypoints", () => {
-  const command = "체크포인트 기록하자";
+test("functional checkpoint command stays consistent across functional entrypoints", () => {
+  const command = "기능 체크포인트 기록하자";
 
   assert.deepEqual(validatePlatformDocumentPolicy({
     registry: [],
@@ -309,28 +309,70 @@ test("platform checkpoint command stays consistent across command entrypoints", 
     },
   });
   assert.equal(missingCommand.length, 1);
-  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform DEVELOPMENT\.md checkpoint command/u);
-
+  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform functional checkpoint command/u);
 });
 
-test("platform entrypoints preserve the manual UI decision review lifecycle", () => {
-  const checkpoint = "체크포인트 기록하자";
+test("design checkpoint command stays consistent across design entrypoints", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
   const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
 
   const documents = {
     "docs/game-platform-development-rules.md": [
       "> **문서 분류:** CURRENT",
       "docs/game-platform-ui-rules.md",
-      checkpoint,
+      functionCommand,
+      designCommand,
       lifecycle,
     ].join("\n"),
     "docs/game-platform-ui-rules.md": [
       "> **문서 분류:** CURRENT",
       "docs/game-platform-development-rules.md",
+      designCommand,
       lifecycle,
     ].join("\n"),
-    "AGENTS.md": [checkpoint, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
-    "games/README.md": [checkpoint, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+  };
+
+  assert.deepEqual(validatePlatformDocumentPolicy({ registry: [], documents }), []);
+
+  const missingDesignCommand = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      ...documents,
+      "docs/game-platform-ui-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-development-rules.md",
+        lifecycle,
+      ].join("\n"),
+    },
+  });
+  assert.equal(missingDesignCommand.length, 1);
+  assert.match(missingDesignCommand[0], /game-platform-ui-rules\.md must identify the Game Platform design checkpoint command/u);
+});
+
+test("platform entrypoints preserve the manual UI decision review lifecycle", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+
+  const documents = {
+    "docs/game-platform-development-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-ui-rules.md",
+      functionCommand,
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "docs/game-platform-ui-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-development-rules.md",
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
   };
 
   assert.deepEqual(validatePlatformDocumentPolicy({ registry: [], documents }), []);
@@ -339,7 +381,7 @@ test("platform entrypoints preserve the manual UI decision review lifecycle", ()
     registry: [],
     documents: {
       ...documents,
-      "AGENTS.md": [checkpoint, "UI_DECISIONS.md"].join("\n"),
+      "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md"].join("\n"),
     },
   });
   assert.equal(missingManualReview.length, 1);
