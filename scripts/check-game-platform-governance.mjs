@@ -10,7 +10,8 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
-const DEVELOPMENT_CHECKPOINT_TRIGGER = "게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.";
+const DEVELOPMENT_CHECKPOINT_TRIGGER = "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.";
+const DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD = "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.";
 const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
   "games/README.md",
@@ -138,7 +139,12 @@ export function validatePlatformDocumentPolicy({
       const content = documents[filename];
       if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_TRIGGER)) {
         errors.push(
-          `${filename} must use the canonical Game Platform DEVELOPMENT.md checkpoint trigger: ${DEVELOPMENT_CHECKPOINT_TRIGGER}`,
+          `${filename} must use the canonical Game Platform DEVELOPMENT.md user checkpoint trigger: ${DEVELOPMENT_CHECKPOINT_TRIGGER}`,
+        );
+      }
+      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD)) {
+        errors.push(
+          `${filename} must preserve the canonical Game Platform DEVELOPMENT.md lifecycle update rule: ${DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD}`,
         );
       }
     }

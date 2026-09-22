@@ -15,7 +15,8 @@
 - 신규 게임은 runtime 구현 전에 `games/GAME_SPEC_TEMPLATE.md`와 `games/UI_DESIGN_TEMPLATE.md`를 기준으로 `games/<game-id>/GAME_SPEC.md`와 `games/<game-id>/UI_DESIGN.md`를 만들고, 게임 규칙·제품 범위·상태 머신·플랫폼 경계뿐 아니라 원본 디자인 조사·Visual Identity·독립 페이지 경험·자산 사용 경계·UI 구현 계획을 먼저 정리합니다.
 - `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`만 존재하는 bootstrap 디렉터리는 미완성 게임 노출을 막기 위해 Registry 등록 전 상태로 둘 수 있습니다. runtime 파일을 추가하는 순간 Registry 규칙이 적용됩니다.
 - 각 platform-native 게임은 `GAME_SPEC.md`를 기능 설계 기준, `UI_DESIGN.md`를 UI/presentation 설계 기준, `DEVELOPMENT.md`를 두 설계의 실제 구현 진행상태를 추적하는 인수인계 문서로 관리합니다.
-- 게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다. 이 표현이 명시된 경우에만 사용자 요청을 repository checkpoint 명령으로 해석해 해당 `DEVELOPMENT.md`를 갱신·commit합니다. `디벨롭 파일에`가 없는 일반적인 새 채팅용 정리·문서·요약 요청은 이 규칙의 checkpoint 트리거가 아닙니다.
+- 사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다. `디벨롭 파일에`를 단순 인용·예시로 언급하거나 부정한 경우는 트리거가 아니며, 이 표현이 실제 기록 대상으로 지정된 경우에만 해당 `DEVELOPMENT.md`를 갱신·commit합니다. `디벨롭 파일에`가 없는 일반적인 새 채팅용 정리·문서·요약 요청도 repository checkpoint 명령으로 해석하지 않습니다.
+- `디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.
 - 게임 규칙, 턴 상태 머신, 승패 조건, 게임별 Visual Identity·레이아웃·애니메이션은 각 게임에 남겨 둡니다.
 - 멀티플레이 게임은 게임 종료 후 동일 room/player context에서 재대결 준비 상태로 전환하고, 참여자 준비 완료 후 방장이 다시 시작할 수 있는 흐름을 기본 제품 요구사항으로 설계합니다. 내부 RPC/adapter 공통화는 별도 근거 없이 강제하지 않습니다.
 

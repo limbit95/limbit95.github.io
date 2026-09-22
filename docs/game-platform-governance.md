@@ -68,7 +68,13 @@ workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바
 
 Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
 
-또한 사용자 명령을 repository checkpoint로 해석하는 규칙이 문서마다 달라지는 것을 막기 위해 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md`가 동일한 canonical trigger 문장 `게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.`을 유지하는지 검사한다. checkpoint 명령의 최종 의미는 Development Rules가 소유하며, DB/UI/HISTORY 문서는 이 명령 범위를 별도로 재정의하지 않는다.
+또한 사용자 명령을 repository checkpoint로 해석하는 규칙이 문서마다 달라지거나, 사용자 트리거가 기존 lifecycle 갱신 규칙을 침범하는 것을 막기 위해 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md`가 아래 두 canonical 문장을 모두 유지하는지 검사한다.
+
+> 사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.
+>
+> `디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.
+
+checkpoint 명령 해석의 최종 의미는 Development Rules가 소유하며, DB/UI/HISTORY 문서는 이 사용자 명령 트리거를 별도로 재정의하지 않는다.
 
 세 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
 

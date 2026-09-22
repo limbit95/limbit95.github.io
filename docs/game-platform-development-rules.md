@@ -199,9 +199,13 @@ games/<game-id>/DEVELOPMENT.md
 
 ### MUST: 사용자가 "디벨롭 파일에" 진행 기록을 요청할 때
 
-게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.
+사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.
 
-이 절이 checkpoint 명령 해석의 최종 기준이며, `AGENTS.md`와 `games/README.md`는 이 문장을 동일하게 요약한다. 다른 Game Platform CURRENT 문서는 이 트리거 범위를 별도로 넓히거나 다른 표현으로 재정의하지 않는다.
+`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.
+
+여기서 `실제 기록 대상으로 지정`은 `새로운 채팅방에서 이어서 작업하게 디벨롭 파일에 기록해줘`처럼 `디벨롭 파일에`를 기록 목적지로 지정하는 긍정적 지시를 뜻한다. 단순 인용·예시·설명이나 `디벨롭 파일에 기록하지 말고 채팅으로 정리해줘`처럼 명시적으로 부정한 문장은 repository checkpoint 트리거가 아니다.
+
+이 절이 **사용자 요청을 repository checkpoint 명령으로 해석하는 기준**의 최종 권위이며, `AGENTS.md`와 `games/README.md`는 위 두 canonical 문장을 동일하게 유지한다. 다른 Game Platform CURRENT 문서는 이 사용자 명령 트리거를 별도로 넓히거나 다른 표현으로 재정의하지 않는다.
 
 대표 명령은 다음과 같다.
 
@@ -223,6 +227,7 @@ games/<game-id>/DEVELOPMENT.md
 
 MUST NOT:
 
+- `디벨롭 파일에`가 실제 기록 대상으로 지정되지 않은 단순 인용·예시·설명·부정 요청을 repository checkpoint 명령으로 해석하지 않는다.
 - `디벨롭 파일에`라는 표현이 없는 `새로운 채팅방에서 이어서 작업하게 정리해줘`, `여기까지 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 같은 일반 요청을 자동으로 repository checkpoint 명령으로 확대 해석하지 않는다.
 - 반대로 `디벨롭 파일에`가 명시된 요청을 채팅 요약, writing block, 일반 문서 작성만으로 완료 처리하지 않는다. 반드시 해당 게임의 `DEVELOPMENT.md`를 실제로 갱신하고 commit한다.
 
