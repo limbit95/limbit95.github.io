@@ -127,6 +127,11 @@
 
 ## Current Work
 
+- 카드 공개가 완료된 뒤 브라우저 최소화/다른 탭 이동 후 복귀하면 동일 deal animation이 드물게 다시 재생되는 현상을 추적했습니다.
+- 공통 reconnect trigger가 `visibilitychange` 복귀 시 authoritative snapshot refresh를 수행하며, presentation state가 lifecycle 과정에서 재구성될 경우 동일 snapshot을 이미 소비했다는 별도 기록이 없던 것이 원인이었습니다.
+- `roomId:version:currentCard:deckRemaining` 기반 `lastSettledDealKey`를 추가했습니다. deal landing 완료 또는 초기 PLAYING snapshot 표시 시 key를 settled로 기록하고, 이후 같은 authoritative deal identity는 presentation transition으로 다시 만들지 않습니다.
+- settled deal key는 단순 controller dispose/visibility refresh에서는 초기화하지 않아 같은 페이지 lifecycle 내 focus 복귀 재생을 차단합니다.
+
 - 간헐적으로 TAKE 카드가 안착 직후 사라지거나 다음 TAKE에서 직전 카드가 다시 숨겨지는 race condition을 추적했습니다.
 - 원인은 `takeByViewer` effect가 카드 landing 이후에도 다음 deal 완료까지 유지되어, 동일 snapshot 재렌더가 들어오면 개인 패널이 다시 pre-landing transient state로 생성되는 것이었습니다.
 - presentation effect에 `takeCardLanded` / `takeChipsLanded`를 분리하고, 각 구성요소가 실제 landing한 순간부터는 authoritative final hand/chip state를 사용하도록 수정했습니다.

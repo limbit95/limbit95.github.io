@@ -50,6 +50,7 @@ let boardAvatarLoadingIds = new Set();
 let boardPresentationState = null;
 let boardPresentationEffect = null;
 let pendingTakePresentation = null;
+let lastSettledDealKey = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -762,6 +763,33 @@ function commitCenterChipLanding(board) {
   container.classList.toggle("no-thanks-center-chips--empty", count === 0);
 }
 
+
+function dealPresentationKey(state) {
+  if (
+    !state?.roomId
+    || !Number.isInteger(Number(state.version))
+    || !Number.isInteger(Number(state.currentCard))
+  ) {
+    return null;
+  }
+  return [
+    state.roomId,
+    Number(state.version),
+    Number(state.currentCard),
+    Number(state.deckRemaining) || 0,
+  ].join(":");
+}
+
+function markDealSettled(state) {
+  const key = dealPresentationKey(state);
+  if (key) lastSettledDealKey = key;
+}
+
+function isDealAlreadySettled(state) {
+  const key = dealPresentationKey(state);
+  return Boolean(key && key === lastSettledDealKey);
+}
+
 function readBoardTransitionEffects(view) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
   const current = {
@@ -813,6 +841,7 @@ function readBoardTransitionEffects(view) {
     || current.gamePhase !== "PLAYING"
   ) {
     boardPresentationEffect = null;
+    if (current.gamePhase === "PLAYING") markDealSettled(current);
     return Object.freeze({
       dealCard: false,
       chipFromPlayerId: null,
@@ -820,7 +849,8 @@ function readBoardTransitionEffects(view) {
     });
   }
 
-  const dealCard = Number.isInteger(previous.currentCard)
+  const dealCard = !isDealAlreadySettled(current)
+    && Number.isInteger(previous.currentCard)
     && Number.isInteger(current.currentCard)
     && previous.currentCard !== current.currentCard
     && Number(current.deckRemaining) < Number(previous.deckRemaining);
@@ -844,6 +874,7 @@ function readBoardTransitionEffects(view) {
     ? {
       roomId: current.roomId,
       version: current.version,
+      dealKey: dealCard ? dealPresentationKey(current) : null,
       dealCard,
       chipFromPlayerId,
       chipPreviousCount,
@@ -1289,6 +1320,9 @@ async function animateTakeChipsToPanel(presentation, effect) {
 
 function completeBoardPresentationEffect(effect) {
   if (!effect) return;
+  if (effect.dealCard && effect.dealKey) {
+    lastSettledDealKey = effect.dealKey;
+  }
   effect.running = false;
   effect.completed = true;
 }

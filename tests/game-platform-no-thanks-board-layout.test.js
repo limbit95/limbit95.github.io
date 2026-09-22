@@ -164,6 +164,15 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /running:\s*false[\s\S]*?completed:\s*false/u);
   assert.match(runtime, /takeCardLanded:\s*false/u);
   assert.match(runtime, /takeChipsLanded:\s*false/u);
+  assert.match(runtime, /function dealPresentationKey/u);
+  assert.match(runtime, /let lastSettledDealKey = null/u);
+  assert.match(runtime, /roomId,[\s\S]*?Number\(state\.version\),[\s\S]*?Number\(state\.currentCard\),[\s\S]*?Number\(state\.deckRemaining\)/u);
+  assert.match(runtime, /function markDealSettled/u);
+  assert.match(runtime, /function isDealAlreadySettled/u);
+  assert.match(runtime, /const dealCard = !isDealAlreadySettled\(current\)/u);
+  assert.match(runtime, /dealKey: dealCard \? dealPresentationKey\(current\) : null/u);
+  assert.match(runtime, /lastSettledDealKey = effect\.dealKey/u);
+  assert.match(runtime, /current\.gamePhase === "PLAYING"\) markDealSettled\(current\)/u);
   assert.match(runtime, /function completeBoardPresentationEffect/u);
   assert.match(runtime, /function runDealPresentation/u);
   assert.match(runtime, /effect\?\.running === true/u);
