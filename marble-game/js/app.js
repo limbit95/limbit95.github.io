@@ -405,6 +405,8 @@ function eventText(state, event) {
     case "EVENT_DRAWN": return `${playerLabel} · ${event.label}`;
     case "REST_ASSIGNED": return `${playerLabel} · ${event.skipTurns}턴 휴식`;
     case "TURN_SKIPPED": return `${playerLabel} · 휴식으로 턴 건너뜀`;
+    case "AUCTION_STARTING": return "경매 시작 준비 · 첫 입찰자 추첨";
+    case "AUCTION_DECISIVE_BID": return `${playerLabel} · 결정적 입찰 ${money(event.amount)}`;
     case "CHOICE_DECLINED": return `${playerLabel} · 선택 건너뜀`;
     case "PLAYER_BANKRUPT": return `${playerLabel} · 파산`;
     case "GAME_FINISHED": {
