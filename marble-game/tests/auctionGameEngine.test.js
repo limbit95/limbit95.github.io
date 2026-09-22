@@ -224,11 +224,11 @@ test("competitive bid timeout still automatically passes the current participant
 
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.throws(
-    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 17_099),
+    () => reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_899),
     /deadline has not expired/i,
   );
 
-  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 17_100);
+  state = reduce(state, ACTION_TYPES.AUCTION_BID_TIMEOUT, null, {}, 22_900);
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.boardState.properties.singapore.ownerId, "b");
   assert.equal(state.lastEvents.some((event) => (
