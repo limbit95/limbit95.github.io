@@ -344,8 +344,9 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - `REFUSE_CARD` 연출은 행동 플레이어 avatar 중심에서 작은 red chip이 실제 중앙 chip cluster 위치로 이동하도록 렌더 후 geometry를 측정합니다.
 - snapshot 반영 직후 `busy=false`로 다시 렌더되는 같은-version 화면이 animation DOM을 제거하지 않도록 presentation effect를 최종 DOM의 motion 시작 시점까지 보존합니다.
 - 중앙 chip count는 1개 이상일 때만 표시하며, 0개 상태는 `NO CHIP`과 refuse action만 남깁니다.
-- next-card reveal은 draw deck의 기존 visual layer를 숨기지 않습니다. 덱 layer 수는 `getNoThanksDeckVisualCount()`의 남은 카드 단계 기준으로만 줄어듭니다. 공개 연출은 현재 렌더된 덱의 최상단 카드 실제 위치와 크기를 출발점으로 삼아 별도의 moving card가 그 위에서 떠서 오른쪽 current-card 위치까지 이동하며 뒤집히도록 합니다.
+- next-card reveal은 draw deck의 visual layer를 건드리지 않고, The Game과 동일한 handoff 원칙을 사용합니다. 현재 렌더된 덱 최상단 카드 위치에서 별도의 fixed flight card를 생성해 경로 이동과 3D flip을 독립 수행하고, 도착 프레임에서 실제 current-card를 노출한 뒤 flight card를 짧게 settle/fade하여 끊김 없는 연결을 만듭니다. 덱 layer 수는 `getNoThanksDeckVisualCount()`의 남은 카드 단계 규칙으로만 줄어듭니다.
 - refuse chip flight는 이동 중 거의 완전한 opacity를 유지하고 26px token / 약 780ms 경로로 조정해 출발 avatar부터 center pile까지 시선으로 추적할 수 있게 합니다.
+- refuse 결과 snapshot이 먼저 도착해도 중앙 pile/count는 flight가 끝날 때까지 직전 개수를 유지하고, chip이 도착한 animation end 시점에만 최종 pile/count로 handoff합니다.
 - PLAYING gameplay command는 중복 실행 방지를 위한 busy lock은 유지하되 RPC 전 busy-only 전체 render는 생략하고, authoritative result snapshot에 `busy=false`를 함께 적용해 성공 경로를 한 번의 전체 render로 줄입니다. 클릭한 카드/칩 버튼은 DOM에서 즉시 disabled 처리합니다.
 - 다음 카드 공개는 `The Game`의 card flight 원리처럼 이동 경로와 3D front/back face를 분리하고, draw deck 위치에서 중앙까지 이동하며 `rotateY`로 뒷면에서 앞면으로 뒤집히는 연출을 사용합니다.
 - 다른 플레이어 공개 카드 popover는 후속 Phase E로 유지합니다. Phase F 중 `REFUSE_CARD` 시 직전 active seat에서 중앙 칩 더미로 칩이 이동하는 연출과 `TAKE_CARD` 후 draw deck에서 새 공개 카드가 들어오는 연출은 구현했고, 카드/중앙 칩이 획득 플레이어 쪽으로 이동하는 추가 연출은 후속으로 남깁니다.
