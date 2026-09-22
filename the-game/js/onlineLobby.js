@@ -418,6 +418,9 @@ function subscribeCurrentLobby() {
 function openLobby(nextSnapshot, message = "") {
   snapshot = nextSnapshot;
   lobbyOpen = true;
+  document.dispatchEvent(new CustomEvent("the-game:lobby-entered", {
+    detail: { mode: "online-lobby" },
+  }));
   views.online.hidden = true;
   views.lobby.hidden = false;
   setMessage(views.onlineMessage);
