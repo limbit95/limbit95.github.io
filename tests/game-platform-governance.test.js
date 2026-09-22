@@ -37,6 +37,7 @@ function gameSpecDocument() {
     "## Validation Plan",
     "## Open Questions / Deferred",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
     "DEVELOPMENT.md",
   ].join("\n");
 }
@@ -57,7 +58,21 @@ function uiDesignDocument() {
     "## Validation Checklist",
     "## Open Questions / Deferred",
     "GAME_SPEC.md",
+    "UI_DECISIONS.md",
     "DEVELOPMENT.md",
+  ].join("\n");
+}
+
+function uiDecisionDocument() {
+  return [
+    "## Current Design Track",
+    "## Decision Log",
+    "## Superseded / Rejected",
+    "## Validation History",
+    "## Open Follow-up",
+    "GAME_SPEC.md",
+    "DEVELOPMENT.md",
+    "UI_DESIGN.md",
   ].join("\n");
 }
 
@@ -75,6 +90,7 @@ function developmentDocument() {
     "## Known Issues / Deferred",
     "GAME_SPEC.md",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
   ].join("\n");
 }
 
@@ -95,6 +111,7 @@ function releasedDevelopmentDocument({
     "## Known Issues / Deferred",
     "GAME_SPEC.md",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
     ...(includeRelease ? ["## Release — 2026-09-21"] : []),
   ].join("\n");
 }
@@ -310,8 +327,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
     ],
     baseGameDirectories: [],
     headGameDirectories: ["cant-stop"],
@@ -320,8 +338,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   const errors = validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
       { status: "A", path: "games/cant-stop/index.html" },
     ],
     baseGameDirectories: [],
@@ -332,8 +351,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
       { status: "A", path: "games/cant-stop/index.html" },
       { status: "M", path: "games/shared/registry.js" },
     ],
@@ -446,7 +466,7 @@ test("Game Platform rules codify release closeout and post-release feedback loop
 });
 
 
-test("repository state requires UI_DESIGN with required sections when the UI rulebook exists", () => {
+test("repository state requires UI_DESIGN and UI_DECISIONS with required sections when the UI rulebook exists", () => {
   const documents = {
     "docs/game-platform-development-rules.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
@@ -455,6 +475,7 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -463,9 +484,10 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     registry: [],
     dbTestFiles: [],
     gameFiles: {
-      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md", "UI_DECISIONS.md"],
     },
     gameSpecDocuments: { "sample-game": gameSpecDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
     developmentDocuments: { "sample-game": developmentDocument() },
     documents,
   };
@@ -482,9 +504,24 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
   });
   assert.match(incomplete.join("\n"), /UI_DESIGN\.md is missing required section/u);
 
+  const missingDecisions = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: {},
+  });
+  assert.match(missingDecisions.join("\n"), /requires games\/sample-game\/UI_DECISIONS\.md/u);
+
+  const incompleteDecisions = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": "## Decision Log" },
+  });
+  assert.match(incompleteDecisions.join("\n"), /UI_DECISIONS\.md is missing required section/u);
+
   assert.deepEqual(validateRepositoryState({
     ...base,
     uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
   }), []);
 });
 
@@ -497,6 +534,7 @@ test("UI rulebook authority links are enforced across game entry documents and t
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -536,7 +574,7 @@ test("Game Platform rules require multiplayer rematch without prematurely forcin
   assert.match(rules, /동일한 RPC 이름/u);
 });
 
-test("UI rulebook requires design research, independent page identity, and maintained UI_DESIGN documents", () => {
+test("UI rulebook requires design research plus canonical UI_DESIGN and UI_DECISIONS records", () => {
   const uiRules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
     "utf8",
@@ -545,12 +583,13 @@ test("UI rulebook requires design research, independent page identity, and maint
   assert.match(uiRules, /신규 게임 개발 전 UI 조사/u);
   assert.match(uiRules, /독립적인 디지털 공간/u);
   assert.match(uiRules, /games\/<game-id>\/UI_DESIGN\.md/u);
+  assert.match(uiRules, /games\/<game-id>\/UI_DECISIONS\.md/u);
   assert.match(uiRules, /저작권·상표·라이선스/u);
-  assert.match(uiRules, /DEVELOPMENT\.md/u);
+  assert.match(uiRules, /현재 canonical 디자인 기준은 `UI_DESIGN\.md`/u);
 });
 
 
-test("development handoff rules track GAME_SPEC and UI_DESIGN implementation status", () => {
+test("development handoff stays functional while UI decisions track design progress", () => {
   const rules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
     "utf8",
@@ -560,13 +599,12 @@ test("development handoff rules track GAME_SPEC and UI_DESIGN implementation sta
     "utf8",
   );
 
-  assert.match(rules, /GAME_SPEC\.md.*UI_DESIGN\.md.*실제 구현 상태/us);
-  assert.match(rules, /UI\/presentation.*Validation/su);
-  assert.match(rules, /Visual Identity, page\/layout, 핵심 component, motion, responsive/u);
+  assert.match(rules, /DEVELOPMENT\.md.*현재 기능 개발 상태/us);
+  assert.match(rules, /UI_DECISIONS\.md.*디자인 개발 진행/su);
   assert.match(rules, /UI_DESIGN\.md.*Validation Checklist/u);
-  assert.match(template, /UI \/ presentation:/u);
-  assert.match(template, /UI \/ browser:/u);
-  assert.match(template, /미확정 asset\/license/u);
+  assert.match(template, /Design track reference:/u);
+  assert.match(template, /UI_DECISIONS\.md/u);
+  assert.doesNotMatch(template, /UI \/ presentation:/u);
 });
 
 
@@ -579,6 +617,7 @@ test("game-local documents must cross-reference the other design and handoff doc
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -587,10 +626,11 @@ test("game-local documents must cross-reference the other design and handoff doc
     registry: [],
     dbTestFiles: [],
     gameFiles: {
-      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md", "UI_DECISIONS.md"],
     },
     gameSpecDocuments: { "sample-game": gameSpecDocument() },
     uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
     developmentDocuments: { "sample-game": developmentDocument() },
     documents,
   };
@@ -620,6 +660,14 @@ test("game-local documents must cross-reference the other design and handoff doc
     },
   });
   assert.match(brokenDevelopment.join("\n"), /DEVELOPMENT\.md must reference GAME_SPEC\.md/u);
+
+  const brokenDecisions = validateRepositoryState({
+    ...base,
+    uiDecisionDocuments: {
+      "sample-game": uiDecisionDocument().replace("UI_DESIGN.md", ""),
+    },
+  });
+  assert.match(brokenDecisions.join("\n"), /UI_DECISIONS\.md must reference UI_DESIGN\.md/u);
 });
 
 test("platform rules define document authority and current-game impact auditing", () => {
@@ -628,10 +676,11 @@ test("platform rules define document authority and current-game impact auditing"
     "utf8",
   );
 
-  assert.match(rules, /게임별 세 문서의 권위와 충돌 해결/u);
+  assert.match(rules, /게임별 네 문서의 권위와 충돌 해결/u);
   assert.match(rules, /GAME_SPEC\.md.*기능 lifecycle/su);
+  assert.match(rules, /DEVELOPMENT\.md.*기능 구현.*현재 Phase/su);
   assert.match(rules, /UI_DESIGN\.md.*presentation/su);
-  assert.match(rules, /DEVELOPMENT\.md.*현재 진행상태/su);
+  assert.match(rules, /UI_DECISIONS\.md.*디자인 개발 진행/su);
   assert.match(rules, /COMPLIANT/u);
   assert.match(rules, /MIGRATION_REQUIRED/u);
   assert.match(rules, /NOT_APPLICABLE/u);
