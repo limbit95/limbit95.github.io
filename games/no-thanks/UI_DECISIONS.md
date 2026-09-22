@@ -1,7 +1,7 @@
 # No Thanks! UI Decisions
 
 > 이 문서는 No Thanks!의 디자인 개발 진행·변경 의사결정 이력을 보존합니다.
-> `UI_DESIGN.md`는 No Thanks!의 초기 디자인 baseline입니다. 개발 시작 후 확정된 이 문서의 최신 non-superseded 결정이 같은 항목에서는 우선하며, 현재 유효 디자인은 baseline + decision overrides로 해석합니다. 기능 기준은 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
+> `UI_DESIGN.md`는 UI_DECISIONS 체계 도입 시점의 No Thanks! **adoption baseline**입니다. 개발 시작 후 확정된 이 문서의 최신 non-superseded 결정이 같은 항목에서는 우선하며, 현재 유효 디자인은 baseline + decision overrides로 해석합니다. 기능 기준은 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 > 공통 UI 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 >
 > 이 문서 체계 도입 전 No Thanks!는 여러 UI 수정과 일부 미병합/종료 PR을 거쳤으므로 과거 세부 결정이 완전하게 보존되어 있지 않습니다. 이 baseline에서 누락된 과거 결정을 임의로 복원하지 않으며, 별도 복원 작업에서 실제 main·과거 PR/commit·사용자 결정과 대조해 추가합니다.
@@ -13,9 +13,9 @@
 - Current UI phase / scope: Board UI Phase A–D 이후 detail polish / Phase E 후보는 잠시 중단
 - Active branch: main
 - Last updated: 2026-09-23
-- Initial design baseline: `UI_DESIGN.md`
+- Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
 - Active overrides: 과거 세부 결정 복원 전까지 main runtime에 반영된 사용자 수정은 보존하며, 확인된 후속 결정은 이 문서에 추가
-- Next design work: UI 작업 재개 전 과거 세부 디자인 결정 복원 여부를 검토하고, 이후 다른 플레이어 공개 획득 카드 popover 등 남은 UI 항목을 진행합니다.
+- Next design work: UI 작업 재개 전 과거 세부 디자인 결정 복원 여부를 검토하고, 이후 다른 플레이어 공개 획득 카드 popover 등 남은 UI 항목을 진행합니다. UI Phase를 재개하기 전 이 문서의 최신 decision과 adoption baseline을 함께 확인합니다.
 
 ## Decision Log
 
