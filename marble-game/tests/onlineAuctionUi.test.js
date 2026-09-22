@@ -27,6 +27,10 @@ const decisiveBidSql = readFileSync(
   new URL("../../supabase/marble/20260922041409_marble_auction_decisive_bid_feedback.sql", import.meta.url),
   "utf8",
 );
+const auctionStartSql = readFileSync(
+  new URL("../../supabase/marble/20260922114345_marble_auction_start_roulette.sql", import.meta.url),
+  "utf8",
+);
 
 function state(pendingChoice) {
   return {
@@ -147,7 +151,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /AUCTION_BID_PLACED/);
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r3/);
+  assert.match(uiSource, /createAuctionIntroPresenter/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r1/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
@@ -161,6 +167,9 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(cssSource, /auctionBidPaddleRaise/);
   assert.match(cssSource, /auctionBidValueCount/);
   assert.match(cssSource, /auctionSurgeBidEvent/);
+  assert.match(cssSource, /\.auction-intro/);
+  assert.match(cssSource, /\.auction-roulette/);
+  assert.match(cssSource, /auctionRouletteSpin/);
   assert.match(cssSource, /큰 폭의 입찰/);
   assert.match(cssSource, /content: " · 입찰"/);
   assert.match(cssSource, /body\[data-play-mode="window"\] \.important-notice/);
@@ -180,6 +189,15 @@ test("server migration keeps every competitive bid turn at 15 seconds", () => {
   assert.match(bidTimingSql, /private\.marble_auction_v3_finalize_vote/);
   assert.match(bidTimingSql, /public\.marble_auction_bid/);
   assert.match(bidTimingSql, /public\.marble_advance_auction_deadline/);
+});
+
+test("server Auction start migration randomizes the first bidder and gates bidding until roulette completes", () => {
+  assert.match(auctionStartSql, /AUCTION_STARTING/);
+  assert.match(auctionStartSql, /order by random\(\)/);
+  assert.match(auctionStartSql, /interval '2\.4 seconds'/);
+  assert.match(auctionStartSql, /interval '5\.8 seconds'/);
+  assert.match(auctionStartSql, /v_starts_at \+ interval '15 seconds'/);
+  assert.match(auctionStartSql, /AUCTION_NOT_STARTED/);
 });
 
 test("server decisive-bid migration settles at the submitted amount and emits feedback metadata", () => {
