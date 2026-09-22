@@ -12,6 +12,7 @@ const GAME_BGM_CATALOG = Object.freeze({
     attribution: '"Invariance" Kevin MacLeod (incompetech.com)',
     modified: false,
     defaultVolume: 0.22,
+    volumeMultiplier: 2,
     loop: true,
   }),
 });
