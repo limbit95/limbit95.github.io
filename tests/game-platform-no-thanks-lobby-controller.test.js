@@ -17,6 +17,8 @@ class FakeDocument extends EventTarget {
 
 function snapshot({
   version = 0,
+  roomId = "room-1",
+  roomCode = "ABC234",
   status = "waiting",
   readyA = false,
   readyB = false,
@@ -30,8 +32,8 @@ function snapshot({
   return {
     version,
     room: {
-      id: "room-1",
-      roomCode: "ABC234",
+      id: roomId,
+      roomCode,
       hostUserId: "host",
       status,
       maxPlayers: 7,
@@ -79,7 +81,10 @@ function snapshot({
   };
 }
 
-function fakeAdapter({ activeSnapshot = null } = {}) {
+function fakeAdapter({
+  activeSnapshot = null,
+  createdSnapshot = null,
+} = {}) {
   const calls = [];
   let currentSnapshot = activeSnapshot;
   let invalidationListener = null;
@@ -107,7 +112,7 @@ function fakeAdapter({ activeSnapshot = null } = {}) {
     },
     async createRoom(input) {
       calls.push(["createRoom", input]);
-      currentSnapshot = snapshot({ version: 0 });
+      currentSnapshot = createdSnapshot ?? snapshot({ version: 0 });
       return currentSnapshot;
     },
     async joinRoom(input) {
@@ -589,4 +594,51 @@ test("No Thanks! rematch policy closes the result room and creates a fresh room"
   );
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
   assert.equal(controller.current().snapshot.version, 0);
+});
+
+
+test("No Thanks! rematch ignores a late snapshot from the closed result room", async () => {
+  const oldResult = snapshot({
+    version: 40,
+    roomId: "room-old",
+    roomCode: "OLD234",
+    status: "playing",
+    gamePhase: "GAME_OVER",
+    finalScores: {
+      host: 8,
+      "guest-a": 10,
+      "guest-b": 12,
+    },
+    winners: ["host"],
+  });
+  const freshRoom = snapshot({
+    version: 0,
+    roomId: "room-new",
+    roomCode: "NEW234",
+  });
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: oldResult,
+    createdSnapshot: freshRoom,
+  });
+  const controller = createController(roomAdapter);
+
+  await controller.initialize();
+
+  const resolveOldRefresh = roomAdapter.deferNextSnapshot();
+  const oldRefresh = controller.refresh("old-result-race");
+  await new Promise((resolve) => setImmediate(resolve));
+
+  await controller.createRematchRoom();
+
+  assert.equal(controller.current().snapshot.room.id, "room-new");
+  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
+
+  resolveOldRefresh(oldResult);
+  await oldRefresh;
+
+  assert.equal(controller.current().snapshot.room.id, "room-new");
+  assert.equal(controller.current().snapshot.room.roomCode, "NEW234");
+  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
 });
