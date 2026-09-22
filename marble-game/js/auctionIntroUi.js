@@ -1,13 +1,8 @@
+import { supabase } from "../../js/supabaseClient.js";
 import { playAuctionStartSound } from "./auctionBidSound.js?v=20260922-r4";
 
-const ROULETTE_COLORS = Object.freeze([
-  "#ff6b6b",
-  "#ffd43b",
-  "#69db7c",
-  "#4dabf7",
-  "#9775fa",
-  "#f783ac",
-]);
+const AVATAR_TTL_SECONDS = 600;
+const avatarUrlCache = new Map();
 
 function timeMs(value) {
   if (value === null || value === undefined) return null;
@@ -17,8 +12,31 @@ function timeMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function findPlayer(state, playerId) {
+  return state?.players?.find((player) => player.id === playerId) ?? null;
+}
+
 function playerName(state, playerId) {
-  return state?.players?.find((player) => player.id === playerId)?.name || playerId || "플레이어";
+  const player = findPlayer(state, playerId);
+  return player?.name || player?.id || "플레이어";
+}
+
+function playerInitial(state, playerId) {
+  return playerName(state, playerId).trim().slice(0, 1).toUpperCase() || "P";
+}
+
+async function signedAvatarUrl(path) {
+  if (!path || !supabase?.storage) return null;
+  if (avatarUrlCache.has(path)) return avatarUrlCache.get(path);
+  try {
+    const { data, error } = await supabase.storage.from("avatars").createSignedUrl(path, AVATAR_TTL_SECONDS);
+    const url = error ? null : (data?.signedUrl ?? null);
+    avatarUrlCache.set(path, url);
+    return url;
+  } catch {
+    avatarUrlCache.set(path, null);
+    return null;
+  }
 }
 
 function createOverlay(documentObject) {
@@ -30,74 +48,85 @@ function createOverlay(documentObject) {
 
   const announce = documentObject.createElement("div");
   announce.className = "auction-intro__announce";
-  const announceEyebrow = documentObject.createElement("span");
-  announceEyebrow.className = "auction-intro__eyebrow";
-  announceEyebrow.textContent = "AUCTION";
+  const eyebrow = documentObject.createElement("span");
+  eyebrow.className = "auction-intro__eyebrow";
+  eyebrow.textContent = "AUCTION";
   const announceTitle = documentObject.createElement("strong");
   announceTitle.textContent = "경매가 곧 시작됩니다!";
   const announceDetail = documentObject.createElement("span");
-  announceDetail.textContent = "첫 입찰자를 정한 뒤 바로 경매를 시작합니다";
-  announce.append(announceEyebrow, announceTitle, announceDetail);
+  announceDetail.textContent = "경매 시작 순서를 정합니다";
+  announce.append(eyebrow, announceTitle, announceDetail);
 
-  const roulette = documentObject.createElement("div");
-  roulette.className = "auction-roulette";
-  roulette.hidden = true;
-  const rouletteTitle = documentObject.createElement("strong");
-  rouletteTitle.className = "auction-roulette__title";
-  rouletteTitle.textContent = "첫 입찰자를 정합니다";
-  const wheelWrap = documentObject.createElement("div");
-  wheelWrap.className = "auction-roulette__wheel-wrap";
-  const pointer = documentObject.createElement("span");
-  pointer.className = "auction-roulette__pointer";
-  pointer.textContent = "▼";
-  const wheel = documentObject.createElement("div");
-  wheel.className = "auction-roulette__wheel";
-  const hub = documentObject.createElement("span");
-  hub.className = "auction-roulette__hub";
-  hub.textContent = "BID";
-  wheel.append(hub);
-  wheelWrap.append(pointer, wheel);
-  const result = documentObject.createElement("span");
-  result.className = "auction-roulette__result";
-  roulette.append(rouletteTitle, wheelWrap, result);
+  const selector = documentObject.createElement("div");
+  selector.className = "auction-selector";
+  selector.hidden = true;
+  const selectorTitle = documentObject.createElement("strong");
+  selectorTitle.className = "auction-selector__title";
+  selectorTitle.textContent = "경매 시작 플레이어 선정";
+  const viewport = documentObject.createElement("div");
+  viewport.className = "auction-selector__viewport";
+  const marker = documentObject.createElement("span");
+  marker.className = "auction-selector__marker";
+  marker.setAttribute("aria-hidden", "true");
+  marker.textContent = "▼";
+  const track = documentObject.createElement("div");
+  track.className = "auction-selector__track";
+  viewport.append(marker, track);
+  const result = documentObject.createElement("strong");
+  result.className = "auction-selector__result";
+  selector.append(selectorTitle, viewport, result);
 
-  const winnerNotice = documentObject.createElement("div");
-  winnerNotice.className = "auction-intro__winner";
-  winnerNotice.hidden = true;
-  const winnerEyebrow = documentObject.createElement("span");
-  winnerEyebrow.className = "auction-intro__eyebrow";
-  winnerEyebrow.textContent = "FIRST BID";
-  const winnerText = documentObject.createElement("strong");
-  winnerNotice.append(winnerEyebrow, winnerText);
-
-  overlay.append(announce, roulette, winnerNotice);
+  overlay.append(announce, selector);
   (documentObject.body ?? documentObject.documentElement).append(overlay);
-  return { overlay, announce, roulette, wheel, result, winnerNotice, winnerText };
+  return { overlay, announce, selector, track, result };
 }
 
-function renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId) {
-  const count = Math.max(1, playerIds.length);
-  const segment = 360 / count;
-  const gradient = playerIds.map((_, index) => {
-    const start = index * segment;
-    const end = (index + 1) * segment;
-    return `${ROULETTE_COLORS[index % ROULETTE_COLORS.length]} ${start}deg ${end}deg`;
-  }).join(", ");
-  elements.wheel.style.background = `conic-gradient(from ${-(segment / 2)}deg, ${gradient})`;
-  elements.wheel.querySelectorAll(".auction-roulette__label").forEach((label) => label.remove());
+function avatarCard(documentObject, state, playerId, repeatedIndex) {
+  const player = findPlayer(state, playerId);
+  const card = documentObject.createElement("div");
+  card.className = "auction-selector__player";
+  card.dataset.playerId = playerId;
+  card.dataset.repeatIndex = String(repeatedIndex);
 
-  playerIds.forEach((playerId, index) => {
-    const angle = index * segment;
-    const label = documentObject.createElement("span");
-    label.className = "auction-roulette__label";
-    label.style.setProperty("--roulette-angle", `${angle}deg`);
-    label.textContent = playerName(state, playerId);
-    elements.wheel.append(label);
-  });
+  const visual = documentObject.createElement("span");
+  visual.className = "auction-selector__avatar";
+  const fallback = documentObject.createElement("span");
+  fallback.className = "auction-selector__avatar-fallback";
+  fallback.textContent = playerInitial(state, playerId);
+  visual.append(fallback);
 
-  const name = playerName(state, openingBidderPlayerId);
-  elements.result.textContent = `${name} · 첫 입찰`;
-  elements.winnerText.textContent = `${name}님이 첫 입찰 순서입니다!`;
+  const name = documentObject.createElement("span");
+  name.className = "auction-selector__name";
+  name.textContent = playerName(state, playerId);
+  card.append(visual, name);
+
+  if (player?.avatarPath) {
+    void signedAvatarUrl(player.avatarPath).then((url) => {
+      if (!url || !card.isConnected) return;
+      const img = documentObject.createElement("img");
+      img.alt = "";
+      img.src = url;
+      img.decoding = "async";
+      visual.prepend(img);
+      fallback.hidden = true;
+    });
+  }
+  return card;
+}
+
+function renderSelector(documentObject, elements, state, playerIds, starterPlayerId) {
+  const loops = 7;
+  const sequence = [];
+  for (let loop = 0; loop < loops; loop += 1) {
+    playerIds.forEach((playerId) => sequence.push(playerId));
+  }
+  sequence.push(starterPlayerId);
+
+  elements.track.replaceChildren(...sequence.map((playerId, index) => (
+    avatarCard(documentObject, state, playerId, index)
+  )));
+  elements.track.style.setProperty("--selector-target-index", String(sequence.length - 1));
+  elements.result.textContent = `${playerName(state, starterPlayerId)}님부터 경매를 시작합니다`;
 }
 
 export function createAuctionIntroPresenter({
@@ -108,9 +137,9 @@ export function createAuctionIntroPresenter({
 } = {}) {
   const elements = createOverlay(documentObject);
   let activeKey = null;
-  let spinningKey = null;
-  let boundaryTimer = null;
+  let animatedKey = null;
   let playedSoundKey = null;
+  let boundaryTimer = null;
 
   function clearBoundary() {
     if (boundaryTimer !== null) clearTimeoutFn?.(boundaryTimer);
@@ -121,25 +150,17 @@ export function createAuctionIntroPresenter({
     clearBoundary();
     elements.overlay.hidden = true;
     elements.overlay.dataset.phase = "";
-    elements.roulette.hidden = true;
-    elements.winnerNotice.hidden = true;
     elements.announce.hidden = false;
+    elements.selector.hidden = true;
   }
 
   function render(state, onBoundary = () => {}) {
     const pending = state?.pendingChoice;
     const auction = pending?.type === "PROPERTY_AUCTION" ? (pending.auction ?? {}) : null;
     const announcementEndsAt = timeMs(auction?.announcementEndsAt ?? pending?.announcementEndsAt);
-    const rouletteStopsAt = timeMs(auction?.rouletteStopsAt ?? pending?.rouletteStopsAt);
-    const winnerNoticeAt = timeMs(auction?.winnerNoticeAt ?? pending?.winnerNoticeAt);
+    const selectorStopsAt = timeMs(auction?.selectorStopsAt ?? pending?.selectorStopsAt);
     const startsAt = timeMs(auction?.startsAt ?? pending?.startsAt);
-    if (
-      !auction
-      || !Number.isFinite(announcementEndsAt)
-      || !Number.isFinite(rouletteStopsAt)
-      || !Number.isFinite(winnerNoticeAt)
-      || !Number.isFinite(startsAt)
-    ) {
+    if (!auction || !Number.isFinite(announcementEndsAt) || !Number.isFinite(selectorStopsAt) || !Number.isFinite(startsAt)) {
       hide();
       activeKey = null;
       return false;
@@ -152,33 +173,31 @@ export function createAuctionIntroPresenter({
     }
 
     const playerIds = [...(auction.participantPlayerIds ?? pending.participantPlayerIds ?? [])];
-    const openingBidderPlayerId = auction.openingBidderPlayerId
-      ?? pending.openingBidderPlayerId
-      ?? playerIds[0]
-      ?? null;
-    const key = `${pending.nodeId}:${startsAt}:${openingBidderPlayerId}`;
+    const starterPlayerId = auction.starterPlayerId ?? pending.starterPlayerId ?? playerIds[0] ?? null;
+    if (!starterPlayerId || playerIds.length < 2) {
+      hide();
+      return false;
+    }
+
+    const key = `${pending.nodeId}:${startsAt}:${starterPlayerId}`;
     const phase = now < announcementEndsAt
       ? "announce"
-      : now < rouletteStopsAt
-        ? "roulette"
-        : now < winnerNoticeAt
-          ? "result"
-          : "winner";
+      : now < selectorStopsAt
+        ? "select"
+        : "result";
 
     if (activeKey !== key) {
       activeKey = key;
-      spinningKey = null;
-      renderWheel(documentObject, elements, state, playerIds, openingBidderPlayerId);
-      elements.wheel.dataset.spinning = "false";
+      animatedKey = null;
+      renderSelector(documentObject, elements, state, playerIds, starterPlayerId);
+      elements.track.dataset.running = "false";
     }
-
-    if (phase === "roulette" && spinningKey !== key) {
-      spinningKey = key;
-      elements.wheel.dataset.spinning = "false";
-      void elements.wheel.offsetWidth;
-      elements.wheel.dataset.spinning = "true";
+    if (phase === "select" && animatedKey !== key) {
+      animatedKey = key;
+      elements.track.dataset.running = "false";
+      void elements.track.offsetWidth;
+      elements.track.dataset.running = "true";
     }
-
     if (playedSoundKey !== key) {
       playedSoundKey = key;
       playAuctionStartSound();
@@ -187,17 +206,14 @@ export function createAuctionIntroPresenter({
     elements.overlay.hidden = false;
     elements.overlay.dataset.phase = phase;
     elements.announce.hidden = phase !== "announce";
-    elements.roulette.hidden = !["roulette", "result"].includes(phase);
-    elements.winnerNotice.hidden = phase !== "winner";
+    elements.selector.hidden = phase === "announce";
 
     clearBoundary();
     const nextBoundary = phase === "announce"
       ? announcementEndsAt
-      : phase === "roulette"
-        ? rouletteStopsAt
-        : phase === "result"
-          ? winnerNoticeAt
-          : startsAt;
+      : phase === "select"
+        ? selectorStopsAt
+        : startsAt;
     boundaryTimer = setTimeoutFn?.(() => {
       boundaryTimer = null;
       onBoundary();
