@@ -300,12 +300,16 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 
 ### 재대결 정책
 
-첫 버전에서는 종료된 room의 game/private/action state를 초기화해 재사용하지 않습니다.
+재대결은 종료된 게임의 참가자와 좌석을 유지한 채 같은 room을 다시 WAITING 상태로 전환합니다.
 
-- 방장만 결과 화면에서 `새 게임 방 만들기`를 선택할 수 있습니다.
-- 기존 결과방을 정상 종료한 뒤 동일한 최대 인원으로 새 room을 생성합니다.
-- 기존 참가자는 새 room code로 다시 참가합니다.
-- 이 방식으로 이전 게임의 version, action id, private deck/counter state가 다음 게임에 섞이지 않도록 경계를 단순하게 유지합니다.
+- 방장만 `GAME_OVER` 결과 화면에서 재대결 준비를 요청할 수 있습니다.
+- `no_thanks_prepare_rematch` RPC가 room lock, host, expected version, GAME_OVER 상태, 기존 turn order 참가자가 모두 active인지 서버에서 검증합니다.
+- 재대결 준비 시 room id / room code / host / active membership / seat는 유지합니다.
+- 모든 active player의 `is_ready`를 false로, 획득 카드를 빈 배열로 초기화합니다.
+- 이전 게임의 private draw deck / excluded cards / counters row를 삭제하고 room `game_state`를 null로 초기화합니다.
+- room은 `waiting`으로 전환되고 version은 증가합니다. 일반 플레이어가 다시 준비 완료하면 기존 `no_thanks_start_game` 계약으로 다음 게임을 시작합니다.
+- 이전 게임의 action 기록은 삭제하지 않고 새 `client_action_id`를 사용해 다음 게임의 action과 구분합니다.
+- 결과 화면에서 이미 나간 참가자가 있으면 같은 멤버 재대결을 허용하지 않고 새 방 생성을 안내합니다.
 
 ## UI / UX Direction
 
@@ -321,7 +325,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 카드 색상은 숫자 구간에 따라 blue / teal / yellow / pink-red 계열을 사용하고 숫자는 왼쪽 상단과 오른쪽 하단에 표시합니다.
 - 개인 패널 카드 hover/focus 시 해당 카드를 위로 올리고 확대하여 겹친 손패에서도 개별 카드를 확인할 수 있게 합니다.
 - 플레이 핵심 액션은 테이블 오브젝트 자체에 연결합니다. 현재 공개 카드를 직접 클릭하면 `TAKE_CARD`, 오른쪽 공개 칩 더미 아래 `칩 1개 내기`를 누르면 `REFUSE_CARD`를 호출하며, 본인 turn/칩 보유 여부에 대한 기존 server-authoritative 가능 조건은 그대로 유지합니다.
-- 게임 규칙, server authority, room version, client action id, 공개/비공개 state 경계, Realtime invalidation, Presence authorization, reconnect, rematch 정책은 UI 개편 때문에 변경하지 않습니다.
+- 게임 규칙, server authority, room version, client action id, 공개/비공개 state 경계, Realtime invalidation, Presence authorization, reconnect 경계는 유지합니다. 재대결 정책은 같은 참가자를 유지하는 same-room WAITING reset으로 명시 변경했습니다.
 - 데스크톱 보드 높이는 별도 660px 상한 근거가 없어 800px 기준으로 확장하고 원형 테이블, 현재 카드, draw deck, 중앙 오브젝트도 같은 방향으로 확대합니다.
 - 테이블 둘레 좌석은 닉네임 텍스트 대신 사이트 공개 프로필의 원형 avatar를 사용합니다. avatar 미설정 또는 signed URL 조회 실패 시 사이트 기본 사람 아이콘을 사용하고 닉네임은 HUD와 접근성 label에서 유지합니다.
 - 중앙 칩이 0개일 때는 가짜 칩에 숫자 0을 표시하지 않고 `NO CHIP` 빈 상태로 표현합니다.
@@ -340,7 +344,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 개인 패널 오른쪽 보조 액션은 한 행에 한 버튼씩 세로로 배치합니다.
 - 개인 패널/보유 카드 영역의 상하 여백을 소폭 늘리고, 보유 카드 hover/focus는 scale/z-index 우선 노출 대신 카드 자체의 `top`만 충분히 위로 이동해 좌상단 숫자가 드러나도록 합니다.
 - 중앙 칩 cluster / 공개 개수 / refuse 버튼 사이의 세로 간격을 테이블 여유 공간에 맞춰 더 분리합니다.
-- 게임 종료 화면에서 방장은 기존 fresh-room rematch 정책을 사용하는 `재대결` 버튼을 직접 사용할 수 있습니다.
+- 게임 종료 화면에서 방장은 `재대결`을 눌러 같은 참가자·좌석을 유지한 WAITING 대기실로 전환할 수 있습니다.
 - `REFUSE_CARD` 연출은 행동 플레이어 avatar 중심에서 작은 red chip이 실제 중앙 chip cluster 위치로 이동하도록 렌더 후 geometry를 측정합니다.
 - snapshot 반영 직후 `busy=false`로 다시 렌더되는 같은-version 화면이 animation DOM을 제거하지 않도록 presentation effect를 최종 DOM의 motion 시작 시점까지 보존합니다.
 - 중앙 chip count는 1개 이상일 때만 표시하며, 0개 상태는 `NO CHIP`과 refuse action만 남깁니다.
@@ -354,7 +358,7 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 사이트 프로필 닉네임을 사용하며 게임 안에서 별도의 닉네임 입력이나 변경 기능을 제공하지 않습니다.
 - 게임 전체 종료는 방장에게만 제공하며, 확인 화면을 거친 뒤 서버가 방장 권한을 다시 검증하고 최종 상태를 변경합니다.
 - 현재 차례 플레이어가 오프라인이면 자동 진행하지 않고 재접속 후 이어지며, 방장이 오프라인이어도 자동 위임 또는 자동 종료가 발생하지 않습니다.
-- 결과 화면의 재대결은 같은 room reset이 아니라 새 room 생성 정책을 유지합니다.
+- 결과 화면의 재대결은 같은 room의 참가자·좌석을 유지하고 ready/game/private state만 초기화하는 정책을 사용합니다.
 
 ## Implementation Plan
 
@@ -417,5 +421,5 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - 특수 카드 확장은 기본 규칙 첫 버전을 출시한 뒤 별도 단계에서 검토합니다.
 - 명시적 leave는 WAITING 또는 GAME_OVER에서만 허용하고 PLAYING 중 비정상 disconnect는 membership을 유지합니다.
 - 방장 비정상 disconnect는 권한 위임이나 자동 종료 없이 재접속을 기다리는 정책으로 확정했습니다. 명시적 `게임 종료`만 방장 전용 서버 액션으로 처리합니다.
-- 재대결은 같은 방을 초기화하지 않고 새 room을 만드는 방식으로 확정했습니다.
+- 재대결은 같은 room에서 기존 참가자·좌석을 유지한 채 WAITING 상태로 초기화하는 방식으로 확정했습니다.
 - 운영 환경에서 초대 기능을 활성화하는 시점은 마이그레이션, 데이터베이스 통합 검증, 실제 멀티플레이 점검 이후로 미룹니다.
