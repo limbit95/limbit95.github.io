@@ -150,7 +150,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-online-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260922-r2", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260922-r3", import.meta.url).href;
   link.dataset.onlineAuctionStyle = "true";
   documentObject.head.append(link);
 }
