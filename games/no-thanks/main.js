@@ -10,6 +10,7 @@ import {
   subscribeAuth,
 } from "../../js/auth.js";
 import { supabase } from "../../js/supabaseClient.js";
+import { getPublicProfiles, getSignedAvatarUrl } from "../../js/api/profiles.js";
 import { el } from "../../js/ui.js";
 import {
   NO_THANKS_LOBBY_VIEW,
@@ -24,10 +25,12 @@ import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksHandOverlap,
+  getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "./boardLayout.js";
 
 const app = document.getElementById("app");
+const DEFAULT_BOARD_AVATAR_URL = "../../assets/images/default-avatar.svg";
 
 const accessGate = createGameAccessGate({
   initialize: initializeAuth,
@@ -41,6 +44,8 @@ let lobbyUserId = null;
 let bootEpoch = 0;
 let boardRoomId = null;
 let seatedPlayerIds = new Set();
+let boardAvatarUrls = new Map();
+let boardAvatarLoadingIds = new Set();
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -52,6 +57,8 @@ function disposeLobbyController() {
   lobbyUserId = null;
   boardRoomId = null;
   seatedPlayerIds = new Set();
+  boardAvatarUrls = new Map();
+  boardAvatarLoadingIds = new Set();
 }
 
 function createAccessNotice({
@@ -288,30 +295,70 @@ function createEntryPanel(state, displayName) {
   ]);
 }
 
-function compactChipCount(count) {
-  const numeric = Number(count);
-  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
-  return Math.min(Math.floor(numeric), 7);
-}
-
 function createChipCluster(count, {
   compact = false,
   label = null,
+  emptyText = "칩 없음",
 } = {}) {
-  const visibleCount = compactChipCount(count);
+  const visibleCount = getNoThanksVisibleChipCount(count, { compact });
   return el("div", {
-    className: "no-thanks-chip-cluster" + (compact ? " no-thanks-chip-cluster--compact" : ""),
+    className: "no-thanks-chip-cluster"
+      + (compact ? " no-thanks-chip-cluster--compact" : "")
+      + (visibleCount === 0 ? " is-empty" : ""),
     "aria-label": label ?? "칩 " + String(Number(count) || 0) + "개",
   }, visibleCount > 0
-    ? Array.from({ length: visibleCount }, () => el("span", {
+    ? Array.from({ length: visibleCount }, (_, index) => el("span", {
       className: "no-thanks-chip",
+      style: { zIndex: String(index + 1) },
       "aria-hidden": "true",
     }))
     : [el("span", {
-      className: "no-thanks-chip-cluster__empty",
-      text: "0",
-      "aria-hidden": "true",
+      className: "no-thanks-chip-cluster__empty-label",
+      text: emptyText,
     })]);
+}
+
+async function ensureBoardAvatarUrls(view, access) {
+  const missingIds = view.players
+    .map((player) => player.id)
+    .filter((playerId) => (
+      !boardAvatarUrls.has(playerId)
+      && !boardAvatarLoadingIds.has(playerId)
+    ));
+  if (missingIds.length === 0) return;
+
+  missingIds.forEach((playerId) => boardAvatarLoadingIds.add(playerId));
+
+  try {
+    const profiles = await getPublicProfiles(missingIds);
+    const profileById = new Map(profiles.map((profile) => [String(profile.id), profile]));
+
+    await Promise.all(missingIds.map(async (playerId) => {
+      const profile = profileById.get(playerId);
+      let avatarUrl = DEFAULT_BOARD_AVATAR_URL;
+
+      if (profile?.avatar_path) {
+        const signedUrl = await getSignedAvatarUrl(profile.avatar_path);
+        if (typeof signedUrl === "string" && /^https?:\/\//u.test(signedUrl)) {
+          avatarUrl = signedUrl;
+        }
+      }
+
+      boardAvatarUrls.set(playerId, avatarUrl);
+    }));
+  } catch {
+    missingIds.forEach((playerId) => {
+      boardAvatarUrls.set(playerId, DEFAULT_BOARD_AVATAR_URL);
+    });
+  } finally {
+    missingIds.forEach((playerId) => boardAvatarLoadingIds.delete(playerId));
+  }
+
+  const currentState = lobbyController?.current();
+  const currentRoomId = currentState?.snapshot?.room?.id;
+  if (currentState && currentRoomId === view.roomId) {
+    renderLobby(access, currentState);
+  }
 }
 
 function prepareBoardSeats(view) {
@@ -367,16 +414,20 @@ function createBoardSeat(view, seatInfo, index, total) {
       playerId: player.id,
       seat: String(player.seat),
     },
+    title: player.displayName,
     "aria-label": player.displayName + (active ? " 현재 차례" : ""),
   }, [
-    el("strong", {
-      className: "no-thanks-seat__name",
-      text: player.displayName,
+    el("img", {
+      className: "no-thanks-seat__avatar",
+      src: boardAvatarUrls.get(player.id) ?? DEFAULT_BOARD_AVATAR_URL,
+      alt: "",
+      width: "76",
+      height: "76",
     }),
     active
       ? el("span", {
         className: "no-thanks-seat__turn",
-        text: "현재 차례",
+        text: "TURN",
       })
       : null,
   ]);
@@ -419,7 +470,7 @@ function createBoardHud(view) {
             }),
           el("span", {
             className: "no-thanks-board-hud__badge no-thanks-board-hud__badge--connection",
-            text: player.connected ? "온라인" : "재접속",
+            text: player.connected ? "온라인" : "자리이탈",
           }),
         ]),
       ])
@@ -487,14 +538,22 @@ function createRoundTable(view) {
     el("div", { className: "no-thanks-round-table__objects" }, [
       createDrawDeck(view),
       createTableCard(view.currentCard),
-      el("div", { className: "no-thanks-center-chips" }, [
-        createChipCluster(view.centerCounters, {
-          compact: true,
-          label: "중앙 칩 " + String(view.centerCounters) + "개",
-        }),
-        el("span", { text: "중앙 칩" }),
-        el("strong", { text: String(view.centerCounters) }),
-      ]),
+      view.centerCounters > 0
+        ? el("div", { className: "no-thanks-center-chips" }, [
+          createChipCluster(view.centerCounters, {
+            compact: true,
+            label: "중앙 칩 " + String(view.centerCounters) + "개",
+          }),
+          el("span", { text: "중앙 칩" }),
+          el("strong", { text: String(view.centerCounters) }),
+        ])
+        : el("div", { className: "no-thanks-center-chips no-thanks-center-chips--empty" }, [
+          el("strong", {
+            className: "no-thanks-center-chips__empty-mark",
+            text: "NO CHIP",
+          }),
+          el("small", { text: "중앙 칩 없음" }),
+        ]),
     ]),
   ]);
 }
@@ -627,6 +686,7 @@ function createMyPanel(view, state) {
         }),
         createChipCluster(view.viewerCounters ?? 0, {
           label: "내 칩 " + String(view.viewerCounters ?? 0) + "개",
+          emptyText: "칩 없음",
         }),
       ]),
     el("div", { className: "no-thanks-my-panel__cards" }, [
@@ -1199,6 +1259,10 @@ function renderLobby(access, state) {
   }
 
   replaceApp(shell);
+
+  if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
+    void ensureBoardAvatarUrls(view, access);
+  }
 }
 
 async function renderApproved(access, epoch) {
