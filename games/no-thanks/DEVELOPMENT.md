@@ -127,6 +127,11 @@
 
 ## Current Work
 
+- 간헐적으로 TAKE 카드가 안착 직후 사라지거나 다음 TAKE에서 직전 카드가 다시 숨겨지는 race condition을 추적했습니다.
+- 원인은 `takeByViewer` effect가 카드 landing 이후에도 다음 deal 완료까지 유지되어, 동일 snapshot 재렌더가 들어오면 개인 패널이 다시 pre-landing transient state로 생성되는 것이었습니다.
+- presentation effect에 `takeCardLanded` / `takeChipsLanded`를 분리하고, 각 구성요소가 실제 landing한 순간부터는 authoritative final hand/chip state를 사용하도록 수정했습니다.
+- 카드 landing selector도 generic hidden card가 아니라 `data-card-value` 기준의 해당 카드 최신 DOM을 찾도록 변경해 이전/다음 take slot이 섞일 가능성을 제거했습니다.
+
 - TAKE_CARD presentation lifecycle을 `started → running → completed`로 보강해 동일 snapshot 재렌더가 애니메이션 중 끼어도 effect를 landing 전까지 유지하도록 수정했습니다.
 - 다음 current card는 deal flight가 실제로 도착할 때까지 최신 DOM에서도 `is-awaiting-deal`로 숨기며, landing 순간에만 공개하도록 The Game handoff 패턴을 다시 적용했습니다.
 - TAKE card/chip handoff 이후에는 이전 board DOM이 아니라 현재 `app`의 최신 board/deck/current-card DOM을 다시 찾아 다음 deal animation을 이어가도록 변경했습니다.

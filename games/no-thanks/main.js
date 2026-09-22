@@ -858,6 +858,8 @@ function readBoardTransitionEffects(view) {
       started: false,
       running: false,
       completed: false,
+      takeCardLanded: false,
+      takeChipsLanded: false,
     }
     : null;
 
@@ -1091,7 +1093,8 @@ function syncBoardSeatGeometry(board) {
   });
 }
 
-function commitViewerChipLanding() {
+function commitViewerChipLanding(effect = null) {
+  if (effect) effect.takeChipsLanded = true;
   const container = app.querySelector(".no-thanks-my-panel__chips[data-final-count]");
   if (!container) return;
 
@@ -1108,24 +1111,32 @@ function commitViewerChipLanding() {
   container.dataset.visibleCount = String(finalCount);
 }
 
-function commitTakeCardLanding() {
-  const target = app.querySelector(".no-thanks-hand-card.is-awaiting-take-landing");
+function findTakeCardLandingTarget(cardValue, stateClass = "is-awaiting-take-landing") {
+  if (!Number.isInteger(Number(cardValue))) return null;
+  return app.querySelector(
+    '.no-thanks-hand-card[data-card-value="' + String(cardValue) + '"].' + stateClass,
+  );
+}
+
+function commitTakeCardLanding(effect, presentation) {
+  if (effect) effect.takeCardLanded = true;
+  const target = findTakeCardLandingTarget(presentation?.cardValue);
   if (!target) return;
   target.classList.remove("is-awaiting-take-landing");
   target.classList.add("is-take-landed");
   const count = app.querySelector(".no-thanks-my-panel__card-count[data-final-count]");
   if (count) count.textContent = count.dataset.finalCount + "장";
   window.setTimeout(() => {
-    app.querySelector(".no-thanks-hand-card.is-take-landed")
+    findTakeCardLandingTarget(presentation?.cardValue, "is-take-landed")
       ?.classList.remove("is-take-landed");
   }, 180);
 }
 
-async function animateTakeCardToHand(presentation) {
+async function animateTakeCardToHand(presentation, effect) {
   const flight = presentation?.cardFlight;
-  const target = app.querySelector(".no-thanks-hand-card.is-awaiting-take-landing");
+  const target = findTakeCardLandingTarget(presentation?.cardValue);
   if (!flight?.isConnected || !target?.isConnected || typeof flight.animate !== "function") {
-    commitTakeCardLanding();
+    commitTakeCardLanding(effect, presentation);
     flight?.remove();
     return;
   }
@@ -1183,7 +1194,7 @@ async function animateTakeCardToHand(presentation) {
   });
 
   await path.finished.catch(() => {});
-  commitTakeCardLanding();
+  commitTakeCardLanding(effect, presentation);
 
   const settle = flight.animate([
     {
@@ -1208,12 +1219,12 @@ async function animateTakeCardToHand(presentation) {
   flight.remove();
 }
 
-async function animateTakeChipsToPanel(presentation) {
+async function animateTakeChipsToPanel(presentation, effect) {
   const expectedCount = Math.max(0, Math.floor(Number(presentation?.chipCount) || 0));
   const flights = (presentation?.chipFlights ?? []).slice(0, expectedCount);
   if (expectedCount === 0 || flights.length === 0) {
     flights.forEach((flight) => flight.remove());
-    commitViewerChipLanding();
+    commitViewerChipLanding(effect);
     return;
   }
 
@@ -1221,7 +1232,7 @@ async function animateTakeChipsToPanel(presentation) {
   const targetRect = target?.getBoundingClientRect?.();
   if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
     flights.forEach((flight) => flight.remove());
-    commitViewerChipLanding();
+    commitViewerChipLanding(effect);
     return;
   }
 
@@ -1273,7 +1284,7 @@ async function animateTakeChipsToPanel(presentation) {
   // Remove the transfer batch and expose the authoritative destination state
   // in the same task so no extra/duplicate chip is painted at the end.
   flights.forEach((flight) => flight.remove());
-  commitViewerChipLanding();
+  commitViewerChipLanding(effect);
 }
 
 function completeBoardPresentationEffect(effect) {
@@ -1313,8 +1324,8 @@ async function animatePendingTakePresentation(effect) {
   }
 
   await Promise.all([
-    animateTakeCardToHand(presentation),
-    animateTakeChipsToPanel(presentation),
+    animateTakeCardToHand(presentation, effect),
+    animateTakeChipsToPanel(presentation, effect),
   ]);
   clearPendingTakePresentation(presentation);
 
@@ -1472,20 +1483,28 @@ function createWaitingPrimaryAction(view, state) {
 function createMyPanel(view, state, panelActions = [], effects = null) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
   const finalCards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
-  const takingCard = Boolean(effects?.takeByViewer && Number.isInteger(effects.takeCardValue));
-  const previousCards = takingCard
+  const holdingIncomingCard = Boolean(
+    effects?.takeByViewer
+    && effects.takeCardLanded !== true
+    && Number.isInteger(effects.takeCardValue),
+  );
+  const holdingIncomingChips = Boolean(
+    effects?.takeByViewer
+    && effects.takeChipsLanded !== true,
+  );
+  const previousCards = holdingIncomingCard
     ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
     : finalCards;
-  const cards = takingCard
+  const cards = holdingIncomingCard
     ? [...previousCards, effects.takeCardValue]
     : finalCards;
   const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const finalCounters = Number(view.viewerCounters) || 0;
-  const displayCounters = takingCard
+  const displayCounters = holdingIncomingChips
     ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
     : finalCounters;
-  const visibleCardCount = takingCard ? previousCards.length : cards.length;
+  const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
   const statusText = waiting
     ? (view.isHost
       ? "방장은 항상 준비된 자리로 표시됩니다."
@@ -1538,7 +1557,7 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
       cards.length > 0
         ? el("div", { className: "no-thanks-hand" },
           cards.map((card, index) => createHandCard(card, index, overlap, {
-            incoming: takingCard && index === cards.length - 1,
+            incoming: holdingIncomingCard && index === cards.length - 1,
           })))
         : el("div", {
           className: "no-thanks-hand no-thanks-hand--empty",
