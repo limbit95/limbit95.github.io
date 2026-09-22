@@ -30,7 +30,7 @@ export function createLocalClassicSession({
       type,
       playerId: playerId === undefined ? (current?.id ?? null) : playerId,
       payload,
-    }), { nowMs: Number(clock()) });
+    }), { nowMs: Number(clock()), random });
     return state;
   }
 
@@ -75,6 +75,9 @@ export function createLocalClassicSession({
     advanceAuctionDeadline() {
       if (state.pendingChoice?.type === "AUCTION_VOTE") {
         return dispatch(ACTION_TYPES.AUCTION_VOTE_CLOSE, {}, null);
+      }
+      if (state.pendingChoice?.type === "AUCTION_START_SEQUENCE") {
+        return dispatch(ACTION_TYPES.AUCTION_START_ADVANCE, {}, null);
       }
       if (state.pendingChoice?.type === "PROPERTY_AUCTION") {
         return dispatch(ACTION_TYPES.AUCTION_BID_TIMEOUT, {}, null);
