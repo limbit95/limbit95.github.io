@@ -9,6 +9,8 @@
 - Official / publisher sources: <공식 제품 페이지, 규칙서, 이미지 자료>
 - Additional references: <실제 플레이, 신뢰 가능한 디지털 구현 등>
 - 조사한 구성물: <카드/보드/칩/토큰/주사위/말 등>
+- Source → Observation → Decision:
+  - <출처>: <관찰한 색상/형태/배치/타이포그래피> → <직접 사용 / 재구성 / 사용하지 않음 + 이유>
 - 핵심 관찰: <원본에서 반복되는 색상, 배치, 형태, 분위기>
 - Last reviewed: <YYYY-MM-DD>
 
@@ -100,6 +102,8 @@
 - touch / accessibility 고려:
 
 ## Implementation Plan
+
+> 이 섹션은 UI/presentation 구현 순서만 관리합니다. 기능/DB/RPC 구현 순서는 `GAME_SPEC.md`, 현재 바로 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
 
 1. <Visual Identity / page frame>
 2. <Lobby/setup>
