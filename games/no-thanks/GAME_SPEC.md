@@ -335,7 +335,14 @@ Room/Lobby foundation은 다음 game-local DB 객체를 사용합니다.
 - PLAYING 개인 패널에서는 현재 차례 안내 문구를 별도로 반복하지 않고 보드 좌석과 상단 상태 메시지로만 전달합니다.
 - 현재 차례 플레이어의 원형 avatar seat는 기본 좌석의 2배 크기로 확대해 turn 인지를 우선합니다.
 - 원형 테이블과 좌석 배치는 HUD 보정 오프셋 없이 보드의 수평/수직 중앙을 기준으로 배치합니다. HUD와 실제 좌석 충돌이 확인되면 인원별 보정은 후속 시각 QA에서 다룹니다.
+- 현재 차례 플레이어의 avatar seat는 기본 좌석보다 약 30%만 확대하고, 각 좌석 아래에는 사이트 프로필 닉네임을 compact label로 표시합니다.
+- 좌석 중심은 원형 테이블 경계보다 소폭 바깥쪽에 두어 원형 테두리를 살짝 걸치면서 좌석 대부분이 테이블 밖에 보이도록 배치합니다.
+- 개인 패널 오른쪽 보조 액션은 한 행에 한 버튼씩 세로로 배치합니다.
+- 개인 패널/보유 카드 영역의 상하 여백을 소폭 늘리고, 보유 카드 hover/focus는 scale/z-index 우선 노출 대신 카드 자체의 `top`만 충분히 위로 이동해 좌상단 숫자가 드러나도록 합니다.
+- 중앙 칩 cluster / 공개 개수 / refuse 버튼 사이의 세로 간격을 테이블 여유 공간에 맞춰 더 분리합니다.
+- 게임 종료 화면에서 방장은 기존 fresh-room rematch 정책을 사용하는 `재대결` 버튼을 직접 사용할 수 있습니다.
 - `REFUSE_CARD` 연출은 행동 플레이어 avatar 중심에서 작은 red chip이 실제 중앙 chip cluster 위치로 이동하도록 렌더 후 geometry를 측정합니다.
+- snapshot 반영 직후 `busy=false`로 다시 렌더되는 같은-version 화면이 animation DOM을 제거하지 않도록 presentation effect를 최종 DOM의 motion 시작 시점까지 보존합니다.
 - 다음 카드 공개는 `The Game`의 card flight 원리처럼 이동 경로와 3D front/back face를 분리하고, draw deck 위치에서 중앙까지 이동하며 `rotateY`로 뒷면에서 앞면으로 뒤집히는 연출을 사용합니다.
 - 다른 플레이어 공개 카드 popover는 후속 Phase E로 유지합니다. Phase F 중 `REFUSE_CARD` 시 직전 active seat에서 중앙 칩 더미로 칩이 이동하는 연출과 `TAKE_CARD` 후 draw deck에서 새 공개 카드가 들어오는 연출은 구현했고, 카드/중앙 칩이 획득 플레이어 쪽으로 이동하는 추가 연출은 후속으로 남깁니다.
 - 로비와 실제 플레이 화면 모두 `게임 규칙` 진입점을 유지합니다.
