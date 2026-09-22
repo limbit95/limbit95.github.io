@@ -316,7 +316,7 @@ test("Marble lobby enforces membership and optimistic room versions", async () =
 
 
 
-test("Marble Auction vote RPCs enforce 15-second voting, stale concurrent joins, ordered bidding, and settlement", async () => {
+test("Marble Auction vote RPCs enforce 15-second voting, randomized opening bidder, and settlement", async () => {
   const anonymousJoin = await rpc("marble_join_auction", {
     p_room_id: randomUUID(),
     p_expected_version: 1,
@@ -441,35 +441,57 @@ test("Marble Auction vote RPCs enforce 15-second voting, stale concurrent joins,
   }, auctionCarol.accessToken), "stale Carol vote joins after Bob");
 
   assert.equal(carolJoined.game.pendingChoice?.type, "PROPERTY_AUCTION");
+  const auction = carolJoined.game.pendingChoice?.auction;
   assert.deepEqual(
-    carolJoined.game.pendingChoice?.auction?.participantPlayerIds,
-    [bobPlayer.id, carolPlayer.id],
+    [...(auction?.participantPlayerIds ?? [])].sort(),
+    [bobPlayer.id, carolPlayer.id].sort(),
   );
-  assert.equal(carolJoined.game.pendingChoice?.auction?.openingBidderPlayerId, bobPlayer.id);
-  assert.equal(carolJoined.game.pendingChoice?.auction?.highestBidderId, bobPlayer.id);
-  assert.equal(carolJoined.game.pendingChoice?.auction?.highestBid, 390);
-  assert.equal(carolJoined.game.pendingChoice?.auction?.turnPlayerId, carolPlayer.id);
+  assert.ok([bobPlayer.id, carolPlayer.id].includes(auction?.openingBidderPlayerId));
+  assert.equal(auction?.highestBidderId, auction?.openingBidderPlayerId);
+  assert.equal(auction?.highestBid, 390);
+  assert.ok([bobPlayer.id, carolPlayer.id].includes(auction?.turnPlayerId));
+  assert.notEqual(auction?.turnPlayerId, auction?.openingBidderPlayerId);
+  assert.equal(carolJoined.game.lastEvents?.at(-1)?.type, "AUCTION_STARTING");
 
+  const startsAt = Date.parse(String(auction?.startsAt));
+  const serverNow = Date.parse(String(carolJoined.serverNow));
+  assert.ok(Number.isFinite(startsAt) && Number.isFinite(serverNow));
+  assert.ok(startsAt - serverNow >= 5_000 && startsAt - serverNow <= 6_500);
+
+  const turnUser = auction?.turnPlayerId === bobPlayer.id ? auctionBob : auctionCarol;
+  const winnerId = auction?.openingBidderPlayerId;
   const passActionId = randomUUID();
+
+  const earlyPass = await rpc("marble_auction_bid", {
+    p_room_id: created.room.id,
+    p_expected_version: Number(carolJoined.game.version),
+    p_client_action_id: randomUUID(),
+    p_amount: null,
+    p_pass: true,
+  }, turnUser.accessToken);
+  expectDenied(earlyPass, "auction bid before roulette completes", /AUCTION_NOT_STARTED/);
+
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, startsAt - Date.now()) + 150));
+
   const settled = await expectOk(await rpc("marble_auction_bid", {
     p_room_id: created.room.id,
     p_expected_version: Number(carolJoined.game.version),
     p_client_action_id: passActionId,
     p_amount: null,
     p_pass: true,
-  }, auctionCarol.accessToken), "auction Carol passes competitive bid");
+  }, turnUser.accessToken), "auction randomized turn player passes competitive bid");
 
   assert.equal(settled.game.phase, "TURN_END");
   assert.equal(settled.game.pendingChoice, null);
-  assert.equal(settled.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(settled.properties.singapore.ownerId, winnerId);
   assert.equal(
-    settled.players.find((player) => player.id === bobPlayer.id)?.money,
+    settled.players.find((player) => player.id === winnerId)?.money,
     1110,
   );
   assert.equal(
     settled.game.lastEvents?.some((event) => (
       event.type === "PROPERTY_BOUGHT"
-      && event.playerId === bobPlayer.id
+      && event.playerId === winnerId
       && event.amount === 390
       && event.reason === "AUCTION"
     )),
@@ -482,12 +504,12 @@ test("Marble Auction vote RPCs enforce 15-second voting, stale concurrent joins,
     p_client_action_id: passActionId,
     p_amount: null,
     p_pass: true,
-  }, auctionCarol.accessToken), "auction competitive pass replay");
+  }, turnUser.accessToken), "auction competitive pass replay");
 
   assert.equal(replayedPass.game.version, settled.game.version);
-  assert.equal(replayedPass.properties.singapore.ownerId, bobPlayer.id);
+  assert.equal(replayedPass.properties.singapore.ownerId, winnerId);
   assert.equal(
-    replayedPass.players.find((player) => player.id === bobPlayer.id)?.money,
+    replayedPass.players.find((player) => player.id === winnerId)?.money,
     1110,
   );
 });
