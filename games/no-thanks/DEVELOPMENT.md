@@ -243,6 +243,8 @@
 
 ## Known Issues / Deferred
 
+- Game Platform 공통 재대결 규칙 영향도 감사 결과: `MIGRATION_REQUIRED`. 현재 main의 fresh-room rematch는 동일 room/player context 유지 규칙과 충돌하며, 별도 기능 PR에서 same-room rematch로 전환해야 합니다.
+
 - 승인회원 접근 제어부터 Room/Lobby, server-authoritative gameplay action, 자연 종료와 방장 수동 종료 UI까지 연결했습니다.
 - Room/Lobby, gameplay, Realtime publication, private helper permission hardening migration을 운영 Supabase에 적용했습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
