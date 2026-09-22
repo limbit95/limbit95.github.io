@@ -46,25 +46,35 @@ function scheduleTone(context, {
 
 function scheduleAuctionBidSound(context) {
   const startAt = Number(context.currentTime) + 0.01;
+  const coinHits = [
+    { delayMs: 0, startFrequency: 1320, endFrequency: 760, peakGain: 0.045, releaseMs: 72 },
+    { delayMs: 46, startFrequency: 1680, endFrequency: 940, peakGain: 0.05, releaseMs: 76 },
+    { delayMs: 92, startFrequency: 1460, endFrequency: 820, peakGain: 0.048, releaseMs: 74 },
+    { delayMs: 138, startFrequency: 1940, endFrequency: 1080, peakGain: 0.052, releaseMs: 80 },
+    { delayMs: 188, startFrequency: 1580, endFrequency: 900, peakGain: 0.046, releaseMs: 78 },
+  ];
 
-  // Short wooden body + crisp top click: a compact gavel-like bid cue.
-  scheduleTone(context, {
-    at: startAt,
-    type: "triangle",
-    startFrequency: 210,
-    endFrequency: 92,
-    peakGain: 0.16,
-    attackMs: 5,
-    releaseMs: 180,
+  // A quick metallic coin-counting cascade, closer to money changing hands than a gavel strike.
+  coinHits.forEach((coin) => {
+    scheduleTone(context, {
+      at: startAt + (coin.delayMs / 1000),
+      type: "triangle",
+      startFrequency: coin.startFrequency,
+      endFrequency: coin.endFrequency,
+      peakGain: coin.peakGain,
+      attackMs: 2,
+      releaseMs: coin.releaseMs,
+    });
   });
+
   scheduleTone(context, {
-    at: startAt,
-    type: "square",
-    startFrequency: 980,
-    endFrequency: 360,
-    peakGain: 0.035,
-    attackMs: 2,
-    releaseMs: 55,
+    at: startAt + 0.02,
+    type: "sine",
+    startFrequency: 420,
+    endFrequency: 250,
+    peakGain: 0.025,
+    attackMs: 3,
+    releaseMs: 230,
   });
 }
 
