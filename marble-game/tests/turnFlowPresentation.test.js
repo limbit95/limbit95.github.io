@@ -80,9 +80,9 @@ test("decisive Auction bid notice is concise and precedes purchase animation", (
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
   assert.match(localSource, /async function maybeAutoAdvanceLocalTurn\(state\)/);
-  assert.match(localSource, /await wait\(TURN_RESULT_HOLD_MS\)/);
+  assert.match(localSource, /auctionPurchase[\s\S]*AUCTION_RESULT_HOLD_MS[\s\S]*TURN_RESULT_HOLD_MS/);
   assert.match(localSource, /localSession\.endTurn\(\)/);
-  assert.match(localSource, /void maybeAutoAdvanceLocalTurn\(state\)/);
+  assert.match(localSource, /return maybeAutoAdvanceLocalTurn\(state\)/);
 });
 
 test("2D diagnostic mode keeps the same automatic-turn authority boundary", () => {
