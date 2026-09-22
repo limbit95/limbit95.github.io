@@ -20,13 +20,14 @@
 
 ## Completed
 
+- 2026-09-22 Game Platform UI 규칙 도입에 맞춰 현재 v1의 Visual Identity, page/lobby/gameplay/result-rematch presentation 기준을 `UI_DESIGN.md`에 소급 문서화했다. runtime 동작은 변경하지 않았다.
 - 최신 Game Platform 규칙과 shared 계약을 확인했다.
-- 신규 게임 초기 세팅에 `GAME_SPEC.md`를 의무화하는 bootstrap 규칙 방향을 확정했다.
+- 당시 신규 게임 초기 세팅에 `GAME_SPEC.md`를 의무화하는 bootstrap 규칙 방향을 확정했다. 현재 플랫폼 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 3문서 bootstrap이다.
 - Can't Stop 원본 규칙을 여러 공개 규칙 자료로 교차 확인했다.
 - 2–12 column, four-dice pairing, three-runner, push/stop, bust, claim, three-column win 규칙을 구현 기준으로 정리했다.
 - Game Platform의 SHARED 책임과 Can't Stop GAME-LOCAL 책임을 분리했다.
 - online authoritative action / snapshot / reconnect / DB contract 적용 계획을 작성했다.
-- Game Platform Governance Guard에 `GAME_SPEC.md` 필수 섹션 검증과 문서-only bootstrap 상태를 추가했다.
+- 당시 Game Platform Governance Guard에 `GAME_SPEC.md` 필수 섹션 검증과 문서-only bootstrap 상태를 추가했다. 현재 Governance는 `UI_DESIGN.md` 필수 섹션까지 함께 검증한다.
 - 신규 game directory에 runtime 파일이 추가되는 순간 Registry가 필요하도록 회귀 테스트를 추가했다.
 - deterministic rules engine을 추가해 2–12 column, dice pairing, runner 이동, bust, stop, claim, win을 game-local로 구현했다.
 - pairing만으로 이동이 하나로 결정되지 않는 경우를 legal move plan으로 표현하도록 규칙 모델을 고정했다.
@@ -114,7 +115,7 @@
 
 - 공식 로드맵 단계명은 `Phase 4`를 사용하며 임의의 `Phase 4A`를 만들지 않는다.
 - Can’t Stop은 기존 게임을 복사하지 않고 `games/cant-stop/`에서 처음부터 platform-native로 개발한다.
-- bootstrap 상태에서는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두고 Registry에 노출하지 않는다.
+- bootstrap 당시에는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두는 기준을 사용했으나, 현재 신규 게임 공통 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 세 문서다. Can't Stop은 release baseline을 보존하면서 현재 UI 기준을 `UI_DESIGN.md`에 소급 문서화했다.
 - game-specific dice/pairing/runner 규칙은 `games/shared/`로 올리지 않는다.
 - online gameplay의 주사위 결과와 상태 전이는 최종적으로 서버가 authoritative하게 결정한다.
 - 첫 플레이어는 사전 주사위 없이 게임 시작 RPC가 서버에서 turn order를 무작위로 한 번 확정하고 authoritative state에 저장하는 방식으로 결정한다.
