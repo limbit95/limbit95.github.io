@@ -138,7 +138,7 @@ function buildChain(documentObject, elements, state, playerIds, starterPlayerId)
   elements.track.replaceChildren(...profiles);
 
   const starter = findPlayer(state, starterPlayerId);
-  elements.result.textContent = \`${playerName(starter, starterPlayerId)}님부터 경매를 시작합니다!\`;
+  elements.result.textContent = `${playerName(starter, starterPlayerId)}님부터 경매를 시작합니다!`;
   elements.track.dataset.spinning = "false";
   elements.track.dataset.targetIndex = String(targetIndex);
 
@@ -154,7 +154,7 @@ function startChainAnimation(elements, targetIndex) {
   const step = itemWidth + gap;
   const viewportWidth = elements.viewport.getBoundingClientRect().width;
   const offset = Math.max(0, (targetIndex * step) - ((viewportWidth - itemWidth) / 2));
-  elements.track.style.setProperty("--selector-target-x", \`${-offset}px\`);
+  elements.track.style.setProperty("--selector-target-x", `${-offset}px`);
   elements.track.dataset.spinning = "false";
   void elements.track.offsetWidth;
   elements.track.dataset.spinning = "true";
@@ -222,7 +222,7 @@ export function createAuctionIntroPresenter({
       ?? pending.starterPlayerId
       ?? playerIds[0]
       ?? null;
-    const key = \`${pending.nodeId}:${startsAt}:${starterPlayerId}\`;
+    const key = `${pending.nodeId}:${startsAt}:${starterPlayerId}`;
     const phase = now < announcementEndsAt
       ? "announce"
       : now < selectorStopsAt
