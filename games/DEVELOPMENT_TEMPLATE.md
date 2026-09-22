@@ -14,15 +14,18 @@
 
 ## Completed
 
-- <실제로 완료된 작업>
+- 기능: <GAME_SPEC.md 기준 실제로 완료된 기능/규칙/DB 작업>
+- UI / presentation: <UI_DESIGN.md 기준 실제로 완료된 화면/Visual Identity/motion/responsive 작업>
 
 ## Current Work
 
-- <현재 진행 중이며 아직 완료되지 않은 작업>
+- 기능: <현재 진행 중이며 아직 완료되지 않은 기능 작업>
+- UI / presentation: <현재 진행 중이며 아직 완료되지 않은 UI 작업>
 
 ## Next Work
 
 - <다음 채팅/작업자가 가장 먼저 수행할 작업>
+- 기능/DB/UI 중 어떤 설계를 이어가는 작업인지 알 수 있게 기록합니다.
 
 ## Decisions
 
@@ -31,12 +34,14 @@
 
 ## Validation
 
-- Completed: <실행 완료 검증>
+- Functional / contract: <실행 완료 기능·규칙·DB·contract 검증>
+- UI / browser: <실행 완료 UI·반응형·animation·다중 브라우저 검증>
 - Pending: <아직 실행하지 못한 검증>
 
 ## Known Issues / Deferred
 
 - <blocker / known issue / 보류 사항, 없으면 없음>
+- UI 설계와 실제 구현의 차이, 미확정 asset/license, 후속 visual polish가 있다면 함께 기록합니다.
 
 ## Release closeout 안내
 
