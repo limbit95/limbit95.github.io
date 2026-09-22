@@ -166,6 +166,16 @@ function isVoteComplete(vote) {
     >= vote.eligiblePlayerIds.length;
 }
 
+function shuffleAuctionParticipants(playerIds, random) {
+  if (typeof random !== "function") return [...playerIds];
+  const shuffled = [...playerIds];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const next = Math.max(0, Math.min(index, Math.floor(Number(random()) * (index + 1))));
+    [shuffled[index], shuffled[next]] = [shuffled[next], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function settleAuctionWinner(state, action, auction, extraEvents = []) {
   const settlement = getPropertyAuctionSettlement(auction);
   if (!settlement?.winnerPlayerId) throw new Error("Auction winner is missing.");
@@ -252,21 +262,33 @@ function resolveAuctionVote(state, action, options, {
     }, action);
   }
 
-  const openingBidderPlayerId = participantPlayerIds[0];
+  const randomizedPlayerIds = participantPlayerIds.length > 1
+    ? shuffleAuctionParticipants(participantPlayerIds, options.random)
+    : participantPlayerIds;
+  const openingBidderPlayerId = randomizedPlayerIds[0];
+  const announcementEndsAt = participantPlayerIds.length > 1
+    ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs)
+    : null;
+  const startsAt = participantPlayerIds.length > 1
+    ? deadlineAt(options, AUCTION_TIMING.startAnnouncementMs + AUCTION_TIMING.rouletteMs)
+    : null;
   const auction = createPropertyAuction({
     nodeId: vote.nodeId,
     openingBid: vote.openingBid,
     declinedByPlayerId: vote.declinedByPlayerId,
     openingBidderPlayerId,
-    participantPlayerIds,
+    participantPlayerIds: randomizedPlayerIds,
     players: state.players,
     turnDeadlineAt: participantPlayerIds.length > 1
-      ? deadlineAt(options, AUCTION_TIMING.bidTurnMs)
+      ? Number(startsAt) + AUCTION_TIMING.bidTurnMs
       : null,
   });
+  const timedAuction = participantPlayerIds.length > 1
+    ? Object.freeze({ ...auction, announcementEndsAt, startsAt })
+    : auction;
 
-  if (participantPlayerIds.length === 1 || auction.status === "WON") {
-    return settleAuctionWinner(state, action, auction, [
+  if (participantPlayerIds.length === 1 || timedAuction.status === "WON") {
+    return settleAuctionWinner(state, action, timedAuction, [
       ...events,
       {
         type: "AUCTION_AUTO_PURCHASED",
@@ -284,19 +306,21 @@ function resolveAuctionVote(state, action, options, {
       openingBid: vote.openingBid,
       openingBidderPlayerId,
       requesterPlayerId: openingBidderPlayerId,
-      participantPlayerIds: Object.freeze(participantPlayerIds),
-      auction,
+      participantPlayerIds: Object.freeze(randomizedPlayerIds),
+      announcementEndsAt,
+      startsAt,
+      auction: timedAuction,
     }),
     lastEvents: freezeEvents([
       ...events,
       {
-        type: "AUCTION_STARTED",
+        type: "AUCTION_STARTING",
         nodeId: vote.nodeId,
         openingBid: vote.openingBid,
         openingBidderPlayerId,
-        participantPlayerIds,
-        highestBidderId: openingBidderPlayerId,
-        highestBid: vote.openingBid,
+        participantPlayerIds: randomizedPlayerIds,
+        announcementEndsAt,
+        startsAt,
       },
     ]),
   }, action);
@@ -399,6 +423,10 @@ function resolvePropertyAuction(state, action, options, { timeout = false } = {}
   }
 
   const auction = state.pendingChoice.auction;
+  const startsAt = Number(auction.startsAt ?? state.pendingChoice.startsAt);
+  if (Number.isFinite(startsAt) && Number(options.nowMs) < startsAt) {
+    throw new Error("Auction has not started yet.");
+  }
   if (timeout) {
     if (action.playerId !== null && action.playerId !== undefined) {
       throw new Error("AUCTION_BID_TIMEOUT must be performed by the game authority.");

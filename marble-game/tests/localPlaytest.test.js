@@ -59,16 +59,19 @@ test("local Classic session completes the 15 second Auction vote flow", () => {
   now = 3_000;
   state = session.joinAuction("player-c");
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
-  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-b", "player-c"]);
-  assert.equal(state.pendingChoice.auction.highestBidderId, "player-b");
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["player-c", "player-b"]);
+  assert.equal(state.pendingChoice.auction.highestBidderId, "player-c");
   assert.equal(state.pendingChoice.auction.highestBid, 390);
-  assert.equal(state.pendingChoice.auction.turnPlayerId, "player-c");
+  assert.equal(state.pendingChoice.auction.turnPlayerId, "player-b");
+  assert.equal(state.pendingChoice.announcementEndsAt, 5_400);
+  assert.equal(state.pendingChoice.startsAt, 8_800);
 
-  state = session.auctionPass("player-c");
+  now = 8_800;
+  state = session.auctionPass("player-b");
   assert.equal(state.phase, TURN_PHASES.TURN_END);
   assert.equal(state.pendingChoice, null);
-  assert.equal(state.boardState.properties.singapore.ownerId, "player-b");
-  assert.equal(state.players[1].money, 1110);
+  assert.equal(state.boardState.properties.singapore.ownerId, "player-c");
+  assert.equal(state.players[2].money, 1110);
 
   state = session.endTurn();
   assert.equal(state.currentPlayerIndex, 1);

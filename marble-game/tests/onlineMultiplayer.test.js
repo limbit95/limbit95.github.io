@@ -153,7 +153,7 @@ test("online landing UX shows results and auto-advances without a manual next-tu
   assert.match(controllerSource, /landedNode\?\.type === "EVENT"/);
   assert.match(controllerSource, /openTileInfo\(state, landing\.nodeId, \{ source: "landing" \}\)/);
   assert.match(controllerSource, /async function maybeAutoAdvanceTurn\(state\)/);
-  assert.match(controllerSource, /await wait\(TURN_RESULT_HOLD_MS\)/);
+  assert.match(controllerSource, /auctionPurchase[\s\S]*AUCTION_RESULT_HOLD_MS[\s\S]*TURN_RESULT_HOLD_MS/);
   assert.match(controllerSource, /const nextState = await session\.endTurn\(\)/);
   assert.match(controllerSource, /결과를 확인하는 중입니다\. 잠시 후 다음 차례로 넘어갑니다/);
   assert.doesNotMatch(controllerSource, /건너뛰기를 선택했습니다\. 다음 턴을 눌러 차례를 넘겨 주세요/);
