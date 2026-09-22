@@ -15,8 +15,10 @@
 - 신규 게임은 runtime 구현 전에 `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`, `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 `games/<game-id>/GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`를 만들고, 기능 기준과 디자인 기준뿐 아니라 각 트랙의 진행 기록 경계까지 먼저 정리합니다.
 - `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`만 존재하는 bootstrap 디렉터리는 미완성 게임 노출을 막기 위해 Registry 등록 전 상태로 둘 수 있습니다. runtime 파일을 추가하는 순간 Registry 규칙이 적용됩니다.
 - 각 platform-native 게임은 `GAME_SPEC.md`를 현재 기능 설계 기준, `DEVELOPMENT.md`를 기능 구현·검증 진행 인수인계, `UI_DESIGN.md`를 runtime 개발 전 디자인 전수 조사·분석과 최초 Phase를 담은 baseline, `UI_DECISIONS.md`를 개발 시작 후 디자인 진행·변경 의사결정·검증과 baseline override 이력으로 관리합니다.
-- 사용자가 `체크포인트 기록하자`라고 요청하면 기능 상태는 `DEVELOPMENT.md`에 기록하고, 의미 있는 디자인 결정이 발생한 경우에만 `UI_DECISIONS.md`를 함께 갱신합니다. 개발 시작 후 디자인 변경은 `UI_DESIGN.md` baseline을 덮어쓰지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다. 그 외 일반적인 새 채팅용 정리·문서·요약 요청은 repository checkpoint 명령으로 확대 해석하지 않습니다.
-- 이 사용자 명령과 별개로 Phase 완료, release closeout 등 Development Rules의 기존 `DEVELOPMENT.md` 갱신 시점은 그대로 유지합니다.
+- `기능 체크포인트 기록하자`는 `DEVELOPMENT.md` 중심의 기능 handoff 명령이며 기능 설계 변경이 있을 때만 `GAME_SPEC.md`를 함께 정합화합니다. 디자인 문서는 이 명령 때문에 수정하지 않습니다.
+- `디자인 체크포인트 기록하자`는 `UI_DECISIONS.md` 중심의 디자인 handoff 명령이며 현재까지 안정화된 확정 디자인 decision만 기록합니다. `UI_DESIGN.md` baseline과 기능 진행 문서는 이 명령 때문에 수정하지 않습니다.
+- 두 명령은 한 요청에서 함께 사용할 수 있습니다. 접두어가 없는 일반적인 checkpoint 표현이나 새 채팅용 정리·문서·요약 요청은 공식 repository checkpoint 명령으로 확대 해석하지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다.
+- 두 사용자 명령과 별개로 기능 Phase 완료, 디자인 lifecycle 기록 트리거, release closeout 등 규칙 문서의 기존 자동 갱신 시점은 그대로 유지합니다.
 - 게임 규칙, 턴 상태 머신, 승패 조건은 기능 문서에, 게임별 Visual Identity·레이아웃·애니메이션의 최초 baseline과 후속 변경 이력은 각각 `UI_DESIGN.md`와 `UI_DECISIONS.md`에 남겨 둡니다.
 - UI Phase를 이어갈 때 초기 계획과 후속 결정이 충돌하면 최신 non-superseded `UI_DECISIONS.md`를 우선하며, 이미 반영된 사용자 디자인 수정을 과거 `UI_DESIGN.md` 안으로 회귀시키지 않습니다.
 - 기능 구현이 release 후보 수준에 도달하면 디자인을 자동 완료 처리하지 않고 Developer Manual Design Review / Detail Polish로 전환합니다. 개발자가 실제 브라우저에서 플레이하며 요청한 디테일 수정은 영역이 안정화된 시점에 `UI_DECISIONS.md`에 확정 decision 단위로 남기며, 디자인 PR/브랜치 종료 또는 release closeout 전에 누락을 확인합니다.
