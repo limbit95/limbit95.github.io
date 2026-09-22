@@ -2465,3 +2465,356 @@ body {
     grid-template-columns: 88px minmax(0, 1fr);
   }
 }
+
+
+/* Board detail pass — centered table, panel tools, stronger turn feedback */
+.no-thanks-shell--board .game-platform-shell__actions:empty {
+  display: none;
+}
+
+.no-thanks-round-table {
+  left: 50%;
+  width: min(80%, 1180px);
+  height: 78%;
+}
+
+.no-thanks-round-table__objects {
+  width: min(86%, 820px);
+  grid-template-columns: minmax(120px, .82fr) minmax(168px, 1.08fr) minmax(132px, .9fr);
+  gap: clamp(1.15rem, 2.6vw, 2.6rem);
+}
+
+.no-thanks-center-chips {
+  row-gap: .62rem;
+}
+
+.no-thanks-center-chips .no-thanks-chip-cluster {
+  margin-bottom: .06rem;
+}
+
+.no-thanks-center-chips__count {
+  margin-block: .02rem;
+}
+
+.no-thanks-center-chips__action {
+  margin-top: .02rem;
+}
+
+.no-thanks-seat {
+  transition:
+    width .22s cubic-bezier(.2, .72, .24, 1),
+    height .22s cubic-bezier(.2, .72, .24, 1),
+    border-color .18s ease,
+    box-shadow .18s ease,
+    background .18s ease,
+    opacity .18s ease;
+}
+
+.no-thanks-seat.is-active {
+  z-index: 8;
+  width: 164px;
+  height: 164px;
+  min-height: 164px;
+  padding: 6px;
+}
+
+.no-thanks-seat.is-active .no-thanks-seat__turn {
+  bottom: -12px;
+  padding: .3rem .58rem;
+  font-size: .64rem;
+}
+
+.no-thanks-my-panel--playing {
+  grid-template-columns: 192px minmax(0, 1fr) minmax(218px, 248px);
+}
+
+.no-thanks-my-panel--playing .no-thanks-my-panel__chips {
+  min-width: 0;
+  padding-right: .7rem;
+}
+
+.no-thanks-my-panel__actions--playing {
+  width: 100%;
+  max-width: 248px;
+  display: grid;
+  align-content: center;
+  padding-left: .8rem;
+}
+
+.no-thanks-panel-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .44rem;
+}
+
+.no-thanks-panel-tools .game-platform-shell__button {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: .45rem .48rem;
+  font-size: .7rem;
+  line-height: 1.25;
+}
+
+.no-thanks-panel-tools .game-platform-shell__button--danger {
+  grid-column: 1 / -1;
+}
+
+.no-thanks-my-panel__message--playing {
+  display: none;
+}
+
+/* The current card uses the same moving-card + 3D flip principle as The Game. */
+.no-thanks-table-card {
+  overflow: visible;
+  border: 0;
+  background: transparent !important;
+  box-shadow: none;
+  perspective: 900px;
+  transform-origin: 50% 52%;
+  will-change: transform, opacity;
+}
+
+.no-thanks-table-card__inner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.no-thanks-table-card__face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .2rem;
+  overflow: hidden;
+  border: 7px solid rgba(255, 255, 255, .96);
+  border-radius: 18px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: 0 11px 24px rgba(15, 37, 33, .23);
+}
+
+.no-thanks-table-card__front {
+  background: linear-gradient(145deg, #4e97d1, #3978b2);
+}
+
+.no-thanks-table-card[data-tone="blue"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #4e97d1, #3978b2);
+}
+
+.no-thanks-table-card[data-tone="teal"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #51aa96, #398b7c);
+}
+
+.no-thanks-table-card[data-tone="yellow"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #f0cb65, #dda840);
+  color: #483b18;
+}
+
+.no-thanks-table-card[data-tone="pink"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #de7891, #c95a76);
+}
+
+.no-thanks-table-card__back {
+  transform: rotateY(180deg);
+  border-color: rgba(255, 255, 255, .84);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .08) 0 5px, transparent 5px 10px),
+    linear-gradient(145deg, #214b55, #173b43);
+}
+
+.no-thanks-table-card__back::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 10px;
+}
+
+.no-thanks-table-card:not(:disabled):hover,
+.no-thanks-table-card:not(:disabled):focus-visible {
+  box-shadow: none;
+}
+
+.no-thanks-table-card:not(:disabled):hover .no-thanks-table-card__front,
+.no-thanks-table-card:not(:disabled):focus-visible .no-thanks-table-card__front {
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, .16),
+    0 18px 32px rgba(15, 37, 33, .32);
+}
+
+.no-thanks-table-card.is-dealing {
+  animation: no-thanks-card-deal-path .68s cubic-bezier(.18, .72, .2, 1) both paused;
+}
+
+.no-thanks-table-card.is-dealing .no-thanks-table-card__inner {
+  animation: no-thanks-card-deal-flip .68s cubic-bezier(.3, .08, .18, 1) both paused;
+}
+
+.no-thanks-table-card.is-dealing.is-motion-ready,
+.no-thanks-table-card.is-dealing.is-motion-ready .no-thanks-table-card__inner {
+  animation-play-state: running;
+}
+
+@keyframes no-thanks-card-deal-path {
+  0% {
+    opacity: .15;
+    transform:
+      translate3d(var(--no-thanks-deal-x, -220px), var(--no-thanks-deal-y, 0px), 0)
+      scale(.82)
+      rotateZ(-7deg);
+  }
+  48% {
+    opacity: 1;
+    transform: translate3d(-28px, -28px, 0) scale(.97) rotateZ(2.2deg);
+  }
+  82% {
+    transform: translate3d(7px, -6px, 0) scale(1.025) rotateZ(-1deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotateZ(0deg);
+  }
+}
+
+@keyframes no-thanks-card-deal-flip {
+  0%, 18% {
+    transform: rotateY(180deg) rotateX(0deg);
+  }
+  43% {
+    transform: rotateY(252deg) rotateX(-3deg);
+  }
+  66% {
+    transform: rotateY(318deg) rotateX(2deg);
+  }
+  86% {
+    transform: rotateY(350deg) rotateX(-1deg);
+  }
+  100% {
+    transform: rotateY(360deg) rotateX(0deg);
+  }
+}
+
+/* Refuse feedback: a smaller token leaves the acting avatar and lands on the center pile. */
+.no-thanks-chip-flight {
+  width: 22px;
+  height: 22px;
+  border-width: 1px;
+  animation: no-thanks-chip-flight-to-pile .62s cubic-bezier(.18, .72, .22, 1) forwards paused;
+}
+
+.no-thanks-chip-flight::before {
+  inset: 3px;
+  border-width: 1px;
+}
+
+.no-thanks-chip-flight::after {
+  inset: 7px;
+  border-width: 1px;
+}
+
+.no-thanks-chip-flight.is-motion-ready {
+  animation-play-state: running;
+}
+
+@keyframes no-thanks-chip-flight-to-pile {
+  0% {
+    opacity: .98;
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(.92) rotate(0deg);
+  }
+  52% {
+    opacity: 1;
+    transform:
+      translate(-50%, -50%)
+      translate3d(var(--no-thanks-chip-mid-x, 80px), var(--no-thanks-chip-mid-y, -30px), 0)
+      scale(1.08)
+      rotate(150deg);
+  }
+  100% {
+    opacity: .12;
+    transform:
+      translate(-50%, -50%)
+      translate3d(var(--no-thanks-chip-end-x, 160px), var(--no-thanks-chip-end-y, 0px), 0)
+      scale(.72)
+      rotate(320deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-round-table {
+    left: 50%;
+    width: 78%;
+    height: 74%;
+  }
+
+  .no-thanks-seat.is-active {
+    width: 144px;
+    height: 144px;
+    min-height: 144px;
+  }
+
+  .no-thanks-my-panel--playing {
+    grid-template-columns: 184px minmax(0, 1fr) 218px;
+  }
+
+  .no-thanks-my-panel__actions--playing {
+    max-width: 218px;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table {
+    left: 50%;
+    width: 80%;
+    height: 58%;
+  }
+
+  .no-thanks-seat.is-active {
+    width: 124px;
+    height: 124px;
+    min-height: 124px;
+  }
+
+  .no-thanks-my-panel--playing {
+    grid-template-columns: 176px minmax(0, 1fr);
+  }
+
+  .no-thanks-my-panel__actions--playing {
+    grid-column: 1 / -1;
+    max-width: none;
+    padding: .65rem 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .no-thanks-panel-tools {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .no-thanks-panel-tools .game-platform-shell__button--danger {
+    grid-column: auto;
+  }
+
+  .no-thanks-panel-tools .game-platform-shell__button {
+    min-height: 40px;
+    padding-inline: .3rem;
+    font-size: .64rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-table-card.is-dealing,
+  .no-thanks-table-card.is-dealing .no-thanks-table-card__inner,
+  .no-thanks-chip-flight {
+    animation: none;
+  }
+
+  .no-thanks-seat {
+    transition: none;
+  }
+}
