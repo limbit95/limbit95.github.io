@@ -181,7 +181,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /\.slice\(0, expectedCount\)/u);
   assert.match(runtime, /durationMs = 620/u);
   assert.match(runtime, /staggerMs = 26/u);
-  assert.match(runtime, /flights\.forEach\(\(flight\) => flight\.remove\(\)\);[\s\S]*?commitViewerChipLanding\(\)/u);
+  assert.match(runtime, /flights\.forEach\(\(flight\) => flight\.remove\(\)\);[\s\S]*?commitViewerChipLanding\(effect\)/u);
 
   assert.match(styles, /\.no-thanks-shell--board \.game-platform-shell__sidebar\s*\{[\s\S]*?display:\s*none/u);
   assert.match(styles, /\.no-thanks-game-board/u);
