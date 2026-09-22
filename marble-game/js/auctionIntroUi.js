@@ -131,9 +131,11 @@ function buildChain(documentObject, elements, state, playerIds, starterPlayerId)
     targetIndex -= 1;
   }
 
-  elements.track.replaceChildren(...chain.map((playerId, index) => (
+  const profiles = chain.map((playerId, index) => (
     createProfileItem(documentObject, state, playerId, index)
-  )));
+  ));
+  profiles[targetIndex]?.setAttribute("data-selected", "true");
+  elements.track.replaceChildren(...profiles);
 
   const starter = findPlayer(state, starterPlayerId);
   elements.result.textContent = \`${playerName(starter, starterPlayerId)}님부터 경매를 시작합니다!\`;
@@ -245,6 +247,7 @@ export function createAuctionIntroPresenter({
 
     elements.overlay.hidden = false;
     elements.overlay.dataset.phase = phase;
+    elements.track.dataset.result = phase === "result" ? "true" : "false";
     elements.announce.hidden = phase !== "announce";
     elements.selector.hidden = phase === "announce";
 
