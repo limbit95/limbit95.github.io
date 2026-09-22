@@ -9,6 +9,7 @@
 ## Current Design Track
 
 - Status: RELEASED
+- Lifecycle stage: RELEASED
 - Current UI phase / scope: v1 release baseline 유지, 필요 시 post-release polish
 - Active branch: main
 - Last updated: 2026-09-23
@@ -18,17 +19,9 @@
 
 ## Decision Log
 
-### 2026-09-23 — UI decision history tracking 도입
-
-- Context / trigger: Game Platform 문서를 기능 기준/진행과 디자인 기준/진행으로 분리해 디자인 의사결정 맥락을 보존할 필요가 생겼습니다.
-- Previous / alternatives: 기존에는 `UI_DESIGN.md`와 `DEVELOPMENT.md`에 현재 기준과 구현 이력이 함께 섞일 수 있었습니다.
-- Decision: 현재 디자인 기준은 `UI_DESIGN.md`, 이후의 의미 있는 디자인 변경·대안·검증 이력은 이 문서에서 관리합니다.
-- Rationale: release baseline을 흔들지 않으면서 다음 작업자가 디자인 결정의 이유를 복원할 수 있게 합니다.
-- Affected surfaces: 문서 관리
-- Implementation status: IMPLEMENTED
-- Validation: 문서/거버넌스 검증 대상
-- Baseline relation: 문서 관리 방식만 변경하며 기존 `UI_DESIGN.md` baseline과 release runtime을 변경하지 않습니다.
-- Related functional boundary: `GAME_SPEC.md` 및 `DEVELOPMENT.md`의 기능 책임은 유지합니다.
+- 현재 v1 release baseline 이후 별도로 확정된 game-local 디자인 수정 decision은 없습니다.
+- 후속 수동 브라우저 리뷰에서 실제 디자인 수정이 확정되면 Decision ID를 부여해 이 섹션에 추가합니다.
+- 문서 체계 도입 자체는 게임 화면 디자인 결정이 아니므로 Decision Log에 기록하지 않습니다.
 
 ## Superseded / Rejected
 
