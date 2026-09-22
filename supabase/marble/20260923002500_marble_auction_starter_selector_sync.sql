@@ -126,7 +126,7 @@ begin
       updated_at = now()
   where id = p_game_id;
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION private.marble_game_snapshot(p_room_id uuid)
@@ -236,5 +236,5 @@ begin
     'viewerPlayerId', v_viewer_player_id
   );
 end;
-$function$
+$function$;
 
