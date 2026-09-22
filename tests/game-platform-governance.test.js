@@ -356,7 +356,7 @@ test("retired generic checkpoint command cannot return as a standalone command",
   const functionCommand = "기능 체크포인트 기록하자";
   const designCommand = "디자인 체크포인트 기록하자";
   const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
-  const legacyCommand = "`체크포인트 기록하자`";
+  const legacyCommand = `\`${["체크포인트", "기록하자"].join(" ")}\``;
 
   const errors = validatePlatformDocumentPolicy({
     registry: [],
