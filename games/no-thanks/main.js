@@ -20,6 +20,12 @@ import { createNoThanksLobbyController } from "./lobbyController.js";
 import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
 import { createNoThanksGameplayAdapter } from "./gameplay.js";
 import { createNoThanksPresenceAdapter } from "./presence.js";
+import {
+  getBoardSeatCoordinates,
+  getNoThanksCardTone,
+  getNoThanksHandOverlap,
+  orderBoardPlayers,
+} from "./boardLayout.js";
 
 const app = document.getElementById("app");
 
@@ -282,14 +288,6 @@ function createEntryPanel(state, displayName) {
   ]);
 }
 
-function cardTone(value) {
-  const numeric = Number(value);
-  if (!Number.isInteger(numeric) || numeric <= 10) return "blue";
-  if (numeric <= 18) return "teal";
-  if (numeric <= 26) return "yellow";
-  return "pink";
-}
-
 function compactChipCount(count) {
   const numeric = Number(count);
   if (!Number.isFinite(numeric) || numeric <= 0) return 0;
@@ -317,13 +315,7 @@ function createChipCluster(count, {
 }
 
 function prepareBoardSeats(view) {
-  const ordered = [...view.players].sort((left, right) => left.seat - right.seat);
-  const viewerIndex = ordered.findIndex((player) => player.id === view.currentUserId);
-  const normalizedViewerIndex = viewerIndex >= 0 ? viewerIndex : 0;
-  const rotated = [
-    ...ordered.slice(normalizedViewerIndex),
-    ...ordered.slice(0, normalizedViewerIndex),
-  ];
+  const rotated = orderBoardPlayers(view.players, view.currentUserId);
 
   const seatedNow = new Set(
     view.players
@@ -353,22 +345,9 @@ function prepareBoardSeats(view) {
   }));
 }
 
-function boardSeatCoordinates(index, total) {
-  const count = Math.max(total, 1);
-  const angle = (Math.PI / 2) + ((Math.PI * 2 * index) / count);
-  const centerX = count >= 6 ? 40 : 44.5;
-  const radiusX = count <= 3 ? 34 : (count >= 6 ? 34.5 : 37);
-  const radiusY = count <= 3 ? 32.5 : (count >= 6 ? 37 : 35);
-
-  return {
-    left: centerX + (Math.cos(angle) * radiusX),
-    top: 50 + (Math.sin(angle) * radiusY),
-  };
-}
-
 function createBoardSeat(view, seatInfo, index, total) {
   const { player, seated, arriving } = seatInfo;
-  const position = boardSeatCoordinates(index, total);
+  const position = getBoardSeatCoordinates(index, total);
   const active = view.gamePhase === "PLAYING" && player.id === view.activePlayerId;
   const classes = [
     "no-thanks-seat",
@@ -452,7 +431,7 @@ function createTableCard(value) {
   const displayValue = value == null ? "?" : String(value);
   return el("article", {
     className: "no-thanks-table-card",
-    dataset: { tone: cardTone(value) },
+    dataset: { tone: getNoThanksCardTone(value) },
     "aria-label": value == null ? "현재 카드 없음" : "현재 카드 " + displayValue,
   }, [
     el("span", {
@@ -520,20 +499,12 @@ function createRoundTable(view) {
   ]);
 }
 
-function handOverlap(cardCount) {
-  if (cardCount <= 5) return -8;
-  if (cardCount <= 9) return -18;
-  if (cardCount <= 14) return -30;
-  if (cardCount <= 19) return -40;
-  return -50;
-}
-
 function createHandCard(card, index, overlap) {
   const value = String(card);
   return el("button", {
     className: "no-thanks-hand-card",
     type: "button",
-    dataset: { tone: cardTone(card) },
+    dataset: { tone: getNoThanksCardTone(card) },
     style: {
       marginLeft: index === 0 ? "0" : String(overlap) + "px",
       zIndex: String(index + 1),
@@ -623,7 +594,7 @@ function createPlayingPrimaryActions(view, state) {
 function createMyPanel(view, state) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
   const cards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
-  const overlap = handOverlap(cards.length);
+  const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const statusText = waiting
     ? (view.isHost ? "방장은 항상 준비된 자리로 표시됩니다." : (view.isReady ? "준비 완료 · 게임 시작을 기다리고 있어요." : "준비 완료를 누르면 테이블에 착석합니다."))
