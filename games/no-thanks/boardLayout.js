@@ -18,7 +18,7 @@ export function getBoardSeatCoordinates(index, total) {
   const angle = (Math.PI / 2) + ((Math.PI * 2 * safeIndex) / count);
   const centerX = count >= 6 ? 40 : 44.5;
   const radiusX = count <= 3 ? 34 : (count >= 6 ? 34.5 : 37);
-  const radiusY = count <= 3 ? 32.5 : (count >= 6 ? 37 : 35);
+  const radiusY = count <= 3 ? 36 : (count >= 6 ? 40 : 38);
 
   return Object.freeze({
     left: centerX + (Math.cos(angle) * radiusX),
@@ -41,4 +41,13 @@ export function getNoThanksHandOverlap(cardCount) {
   if (count <= 14) return -30;
   if (count <= 19) return -40;
   return -50;
+}
+
+
+export function getNoThanksVisibleChipCount(count, {
+  compact = false,
+} = {}) {
+  const numeric = Number(count);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  return Math.min(Math.floor(numeric), compact ? 7 : 16);
 }
