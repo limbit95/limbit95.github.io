@@ -1,7 +1,7 @@
 # <Game Title> UI Design
 
 > 이 문서는 이 게임의 UI/UX와 presentation이 따라야 할 game-local 설계 기준입니다.
-> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`, 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 실제 구현 진행은 `DEVELOPMENT.md`를 따릅니다.
+> 공통 Game Platform 개발 규칙은 `docs/game-platform-development-rules.md`, UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다. 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 실제 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
 
 ## Design Research
 

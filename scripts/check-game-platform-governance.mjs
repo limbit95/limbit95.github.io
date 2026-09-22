@@ -17,6 +17,12 @@ const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "games/README.md",
   RULEBOOK_PATH,
 ]);
+const DEVELOPMENT_CHECKPOINT_AMBIGUOUS_PATTERNS = Object.freeze([
+  "게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.",
+  "사용자가 명시적으로 중간 진행 기록을 요청할 때",
+  "사용자가 중간 checkpoint 기록을 요청할 때",
+  "Phase 완료 시와 사용자가 중간 checkpoint 기록을 요청할 때",
+]);
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -124,6 +130,14 @@ export function validatePlatformDocumentPolicy({
     }
 
     if (classification === "HISTORY") continue;
+
+    for (const pattern of DEVELOPMENT_CHECKPOINT_AMBIGUOUS_PATTERNS) {
+      if (content.includes(pattern)) {
+        errors.push(
+          `Current Game Platform document ${filename} contains ambiguous DEVELOPMENT.md checkpoint wording: ${pattern}`,
+        );
+      }
+    }
 
     for (const game of sharedGames) {
       if (containsPlatformGameReference(content, game)) {
@@ -274,6 +288,9 @@ export function validateRepositoryState({
     const requiredLinks = [
       ["AGENTS.md", documents["AGENTS.md"]],
       ["games/README.md", documents["games/README.md"]],
+      ["games/GAME_SPEC_TEMPLATE.md", documents["games/GAME_SPEC_TEMPLATE.md"]],
+      ["games/DEVELOPMENT_TEMPLATE.md", documents["games/DEVELOPMENT_TEMPLATE.md"]],
+      ["games/UI_DESIGN_TEMPLATE.md", documents["games/UI_DESIGN_TEMPLATE.md"]],
       ["docs/game-platform-strategy.md", documents["docs/game-platform-strategy.md"]],
       ["docs/game-platform-invite-analysis.md", documents["docs/game-platform-invite-analysis.md"]],
     ];

@@ -258,11 +258,14 @@ test("document authority links are enforced only when the rulebook exists", () =
       "docs/game-platform-development-rules.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
       "AGENTS.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
       "games/README.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
+      "games/GAME_SPEC_TEMPLATE.md": "rules",
+      "games/DEVELOPMENT_TEMPLATE.md": "rules",
+      "games/UI_DESIGN_TEMPLATE.md": "rules",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
   });
-  assert.equal(errors.length, 4);
+  assert.equal(errors.length, 7);
 });
 
 test("platform checkpoint user trigger and lifecycle rule stay canonical across command entrypoints", () => {
@@ -314,6 +317,31 @@ test("platform checkpoint user trigger and lifecycle rule stay canonical across 
   });
   assert.equal(missingLifecycle.length, 1);
   assert.match(missingLifecycle[0], /games\/README\.md must preserve the canonical Game Platform DEVELOPMENT\.md lifecycle update rule/u);
+});
+
+test("current platform documents reject stale broad checkpoint trigger wording", () => {
+  const errors = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
+        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
+      ].join("\n"),
+      "AGENTS.md": [
+        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
+        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
+      ].join("\n"),
+      "games/README.md": [
+        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
+        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
+      ].join("\n"),
+      "games/NEW_GAME_GUIDE.md": "사용자가 중간 checkpoint 기록을 요청할 때 DEVELOPMENT.md를 갱신한다.",
+    },
+  });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /contains ambiguous DEVELOPMENT\.md checkpoint wording/u);
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {
@@ -472,9 +500,9 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -514,9 +542,9 @@ test("UI rulebook authority links are enforced across game entry documents and t
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -596,9 +624,9 @@ test("game-local documents must cross-reference the other design and handoff doc
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
     "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
-    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
-    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };

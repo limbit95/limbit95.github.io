@@ -48,7 +48,7 @@ AGENTS.md
 
 - `CURRENT`: 현재 실행 규칙/공통 계약 문서다. Registry의 특정 platform-native 게임명이나 ID를 공통 규칙으로 포함할 수 없다.
 - `HISTORY`: 과거 전략·분석·구현 이력을 보존하는 문서다. 특정 게임 이력을 기록할 수 있지만 현재 실행 기준으로 사용하지 않는다.
-- 메인 규칙서 `docs/game-platform-development-rules.md`를 제외한 모든 `docs/game-platform-*.md`는 해당 규칙서를 현재 rulebook으로 명시해야 한다.
+- 메인 규칙서 `docs/game-platform-development-rules.md`를 제외한 모든 `docs/game-platform-*.md`와 신규 게임 진입 문서인 `AGENTS.md`, `games/README.md`, 세 게임 문서 템플릿은 해당 규칙서를 현재 rulebook으로 명시해야 한다.
 - 신규 UI rulebook `docs/game-platform-ui-rules.md`가 존재하면 `AGENTS.md`, 메인 개발 규칙, `games/README.md`, `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`가 해당 UI rulebook을 명시해야 한다.
 - `AGENTS.md`와 `games/` 최상위 Markdown 가이드/템플릿은 별도 분류 표기 없이 `CURRENT`로 간주해 같은 game-agnostic 검사를 적용한다.
 
@@ -74,7 +74,7 @@ Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `
 >
 > `디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.
 
-checkpoint 명령 해석의 최종 의미는 Development Rules가 소유하며, DB/UI/HISTORY 문서는 이 사용자 명령 트리거를 별도로 재정의하지 않는다.
+checkpoint 명령 해석의 최종 의미는 Development Rules가 소유하며, DB/UI/HISTORY 문서와 게임 문서 템플릿은 이 사용자 명령 트리거를 별도로 재정의하지 않는다. 또한 CURRENT 공통 문서에 과거의 넓은 `중간 checkpoint 요청` 표현이 다시 들어오지 않는지 Guard가 차단한다.
 
 세 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
 
