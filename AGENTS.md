@@ -74,6 +74,7 @@ fix/marble-stability-phase3-ci
 - 모든 platform-native 게임은 로비 또는 시작 전 화면에서 처음 플레이하는 사용자도 이해할 수 있는 상세 규칙 안내를 제공하고, 플레이 중에도 다시 확인할 수 있는 진입점을 유지합니다.
 - 모든 platform-native 게임은 진행 중 세션을 안전하게 끝낼 수 있는 명시적 게임 종료 경로를 제공하며, 온라인 멀티플레이 종료는 서버 권위와 확인 UI를 적용합니다.
 - 모든 멀티플레이 platform-native 게임은 게임 종료 후 기존 room/player context를 유지하는 재대결 흐름을 기본 기능으로 제공하고, 참여 플레이어 준비 완료 후 방장이 다시 시작할 수 있어야 합니다. 세부 lifecycle과 서버 권위는 `docs/game-platform-development-rules.md`를 따릅니다.
+- 하위 game-local/topic-owner 작업에서 현재 상위 Game Platform 규칙과 충돌하는 새 필요를 발견했다고 해서 바로 소스나 하위 규칙을 수정하지 않습니다. 먼저 기존 상위 규칙과 shared/runtime 경계를 확인하고, 사용자와의 토의에서 플랫폼 전반에 필요한 변경으로 명시적으로 합의된 경우에만 **Game Platform ARCHITECTURE CHANGE**로 승격합니다. 승격된 작업은 `docs/game-platform-development-rules.md`와 `docs/game-platform-governance.md`의 전파/영향도 감사 절차를 따릅니다.
 - Game Platform CURRENT 규칙, shared 계약 또는 필수 lifecycle을 변경하는 작업은 현재 Registry의 모든 platform-native 게임을 전수 검토하고 각 게임을 `COMPLIANT` / `MIGRATION_REQUIRED` / `NOT_APPLICABLE`로 분류합니다. `IN_PROGRESS` 게임의 충돌은 release 전에 해소하고, `RELEASED` 게임은 별도 migration/follow-up 필요 여부를 작업 결과와 PR에 남깁니다.
 
 ## 작업 전 확인
