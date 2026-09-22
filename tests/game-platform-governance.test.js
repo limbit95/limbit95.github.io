@@ -255,14 +255,45 @@ test("document authority links are enforced only when the rulebook exists", () =
     registry: [],
     dbTestFiles: [],
     documents: {
-      "docs/game-platform-development-rules.md": "rules",
-      "AGENTS.md": "rules",
-      "games/README.md": "rules",
+      "docs/game-platform-development-rules.md": "rules\n게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.",
+      "AGENTS.md": "rules\n게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.",
+      "games/README.md": "rules\n게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
   });
   assert.equal(errors.length, 4);
+});
+
+test("platform checkpoint trigger stays canonical across all command entrypoints", () => {
+  const trigger = "게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.";
+
+  assert.deepEqual(validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        trigger,
+      ].join("\n"),
+      "AGENTS.md": trigger,
+      "games/README.md": trigger,
+    },
+  }), []);
+
+  const errors = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        trigger,
+      ].join("\n"),
+      "AGENTS.md": trigger,
+      "games/README.md": "사용자가 중간 checkpoint 기록을 요청할 때 DEVELOPMENT.md를 갱신한다.",
+    },
+  });
+
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /games\/README\.md must use the canonical Game Platform DEVELOPMENT\.md checkpoint trigger/u);
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {

@@ -199,7 +199,9 @@ games/<game-id>/DEVELOPMENT.md
 
 ### MUST: 사용자가 "디벨롭 파일에" 진행 기록을 요청할 때
 
-게임 개발 진행 checkpoint를 저장소에 기록하는 **명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우로 한정한다.**
+게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.
+
+이 절이 checkpoint 명령 해석의 최종 기준이며, `AGENTS.md`와 `games/README.md`는 이 문장을 동일하게 요약한다. 다른 Game Platform CURRENT 문서는 이 트리거 범위를 별도로 넓히거나 다른 표현으로 재정의하지 않는다.
 
 대표 명령은 다음과 같다.
 
@@ -232,7 +234,7 @@ MUST NOT:
 
 - Phase 시작 또는 작업 범위가 확정될 때
 - Phase 완료 시
-- 사용자가 명시적으로 중간 진행 기록을 요청할 때
+- 사용자의 요청 문장에 `디벨롭 파일에`가 명시되어 repository checkpoint를 요청할 때
 - 중요한 아키텍처/게임 규칙 결정이 바뀔 때
 - `UI_DESIGN.md`의 Visual Identity, page/layout, 핵심 component, motion, responsive, 자산 사용 판단처럼 실제 UI 구현 방향이 바뀔 때
 - 다음 작업자에게 반드시 전달해야 할 blocker나 known issue가 생길 때

@@ -68,6 +68,8 @@ workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바
 
 Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
 
+또한 사용자 명령을 repository checkpoint로 해석하는 규칙이 문서마다 달라지는 것을 막기 위해 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md`가 동일한 canonical trigger 문장 `게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.`을 유지하는지 검사한다. checkpoint 명령의 최종 의미는 Development Rules가 소유하며, DB/UI/HISTORY 문서는 이 명령 범위를 별도로 재정의하지 않는다.
+
 세 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
 
 `UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result-rematch, motion, responsive, 구현 계획, validation 섹션의 구조적 존재를 확인한다. 특정 색상이나 디자인의 미적 적합성을 CI가 판단하는 것은 아니며 그 의미적 검토는 `docs/game-platform-ui-rules.md`의 작업 절차와 실제 브라우저 검증이 담당한다.

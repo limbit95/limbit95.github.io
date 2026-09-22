@@ -10,6 +10,12 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
+const DEVELOPMENT_CHECKPOINT_TRIGGER = "게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.";
+const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
+  "AGENTS.md",
+  "games/README.md",
+  RULEBOOK_PATH,
+]);
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -122,6 +128,17 @@ export function validatePlatformDocumentPolicy({
       if (containsPlatformGameReference(content, game)) {
         errors.push(
           `Current Game Platform document ${filename} must stay game-agnostic; move ${game.id}-specific guidance to that game\'s documents/tests.`,
+        );
+      }
+    }
+  }
+
+  if (documents[RULEBOOK_PATH] != null) {
+    for (const filename of DEVELOPMENT_CHECKPOINT_POLICY_PATHS) {
+      const content = documents[filename];
+      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_TRIGGER)) {
+        errors.push(
+          `${filename} must use the canonical Game Platform DEVELOPMENT.md checkpoint trigger: ${DEVELOPMENT_CHECKPOINT_TRIGGER}`,
         );
       }
     }

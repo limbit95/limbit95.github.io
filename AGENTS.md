@@ -63,7 +63,7 @@ fix/marble-stability-phase3-ci
 - bootstrap 단계에서는 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`만 있는 게임 디렉터리를 Registry 등록 전 상태로 둘 수 있습니다. 실제 runtime 파일을 추가하는 순간 Game Registry와 기존 platform-native 규칙을 함께 적용합니다.
 - 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 현재 개발상태의 인수인계 문서로 유지합니다.
 - 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
-- 게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우입니다. 예: `새로운 채팅방에서 이어서 작업하게 디벨롭 파일에 기록해줘`. 이 경우 반드시 해당 `games/<game-id>/DEVELOPMENT.md`를 갱신하고 현재 작업 브랜치에 commit합니다. `디벨롭 파일에`가 없는 일반적인 `새 채팅에서 이어서 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 요청은 자동으로 repository checkpoint 명령으로 해석하지 않습니다.
+- 게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다. 예: `새로운 채팅방에서 이어서 작업하게 디벨롭 파일에 기록해줘`. 이 경우 반드시 해당 `games/<game-id>/DEVELOPMENT.md`를 갱신하고 현재 작업 브랜치에 commit합니다. `디벨롭 파일에`가 없는 일반적인 `새 채팅에서 이어서 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 요청은 자동으로 repository checkpoint 명령으로 해석하지 않습니다.
 - 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 - 모든 platform-native 게임은 로비 또는 시작 전 화면에서 처음 플레이하는 사용자도 이해할 수 있는 상세 규칙 안내를 제공하고, 플레이 중에도 다시 확인할 수 있는 진입점을 유지합니다.
 - 모든 platform-native 게임은 진행 중 세션을 안전하게 끝낼 수 있는 명시적 게임 종료 경로를 제공하며, 온라인 멀티플레이 종료는 서버 권위와 확인 UI를 적용합니다.
