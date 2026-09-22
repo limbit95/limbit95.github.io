@@ -843,22 +843,22 @@ async function animateDealFlight(target, source) {
         offset: 0,
       },
       {
-        transform: `translate3d(${dx * .2}px, ${dy * .12 - 18}px, 0) scale(${scaleAt(.12)}) rotateZ(-1.5deg)`,
+        transform: `translate3d(${dx * .2}px, ${dy * .12 - 24}px, 0) scale(${scaleAt(.12)}) rotateZ(-2deg)`,
         opacity: 1,
         offset: .22,
       },
       {
-        transform: `translate3d(${dx * .52}px, ${dy * .42 - 28}px, 0) scale(${scaleAt(.38)}) rotateZ(2.4deg)`,
+        transform: `translate3d(${dx * .52}px, ${dy * .42 - 34}px, 0) scale(${scaleAt(.36)}) rotateZ(3.2deg)`,
         opacity: 1,
         offset: .5,
       },
       {
-        transform: `translate3d(${dx * .82}px, ${dy * .76 - 14}px, 0) scale(${scaleAt(.72)}) rotateZ(-1deg)`,
+        transform: `translate3d(${dx * .82}px, ${dy * .76 - 18}px, 0) scale(${scaleAt(.7)}) rotateZ(-1.5deg)`,
         opacity: 1,
         offset: .78,
       },
       {
-        transform: `translate3d(${dx}px, ${dy - 4}px, 0) scale(.992) rotateZ(.35deg)`,
+        transform: `translate3d(${dx}px, ${dy - 6}px, 0) scale(.994) rotateZ(.7deg)`,
         opacity: 1,
         offset: .94,
       },
@@ -868,20 +868,20 @@ async function animateDealFlight(target, source) {
         offset: 1,
       },
     ], {
-      duration: 570,
+      duration: 760,
       easing: "cubic-bezier(.18, .72, .2, 1)",
       fill: "forwards",
     });
 
     const flipAnimation = inner.animate([
       { transform: "rotateY(180deg) rotateX(0deg)", offset: 0 },
-      { transform: "rotateY(180deg) rotateX(1deg)", offset: .18 },
-      { transform: "rotateY(224deg) rotateX(-3deg)", offset: .42 },
-      { transform: "rotateY(286deg) rotateX(2deg)", offset: .64 },
-      { transform: "rotateY(338deg) rotateX(-1deg)", offset: .84 },
+      { transform: "rotateY(180deg) rotateX(1deg)", offset: .2 },
+      { transform: "rotateY(220deg) rotateX(-3deg)", offset: .43 },
+      { transform: "rotateY(274deg) rotateX(2deg)", offset: .63 },
+      { transform: "rotateY(332deg) rotateX(-1deg)", offset: .84 },
       { transform: "rotateY(360deg) rotateX(0deg)", offset: 1 },
     ], {
-      duration: 570,
+      duration: 760,
       easing: "cubic-bezier(.3, .08, .18, 1)",
       fill: "forwards",
     });
@@ -911,7 +911,7 @@ async function animateDealFlight(target, source) {
         transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(1)`,
       },
     ], {
-      duration: 110,
+      duration: 130,
       easing: "cubic-bezier(.2, .72, .2, 1)",
       fill: "forwards",
     });
@@ -960,8 +960,10 @@ function syncBoardAnimationGeometry() {
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
       chipFlight.addEventListener("animationend", () => {
-        commitCenterChipLanding(board);
-        chipFlight.remove();
+        window.setTimeout(() => {
+          if (board.isConnected) commitCenterChipLanding(board);
+          chipFlight.remove();
+        }, 100);
       }, { once: true });
       chipFlight.classList.add("is-motion-ready");
       started = true;
@@ -1329,7 +1331,7 @@ function createSidebar(view) {
     return el("section", { className: "no-thanks-note" }, [
       el("h2", { text: "재대결 정책" }),
       el("p", {
-        text: "이번 버전의 재대결은 기존 결과방을 초기화하지 않고 새 방을 만드는 방식입니다. 방장이 새 방을 만들면 기존 결과방은 닫히고 참가자는 새 방 코드로 다시 참가합니다.",
+        text: "재대결을 선택하면 현재 참가자와 좌석을 유지한 채 같은 방의 대기실로 돌아갑니다. 일반 플레이어가 다시 준비 완료하면 방장이 다음 게임을 시작할 수 있어요.",
       }),
     ]);
   }
@@ -1418,11 +1420,11 @@ function createRematchDialog(onConfirm) {
     el("h2", {
       id: "no-thanks-rematch-title",
       className: "no-thanks-confirm__title",
-      text: "재대결 방을 만들까요?",
+      text: "같은 멤버로 재대결할까요?",
     }),
     el("p", {
       className: "no-thanks-confirm__message",
-      text: "기존 결과방을 닫고 같은 최대 인원의 새 방을 만듭니다. 다른 참가자들은 새 방 코드로 다시 참가해야 합니다.",
+      text: "현재 참가자와 좌석을 그대로 유지한 채 대기실로 돌아갑니다. 일반 플레이어가 다시 준비 완료하면 방장이 바로 다음 게임을 시작할 수 있어요.",
     }),
     el("div", { className: "no-thanks-confirm__actions" }, [
       el("button", {
@@ -1434,7 +1436,7 @@ function createRematchDialog(onConfirm) {
       el("button", {
         className: "button",
         type: "button",
-        text: "재대결 방 만들기",
+        text: "재대결 준비",
         onClick: async () => {
           dialog.close();
           await onConfirm();
