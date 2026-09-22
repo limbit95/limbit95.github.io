@@ -347,6 +347,11 @@ export function setupOnlineAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
+  const setAuctionOverlayActive = (active) => {
+    if (!documentObject.body?.dataset) return;
+    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
+    else delete documentObject.body.dataset.auctionOverlayActive;
+  };
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
     clock: () => nowMs(),
@@ -487,6 +492,7 @@ export function setupOnlineAuctionUi({
     const model = createOnlineAuctionUiModel(state, session.getViewerPlayerId());
     const introActive = introPresenter.render(state, () => render(session.getState()));
     if (introActive) {
+      setAuctionOverlayActive(true);
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
       elements.panel.hidden = true;
@@ -494,6 +500,7 @@ export function setupOnlineAuctionUi({
       return;
     }
     if (!model) {
+      setAuctionOverlayActive(false);
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
       elements.panel.hidden = true;
@@ -501,6 +508,7 @@ export function setupOnlineAuctionUi({
       return;
     }
 
+    setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
     elements.title.textContent = model.nodeLabel;
