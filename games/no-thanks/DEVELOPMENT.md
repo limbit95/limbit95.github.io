@@ -121,7 +121,7 @@
 
 ## Current Work
 
-- Phase A–D 소스 구현은 완료했으며, 새 보드 레이아웃 계약 테스트와 Game Platform governance 검증을 통과시키는 단계입니다.
+- Phase A–D 소스 구현과 자동 검증을 완료했고 PR #364에서 리뷰 중입니다.
 - UI 개편은 game-local 표현 계층만 변경하고 기존 DB/RPC/server authority/private-state/reconnect 계약은 변경하지 않습니다.
 
 ## Next Work
@@ -206,6 +206,12 @@
 ## Validation
 
 - 완료:
+  - Board UI Phase A–D PR #364의 Game Platform governance run #270이 성공했습니다.
+  - 최신 코드 HEAD에서 Game Platform JavaScript syntax check가 통과했습니다.
+  - site ↔ `games/shared` module link check가 통과했습니다.
+  - 신규 3–7인 좌석/6시 고정/카드 겹침 계약 테스트를 포함한 `npm run test:game-platform` 전체가 통과했습니다.
+  - Game Platform Governance Guard가 통과해 shared/DB/RPC 경계 변경이 없음을 확인했습니다.
+  - PR 전 실제 브랜치 파일 기반 추가 검증에서 3/4/5/6/7인 좌표 유일성, viewer 6시 고정, authoritative seat 보존, 카드 tone/hand overlap, Phase A–D DOM/CSS 계약과 CSS brace balance를 확인했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
@@ -265,6 +271,8 @@
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
 - 현재 브랜치는 보드 UI Phase A–D 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- Phase A–D 자동 계약은 통과했지만 실제 3–7인 데스크톱 브라우저에서 좌석/HUD 간격과 카드 손패 밀도를 눈으로 확인하는 시각 QA는 PR 후속 확인 항목입니다.
+- 다른 플레이어 공개 카드 popover(Phase E)와 카드/칩 이동 애니메이션(Phase F)은 이번 PR 범위에 포함하지 않습니다.
 
 ## Release closeout 안내
 
