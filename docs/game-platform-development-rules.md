@@ -731,16 +731,19 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 11. Versioned / Idempotent Action 연결 (상태 변경 action이 있는 경우)
 12. Realtime invalidation + reconnect 연결 (online realtime을 사용하는 경우)
 13. Common Game Shell / player UI 연결 (필요한 공통 surface만)
-14. UI_DESIGN 기준의 게임 고유 page/lobby/gameplay UI 구현
+14. UI_DESIGN baseline 기준의 게임 고유 page/lobby/gameplay UI 최초 구현
 15. 멀티플레이 게임의 result/rematch lifecycle 구현
-16. 게임 고유 animation / interaction / responsive polish
-17. 멀티클라이언트 및 reconnect 회귀 검증
-18. UI_DESIGN validation checklist와 UI_DECISIONS의 실제 브라우저/디자인 검증 이력 확인
-19. production migration / 권한 경계 검증
-20. Registry capability activation + 게임 목록/entry 노출
-21. RELEASED 문서 closeout
-22. stacked PR / 작업 브랜치 정리
-23. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
+16. 기능 구현과 자동 검증을 release 후보 수준까지 완료
+17. Developer Manual Design Review / Detail Polish: 개발자가 실제 브라우저에서 플레이하며 디자인 디테일 수정
+18. 안정화된 디자인 수정 사항을 UI_DECISIONS에 확정 decision 단위로 기록
+19. 게임 고유 animation / interaction / responsive 최종 polish
+20. 멀티클라이언트 및 reconnect 회귀 검증
+21. UI_DESIGN 초기 validation checklist + UI_DECISIONS 최신 override/브라우저 검증 이력 확인
+22. production migration / 권한 경계 검증
+23. Registry capability activation + 게임 목록/entry 노출
+24. Design Closeout + RELEASED 문서 closeout
+25. stacked PR / 작업 브랜치 정리
+26. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
 ```
 
 이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다.
@@ -752,7 +755,7 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 - `UI_DESIGN.md / Implementation Plan`: 현재 디자인을 구현할 때의 안정적인 presentation 적용 순서/가이드이며 실시간 작업 일지가 아니다
 - `UI_DECISIONS.md / Current Design Track · Decision Log · Open Follow-up`: 실제 디자인 개발 진행, 중요한 변경 이유, 대안, 검증, 다음 UI 작업
 
-같은 TODO나 변경 이력을 여러 문서에 복제해 각각 따로 관리하지 않는다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
+같은 TODO나 변경 이력을 여러 문서에 복제해 각각 따로 관리하지 않는다. 특히 17~18의 수동 디자인 리뷰와 decision 기록은 기능 구현과 별도의 마무리 단계다. 첫 공개 또는 큰 release에서는 이 단계를 생략하지 않고, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
 
 ## 16. 완료 체크리스트
 
@@ -761,7 +764,9 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 - [ ] `games/<game-id>/`에 게임이 독립적으로 위치한다.
 - [ ] `games/<game-id>/GAME_SPEC.md`가 현재 게임 규칙, 구현 범위, 상태 머신, 플랫폼 경계를 반영한다.
 - [ ] `games/<game-id>/UI_DESIGN.md`가 runtime 개발 전 디자인 조사 출처, 자산 사용 경계, Visual Identity, 독립 페이지 방향, motion/responsive, 최초 Phase baseline을 반영한다.
-- [ ] `games/<game-id>/UI_DECISIONS.md`가 의미 있는 디자인 개발 진행, 변경 이유, 폐기/대체 결정, UI/browser validation과 후속 디자인 작업을 반영한다.
+- [ ] 기능 구현 후 Developer Manual Design Review / Detail Polish를 수행했거나, 수행 전이라면 아직 디자인 완료로 표시하지 않았다.
+- [ ] `games/<game-id>/UI_DECISIONS.md`가 개발자 수동 브라우저 리뷰에서 확정된 의미 있는 디자인 수정, 변경 이유, 폐기/대체 결정, UI/browser validation과 후속 디자인 작업을 반영한다.
+- [ ] 디자인 PR merge/close 또는 release closeout 전에 기록되지 않은 확정 디자인 decision이 남아 있지 않다.
 - [ ] `games/<game-id>/DEVELOPMENT.md`가 GAME_SPEC 기준 기능 Phase/브랜치/다음 기능 작업/검증 상태를 반영하고 UI 세부 이력을 중복 관리하지 않는다.
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
 - [ ] 실제 구현된 capability만 선언되어 있다.
