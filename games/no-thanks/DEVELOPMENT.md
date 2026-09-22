@@ -218,7 +218,7 @@
 ## Validation
 
 - 완료:
-  - Board UI Phase A–D PR #364의 Game Platform governance run #270이 성공했습니다.
+  - Board UI Phase A–D PR #364의 최신 Game Platform governance run #287이 성공했습니다. 중간 run #286은 테이블 액션 이동 전의 오래된 shell 문구 계약 때문에 실패했으며 테스트를 새 UI 계약으로 갱신한 뒤 전체 통과했습니다.
   - 최신 코드 HEAD에서 Game Platform JavaScript syntax check가 통과했습니다.
   - site ↔ `games/shared` module link check가 통과했습니다.
   - 신규 3–7인 좌석/6시 고정/카드 겹침 계약 테스트를 포함한 `npm run test:game-platform` 전체가 통과했습니다.
