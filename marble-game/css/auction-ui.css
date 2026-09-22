@@ -135,13 +135,17 @@
 }
 
 .auction-action-panel[data-auction-stage="auction"] .auction-action-panel__metric:first-child {
-  border: 1px solid rgba(243, 194, 83, 0.28);
-  background: linear-gradient(145deg, rgba(243, 194, 83, 0.13), rgba(255, 255, 255, 0.045));
+  position: relative;
+  z-index: 5;
+  border: 1px solid rgba(243, 194, 83, 0.36);
+  background: linear-gradient(145deg, rgba(243, 194, 83, 0.16), rgba(255, 255, 255, 0.05));
 }
 
 .auction-action-panel[data-auction-stage="auction"] .auction-action-panel__metric:first-child strong {
   color: #ffe29a;
-  text-shadow: 0 0 16px rgba(243, 194, 83, 0.22);
+  font-size: clamp(1.3rem, 4vw, 1.6rem);
+  white-space: nowrap;
+  text-shadow: 0 0 18px rgba(243, 194, 83, 0.34);
 }
 
 .auction-action-panel__metric strong[data-counting="true"] {
