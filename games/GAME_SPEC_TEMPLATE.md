@@ -62,6 +62,8 @@
 
 ## Implementation Plan
 
+> 기능·상태 머신·DB/RPC·플랫폼 연결의 설계 순서만 관리합니다. Visual/presentation 구현 순서는 `UI_DESIGN.md`, 현재 실제 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
+
 1. <첫 구현 slice>
 2. <다음 slice>
 3. <이 게임이 사용하는 online/DB/snapshot/realtime/UI capability 순서>
