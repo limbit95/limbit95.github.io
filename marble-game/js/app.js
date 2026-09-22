@@ -499,6 +499,20 @@ function setInteractionLocked(locked) {
 }
 
 function importantEventMessage(state) {
+  const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
+  if (decisiveBid) {
+    const player = state.players.find((candidate) => candidate.id === decisiveBid.playerId);
+    return `${player ? playerName(player) : "플레이어"}이(가) ${money(decisiveBid.amount)}로 승부를 결정했습니다! 다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다.`;
+  }
+
+  const surgeBid = [...state.lastEvents].reverse().find((event) => (
+    event.type === "AUCTION_BID_PLACED" && event.surge === true
+  ));
+  if (surgeBid) {
+    const player = state.players.find((candidate) => candidate.id === surgeBid.playerId);
+    return `큰 폭의 입찰! ${player ? playerName(player) : "플레이어"}이(가) ${money(surgeBid.amount)}로 ${money(surgeBid.increase)} 올렸습니다.`;
+  }
+
   for (let index = state.lastEvents.length - 1; index >= 0; index -= 1) {
     const event = state.lastEvents[index];
     if (event.type === "GAME_FINISHED") {
