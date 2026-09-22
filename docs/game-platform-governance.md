@@ -50,7 +50,7 @@ AGENTS.md
 - `CURRENT`: 현재 실행 규칙/공통 계약 문서다. Registry의 특정 platform-native 게임명이나 ID를 공통 규칙으로 포함할 수 없다.
 - `HISTORY`: 과거 전략·분석·구현 이력을 보존하는 문서다. 특정 게임 이력을 기록할 수 있지만 현재 실행 기준으로 사용하지 않는다.
 - 메인 규칙서 `docs/game-platform-development-rules.md`를 제외한 모든 `docs/game-platform-*.md`는 해당 규칙서를 현재 rulebook으로 명시해야 한다.
-- 신규 UI rulebook `docs/game-platform-ui-rules.md`가 존재하면 `AGENTS.md`, 메인 개발 규칙, `games/README.md`, `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`가 해당 UI rulebook을 명시해야 한다.
+- 신규 UI rulebook `docs/game-platform-ui-rules.md`가 존재하면 `AGENTS.md`, 메인 개발 규칙, `games/README.md`, `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`, `games/UI_DECISIONS_TEMPLATE.md`가 해당 UI rulebook을 명시해야 한다.
 - `AGENTS.md`와 `games/` 최상위 Markdown 가이드/템플릿은 별도 분류 표기 없이 `CURRENT`로 간주해 같은 game-agnostic 검사를 적용한다.
 
 따라서 새 공통 UI 문서가 단독으로 고립되지 않고 신규 게임 개발 진입점과 네 game-local 문서 체계까지 연결된다. 새 `docs/game-platform-*.md` 추가 자체는 Governance 테스트의 파일 목록을 수동으로 수정할 필요가 없으며, 분류 누락·권위 연결 누락·특정 신규 게임 종속 규칙이 자동으로 차단된다.
@@ -68,8 +68,9 @@ Game Platform 규칙을 보완할 때는 문서 계층의 높이만 보고 무�
    - 자동 검증 범위와 문서 연결 강제는 이 Governance 문서와 Guard 소스
 3. topic-owner의 의미가 확정된 뒤 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md` 같은 상위/진입 문서에는 필요한 요약과 참조만 전파한다.
 4. 같은 세부 규칙을 여러 상위 문서에서 독립적으로 다시 정의하지 않는다. 상위 문서는 책임 문서를 가리키고 핵심 invariant만 반복한다.
-5. 상위 규칙과 충돌하는 하위 규칙 변경이 필요하다면 하위 문서를 먼저 임의 수정하지 않는다. 그 변경은 공통 아키텍처 변경으로 취급해 상위 규칙의 승인·정합화와 현재 platform-native 게임 영향도 감사를 함께 수행한다.
-6. 전파가 끝나면 Governance/contract 테스트와 현재 platform-native 게임의 `COMPLIANT` / `MIGRATION_REQUIRED` / `NOT_APPLICABLE` 영향을 확인한다.
+5. 상위 규칙과 충돌하는 하위 필요는 **발견/토의 단계에서는 제안으로만 유지**하고, 승격 없이 하위 문서나 runtime을 상위 규칙 밖으로 먼저 수정하지 않는다. 사용자/maintainer와의 토의에서 플랫폼 전반에 필요한 변경으로 명시적으로 합의되면 Development Rules의 **ARCHITECTURE CHANGE**로 승격한다.
+6. ARCHITECTURE CHANGE로 승격된 뒤에는 topic-owner와 상위 규칙을 같은 작업 범위에서 함께 정합화하고, 현재 platform-native 게임 영향도 감사를 수행한 뒤 runtime/shared 변경으로 진행한다.
+7. 전파가 끝나면 Governance/contract 테스트와 현재 platform-native 게임의 `COMPLIANT` / `MIGRATION_REQUIRED` / `NOT_APPLICABLE` 영향을 확인한다.
 
 이 방식은 **세부 결정은 한 곳에서 소유하고 상위 문서는 그 결정을 참조하는 구조**를 유지해 규칙 중복과 drift를 줄인다. 따라서 topic-owner → 상위 참조 문서 → Governance/테스트 순서의 전파는 기존 Game Platform 구조를 훼손하는 방식이 아니라, 오히려 문서 권위와 책임 경계를 유지하기 위한 기본 변경 방식으로 사용한다.
 
