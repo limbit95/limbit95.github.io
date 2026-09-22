@@ -10,11 +10,18 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
-const DEVELOPMENT_CHECKPOINT_COMMAND = "체크포인트 기록하자";
-const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
+const FUNCTION_CHECKPOINT_COMMAND = "기능 체크포인트 기록하자";
+const DESIGN_CHECKPOINT_COMMAND = "디자인 체크포인트 기록하자";
+const FUNCTION_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
   "games/README.md",
   RULEBOOK_PATH,
+]);
+const DESIGN_CHECKPOINT_POLICY_PATHS = Object.freeze([
+  "AGENTS.md",
+  "games/README.md",
+  RULEBOOK_PATH,
+  UI_RULEBOOK_PATH,
 ]);
 const UI_DECISION_LIFECYCLE_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
@@ -148,11 +155,22 @@ export function validatePlatformDocumentPolicy({
   }
 
   if (documents[RULEBOOK_PATH] != null) {
-    for (const filename of DEVELOPMENT_CHECKPOINT_POLICY_PATHS) {
+    for (const filename of FUNCTION_CHECKPOINT_POLICY_PATHS) {
       const content = documents[filename];
-      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_COMMAND)) {
+      if (typeof content !== "string" || !content.includes(FUNCTION_CHECKPOINT_COMMAND)) {
         errors.push(
-          `${filename} must identify the Game Platform DEVELOPMENT.md checkpoint command: ${DEVELOPMENT_CHECKPOINT_COMMAND}`,
+          `${filename} must identify the Game Platform functional checkpoint command: ${FUNCTION_CHECKPOINT_COMMAND}`,
+        );
+      }
+    }
+  }
+
+  if (documents[RULEBOOK_PATH] != null && documents[UI_RULEBOOK_PATH] != null) {
+    for (const filename of DESIGN_CHECKPOINT_POLICY_PATHS) {
+      const content = documents[filename];
+      if (typeof content !== "string" || !content.includes(DESIGN_CHECKPOINT_COMMAND)) {
+        errors.push(
+          `${filename} must identify the Game Platform design checkpoint command: ${DESIGN_CHECKPOINT_COMMAND}`,
         );
       }
     }
