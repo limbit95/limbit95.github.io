@@ -380,6 +380,7 @@ export function setupLocalAuctionUi({
     const player = findPlayer(state, event.playerId);
     elements.bidEventPlayer.textContent = playerName(player);
     elements.bidEventAmount.textContent = money(event.amount);
+    elements.bidEvent.dataset.surge = event.surge === true ? "true" : "false";
     elements.bidEvent.hidden = false;
     elements.bidEvent.dataset.active = "false";
     void elements.bidEvent.offsetWidth;
