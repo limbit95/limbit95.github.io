@@ -45,6 +45,10 @@ test("No Thanks! board rotates presentation so the viewer stays at six o'clock",
       Math.abs(viewer.top - maxTop) < 0.000001,
       String(count) + "-player viewer seat must be the bottom-most seat",
     );
+    assert.ok(
+      Math.abs(viewer.left - 50) < 0.000001,
+      String(count) + "-player viewer seat must stay horizontally centered",
+    );
     assert.equal(
       new Set(coordinates.map((position) => (
         position.left.toFixed(4) + ":" + position.top.toFixed(4)
@@ -106,6 +110,11 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /칩 1개 내기/u);
   assert.match(runtime, /readBoardTransitionEffects/u);
   assert.match(runtime, /no-thanks-chip-flight/u);
+  assert.match(runtime, /syncBoardAnimationGeometry/u);
+  assert.match(runtime, /no-thanks-table-card__inner/u);
+  assert.match(runtime, /boardMode \? \[\] : lobbyActions/u);
+  assert.match(runtime, /no-thanks-panel-tools/u);
+  assert.doesNotMatch(runtime, /no-thanks-my-panel__message no-thanks-my-panel__message--playing/u);
   assert.doesNotMatch(runtime, /function createPlayingPrimaryActions/u);
   assert.match(runtime, /자리이탈/u);
   assert.match(runtime, /is-arriving/u);
@@ -120,12 +129,16 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /height:\s*800px/u);
   assert.match(styles, /\.no-thanks-seat__avatar/u);
   assert.match(styles, /\.no-thanks-seat__avatar-frame/u);
-  assert.match(styles, /width:\s*min\(72%,\s*1080px\)/u);
+  assert.match(styles, /width:\s*min\(80%,\s*1180px\)/u);
   assert.match(styles, /\.no-thanks-center-chips__empty-mark/u);
   assert.match(styles, /background:[\s\S]*?#d94a3f/u);
-  assert.match(styles, /@keyframes no-thanks-card-deal/u);
-  assert.match(styles, /@keyframes no-thanks-chip-flight/u);
-  assert.match(styles, /grid-template-columns:\s*96px\s+minmax\(0,\s*1fr\)/u);
+  assert.match(styles, /@keyframes no-thanks-card-deal-path/u);
+  assert.match(styles, /@keyframes no-thanks-card-deal-flip/u);
+  assert.match(styles, /@keyframes no-thanks-chip-flight-to-pile/u);
+  assert.match(styles, /rotateY\(180deg\)/u);
+  assert.match(styles, /grid-template-columns:\s*192px\s+minmax\(0,\s*1fr\)/u);
+  assert.match(styles, /\.no-thanks-seat\.is-active\s*\{[\s\S]*?width:\s*164px[\s\S]*?height:\s*164px/u);
+  assert.match(styles, /\.no-thanks-panel-tools\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2/u);
   assert.match(styles, /nth-child\(16\)/u);
   assert.match(styles, /min-height:\s*196px/u);
   assert.match(styles, /width:\s*86px/u);
