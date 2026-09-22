@@ -1,11 +1,11 @@
 # No Thanks! 개발 진행
 
 > 이 문서는 현재 개발 상태를 다음 작업자나 다음 채팅으로 전달하기 위한 인수인계 문서입니다.
-> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI/presentation은 `UI_DESIGN.md`의 초기 baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서에 이미 남아 있는 UI Phase 기록은 과거 인수인계 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI/presentation은 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서에 이미 남아 있는 UI Phase 기록은 과거 인수인계 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
 
 ## Current Status
 
-- Phase: Board UI Phase A–D merged — detail polish / Phase E pending
+- Phase: Release readiness — functional/operational gates pending; design track은 `UI_DECISIONS.md`에서 별도 PAUSED
 - Status: IN_PROGRESS
 - Active branch: `main` (현재 구현 브랜치 없음; 이 checkpoint가 main에 반영된 뒤 handoff baseline으로 사용)
 - Phase A–D merge baseline: `66531c7820285b37dc8d1e2961156ab95560758f`
@@ -141,19 +141,18 @@
 
 ## Current Work
 
-- Phase A–D 구현과 안정화는 PR #364 병합으로 완료했습니다.
-- 이 문서는 Phase A–D 병합 이후 다음 채팅/작업을 위한 handoff checkpoint이며, checkpoint 반영 후 현재 구현 브랜치는 `main`을 baseline으로 둡니다.
-- 아직 게임을 `RELEASED`로 전환하지 않았으며 Registry capability 활성화와 실제 운영 브라우저 release gate는 남아 있습니다.
+- Phase A–D 구현과 안정화는 PR #364 병합으로 완료했으며, 해당 UI 세부 이력은 과거 기록으로 보존합니다.
+- 아직 게임을 `RELEASED`로 전환하지 않았으며 기능/운영 관점에서는 Registry capability 활성화와 실제 운영 브라우저 release gate가 남아 있습니다.
+- 디자인 트랙은 `UI_DECISIONS.md`의 `MANUAL_DESIGN_REVIEW (PAUSED)` 상태가 기준이며, 이 문서에서 Phase E나 visual polish 세부 TODO를 중복 관리하지 않습니다.
 - 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 그 브랜치를 이어가고, 없다면 종료된 `feature/no-thanks-board-ui-phase1-a-d`를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
 
 ## Next Work
 
-1. 다음 구현 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `UI_DESIGN.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 해당 브랜치를 이어가고, 없을 때만 최신 `main`에서 새 No Thanks! 작업 브랜치를 생성합니다.
-2. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
-3. Phase E 후보인 다른 플레이어 공개 획득 카드 popover를 seat 근처 interaction으로 구현합니다.
-4. TAKE_CARD card/chip flight는 현재 구조를 유지하고 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
-5. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤, take animation destination, background→foreground 복귀를 확인합니다.
-6. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 Registry capability activation을 완료한 뒤 release closeout 여부를 판단합니다.
+1. 다음 기능/운영 작업 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `RELEASE_CHECKLIST.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. UI 작업이 포함되면 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 decision을 추가로 확인합니다.
+2. `RELEASE_CHECKLIST.md`의 same-room rematch / Presence / reconnect / 운영 브라우저 smoke gate를 완료합니다.
+3. production 상태와 게임별 DB/Test Contract, 권한 경계가 release 기준과 일치하는지 최종 확인합니다.
+4. 남은 release blocker가 없을 때 실제 제공할 `online` / `presence` capability만 Registry에서 활성화하고 사용자 노출 경로를 검증합니다. `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
+5. 디자인 closeout 상태는 `UI_DECISIONS.md`에서 확인한 뒤 기능/운영 gate와 함께 release closeout 여부를 판단합니다.
 
 ## Decisions
 
