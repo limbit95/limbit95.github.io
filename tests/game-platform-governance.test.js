@@ -664,7 +664,7 @@ test("actual game platform entry docs route work through developer manual design
   assert.match(agents, /Developer Manual Design Review \/ Detail Polish/u);
   assert.match(agents, /디자인 PR merge\/close, 작업 브랜치 종료, release closeout 전/u);
   assert.match(readme, /Developer Manual Design Review \/ Detail Polish/u);
-  assert.match(readme, /최초 `UI_DESIGN\.md`를 계획대로 구현한 사실 자체는 `UI_DECISIONS\.md`에 중복 기록하지 않는다/u);
+  assert.match(readme, /최초 `UI_DESIGN\.md`를 계획대로 구현한 사실 자체는 `UI_DECISIONS\.md`에 중복 기록하지 않습니다/u);
 });
 
 test("development handoff stays functional while UI decisions track design progress", () => {
