@@ -50,8 +50,10 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
   assert.match(runtime, /준비 완료/u);
   assert.match(runtime, /게임 시작/u);
   assert.match(runtime, /createNoThanksGameplayAdapter/u);
-  assert.match(runtime, /거절하기 · 칩 1개/u);
-  assert.match(runtime, /카드 가져오기/u);
+  assert.match(runtime, /칩 1개 내기/u);
+  assert.match(runtime, /카드를 눌러 가져오기/u);
+  assert.match(runtime, /lobbyController\.refuseCard\(\)/u);
+  assert.match(runtime, /lobbyController\.takeCard\(\)/u);
   assert.match(runtime, /결과방 나가기/u);
   assert.match(runtime, /GAME OVER/u);
   assert.match(runtime, /게임 규칙/u);
