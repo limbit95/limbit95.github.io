@@ -118,11 +118,17 @@
 - Phase D에서 보드 하단 동일 폭 개인 패널에 본인 정확한 칩 수/칩 cluster, 오름차순 보유 카드, 핵심 gameplay action을 통합했습니다.
 - 보유 카드는 개수에 따라 수평 겹침 폭을 조정하고 blue/teal/yellow/pink-red 계열 색상, 좌상단/우하단 숫자, hover/focus 상승·확대 인터랙션을 적용했습니다.
 - 좌표/카드 색상/손패 겹침 계산을 game-local `boardLayout.js` 순수 유틸로 분리해 3–7인 viewer 6시 고정과 좌표 유일성을 자동 검증할 수 있게 했습니다.
+- 공개 프로필 avatar는 기존 승인회원 전용 `get_public_member_profiles_by_ids` RPC와 signed avatar URL 유틸을 재사용하고, 미설정/실패 시 `default-avatar.svg`로 fallback 하도록 구현했습니다.
+- 좌석 닉네임 텍스트를 원형 avatar로 교체하고 현재 turn은 avatar 외곽 강조 + 작은 TURN badge로 유지했습니다.
+- 개인 칩은 정확한 숫자를 유지하면서 시각 pile은 최대 16개까지 렌더해 보유량에 따른 풍성함을 강화했습니다.
+- 중앙 칩 0개 상태는 0이 적힌 가짜 칩 대신 `NO CHIP` 텍스트 상태로 변경했습니다.
+- HUD Presence 비연결 문구를 `자리이탈`로 변경했습니다.
 
 ## Current Work
 
 - Phase A–D 소스 구현과 자동 검증을 완료했고 PR #364에서 리뷰 중입니다.
 - UI 개편은 game-local 표현 계층만 변경하고 기존 DB/RPC/server authority/private-state/reconnect 계약은 변경하지 않습니다.
+- Phase A–D 후속 디테일 조정으로 데스크톱 보드 800px 확대, 테이블/중앙 오브젝트 확대, HUD 폭 축소, 좌석 avatar 전환, 중앙 0-chip 빈 상태, 개인 chip pile 강화, 개인 패널/카드 확대와 액션 열 축소를 반영했습니다.
 
 ## Next Work
 
@@ -212,6 +218,7 @@
   - 신규 3–7인 좌석/6시 고정/카드 겹침 계약 테스트를 포함한 `npm run test:game-platform` 전체가 통과했습니다.
   - Game Platform Governance Guard가 통과해 shared/DB/RPC 경계 변경이 없음을 확인했습니다.
   - PR 전 실제 브랜치 파일 기반 추가 검증에서 3/4/5/6/7인 좌표 유일성, viewer 6시 고정, authoritative seat 보존, 카드 tone/hand overlap, Phase A–D DOM/CSS 계약과 CSS brace balance를 확인했습니다.
+  - 디테일 조정 후 브랜치 파일 기반 검증에서 3–7인 확대 좌석 좌표, 800px 보드 규격, 16개 personal chip cap / 7개 compact chip cap, 공개 프로필 avatar fallback, `NO CHIP`, HUD `자리이탈`, 확대 카드/개인 패널 CSS 계약과 brace balance를 확인했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
