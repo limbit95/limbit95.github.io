@@ -108,7 +108,7 @@ MUST NOT: 후속 디자인 수정에 맞춰 `UI_DESIGN.md`를 계속 최신 화�
 
 ### MUST: UI_DECISIONS의 역할
 
-`UI_DECISIONS.md`는 **디자인 개발의 진행과 의미 있는 의사결정 이력을 보존하는 game-local 기록**이다. `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 관리한다.
+`UI_DECISIONS.md`는 **초기 `UI_DESIGN.md` baseline 이후 확정된 의미 있는 디자인 변경·결정·검증 이력을 보존하는 game-local 기록**이다. 특히 개발자의 실제 브라우저 수동 리뷰와 디테일 수정에서 확정된 결정을 핵심 대상으로 하며, `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 관리한다.
 
 다음 작업자가 현재 UI 코드나 최종 화면만 보고는 복원하기 어려운 변경을 기록한다.
 
@@ -212,7 +212,7 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: Phase 완료 시
 
 - 기능 Phase 완료 PR에는 `DEVELOPMENT.md`를 갱신해 실제 완료 기능, 검증, 다음 기능 작업을 남긴다.
-- 디자인 Phase 또는 의미 있는 UI 변경 구간은 `UI_DECISIONS.md`에 구현 상태, 결정 근거, 어떤 초기 Phase/항목을 대체하는지, 브라우저/반응형/animation 검증과 다음 디자인 작업을 남긴다.
+- 디자인 Phase 완료 자체만으로 Decision Log를 만들지 않는다. 다만 해당 구간에서 baseline을 벗어난 의미 있는 변경이나 수동 디자인 리뷰의 확정 결정이 있었다면 `UI_DECISIONS.md`에 결정 근거, 어떤 초기 Phase/항목을 대체하는지, 구현/브라우저 검증을 남기고 Current Design Track을 현재 lifecycle 상태로 정리한다.
 - 기능 설계 자체가 변경됐다면 `GAME_SPEC.md`를 갱신한다. 개발 시작 후의 디자인 변경은 `UI_DESIGN.md`를 재작성하지 않고 `UI_DECISIONS.md`에 누적한다.
 - `DEVELOPMENT.md`에는 UI 세부 변경사를 복제하지 않고 release 판단에 필요한 design track 참조만 남긴다.
 - 다음 기능 작업은 `DEVELOPMENT.md / Next Work`, 다음 디자인 작업은 `UI_DECISIONS.md / Current Design Track` 또는 `Open Follow-up`에 구체적으로 남긴다.
@@ -319,7 +319,7 @@ games/<game-id>/DEVELOPMENT.md
 Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는 경우를 제외하면, 현재 실행 규칙·공통 가이드·템플릿은 특정 platform-native 게임 이름, 경로, 상태 머신 또는 구현 세부사항을 신규 게임의 기준으로 삼지 않는다.
 
 - 신규 게임을 설명하는 예시는 `<game-id>`, `example-game` 같은 중립적인 placeholder를 사용한다.
-- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
+- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`, 게임별 테스트에 둔다.
 - 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
 - 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
 - `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
