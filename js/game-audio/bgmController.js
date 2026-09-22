@@ -30,22 +30,20 @@ function isUsefulKeyboardActivation(event) {
   return event.key === "Enter" || event.key === " ";
 }
 
-function mapOutputVolume(volume, defaultVolume, defaultOutputMultiplier) {
+function mapOutputVolume(volume, defaultVolume, defaultOutputVolume) {
   const logicalVolume = Math.min(1, Math.max(0, Number(volume) || 0));
   const pivot = Math.min(1, Math.max(0, Number(defaultVolume) || 0));
-  const multiplier = Number.isFinite(Number(defaultOutputMultiplier))
-    ? Math.max(0, Number(defaultOutputMultiplier))
-    : 1;
+  const outputPivot = Math.min(1, Math.max(0, Number(defaultOutputVolume) || 0));
 
-  if (multiplier === 1 || pivot <= 0 || logicalVolume <= pivot) {
-    return Math.min(1, logicalVolume * multiplier);
+  if (pivot <= 0) return logicalVolume;
+  if (logicalVolume <= pivot) {
+    return outputPivot * (logicalVolume / pivot);
   }
 
-  const boostedPivot = Math.min(1, pivot * multiplier);
-  if (pivot >= 1 || boostedPivot >= 1) return 1;
+  if (pivot >= 1 || outputPivot >= 1) return 1;
 
   const progress = (logicalVolume - pivot) / (1 - pivot);
-  return boostedPivot + ((1 - boostedPivot) * progress);
+  return outputPivot + ((1 - outputPivot) * progress);
 }
 
 export function createBgmController({
@@ -64,11 +62,11 @@ export function createBgmController({
   audio.loop = track.loop !== false;
 
   const defaultVolume = Number(track.defaultVolume);
-  const defaultOutputMultiplier = Number(track.defaultOutputMultiplier);
+  const defaultOutputVolume = Number(track.defaultOutputVolume);
   let volume = readBgmVolume({ storage, fallback: defaultVolume });
 
   function applyOutputVolume() {
-    audio.volume = mapOutputVolume(volume, defaultVolume, defaultOutputMultiplier);
+    audio.volume = mapOutputVolume(volume, defaultVolume, defaultOutputVolume);
   }
 
   applyOutputVolume();
