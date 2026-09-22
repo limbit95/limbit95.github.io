@@ -144,8 +144,9 @@
 - GAME_OVER 화면의 방장에게 기존 `createRematchRoom()` fresh-room 흐름을 호출하는 `재대결` 버튼을 추가했습니다.
 - 애니메이션 미노출 원인을 action snapshot 적용 직후 `busy=false` emit이 같은 version DOM을 즉시 다시 그리는 문제로 확인했습니다. presentation effect를 `requestAnimationFrame`에서 실제 연결된 최종 DOM 모션이 시작될 때까지 유지하도록 수정했습니다.
 - 중앙 칩이 0개일 때 `0개` count text를 제거하고 칩이 존재할 때만 count를 렌더합니다.
-- 새 카드 공개 시 draw deck layer를 숨기던 처리를 제거했습니다. 덱 깊이는 남은 카드 단계형 규칙으로만 변하며, moving card는 현재 최상단 deck card DOM의 실제 위치/크기에서 출발해 current-card 위치까지 이동하면서 뒤집힙니다.
+- 새 카드 공개를 The Game의 `cardMotion.js` handoff 구조처럼 별도 fixed flight card 방식으로 교체했습니다. 실제 current-card DOM은 landing 전까지 숨기고, flight card가 deck top-card 위치에서 이동/flip을 완료한 프레임에 current-card를 노출한 뒤 flight를 110ms settle/fade하여 시각적 끊김을 줄였습니다. 덱 깊이는 남은 카드 단계형 규칙으로만 변합니다.
 - chip flight를 26px / 780ms로 조정하고 경로 중 opacity를 유지해 acting avatar → center pile 이동이 명확하게 보이도록 보정했습니다.
+- refuse snapshot의 증가된 center count를 즉시 그리지 않고 `chipPreviousCount`를 presentation state로 유지한 뒤 flight `animationend`에서 `commitCenterChipLanding()`으로 pile/count를 최종 값에 맞춰 갱신하도록 변경했습니다.
 - refuse/take 성공 경로는 silent busy lock + result snapshot의 `busy=false` 동시 적용으로 busy-only/full snapshot/final busy render의 3단계를 authoritative result 1회 render로 축소했습니다. 클릭 대상은 DOM에서 즉시 disabled 처리해 중복 입력을 막습니다.
 
 ## Current Work
