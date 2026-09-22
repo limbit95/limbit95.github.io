@@ -18,19 +18,19 @@ const costEntrySource = readFileSync(new URL("../js/renderer/threeClassicCostPre
 const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260923-r1"/);
-  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260923-r1/);
+  assert.match(indexHtml, /data-marble-build="20260923-r2"/);
+  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260923-r2/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
-  assert.match(indexHtml, /auction-ui\.css\?v=20260923-r1/);
+  assert.match(indexHtml, /auction-ui\.css\?v=20260923-r2/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r2/);
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /multiplayerLobby\.js\?v=20260914-r8/);
-  assert.match(bootstrapSource, /playWindow\.js\?v=20260923-r1/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260923-r1"/);
+  assert.match(bootstrapSource, /playWindow\.js\?v=20260923-r2/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260923-r2"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
@@ -41,8 +41,8 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
 test("online recovery and Classic renderer entries bypass stale modules while untouched imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260915-r1"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
-  assert.match(controllerSource, /onlineSession\.js\?v=20260923-r1/);
-  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260923-r1/);
+  assert.match(controllerSource, /onlineSession\.js\?v=20260923-r2/);
+  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260923-r2/);
   assert.match(tradeUiSource, /onlineSession\.js\?v=20260919-r13/);
   
   assert.match(liquidationUiSource, /onlineSession\.js\?v=20260919-r13/);
