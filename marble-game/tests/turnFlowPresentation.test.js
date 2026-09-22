@@ -62,6 +62,17 @@ test("competitive Auction intro uses the profile-chain selector and selected sta
   }
 });
 
+test("active Marble Auction presentation contains no legacy first-bid or roulette concepts", () => {
+  for (const source of [onlineAuctionUiSource, localAuctionUiSource, auctionIntroUiSource, onlineSource, localSource]) {
+    assert.doesNotMatch(source, /첫 입찰/);
+    assert.doesNotMatch(source, /openingBidderPlayerId/);
+  }
+  assert.doesNotMatch(auctionCssSource, /auction-roulette/);
+  assert.doesNotMatch(auctionCssSource, /auctionRouletteSpin/);
+  assert.match(auctionIntroUiSource, /starterPlayerId/);
+  assert.match(auctionIntroUiSource, /auction-selector__track/);
+});
+
 test("shared result notice stays centered without an Auction dialog backdrop", () => {
   for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
     assert.doesNotMatch(source, /showAuctionUnsoldResult/);
