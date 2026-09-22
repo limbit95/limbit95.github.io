@@ -161,7 +161,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /prepareAuctionBidSound/);
   assert.match(uiSource, /createAuctionIntroPresenter/);
   assert.match(uiSource, /auctionIntroUi\.js\?v=20260923-r1/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260923-r1/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
@@ -215,8 +215,8 @@ test("server starter selection gives the random result the actual starting turn"
   assert.match(auctionStarterSql, /'highestBidderId', null/);
   assert.match(auctionStarterSql, /'turnPlayerId', v_starter/);
   assert.match(auctionStarterSql, /'selectorStopsAt', v_selector_stops_at/);
-  assert.match(auctionStarterSql, /interval '2\.8 seconds'/);
-  assert.match(auctionStarterSql, /interval '3\.6 seconds'/);
+  assert.match(auctionStarterSql, /interval '4\.8 seconds'/);
+  assert.match(auctionStarterSql, /interval '5\.6 seconds'/);
   assert.doesNotMatch(auctionStarterSql, /openingBidderPlayerId/);
   assert.doesNotMatch(auctionStarterSql, /winnerNoticeAt/);
 });
