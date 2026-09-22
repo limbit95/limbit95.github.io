@@ -275,7 +275,7 @@
   - 규칙 엔진 단위 테스트 12개가 모두 통과했습니다.
   - 실제 브랜치의 `rules.js`, 단위 테스트, 게임 등록부 파일과 로컬 검증 파일의 Git blob SHA가 각각 일치하는지 확인했습니다.
   - 게임 등록부의 `no-thanks` 항목이 `platform: "shared"`이고 모든 기능 활성화 값이 `false`로 해석되는지 확인했습니다.
-  - 당시 `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다. 현재 플랫폼 규칙 도입에 따라 `UI_DESIGN.md`를 추가하고 세 문서 체계로 관리합니다.
+  - 당시 `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다. 이후 플랫폼 규칙은 `UI_DESIGN.md`와 `UI_DECISIONS.md`를 추가한 네 문서 체계로 발전했습니다.
 - 이번 단계에서 아직 수행하지 않는 검증:
   - 승인회원 계정의 운영 create/join/snapshot/gameplay 브라우저 smoke test
   - 실제 데스크톱/모바일 브라우저의 Presence/reconnect 멀티플레이 점검
