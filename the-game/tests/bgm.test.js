@@ -1,24 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import {
-  getGameBgm,
-  getGameBgmByEntryUrl,
-} from "../games/shared/audio/bgmCatalog.js";
+import { getGameBgm } from "../../js/game-audio/bgmCatalog.js";
 import {
   BGM_STATE,
   createBgmController,
-} from "../games/shared/audio/bgmController.js";
-import {
-  BGM_INTENT_STORAGE_KEY,
-  consumeGameBgmIntent,
-  installGameBgmIntentCapture,
-  writeGameBgmIntent,
-} from "../games/shared/audio/bgmIntent.js";
+} from "../../js/game-audio/bgmController.js";
 import {
   readBgmVolume,
   writeBgmVolume,
-} from "../games/shared/audio/bgmPreferences.js";
+} from "../../js/game-audio/bgmPreferences.js";
 
 class MemoryStorage {
   #values = new Map();
@@ -29,10 +20,6 @@ class MemoryStorage {
 
   setItem(key, value) {
     this.#values.set(key, String(value));
-  }
-
-  removeItem(key) {
-    this.#values.delete(key);
   }
 }
 
@@ -85,49 +72,13 @@ async function flush() {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
-test("BGM catalog maps The Game entry and carries attribution metadata", () => {
+test("The Game BGM catalog carries official attribution metadata", () => {
   const track = getGameBgm("the-game");
   assert.equal(track?.title, "Invariance");
   assert.equal(track?.artist, "Kevin MacLeod");
   assert.equal(track?.license, "CC BY 4.0");
-  assert.equal(getGameBgmByEntryUrl("https://limbit95.github.io/the-game/")?.gameId, "the-game");
-  assert.equal(getGameBgmByEntryUrl("https://limbit95.github.io/marble-game/"), null);
-});
-
-test("game-list intent capture only records BGM-enabled primary links", () => {
-  const storage = new MemoryStorage();
-  const root = new FakeInteractionTarget();
-  const uninstall = installGameBgmIntentCapture({ root, storage, now: () => 2000 });
-  const anchor = {
-    href: "https://limbit95.github.io/the-game/",
-  };
-  const target = {
-    closest(selector) {
-      return selector === "a[href]" ? anchor : null;
-    },
-  };
-
-  root.dispatch("click", { target, button: 0, defaultPrevented: false });
-  const saved = JSON.parse(storage.getItem(BGM_INTENT_STORAGE_KEY));
-  assert.equal(saved.gameId, "the-game");
-
-  uninstall();
-  storage.removeItem(BGM_INTENT_STORAGE_KEY);
-  root.dispatch("click", { target, button: 0, defaultPrevented: false });
-  assert.equal(storage.getItem(BGM_INTENT_STORAGE_KEY), null);
-});
-
-test("BGM entry intent is one-shot and expires", () => {
-  const storage = new MemoryStorage();
-  assert.equal(writeGameBgmIntent("the-game", { storage, now: () => 1000 }), true);
-  assert.ok(storage.getItem(BGM_INTENT_STORAGE_KEY));
-
-  const intent = consumeGameBgmIntent("the-game", { storage, now: () => 1500 });
-  assert.equal(intent?.autoplayRequested, true);
-  assert.equal(consumeGameBgmIntent("the-game", { storage, now: () => 1600 }), null);
-
-  writeGameBgmIntent("the-game", { storage, now: () => 1000 });
-  assert.equal(consumeGameBgmIntent("the-game", { storage, now: () => 999999 }), null);
+  assert.match(track?.sourceUrl ?? "", /incompetech\.com/u);
+  assert.equal(getGameBgm("missing"), null);
 });
 
 test("BGM volume is clamped and persisted", () => {
@@ -138,7 +89,7 @@ test("BGM volume is clamped and persisted", () => {
   assert.equal(writeBgmVolume(-2, { storage }), 0);
 });
 
-test("successful entry autoplay never installs global interaction listeners", async () => {
+test("successful page-entry autoplay never installs global interaction listeners", async () => {
   const audio = new FakeAudio();
   const interactions = new FakeInteractionTarget();
   const controller = createBgmController({
@@ -157,7 +108,7 @@ test("successful entry autoplay never installs global interaction listeners", as
   assert.equal(audio.playCalls, 1);
 });
 
-test("blocked autoplay retries on natural interaction then permanently removes listeners", async () => {
+test("blocked page-entry autoplay retries on natural interaction then removes listeners", async () => {
   const audio = new FakeAudio();
   audio.outcomes.push(new Error("NotAllowedError"));
   const interactions = new FakeInteractionTarget();
@@ -181,7 +132,7 @@ test("blocked autoplay retries on natural interaction then permanently removes l
   assert.equal(interactions.listenerCount("keydown"), 0);
 });
 
-test("user pause after first playback cannot be undone by later game clicks", async () => {
+test("user pause after first playback cannot be undone by later game interactions", async () => {
   const audio = new FakeAudio();
   const interactions = new FakeInteractionTarget();
   const controller = createBgmController({
@@ -203,6 +154,7 @@ test("user pause after first playback cannot be undone by later game clicks", as
   assert.equal(controller.getState().userPaused, true);
   assert.equal(audio.playCalls, callsAfterPause);
   assert.equal(interactions.listenerCount("pointerdown"), 0);
+  assert.equal(interactions.listenerCount("keydown"), 0);
 });
 
 test("authoritative game start retries only while music has never played", async () => {
