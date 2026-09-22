@@ -95,11 +95,13 @@ games/<game-id>/
 
 ### MUST: UI_DESIGN의 역할
 
-`UI_DESIGN.md`는 **이 게임이 어떻게 보여지고 느껴져야 하는지 정의하는 game-local presentation 설계 기준**이다. 세부 작성 규칙과 필수 섹션은 `docs/game-platform-ui-rules.md`와 `games/UI_DESIGN_TEMPLATE.md`를 따른다.
+`UI_DESIGN.md`는 **신규 게임의 runtime/UI 소스 개발을 시작하기 전에 수행한 디자인 전수 조사와 분석을 바탕으로 수립한 초기 game-local presentation baseline**이다. 세부 작성 규칙과 필수 섹션은 `docs/game-platform-ui-rules.md`와 `games/UI_DESIGN_TEMPLATE.md`를 따른다.
 
-최소한 디자인 조사 출처, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result/rematch 방향, 핵심 motion, responsive 전략, 구현 계획, validation 기준을 유지한다.
+최소한 디자인 조사 출처, 자산 사용 경계, 목표 판본, Visual Identity, page/lobby/gameplay/result/rematch 방향, 핵심 motion, responsive 전략, 최초 구현 Phase/순서와 validation 기준을 runtime 구현 전에 확정한다.
 
-목표 판본, 대표 색상, 핵심 레이아웃, 주요 구성물 표현, motion 원칙, 자산 사용 판단처럼 현재 채택된 구현 방향이 변경되면 `UI_DESIGN.md`를 최신 기준으로 갱신한다. 작은 CSS 값이나 commit 내역, 시행착오 이력은 이 문서에 쌓지 않는다.
+개발이 시작된 뒤 사용자 피드백, 실제 브라우저 QA, 구현 관찰로 디자인을 수정하는 경우 그 변경으로 `UI_DESIGN.md`의 과거 baseline을 덮어쓰지 않는다. 이후 변경은 `UI_DECISIONS.md`에 기록한다. `UI_DESIGN.md`는 최초 조사·설계 당시 무엇을 근거로 어떤 방향과 Phase를 세웠는지 복원할 수 있어야 한다.
+
+MUST NOT: 후속 디자인 수정에 맞춰 `UI_DESIGN.md`를 계속 최신 화면으로 재작성해 최초 설계와 후속 변경의 경계를 없애지 않는다. 단, 출처 오기·명백한 사실 오류처럼 초기 조사 자체의 오류를 바로잡는 경우에는 수정 이유가 추적되도록 `UI_DECISIONS.md`에도 남긴다.
 
 ### MUST: UI_DECISIONS의 역할
 
@@ -107,11 +109,11 @@ games/<game-id>/
 
 다음 작업자가 현재 UI 코드나 최종 화면만 보고는 복원하기 어려운 변경을 기록한다.
 
-- 사용자 피드백이나 실제 브라우저 관찰로 기존 디자인 방향을 변경한 이유
+- 사용자 피드백이나 실제 브라우저 관찰로 초기 `UI_DESIGN.md` 방향을 변경한 이유
 - 검토한 대안과 폐기한 안, 다시 반복하면 안 되는 실패 원인
 - layout/component/interaction/motion/responsive의 의미 있는 변경
 - 구현 상태와 실제 UI/브라우저 validation 결과
-- 현재 기준인 `UI_DESIGN.md`를 갱신했는지 여부
+- 어떤 `UI_DESIGN.md` Phase/항목을 유지·수정·대체하는 결정인지
 
 MUST NOT: 모든 spacing, CSS 숫자, 작은 commit을 changelog처럼 기록하지 않는다. 과거 결정을 뒤에서 바꾸더라도 기존 항목을 삭제하지 않고 새 항목을 추가해 `SUPERSEDED` 또는 `REVERTED` 관계를 남긴다.
 
@@ -121,14 +123,16 @@ MUST NOT: 모든 spacing, CSS 숫자, 작은 commit을 changelog처럼 기록하
 
 - `GAME_SPEC.md`: 현재 게임 규칙, 상태 머신, 기능 lifecycle, 도메인 모델, 서버 권위와 기능 범위의 기준
 - `DEVELOPMENT.md`: 기능 구현·검증의 현재 Phase, 작업 브랜치, 다음 기능 작업을 전달하는 handoff 기준
-- `UI_DESIGN.md`: 현재 따라야 할 Visual Identity, page/layout, 구성물 표현, motion, responsive, presentation의 기준
-- `UI_DECISIONS.md`: 디자인 개발 진행, 변경 배경, 대안, 결정 이유, 구현/검증 이력을 보존하는 기록
+- `UI_DESIGN.md`: runtime 구현 전 전수 조사·분석으로 수립한 최초 Visual Identity, page/layout, 구성물 표현, motion, responsive, Phase 계획의 baseline
+- `UI_DECISIONS.md`: 개발 시작 후 디자인 개발 진행, 변경 배경, 대안, 사용자 피드백, 결정 이유, 구현/검증 이력을 보존하며 baseline을 보정하는 변경 기록
 
-같은 주제가 여러 문서에 등장하면 **그 주제의 책임 문서가 최종 기준**이다. 예를 들어 재대결이 같은 room을 유지하는지는 `GAME_SPEC.md`, 기능 구현 완료 여부는 `DEVELOPMENT.md`, 재대결 화면의 현재 시각 기준은 `UI_DESIGN.md`, 그 시각 기준이 왜 바뀌었는지는 `UI_DECISIONS.md`가 책임진다.
+같은 주제가 여러 문서에 등장하면 **기능과 디자인의 시간축을 함께 적용**한다. 기능 규칙은 `GAME_SPEC.md`, 기능 진행은 `DEVELOPMENT.md`가 책임진다. 디자인은 `UI_DESIGN.md`를 최초 baseline으로 시작하되, 개발 시작 후 해당 항목을 변경한 유효한 `UI_DECISIONS.md` 결정이 있으면 **후속 결정이 우선한다**.
 
-`UI_DECISIONS.md`는 역사·근거 문서이므로 현재 기준인 `UI_DESIGN.md`와 충돌할 때 현재 구현 기준을 덮어쓰지 않는다. 새 디자인 결정이 canonical 기준을 바꾸면 같은 작업에서 `UI_DESIGN.md`를 먼저 또는 함께 정합화한다.
+따라서 현재 유효 디자인은 단순히 `UI_DESIGN.md` 하나가 아니라 **`UI_DESIGN.md` baseline + `UI_DECISIONS.md`의 최신 non-superseded 변경 결정**으로 해석한다. `UI_DECISIONS.md`에서 `SUPERSEDED` 또는 `REVERTED` 처리된 결정은 현재 기준으로 사용하지 않는다.
 
-MUST NOT: `DEVELOPMENT.md`에서 새로운 게임 규칙이나 UI 설계를 독자적으로 확정하거나 상세 UI 변경 이력을 중복 관리하지 않는다. 기능 설계 변경은 `GAME_SPEC.md`, 디자인 설계 변경은 `UI_DESIGN.md`, 디자인 변경 근거와 이력은 `UI_DECISIONS.md`에 둔다.
+MUST NOT: 과거 `UI_DESIGN.md`의 Phase를 이어간다는 이유로 그 이후 확정된 `UI_DECISIONS.md`를 무시하거나, 이미 수정된 UI를 초기 설계안으로 원복하거나, 폐기된 디자인 방향을 다시 구현하지 않는다.
+
+MUST NOT: `DEVELOPMENT.md`에서 새로운 게임 규칙이나 UI 설계를 독자적으로 확정하거나 상세 UI 변경 이력을 중복 관리하지 않는다. 기능 설계 변경은 `GAME_SPEC.md`, 후속 디자인 변경은 `UI_DECISIONS.md`에 둔다.
 
 문서끼리 모순이 발견되면 runtime 구현을 계속 진행하기 전에 실제 코드/테스트와 사용자 결정을 확인하고 책임 문서 기준으로 정합화한다.
 
@@ -182,7 +186,8 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: 작업 시작과 이어서 진행할 때
 
 - 신규 게임의 첫 구현 단계에서 `DEVELOPMENT.md`를 함께 생성한다.
-- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽고 현재 기능 범위의 `GAME_SPEC.md`를 확인한다. UI 작업이 포함되면 `UI_DESIGN.md`의 현재 기준과 `UI_DECISIONS.md`의 최근 결정/미완료 디자인 작업도 함께 확인한다.
+- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽고 현재 기능 범위의 `GAME_SPEC.md`를 확인한다.
+- UI/presentation 작업이 포함되거나 기존 `UI_DESIGN.md`의 다음 Phase를 이어갈 때는 반드시 `UI_DESIGN.md` 전체 baseline과 `UI_DECISIONS.md`의 최신 non-superseded 결정을 함께 읽는다. 해당 Phase의 초기 계획과 후속 결정이 충돌하면 후속 결정을 우선하며, 이미 반영된 사용자 디자인 수정을 회귀시키지 않는다.
 - `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
 - 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
 - 게임별 Phase 브랜치명은 가능하면 game id와 작업 범위를 포함해 `feature/game-platform-<phase>-<game-id>-<scope>`처럼 다른 채팅에서도 검색 가능한 형태로 유지한다.
@@ -190,8 +195,8 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: Phase 완료 시
 
 - 기능 Phase 완료 PR에는 `DEVELOPMENT.md`를 갱신해 실제 완료 기능, 검증, 다음 기능 작업을 남긴다.
-- 디자인 Phase 또는 의미 있는 UI 변경 구간은 `UI_DECISIONS.md`에 구현 상태, 결정 근거, 브라우저/반응형/animation 검증과 다음 디자인 작업을 남긴다.
-- 기능 설계 자체가 변경됐다면 `GAME_SPEC.md`, 현재 디자인 기준 자체가 변경됐다면 `UI_DESIGN.md`를 같은 작업에서 최신화한다.
+- 디자인 Phase 또는 의미 있는 UI 변경 구간은 `UI_DECISIONS.md`에 구현 상태, 결정 근거, 어떤 초기 Phase/항목을 대체하는지, 브라우저/반응형/animation 검증과 다음 디자인 작업을 남긴다.
+- 기능 설계 자체가 변경됐다면 `GAME_SPEC.md`를 갱신한다. 개발 시작 후의 디자인 변경은 `UI_DESIGN.md`를 재작성하지 않고 `UI_DECISIONS.md`에 누적한다.
 - `DEVELOPMENT.md`에는 UI 세부 변경사를 복제하지 않고 release 판단에 필요한 design track 참조만 남긴다.
 - 다음 기능 작업은 `DEVELOPMENT.md / Next Work`, 다음 디자인 작업은 `UI_DECISIONS.md / Current Design Track` 또는 `Open Follow-up`에 구체적으로 남긴다.
 - 완료되지 않은 항목을 완료한 것처럼 기록하지 않는다.
@@ -223,7 +228,7 @@ games/<game-id>/DEVELOPMENT.md
 
 1. 기능 Phase가 진행 중이면 `DEVELOPMENT.md`의 상태를 `IN_PROGRESS`로 유지하고 실제 완료 기능, 미완료 기능, 다음 기능 작업, 기능 검증을 기록한다.
 2. 디자인 작업이 있었고 다음 작업자가 알아야 할 의미 있는 결정이 생겼다면 `UI_DECISIONS.md`에 현재 design track, 결정 배경, 구현 상태, 디자인 validation, 다음 UI 작업을 기록한다.
-3. 기능 설계 자체가 바뀌었다면 `GAME_SPEC.md`, 현재 canonical 디자인 기준이 바뀌었다면 `UI_DESIGN.md`를 같은 checkpoint에서 정합화한다.
+3. 기능 설계 자체가 바뀌었다면 `GAME_SPEC.md`를 정합화한다. 개발 시작 후 디자인 변경은 `UI_DESIGN.md` baseline을 덮어쓰지 않고 `UI_DECISIONS.md`에 기록하며, 기존 결정과 충돌하면 supersede/revert 관계를 명시한다.
 4. 단순 CSS 수치 조정이나 의미 없는 commit 이력은 `UI_DECISIONS.md`에 쌓지 않는다.
 5. blocker, 임시 결정, 확인이 필요한 사항은 각각의 책임 문서에 남긴다.
 
