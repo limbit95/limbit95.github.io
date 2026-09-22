@@ -72,12 +72,14 @@ async function flush() {
   await new Promise((resolve) => setImmediate(resolve));
 }
 
-test("The Game BGM catalog carries official attribution metadata", () => {
+test("The Game BGM catalog carries verified attribution metadata", () => {
   const track = getGameBgm("the-game");
   assert.equal(track?.title, "Invariance");
   assert.equal(track?.artist, "Kevin MacLeod");
+  assert.equal(track?.isrc, "USUAN1100847");
   assert.equal(track?.license, "CC BY 4.0");
   assert.match(track?.sourceUrl ?? "", /incompetech\.com/u);
+  assert.equal(track?.previewUrl, "https://www.youtube.com/watch?v=CpPQeDIA2S0");
   assert.equal(getGameBgm("missing"), null);
 });
 
