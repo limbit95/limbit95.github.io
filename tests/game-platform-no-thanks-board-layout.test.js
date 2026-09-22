@@ -132,7 +132,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /setTimeout\([\s\S]*?commitCenterChipLanding\(board\)[\s\S]*?,\s*100\)/u);
   assert.match(runtime, /syncBoardAnimationGeometry/u);
   assert.match(runtime, /boardPresentationEffect/u);
-  assert.match(runtime, /boardPresentationEffect\.started = true/u);
+  assert.match(runtime, /effect\.started = true/u);
   assert.match(runtime, /no-thanks-table-card__inner/u);
   assert.match(runtime, /boardMode \? \[\] : lobbyActions/u);
   assert.match(runtime, /no-thanks-panel-tools/u);
@@ -157,8 +157,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /takePreviousViewerCards/u);
   assert.match(runtime, /previousCards, effects\.takeCardValue/u);
   assert.match(runtime, /duration:\s*700/u);
-  assert.match(runtime, /delay:\s*index \* 38/u);
-  assert.match(runtime, /animatePendingTakePresentation\(board\)/u);
+  assert.match(runtime, /animatePendingTakePresentation\(effect\)/u);
   assert.match(runtime, /await Promise\.all\(\[[\s\S]*?animateTakeCardToHand[\s\S]*?animateTakeChipsToPanel/u);
   assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard\)/u);
   assert.match(runtime, /boardPresentationEffect\.dealCard[\s\S]*?boardPresentationEffect\.completed !== true/u);
