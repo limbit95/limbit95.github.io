@@ -142,6 +142,9 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(cssSource, /\.auction-intro/);
   assert.match(cssSource, /\.auction-roulette/);
   assert.match(cssSource, /auctionRouletteSpin/);
+  assert.match(cssSource, /important-notice\[data-notice-layer="global"\]/);
+  assert.match(cssSource, /max-width: min\(300px, calc\(100% - 36px\)\)/);
+  assert.match(cssSource, /font-size: clamp\(1\.3rem, 4vw, 1\.6rem\)/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.auctionBid\(selectedPlayerId, amount\)/);
   assert.match(uiSource, /session\.auctionPass\(selectedPlayerId\)/);
