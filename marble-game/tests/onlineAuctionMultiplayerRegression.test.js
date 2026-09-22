@@ -236,7 +236,7 @@ function createHarness() {
   return { actionCalls, apiFor, broadcast, server, snapshotFor };
 }
 
-test("randomly selected starter owns the actual first auction turn across clients", async () => {
+test("randomly selected starter owns the opening auction turn across clients", async () => {
   const restore = installFakeBrowser();
   const harness = createHarness();
   const sessions = [];
