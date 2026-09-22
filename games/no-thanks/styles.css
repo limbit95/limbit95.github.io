@@ -2041,3 +2041,30 @@ body {
     justify-self: stretch;
   }
 }
+
+
+@media (max-width: 760px) {
+  .no-thanks-board-hud__player {
+    grid-template-columns: minmax(0, 1fr);
+    gap: .16rem;
+    padding-block: .3rem;
+  }
+
+  .no-thanks-board-hud__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .12rem;
+  }
+
+  .no-thanks-board-hud__badge,
+  .no-thanks-board-hud__badge--connection {
+    display: inline-flex;
+    width: fit-content;
+    padding: .12rem .22rem;
+    font-size: .48rem;
+  }
+
+  .no-thanks-board-hud__name {
+    font-size: .68rem;
+  }
+}
