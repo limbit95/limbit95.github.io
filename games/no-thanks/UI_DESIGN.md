@@ -1,7 +1,7 @@
 # No Thanks! UI Design
 
 > 이 문서는 현재 No Thanks! 구현이 따라야 할 game-local UI/presentation 기준입니다.
-> 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
+> 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 디자인 개발 진행·결정 이력은 `UI_DECISIONS.md`, 기능 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
 >
 > 이 문서는 UI Design 규칙 도입 시점의 기존 개발 상태를 정식 설계 문서로 승격한 baseline입니다. 후속 UI polish 전에 대상 판본과 자산 사용 근거를 다시 확인합니다.
 
