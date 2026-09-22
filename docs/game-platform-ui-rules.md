@@ -129,6 +129,19 @@ UI_DECISIONS.md
 
 `games/UI_DESIGN_TEMPLATE.md`와 `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 작성한다.
 
+### 기존 게임의 adoption baseline
+
+이 규칙이 도입되기 전에 이미 runtime/UI 개발이 시작됐거나 release된 platform-native 게임은 과거를 임의로 재구성하지 않는다.
+
+- 신규 게임은 반드시 runtime 개발 전 `UI_DESIGN.md` baseline을 만든다.
+- 기존 게임은 확인 가능한 당시 설계 문서 또는 도입 시점의 production/작업 상태를 **adoption baseline**으로 명시할 수 있다.
+- adoption baseline은 "원래 처음부터 이렇게 계획했다"는 의미가 아니다. 문서 체계 도입 시점에서 신뢰할 수 있게 고정한 출발점이다.
+- 이미 `UI_DESIGN.md` 안에 과거 구현 과정의 수정 결과가 섞여 있다면 증거 없이 억지로 분리하거나 삭제하지 않는다.
+- 과거 사용자 피드백/PR/commit을 복원할 때는 확인 가능한 결정만 `UI_DECISIONS.md`에 추가한다.
+- adoption 이후 새 디자인 수정은 모두 일반 규칙대로 `UI_DECISIONS.md`에 기록한다.
+
+이 전환 예외는 기존 게임을 새 규칙에 맞추기 위해 과거 기록을 왜곡하지 않기 위한 것이며, 이후 신규 게임의 pre-development baseline 의무를 약화하지 않는다.
+
 ### MUST: baseline 보존
 
 `UI_DESIGN.md`는 신규 게임 소스 개발 전에 확정한 조사·분석·설계 baseline을 보존한다. 개발 시작 후 발생하는 디자인 수정 때문에 이 문서를 현재 화면에 맞춰 계속 덮어쓰지 않는다.
