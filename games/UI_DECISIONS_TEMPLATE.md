@@ -1,6 +1,6 @@
 # <Game Title> UI Decisions
 
-> 이 문서는 디자인 개발의 진행·변경 의사결정 이력을 보존하는 game-local 기록입니다.
+> 이 문서는 초기 `UI_DESIGN.md` baseline 이후 확정된 의미 있는 디자인 변경·의사결정·검증 이력을 보존하는 game-local 기록입니다.
 > `UI_DESIGN.md`는 소스 개발 전 수립한 초기 디자인 baseline입니다. 개발 시작 후 변경된 항목은 이 문서의 최신 non-superseded 결정이 우선하며, 현재 유효 디자인은 `UI_DESIGN.md + UI_DECISIONS.md overrides`로 해석합니다.
 > 기능 설계는 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 > 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
