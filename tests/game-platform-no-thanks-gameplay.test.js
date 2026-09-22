@@ -11,6 +11,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const rematchMigration = readFileSync(
+  new URL(
+    "../supabase/no-thanks/20260922170000_no_thanks_rematch_lobby.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 function fakeClient() {
   const calls = [];
@@ -48,6 +55,11 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
     expectedVersion: 6,
     clientActionId: "end-1",
   });
+  await adapter.prepareRematch({
+    roomId: "room-1",
+    expectedVersion: 7,
+    clientActionId: "rematch-1",
+  });
 
   assert.deepEqual(client.calls, [
     ["no_thanks_play_action", {
@@ -67,6 +79,11 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
       p_action_type: "end_game",
       p_expected_version: 6,
       p_client_action_id: "end-1",
+    }],
+    ["no_thanks_prepare_rematch", {
+      p_room_id: "room-1",
+      p_expected_version: 7,
+      p_client_action_id: "rematch-1",
     }],
   ]);
 });
@@ -93,4 +110,16 @@ test("No Thanks! gameplay migration calculates terminal scores without exposing 
   assert.match(migration, /finalScores/u);
   assert.match(migration, /winners/u);
   assert.doesNotMatch(migration, /grant select on table public\.no_thanks_room_private_state to authenticated/u);
+});
+
+
+test("No Thanks! rematch migration preserves membership while resetting game state", () => {
+  assert.match(rematchMigration, /create or replace function public\.no_thanks_prepare_rematch/u);
+  assert.match(rematchMigration, /HOST_REQUIRED/u);
+  assert.match(rematchMigration, /REMATCH_NOT_READY/u);
+  assert.match(rematchMigration, /REMATCH_PLAYERS_CHANGED/u);
+  assert.match(rematchMigration, /set is_ready = false,[\s\S]*?cards = '\{\}'::integer\[\]/u);
+  assert.match(rematchMigration, /delete from public\.no_thanks_room_private_state/u);
+  assert.match(rematchMigration, /set status = 'waiting',[\s\S]*?game_state = null/u);
+  assert.doesNotMatch(rematchMigration, /membership_status = 'left'/u);
 });
