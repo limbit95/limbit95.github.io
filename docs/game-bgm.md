@@ -43,9 +43,11 @@ Player UI는 다음 네 요소만 유지한다.
 - 볼륨 버튼과 작은 slider
 - 곡명과 출처/라이선스 확인 영역
 
+볼륨 또는 출처 popover가 열린 상태에서 Player 바깥 영역을 클릭하거나 터치하면 해당 popover를 닫는다. Player 내부 조작은 popover 외부 클릭으로 취급하지 않는다.
+
 사용자가 일시정지를 누르면 상태는 `PAUSED_BY_USER`가 되며 전역 interaction listener를 설치하지 않는다. 다시 듣고 싶을 때는 Player의 재생 버튼만 사용한다.
 
-볼륨은 `localStorage`에 저장한다. 새 document가 생성되면 `hasEverPlayed`, interaction 대기 여부 같은 runtime 상태는 다시 초기화한다.
+볼륨은 `localStorage`에 저장한다. Player의 slider 값은 사용자 설정값으로 그대로 유지하고, 게임별 `defaultOutputVolume`은 기본 slider 위치에서의 실제 Audio 출력을 별도로 정의한다. The Game은 저장된 사용자 설정이 없을 때 slider를 70%로 시작하고 실제 초기 출력은 0.6으로 맞춘다. 이후 slider는 100%까지 계속 증가해 최대 출력 1.0에 도달한다. 새 document가 생성되면 `hasEverPlayed`, interaction 대기 여부 같은 runtime 상태는 다시 초기화한다.
 
 ## 5. The Game Pilot
 
@@ -55,7 +57,8 @@ Player UI는 다음 네 요소만 유지한다.
 - Official source: Incompetech
 - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
 - License: CC BY 4.0
-- Default volume: 0.22
+- Default slider volume: 0.70
+- Default output volume: 0.60
 - Loop: enabled
 
 Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지, 사용자가 제공한 YouTube 확인 영상, CC BY 4.0 라이선스를 함께 표시한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
@@ -74,7 +77,8 @@ The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the
 - Official source: Incompetech
 - Reference video: Kevin MacLeod: Deadly Roulette (`Hnbv_KNxVo8`)
 - License: CC BY 4.0
-- Default volume: 0.35
+- Default slider volume: 0.35
+- Default output volume: 0.35
 - Loop: enabled
 
 Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/player를 mount하고 즉시 재생을 시도한다. autoplay가 차단되면 기존 공통 interaction fallback을 사용하며 게임 인증, 방 생성/참가, Realtime 상태와는 독립적으로 동작한다.
