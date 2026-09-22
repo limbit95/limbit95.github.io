@@ -125,7 +125,13 @@ function renderSelector(documentObject, elements, state, playerIds, starterPlaye
   elements.track.replaceChildren(...sequence.map((playerId, index) => (
     avatarCard(documentObject, state, playerId, index)
   )));
-  elements.track.style.setProperty("--selector-target-index", String(sequence.length - 1));
+  void elements.track.offsetWidth;
+  const firstCard = elements.track.firstElementChild;
+  const finalCard = elements.track.lastElementChild;
+  const targetOffset = firstCard && finalCard
+    ? -(finalCard.offsetLeft - firstCard.offsetLeft)
+    : 0;
+  elements.track.style.setProperty("--selector-target-x", `${targetOffset}px`);
   elements.result.textContent = `${playerName(state, starterPlayerId)}님부터 경매를 시작합니다`;
 }
 
