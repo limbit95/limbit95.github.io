@@ -110,6 +110,12 @@ function freezePendingChoice(pendingChoice) {
       passedPlayerIds: freezeStringList(pendingChoice.passedPlayerIds),
     });
   }
+  if (pendingChoice.type === "AUCTION_START_SEQUENCE") {
+    return Object.freeze({
+      ...pendingChoice,
+      participantPlayerIds: freezeStringList(pendingChoice.participantPlayerIds),
+    });
+  }
   if (pendingChoice.type === "PROPERTY_AUCTION") {
     return Object.freeze({
       ...pendingChoice,
