@@ -76,7 +76,10 @@ test("all responded ends voting immediately and preserves join order as bid orde
   assert.equal(state.pendingChoice.auction.highestBidderId, "c");
   assert.equal(state.pendingChoice.auction.highestBid, 390);
   assert.equal(state.pendingChoice.auction.turnPlayerId, "b");
-  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 17_200);
+  assert.equal(state.pendingChoice.announcementEndsAt, 4_600);
+  assert.equal(state.pendingChoice.startsAt, 8_000);
+  assert.equal(state.pendingChoice.auction.turnDeadlineAt, 23_000);
+  assert.equal(state.lastEvents.at(-1).type, "AUCTION_STARTING");
 });
 
 test("all eligible players joining starts the auction before the vote deadline", () => {
@@ -89,6 +92,42 @@ test("all eligible players joining starts the auction before the vote deadline",
   assert.equal(state.pendingChoice.type, "PROPERTY_AUCTION");
   assert.equal(state.pendingChoice.auction.highestBidderId, "b");
   assert.equal(state.pendingChoice.auction.turnPlayerId, "c");
+});
+
+test("two-or-more participants use authority randomness for the first bidder", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "b", {}, 2_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
+
+  const action = createAction({
+    type: ACTION_TYPES.AUCTION_JOIN,
+    playerId: "d",
+    payload: {},
+  });
+  state = reducePhase7GameAction(state, action, {
+    nowMs: 2_200,
+    random: () => 0,
+  });
+
+  assert.deepEqual(state.pendingChoice.participantPlayerIds, ["c", "d", "b"]);
+  assert.equal(state.pendingChoice.openingBidderPlayerId, "c");
+  assert.equal(state.pendingChoice.auction.highestBidderId, "c");
+  assert.equal(state.pendingChoice.announcementEndsAt, 4_600);
+  assert.equal(state.pendingChoice.startsAt, 8_000);
+});
+
+test("competitive bids are blocked until the roulette start window ends", () => {
+  let state = declinePurchase(roll(start(["a", "b", "c"]), "a", [1, 2]), "a", 1_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "b", {}, 2_000);
+  state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_100);
+
+  assert.throws(
+    () => reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 7_899),
+    /has not started yet/i,
+  );
+
+  state = reduce(state, ACTION_TYPES.AUCTION_BID, "c", { amount: 400 }, 7_900);
+  assert.equal(state.pendingChoice.auction.highestBid, 400);
 });
 
 test("one join plus all other passes immediately auto-buys at the opening bid", () => {
