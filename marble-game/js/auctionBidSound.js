@@ -44,6 +44,37 @@ function scheduleTone(context, {
   oscillator.stop(endAt + 0.02);
 }
 
+function scheduleAuctionStartSound(context) {
+  const startAt = Number(context.currentTime) + 0.01;
+  const notes = [
+    { delayMs: 0, frequency: 392, peakGain: 0.042, releaseMs: 180 },
+    { delayMs: 115, frequency: 523.25, peakGain: 0.048, releaseMs: 210 },
+    { delayMs: 235, frequency: 659.25, peakGain: 0.052, releaseMs: 260 },
+  ];
+
+  notes.forEach((note) => {
+    scheduleTone(context, {
+      at: startAt + (note.delayMs / 1000),
+      type: "sine",
+      startFrequency: note.frequency,
+      endFrequency: note.frequency * 0.985,
+      peakGain: note.peakGain,
+      attackMs: 6,
+      releaseMs: note.releaseMs,
+    });
+  });
+
+  scheduleTone(context, {
+    at: startAt + 0.34,
+    type: "triangle",
+    startFrequency: 240,
+    endFrequency: 118,
+    peakGain: 0.06,
+    attackMs: 4,
+    releaseMs: 150,
+  });
+}
+
 function scheduleAuctionBidSound(context) {
   const startAt = Number(context.currentTime) + 0.01;
   const coinHits = [
@@ -89,6 +120,33 @@ export function prepareAuctionBidSound() {
       return false;
     }
   }
+  return true;
+}
+
+export function playAuctionStartSound({ context = null } = {}) {
+  const audioContext = context ?? getSharedAudioContext();
+  if (!audioContext) return false;
+
+  const play = () => {
+    try {
+      scheduleAuctionStartSound(audioContext);
+    } catch {
+      // Auction start audio is optional and must never interrupt game flow.
+    }
+  };
+
+  if (audioContext.state === "suspended") {
+    try {
+      const resume = audioContext.resume?.();
+      if (resume?.then) resume.then(play).catch(() => {});
+      else play();
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
+  play();
   return true;
 }
 
