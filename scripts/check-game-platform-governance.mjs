@@ -16,6 +16,12 @@ const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "games/README.md",
   RULEBOOK_PATH,
 ]);
+const UI_DECISION_LIFECYCLE_POLICY_PATHS = Object.freeze([
+  "AGENTS.md",
+  "games/README.md",
+  RULEBOOK_PATH,
+  UI_RULEBOOK_PATH,
+]);
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -147,6 +153,20 @@ export function validatePlatformDocumentPolicy({
       if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_COMMAND)) {
         errors.push(
           `${filename} must identify the Game Platform DEVELOPMENT.md checkpoint command: ${DEVELOPMENT_CHECKPOINT_COMMAND}`,
+        );
+      }
+    }
+  }
+
+  if (documents[UI_RULEBOOK_PATH] != null) {
+    for (const filename of UI_DECISION_LIFECYCLE_POLICY_PATHS) {
+      const content = documents[filename];
+      const identifiesDecisionLog = typeof content === "string" && content.includes("UI_DECISIONS.md");
+      const identifiesManualReview = typeof content === "string"
+        && (content.includes("Developer Manual Design Review") || content.includes("수동 브라우저"));
+      if (!identifiesDecisionLog || !identifiesManualReview) {
+        errors.push(
+          `${filename} must identify the UI_DECISIONS.md manual-browser design review lifecycle.`,
         );
       }
     }
