@@ -7,9 +7,9 @@
 
 - Phase: Board UI Phase A–D merged — detail polish / Phase E pending
 - Status: IN_PROGRESS
-- Active branch: `docs/no-thanks-development-checkpoint-20260922` (checkpoint-only; 다음 구현은 이 기록 반영 후 최신 `main`에서 새 브랜치 생성)
-- Baseline main: `66531c7820285b37dc8d1e2961156ab95560758f`
-- 마지막 기록: 2026-09-22
+- Active branch: `main` (현재 구현 브랜치 없음; 이 checkpoint가 main에 반영된 뒤 handoff baseline으로 사용)
+- Phase A–D merge baseline: `66531c7820285b37dc8d1e2961156ab95560758f`
+- 마지막 기록: 2026-09-23
 
 ## Completed
 
@@ -142,13 +142,13 @@
 ## Current Work
 
 - Phase A–D 구현과 안정화는 PR #364 병합으로 완료했습니다.
-- 현재 브랜치는 다음 채팅 인수인계를 위해 `DEVELOPMENT.md`를 최신 main 상태에 맞추는 checkpoint-only 브랜치입니다.
+- 이 문서는 Phase A–D 병합 이후 다음 채팅/작업을 위한 handoff checkpoint이며, checkpoint 반영 후 현재 구현 브랜치는 `main`을 baseline으로 둡니다.
 - 아직 게임을 `RELEASED`로 전환하지 않았으며 Registry capability 활성화와 실제 운영 브라우저 release gate는 남아 있습니다.
-- 다음 구현 작업은 이 checkpoint가 main에 반영된 뒤 종료된 `feature/no-thanks-board-ui-phase1-a-d`를 재사용하지 않고 최신 `main`에서 새 No Thanks! 브랜치를 생성해 시작합니다.
+- 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 그 브랜치를 이어가고, 없다면 종료된 `feature/no-thanks-board-ui-phase1-a-d`를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
 
 ## Next Work
 
-1. 다음 구현 시작 시 최신 `main`과 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `UI_DESIGN.md`를 먼저 확인하고 새 No Thanks! 작업 브랜치를 생성합니다.
+1. 다음 구현 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `UI_DESIGN.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 해당 브랜치를 이어가고, 없을 때만 최신 `main`에서 새 No Thanks! 작업 브랜치를 생성합니다.
 2. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
 3. Phase E 후보인 다른 플레이어 공개 획득 카드 popover를 seat 근처 interaction으로 구현합니다.
 4. TAKE_CARD card/chip flight는 현재 구조를 유지하고 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
@@ -290,7 +290,7 @@
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 비정상 disconnect와 Presence 정책은 Phase 7~8에서 검증했습니다. 재대결 정책은 Game Platform 공통 규칙에 맞춰 same-room lifecycle로 변경했고 자동 DB/contract 검증을 완료했습니다. 실제 브라우저 Presence/모바일 복귀/rematch 검증은 release manual gate로 남아 있습니다.
-- 현재 checkpoint 브랜치는 진행 기록 갱신 전용입니다. Phase A–D 구현 브랜치는 이미 PR #364로 main에 병합됐으며, 후속 구현에서는 해당 종료 브랜치를 재사용하지 않습니다.
+- Phase A–D 구현 브랜치는 이미 PR #364로 main에 병합됐으며 후속 구현에서는 해당 종료 브랜치를 재사용하지 않습니다. 다음 구현 시에는 먼저 No Thanks! 관련 진행 중 브랜치 존재 여부를 확인합니다.
 
 ## Release closeout 안내
 
