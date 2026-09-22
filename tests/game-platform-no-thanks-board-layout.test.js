@@ -108,7 +108,9 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /NO CHIP/u);
   assert.match(runtime, /createCenterChipAction/u);
   assert.match(runtime, /count > 0[\s\S]*?no-thanks-center-chips__count/u);
-  assert.match(runtime, /createDrawDeck\(view, \{ dealing: effects\.dealCard \}\)/u);
+  assert.match(runtime, /createDrawDeck\(view\)/u);
+  assert.match(runtime, /deck\?\.querySelector\("span:last-child"\) \?\? deck/u);
+  assert.match(runtime, /--no-thanks-deal-start-scale/u);
   assert.match(runtime, /no-thanks-deal-mid-x/u);
   assert.match(runtime, /event\.currentTarget\.classList\.add\("is-submitting"\)/u);
   assert.match(runtime, /카드를 눌러 가져오기/u);
@@ -140,7 +142,8 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /\.no-thanks-center-chips__empty-mark/u);
   assert.match(styles, /background:[\s\S]*?#d94a3f/u);
   assert.match(styles, /@keyframes no-thanks-card-deal-path/u);
-  assert.match(styles, /\.no-thanks-draw-deck__stack\.is-dealing span:last-child[\s\S]*?opacity:\s*0/u);
+  assert.doesNotMatch(styles, /\.no-thanks-draw-deck__stack\.is-dealing span:last-child[\s\S]*?opacity:\s*0/u);
+  assert.match(styles, /scale\(var\(--no-thanks-deal-start-scale/u);
   assert.match(styles, /--no-thanks-deal-mid-x/u);
   assert.match(styles, /animation-duration:\s*\.78s/u);
   assert.match(styles, /@keyframes no-thanks-card-deal-flip/u);
