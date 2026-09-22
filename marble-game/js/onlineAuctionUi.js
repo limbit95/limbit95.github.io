@@ -1,5 +1,5 @@
 import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r4";
-import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260922-r2";
+import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260923-r1";
 import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260923-r1";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
@@ -147,7 +147,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-online-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260922-r4", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260923-r1", import.meta.url).href;
   link.dataset.onlineAuctionStyle = "true";
   documentObject.head.append(link);
 }
