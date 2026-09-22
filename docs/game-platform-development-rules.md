@@ -401,6 +401,8 @@ online capability를 활성화하기 전에는 최소한 다음을 확인한다.
 
 Invite를 활성화한다면 shared `game_room` routing과 서버-side token 재검증까지 확인한다.
 
+MUST NOT: Registry capability 값이나 게임 목록 미노출을 인증/인가 보안 경계로 취급하지 않는다. 정적 route를 직접 아는 사용자가 페이지에 접근할 수 있으므로 실제 접근 제어는 Access Gate와 서버 RPC/RLS가 계속 책임진다. capability와 목록 노출은 release/기능 제공 상태를 선언하는 운영 메타데이터다.
+
 ### MUST: Registry 테스트 책임을 분리한다
 
 Legacy 보호 테스트는 보호 대상 Legacy 게임의 존재와 핵심 계약을 명시적으로 검증할 수 있다.
