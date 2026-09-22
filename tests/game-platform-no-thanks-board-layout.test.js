@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
+  getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
@@ -75,6 +76,15 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksVisibleChipCount(11), 11);
   assert.equal(getNoThanksVisibleChipCount(24), 16);
   assert.equal(getNoThanksVisibleChipCount(24, { compact: true }), 7);
+
+  assert.equal(getNoThanksDeckVisualCount(0), 0);
+  assert.equal(getNoThanksDeckVisualCount(1), 1);
+  assert.equal(getNoThanksDeckVisualCount(3), 2);
+  assert.equal(getNoThanksDeckVisualCount(7), 3);
+  assert.equal(getNoThanksDeckVisualCount(11), 4);
+  assert.equal(getNoThanksDeckVisualCount(15), 5);
+  assert.equal(getNoThanksDeckVisualCount(19), 6);
+  assert.equal(getNoThanksDeckVisualCount(24), 7);
 });
 
 test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel contracts", () => {
@@ -91,6 +101,12 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /getSignedAvatarUrl/u);
   assert.match(runtime, /default-avatar\.svg/u);
   assert.match(runtime, /NO CHIP/u);
+  assert.match(runtime, /createCenterChipAction/u);
+  assert.match(runtime, /카드를 눌러 가져오기/u);
+  assert.match(runtime, /칩 1개 내기/u);
+  assert.match(runtime, /readBoardTransitionEffects/u);
+  assert.match(runtime, /no-thanks-chip-flight/u);
+  assert.doesNotMatch(runtime, /function createPlayingPrimaryActions/u);
   assert.match(runtime, /자리이탈/u);
   assert.match(runtime, /is-arriving/u);
   assert.match(runtime, /lobbyController\.refuseCard\(\)/u);
@@ -103,7 +119,13 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(styles, /\.no-thanks-my-panel/u);
   assert.match(styles, /height:\s*800px/u);
   assert.match(styles, /\.no-thanks-seat__avatar/u);
+  assert.match(styles, /\.no-thanks-seat__avatar-frame/u);
+  assert.match(styles, /width:\s*min\(72%,\s*1080px\)/u);
   assert.match(styles, /\.no-thanks-center-chips__empty-mark/u);
+  assert.match(styles, /background:[\s\S]*?#d94a3f/u);
+  assert.match(styles, /@keyframes no-thanks-card-deal/u);
+  assert.match(styles, /@keyframes no-thanks-chip-flight/u);
+  assert.match(styles, /grid-template-columns:\s*96px\s+minmax\(0,\s*1fr\)/u);
   assert.match(styles, /nth-child\(16\)/u);
   assert.match(styles, /min-height:\s*196px/u);
   assert.match(styles, /width:\s*86px/u);
