@@ -236,9 +236,9 @@
   - 게임 등록부의 `no-thanks` 항목이 `platform: "shared"`이고 모든 기능 활성화 값이 `false`로 해석되는지 확인했습니다.
   - `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다.
 - 이번 단계에서 아직 수행하지 않는 검증:
-  - 실제 브라우저 멀티플레이 점검
-  - 운영 환경 마이그레이션 검증
-- 위 항목은 아직 관련 데이터베이스나 사용자 화면 코드가 없으므로 후속 단계에서 수행합니다.
+  - 승인회원 계정의 운영 create/join/snapshot/gameplay 브라우저 smoke test
+  - 실제 데스크톱/모바일 브라우저의 Presence/reconnect 멀티플레이 점검
+- 운영 Supabase migration, 권한/RLS/private-state 비노출, Realtime publication 구조 검증은 완료했습니다. 남은 항목은 실제 브라우저 동작 확인입니다.
 
 ## Known Issues / Deferred
 
