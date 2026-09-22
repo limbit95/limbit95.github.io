@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Multiplayer stability and reconnect
+- Phase: Multi-client verification and release readiness
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase7-multiplayer-stability`
+- Active branch: `feature/no-thanks-game-phase8-multiclient-verification`
 - 마지막 기록: 2026-09-22
 
 ## Completed
@@ -91,18 +91,26 @@
 - 재대결은 terminal state를 같은 room에서 reset하지 않고, 방장이 결과방을 닫은 뒤 같은 최대 인원의 새 방을 만드는 방식으로 확정했습니다.
 - 새 게임 방 생성 시 기존 참가자는 새 방 코드로 다시 참가하도록 명시해 오래된 action/version/private state가 재사용되지 않도록 했습니다.
 - Presence lifecycle, 다중 탭 user merge, offline→online refresh, result-room→fresh-room 재대결 정책에 대한 회귀 테스트를 추가했습니다.
+- 최신 `main` 커밋 `2454e5e9d8a76a26002f794f8338255b62aababb`에서 Phase 8 검증 브랜치를 생성했습니다.
+- disposable Supabase에서 3개의 독립 승인회원 인증 세션이 같은 room에 참가해 각자 비공개 칩 snapshot을 받고, 세 플레이어가 한 번씩 거절한 뒤 자연 종료까지 진행하는 다중 클라이언트 통합 시나리오를 추가했습니다.
+- 3인 시나리오에서 명시적 leave 없이 `get_my_active_room`으로 재접속했을 때 최신 room/version/turn/center counter가 복원되는지 검증하도록 했습니다.
+- disposable Supabase에서 7개의 독립 승인회원 인증 세션이 모두 참가·준비·시작하고, 일곱 플레이어가 한 번씩 거절해 full turn cycle을 만든 뒤 각 viewer의 private counter가 6으로 독립 유지되는지 검증하는 시나리오를 추가했습니다.
+- 7인 시나리오에서 7개 중앙 칩을 현재 플레이어가 가져간 뒤 본인 칩이 13으로 계산되고 같은 플레이어가 turn을 유지하는지 검증하도록 했습니다.
+- 3인·7인 모두 다른 플레이어 counter가 public player snapshot에 노출되지 않는지 반복 검증하도록 했습니다.
+- 자동 검증과 실제 브라우저/운영 검증을 분리한 `games/no-thanks/RELEASE_CHECKLIST.md`를 추가했습니다.
+- 실제 브라우저 Presence join/leave, 모바일 background 복귀, host/active-player disconnect는 자동 DB 테스트가 대체하지 않는 manual release gate로 명시했습니다.
 
 ## Current Work
 
-- Phase 7 multiplayer stability 정책과 Presence/reconnect/rematch runtime 구현 및 자동 검증을 완료한 상태입니다.
+- Phase 8에서 3인·7인 독립 인증 세션 기반 다중 클라이언트 DB 통합 검증과 release readiness checklist를 추가하고 CI 검증을 진행하는 단계입니다.
 
 ## Next Work
 
-1. 실제 3인·7인 다중 브라우저에서 Presence join/leave, active-player reconnect, host reconnect, 자연 종료를 점검합니다.
-2. 모바일 백그라운드/복귀와 네트워크 단절·복구에서 snapshot 복원이 안정적인지 실제 브라우저로 검증합니다.
-3. 운영 migration 적용 전 DB advisor와 production 적용 순서를 점검합니다.
-4. 실제 멀티클라이언트 검증이 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
-5. release 조건이 갖춰지면 production migration / capability activation / 게임 목록 노출을 별도 단계로 진행합니다.
+1. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect 수동 게이트를 수행합니다.
+2. 운영 DB 적용 직전 Supabase security/performance advisor와 migration 적용 순서를 확인합니다.
+3. 운영 migration 적용 후 승인회원 create/join/snapshot/gameplay smoke test와 private-state 비노출을 재확인합니다.
+4. manual browser gate와 production DB gate가 모두 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+5. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
 
 ## Decisions
 
@@ -163,6 +171,11 @@
 - reconnect: `online / pageshow / visibility` 이벤트에서 authoritative snapshot 재조회
 - 재대결: 같은 room reset 대신 결과방 종료 후 새 room 생성
 - 재대결 참가: 새 room code를 공유하고 참가자가 다시 join
+- 자동 multi-client 검증: disposable Supabase에서 독립 auth session 3개/7개를 실제 RPC client로 취급
+- 3인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + reconnect snapshot + 자연 종료
+- 7인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + private counter 독립성 + take/reconnect
+- 실제 browser Presence 검증: CI Actions 비용을 늘리는 별도 browser/Supabase workflow를 만들지 않고 release 직전 manual gate로 유지
+- release gate 기록: `games/no-thanks/RELEASE_CHECKLIST.md`
 
 ## Validation
 
@@ -220,8 +233,8 @@
 - Room/Lobby 및 gameplay 개발용 migration/RPC는 추가했지만 운영 환경 적용은 아직 하지 않았습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
-- 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했으며 실제 3인·7인 브라우저 검증이 남아 있습니다.
-- 현재 브랜치는 multiplayer stability 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
+- 현재 브랜치는 multi-client verification 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
