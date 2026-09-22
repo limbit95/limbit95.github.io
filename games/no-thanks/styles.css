@@ -3086,10 +3086,62 @@ body {
       scale(.94);
   }
   100% {
-    opacity: 0;
+    opacity: 1;
     transform:
       translate(-50%, -50%)
       translate3d(var(--no-thanks-chip-end-x, 160px), var(--no-thanks-chip-end-y, 0px), 0)
-      scale(.9);
+      scale(.94);
   }
+}
+
+
+/* Flight-card handoff follows The Game's independent moving-card pattern. */
+.no-thanks-table-card.is-awaiting-deal .no-thanks-table-card__inner {
+  opacity: 0;
+}
+
+.no-thanks-table-card.is-deal-landed .no-thanks-table-card__inner {
+  opacity: 1;
+}
+
+.no-thanks-card-flight {
+  position: fixed;
+  z-index: 96;
+  margin: 0;
+  pointer-events: none;
+  perspective: 900px;
+  transform-origin: 50% 52%;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 18px 26px rgba(12, 34, 30, .32));
+}
+
+.no-thanks-card-flight .no-thanks-table-card__inner {
+  opacity: 1;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.no-thanks-card-flight[data-tone="blue"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #4e97d1, #3978b2);
+}
+
+.no-thanks-card-flight[data-tone="teal"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #51aa96, #398b7c);
+}
+
+.no-thanks-card-flight[data-tone="yellow"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #f0cb65, #dda840);
+  color: #483b18;
+}
+
+.no-thanks-card-flight[data-tone="pink"] .no-thanks-table-card__front {
+  background: linear-gradient(145deg, #de7891, #c95a76);
+}
+
+.no-thanks-center-chips__visual {
+  min-width: 112px;
+  min-height: 78px;
+  display: grid;
+  place-items: center;
 }
