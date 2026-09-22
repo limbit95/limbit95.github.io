@@ -1,0 +1,51 @@
+# No Thanks! Release Readiness Checklist
+
+이 문서는 No Thanks!를 실제 서비스 기능으로 활성화하기 전 마지막 검증 게이트를 추적합니다.
+
+## Automated gates
+
+- [x] 순수 규칙 엔진 단위 테스트
+- [x] 승인회원 Access Gate / Common Game Shell 계약 테스트
+- [x] Room/Lobby DB/RPC 플랫폼 필수 계약
+- [x] private counter / draw deck / excluded card 비노출 검증
+- [x] gameplay stale version / duplicate / concurrent conflict 검증
+- [x] 자연 종료 점수 / 공동 승자 / 방장 수동 종료 검증
+- [x] reconnect snapshot authoritative 복원 검증
+- [x] Presence lifecycle / 다중 탭 user merge 계약 테스트
+- [x] 3개 독립 인증 세션 자연 종료 통합 검증
+- [x] 7개 독립 인증 세션 full refuse cycle / private counter 격리 통합 검증
+
+## Manual browser gates
+
+아래 항목은 자동 DB 통합 테스트가 대체하지 않습니다.
+
+- [ ] 데스크톱 3개 실제 브라우저/프로필에서 방 생성 → 참가 → 준비 → 시작 → 자연 종료
+- [ ] 실제 7개 클라이언트에서 roster와 현재 차례 표시 확인
+- [ ] 현재 차례 플레이어 브라우저 종료 → 다른 클라이언트에서 `재접속 대기` 확인 → 재접속 후 같은 turn 복원
+- [ ] 방장 브라우저 종료 → 자동 위임/자동 종료가 발생하지 않는지 확인 → 방장 재접속 후 권한 복원
+- [ ] 동일 사용자의 2개 탭 접속 시 Presence가 사용자 1명으로 표시되는지 확인
+- [ ] 모바일 백그라운드 → foreground 복귀 시 authoritative snapshot 재조회 확인
+- [ ] 네트워크 offline → online 복귀 시 connection banner와 최신 snapshot 복원 확인
+- [ ] 결과방에서 새 게임 방 생성 → 새 room code 공유 → 기존 참가자 재참가 확인
+
+## Production database gates
+
+- [ ] 운영 DB에 No Thanks! migration 적용 전 migration 순서 재확인
+- [ ] 운영 적용 직전 Supabase security/performance advisor 확인
+- [ ] 운영 migration 적용 후 승인회원 create/join/snapshot smoke test
+- [ ] private table이 authenticated REST/Realtime 경로에 노출되지 않는지 운영 환경 재확인
+- [ ] gameplay RPC execute 권한이 authenticated에만 허용되는지 운영 환경 재확인
+
+## Activation gates
+
+다음 항목은 위 manual browser / production DB gate가 모두 끝난 후 별도 PR에서 진행합니다.
+
+- [ ] Registry `online: true` 활성화
+- [ ] 필요 시 `presence: true` 활성화
+- [ ] 게임 목록에 사용자용 서비스 상태로 노출
+- [ ] invite 기능은 별도 구현/검증 전까지 비활성 유지
+- [ ] release 후 첫 실제 세션 로그/오류 모니터링
+
+## Release rule
+
+자동 테스트가 통과해도 manual browser gate와 production DB gate가 남아 있으면 No Thanks!를 출시 완료로 간주하지 않습니다.
