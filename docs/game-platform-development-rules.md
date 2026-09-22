@@ -129,7 +129,7 @@ MUST NOT: 모든 spacing, CSS 숫자, 작은 commit을 changelog처럼 기록하
 - 디자인 작업을 merge/close하거나 release closeout으로 넘어가기 전에 기록 누락이 없는지 확인한다.
 - 기능 개발의 완료 상태와 디자인 polish 완료 상태를 같은 것으로 취급하지 않는다.
 
-디자인 전용 checkpoint 명령은 별도로 정의할 수 있으며, 그 명령의 존재 여부와 관계없이 UI Rules의 lifecycle 기반 기록 규칙은 적용한다.
+`디자인 체크포인트 기록하자`의 세부 의미와 기록 단위는 `docs/game-platform-ui-rules.md`가 소유한다. 이 명령의 존재 여부와 관계없이 UI Rules의 lifecycle 기반 기록 규칙은 적용한다.
 
 ### MUST: 게임별 네 문서의 권위와 충돌 해결
 
@@ -233,23 +233,25 @@ games/<game-id>/DEVELOPMENT.md
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
-### MUST: 사용자가 `체크포인트 기록하자`라고 요청할 때
+### MUST: 사용자가 `기능 체크포인트 기록하자`라고 요청할 때
 
-`체크포인트 기록하자`는 Game Platform의 명시적 handoff checkpoint 명령이다.
+`기능 체크포인트 기록하자`는 Game Platform의 명시적 기능 handoff checkpoint 명령이다.
 
-사용자가 이 명령을 요청하면 해당 구간의 **기능 개발 상태는 `DEVELOPMENT.md`**, **의미 있는 디자인 개발 결정/진행은 `UI_DECISIONS.md`**에 책임에 맞게 갱신하고, 유효한 현재 작업 브랜치에 commit해 다음 채팅이나 다음 작업자가 GitHub에서 바로 이어갈 수 있게 한다. 변경이 없는 문서를 체크포인트라는 이유만으로 수정하지 않는다.
+사용자가 이 명령을 요청하면 현재 기능 개발 구간의 상태를 `DEVELOPMENT.md`에 갱신하고, 유효한 현재 작업 브랜치에 commit해 다음 채팅이나 다음 작업자가 GitHub에서 바로 이어갈 수 있게 한다.
 
 이 경우:
 
-1. 기능 Phase가 진행 중이면 `DEVELOPMENT.md`의 상태를 `IN_PROGRESS`로 유지하고 실제 완료 기능, 미완료 기능, 다음 기능 작업, 기능 검증을 기록한다.
-2. 디자인 작업이 있었고 다음 작업자가 알아야 할 의미 있는 결정이 생겼다면 `UI_DECISIONS.md`에 현재 design track, 결정 배경, 구현 상태, 디자인 validation, 다음 UI 작업을 기록한다.
-3. 기능 설계 자체가 바뀌었다면 `GAME_SPEC.md`를 정합화한다. 개발 시작 후 디자인 변경은 `UI_DESIGN.md` baseline을 덮어쓰지 않고 `UI_DECISIONS.md`에 기록하며, 기존 결정과 충돌하면 supersede/revert 관계를 명시한다.
-4. 단순 CSS 수치 조정이나 의미 없는 commit 이력은 `UI_DECISIONS.md`에 쌓지 않는다.
-5. blocker, 임시 결정, 확인이 필요한 사항은 각각의 책임 문서에 남긴다.
+1. 기능 Phase가 진행 중이면 상태를 `IN_PROGRESS`로 유지하고 실제 완료 기능, 미완료 기능, 다음 기능 작업, 기능 검증을 기록한다.
+2. 기능 설계 자체가 바뀌었다면 책임 문서인 `GAME_SPEC.md`를 먼저 또는 함께 정합화한다.
+3. 기능 blocker, 임시 결정, 확인이 필요한 사항을 책임 섹션에 남긴다.
+4. 기능 checkpoint라는 이유로 `UI_DECISIONS.md`의 디자인 이력을 수정하지 않는다.
+5. 이 명령 자체는 기능 Phase 완료를 의미하지 않는다.
 
-이 명령이 아닌 일반적인 `새 채팅에서 이어서 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 요청은 자동으로 repository checkpoint 명령으로 확대 해석하지 않는다.
+`디자인 체크포인트 기록하자`는 별도의 디자인 handoff 명령이며, 세부 규칙은 `docs/game-platform-ui-rules.md`가 소유한다. 사용자가 한 요청에서 두 명령을 모두 명시하면 `DEVELOPMENT.md`와 `UI_DECISIONS.md`를 각각의 책임에 따라 갱신할 수 있다.
 
-이 사용자 명령은 중간 handoff checkpoint를 즉시 남기는 방법일 뿐이며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 설계 변경, blocker/known issue 발생 등 이 문서가 이미 정한 `DEVELOPMENT.md` 갱신 시점을 대체하거나 제한하지 않는다.
+접두어가 없는 일반적인 checkpoint 표현이나 `새 채팅에서 이어서 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 요청은 두 공식 repository checkpoint 명령 중 하나로 자동 확대 해석하지 않는다.
+
+두 사용자 명령은 중간 handoff를 즉시 남기는 방법일 뿐이며, Phase 시작/작업 범위 확정, Phase 완료, 디자인 lifecycle 기록 트리거, release closeout, 중요한 설계 변경, blocker/known issue 발생 등 기존 lifecycle 기반 문서 갱신 시점을 대체하거나 제한하지 않는다.
 
 중간 checkpoint를 남긴다는 이유만으로 Phase를 완료 처리하지 않는다. 진행 중 유효한 작업 브랜치가 있으면 그 브랜치를 계속 사용하며, 유효한 작업 브랜치가 없다면 저장소의 일반 브랜치 작업 규칙을 따른다.
 
@@ -261,7 +263,7 @@ games/<game-id>/DEVELOPMENT.md
 
 - 기능 Phase 시작 또는 기능 작업 범위가 확정될 때
 - 기능 Phase 완료 시
-- 사용자가 `체크포인트 기록하자`라고 요청했고 기능 상태가 바뀐 경우
+- 사용자가 `기능 체크포인트 기록하자`라고 요청한 경우
 - 중요한 아키텍처/게임 규칙 결정이 바뀔 때
 - 다음 작업자에게 반드시 전달해야 할 기능 blocker나 known issue가 생길 때
 
@@ -271,7 +273,7 @@ games/<game-id>/DEVELOPMENT.md
 - 사용자 피드백이나 브라우저 QA로 layout/component/interaction/motion/responsive 방향이 의미 있게 변경될 때
 - 기존 디자인 안을 폐기·되돌림·대체할 때
 - 실제 UI/browser validation 결과가 다음 디자인 작업에 영향을 줄 때
-- 사용자가 `체크포인트 기록하자`라고 요청했고 의미 있는 디자인 결정이 누적된 경우
+- 사용자가 `디자인 체크포인트 기록하자`라고 요청한 경우
 
 ## 4. 플랫폼과 게임 규칙의 경계
 
