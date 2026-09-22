@@ -413,7 +413,7 @@ export function createNoThanksLobbyController({
       });
       applySnapshot(next, { connection: "connected", busy: false });
       return next;
-    }, { silentBusy: true });
+    });
   }
 
   async function refresh(reason = "manual") {
