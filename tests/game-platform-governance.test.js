@@ -636,6 +636,20 @@ test("UI rulebook authority links are enforced across game entry documents and t
   );
 });
 
+test("governance defines topic-owner first rule propagation without duplicating detailed rules", () => {
+  const governance = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-governance.md"),
+    "utf8",
+  );
+
+  assert.match(governance, /공통 규칙 변경 전파 원칙/u);
+  assert.match(governance, /topic-owner 문서/u);
+  assert.match(governance, /상위\/진입 문서에는 필요한 요약과 참조만 전파/u);
+  assert.match(governance, /같은 세부 규칙을 여러 상위 문서에서 독립적으로 다시 정의하지 않는다/u);
+  assert.match(governance, /상위 규칙과 충돌하는 하위 규칙 변경/u);
+  assert.match(governance, /COMPLIANT.*MIGRATION_REQUIRED.*NOT_APPLICABLE/su);
+});
+
 test("Game Platform rules require multiplayer rematch without prematurely forcing a shared RPC shape", () => {
   const rules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
