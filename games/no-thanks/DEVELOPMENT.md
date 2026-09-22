@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Multi-client verification and release readiness
+- Phase: Production migration and manual browser QA
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-game-phase8-multiclient-verification`
+- Active branch: `chore/no-thanks-production-migration-20260922`
 - 마지막 기록: 2026-09-22
 
 ## Completed
@@ -99,17 +99,26 @@
 - 3인·7인 모두 다른 플레이어 counter가 public player snapshot에 노출되지 않는지 반복 검증하도록 했습니다.
 - 자동 검증과 실제 브라우저/운영 검증을 분리한 `games/no-thanks/RELEASE_CHECKLIST.md`를 추가했습니다.
 - 실제 브라우저 Presence join/leave, 모바일 background 복귀, host/active-player disconnect는 자동 DB 테스트가 대체하지 않는 manual release gate로 명시했습니다.
+- 운영 Supabase 프로젝트와 main의 `SUPABASE_URL`이 동일한 프로젝트를 가리키는 것을 확인했습니다.
+- 운영 DB에 `no_thanks_room_lobby_foundation`과 `no_thanks_gameplay_actions` migration을 순서대로 적용했습니다.
+- 브라우저 Realtime invalidation을 위해 공개 테이블 `no_thanks_rooms / no_thanks_room_players`만 `supabase_realtime` publication에 등록하는 migration을 추가·적용했습니다.
+- `no_thanks_room_actions / no_thanks_room_private_state`는 Realtime publication에 포함하지 않았습니다.
+- 운영 권한 검증에서 anon의 create/play RPC 실행이 차단되고 authenticated만 허용되는 것을 확인했습니다.
+- private state table은 anon/authenticated SELECT가 모두 차단되고 공개 room/player table은 RLS가 활성화된 것을 확인했습니다.
+- 내부 `private.no_thanks_snapshot` helper가 authenticated에 기본 EXECUTE 권한을 가지고 있는 것을 발견해, private helper 권한 hardening migration을 추가·적용했습니다.
+- hardening 후 snapshot/generate/profile/card-score helper는 anon/authenticated 직접 실행이 차단되고, RLS에 필요한 `private.no_thanks_is_room_member`만 authenticated에 유지되는 것을 확인했습니다.
+- 운영 적용 후 Supabase security/performance advisor를 다시 실행해 No Thanks! 관련 신규 critical/error 항목이 없음을 확인했습니다.
 
 ## Current Work
 
-- Phase 8에서 3인·7인 독립 인증 세션 기반 다중 클라이언트 DB 통합 검증과 release readiness checklist를 추가하고 CI 검증을 진행하는 단계입니다.
+- 운영 Supabase에 No Thanks! DB/RPC/Realtime migration을 적용했고, capability는 비활성 상태로 유지한 채 main 배포 화면에서 실제 브라우저 QA를 진행할 수 있는 단계입니다.
 
 ## Next Work
 
-1. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect 수동 게이트를 수행합니다.
-2. 운영 DB 적용 직전 Supabase security/performance advisor와 migration 적용 순서를 확인합니다.
-3. 운영 migration 적용 후 승인회원 create/join/snapshot/gameplay smoke test와 private-state 비노출을 재확인합니다.
-4. manual browser gate와 production DB gate가 모두 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
+1. main 배포 화면에서 승인회원 계정으로 create/join/ready/start/refuse/take/종료 브라우저 smoke test를 수행합니다.
+2. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect 수동 게이트를 수행합니다.
+3. 3인과 가능하면 7인 실제 브라우저 세션에서 roster/turn/private counter/reconnect를 확인합니다.
+4. manual browser gate가 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
 5. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
 
 ## Decisions
@@ -214,6 +223,10 @@
   - Game Platform Governance Guard가 통과했습니다.
   - Phase 7은 DB schema/RPC를 변경하지 않아 disposable Game DB integration은 실행 대상이 아닙니다. 서버 DB 경계는 Phase 6의 성공 결과를 그대로 유지합니다.
   - 최신 main 대비 뒤처짐 없이 PR #358이 mergeable 상태임을 확인했습니다.
+  - 운영 DB migration history에 `no_thanks_room_lobby_foundation / no_thanks_gameplay_actions / no_thanks_realtime_publication / no_thanks_private_helper_permissions`가 기록된 것을 확인했습니다.
+  - 운영 DB에서 `no_thanks_rooms / no_thanks_room_players / no_thanks_room_actions / no_thanks_room_private_state` RLS 활성 상태를 확인했습니다.
+  - authenticated는 공개 room/player SELECT와 public RPC 실행 권한만 가지며 private-state SELECT와 private snapshot helper 실행은 차단된 것을 확인했습니다.
+  - Realtime publication에는 공개 room/player 두 테이블만 등록된 것을 확인했습니다.
   - Game Platform-only PR이므로 개선된 CI 규칙에 따라 무관한 전체 Site static checks는 실행하지 않았습니다.
   - `package.json`에서 게임 플랫폼 관련 검증 명령이 `npm run test:game-platform`임을 확인했습니다.
   - 새 `rules.js`와 단위 테스트 파일에 `node --check`를 실행해 문법 오류가 없음을 확인했습니다.
@@ -223,18 +236,18 @@
   - 게임 등록부의 `no-thanks` 항목이 `platform: "shared"`이고 모든 기능 활성화 값이 `false`로 해석되는지 확인했습니다.
   - `GAME_SPEC.md`와 `DEVELOPMENT.md`의 필수 섹션을 유지했습니다.
 - 이번 단계에서 아직 수행하지 않는 검증:
-  - 실제 브라우저 멀티플레이 점검
-  - 운영 환경 마이그레이션 검증
-- 위 항목은 아직 관련 데이터베이스나 사용자 화면 코드가 없으므로 후속 단계에서 수행합니다.
+  - 승인회원 계정의 운영 create/join/snapshot/gameplay 브라우저 smoke test
+  - 실제 데스크톱/모바일 브라우저의 Presence/reconnect 멀티플레이 점검
+- 운영 Supabase migration, 권한/RLS/private-state 비노출, Realtime publication 구조 검증은 완료했습니다. 남은 항목은 실제 브라우저 동작 확인입니다.
 
 ## Known Issues / Deferred
 
 - 승인회원 접근 제어부터 Room/Lobby, server-authoritative gameplay action, 자연 종료와 방장 수동 종료 UI까지 연결했습니다.
-- Room/Lobby 및 gameplay 개발용 migration/RPC는 추가했지만 운영 환경 적용은 아직 하지 않았습니다.
+- Room/Lobby, gameplay, Realtime publication, private helper permission hardening migration을 운영 Supabase에 적용했습니다.
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
-- 현재 브랜치는 multi-client verification 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 현재 브랜치는 운영 migration 기록/재현성 보강 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
