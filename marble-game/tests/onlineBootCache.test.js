@@ -22,7 +22,7 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260922-r3/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
-  assert.match(indexHtml, /auction-ui\.css\?v=20260922-r1/);
+  assert.match(indexHtml, /auction-ui\.css\?v=20260922-r2/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r2/);
