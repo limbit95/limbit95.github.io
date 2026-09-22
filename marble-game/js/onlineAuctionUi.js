@@ -41,7 +41,6 @@ function participantCards(state, playerIds = []) {
     id: playerId,
     name: playerName(findPlayer(state, playerId)),
     order: index + 1,
-    openingBidder: index === 0,
   })));
 }
 
@@ -126,12 +125,6 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
     highestBidderId,
     highestBidderName: highestBidderId ? playerName(findPlayer(state, highestBidderId)) : null,
     minimumBid,
-    openingBidderPlayerId: auction.openingBidderPlayerId
-      ?? pending.openingBidderPlayerId
-      ?? auction.requesterPlayerId
-      ?? pending.requesterPlayerId
-      ?? participantPlayerIds[0]
-      ?? null,
     participantPlayerIds: Object.freeze([...participantPlayerIds]),
     participantCards: participantCards(state, participantPlayerIds),
     participant,
@@ -281,7 +274,7 @@ function renderParticipantList(documentObject, elements, model) {
   const cards = model.participantCards ?? [];
   elements.participantMeta.textContent = model.stage === "vote"
     ? `참가 ${model.participantCount} · 포기 ${model.passedCount} · 대기 ${model.waitingCount}`
-    : `${cards.length}명 · 실시간 입찰 순서`;
+    : `${cards.length}명 · 실시간 경매 순서`;
 
   if (cards.length === 0) {
     const empty = documentObject.createElement("p");
@@ -307,12 +300,6 @@ function renderParticipantList(documentObject, elements, model) {
 
     const badges = documentObject.createElement("span");
     badges.className = "auction-action-panel__participant-badges";
-    if (card.openingBidder) {
-      const firstBid = documentObject.createElement("span");
-      firstBid.className = "auction-action-panel__first-bid";
-      firstBid.textContent = "첫 입찰";
-      badges.append(firstBid);
-    }
     if (model.stage === "auction" && card.id === model.turnPlayerId) {
       const currentTurn = documentObject.createElement("span");
       currentTurn.className = "auction-action-panel__turn-badge";
@@ -347,11 +334,31 @@ export function setupOnlineAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
-  const setAuctionOverlayActive = (active) => {
-    if (!documentObject.body?.dataset) return;
-    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
-    else delete documentObject.body.dataset.auctionOverlayActive;
+  const updateAuctionNoticeAnchor = () => {
+    const body = documentObject.body;
+    if (!body?.style || elements.panel.hidden) return;
+    const rect = elements.panel.getBoundingClientRect?.();
+    if (!rect || !Number.isFinite(Number(rect.top))) return;
+    const noticeTop = Math.max(72, Number(rect.top) - 10);
+    body.style.setProperty("--auction-notice-top", `${noticeTop}px`);
   };
+  const setAuctionOverlayActive = (active) => {
+    const body = documentObject.body;
+    if (!body?.dataset) return;
+    if (active) {
+      body.dataset.auctionOverlayActive = "true";
+      updateAuctionNoticeAnchor();
+    } else {
+      delete body.dataset.auctionOverlayActive;
+      body.style?.removeProperty?.("--auction-notice-top");
+    }
+  };
+  const handleViewportChange = () => {
+    if (documentObject.body?.dataset?.auctionOverlayActive === "true") {
+      updateAuctionNoticeAnchor();
+    }
+  };
+  documentObject.defaultView?.addEventListener?.("resize", handleViewportChange);
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
     clock: () => nowMs(),
@@ -511,6 +518,7 @@ export function setupOnlineAuctionUi({
     setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
+    updateAuctionNoticeAnchor();
     elements.title.textContent = model.nodeLabel;
     updateTimer(model);
     renderParticipantList(documentObject, elements, model);
@@ -563,6 +571,7 @@ export function setupOnlineAuctionUi({
       elements.passButton.disabled = busy || !model.canPass;
       elements.passButton.textContent = model.passLabel;
     }
+    updateAuctionNoticeAnchor();
     scheduleDeadline(model);
   }
 
