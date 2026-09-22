@@ -743,6 +743,7 @@ Game Platform의 CURRENT 규칙, shared 계약, DB/Test Contract 또는 공통 l
 - 규칙 변경 PR의 작업 결과 또는 PR 설명에 영향도 감사 결과를 남긴다.
 - `IN_PROGRESS` 게임이 `MIGRATION_REQUIRED`라면 release 전에 충돌을 해소한다.
 - `RELEASED` 게임이 `MIGRATION_REQUIRED`라면 현재 동작을 임의로 같은 PR에서 바꾸지 않고 별도 migration/follow-up 범위를 정한다.
+- shared runtime/API가 비호환으로 바뀌는 경우 RELEASED consumer를 깨뜨린 채 공통 계약만 먼저 merge하지 않는다. 기존 surface를 호환 유지하거나 consumer migration을 먼저 또는 같은 원자적 변경으로 완료한 뒤 기존 surface를 제거한다.
 - 게임별 문서와 실제 코드/테스트가 서로 다른 정책을 말하면 문서만 맞춰 적지 말고 runtime 영향까지 확인한다.
 - 특정 게임의 예외를 허용해야 한다면 공통 규칙을 조용히 위반하게 두지 않고 적용 제외 근거 또는 플랫폼 규칙 변경으로 명시한다.
 
