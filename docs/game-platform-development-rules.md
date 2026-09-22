@@ -132,7 +132,7 @@ MUST NOT: 구현 예정이라는 이유만으로 `online`, `invite`, `presence` 
 games/<game-id>/DEVELOPMENT.md
 ```
 
-`DEVELOPMENT.md`는 긴 작업 일지나 commit changelog가 아니라 **다음 작업자가 현재 개발 상태를 즉시 복원하기 위한 단일 인수인계 문서**다.
+`DEVELOPMENT.md`는 긴 작업 일지나 commit changelog가 아니라 **다음 작업자가 현재 개발 상태를 즉시 복원하기 위한 단일 인수인계 문서**다. 기능 구현 상태는 `GAME_SPEC.md`, UI/presentation 구현 상태는 `UI_DESIGN.md`와 대조해 기록하며, 어느 설계가 아직 미구현인지 문서만 읽고 구분할 수 있어야 한다.
 
 문서는 최소 다음 섹션을 유지한다.
 
@@ -151,7 +151,7 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: 작업 시작과 이어서 진행할 때
 
 - 신규 게임의 첫 구현 단계에서 `DEVELOPMENT.md`를 함께 생성한다.
-- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽는다.
+- 기존 게임 개발을 이어갈 때는 소스 수정 전에 해당 게임의 `DEVELOPMENT.md`를 먼저 읽고, 현재 작업 범위와 관련된 `GAME_SPEC.md` 및 `UI_DESIGN.md`의 최신 설계도 함께 확인한다.
 - `DEVELOPMENT.md`가 진행 중 Phase와 active branch를 가리키면 새 브랜치를 만들기 전에 해당 브랜치가 실제로 존재하고 계속해야 할 작업인지 확인한다.
 - 진행 중 Phase를 다른 채팅에서 이어가는 것은 새로운 작업 시작이 아니므로, 정상적인 checkpoint branch가 확인되면 최신 `main`에서 별도 브랜치를 새로 만들지 않고 기존 작업 브랜치를 이어간다.
 - 게임별 Phase 브랜치명은 가능하면 game id와 작업 범위를 포함해 `feature/game-platform-<phase>-<game-id>-<scope>`처럼 다른 채팅에서도 검색 가능한 형태로 유지한다.
@@ -159,7 +159,10 @@ games/<game-id>/DEVELOPMENT.md
 ### MUST: Phase 완료 시
 
 - Phase 완료 PR에는 `DEVELOPMENT.md` 갱신을 포함한다.
-- 완료한 Phase와 검증 결과를 `Completed` / `Validation`에 반영한다.
+- `GAME_SPEC.md`에서 실제 구현 완료한 기능과 `UI_DESIGN.md`에서 실제 구현 완료한 UI/presentation 항목을 `Completed`에 구분 가능하게 반영한다.
+- 기능 테스트뿐 아니라 해당 Phase에서 수행한 UI/브라우저/반응형/animation 검증이 있다면 `Validation`에 함께 기록한다.
+- 설계에는 존재하지만 아직 구현하지 않은 기능/UI 항목은 `Current Work`, `Next Work`, `Known Issues / Deferred` 중 적절한 위치에 남긴다.
+- Phase 중 기능 또는 UI 설계 자체가 변경됐다면 대응하는 `GAME_SPEC.md` 또는 `UI_DESIGN.md`를 먼저 최신화하고, `DEVELOPMENT.md`에는 그 결정과 실제 구현 상태를 기록한다.
 - 다음 Phase 또는 다음 첫 작업을 `Next Work`에 구체적으로 남긴다.
 - 완료되지 않은 항목을 완료한 것처럼 기록하지 않는다.
 
@@ -171,11 +174,12 @@ games/<game-id>/DEVELOPMENT.md
 2. production migration이 필요한 게임은 실제 적용 이력과 RLS/grant/RPC 권한 경계를 검증한다.
 3. Registry capability는 **소스가 존재한다는 이유만으로** 활성화하지 않는다. 실제 제공 가능한 기능만 activation PR에서 켠다.
 4. 관련 unit / Game Platform / DB integration / E2E / build 검증을 통과하고 알려진 release blocker가 없어야 한다.
-5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. 다만 correctness를 자동/운영 계약으로 충분히 검증했고 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 명시할 수 있다.
-6. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 검증, 현재 capability를 남긴다.
-7. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
-8. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
-9. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
+5. 사람 중심 다중 브라우저 exploratory playtest가 자동 검증으로 대체되지 않는 위험을 발견하면 수행한다. `UI_DESIGN.md`의 Validation Checklist도 실제 구현과 대조하며, 남은 항목이 UX 관찰 수준이라면 post-release follow-up으로 `DEVELOPMENT.md`에 명시할 수 있다.
+6. release 기준의 기능 설계는 `GAME_SPEC.md`, UI/presentation 설계는 `UI_DESIGN.md`와 실제 production 상태가 일치하는지 확인한다.
+7. 사용자에게 노출한 뒤 `DEVELOPMENT.md`를 `Status: RELEASED`, `Active branch: main`으로 갱신하고 날짜가 있는 `## Release — YYYY-MM-DD` 기록에 activation, production migration, 주요 기능/게임플레이 검증, 주요 UI/반응형 검증, 현재 capability를 남긴다.
+8. `Completed`의 과거 중간 상태가 현재 상태처럼 읽히지 않도록 "당시/초기 단계"임을 명시하거나 진행 로그로 이동한다.
+9. 통합·대체된 stacked PR은 close하고 release에 흡수된 작업/임시 브랜치는 정리한다.
+10. 이후 수정은 종료된 Phase 브랜치를 재사용하지 않고 최신 `main`에서 새 `fix/*` 또는 `feature/*` 브랜치로 시작한다.
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
@@ -186,11 +190,12 @@ games/<game-id>/DEVELOPMENT.md
 이 경우:
 
 1. 현재 Phase 상태를 `IN_PROGRESS`로 유지한다.
-2. 마지막으로 실제 완료된 작업과 아직 완료되지 않은 작업을 구분한다.
-3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남긴다.
-4. 지금까지 실행한 테스트와 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
-5. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
-6. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
+2. 마지막으로 실제 완료된 기능 작업과 UI/presentation 작업, 아직 완료되지 않은 항목을 `GAME_SPEC.md`와 `UI_DESIGN.md` 기준으로 구분한다.
+3. 다음 채팅에서 가장 먼저 수행할 작업을 `Next Work`에 남기고, 기능/DB/UI 중 어떤 설계를 이어가는 작업인지 알 수 있게 한다.
+4. 지금까지 실행한 테스트와 UI/브라우저/반응형 검증, 아직 실행하지 못한 검증을 `Validation`에 구분해서 기록한다.
+5. UI 설계 변경이나 자산/라이선스 판단이 아직 미확정이면 관련 `UI_DESIGN.md` 항목과 함께 `Known Issues / Deferred`에 남긴다.
+6. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
+7. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
 
 중간 checkpoint를 남기기 위해 별도의 새 브랜치를 만들거나 Phase를 완료 처리하지 않는다.
 
@@ -202,6 +207,7 @@ games/<game-id>/DEVELOPMENT.md
 - Phase 완료 시
 - 사용자가 명시적으로 중간 진행 기록을 요청할 때
 - 중요한 아키텍처/게임 규칙 결정이 바뀔 때
+- `UI_DESIGN.md`의 Visual Identity, page/layout, 핵심 component, motion, responsive, 자산 사용 판단처럼 실제 UI 구현 방향이 바뀔 때
 - 다음 작업자에게 반드시 전달해야 할 blocker나 known issue가 생길 때
 
 ## 4. 플랫폼과 게임 규칙의 경계
