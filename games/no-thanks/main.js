@@ -10,6 +10,7 @@ import {
   subscribeAuth,
 } from "../../js/auth.js";
 import { supabase } from "../../js/supabaseClient.js";
+import { getPublicProfiles, getSignedAvatarUrl } from "../../js/api/profiles.js";
 import { el } from "../../js/ui.js";
 import {
   NO_THANKS_LOBBY_VIEW,
@@ -20,8 +21,17 @@ import { createNoThanksLobbyController } from "./lobbyController.js";
 import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
 import { createNoThanksGameplayAdapter } from "./gameplay.js";
 import { createNoThanksPresenceAdapter } from "./presence.js";
+import {
+  getBoardSeatCoordinates,
+  getNoThanksCardTone,
+  getNoThanksDeckVisualCount,
+  getNoThanksHandOverlap,
+  getNoThanksVisibleChipCount,
+  orderBoardPlayers,
+} from "./boardLayout.js";
 
 const app = document.getElementById("app");
+const DEFAULT_BOARD_AVATAR_URL = "../../assets/images/default-avatar.svg";
 
 const accessGate = createGameAccessGate({
   initialize: initializeAuth,
@@ -33,6 +43,14 @@ let unsubscribeAccess = null;
 let lobbyController = null;
 let lobbyUserId = null;
 let bootEpoch = 0;
+let boardRoomId = null;
+let seatedPlayerIds = new Set();
+let boardAvatarUrls = new Map();
+let boardAvatarLoadingIds = new Set();
+let boardPresentationState = null;
+let boardPresentationEffect = null;
+let pendingTakePresentation = null;
+let lastSettledDealKey = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -42,6 +60,13 @@ function disposeLobbyController() {
   lobbyController?.dispose();
   lobbyController = null;
   lobbyUserId = null;
+  boardRoomId = null;
+  seatedPlayerIds = new Set();
+  boardAvatarUrls = new Map();
+  boardAvatarLoadingIds = new Set();
+  boardPresentationState = null;
+  boardPresentationEffect = null;
+  clearPendingTakePresentation();
 }
 
 function createAccessNotice({
@@ -278,48 +303,1365 @@ function createEntryPanel(state, displayName) {
   ]);
 }
 
-function createWaitingPanel(view, state) {
-  return el("section", { className: "no-thanks-waiting" }, [
-    el("div", { className: "no-thanks-waiting__hero" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "WAITING ROOM" }),
-      el("h2", {
-        text: view.isHost ? "모두 준비되면 게임을 시작하세요." : "준비가 끝났다면 준비 완료를 눌러 주세요.",
-      }),
-      el("p", {
-        text: `현재 ${view.playerCount}명 · 최대 ${view.maxPlayers}명 · 상태 버전 ${view.version}`,
+function createChipCluster(count, {
+  compact = false,
+  label = null,
+  emptyText = "칩 없음",
+} = {}) {
+  const visibleCount = getNoThanksVisibleChipCount(count, { compact });
+  return el("div", {
+    className: "no-thanks-chip-cluster"
+      + (compact ? " no-thanks-chip-cluster--compact" : "")
+      + (visibleCount === 0 ? " is-empty" : ""),
+    "aria-label": label ?? "칩 " + String(Number(count) || 0) + "개",
+  }, visibleCount > 0
+    ? Array.from({ length: visibleCount }, (_, index) => el("span", {
+      className: "no-thanks-chip",
+      style: { zIndex: String(index + 1) },
+      "aria-hidden": "true",
+    }))
+    : [el("span", {
+      className: "no-thanks-chip-cluster__empty-label",
+      text: emptyText,
+    })]);
+}
+
+
+function rectSnapshot(rect) {
+  if (!rect) return null;
+  const snapshot = {
+    left: Number(rect.left),
+    top: Number(rect.top),
+    width: Number(rect.width),
+    height: Number(rect.height),
+  };
+  return Object.values(snapshot).every(Number.isFinite) ? snapshot : null;
+}
+
+function clearPendingTakePresentation(expected = pendingTakePresentation) {
+  if (!expected || pendingTakePresentation !== expected) return;
+  expected.cardFlight?.remove();
+  expected.chipFlights?.forEach((flight) => flight.remove());
+  pendingTakePresentation = null;
+}
+
+function createTakeCardFlight(sourceCard) {
+  const sourceRect = rectSnapshot(sourceCard?.getBoundingClientRect?.());
+  const inner = sourceCard?.querySelector?.(".no-thanks-table-card__inner")?.cloneNode?.(true);
+  if (!sourceRect || !inner) return null;
+
+  const flight = document.createElement("div");
+  flight.className = "no-thanks-card-flight no-thanks-take-card-flight";
+  flight.dataset.tone = sourceCard.dataset.tone ?? "blue";
+  flight.setAttribute("aria-hidden", "true");
+  flight.append(inner);
+  Object.assign(flight.style, {
+    left: sourceRect.left.toFixed(2) + "px",
+    top: sourceRect.top.toFixed(2) + "px",
+    width: sourceRect.width.toFixed(2) + "px",
+    height: sourceRect.height.toFixed(2) + "px",
+  });
+  document.body.append(flight);
+  return flight;
+}
+
+function createTakeChipFlights(expectedCount) {
+  const count = Math.max(0, Math.floor(Number(expectedCount) || 0));
+  const chips = [...app.querySelectorAll(
+    ".no-thanks-center-chips__visual .no-thanks-chip",
+  )].slice(0, count);
+
+  return chips.map((chip, index) => {
+    const sourceRect = rectSnapshot(chip.getBoundingClientRect());
+    if (!sourceRect) return null;
+
+    const flight = chip.cloneNode(true);
+    flight.className = "no-thanks-chip no-thanks-take-chip-flight";
+    flight.setAttribute("aria-hidden", "true");
+    Object.assign(flight.style, {
+      left: sourceRect.left.toFixed(2) + "px",
+      top: sourceRect.top.toFixed(2) + "px",
+      width: sourceRect.width.toFixed(2) + "px",
+      height: sourceRect.height.toFixed(2) + "px",
+      zIndex: String(100 + index),
+    });
+    flight.dataset.transferIndex = String(index);
+    document.body.append(flight);
+    return flight;
+  }).filter(Boolean);
+}
+
+function beginTakePresentation(view, sourceCard) {
+  clearPendingTakePresentation();
+  if (prefersReducedMotion()) return null;
+
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const cardFlight = createTakeCardFlight(sourceCard);
+  if (!cardFlight) return null;
+
+  const presentation = {
+    roomId: view.roomId,
+    sourceVersion: Number(view.version),
+    cardValue: Number(view.currentCard),
+    previousViewerCounters: Number(view.viewerCounters) || 0,
+    previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+    chipCount: Math.max(0, Math.floor(Number(view.centerCounters) || 0)),
+    cardFlight,
+    chipFlights: createTakeChipFlights(view.centerCounters),
+  };
+  pendingTakePresentation = presentation;
+  return presentation;
+}
+
+async function ensureBoardAvatarUrls(view, access) {
+  const missingIds = view.players
+    .map((player) => player.id)
+    .filter((playerId) => (
+      !boardAvatarUrls.has(playerId)
+      && !boardAvatarLoadingIds.has(playerId)
+    ));
+  if (missingIds.length === 0) return;
+
+  missingIds.forEach((playerId) => boardAvatarLoadingIds.add(playerId));
+
+  try {
+    const profiles = await getPublicProfiles(missingIds);
+    const profileById = new Map(profiles.map((profile) => [String(profile.id), profile]));
+
+    await Promise.all(missingIds.map(async (playerId) => {
+      const profile = profileById.get(playerId);
+      let avatarUrl = DEFAULT_BOARD_AVATAR_URL;
+
+      if (profile?.avatar_path) {
+        const signedUrl = await getSignedAvatarUrl(profile.avatar_path);
+        if (typeof signedUrl === "string" && /^https?:\/\//u.test(signedUrl)) {
+          avatarUrl = signedUrl;
+        }
+      }
+
+      boardAvatarUrls.set(playerId, avatarUrl);
+    }));
+  } catch {
+    missingIds.forEach((playerId) => {
+      boardAvatarUrls.set(playerId, DEFAULT_BOARD_AVATAR_URL);
+    });
+  } finally {
+    missingIds.forEach((playerId) => boardAvatarLoadingIds.delete(playerId));
+  }
+
+  const currentState = lobbyController?.current();
+  const currentRoomId = currentState?.snapshot?.room?.id;
+  if (currentState && currentRoomId === view.roomId) {
+    renderLobby(access, currentState);
+  }
+}
+
+function prepareBoardSeats(view) {
+  const rotated = orderBoardPlayers(view.players, view.currentUserId);
+
+  const seatedNow = new Set(
+    view.players
+      .filter((player) => (
+        view.gamePhase === "PLAYING"
+        || player.id === view.hostUserId
+        || player.ready
+      ))
+      .map((player) => player.id),
+  );
+
+  let arrivingIds = new Set();
+  if (boardRoomId !== view.roomId) {
+    boardRoomId = view.roomId;
+    seatedPlayerIds = seatedNow;
+  } else {
+    arrivingIds = new Set(
+      [...seatedNow].filter((playerId) => !seatedPlayerIds.has(playerId)),
+    );
+    seatedPlayerIds = seatedNow;
+  }
+
+  return rotated.map((player) => ({
+    player,
+    seated: seatedNow.has(player.id),
+    arriving: arrivingIds.has(player.id),
+  }));
+}
+
+function createBoardSeat(view, seatInfo, index, total) {
+  const { player, seated, arriving } = seatInfo;
+  const position = getBoardSeatCoordinates(index, total);
+  const active = view.gamePhase === "PLAYING" && player.id === view.activePlayerId;
+  const classes = [
+    "no-thanks-seat",
+    player.id === view.currentUserId ? "is-me" : "",
+    active ? "is-active" : "",
+    !seated ? "is-pending" : "",
+    arriving ? "is-arriving" : "",
+  ].filter(Boolean).join(" ");
+
+  return el("article", {
+    className: classes,
+    style: {
+      left: position.left.toFixed(3) + "%",
+      top: position.top.toFixed(3) + "%",
+    },
+    dataset: {
+      playerId: player.id,
+      seat: String(player.seat),
+      visualIndex: String(index),
+      visualTotal: String(total),
+    },
+    title: player.displayName,
+    "aria-label": player.displayName + (active ? " 현재 차례" : ""),
+  }, [
+    el("span", { className: "no-thanks-seat__avatar-frame" }, [
+      el("img", {
+        className: "no-thanks-seat__avatar",
+        src: boardAvatarUrls.get(player.id) ?? DEFAULT_BOARD_AVATAR_URL,
+        alt: "",
+        width: "76",
+        height: "76",
+        onError: (event) => {
+          if (event.currentTarget.src.endsWith("/assets/images/default-avatar.svg")) return;
+          event.currentTarget.src = DEFAULT_BOARD_AVATAR_URL;
+        },
       }),
     ]),
-    el("div", { className: "no-thanks-room-code" }, [
-      el("span", { className: "no-thanks-room-code__label", text: "방 코드" }),
-      el("strong", { className: "no-thanks-room-code__value", text: view.roomCode }),
-      el("span", {
-        className: "no-thanks-room-code__hint",
-        text: "친구에게 이 코드를 전달해 주세요.",
-      }),
-    ]),
-    createInlineError(state.error),
-    el("div", { className: "no-thanks-waiting__status" }, [
-      el("div", { className: "no-thanks-status-card" }, [
-        el("span", { text: "내 상태" }),
-        el("strong", {
-          text: view.isHost ? "방장" : (view.isReady ? "준비 완료" : "대기 중"),
-        }),
-      ]),
-      el("div", { className: "no-thanks-status-card" }, [
-        el("span", { text: "시작 조건" }),
-        el("strong", {
-          text: view.canStart ? "시작 가능" : "3명 이상 · 일반 플레이어 전원 준비",
-        }),
-      ]),
-    ]),
-    view.presenceReady && !view.allPlayersConnected
-      ? el("div", {
-        className: "no-thanks-connection-note",
-        role: "status",
-        text: `${view.disconnectedPlayerNames.join(", ")}님의 연결이 끊겨 있어요. 방 상태는 유지되며 재접속하면 그대로 이어집니다.`,
+    el("span", {
+      className: "no-thanks-seat__name",
+      text: player.displayName,
+    }),
+    active
+      ? el("span", {
+        className: "no-thanks-seat__turn",
+        text: "TURN",
       })
       : null,
   ]);
+}
+
+function createBoardHud(view) {
+  const players = [...view.players].sort((left, right) => left.seat - right.seat);
+  return el("aside", {
+    className: "no-thanks-board-hud",
+    "aria-label": "방 현황",
+  }, [
+    el("div", { className: "no-thanks-board-hud__header" }, [
+      el("div", {}, [
+        el("span", { className: "no-thanks-board-hud__label", text: "ROOM" }),
+        el("strong", { className: "no-thanks-board-hud__code", text: view.roomCode }),
+      ]),
+      el("strong", {
+        className: "no-thanks-board-hud__count",
+        text: String(view.playerCount) + " / " + String(view.maxPlayers),
+      }),
+    ]),
+    el("ol", { className: "no-thanks-board-hud__players" }, players.map((player) => (
+      el("li", {
+        className: "no-thanks-board-hud__player",
+        dataset: { connected: player.connected ? "true" : "false" },
+      }, [
+        el("span", {
+          className: "no-thanks-board-hud__name",
+          text: player.displayName,
+        }),
+        el("span", { className: "no-thanks-board-hud__badges" }, [
+          player.id === view.hostUserId
+            ? el("span", {
+              className: "no-thanks-board-hud__badge no-thanks-board-hud__badge--host",
+              text: "방장",
+            })
+            : el("span", {
+              className: "no-thanks-board-hud__badge",
+              text: player.ready ? "준비" : "대기",
+            }),
+          el("span", {
+            className: "no-thanks-board-hud__badge no-thanks-board-hud__badge--connection",
+            text: player.connected ? "온라인" : "자리이탈",
+          }),
+        ]),
+      ])
+    ))),
+  ]);
+}
+
+function createTableCard(view, state, {
+  dealIn = false,
+} = {}) {
+  const value = view.currentCard;
+  const displayValue = value == null ? "?" : String(value);
+  const canTake = !state.busy && view.canTake;
+  return el("div", { className: "no-thanks-table-card-action" }, [
+    el("button", {
+      className: "no-thanks-table-card"
+        + (dealIn ? " is-awaiting-deal" : ""),
+      type: "button",
+      disabled: !canTake,
+      dataset: { tone: getNoThanksCardTone(value) },
+      title: canTake ? "이 카드를 가져옵니다." : "현재 차례에만 카드를 가져올 수 있어요.",
+      "aria-label": value == null
+        ? "현재 카드 없음"
+        : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : ""),
+      onClick: async (event) => {
+        if (!canTake) return;
+        const takePresentation = beginTakePresentation(view, event.currentTarget);
+        event.currentTarget.disabled = true;
+        event.currentTarget.classList.add("is-submitting");
+        try {
+          await lobbyController.takeCard();
+        } catch {
+          clearPendingTakePresentation(takePresentation);
+          // Controller state renders the authoritative error.
+        }
+      },
+    }, [
+      el("span", { className: "no-thanks-table-card__inner" }, [
+        el("span", {
+          className: "no-thanks-table-card__face no-thanks-table-card__front",
+        }, [
+          el("span", {
+            className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+            text: displayValue,
+          }),
+          el("span", {
+            className: "no-thanks-table-card__label",
+            text: "CURRENT",
+          }),
+          el("strong", {
+            className: "no-thanks-table-card__value",
+            text: displayValue,
+          }),
+          el("span", {
+            className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+            text: displayValue,
+          }),
+        ]),
+        el("span", {
+          className: "no-thanks-table-card__face no-thanks-table-card__back",
+          "aria-hidden": "true",
+        }),
+      ]),
+    ]),
+    el("span", {
+      className: "no-thanks-table-card-action__hint",
+      text: canTake ? "카드를 눌러 가져오기" : "현재 차례만 선택 가능",
+    }),
+  ]);
+}
+
+function createDrawDeck(view) {
+  const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
+  return el("div", {
+    className: "no-thanks-draw-deck",
+    "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
+  }, [
+    el("div", {
+      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
+      "aria-hidden": "true",
+    }, Array.from({ length: visualCount }, (_, index) => {
+      const depth = visualCount - index - 1;
+      return el("span", {
+        style: {
+          transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
+          zIndex: String(index + 1),
+        },
+      });
+    })),
+    el("strong", {
+      className: "no-thanks-draw-deck__count",
+      text: String(view.deckRemaining ?? "—") + "장",
+    }),
+  ]);
+}
+
+function createCenterChipAction(view, state, {
+  displayCount = null,
+} = {}) {
+  const canRefuse = !state.busy && view.canRefuse;
+  const count = Number(view.centerCounters) || 0;
+  const visibleCount = Number.isInteger(displayCount)
+    ? Math.max(0, displayCount)
+    : count;
+  const visual = visibleCount > 0
+    ? createChipCluster(visibleCount, {
+      label: "현재 카드 위 칩 " + String(visibleCount) + "개",
+    })
+    : el("strong", {
+      className: "no-thanks-center-chips__empty-mark",
+      text: "NO CHIP",
+    });
+
+  return el("div", {
+    className: "no-thanks-center-chips"
+      + (visibleCount === 0 ? " no-thanks-center-chips--empty" : ""),
+    dataset: {
+      finalCount: String(count),
+      visibleCount: String(visibleCount),
+    },
+  }, [
+    el("div", { className: "no-thanks-center-chips__visual" }, [visual]),
+    visibleCount > 0
+      ? el("strong", {
+        className: "no-thanks-center-chips__count",
+        text: String(visibleCount) + "개",
+      })
+      : null,
+    el("button", {
+      className: "button button--secondary no-thanks-center-chips__action",
+      type: "button",
+      disabled: !canRefuse,
+      text: view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기",
+      onClick: async (event) => {
+        if (!canRefuse) return;
+        event.currentTarget.disabled = true;
+        event.currentTarget.classList.add("is-submitting");
+        try {
+          await lobbyController.refuseCard();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    }),
+  ]);
+}
+
+function commitCenterChipLanding(board) {
+  const container = board.querySelector(".no-thanks-center-chips");
+  if (!container) return;
+
+  const count = Number(container.dataset.finalCount) || 0;
+  const visibleCount = Number(container.dataset.visibleCount) || 0;
+  if (visibleCount === count) return;
+
+  const visual = container.querySelector(".no-thanks-center-chips__visual");
+  const action = container.querySelector(".no-thanks-center-chips__action");
+  if (!visual || !action) return;
+
+  visual.replaceChildren(
+    count > 0
+      ? createChipCluster(count, {
+        label: "현재 카드 위 칩 " + String(count) + "개",
+      })
+      : el("strong", {
+        className: "no-thanks-center-chips__empty-mark",
+        text: "NO CHIP",
+      }),
+  );
+
+  const currentCount = container.querySelector(".no-thanks-center-chips__count");
+  if (count > 0) {
+    const countElement = currentCount ?? el("strong", {
+      className: "no-thanks-center-chips__count",
+    });
+    countElement.textContent = String(count) + "개";
+    if (!currentCount) container.insertBefore(countElement, action);
+  } else {
+    currentCount?.remove();
+  }
+
+  container.dataset.visibleCount = String(count);
+  container.classList.toggle("no-thanks-center-chips--empty", count === 0);
+}
+
+
+function dealPresentationKey(state) {
+  if (
+    !state?.roomId
+    || !Number.isInteger(Number(state.version))
+    || !Number.isInteger(Number(state.currentCard))
+  ) {
+    return null;
+  }
+  return [
+    state.roomId,
+    Number(state.version),
+    Number(state.currentCard),
+    Number(state.deckRemaining) || 0,
+  ].join(":");
+}
+
+function markDealSettled(state) {
+  const key = dealPresentationKey(state);
+  if (key) lastSettledDealKey = key;
+}
+
+function isDealAlreadySettled(state) {
+  const key = dealPresentationKey(state);
+  return Boolean(key && key === lastSettledDealKey);
+}
+
+function readBoardTransitionEffects(view) {
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const current = {
+    roomId: view.roomId,
+    version: view.version,
+    gamePhase: view.gamePhase,
+    currentCard: view.currentCard,
+    deckRemaining: view.deckRemaining,
+    centerCounters: view.centerCounters,
+    activePlayerId: view.activePlayerId,
+    currentUserId: view.currentUserId,
+    viewerCounters: Number(view.viewerCounters) || 0,
+    viewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+  };
+  const previous = boardPresentationState;
+  const sameVersion = previous
+    && previous.roomId === current.roomId
+    && previous.version === current.version;
+
+  if (sameVersion) {
+    if (
+      boardPresentationEffect
+      && boardPresentationEffect.roomId === current.roomId
+      && boardPresentationEffect.version === current.version
+      && (
+        boardPresentationEffect.started !== true
+        || (
+          boardPresentationEffect.dealCard
+          && boardPresentationEffect.completed !== true
+        )
+      )
+    ) {
+      return boardPresentationEffect;
+    }
+    return Object.freeze({
+      dealCard: false,
+      chipFromPlayerId: null,
+      chipPreviousCount: null,
+      takeByViewer: false,
+    });
+  }
+
+  boardPresentationState = current;
+
+  if (
+    !previous
+    || previous.roomId !== current.roomId
+    || previous.gamePhase !== "PLAYING"
+    || current.gamePhase !== "PLAYING"
+  ) {
+    boardPresentationEffect = null;
+    if (current.gamePhase === "PLAYING") markDealSettled(current);
+    return Object.freeze({
+      dealCard: false,
+      chipFromPlayerId: null,
+      takeByViewer: false,
+    });
+  }
+
+  const dealCard = !isDealAlreadySettled(current)
+    && Number.isInteger(previous.currentCard)
+    && Number.isInteger(current.currentCard)
+    && previous.currentCard !== current.currentCard
+    && Number(current.deckRemaining) < Number(previous.deckRemaining);
+  const chipFromPlayerId = Number(current.centerCounters) > Number(previous.centerCounters)
+    ? previous.activePlayerId
+    : null;
+  const chipPreviousCount = chipFromPlayerId
+    ? Number(previous.centerCounters) || 0
+    : null;
+  const takePresentation = pendingTakePresentation;
+  const takeByViewer = Boolean(
+    takePresentation
+    && takePresentation.roomId === current.roomId
+    && takePresentation.sourceVersion === Number(previous.version)
+    && takePresentation.cardValue === Number(previous.currentCard)
+    && previous.activePlayerId === current.currentUserId
+    && current.viewerCards.includes(takePresentation.cardValue),
+  );
+
+  boardPresentationEffect = dealCard || chipFromPlayerId || takeByViewer
+    ? {
+      roomId: current.roomId,
+      version: current.version,
+      dealKey: dealCard ? dealPresentationKey(current) : null,
+      dealCard,
+      chipFromPlayerId,
+      chipPreviousCount,
+      takeByViewer,
+      takeCardValue: takeByViewer ? takePresentation.cardValue : null,
+      takePreviousViewerCounters: takeByViewer
+        ? takePresentation.previousViewerCounters
+        : null,
+      takePreviousViewerCards: takeByViewer
+        ? takePresentation.previousViewerCards
+        : null,
+      started: false,
+      running: false,
+      completed: false,
+      takeCardLanded: false,
+      takeChipsLanded: false,
+    }
+    : null;
+
+  return boardPresentationEffect ?? Object.freeze({
+    dealCard: false,
+    chipFromPlayerId: null,
+    takeByViewer: false,
+  });
+}
+
+function createChipFlight(view, playerId) {
+  if (!playerId) return null;
+  const ordered = orderBoardPlayers(view.players, view.currentUserId);
+  const index = ordered.findIndex((player) => player.id === playerId);
+  if (index < 0) return null;
+  const position = getBoardSeatCoordinates(index, ordered.length);
+  return el("span", {
+    className: "no-thanks-chip no-thanks-chip-flight",
+    style: {
+      left: position.left.toFixed(3) + "%",
+      top: position.top.toFixed(3) + "%",
+    },
+    "aria-hidden": "true",
+  });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+}
+
+function createDealFlight(target, sourceRect) {
+  const targetRect = target.getBoundingClientRect();
+  if (
+    !sourceRect
+    || targetRect.width <= 0
+    || targetRect.height <= 0
+    || prefersReducedMotion()
+  ) {
+    target.classList.remove("is-awaiting-deal");
+    return null;
+  }
+
+  const startLeft = sourceRect.left + ((sourceRect.width - targetRect.width) / 2);
+  const startTop = sourceRect.top + ((sourceRect.height - targetRect.height) / 2);
+  const flight = document.createElement("div");
+  flight.className = "no-thanks-card-flight";
+  flight.dataset.tone = target.dataset.tone ?? "blue";
+  flight.setAttribute("aria-hidden", "true");
+
+  const inner = target.querySelector(".no-thanks-table-card__inner")?.cloneNode(true);
+  if (!inner) {
+    target.classList.remove("is-awaiting-deal");
+    return null;
+  }
+
+  inner.style.transform = "rotateY(180deg)";
+  flight.append(inner);
+  Object.assign(flight.style, {
+    left: startLeft.toFixed(2) + "px",
+    top: startTop.toFixed(2) + "px",
+    width: targetRect.width.toFixed(2) + "px",
+    height: targetRect.height.toFixed(2) + "px",
+  });
+  document.body.append(flight);
+
+  return {
+    flight,
+    inner,
+    targetRect,
+    startLeft,
+    startTop,
+    startScale: Math.max(
+      .5,
+      Math.min(1, Math.min(
+        sourceRect.width / targetRect.width,
+        sourceRect.height / targetRect.height,
+      )),
+    ),
+  };
+}
+
+async function animateDealFlight(target, source) {
+  if (!target?.isConnected || !source?.isConnected) return false;
+
+  const sourceRect = source.getBoundingClientRect();
+  const created = createDealFlight(target, sourceRect);
+  if (!created) return false;
+
+  const {
+    flight,
+    inner,
+    targetRect,
+    startLeft,
+    startTop,
+    startScale,
+  } = created;
+  const dx = targetRect.left - startLeft;
+  const dy = targetRect.top - startTop;
+  const scaleAt = (progress) => startScale + ((1 - startScale) * progress);
+
+  target.classList.add("is-receiving-card");
+
+  try {
+    const pathAnimation = flight.animate([
+      {
+        transform: `translate3d(0, 0, 0) scale(${startScale}) rotateZ(0deg)`,
+        opacity: 1,
+        offset: 0,
+      },
+      {
+        transform: `translate3d(${dx * .2}px, ${dy * .12 - 24}px, 0) scale(${scaleAt(.12)}) rotateZ(-2deg)`,
+        opacity: 1,
+        offset: .22,
+      },
+      {
+        transform: `translate3d(${dx * .52}px, ${dy * .42 - 34}px, 0) scale(${scaleAt(.36)}) rotateZ(3.2deg)`,
+        opacity: 1,
+        offset: .5,
+      },
+      {
+        transform: `translate3d(${dx * .82}px, ${dy * .76 - 18}px, 0) scale(${scaleAt(.7)}) rotateZ(-1.5deg)`,
+        opacity: 1,
+        offset: .78,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy - 6}px, 0) scale(.994) rotateZ(.7deg)`,
+        opacity: 1,
+        offset: .94,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1) rotateZ(0deg)`,
+        opacity: 1,
+        offset: 1,
+      },
+    ], {
+      duration: 760,
+      easing: "cubic-bezier(.18, .72, .2, 1)",
+      fill: "forwards",
+    });
+
+    const flipAnimation = inner.animate([
+      { transform: "rotateY(180deg) rotateX(0deg)", offset: 0 },
+      { transform: "rotateY(180deg) rotateX(1deg)", offset: .2 },
+      { transform: "rotateY(220deg) rotateX(-3deg)", offset: .43 },
+      { transform: "rotateY(274deg) rotateX(2deg)", offset: .63 },
+      { transform: "rotateY(332deg) rotateX(-1deg)", offset: .84 },
+      { transform: "rotateY(360deg) rotateX(0deg)", offset: 1 },
+    ], {
+      duration: 760,
+      easing: "cubic-bezier(.3, .08, .18, 1)",
+      fill: "forwards",
+    });
+
+    await Promise.all([
+      pathAnimation.finished.catch(() => {}),
+      flipAnimation.finished.catch(() => {}),
+    ]);
+
+    const landingTarget = document.querySelector(".no-thanks-table-card.is-awaiting-deal")
+      ?? target;
+    landingTarget?.classList.remove("is-awaiting-deal");
+    landingTarget?.classList.add("is-deal-landed");
+
+    const settle = flight.animate([
+      {
+        opacity: 1,
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1)`,
+      },
+      {
+        opacity: 1,
+        transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(.992)`,
+        offset: .5,
+      },
+      {
+        opacity: 0,
+        transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(1)`,
+      },
+    ], {
+      duration: 130,
+      easing: "cubic-bezier(.2, .72, .2, 1)",
+      fill: "forwards",
+    });
+    await settle.finished.catch(() => {});
+    landingTarget?.classList.remove("is-deal-landed");
+  } finally {
+    flight.remove();
+    target.classList.remove("is-receiving-card");
+  }
+
+  return true;
+}
+
+
+function syncBoardSeatGeometry(board) {
+  const table = board.querySelector(".no-thanks-round-table");
+  if (!table) return;
+
+  const boardRect = board.getBoundingClientRect();
+  const tableRect = table.getBoundingClientRect();
+  if (
+    boardRect.width <= 0
+    || boardRect.height <= 0
+    || tableRect.width <= 0
+    || tableRect.height <= 0
+  ) {
+    return;
+  }
+
+  const centerX = tableRect.left - boardRect.left + (tableRect.width / 2);
+  const centerY = tableRect.top - boardRect.top + (tableRect.height / 2);
+  const tableStyle = window.getComputedStyle?.(table);
+  const borderX = (
+    (Number.parseFloat(tableStyle?.borderLeftWidth) || 0)
+    + (Number.parseFloat(tableStyle?.borderRightWidth) || 0)
+  ) / 2;
+  const borderY = (
+    (Number.parseFloat(tableStyle?.borderTopWidth) || 0)
+    + (Number.parseFloat(tableStyle?.borderBottomWidth) || 0)
+  ) / 2;
+  const radiusX = Math.max(0, (tableRect.width / 2) - (borderX / 2));
+  const radiusY = Math.max(0, (tableRect.height / 2) - (borderY / 2));
+
+  board.querySelectorAll(".no-thanks-seat").forEach((seat) => {
+    const index = Number(seat.dataset.visualIndex);
+    const total = Number(seat.dataset.visualTotal);
+    if (!Number.isInteger(index) || !Number.isInteger(total) || total <= 0) return;
+
+    const angle = (Math.PI / 2) + ((Math.PI * 2 * index) / total);
+    seat.style.left = (centerX + (Math.cos(angle) * radiusX)).toFixed(2) + "px";
+    seat.style.top = (centerY + (Math.sin(angle) * radiusY)).toFixed(2) + "px";
+  });
+}
+
+function commitViewerChipLanding(effect = null) {
+  if (effect) effect.takeChipsLanded = true;
+  const container = app.querySelector(".no-thanks-my-panel__chips[data-final-count]");
+  if (!container) return;
+
+  const finalCount = Math.max(0, Number(container.dataset.finalCount) || 0);
+  const value = container.querySelector(".no-thanks-my-panel__value");
+  const cluster = container.querySelector(".no-thanks-chip-cluster");
+  if (value) value.textContent = String(finalCount);
+  if (cluster) {
+    cluster.replaceWith(createChipCluster(finalCount, {
+      label: "내 보유 칩 " + String(finalCount) + "개",
+      emptyText: "칩 없음",
+    }));
+  }
+  container.dataset.visibleCount = String(finalCount);
+}
+
+function findTakeCardLandingTarget(cardValue, stateClass = "is-awaiting-take-landing") {
+  if (!Number.isInteger(Number(cardValue))) return null;
+  return app.querySelector(
+    '.no-thanks-hand-card[data-card-value="' + String(cardValue) + '"].' + stateClass,
+  );
+}
+
+function commitTakeCardLanding(effect, presentation) {
+  if (effect) effect.takeCardLanded = true;
+  const target = findTakeCardLandingTarget(presentation?.cardValue);
+  if (!target) return;
+  target.classList.remove("is-awaiting-take-landing");
+  target.classList.add("is-take-landed");
+  const count = app.querySelector(".no-thanks-my-panel__card-count[data-final-count]");
+  if (count) count.textContent = count.dataset.finalCount + "장";
+  window.setTimeout(() => {
+    findTakeCardLandingTarget(presentation?.cardValue, "is-take-landed")
+      ?.classList.remove("is-take-landed");
+  }, 180);
+}
+
+async function animateTakeCardToHand(presentation, effect) {
+  const flight = presentation?.cardFlight;
+  const target = findTakeCardLandingTarget(presentation?.cardValue);
+  if (!flight?.isConnected || !target?.isConnected || typeof flight.animate !== "function") {
+    commitTakeCardLanding(effect, presentation);
+    flight?.remove();
+    return;
+  }
+
+  const flightRect = flight.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const endLeft = targetRect.left + ((targetRect.width - flightRect.width) / 2);
+  const endTop = targetRect.top + ((targetRect.height - flightRect.height) / 2);
+  const dx = endLeft - flightRect.left;
+  const dy = endTop - flightRect.top;
+  const landingScale = Math.max(
+    .58,
+    Math.min(1, Math.min(
+      targetRect.width / flightRect.width,
+      targetRect.height / flightRect.height,
+    )),
+  );
+  const scaleAt = (progress) => 1 + ((landingScale - 1) * progress);
+
+  const path = flight.animate([
+    {
+      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      opacity: 1,
+      offset: 0,
+    },
+    {
+      transform: `translate3d(${dx * .2}px, ${dy * .12 - 24}px, 0) scale(${scaleAt(.12)}) rotateZ(-2deg)`,
+      opacity: 1,
+      offset: .22,
+    },
+    {
+      transform: `translate3d(${dx * .52}px, ${dy * .42 - 34}px, 0) scale(${scaleAt(.36)}) rotateZ(3.2deg)`,
+      opacity: 1,
+      offset: .5,
+    },
+    {
+      transform: `translate3d(${dx * .82}px, ${dy * .76 - 18}px, 0) scale(${scaleAt(.7)}) rotateZ(-1.5deg)`,
+      opacity: 1,
+      offset: .78,
+    },
+    {
+      transform: `translate3d(${dx}px, ${dy - 5}px, 0) scale(${scaleAt(.94)}) rotateZ(.7deg)`,
+      opacity: 1,
+      offset: .94,
+    },
+    {
+      transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale}) rotateZ(0deg)`,
+      opacity: 1,
+      offset: 1,
+    },
+  ], {
+    duration: 700,
+    easing: "cubic-bezier(.18, .72, .2, 1)",
+    fill: "forwards",
+  });
+
+  await path.finished.catch(() => {});
+  commitTakeCardLanding(effect, presentation);
+
+  const settle = flight.animate([
+    {
+      opacity: 1,
+      transform: `translate3d(${dx}px, ${dy}px, 0) scale(${landingScale})`,
+    },
+    {
+      opacity: 1,
+      transform: `translate3d(${dx}px, ${dy + 2}px, 0) scale(${landingScale * .992})`,
+      offset: .46,
+    },
+    {
+      opacity: 0,
+      transform: `translate3d(${dx}px, ${dy + 1}px, 0) scale(${landingScale})`,
+    },
+  ], {
+    duration: 120,
+    easing: "cubic-bezier(.2, .72, .2, 1)",
+    fill: "forwards",
+  });
+  await settle.finished.catch(() => {});
+  flight.remove();
+}
+
+async function animateTakeChipsToPanel(presentation, effect) {
+  const expectedCount = Math.max(0, Math.floor(Number(presentation?.chipCount) || 0));
+  const flights = (presentation?.chipFlights ?? []).slice(0, expectedCount);
+  if (expectedCount === 0 || flights.length === 0) {
+    flights.forEach((flight) => flight.remove());
+    commitViewerChipLanding(effect);
+    return;
+  }
+
+  const target = app.querySelector(".no-thanks-my-panel__chips .no-thanks-chip-cluster");
+  const targetRect = target?.getBoundingClientRect?.();
+  if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
+    flights.forEach((flight) => flight.remove());
+    commitViewerChipLanding(effect);
+    return;
+  }
+
+  const destinationX = targetRect.left + (targetRect.width / 2);
+  const destinationY = targetRect.top + (targetRect.height / 2);
+  const durationMs = 620;
+  const staggerMs = 26;
+  const animations = flights.map((flight, index) => {
+    if (typeof flight.animate !== "function") return Promise.resolve();
+
+    const rect = flight.getBoundingClientRect();
+    const startX = rect.left + (rect.width / 2);
+    const startY = rect.top + (rect.height / 2);
+    const spread = (index - ((flights.length - 1) / 2)) * 5;
+    const endX = destinationX + spread - startX;
+    const endY = destinationY + ((index % 2 === 0) ? -4 : 4) - startY;
+    const midX = endX * .5;
+    const midY = (endY * .5) - 58 - (index * 3);
+
+    const animation = flight.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(.94) rotate(0deg)",
+        opacity: 1,
+      },
+      {
+        offset: .12,
+        transform: "translate3d(0, -4px, 0) scale(1) rotate(70deg)",
+        opacity: 1,
+      },
+      {
+        offset: .52,
+        transform: `translate3d(${midX}px, ${midY}px, 0) scale(1.1) rotate(250deg)`,
+        opacity: 1,
+      },
+      {
+        transform: `translate3d(${endX}px, ${endY}px, 0) scale(.78) rotate(560deg)`,
+        opacity: 1,
+      },
+    ], {
+      duration: durationMs,
+      delay: index * staggerMs,
+      easing: "cubic-bezier(.18, .78, .22, 1)",
+      fill: "forwards",
+    });
+    return animation.finished.catch(() => {});
+  });
+
+  await Promise.all(animations);
+  // Remove the transfer batch and expose the authoritative destination state
+  // in the same task so no extra/duplicate chip is painted at the end.
+  flights.forEach((flight) => flight.remove());
+  commitViewerChipLanding(effect);
+}
+
+function completeBoardPresentationEffect(effect) {
+  if (!effect) return;
+  if (effect.dealCard && effect.dealKey) {
+    lastSettledDealKey = effect.dealKey;
+  }
+  effect.running = false;
+  effect.completed = true;
+}
+
+async function runDealPresentation(effect) {
+  const board = app.querySelector(".no-thanks-game-board");
+  const dealingCard = board?.querySelector(".no-thanks-table-card");
+  const deck = board?.querySelector(".no-thanks-draw-deck__stack");
+  const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
+
+  if (!dealingCard || !deckTopCard) {
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  dealingCard.classList.add("is-awaiting-deal");
+  if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+    dealingCard.classList.remove("is-awaiting-deal");
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  dealingCard.classList.add("is-flight-started");
+  await animateDealFlight(dealingCard, deckTopCard);
+  completeBoardPresentationEffect(effect);
+}
+
+async function animatePendingTakePresentation(effect) {
+  const presentation = pendingTakePresentation;
+  if (!presentation) {
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  await Promise.all([
+    animateTakeCardToHand(presentation, effect),
+    animateTakeChipsToPanel(presentation, effect),
+  ]);
+  clearPendingTakePresentation(presentation);
+
+  if (effect?.dealCard) {
+    await runDealPresentation(effect);
+    return;
+  }
+  completeBoardPresentationEffect(effect);
+}
+
+function syncBoardAnimationGeometry() {
+  const board = app.querySelector(".no-thanks-game-board");
+  if (!board) return;
+
+  window.requestAnimationFrame(() => {
+    if (!board.isConnected) return;
+    syncBoardSeatGeometry(board);
+
+    const effect = boardPresentationEffect;
+    if (effect?.dealCard && effect.completed !== true) {
+      board.querySelector(".no-thanks-table-card")?.classList.add("is-awaiting-deal");
+    }
+
+    if (effect?.running === true) return;
+
+    if (effect?.takeByViewer && pendingTakePresentation) {
+      effect.started = true;
+      effect.running = true;
+      void animatePendingTakePresentation(effect);
+      return;
+    }
+
+    if (effect?.dealCard) {
+      effect.started = true;
+      effect.running = true;
+      void runDealPresentation(effect);
+      return;
+    }
+
+    const chipFlight = board.querySelector(".no-thanks-chip-flight");
+    const chipTarget = board.querySelector(".no-thanks-center-chips__visual");
+    if (chipFlight && chipTarget) {
+      const flightRect = chipFlight.getBoundingClientRect();
+      const targetRect = chipTarget.getBoundingClientRect();
+      const dx = (targetRect.left + (targetRect.width / 2))
+        - (flightRect.left + (flightRect.width / 2));
+      const dy = (targetRect.top + (targetRect.height / 2))
+        - (flightRect.top + (flightRect.height / 2));
+      chipFlight.style.setProperty("--no-thanks-chip-mid-x", (dx * .48).toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-mid-y", (dy * .42 - 28).toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
+      chipFlight.addEventListener("animationend", () => {
+        window.setTimeout(() => {
+          if (board.isConnected) commitCenterChipLanding(board);
+          chipFlight.remove();
+        }, 100);
+      }, { once: true });
+      chipFlight.classList.add("is-motion-ready");
+      if (effect) effect.started = true;
+    } else if (effect?.chipFromPlayerId && prefersReducedMotion()) {
+      commitCenterChipLanding(board);
+      effect.started = true;
+    }
+  });
+}
+
+function createRoundTable(view, state, effects) {
+  if (view.status === "waiting") {
+    return el("div", { className: "no-thanks-round-table" }, [
+      el("div", { className: "no-thanks-round-table__waiting" }, [
+        el("span", { text: "NO THANKS!" }),
+        el("strong", { text: "게임 테이블 준비 중" }),
+        el("p", {
+          text: "준비를 마친 플레이어가 자리를 채우면 이 테이블에서 바로 게임이 시작됩니다.",
+        }),
+      ]),
+    ]);
+  }
+
+  return el("div", { className: "no-thanks-round-table" }, [
+    el("div", { className: "no-thanks-round-table__objects" }, [
+      createDrawDeck(view),
+      createTableCard(view, state, { dealIn: effects.dealCard }),
+      createCenterChipAction(view, state, {
+        displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
+      }),
+    ]),
+  ]);
+}
+
+function createHandCard(card, index, overlap, {
+  incoming = false,
+} = {}) {
+  const value = String(card);
+  return el("button", {
+    className: "no-thanks-hand-card" + (incoming ? " is-awaiting-take-landing" : ""),
+    type: "button",
+    dataset: {
+      tone: getNoThanksCardTone(card),
+      cardValue: value,
+      incoming: incoming ? "true" : "false",
+    },
+    style: {
+      marginLeft: index === 0 ? "0" : String(overlap) + "px",
+      zIndex: String(index + 1),
+    },
+    "aria-label": "획득 카드 " + value,
+  }, [
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+      text: value,
+    }),
+    el("span", {
+      className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+      text: value,
+    }),
+  ]);
+}
+
+function createWaitingPrimaryAction(view, state) {
+  if (view.isHost) {
+    return el("button", {
+      className: "button no-thanks-my-panel__primary-action",
+      type: "button",
+      text: state.busy ? "처리 중…" : "게임 시작",
+      disabled: state.busy || !view.canStart,
+      onClick: async () => {
+        try {
+          await lobbyController.startGame();
+        } catch {
+          // Controller state renders the authoritative error.
+        }
+      },
+    });
+  }
+
+  return el("button", {
+    className: "button no-thanks-my-panel__primary-action",
+    type: "button",
+    text: state.busy
+      ? "처리 중…"
+      : (view.isReady ? "준비 취소" : "준비 완료"),
+    disabled: state.busy,
+    onClick: async () => {
+      try {
+        await lobbyController.setReady(!view.isReady);
+      } catch {
+        // Controller state renders the authoritative error.
+      }
+    },
+  });
+}
+
+function createMyPanel(view, state, panelActions = [], effects = null) {
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const finalCards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
+  const holdingIncomingCard = Boolean(
+    effects?.takeByViewer
+    && effects.takeCardLanded !== true
+    && Number.isInteger(effects.takeCardValue),
+  );
+  const holdingIncomingChips = Boolean(
+    effects?.takeByViewer
+    && effects.takeChipsLanded !== true,
+  );
+  const previousCards = holdingIncomingCard
+    ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
+    : finalCards;
+  const cards = holdingIncomingCard
+    ? [...previousCards, effects.takeCardValue]
+    : finalCards;
+  const overlap = getNoThanksHandOverlap(cards.length);
+  const waiting = view.status === "waiting";
+  const finalCounters = Number(view.viewerCounters) || 0;
+  const displayCounters = holdingIncomingChips
+    ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
+    : finalCounters;
+  const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
+  const statusText = waiting
+    ? (view.isHost
+      ? "방장은 항상 준비된 자리로 표시됩니다."
+      : (view.isReady
+        ? "준비 완료 · 게임 시작을 기다리고 있어요."
+        : "준비 완료를 누르면 테이블에 착석합니다."))
+    : "";
+
+  return el("section", {
+    className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
+    "aria-label": "내 플레이 패널",
+  }, [
+    el("div", {
+      className: "no-thanks-my-panel__chips",
+      dataset: waiting
+        ? {}
+        : {
+          finalCount: String(finalCounters),
+          visibleCount: String(displayCounters),
+        },
+    }, waiting
+      ? [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 상태" }),
+        el("strong", {
+          className: "no-thanks-my-panel__value",
+          text: view.isHost ? "방장" : (view.isReady ? "준비 완료" : "준비 필요"),
+        }),
+        el("small", { text: "내 자리는 항상 6시 방향입니다." }),
+      ]
+      : [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 보유 칩" }),
+        el("strong", {
+          className: "no-thanks-my-panel__value",
+          text: String(displayCounters),
+        }),
+        createChipCluster(displayCounters, {
+          label: "내 보유 칩 " + String(displayCounters) + "개",
+          emptyText: "칩 없음",
+        }),
+      ]),
+    el("div", { className: "no-thanks-my-panel__cards" }, [
+      el("div", { className: "no-thanks-my-panel__cards-head" }, [
+        el("span", { className: "no-thanks-my-panel__label", text: "내 보유 카드" }),
+        el("strong", {
+          className: "no-thanks-my-panel__card-count",
+          dataset: { finalCount: String(finalCards.length) },
+          text: String(visibleCardCount) + "장",
+        }),
+      ]),
+      cards.length > 0
+        ? el("div", { className: "no-thanks-hand" },
+          cards.map((card, index) => createHandCard(card, index, overlap, {
+            incoming: holdingIncomingCard && index === cards.length - 1,
+          })))
+        : el("div", {
+          className: "no-thanks-hand no-thanks-hand--empty",
+          text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
+        }),
+    ]),
+    el("div", {
+      className: "no-thanks-my-panel__actions"
+        + (waiting ? " no-thanks-my-panel__actions--waiting" : " no-thanks-my-panel__actions--playing"),
+    }, [
+      waiting
+        ? el("p", { className: "no-thanks-my-panel__message", text: statusText })
+        : null,
+      waiting
+        ? el("div", {
+          className: "no-thanks-my-panel__action-row is-single",
+        }, [createWaitingPrimaryAction(view, state)])
+        : null,
+      panelActions.length > 0
+        ? el("div", { className: "no-thanks-panel-tools" }, panelActions)
+        : null,
+    ]),
+  ]);
+}
+
+function boardStatusMessage(view) {
+  if (view.status === "waiting") {
+    if (view.isHost) {
+      return view.canStart
+        ? "모두 준비됐어요. 게임을 시작할 수 있습니다."
+        : "3명 이상 모이고 일반 플레이어가 모두 준비하면 시작할 수 있어요.";
+    }
+    return view.isReady
+      ? "준비 완료 · 게임 시작을 기다리고 있어요."
+      : "준비 완료를 누르면 테이블에 자리를 잡습니다.";
+  }
+
+  if (!view.activePlayerConnected) {
+    return (view.activePlayerDisplayName ?? "현재 플레이어") + "님의 재접속을 기다리고 있어요.";
+  }
+  if (view.isMyTurn) return "내 차례예요.";
+  return (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
+}
+
+function createBoardScene(view, state, panelActions = []) {
+  const effects = readBoardTransitionEffects(view);
+  const seats = prepareBoardSeats(view);
+  return el("section", { className: "no-thanks-board-view" }, [
+    createInlineError(state.error),
+    el("section", {
+      className: "no-thanks-game-board",
+      "aria-label": view.status === "waiting" ? "No Thanks 대기 테이블" : "No Thanks 게임 보드",
+    }, [
+      el("div", { className: "no-thanks-board__status" }, [
+        el("span", {
+          text: view.status === "waiting" ? "WAITING ROOM" : "PLAYING",
+        }),
+        el("strong", { text: boardStatusMessage(view) }),
+      ]),
+      createRoundTable(view, state, effects),
+      ...seats.map((seatInfo, index) => createBoardSeat(view, seatInfo, index, seats.length)),
+      createChipFlight(view, effects.chipFromPlayerId),
+      createBoardHud(view),
+    ]),
+    createMyPanel(view, state, panelActions, effects),
+  ]);
+}
+
+function createWaitingPanel(view, state, panelActions = []) {
+  return createBoardScene(view, state, panelActions);
 }
 
 function createPlayerCards(view) {
@@ -327,7 +1669,7 @@ function createPlayerCards(view) {
     el("h3", { className: "no-thanks-owned__title", text: "획득 카드" }),
     el("div", { className: "no-thanks-owned__list" }, view.players.map((player) => (
       el("article", {
-        className: `no-thanks-owned__player${player.id === view.activePlayerId ? " is-active" : ""}`,
+        className: "no-thanks-owned__player" + (player.id === view.activePlayerId ? " is-active" : ""),
       }, [
         el("div", { className: "no-thanks-owned__player-head" }, [
           el("strong", { text: player.displayName }),
@@ -351,60 +1693,11 @@ function createPlayerCards(view) {
   ]);
 }
 
-function createPlayingPanel(view, state) {
-  const turnMessage = !view.activePlayerConnected
-    ? `${view.activePlayerDisplayName ?? "현재 플레이어"}님의 연결이 끊겼어요. 재접속하면 이어서 진행합니다.`
-    : view.isMyTurn
-      ? "내 차례예요. 현재 카드를 거절하거나 가져오세요."
-      : `${view.activePlayerDisplayName ?? "다른 플레이어"}님의 차례를 기다리고 있어요.`;
-
-  return el("section", { className: "no-thanks-playing-preview" }, [
-    el("div", { className: "no-thanks-playing-preview__copy" }, [
-      el("p", { className: "no-thanks-entry__eyebrow", text: "PLAYING" }),
-      el("h2", { text: turnMessage }),
-      el("p", {
-        text: view.viewerCounters === 0 && view.isMyTurn
-          ? "보유 칩이 없어 이번 카드는 반드시 가져와야 해요."
-          : "거절하면 칩 1개를 중앙에 놓고 다음 플레이어에게 차례가 넘어갑니다. 가져오면 카드와 중앙 칩을 받고 같은 플레이어가 다음 카드도 계속 선택합니다.",
-      }),
-    ]),
-    createInlineError(state.error),
-    el("div", { className: "no-thanks-playing-preview__state" }, [
-      el("article", { className: "no-thanks-current-card" }, [
-        el("span", { text: "현재 카드" }),
-        el("strong", {
-          text: view.currentCard == null ? "?" : String(view.currentCard),
-        }),
-        el("small", {
-          text: view.centerCounters > 0
-            ? `중앙 칩 ${view.centerCounters}개`
-            : "중앙 칩 없음",
-        }),
-      ]),
-      el("div", { className: "no-thanks-playing-preview__metrics" }, [
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "내 칩" }),
-          el("strong", {
-            text: view.viewerCounters == null ? "—" : String(view.viewerCounters),
-          }),
-        ]),
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "중앙 칩" }),
-          el("strong", { text: String(view.centerCounters) }),
-        ]),
-        el("div", { className: "no-thanks-metric" }, [
-          el("span", { text: "남은 카드" }),
-          el("strong", {
-            text: view.deckRemaining == null ? "—" : String(view.deckRemaining),
-          }),
-        ]),
-      ]),
-    ]),
-    createPlayerCards(view),
-  ]);
+function createPlayingPanel(view, state, panelActions = []) {
+  return createBoardScene(view, state, panelActions);
 }
 
-function createGameOverPanel(view, state) {
+function createGameOverPanel(view, state, openRematchConfirm = null) {
   const winnerNames = view.scoreboard
     .filter((entry) => entry.winner)
     .map((entry) => entry.displayName)
@@ -441,6 +1734,17 @@ function createGameOverPanel(view, state) {
       ])
     ))),
     createPlayerCards(view),
+    view.isHost && typeof openRematchConfirm === "function"
+      ? el("div", { className: "no-thanks-game-over__actions" }, [
+        el("button", {
+          className: "button no-thanks-game-over__rematch",
+          type: "button",
+          text: state.busy ? "준비 중…" : "재대결",
+          disabled: state.busy,
+          onClick: openRematchConfirm,
+        }),
+      ])
+      : null,
   ]);
 }
 
@@ -696,16 +2000,6 @@ function createLobbyActions(
   if (!view) return actions;
 
   if (view.gamePhase === "GAME_OVER") {
-    if (view.isHost) {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy ? "처리 중…" : "재대결 준비",
-        disabled: state.busy,
-        onClick: openRematchConfirm,
-      }));
-    }
-
     actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
@@ -722,49 +2016,19 @@ function createLobbyActions(
     return actions;
   }
 
+  actions.push(el("button", {
+    className: "game-platform-shell__button game-platform-shell__button--secondary",
+    type: "button",
+    text: "새로고침",
+    disabled: state.busy,
+    onClick: () => {
+      void lobbyController.refresh(
+        view.gamePhase === "PLAYING" ? "manual-playing" : "manual",
+      ).catch(() => {});
+    },
+  }));
+
   if (view.status === "waiting") {
-    if (view.isHost) {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy ? "처리 중…" : "게임 시작",
-        disabled: state.busy || !view.canStart,
-        onClick: async () => {
-          try {
-            await lobbyController.startGame();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }));
-    } else {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy
-          ? "처리 중…"
-          : (view.isReady ? "준비 취소" : "준비 완료"),
-        disabled: state.busy,
-        onClick: async () => {
-          try {
-            await lobbyController.setReady(!view.isReady);
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }));
-    }
-
-    actions.push(el("button", {
-      className: "game-platform-shell__button game-platform-shell__button--secondary",
-      type: "button",
-      text: "새로고침",
-      disabled: state.busy,
-      onClick: () => {
-        void lobbyController.refresh("manual").catch(() => {});
-      },
-    }));
-
     actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
@@ -784,51 +2048,6 @@ function createLobbyActions(
     }));
     return actions;
   }
-
-  if (view.gamePhase === "PLAYING") {
-    actions.unshift(
-      el("button", {
-        className: "game-platform-shell__button game-platform-shell__button--secondary",
-        type: "button",
-        text: view.viewerCounters === 0
-          ? "칩 없음 · 거절 불가"
-          : "거절하기 · 칩 1개",
-        disabled: state.busy || !view.canRefuse,
-        onClick: async () => {
-          try {
-            await lobbyController.refuseCard();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }),
-      el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: view.centerCounters > 0
-          ? `카드 가져오기 · +${view.centerCounters}칩`
-          : "카드 가져오기",
-        disabled: state.busy || !view.canTake,
-        onClick: async () => {
-          try {
-            await lobbyController.takeCard();
-          } catch {
-            // Controller state renders the authoritative error.
-          }
-        },
-      }),
-    );
-  }
-
-  actions.push(el("button", {
-    className: "game-platform-shell__button game-platform-shell__button--secondary",
-    type: "button",
-    text: "새로고침",
-    disabled: state.busy,
-    onClick: () => {
-      void lobbyController.refresh("manual-playing").catch(() => {});
-    },
-  }));
 
   if (view.gamePhase === "PLAYING" && view.isHost) {
     actions.push(el("button", {
@@ -865,6 +2084,10 @@ function renderLobby(access, state) {
     }
   }
 
+  if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
+    clearPendingTakePresentation();
+  }
+
   const rulesDialog = createRulesDialog();
   const openRules = () => rulesDialog.showModal();
   const hostLeaveDialog = view?.isHost && view.status === "waiting"
@@ -899,13 +2122,24 @@ function renderLobby(access, state) {
     })
     : null;
   const openRematchConfirm = () => rematchDialog?.showModal();
+  const lobbyActions = createLobbyActions(
+    view,
+    state,
+    openRules,
+    openHostLeaveConfirm,
+    openGameEndConfirm,
+    openRematchConfirm,
+  );
+  const boardMode = Boolean(
+    view && (view.status === "waiting" || view.gamePhase === "PLAYING"),
+  );
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
     : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
-      ? createGameOverPanel(view, state)
+      ? createGameOverPanel(view, state, openRematchConfirm)
       : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
-        ? createPlayingPanel(view, state)
-        : createWaitingPanel(view, state);
+        ? createPlayingPanel(view, state, boardMode ? lobbyActions : [])
+        : createWaitingPanel(view, state, boardMode ? lobbyActions : []);
 
   const shell = createGameShell({
     title: "No Thanks!",
@@ -921,17 +2155,19 @@ function renderLobby(access, state) {
     },
     main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, rematchDialog],
     sidebar: createSidebar(view),
-    actions: createLobbyActions(
-      view,
-      state,
-      openRules,
-      openHostLeaveConfirm,
-      openGameEndConfirm,
-      openRematchConfirm,
-    ),
+    actions: boardMode ? [] : lobbyActions,
   });
 
+  if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
+    shell.classList.add("no-thanks-shell--board");
+  }
+
   replaceApp(shell);
+
+  if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
+    syncBoardAnimationGeometry();
+    void ensureBoardAvatarUrls(view, access);
+  }
 }
 
 async function renderApproved(access, epoch) {

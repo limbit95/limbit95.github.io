@@ -5,12 +5,21 @@
 
 ## Current Status
 
-- Phase: Rematch platform alignment before release
+- Phase: Board UI redesign — latest main platform alignment
 - Status: IN_PROGRESS
-- Active branch: `feature/no-thanks-rematch-platform-alignment-20260922`
+- Active branch: `feature/no-thanks-board-ui-phase1-a-d`
 - 마지막 기록: 2026-09-22
 
 ## Completed
+
+- 최신 `main` `fda8e2294356...`의 Game Platform Development/UI 규칙과 No Thanks! same-room rematch lifecycle을 현재 UI 작업 브랜치에 통합했습니다.
+- 새 규칙에 따라 UI/presentation 결정은 `UI_DESIGN.md`를 권위 문서로 사용하고, #364에서 중복 추가했던 rematch migration/옛 rematch error 계약은 최신 main 구현을 따르도록 제거했습니다.
+- WAITING / PLAYING 공통 대형 board scene, 중앙 타원 table, 3–7인 viewer 6시 고정 표현 회전, compact HUD, site profile avatar 좌석을 구현했습니다.
+- 개인 패널에 정확한 내 칩 수와 visual chip cluster, 오름차순 보유 카드, 동적 overlap, corner number, top-only hover/focus를 구현했습니다.
+- 현재 카드 직접 클릭으로 take, 중앙 `칩 1개 내기`로 refuse를 수행하며 기존 server-authoritative gameplay action 계약을 그대로 사용합니다.
+- draw deck → current card 공개는 약 760ms fixed flight/flip + 약 130ms landing handoff로 구성했고, chip 제출은 약 780ms flight + 100ms dwell 뒤 중앙 pile/count를 반영합니다.
+- take/refuse 성공 경로는 silent busy lock을 사용해 authoritative result snapshot 기준 전체 render를 1회로 줄였습니다.
+- main의 GAME_OVER host succession / same-room rematch / replacement 참가 가능 계약은 UI 변경보다 우선해 그대로 유지했습니다.
 
 - Game Platform 공통 재대결 규칙에 맞춰 새 room 생성 방식 대신 기존 room/player context를 유지하는 authoritative rematch lifecycle로 전환했습니다.
 - `no_thanks_prepare_rematch` RPC가 GAME_OVER → waiting reset, private state/획득 카드 초기화, ready/start 재사용을 처리하도록 추가했습니다.
@@ -118,17 +127,40 @@
 
 ## Current Work
 
-- 새 same-room rematch migration과 client 흐름의 자동 검증을 완료했습니다. 기존 운영 migration은 적용되어 있지만 이번 rematch migration은 아직 production에 적용하지 않았습니다.
-- capability는 비활성 상태를 유지합니다.
+- 카드 공개가 완료된 뒤 브라우저 최소화/다른 탭 이동 후 복귀하면 동일 deal animation이 드물게 다시 재생되는 현상을 추적했습니다.
+- 공통 reconnect trigger가 `visibilitychange` 복귀 시 authoritative snapshot refresh를 수행하며, presentation state가 lifecycle 과정에서 재구성될 경우 동일 snapshot을 이미 소비했다는 별도 기록이 없던 것이 원인이었습니다.
+- `roomId:version:currentCard:deckRemaining` 기반 `lastSettledDealKey`를 추가했습니다. deal landing 완료 또는 초기 PLAYING snapshot 표시 시 key를 settled로 기록하고, 이후 같은 authoritative deal identity는 presentation transition으로 다시 만들지 않습니다.
+- settled deal key는 단순 controller dispose/visibility refresh에서는 초기화하지 않아 같은 페이지 lifecycle 내 focus 복귀 재생을 차단합니다.
+
+- 간헐적으로 TAKE 카드가 안착 직후 사라지거나 다음 TAKE에서 직전 카드가 다시 숨겨지는 race condition을 추적했습니다.
+- 원인은 `takeByViewer` effect가 카드 landing 이후에도 다음 deal 완료까지 유지되어, 동일 snapshot 재렌더가 들어오면 개인 패널이 다시 pre-landing transient state로 생성되는 것이었습니다.
+- presentation effect에 `takeCardLanded` / `takeChipsLanded`를 분리하고, 각 구성요소가 실제 landing한 순간부터는 authoritative final hand/chip state를 사용하도록 수정했습니다.
+- 카드 landing selector도 generic hidden card가 아니라 `data-card-value` 기준의 해당 카드 최신 DOM을 찾도록 변경해 이전/다음 take slot이 섞일 가능성을 제거했습니다.
+
+- TAKE_CARD presentation lifecycle을 `started → running → completed`로 보강해 동일 snapshot 재렌더가 애니메이션 중 끼어도 effect를 landing 전까지 유지하도록 수정했습니다.
+- 다음 current card는 deal flight가 실제로 도착할 때까지 최신 DOM에서도 `is-awaiting-deal`로 숨기며, landing 순간에만 공개하도록 The Game handoff 패턴을 다시 적용했습니다.
+- TAKE card/chip handoff 이후에는 이전 board DOM이 아니라 현재 `app`의 최신 board/deck/current-card DOM을 다시 찾아 다음 deal animation을 이어가도록 변경했습니다.
+- 중앙 칩 획득은 TAKE 클릭 시점의 center count를 batch count로 고정하고 해당 수의 flight만 한 번 실행하도록 변경했습니다.
+- chip batch는 약 620ms + 26ms stagger로 정리하고 모든 flight 완료 후 overlay 제거와 개인 칩 상태 handoff를 같은 task에서 처리해 끝부분의 추가 칩/중복 칩 느낌을 제거했습니다.
+
+- 좌석 프로필 중심점을 실제 타원형 테이블 외곽선에 맞추도록 post-render geometry sync를 보완했습니다.
+- 개인 패널의 `내 칩` 표기를 `내 보유 칩`으로 변경했습니다.
+- TAKE_CARD 시 RPC 직전 중앙 카드/칩 DOM을 overlay로 보존하고, authoritative snapshot 이후 실제 구성물이 개인 패널로 이동한 뒤 최종 hand/chip state로 handoff하는 presentation을 구현했습니다.
+- 카드 flight는 기존 카드가 없으면 hand 맨 왼쪽, 기존 카드가 있으면 현재 가장 오른쪽 카드 다음 transient slot을 목적지로 사용하며, 이동 완료 뒤 다음 draw-card 공개 animation을 이어서 재생합니다.
+- chip flight는 부루마블 money transfer의 stagger/arc 원칙을 참고해 중앙 pile의 실제 visible chip 각각이 내 보유 칩 cluster로 이동하도록 구현했습니다.
+
+- PR #364의 Board UI Phase A–D 구현을 최신 main의 플랫폼 규칙과 lifecycle 위에 재정합화했습니다.
+- 기능/DB 권위는 main의 구현을 사용하고, 현재 브랜치에는 board/presentation UI와 gameplay render 최적화만 남기는 방향으로 정리했습니다.
+- 새 UI 규칙에 맞춰 board/motion/responsive 결정은 `UI_DESIGN.md`에 반영했습니다.
+- rematch production migration 적용과 release capability 활성화는 기존 release gate 범위로 남아 있습니다.
 
 ## Next Work
 
-1. 이 PR 병합 후 rematch migration을 운영 Supabase에 적용하고 권한/RLS/RPC 경계를 다시 확인합니다.
-2. main 배포 화면에서 승인회원 계정으로 create/join/ready/start/refuse/take/종료/재대결 브라우저 smoke test를 수행합니다.
-3. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 수동 게이트를 수행합니다.
-4. 3인과 가능하면 7인 실제 브라우저 세션에서 roster/turn/private counter/reconnect/rematch를 확인합니다.
-5. manual browser gate가 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
-6. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
+1. 실제 데스크톱 브라우저에서 3–7인 좌석 중심선/HUD 겹침, 보드 높이, 개인 패널 카드 overlap과 TAKE_CARD card/chip handoff를 시각 QA합니다.
+2. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 seat 근처 interaction으로 추가합니다.
+3. TAKE_CARD card/chip flight의 실제 브라우저 체감에 따라 duration / stagger / landing geometry만 미세 조정합니다.
+4. 실제 모바일에서 compact status indicator, 터치 action, 높이/스크롤과 take animation destination을 확인합니다.
+5. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect/rematch 운영 브라우저 gate와 production migration/capability activation을 계속 수행합니다.
 
 ## Decisions
 
