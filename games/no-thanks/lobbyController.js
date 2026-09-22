@@ -268,11 +268,18 @@ export function createNoThanksLobbyController({
     return state.snapshot;
   }
 
-  async function command(operation) {
+  async function command(operation, {
+    silentBusy = false,
+  } = {}) {
     if (disposed) throw new Error("No Thanks! lobby controller has been disposed.");
     if (state.busy) throw new Error("No Thanks! lobby action is already in progress.");
 
-    emit({ busy: true, error: null });
+    if (silentBusy) {
+      state = freezeState({ ...state, busy: true, error: null });
+    } else {
+      emit({ busy: true, error: null });
+    }
+
     try {
       return await operation();
     } catch (error) {
@@ -282,7 +289,7 @@ export function createNoThanksLobbyController({
       }
       throw error;
     } finally {
-      emit({ busy: false });
+      if (state.busy) emit({ busy: false });
     }
   }
 
@@ -345,9 +352,9 @@ export function createNoThanksLobbyController({
         expectedVersion: Number(snapshot.version),
         clientActionId: idFactory(),
       });
-      applySnapshot(next, { connection: "connected" });
+      applySnapshot(next, { connection: "connected", busy: false });
       return next;
-    });
+    }, { silentBusy: true });
   }
 
   async function takeCard() {
@@ -359,9 +366,9 @@ export function createNoThanksLobbyController({
         expectedVersion: Number(snapshot.version),
         clientActionId: idFactory(),
       });
-      applySnapshot(next, { connection: "connected" });
+      applySnapshot(next, { connection: "connected", busy: false });
       return next;
-    });
+    }, { silentBusy: true });
   }
 
   async function endGame() {
