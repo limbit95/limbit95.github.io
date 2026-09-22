@@ -79,5 +79,19 @@ export function createNoThanksGameplayAdapter({
         clientActionId,
       });
     },
+
+    async prepareRematch({
+      roomId,
+      expectedVersion,
+      clientActionId,
+    }) {
+      const { data, error } = await supabase.rpc("no_thanks_prepare_rematch", {
+        p_room_id: requireText(roomId, "roomId"),
+        p_expected_version: requireVersion(expectedVersion),
+        p_client_action_id: requireText(clientActionId, "clientActionId"),
+      });
+      if (error) throw error;
+      return data ?? null;
+    },
   });
 }
