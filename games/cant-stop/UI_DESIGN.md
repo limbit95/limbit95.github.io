@@ -1,6 +1,6 @@
 # Can't Stop UI Design
 
-> 이 문서는 Can't Stop v1의 release 시점 디자인을 소급 정리한 game-local baseline입니다.
+> 이 문서는 UI_DESIGN/UI_DECISIONS 체계 도입 전에 이미 release된 Can't Stop v1의 production 상태를 소급 정리한 **adoption baseline**입니다. 신규 게임의 pre-development baseline 사례로 사용하지 않습니다.
 > 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 이 baseline 이후 디자인 수정·결정·검증과 override는 `UI_DECISIONS.md`, 기능 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
 >
 > v1 RELEASED 이후 UI Design 규칙을 도입하면서 기존 구현을 소급 문서화한 baseline이며, 이후 후속 디자인 변경은 이 문서를 덮어쓰지 않고 `UI_DECISIONS.md`에 누적합니다.
