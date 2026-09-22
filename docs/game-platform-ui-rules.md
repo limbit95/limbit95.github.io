@@ -328,7 +328,7 @@ UI는 최소 다음을 명확히 표현한다.
 
 ### Implementation Plan 책임
 
-`UI_DESIGN.md / Implementation Plan`은 현재 디자인을 구현할 때의 **안정적인 presentation 적용 순서와 가이드**만 관리하며 live progress/changelog로 사용하지 않는다. 기능 상태 머신, DB/RPC, 서버 권위 구현 순서는 `GAME_SPEC.md`, 실제 기능 다음 작업은 `DEVELOPMENT.md / Next Work`, 실제 디자인 진행과 다음 UI 작업은 `UI_DECISIONS.md`에서 추적한다.
+`UI_DESIGN.md / Implementation Plan`은 runtime 개발 전에 수립한 **초기 presentation 적용 순서와 가이드**를 보존하며 live progress/changelog로 사용하지 않는다. 기능 상태 머신, DB/RPC, 서버 권위 구현 순서는 `GAME_SPEC.md`, 실제 기능 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리한다. 개발 시작 후 baseline에서 벗어나 확정된 디자인 변경, 수동 브라우저 리뷰 결과와 그에 따른 후속 UI 작업만 `UI_DECISIONS.md`에서 추적한다.
 
 같은 TODO나 결정 이력을 네 문서에 반복 복제하지 않는다.
 
