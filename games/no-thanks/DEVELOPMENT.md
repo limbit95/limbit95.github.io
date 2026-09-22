@@ -129,6 +129,13 @@
 - PLAYING 핵심 액션을 개인 패널에서 테이블로 이동했습니다. 현재 카드를 직접 클릭해 가져오고, 오른쪽 칩 더미 아래 버튼으로 칩 1개를 내도록 연결했습니다.
 - 남은 deck 장수는 1–7개 시각 layer 단계로 축약해 실제 남은 장수가 줄어들수록 deck stack도 점진적으로 얕아지도록 구현했습니다.
 - authoritative snapshot 변화에 맞춰 `REFUSE_CARD` 후 직전 active seat에서 중앙 칩으로 날아가는 연출과 `TAKE_CARD` 후 draw deck에서 새 current card가 들어오는 연출을 추가했습니다.
+- 개인 패널 내 칩 열을 192px로 다시 넓히고 PLAYING의 현재 차례 하단 안내 문구는 제거했습니다.
+- 기존 shell footer의 게임 규칙/새로고침/게임 종료 액션을 board mode에서는 개인 패널 오른쪽 2열 tool grid로 이동했습니다.
+- 현재 active seat는 기본 82px 대비 164px로 2배 확대해 현재 차례를 시각적으로 우선 표시합니다.
+- 원형 테이블을 보드 정중앙(left 50%)으로 이동하고 최대 폭 80% / 1180px, 높이 78%로 확대했으며 seat 좌표도 centerX 50 기준으로 재조정했습니다.
+- 중앙 칩 cluster/count/action 사이 간격을 소폭 늘려 각 요소가 붙어 보이지 않도록 정리했습니다.
+- 칩 이동 animation은 22px token을 사용하고 DOM geometry를 측정해 acting seat에서 실제 center chip target으로 이동하도록 보정했습니다.
+- The Game `cardMotion.js`의 moving-card + 3D flip 패턴을 참고해 새 카드가 deck 위치에서 current card 위치까지 이동하면서 뒷면에서 앞면으로 rotateY 되는 구조로 개선했습니다.
 
 ## Current Work
 
@@ -226,6 +233,7 @@
   - PR 전 실제 브랜치 파일 기반 추가 검증에서 3/4/5/6/7인 좌표 유일성, viewer 6시 고정, authoritative seat 보존, 카드 tone/hand overlap, Phase A–D DOM/CSS 계약과 CSS brace balance를 확인했습니다.
   - 디테일 조정 후 브랜치 파일 기반 검증에서 3–7인 확대 좌석 좌표, 800px 보드 규격, 16개 personal chip cap / 7개 compact chip cap, 공개 프로필 avatar fallback, `NO CHIP`, HUD `자리이탈`, 확대 카드/개인 패널 CSS 계약과 brace balance를 확인했습니다.
   - 테이블 직접 조작 후 정적 검증에서 main.js syntax, 3–7인 좌석 bounds, 단계형 deck layer(15→5, 11→4, 7→3, 1→1), avatar clipping frame, red chip skin, current-card click/center-chip refuse action, card-deal/chip-flight animation 계약과 CSS brace balance를 확인했습니다.
+  - 중앙 정렬 pass 후 정적 검증에서 3–7인 viewer 좌석 x=50 / 6시 고정, active avatar 164px, personal chip 192px, panel tool relocation, PLAYING 하단 turn message 제거, measured chip flight, 3D card flip front/back contract와 CSS brace balance를 확인했습니다.
   - Phase 3 작업 브랜치를 관리자 후보 조회 안정화 PR #348까지 반영된 최신 `main` 커밋 `049493f8964f2424a7669290ae733d6e388c799b`에 다시 동기화했습니다.
   - 기존 #344의 공통 foundation 전체 Registry ID/개수 고정 변경을 폐기하고 No Thanks! Registry 검증을 게임별 테스트로 분리했습니다.
   - PR #347은 최신 `main` 동기화 전 Game Platform governance를 통과했고, 동기화 후 동일 검증을 다시 수행합니다.
