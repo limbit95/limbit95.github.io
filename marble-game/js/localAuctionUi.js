@@ -346,9 +346,18 @@ export function setupLocalAuctionUi({
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
   const setAuctionOverlayActive = (active) => {
-    if (!documentObject.body?.dataset) return;
-    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
-    else delete documentObject.body.dataset.auctionOverlayActive;
+    const body = documentObject.body;
+    if (!body?.dataset) return;
+    if (!active) {
+      delete body.dataset.auctionOverlayActive;
+      body.style.removeProperty("--auction-notice-top");
+      return;
+    }
+    body.dataset.auctionOverlayActive = "true";
+    const rect = elements.panel.getBoundingClientRect?.();
+    if (rect && rect.height > 0) {
+      body.style.setProperty("--auction-notice-top", `${Math.max(14, rect.top - 12)}px`);
+    }
   };
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
@@ -517,9 +526,9 @@ export function setupLocalAuctionUi({
     }
 
     selectedPlayerId = model.selectedPlayerId;
-    setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
+    setAuctionOverlayActive(true);
     elements.title.textContent = model.nodeLabel;
     syncPlayerOptions(model);
     updateTimer(model);
