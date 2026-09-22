@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 const originalWindow = globalThis.window;
 globalThis.window = globalThis.window ?? {};
-const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260919-r13");
+const { createOnlineClassicSession } = await import("../js/onlineSession.js?v=20260923-r1");
 const { createOnlineGameApi } = await import("../js/onlineGameApi.js");
 const { createOnlineAuctionUiModel } = await import("../js/onlineAuctionUi.js");
 globalThis.window = originalWindow;
@@ -72,7 +72,7 @@ function createHarness() {
       type: "PROPERTY_AUCTION",
       nodeId: "tokyo",
       openingBid: 360,
-      openingBidderPlayerId: "p2",
+      starterPlayerId: "p2",
       participantPlayerIds: ["p2", "p3"],
       auction: {
         type: "PROPERTY_AUCTION",
@@ -81,12 +81,12 @@ function createHarness() {
         declinedByPlayerId: "p1",
         eligiblePlayerIds: ["p2", "p3"],
         participantPlayerIds: ["p2", "p3"],
-        openingBidderPlayerId: "p2",
-        bidPlayerIds: ["p2"],
+        starterPlayerId: "p2",
+        bidPlayerIds: [],
         passedPlayerIds: [],
-        highestBid: 360,
-        highestBidderId: "p2",
-        turnPlayerId: "p3",
+        highestBid: 0,
+        highestBidderId: null,
+        turnPlayerId: "p2",
         turnDeadlineAt: "2026-09-19T12:00:25Z",
         status: "OPEN",
       },
@@ -158,20 +158,30 @@ function createHarness() {
       server.version = 6;
       server.pendingChoice = auctionChoice();
       server.lastEvents = [{
-        type: "AUCTION_STARTED",
-        openingBidderPlayerId: "p2",
+        type: "AUCTION_STARTING",
+        starterPlayerId: "p2",
         participantPlayerIds: ["p2", "p3"],
-        highestBidderId: "p2",
-        highestBid: 360,
       }];
       return snapshotFor(viewerPlayerId);
     }
 
-    if (name === "marble_auction_bid") {
-      assert.equal(viewerPlayerId, "p3");
+    if (name === "marble_auction_bid" && viewerPlayerId === "p2") {
       assert.equal(params.p_expected_version, 6);
-      assert.equal(params.p_pass, true);
+      assert.equal(params.p_pass, false);
+      assert.equal(params.p_amount, 360);
       server.version = 7;
+      server.pendingChoice.auction.highestBid = 360;
+      server.pendingChoice.auction.highestBidderId = "p2";
+      server.pendingChoice.auction.bidPlayerIds = ["p2"];
+      server.pendingChoice.auction.turnPlayerId = "p3";
+      server.lastEvents = [{ type: "AUCTION_BID_PLACED", playerId: "p2", nodeId: "tokyo", amount: 360 }];
+      return snapshotFor(viewerPlayerId);
+    }
+
+    if (name === "marble_auction_bid" && viewerPlayerId === "p3") {
+      assert.equal(params.p_expected_version, 7);
+      assert.equal(params.p_pass, true);
+      server.version = 8;
       server.phase = "TURN_END";
       server.pendingChoice = null;
       server.ownerId = "p2";
@@ -252,16 +262,23 @@ test("three clients converge through irreversible vote, stale concurrent join, o
     await staleJoiner.joinAuction();
     assert.equal(staleJoiner.getState().pendingChoice.type, "PROPERTY_AUCTION");
     assert.deepEqual(staleJoiner.getState().pendingChoice.participantPlayerIds, ["p2", "p3"]);
-    assert.equal(staleJoiner.getState().pendingChoice.auction.openingBidderPlayerId, "p2");
-    assert.equal(staleJoiner.getState().pendingChoice.auction.highestBid, 360);
-    assert.equal(staleJoiner.getState().pendingChoice.auction.turnPlayerId, "p3");
+    assert.equal(staleJoiner.getState().pendingChoice.auction.starterPlayerId, "p2");
+    assert.equal(staleJoiner.getState().pendingChoice.auction.highestBid, 0);
+    assert.equal(staleJoiner.getState().pendingChoice.auction.highestBidderId, null);
+    assert.equal(staleJoiner.getState().pendingChoice.auction.turnPlayerId, "p2");
 
     await harness.broadcast("p1", "p2");
     const firstUi = createOnlineAuctionUiModel(firstJoiner.getState(), "p2");
     const secondUi = createOnlineAuctionUiModel(staleJoiner.getState(), "p3");
     assert.deepEqual(firstUi.participantCards.map((card) => card.id), ["p2", "p3"]);
-    assert.equal(firstUi.participantCards[0].openingBidder, true);
-    assert.equal(secondUi.canPass, true);
+    assert.equal("openingBidder" in firstUi.participantCards[0], false);
+    assert.equal(firstUi.isTurn, true);
+    assert.equal(firstUi.canBid, true);
+    assert.equal(secondUi.canPass, false);
+
+    await firstJoiner.auctionBid(360);
+    await harness.broadcast("p3");
+    assert.equal(createOnlineAuctionUiModel(staleJoiner.getState(), "p3").canPass, true);
 
     await staleJoiner.auctionPass();
     assert.equal(staleJoiner.getState().phase, "TURN_END");
@@ -269,12 +286,12 @@ test("three clients converge through irreversible vote, stale concurrent join, o
     assert.equal(staleJoiner.getState().players.find((player) => player.id === "p2").money, 840);
 
     await harness.broadcast("p1", "p2");
-    assert.equal(firstJoiner.getState().version, 7);
+    assert.equal(firstJoiner.getState().version, 8);
     assert.equal(firstJoiner.getState().boardState.properties.tokyo.ownerId, "p2");
 
     assert.deepEqual(
       harness.actionCalls.map((call) => call.p_expected_version),
-      [3, 4, 4, 6],
+      [3, 4, 4, 6, 7],
     );
   } finally {
     sessions.forEach((session) => session.dispose());
@@ -305,7 +322,7 @@ test("reconnecting snapshot reconstructs vote and participant order without loca
     const model = createOnlineAuctionUiModel(session.getState(), "p2");
     assert.equal(model.stage, "vote");
     assert.deepEqual(model.participantCards.map((card) => card.id), ["p3"]);
-    assert.equal(model.participantCards[0].openingBidder, true);
+    assert.equal("openingBidder" in model.participantCards[0], false);
     session.dispose();
   } finally {
     restore();
