@@ -28,12 +28,12 @@ test("dedicated local play loads only local gameplay modules", async () => {
 
   assert.equal(mode, "local-play");
   assert.deepEqual(imports, [
-    "./app.js?v=20260922-r3",
+    "./app.js?v=20260922-r4",
     "./diceCharge.js?v=20260910-r7",
-    "./playWindow.js?v=20260922-r3",
+    "./playWindow.js?v=20260922-r4",
     "./ownershipVisualLoader.js?v=20260910-r10",
   ]);
   assert.equal(imports.some((value) => value.includes("multiplayerLobby")), false);
   assert.equal(imports.some((value) => value.includes("onlineGameExit")), false);
-  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260922-r3");
+  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260922-r4");
 });
