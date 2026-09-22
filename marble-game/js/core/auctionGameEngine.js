@@ -342,7 +342,6 @@ function resolveAuctionVote(state, action, options, {
       nodeId: vote.nodeId,
       openingBid: vote.openingBid,
       starterPlayerId,
-      requesterPlayerId: starterPlayerId,
       participantPlayerIds: Object.freeze(randomizedPlayerIds),
       announcementEndsAt,
       selectorStopsAt,
