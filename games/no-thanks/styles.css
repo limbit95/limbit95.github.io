@@ -1396,18 +1396,19 @@ body {
   border-width: 4px;
   border-radius: 11px;
   cursor: default;
+  top: 0;
   transition:
-    transform .17s ease,
+    top .18s ease,
     box-shadow .17s ease,
     filter .17s ease;
 }
 
 .no-thanks-hand-card:hover,
 .no-thanks-hand-card:focus-visible {
-  z-index: 80 !important;
-  transform: translateY(-9px) scale(1.055);
+  top: -24px;
+  transform: none;
   outline: 0;
-  box-shadow: 0 15px 25px rgba(43, 65, 61, .25);
+  box-shadow: 0 11px 20px rgba(43, 65, 61, .2);
   filter: saturate(1.06);
 }
 
@@ -2816,5 +2817,171 @@ body {
 
   .no-thanks-seat {
     transition: none;
+  }
+}
+
+
+/* Board polish pass — seat edge anchoring, nicknames, hand reveal, rematch */
+.no-thanks-seat.is-active {
+  width: 107px;
+  height: 107px;
+  min-height: 107px;
+  padding: 5px;
+}
+
+.no-thanks-seat__name {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  z-index: 3;
+  max-width: 132px;
+  padding: .22rem .48rem;
+  overflow: hidden;
+  border: 1px solid rgba(47, 82, 74, .14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 4px 10px rgba(34, 65, 57, .12);
+  color: #34554d;
+  font-size: .66rem;
+  font-weight: 900;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+.no-thanks-seat__turn,
+.no-thanks-seat.is-active .no-thanks-seat__turn {
+  left: auto;
+  right: -7px;
+  top: -7px;
+  bottom: auto;
+  transform: none;
+  padding: .23rem .45rem;
+  font-size: .56rem;
+}
+
+.no-thanks-center-chips {
+  row-gap: .92rem;
+}
+
+.no-thanks-center-chips .no-thanks-chip-cluster {
+  margin-bottom: .12rem;
+}
+
+.no-thanks-center-chips__count {
+  margin-block: .08rem;
+}
+
+.no-thanks-center-chips__action {
+  margin-top: .12rem;
+}
+
+.no-thanks-my-panel {
+  min-height: 220px;
+  padding-block: 1.1rem;
+}
+
+.no-thanks-my-panel--playing {
+  grid-template-columns: 192px minmax(0, 1fr) minmax(218px, 248px);
+}
+
+.no-thanks-hand {
+  height: 160px;
+  align-items: flex-end;
+  padding: 32px 12px 10px 4px;
+}
+
+.no-thanks-hand-card:hover,
+.no-thanks-hand-card:focus-visible {
+  top: -24px;
+  transform: none;
+}
+
+.no-thanks-panel-tools {
+  grid-template-columns: 1fr;
+  gap: .48rem;
+}
+
+.no-thanks-panel-tools .game-platform-shell__button--danger {
+  grid-column: auto;
+}
+
+.no-thanks-game-over__actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.no-thanks-game-over__rematch {
+  min-width: 180px;
+  min-height: 48px;
+  padding-inline: 1.3rem;
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-seat.is-active {
+    width: 94px;
+    height: 94px;
+    min-height: 94px;
+  }
+
+  .no-thanks-seat__name {
+    max-width: 116px;
+    font-size: .61rem;
+  }
+
+  .no-thanks-my-panel {
+    min-height: 208px;
+  }
+
+  .no-thanks-hand {
+    height: 148px;
+    padding-top: 29px;
+  }
+
+  .no-thanks-hand-card:hover,
+  .no-thanks-hand-card:focus-visible {
+    top: -22px;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-seat.is-active {
+    width: 81px;
+    height: 81px;
+    min-height: 81px;
+  }
+
+  .no-thanks-seat__name {
+    top: calc(100% + 6px);
+    max-width: 92px;
+    padding: .18rem .34rem;
+    font-size: .56rem;
+  }
+
+  .no-thanks-seat__turn,
+  .no-thanks-seat.is-active .no-thanks-seat__turn {
+    right: -5px;
+    top: -5px;
+    font-size: .48rem;
+  }
+
+  .no-thanks-my-panel {
+    min-height: 0;
+  }
+
+  .no-thanks-hand {
+    height: 124px;
+    padding: 25px 8px 7px 3px;
+  }
+
+  .no-thanks-hand-card:hover,
+  .no-thanks-hand-card:focus-visible {
+    top: -18px;
+  }
+
+  .no-thanks-panel-tools {
+    grid-template-columns: 1fr;
   }
 }
