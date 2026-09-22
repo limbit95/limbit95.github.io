@@ -60,7 +60,6 @@ if (onlineRoomId) {
   const TURN_RESULT_HOLD_MS = 2400;
   const AUCTION_RESULT_HOLD_MS = 1200;
   const DECISIVE_AUCTION_RESULT_HOLD_MS = 700;
-  const DECISIVE_BID_NOTICE_HOLD_MS = 2000;
   const OTHER_HUD_SLOTS = Object.freeze(["top-left", "top-right", "bottom-left"]);
   let session = null;
   let threeRenderer = null;
@@ -75,7 +74,6 @@ if (onlineRoomId) {
   let autoAdvancedTurnVersion = null;
   let eventHistory = [];
   let importantNoticeTimer = null;
-  let presentedDecisiveNoticeVersion = null;
   let lastAnimatedVersion = 0;
   let disposePresence = null;
 
@@ -434,16 +432,6 @@ if (onlineRoomId) {
     return `${playerName(bidder)}님이 ${targetName}의 보유 골드보다 높은 ${money(event.amount)}를 입찰했습니다!`;
   }
 
-  async function presentDecisiveBidNotice(state, event) {
-    if (!importantNotice || presentedDecisiveNoticeVersion === state.version) return;
-    presentedDecisiveNoticeVersion = state.version;
-    window.clearTimeout(importantNoticeTimer);
-    importantNotice.textContent = decisiveBidNoticeText(state, event);
-    importantNotice.hidden = false;
-    await wait(DECISIVE_BID_NOTICE_HOLD_MS);
-    if (presentedDecisiveNoticeVersion === state.version) importantNotice.hidden = true;
-  }
-
   function showImportantNotice(state) {
     if (!importantNotice) return;
     const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
@@ -451,9 +439,6 @@ if (onlineRoomId) {
       event.type === "AUCTION_BID_PLACED" && event.surge === true
     ));
     let text = null;
-    if (decisiveBid && presentedDecisiveNoticeVersion === state.version) {
-      return;
-    }
     if (decisiveBid) {
       text = decisiveBidNoticeText(state, decisiveBid);
     } else if (surgeBid) {
@@ -655,9 +640,6 @@ if (onlineRoomId) {
         diceStage?.hide();
         pendingMoveTotal = null;
       }
-      if (event.type === "AUCTION_DECISIVE_BID") {
-        await presentDecisiveBidNotice(state, event);
-      }
       if (threeRendererReady) await threeRenderer.playEvent(event);
     }
     threeRenderer?.renderState(state);
@@ -708,12 +690,21 @@ if (onlineRoomId) {
     await applyState(nextState, { animate: true, remote: false, autoAdvance: false });
   }
 
+  function isAuctionResolutionState(state) {
+    return state.phase === TURN_PHASES.TURN_END && state.lastEvents.some((event) => (
+      event.type?.startsWith("AUCTION_")
+      || (event.type === "PROPERTY_BOUGHT" && event.reason === "AUCTION")
+    ));
+  }
+
   async function applyState(state, { animate = true, remote = false, autoAdvance = true } = {}) {
     if (state.phase !== TURN_PHASES.WAITING_CHOICE || !viewerCanAct(state)) choiceDeclinedPending = false;
     appendEvents(state);
     renderUi(state, { renderThree: !animate });
+    const auctionResolution = isAuctionResolutionState(state);
+    if (auctionResolution) showImportantNotice(state);
     if (animate) await animateState(state, { remote });
-    showImportantNotice(state);
+    if (!auctionResolution) showImportantNotice(state);
     showLandingOutcome(state);
     renderActionControls(state);
     if (autoAdvance) await maybeAutoAdvanceTurn(state);
