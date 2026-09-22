@@ -67,23 +67,31 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     className: "game-bgm-player__popover game-bgm-player__source-popover",
   });
   sourcePanel.hidden = true;
-  sourcePanel.append(
+  const sourceItems = [
     element("strong", { text: track.title }),
     element("span", { text: track.artist }),
+    track.isrc ? element("span", { text: `ISRC ${track.isrc}` }) : null,
     element("span", { text: track.license }),
     element("a", {
       href: track.sourceUrl,
       target: "_blank",
       rel: "noopener noreferrer",
-      text: "원본 출처 ↗",
+      text: "공식 출처 ↗",
     }),
+    track.previewUrl ? element("a", {
+      href: track.previewUrl,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      text: "YouTube 영상 ↗",
+    }) : null,
     element("a", {
       href: track.licenseUrl,
       target: "_blank",
       rel: "noopener noreferrer",
       text: "라이선스 ↗",
     }),
-  );
+  ].filter(Boolean);
+  sourcePanel.append(...sourceItems);
 
   root.append(equalizer, toggle, volumeButton, sourceButton, volumePanel, sourcePanel);
   mount.append(root);
