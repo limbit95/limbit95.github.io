@@ -284,6 +284,8 @@ if (onlineRoomId) {
       case "EVENT_DRAWN": return `${label} · ${event.label}`;
       case "REST_ASSIGNED": return `${label} · ${event.skipTurns}턴 휴식`;
       case "TURN_SKIPPED": return `${label} · 휴식으로 턴 건너뜀`;
+      case "AUCTION_STARTING": return "경매 시작 준비 · 첫 입찰자 추첨";
+      case "AUCTION_DECISIVE_BID": return `${label} · 결정적 입찰 ${money(event.amount)}`;
       case "CHOICE_DECLINED": return `${label} · 선택 건너뜀`;
       case "PLAYER_BANKRUPT": return `${label} · 파산`;
       case "GAME_FINISHED": {
