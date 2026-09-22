@@ -197,9 +197,17 @@ games/<game-id>/DEVELOPMENT.md
 
 `RELEASED`는 "더 이상 개선하지 않는다"는 뜻이 아니라 **현재 production baseline이 main으로 확정됐다는 뜻**이다.
 
-### MUST: 사용자가 중간 진행 기록을 요청할 때
+### MUST: 사용자가 "디벨롭 파일에" 진행 기록을 요청할 때
 
-사용자가 `개발 진행 기록해줘`, `진행상황 기록해줘`, `여기까지 기록해줘`처럼 현재 진행상황 저장을 명시적으로 요청하면 **Phase가 끝나지 않았더라도 즉시 checkpoint를 기록한다.**
+게임 개발 진행 checkpoint를 저장소에 기록하는 **명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우로 한정한다.**
+
+대표 명령은 다음과 같다.
+
+- `새로운 채팅방에서 이어서 작업하게 디벨롭 파일에 기록해줘`
+- `여기까지 진행한 내용 디벨롭 파일에 기록해줘`
+- `다음 채팅에서 이어갈 수 있게 디벨롭 파일에 정리해줘`
+
+위처럼 `디벨롭 파일에`가 명시되면 여기서 말하는 디벨롭 파일은 해당 게임의 `games/<game-id>/DEVELOPMENT.md`를 뜻하며, **Phase가 끝나지 않았더라도 즉시 repository checkpoint를 기록한다.**
 
 이 경우:
 
@@ -210,6 +218,11 @@ games/<game-id>/DEVELOPMENT.md
 5. UI 설계 변경이나 자산/라이선스 판단이 아직 미확정이면 관련 `UI_DESIGN.md` 항목과 함께 `Known Issues / Deferred`에 남긴다.
 6. blocker, 임시 결정, 확인이 필요한 사항은 `Known Issues / Deferred`에 남긴다.
 7. `DEVELOPMENT.md` 변경을 현재 작업 브랜치에 commit해 GitHub에서 다음 채팅이 조회할 수 있게 한다.
+
+MUST NOT:
+
+- `디벨롭 파일에`라는 표현이 없는 `새로운 채팅방에서 이어서 작업하게 정리해줘`, `여기까지 정리해줘`, `문서로 만들어줘`, `진행상황 요약해줘` 같은 일반 요청을 자동으로 repository checkpoint 명령으로 확대 해석하지 않는다.
+- 반대로 `디벨롭 파일에`가 명시된 요청을 채팅 요약, writing block, 일반 문서 작성만으로 완료 처리하지 않는다. 반드시 해당 게임의 `DEVELOPMENT.md`를 실제로 갱신하고 commit한다.
 
 중간 checkpoint를 남기기 위해 별도의 새 브랜치를 만들거나 Phase를 완료 처리하지 않는다.
 
