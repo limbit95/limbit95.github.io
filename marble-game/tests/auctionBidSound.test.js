@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { playAuctionBidSound } from "../js/auctionBidSound.js?v=20260922-r2";
+import { playAuctionBidSound } from "../js/auctionBidSound.js?v=20260922-r3";
 
 function createFakeAudioContext() {
   const oscillators = [];
