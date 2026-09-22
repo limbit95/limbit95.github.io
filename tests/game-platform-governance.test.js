@@ -574,7 +574,7 @@ test("Game Platform rules require multiplayer rematch without prematurely forcin
   assert.match(rules, /동일한 RPC 이름/u);
 });
 
-test("UI rulebook requires design research plus canonical UI_DESIGN and UI_DECISIONS records", () => {
+test("UI rulebook treats UI_DESIGN as pre-development baseline and UI_DECISIONS as later overrides", () => {
   const uiRules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
     "utf8",
@@ -585,9 +585,35 @@ test("UI rulebook requires design research plus canonical UI_DESIGN and UI_DECIS
   assert.match(uiRules, /games\/<game-id>\/UI_DESIGN\.md/u);
   assert.match(uiRules, /games\/<game-id>\/UI_DECISIONS\.md/u);
   assert.match(uiRules, /저작권·상표·라이선스/u);
-  assert.match(uiRules, /현재 canonical 디자인 기준은 `UI_DESIGN\.md`/u);
+  assert.match(uiRules, /최신 non-superseded `UI_DECISIONS\.md` 결정이 우선/u);
+  assert.match(uiRules, /effective design/u);
+  assert.match(uiRules, /후속 변경을 되돌리는 근거로 사용할 수 없다/u);
 });
 
+
+test("UI phase continuation cannot revert later user design decisions", () => {
+  const uiRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
+    "utf8",
+  );
+  const developmentRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const decisionsTemplate = readFileSync(
+    path.join(repositoryRoot, "games", "UI_DECISIONS_TEMPLATE.md"),
+    "utf8",
+  );
+
+  assert.match(uiRules, /Phase를 이어갈 때 디자인 회귀 방지/u);
+  assert.match(uiRules, /초기 Phase 문구와 최신 유효 결정이 충돌하면 최신 `UI_DECISIONS\.md`를 적용/u);
+  assert.match(uiRules, /과거 설계안으로 원복/u);
+  assert.match(developmentRules, /이미 반영된 사용자 디자인 수정을 회귀시키지 않는다/u);
+  assert.match(developmentRules, /UI_DESIGN\.md.*baseline.*UI_DECISIONS\.md.*최신 non-superseded/su);
+  assert.match(decisionsTemplate, /Decision ID:/u);
+  assert.match(decisionsTemplate, /Supersedes:/u);
+  assert.match(decisionsTemplate, /UI_DESIGN\.md \+ UI_DECISIONS\.md overrides/u);
+});
 
 test("development handoff stays functional while UI decisions track design progress", () => {
   const rules = readFileSync(
