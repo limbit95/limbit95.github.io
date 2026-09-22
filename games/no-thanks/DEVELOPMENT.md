@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Production migration and manual browser QA
+- Phase: Manual browser QA
 - Status: IN_PROGRESS
-- Active branch: `chore/no-thanks-production-migration-20260922`
+- Active branch: `docs/no-thanks-handoff-20260922`
 - 마지막 기록: 2026-09-22
 
 ## Completed
@@ -111,7 +111,8 @@
 
 ## Current Work
 
-- 운영 Supabase에 No Thanks! DB/RPC/Realtime migration을 적용했고, capability는 비활성 상태로 유지한 채 main 배포 화면에서 실제 브라우저 QA를 진행할 수 있는 단계입니다.
+- 새 채팅 인수인계 기준은 `HANDOFF.md`에 최신 main, 구현 범위, 운영 DB 상태, 자동 검증, 수동 QA, 다음 단계 순서로 요약했습니다.
+- 운영 Supabase와 main의 DB/RPC/Realtime 경계가 준비되었고 capability는 비활성 상태입니다. 사용자가 main 배포 화면에서 실제 브라우저 QA를 진행한 뒤 다음 작업을 이어갈 단계입니다.
 
 ## Next Work
 
