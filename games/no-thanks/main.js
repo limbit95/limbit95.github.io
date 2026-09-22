@@ -356,8 +356,8 @@ function prepareBoardSeats(view) {
 function boardSeatCoordinates(index, total) {
   const count = Math.max(total, 1);
   const angle = (Math.PI / 2) + ((Math.PI * 2 * index) / count);
-  const centerX = count >= 6 ? 43.5 : 44.5;
-  const radiusX = count <= 3 ? 34 : (count >= 6 ? 39 : 37);
+  const centerX = count >= 6 ? 40 : 44.5;
+  const radiusX = count <= 3 ? 34 : (count >= 6 ? 34.5 : 37);
   const radiusY = count <= 3 ? 32.5 : (count >= 6 ? 37 : 35);
 
   return {
@@ -462,6 +462,10 @@ function createTableCard(value) {
     el("span", {
       className: "no-thanks-table-card__label",
       text: "CURRENT",
+    }),
+    el("strong", {
+      className: "no-thanks-table-card__value",
+      text: displayValue,
     }),
     el("span", {
       className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
