@@ -51,6 +51,16 @@ test("shared result notice stays centered without an Auction dialog backdrop", (
   assert.doesNotMatch(auctionCssSource, /auction-result-modal::backdrop/);
 });
 
+test("decisive and large Auction bids use the shared centered notice", () => {
+  for (const source of [onlineSource, localSource]) {
+    assert.match(source, /AUCTION_DECISIVE_BID/);
+    assert.match(source, /다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다/);
+    assert.match(source, /AUCTION_BID_PLACED/);
+    assert.match(source, /event\.surge === true/);
+    assert.match(source, /큰 폭의 입찰!/);
+  }
+});
+
 test("local play mirrors automatic result-to-next-turn progression", () => {
   assert.match(localSource, /async function maybeAutoAdvanceLocalTurn\(state\)/);
   assert.match(localSource, /await wait\(TURN_RESULT_HOLD_MS\)/);
