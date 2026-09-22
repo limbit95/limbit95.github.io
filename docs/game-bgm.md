@@ -51,12 +51,18 @@ Player UI는 다음 네 요소만 유지한다.
 
 - Track: Invariance
 - Artist: Kevin MacLeod
-- Source: Incompetech
+- ISRC: USUAN1100847
+- Official source: Incompetech
+- Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
 - License: CC BY 4.0
 - Default volume: 0.22
 - Loop: enabled
 
-현재 Pilot은 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 동일 음원을 저장소에 self-host할 경우 출처와 라이선스 metadata는 유지하고 `src`만 로컬 asset으로 전환한다.
+Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지, 사용자가 제공한 YouTube 확인 영상, CC BY 4.0 라이선스를 함께 표시한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
+
+사용자가 제공한 MP3는 3분 38초, 192 kbps, 44.1 kHz stereo 파일로 확인했으며 ID3에는 곡명·아티스트·라이선스가 아닌 encoder 정보만 들어 있었다. 따라서 해당 파일은 곡 확인 자료로 사용하되, 출처와 사용 권한의 근거로 취급하지 않는다.
+
+현재 Pilot은 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다.
 
 The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the-game:game-started` presentation event를 발생시킨다. 이 이벤트는 게임 상태를 바꾸지 않고 BGM fallback에만 사용한다.
 
@@ -73,6 +79,7 @@ The Game의 로컬 `startGame()`과 온라인 authoritative `openGame()`은 `the
 자동 검증은 `the-game/tests/bgm.test.js`에서 수행한다.
 
 - catalog와 attribution metadata
+- 공식 ISRC와 reference video URL
 - 볼륨 persistence
 - 페이지 진입 autoplay 성공 시 interaction listener 미설치
 - autoplay 차단 후 자연스러운 interaction 성공 시 listener 즉시 제거
