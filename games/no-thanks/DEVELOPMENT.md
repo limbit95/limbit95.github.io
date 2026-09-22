@@ -5,9 +5,9 @@
 
 ## Current Status
 
-- Phase: Production migration and manual browser QA
+- Phase: Board UI redesign — Phase A–D
 - Status: IN_PROGRESS
-- Active branch: `chore/no-thanks-production-migration-20260922`
+- Active branch: `feature/no-thanks-board-ui-phase1-a-d`
 - 마지막 기록: 2026-09-22
 
 ## Completed
@@ -109,17 +109,28 @@
 - hardening 후 snapshot/generate/profile/card-score helper는 anon/authenticated 직접 실행이 차단되고, RLS에 필요한 `private.no_thanks_is_room_member`만 authenticated에 유지되는 것을 확인했습니다.
 - 운영 적용 후 Supabase security/performance advisor를 다시 실행해 No Thanks! 관련 신규 critical/error 항목이 없음을 확인했습니다.
 
+- 보드 UI 개편 Phase A에서 WAITING/PLAYING의 공통 대형 직사각형 보드판과 내부 원형/타원형 테이블, 현재 카드/중앙 칩/draw deck 오브젝트를 구현했습니다.
+- 공통 Game Shell 자체는 수정하지 않고 No Thanks! 전용 `no-thanks-shell--board` 상태에서 기존 우측 대형 roster를 숨겨 다른 게임 영향 범위를 차단했습니다.
+- Phase B에서 서버 seat/turn order는 그대로 두고 viewer 기준으로 시각 배열만 회전하여 본인 좌석을 항상 6시 방향에 두는 3–7인 동적 좌표 계산을 구현했습니다.
+- WAITING에서는 방장을 기본 착석 처리하고 일반 플레이어 ready 전환을 감지해 짧은 착석 애니메이션을 적용했으며 reduced-motion에서는 애니메이션을 제거합니다.
+- Phase C에서 방 코드, 인원, ready, connection/reconnect, host 상태를 표시하는 compact HUD를 보드 내부 우측 상단에 구현했습니다.
+- 6–7인 좌석은 HUD safe area를 확보하도록 보드 중심과 가로 반지름을 보정했습니다.
+- Phase D에서 보드 하단 동일 폭 개인 패널에 본인 정확한 칩 수/칩 cluster, 오름차순 보유 카드, 핵심 gameplay action을 통합했습니다.
+- 보유 카드는 개수에 따라 수평 겹침 폭을 조정하고 blue/teal/yellow/pink-red 계열 색상, 좌상단/우하단 숫자, hover/focus 상승·확대 인터랙션을 적용했습니다.
+- 좌표/카드 색상/손패 겹침 계산을 game-local `boardLayout.js` 순수 유틸로 분리해 3–7인 viewer 6시 고정과 좌표 유일성을 자동 검증할 수 있게 했습니다.
+
 ## Current Work
 
-- 운영 Supabase에 No Thanks! DB/RPC/Realtime migration을 적용했고, capability는 비활성 상태로 유지한 채 main 배포 화면에서 실제 브라우저 QA를 진행할 수 있는 단계입니다.
+- Phase A–D 소스 구현은 완료했으며, 새 보드 레이아웃 계약 테스트와 Game Platform governance 검증을 통과시키는 단계입니다.
+- UI 개편은 game-local 표현 계층만 변경하고 기존 DB/RPC/server authority/private-state/reconnect 계약은 변경하지 않습니다.
 
 ## Next Work
 
-1. main 배포 화면에서 승인회원 계정으로 create/join/ready/start/refuse/take/종료 브라우저 smoke test를 수행합니다.
-2. 실제 데스크톱/모바일 브라우저에서 `RELEASE_CHECKLIST.md`의 Presence/reconnect 수동 게이트를 수행합니다.
-3. 3인과 가능하면 7인 실제 브라우저 세션에서 roster/turn/private counter/reconnect를 확인합니다.
-4. manual browser gate가 끝날 때까지 Registry capability는 비활성 상태로 유지합니다.
-5. 모든 release gate가 끝난 뒤 capability activation / 게임 목록 사용자 노출을 별도 PR로 진행합니다.
+1. Phase A–D PR의 Game Platform governance에서 JavaScript syntax, module link, `npm run test:game-platform`, boundary guard를 통과시킵니다.
+2. PR 검토 후 실제 데스크톱 브라우저에서 3–7인 좌석/HUD 겹침, 보드 높이, 개인 패널 카드 겹침을 수동 시각 QA합니다.
+3. Phase E에서 다른 플레이어의 공개 획득 카드 popover를 좌석 근처 control로 추가합니다.
+4. Phase F에서 refuse chip → center, take card/chips → player, next-card reveal 애니메이션을 authoritative snapshot과 분리해 추가합니다.
+5. 기존 `RELEASE_CHECKLIST.md`의 Presence/reconnect 운영 브라우저 gate와 Registry capability activation은 UI 후속 단계와 별도로 계속 유지합니다.
 
 ## Decisions
 
@@ -185,6 +196,12 @@
 - 7인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + private counter 독립성 + take/reconnect
 - 실제 browser Presence 검증: CI Actions 비용을 늘리는 별도 browser/Supabase workflow를 만들지 않고 release 직전 manual gate로 유지
 - release gate 기록: `games/no-thanks/RELEASE_CHECKLIST.md`
+- WAITING/PLAYING 보드 구조: 동일한 대형 게임 보드와 원형/타원형 테이블을 유지하고 상태 전환 시 공간 구조를 교체하지 않음
+- 좌석 방향: 서버 seat 값을 변경하지 않고 viewer 기준 화면 배열만 회전해 본인을 항상 6시 방향에 표시
+- 좌석 기본 정보: 닉네임 + 현재 차례만 노출하고 ready/connection/host 상세는 보드 HUD로 분리
+- 개인 패널: 본인의 정확한 칩, 보유 카드, refuse/take 핵심 action을 보드 바로 아래 동일 폭 영역에 통합
+- 보유 카드 UI: 오름차순 + 수평 겹침 + 값 구간별 색상 + 좌상단/우하단 숫자 + hover/focus raise
+- 후속 UI 범위: 공개 카드 popover는 Phase E, gameplay 이동 애니메이션은 Phase F로 분리
 
 ## Validation
 
@@ -247,7 +264,7 @@
 - 게임 등록부에는 등록되어 있지만 모든 기능 활성화 값이 비활성 상태이며 출시된 게임으로 취급하지 않습니다.
 - 특수 카드 확장은 기본 규칙 첫 버전 이후 별도 설계가 필요합니다.
 - 비정상 disconnect, 방장 연결 상실, 재대결 정책은 Phase 7에서 확정했고 3인·7인 독립 서버 세션 자동 검증까지 Phase 8에서 추가했습니다. 실제 브라우저 Presence/모바일 복귀 검증은 release manual gate로 남아 있습니다.
-- 현재 브랜치는 운영 migration 기록/재현성 보강 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
+- 현재 브랜치는 보드 UI Phase A–D 작업 브랜치이며 `main`에는 직접 병합하지 않습니다.
 
 ## Release closeout 안내
 
