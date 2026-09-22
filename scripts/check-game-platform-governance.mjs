@@ -158,7 +158,7 @@ export function validatePlatformDocumentPolicy({
     }
   }
 
-  if (documents[UI_RULEBOOK_PATH] != null) {
+  if (documents[UI_RULEBOOK_PATH] != null && documents[RULEBOOK_PATH] != null) {
     for (const filename of UI_DECISION_LIFECYCLE_POLICY_PATHS) {
       const content = documents[filename];
       const identifiesDecisionLog = typeof content === "string" && content.includes("UI_DECISIONS.md");
