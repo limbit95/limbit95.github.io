@@ -352,6 +352,37 @@ test("design checkpoint command stays consistent across design entrypoints", () 
   assert.match(missingDesignCommand[0], /game-platform-ui-rules\.md must identify the Game Platform design checkpoint command/u);
 });
 
+test("retired generic checkpoint command cannot return as a standalone command", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+  const legacyCommand = "`체크포인트 기록하자`";
+
+  const errors = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-ui-rules.md",
+        functionCommand,
+        designCommand,
+        lifecycle,
+        legacyCommand,
+      ].join("\n"),
+      "docs/game-platform-ui-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-development-rules.md",
+        designCommand,
+        lifecycle,
+      ].join("\n"),
+      "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+      "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    },
+  });
+
+  assert.equal(errors.filter((error) => /retired generic checkpoint command/u.test(error)).length, 1);
+});
+
 test("platform entrypoints preserve the manual UI decision review lifecycle", () => {
   const functionCommand = "기능 체크포인트 기록하자";
   const designCommand = "디자인 체크포인트 기록하자";
@@ -646,8 +677,42 @@ test("governance defines topic-owner first rule propagation without duplicating 
   assert.match(governance, /topic-owner 문서/u);
   assert.match(governance, /상위\/진입 문서에는 필요한 요약과 참조만 전파/u);
   assert.match(governance, /같은 세부 규칙을 여러 상위 문서에서 독립적으로 다시 정의하지 않는다/u);
-  assert.match(governance, /상위 규칙과 충돌하는 하위 규칙 변경/u);
+  assert.match(governance, /상위 규칙과 충돌하는 하위 필요/u);
+  assert.match(governance, /ARCHITECTURE CHANGE/u);
+  assert.match(governance, /발견\/토의 단계에서는 제안으로만 유지/u);
   assert.match(governance, /COMPLIANT.*MIGRATION_REQUIRED.*NOT_APPLICABLE/su);
+});
+
+test("development rules promote parent-conflicting lower-level needs to architecture changes before source work", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const agents = readFileSync(path.join(repositoryRoot, "AGENTS.md"), "utf8");
+
+  assert.match(rules, /ARCHITECTURE CHANGE/u);
+  assert.match(rules, /하위에서 먼저 발견했다는 사실은 그 변경에 상위 권위를 부여하지 않는다/u);
+  assert.match(rules, /토의·승격 없이.*불허용/su);
+  assert.match(rules, /소스 수정 전에.*상위 규칙.*shared contract.*영향/su);
+  assert.match(rules, /플랫폼 전반에 필요한 변경이라고 명시적으로 합의되면.*ARCHITECTURE CHANGE/su);
+  assert.match(agents, /Game Platform ARCHITECTURE CHANGE/u);
+});
+
+test("development DB quality gate stays aligned with the 11-scenario DB contract", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const dbContract = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /10\. 멀티플레이 게임의 same-room rematch lifecycle/u);
+  assert.match(rules, /11\. 다른 플레이어 private state 미노출/u);
+  assert.match(rules, /private state가 없는 게임도 11번/u);
+  assert.match(dbContract, /10\. 멀티플레이 게임 종료 후 재대결/u);
+  assert.match(dbContract, /11\. 다른 플레이어의 private state/u);
 });
 
 test("Game Platform rules require multiplayer rematch without prematurely forcing a shared RPC shape", () => {
@@ -677,6 +742,8 @@ test("UI rulebook treats UI_DESIGN as pre-development baseline and UI_DECISIONS 
   assert.match(uiRules, /최신 non-superseded `UI_DECISIONS\.md` 결정이 우선/u);
   assert.match(uiRules, /effective design/u);
   assert.match(uiRules, /후속 변경을 되돌리는 근거로 사용할 수 없다/u);
+  assert.match(uiRules, /기존 게임의 adoption baseline/u);
+  assert.match(uiRules, /신규 게임의 pre-development baseline 의무를 약화하지 않는다/u);
 });
 
 
