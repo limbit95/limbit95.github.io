@@ -509,3 +509,23 @@ test("UI rulebook requires design research, independent page identity, and maint
   assert.match(uiRules, /저작권·상표·라이선스/u);
   assert.match(uiRules, /DEVELOPMENT\.md/u);
 });
+
+
+test("development handoff rules track GAME_SPEC and UI_DESIGN implementation status", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const template = readFileSync(
+    path.join(repositoryRoot, "games", "DEVELOPMENT_TEMPLATE.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /GAME_SPEC\.md.*UI_DESIGN\.md.*실제 구현 상태/us);
+  assert.match(rules, /UI\/presentation.*Validation/u);
+  assert.match(rules, /Visual Identity, page\/layout, 핵심 component, motion, responsive/u);
+  assert.match(rules, /UI_DESIGN\.md.*Validation Checklist/u);
+  assert.match(template, /UI \/ presentation:/u);
+  assert.match(template, /UI \/ browser:/u);
+  assert.match(template, /미확정 asset\/license/u);
+});
