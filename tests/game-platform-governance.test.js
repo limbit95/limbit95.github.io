@@ -36,6 +36,8 @@ function gameSpecDocument() {
     "## Implementation Plan",
     "## Validation Plan",
     "## Open Questions / Deferred",
+    "UI_DESIGN.md",
+    "DEVELOPMENT.md",
   ].join("\n");
 }
 
@@ -54,6 +56,8 @@ function uiDesignDocument() {
     "## Implementation Plan",
     "## Validation Checklist",
     "## Open Questions / Deferred",
+    "GAME_SPEC.md",
+    "DEVELOPMENT.md",
   ].join("\n");
 }
 
@@ -69,6 +73,8 @@ function developmentDocument() {
     "## Decisions",
     "## Validation",
     "## Known Issues / Deferred",
+    "GAME_SPEC.md",
+    "UI_DESIGN.md",
   ].join("\n");
 }
 
@@ -87,6 +93,8 @@ function releasedDevelopmentDocument({
     "## Decisions",
     "## Validation",
     "## Known Issues / Deferred",
+    "GAME_SPEC.md",
+    "UI_DESIGN.md",
     ...(includeRelease ? ["## Release — 2026-09-21"] : []),
   ].join("\n");
 }
@@ -528,4 +536,88 @@ test("development handoff rules track GAME_SPEC and UI_DESIGN implementation sta
   assert.match(template, /UI \/ presentation:/u);
   assert.match(template, /UI \/ browser:/u);
   assert.match(template, /미확정 asset\/license/u);
+});
+
+
+test("game-local documents must cross-reference the other design and handoff documents", () => {
+  const documents = {
+    "docs/game-platform-development-rules.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
+    "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
+    "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
+  };
+  const base = {
+    gameDirectories: ["sample-game"],
+    registry: [],
+    dbTestFiles: [],
+    gameFiles: {
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+    },
+    gameSpecDocuments: { "sample-game": gameSpecDocument() },
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    developmentDocuments: { "sample-game": developmentDocument() },
+    documents,
+  };
+
+  assert.deepEqual(validateRepositoryState(base), []);
+
+  const brokenSpec = validateRepositoryState({
+    ...base,
+    gameSpecDocuments: {
+      "sample-game": gameSpecDocument().replace("UI_DESIGN.md", ""),
+    },
+  });
+  assert.match(brokenSpec.join("\n"), /GAME_SPEC\.md must reference UI_DESIGN\.md/u);
+
+  const brokenUi = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: {
+      "sample-game": uiDesignDocument().replace("DEVELOPMENT.md", ""),
+    },
+  });
+  assert.match(brokenUi.join("\n"), /UI_DESIGN\.md must reference DEVELOPMENT\.md/u);
+
+  const brokenDevelopment = validateRepositoryState({
+    ...base,
+    developmentDocuments: {
+      "sample-game": developmentDocument().replace("GAME_SPEC.md", ""),
+    },
+  });
+  assert.match(brokenDevelopment.join("\n"), /DEVELOPMENT\.md must reference GAME_SPEC\.md/u);
+});
+
+test("platform rules define document authority and current-game impact auditing", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /게임별 세 문서의 권위와 충돌 해결/u);
+  assert.match(rules, /GAME_SPEC\.md.*기능 lifecycle/su);
+  assert.match(rules, /UI_DESIGN\.md.*presentation/su);
+  assert.match(rules, /DEVELOPMENT\.md.*현재 진행상태/su);
+  assert.match(rules, /COMPLIANT/u);
+  assert.match(rules, /MIGRATION_REQUIRED/u);
+  assert.match(rules, /NOT_APPLICABLE/u);
+  assert.match(rules, /IN_PROGRESS.*release 전에/su);
+});
+
+test("UI research records source, observation, and implementation decision", () => {
+  const uiRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
+    "utf8",
+  );
+  const template = readFileSync(
+    path.join(repositoryRoot, "games", "UI_DESIGN_TEMPLATE.md"),
+    "utf8",
+  );
+
+  assert.match(uiRules, /출처 → 관찰한 디자인 요소 → 구현 결정/u);
+  assert.match(uiRules, /visual reference를 직접 확인/u);
+  assert.match(template, /Source → Observation → Decision/u);
 });
