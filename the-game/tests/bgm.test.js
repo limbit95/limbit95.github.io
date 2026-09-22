@@ -117,6 +117,39 @@ test("BGM default slider and output volume are mapped independently", () => {
   assert.equal(audio.volume, 1);
 });
 
+test("BGM track switching preserves playback ownership and explicit user pause", async () => {
+  const audio = new FakeAudio();
+  const interactions = new FakeInteractionTarget();
+  const controller = createBgmController({
+    track: getGameBgm("cant-stop-lobby"),
+    audioFactory: () => audio,
+    interactionTarget: interactions,
+    storage: new MemoryStorage(),
+  });
+
+  await controller.start({ autoplayRequested: true });
+  assert.equal(controller.getState().track?.title, "Frozen Star");
+  assert.equal(controller.getState().hasEverPlayed, true);
+  assert.equal(audio.playCalls, 1);
+
+  await controller.switchTrack(getGameBgm("cant-stop-playing"));
+  assert.equal(controller.getState().track?.title, "Mountain Emperor");
+  assert.equal(controller.getState().status, BGM_STATE.PLAYING);
+  assert.equal(controller.getState().hasEverPlayed, true);
+  assert.equal(audio.playCalls, 2);
+  assert.equal(interactions.listenerCount("pointerdown"), 0);
+
+  controller.pauseByUser();
+  const callsAfterPause = audio.playCalls;
+
+  await controller.switchTrack(getGameBgm("cant-stop-lobby"));
+  assert.equal(controller.getState().track?.title, "Frozen Star");
+  assert.equal(controller.getState().status, BGM_STATE.PAUSED_BY_USER);
+  assert.equal(controller.getState().userPaused, true);
+  assert.equal(audio.playCalls, callsAfterPause);
+  assert.equal(interactions.listenerCount("pointerdown"), 0);
+});
+
 test("successful page-entry autoplay never installs global interaction listeners", async () => {
   const audio = new FakeAudio();
   const interactions = new FakeInteractionTarget();
