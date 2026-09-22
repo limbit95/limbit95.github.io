@@ -51,3 +51,15 @@ export function getNoThanksVisibleChipCount(count, {
   if (!Number.isFinite(numeric) || numeric <= 0) return 0;
   return Math.min(Math.floor(numeric), compact ? 7 : 16);
 }
+
+
+export function getNoThanksDeckVisualCount(remaining) {
+  const count = Math.max(0, Math.floor(Number(remaining) || 0));
+  if (count <= 1) return count;
+  if (count <= 3) return 2;
+  if (count <= 7) return 3;
+  if (count <= 11) return 4;
+  if (count <= 15) return 5;
+  if (count <= 19) return 6;
+  return 7;
+}
