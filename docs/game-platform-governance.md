@@ -107,7 +107,7 @@ Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `
 - `UI_DESIGN.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DECISIONS.md`
 - `UI_DECISIONS.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`
 
-다만 Guard는 어느 문서의 내용이 의미적으로 다른 문서와 모순되는지까지 판정하지 않는다. 현재 기능 기준은 `GAME_SPEC.md`, 기능 진행은 `DEVELOPMENT.md`를 기준으로 한다. 디자인은 `UI_DESIGN.md`의 pre-development baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용하며, 후속 결정이 초기 baseline보다 우선하는지는 작업자가 의미적으로 검토한다.
+다만 Guard는 어느 문서의 내용이 의미적으로 다른 문서와 모순되는지까지 판정하지 않는다. 현재 기능 기준은 `GAME_SPEC.md`, 기능 진행은 `DEVELOPMENT.md`를 기준으로 한다. 디자인은 신규 게임의 pre-development baseline 또는 기존 게임의 명시된 adoption baseline인 `UI_DESIGN.md`와 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용하며, 후속 결정이 baseline보다 우선하는지는 작업자가 의미적으로 검토한다.
 
 Release 상태는 최소한의 기계적 정합성도 검사한다. `Status: RELEASED`인 게임은 production baseline이므로 `Active branch: main`이어야 하고 날짜가 포함된 `## Release` 섹션을 가져야 한다. 이는 실제 production migration 여부나 플레이 품질을 추론하는 검사가 아니라, 종료된 작업 브랜치가 현재 기준으로 남는 문서 오류를 막기 위한 guard다.
 
