@@ -63,7 +63,7 @@ test("join and pass are irreversible one-time Auction votes", () => {
   );
 });
 
-test("all responded ends voting immediately and preserves join order as bid order", () => {
+test("all responded ends voting immediately and opens a competitive auction without an implicit bid", () => {
   let state = declinePurchase(roll(start(["a", "b", "c", "d"]), "a", [1, 2]), "a", 1_000);
 
   state = reduce(state, ACTION_TYPES.AUCTION_JOIN, "c", {}, 2_000);
