@@ -26,7 +26,8 @@ AGENTS.md
 
 - `games/<game-id>/` 디렉터리에 `GAME_SPEC.md`가 없거나 필수 설계 섹션이 빠진 경우
 - `docs/game-platform-ui-rules.md`가 존재하는 현재 체계에서 `games/<game-id>/UI_DESIGN.md`가 없거나 필수 UI 설계 섹션이 빠진 경우
-- `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 인수인계 섹션이 빠진 경우
+- `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 기능 인수인계 섹션이 빠진 경우
+- `games/<game-id>/` 디렉터리에 `UI_DECISIONS.md`가 없거나 필수 디자인 이력 섹션이 빠진 경우
 - `DEVELOPMENT.md`가 `Status: RELEASED`인데 `Active branch: main`이 아니거나 `## Release` 기록이 없는 경우
 - Registry 미등록 bootstrap 디렉터리에 `GAME_SPEC.md` / `UI_DESIGN.md` / `DEVELOPMENT.md` 외 runtime 파일이 추가된 경우
 - runtime이 있는 `games/<game-id>/` 디렉터리가 shared Game Registry에 등록되지 않은 경우
@@ -66,24 +67,25 @@ workflow는 `pull_request`에만 반응하고 Game Platform 관련 경로가 바
 검증은 Node 기본 기능과 기존 Game Platform 테스트만 사용하므로 별도 `npm ci` 단계도 추가하지 않는다.
 ## 게임 bootstrap 및 개발 기록 경계
 
-Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
+Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`가 존재하고 각 문서의 필수 섹션이 유지되는지 검사한다.
 
 또한 사용자 checkpoint 명령이 문서마다 달라지는 것을 막기 위해 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md`가 모두 명시적 명령 `체크포인트 기록하자`를 포함하는지 검사한다. 실제 `DEVELOPMENT.md` 갱신·commit 절차의 의미는 Development Rules와 작업자가 책임진다.
 
 checkpoint 명령의 상세 절차는 Development Rules가 소유한다. DB/UI/HISTORY 문서와 게임 문서 템플릿은 이 사용자 명령의 의미를 다시 정의하지 않는다. Phase 완료, release closeout 등 lifecycle 기반 `DEVELOPMENT.md` 갱신 규칙은 사용자 checkpoint 명령과 독립적으로 유지한다.
 
-세 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
+네 문서만 있는 새 디렉터리는 bootstrap 상태로 인정하며 Registry 등록을 요구하지 않는다. 반대로 runtime 파일이 하나라도 추가되면 bootstrap 상태가 끝난 것으로 보고 같은 저장소 상태에서 shared Game Registry 등록을 요구한다.
 
-`UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result-rematch, motion, responsive, 구현 계획, validation 섹션의 구조적 존재를 확인한다. 특정 색상이나 디자인의 미적 적합성을 CI가 판단하는 것은 아니며 그 의미적 검토는 `docs/game-platform-ui-rules.md`의 작업 절차와 실제 브라우저 검증이 담당한다.
+`UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result-rematch, motion, responsive, 구현 가이드, validation 섹션의 구조적 존재를 확인한다. `UI_DECISIONS.md` 검사는 현재 design track, decision log, superseded/rejected, validation history, open follow-up 구조를 확인한다. 특정 색상이나 디자인의 미적 적합성, decision의 품질은 CI가 판단하지 않으며 그 의미적 검토는 `docs/game-platform-ui-rules.md`와 실제 브라우저 검증이 담당한다.
 
-세 문서가 각각 독립 파일로만 존재하고 서로 고립되는 것을 막기 위해 game-local cross-link도 검사한다.
+네 문서가 각각 독립 파일로만 존재하고 서로 고립되는 것을 막기 위해 game-local cross-link도 검사한다.
 
-- `GAME_SPEC.md` → `UI_DESIGN.md`, `DEVELOPMENT.md`
-- `UI_DESIGN.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`
-- `DEVELOPMENT.md` → `GAME_SPEC.md`, `UI_DESIGN.md`
+- `GAME_SPEC.md` → `UI_DESIGN.md`, `UI_DECISIONS.md`, `DEVELOPMENT.md`
+- `DEVELOPMENT.md` → `GAME_SPEC.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`
+- `UI_DESIGN.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DECISIONS.md`
+- `UI_DECISIONS.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`
 
-다만 Guard는 어느 문서의 내용이 의미적으로 다른 문서와 모순되는지까지 판정하지 않는다. 기능 lifecycle은 `GAME_SPEC.md`, presentation은 `UI_DESIGN.md`, 실제 구현 진행상태는 `DEVELOPMENT.md`를 기준으로 작업자가 정합성을 검토한다.
+다만 Guard는 어느 문서의 내용이 의미적으로 다른 문서와 모순되는지까지 판정하지 않는다. 현재 기능 기준은 `GAME_SPEC.md`, 기능 진행은 `DEVELOPMENT.md`, 현재 presentation 기준은 `UI_DESIGN.md`, 디자인 개발의 변경 근거와 이력은 `UI_DECISIONS.md`를 기준으로 작업자가 정합성을 검토한다.
 
 Release 상태는 최소한의 기계적 정합성도 검사한다. `Status: RELEASED`인 게임은 production baseline이므로 `Active branch: main`이어야 하고 날짜가 포함된 `## Release` 섹션을 가져야 한다. 이는 실제 production migration 여부나 플레이 품질을 추론하는 검사가 아니라, 종료된 작업 브랜치가 현재 기준으로 남는 문서 오류를 막기 위한 guard다.
 
-Guard는 규칙/디자인 출처의 신뢰도, 게임 규칙의 의미적 정확성, Visual Identity의 품질, 자산 사용 권리의 법적 판단, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 또한 각 게임의 재대결 구현이 실제 멀티클라이언트에서 완전한지를 문서 구조만으로 추론하지 않는다. 해당 내용은 `docs/game-platform-development-rules.md`, `docs/game-platform-ui-rules.md`, 게임별 테스트와 실제 브라우저 검증으로 확인한다.
+Guard는 규칙/디자인 출처의 신뢰도, 게임 규칙의 의미적 정확성, Visual Identity의 품질, `UI_DECISIONS.md`에 기록된 선택 이유의 타당성, 자산 사용 권리의 법적 판단, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 또한 각 게임의 재대결 구현이 실제 멀티클라이언트에서 완전한지를 문서 구조만으로 추론하지 않는다. 해당 내용은 `docs/game-platform-development-rules.md`, `docs/game-platform-ui-rules.md`, 게임별 테스트와 실제 브라우저 검증으로 확인한다.
