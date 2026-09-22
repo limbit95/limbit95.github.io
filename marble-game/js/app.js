@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r4";
+import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r5";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
