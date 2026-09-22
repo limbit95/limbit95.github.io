@@ -1,7 +1,7 @@
 # Can't Stop UI Decisions
 
 > 이 문서는 Can't Stop의 디자인 개발 진행·변경 의사결정 이력을 보존합니다.
-> 현재 적용할 UI/presentation 기준은 `UI_DESIGN.md`, 기능 기준은 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
+> `UI_DESIGN.md`는 Can't Stop v1의 디자인 baseline입니다. 이후 확정된 이 문서의 최신 non-superseded 결정이 같은 항목에서는 우선하며, 현재 유효 디자인은 baseline + decision overrides로 해석합니다. 기능 기준은 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 > 공통 UI 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 >
 > 이 문서 체계 도입 이전의 모든 UI 변경사를 소급해 꾸며내지 않습니다. 현재 release baseline은 `UI_DESIGN.md`와 main runtime을 기준으로 하며, 이후 의미 있는 디자인 결정부터 이 문서에 누적합니다.
@@ -12,7 +12,8 @@
 - Current UI phase / scope: v1 release baseline 유지, 필요 시 post-release polish
 - Active branch: main
 - Last updated: 2026-09-23
-- Current canonical baseline: `UI_DESIGN.md`
+- Initial design baseline: `UI_DESIGN.md`
+- Active overrides: 없음
 - Next design work: 없음. 새 UI 작업이 시작되면 최신 main에서 별도 브랜치를 사용합니다.
 
 ## Decision Log
@@ -26,7 +27,7 @@
 - Affected surfaces: 문서 관리
 - Implementation status: IMPLEMENTED
 - Validation: 문서/거버넌스 검증 대상
-- Canonical sync: 현재 UI 기준 변경이 아니므로 `UI_DESIGN.md` 내용 변경은 불필요합니다.
+- Baseline relation: 문서 관리 방식만 변경하며 기존 `UI_DESIGN.md` baseline과 release runtime을 변경하지 않습니다.
 - Related functional boundary: `GAME_SPEC.md` 및 `DEVELOPMENT.md`의 기능 책임은 유지합니다.
 
 ## Superseded / Rejected
