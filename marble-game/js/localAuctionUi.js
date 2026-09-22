@@ -1,4 +1,5 @@
-import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r3";
+import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r4";
+import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260922-r1";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -351,6 +352,12 @@ export function setupLocalAuctionUi({
 
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
+  const introPresenter = createAuctionIntroPresenter({
+    documentObject,
+    clock,
+    setTimeoutFn,
+    clearTimeoutFn,
+  });
   elements.panel.addEventListener("pointerdown", prepareAuctionBidSound, { once: true });
   let disposed = false;
   let busy = false;
@@ -493,6 +500,14 @@ export function setupLocalAuctionUi({
     if (disposed) return;
     showBidEvent(state);
     const model = createLocalAuctionUiModel(state, selectedPlayerId);
+    const introActive = introPresenter.render(state, () => render(session.getState()));
+    if (introActive) {
+      clearTimers();
+      cancelHighestBidAnimation({ reset: true });
+      elements.panel.hidden = true;
+      elements.panel.dataset.auctionStage = "starting";
+      return;
+    }
     if (!model) {
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
@@ -614,6 +629,7 @@ export function setupLocalAuctionUi({
       clearTimers();
       cancelHighestBidAnimation({ reset: true });
       if (bidEventTimer !== null) clearTimeoutFn?.(bidEventTimer);
+      introPresenter.dispose();
       elements.panel.remove();
     },
   });
