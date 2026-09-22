@@ -179,13 +179,13 @@ games/<game-id>/UI_DECISIONS.md
 
 과거 결정이 뒤에서 바뀌어도 기존 기록을 삭제하지 않고 새 결정으로 대체하며 이전 항목을 `SUPERSEDED` 또는 `REVERTED`로 표시한다.
 
-`UI_DESIGN.md`와 `UI_DECISIONS.md`가 같은 UI 항목에서 충돌하면 **개발 시작 후 확정된 최신 non-superseded `UI_DECISIONS.md` 결정이 우선한다.** `UI_DESIGN.md`은 최초 baseline이므로 후속 변경을 되돌리는 근거로 사용할 수 없다.
+`UI_DESIGN.md`와 `UI_DECISIONS.md`가 같은 UI 항목에서 충돌하면 **baseline 이후 확정된 최신 non-superseded `UI_DECISIONS.md` 결정이 우선한다.** 신규 게임의 pre-development baseline이든 기존 게임의 adoption baseline이든 `UI_DESIGN.md`는 후속 변경을 되돌리는 근거로 사용할 수 없다.
 
 현재 유효 디자인은 다음처럼 해석한다.
 
 ```text
 effective design
-= pre-development UI_DESIGN baseline
+= UI_DESIGN baseline (pre-development or explicit adoption baseline)
 + latest applicable UI_DECISIONS overrides
 ```
 
@@ -264,7 +264,7 @@ MUST NOT: Phase 체크리스트를 순서대로 완료하는 과정에서 후속
 
 ### DEVELOPMENT.md와의 연결
 
-`DEVELOPMENT.md`는 기능 개발 handoff를 책임진다. 디자인 작업이 release 판단에 영향을 주는 경우 현재 design track을 짧게 참조할 수 있지만 UI 세부 진행·변경 이력은 `UI_DECISIONS.md`에 둔다.
+`DEVELOPMENT.md`는 기능 개발 handoff를 책임진다. 디자인 작업이 release 판단에 영향을 주는 경우 현재 design track을 짧게 참조할 수 있지만, baseline 이후의 의미 있는 UI 변경·결정·디자인 검증 이력은 `UI_DECISIONS.md`에 둔다.
 
 완료되지 않은 UI 항목을 `UI_DESIGN.md`에서 삭제해 현재 구현처럼 보이게 하지 않고, 초기 baseline의 단순 미구현인지 후속 decision으로 변경·대체된 것인지 `UI_DECISIONS.md`에서 구분한다.
 
