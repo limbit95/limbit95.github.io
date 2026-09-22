@@ -74,11 +74,11 @@ function renderWheel(documentObject, elements, state, playerIds, openingBidderPl
     const end = (index + 1) * segment;
     return `${ROULETTE_COLORS[index % ROULETTE_COLORS.length]} ${start}deg ${end}deg`;
   }).join(", ");
-  elements.wheel.style.background = `conic-gradient(from -90deg, ${gradient})`;
+  elements.wheel.style.background = `conic-gradient(from ${-(segment / 2)}deg, ${gradient})`;
   elements.wheel.querySelectorAll(".auction-roulette__label").forEach((label) => label.remove());
 
   playerIds.forEach((playerId, index) => {
-    const angle = (index * segment) + (segment / 2);
+    const angle = index * segment;
     const label = documentObject.createElement("span");
     label.className = "auction-roulette__label";
     label.style.setProperty("--roulette-angle", `${angle}deg`);
