@@ -88,9 +88,9 @@
 - 브라우저 종료·네트워크 단절 시 membership/turn/host 권한을 유지하고 재접속 시 기존 active room snapshot으로 복원하는 정책을 확정했습니다.
 - 방장이 연결을 잃어도 자동 방장 위임이나 자동 게임 종료를 하지 않고, 현재 차례 플레이어가 끊겨도 turn을 유지해 재접속 후 이어서 진행하도록 UI 안내를 추가했습니다.
 - roster에 Presence 기반 `재접속 대기` 상태와 현재 차례 표시를 연결했습니다.
-- 재대결은 terminal state를 같은 room에서 reset하지 않고, 방장이 결과방을 닫은 뒤 같은 최대 인원의 새 방을 만드는 방식으로 확정했습니다.
-- 새 게임 방 생성 시 기존 참가자는 새 방 코드로 다시 참가하도록 명시해 오래된 action/version/private state가 재사용되지 않도록 했습니다.
-- Presence lifecycle, 다중 탭 user merge, offline→online refresh, result-room→fresh-room 재대결 정책에 대한 회귀 테스트를 추가했습니다.
+- 초기 Phase 7에서는 결과방 종료 후 fresh room을 만드는 재대결 정책을 사용했으나, 2026-09-22 UI 개선 중 요구사항에 맞춰 same-room WAITING reset 정책으로 대체했습니다.
+- 현재 재대결은 기존 참가자·좌석을 유지하고 ready/cards/private state만 초기화합니다. 이전 action 기록은 보존하되 다음 게임은 새 client action id와 증가된 room version을 사용합니다.
+- Presence lifecycle, 다중 탭 user merge, offline→online refresh에 대한 기존 회귀 테스트를 유지합니다. fresh-room 재대결 정책은 이후 same-room 정책으로 대체되었습니다.
 - 최신 `main` 커밋 `2454e5e9d8a76a26002f794f8338255b62aababb`에서 Phase 8 검증 브랜치를 생성했습니다.
 - disposable Supabase에서 3개의 독립 승인회원 인증 세션이 같은 room에 참가해 각자 비공개 칩 snapshot을 받고, 세 플레이어가 한 번씩 거절한 뒤 자연 종료까지 진행하는 다중 클라이언트 통합 시나리오를 추가했습니다.
 - 3인 시나리오에서 명시적 leave 없이 `get_my_active_room`으로 재접속했을 때 최신 room/version/turn/center counter가 복원되는지 검증하도록 했습니다.
@@ -141,12 +141,15 @@
 - 개인 패널 tool grid를 1열로 변경해 게임 규칙/새로고침/게임 종료를 한 행에 하나씩 배치했습니다.
 - 개인 패널 높이와 hand 상하 padding을 소폭 늘리고 hover 시 z-index/scale 강제 강조를 제거한 뒤 `top: -24px` 이동으로 좌상단 숫자를 충분히 드러내도록 수정했습니다.
 - 중앙 칩 pile/count/action 간 row gap을 더 넓혔습니다.
-- GAME_OVER 화면의 방장에게 기존 `createRematchRoom()` fresh-room 흐름을 호출하는 `재대결` 버튼을 추가했습니다.
+- GAME_OVER 화면의 방장에게 `재대결` 버튼을 추가했고, 현재는 `no_thanks_prepare_rematch`를 통해 같은 참가자·좌석의 WAITING 대기실로 돌아갑니다.
 - 애니메이션 미노출 원인을 action snapshot 적용 직후 `busy=false` emit이 같은 version DOM을 즉시 다시 그리는 문제로 확인했습니다. presentation effect를 `requestAnimationFrame`에서 실제 연결된 최종 DOM 모션이 시작될 때까지 유지하도록 수정했습니다.
 - 중앙 칩이 0개일 때 `0개` count text를 제거하고 칩이 존재할 때만 count를 렌더합니다.
 - 새 카드 공개를 The Game의 `cardMotion.js` handoff 구조처럼 별도 fixed flight card 방식으로 교체했습니다. 실제 current-card DOM은 landing 전까지 숨기고, flight card가 deck top-card 위치에서 이동/flip을 완료한 프레임에 current-card를 노출한 뒤 flight를 110ms settle/fade하여 시각적 끊김을 줄였습니다. 덱 깊이는 남은 카드 단계형 규칙으로만 변합니다.
 - chip flight를 26px / 780ms로 조정하고 경로 중 opacity를 유지해 acting avatar → center pile 이동이 명확하게 보이도록 보정했습니다.
 - refuse snapshot의 증가된 center count를 즉시 그리지 않고 `chipPreviousCount`를 presentation state로 유지한 뒤 flight `animationend`에서 `commitCenterChipLanding()`으로 pile/count를 최종 값에 맞춰 갱신하도록 변경했습니다.
+- chip flight가 target에 도착한 뒤 100ms landing dwell을 둔 다음 pile/count를 커밋해 “도착 → 더미 +1” 순서를 더 분명하게 만들었습니다.
+- next-card flight를 The Game의 path keyframe 비율에 더 가깝게 조정하고 이동/flip 시간을 760ms로 늘려 뒤집힘을 여유 있게 인지할 수 있도록 했습니다.
+- `no_thanks_prepare_rematch` migration/RPC를 추가해 GAME_OVER에서 같은 room/참가자/좌석을 유지한 WAITING 상태로 전환하고 ready/cards/private state를 초기화하도록 변경했습니다.
 - refuse/take 성공 경로는 silent busy lock + result snapshot의 `busy=false` 동시 적용으로 busy-only/full snapshot/final busy render의 3단계를 authoritative result 1회 render로 축소했습니다. 클릭 대상은 DOM에서 즉시 disabled 처리해 중복 입력을 막습니다.
 
 ## Current Work
@@ -220,8 +223,8 @@
 - 현재 차례 플레이어 disconnect: turn을 다른 사용자에게 넘기지 않고 재접속을 기다림
 - browser offline: local connection UI만 offline으로 표시하고 서버 state는 변경하지 않음
 - reconnect: `online / pageshow / visibility` 이벤트에서 authoritative snapshot 재조회
-- 재대결: 같은 room reset 대신 결과방 종료 후 새 room 생성
-- 재대결 참가: 새 room code를 공유하고 참가자가 다시 join
+- 재대결: 같은 room id/code와 기존 active 참가자·좌석을 유지한 WAITING reset
+- 재대결 참가: 재join 없이 기존 참가자가 그대로 남고 일반 플레이어만 다시 ready
 - 자동 multi-client 검증: disposable Supabase에서 독립 auth session 3개/7개를 실제 RPC client로 취급
 - 3인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + reconnect snapshot + 자연 종료
 - 7인 자동 시나리오: 전원 snapshot privacy 확인 + full refuse cycle + private counter 독립성 + take/reconnect
@@ -279,7 +282,7 @@
   - 동일 `client_action_id`의 concurrent duplicate retry가 동일 authoritative snapshot으로 수렴하고 version을 두 번 증가시키지 않는 것을 검증했습니다.
   - Phase 7 PR #358의 최신 code head에서 Game Platform JavaScript syntax가 통과했습니다.
   - Phase 7 PR #358의 site ↔ `games/shared` module link 검증이 통과했습니다.
-  - Presence lifecycle, 다중 탭 user merge, offline→online refresh, fresh-room rematch를 포함한 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다.
+  - Presence lifecycle, 다중 탭 user merge, offline→online refresh, 당시 fresh-room rematch를 포함한 `npm run test:game-platform` 전체 계약 테스트가 통과했습니다. 이후 rematch 정책은 same-room reset으로 변경되었습니다.
   - Game Platform Governance Guard가 통과했습니다.
   - Phase 7은 DB schema/RPC를 변경하지 않아 disposable Game DB integration은 실행 대상이 아닙니다. 서버 DB 경계는 Phase 6의 성공 결과를 그대로 유지합니다.
   - 최신 main 대비 뒤처짐 없이 PR #358이 mergeable 상태임을 확인했습니다.
