@@ -27,7 +27,7 @@ export const AUCTION_TIMING = Object.freeze({
   voteMs: 15_000,
   startAnnouncementMs: 2_000,
   rouletteSpinMs: 3_200,
-  rouletteResultHoldMs: 2_000,
+  rouletteResultHoldMs: 800,
   openingBidderNoticeMs: 2_000,
   bidTurnMs: 15_000,
 });
