@@ -78,6 +78,25 @@ function scheduleAuctionBidSound(context) {
   });
 }
 
+function scheduleAuctionStartSound(context) {
+  const startAt = Number(context.currentTime) + 0.01;
+  [
+    { delayMs: 0, startFrequency: 660, endFrequency: 880, peakGain: 0.055, releaseMs: 210 },
+    { delayMs: 110, startFrequency: 880, endFrequency: 1180, peakGain: 0.05, releaseMs: 230 },
+    { delayMs: 230, startFrequency: 1180, endFrequency: 1480, peakGain: 0.046, releaseMs: 260 },
+  ].forEach((note) => {
+    scheduleTone(context, {
+      at: startAt + (note.delayMs / 1000),
+      type: "sine",
+      startFrequency: note.startFrequency,
+      endFrequency: note.endFrequency,
+      peakGain: note.peakGain,
+      attackMs: 5,
+      releaseMs: note.releaseMs,
+    });
+  });
+}
+
 export function prepareAuctionBidSound() {
   const context = getSharedAudioContext();
   if (!context) return false;
@@ -112,6 +131,34 @@ export function playAuctionBidSound({ context = null } = {}) {
       } else {
         play();
       }
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
+  play();
+  return true;
+}
+
+
+export function playAuctionStartSound({ context = null } = {}) {
+  const audioContext = context ?? getSharedAudioContext();
+  if (!audioContext) return false;
+
+  const play = () => {
+    try {
+      scheduleAuctionStartSound(audioContext);
+    } catch {
+      // Auction intro audio is optional and must never interrupt the game.
+    }
+  };
+
+  if (audioContext.state === "suspended") {
+    try {
+      const resume = audioContext.resume?.();
+      if (resume?.then) resume.then(play).catch(() => {});
+      else play();
     } catch {
       return false;
     }
