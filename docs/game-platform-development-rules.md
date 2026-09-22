@@ -102,6 +102,20 @@ games/<game-id>/
 
 `DEVELOPMENT.md`는 `GAME_SPEC.md`와 `UI_DESIGN.md`의 실제 구현 진행상태를 Completed / Current Work / Next Work / Validation에서 추적한다.
 
+### MUST: 게임별 세 문서의 권위와 충돌 해결
+
+세 문서는 서로 대체 관계가 아니라 책임이 다른 authoritative 문서다.
+
+- `GAME_SPEC.md`: 게임 규칙, 상태 머신, 기능 lifecycle, 도메인 모델, 서버 권위와 기능 범위의 기준
+- `UI_DESIGN.md`: Visual Identity, page/layout, 구성물 표현, motion, responsive, presentation의 기준
+- `DEVELOPMENT.md`: 위 두 설계가 실제로 어디까지 구현·검증됐는지 나타내는 현재 진행상태의 기준
+
+같은 주제가 여러 문서에 등장하면 **그 주제의 책임 문서가 최종 기준**이다. 예를 들어 재대결이 같은 room을 유지하는지 여부는 기능 lifecycle이므로 `GAME_SPEC.md`, 재대결 준비 화면의 시각 표현은 `UI_DESIGN.md`, 현재 구현 완료 여부는 `DEVELOPMENT.md`가 기준이다.
+
+MUST NOT: `DEVELOPMENT.md`에서 새로운 게임 규칙이나 UI 설계를 독자적으로 확정하지 않는다. 구현 과정에서 설계가 바뀌면 먼저 책임 문서를 갱신하고 `DEVELOPMENT.md`에는 변경 결정과 실제 구현 상태를 반영한다.
+
+문서끼리 모순이 발견되면 runtime 구현을 계속 진행하기 전에 실제 코드/테스트와 사용자 결정을 확인하고 책임 문서 기준으로 정합화한다.
+
 ### MUST: bootstrap 상태와 Registry 노출 경계
 
 신규 게임은 설계를 먼저 확정하기 위해 `games/<game-id>/`에 다음 세 파일만 존재하는 **bootstrap 상태**를 가질 수 있다.
@@ -251,7 +265,7 @@ games/<game-id>/DEVELOPMENT.md
 Legacy 보호 경계를 설명하기 위해 기존 Legacy 게임을 명시하는 경우를 제외하면, 현재 실행 규칙·공통 가이드·템플릿은 특정 platform-native 게임 이름, 경로, 상태 머신 또는 구현 세부사항을 신규 게임의 기준으로 삼지 않는다.
 
 - 신규 게임을 설명하는 예시는 `<game-id>`, `example-game` 같은 중립적인 placeholder를 사용한다.
-- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
+- 특정 platform-native 게임의 실제 규칙·UI·DB 구조·release 상태는 해당 게임의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`, 게임별 테스트에 둔다.
 - 과거 플랫폼 구축 과정을 보존하는 strategy/analysis 문서는 특정 게임 이력을 기록할 수 있지만, 반드시 현재 실행 규칙보다 우선하지 않는 참고 문서임을 명시한다.
 - 한 게임에서 검증된 구현을 다른 게임에 그대로 요구하지 않고, 반복해서 확인된 게임 비종속 책임만 SHARED 계약으로 승격한다.
 - `docs/game-platform-*.md` 문서는 제목 아래에 `> **문서 분류:** CURRENT` 또는 `HISTORY`를 반드시 선언한다.
@@ -630,6 +644,26 @@ Legacy에서 확인된 패턴은 참고 자료일 뿐 신규 플랫폼의 계약
 
 Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 실제 장애/보안/데이터/동기화 위험인지 별도로 검토한다.
 
+## 14B. 공통 규칙 변경 시 기존 게임 영향도 감사
+
+Game Platform의 CURRENT 규칙, shared 계약, DB/Test Contract 또는 공통 lifecycle을 변경하는 작업은 **새 게임에만 적용하고 끝내지 않는다.** 현재 Registry에서 `platform: "shared"`인 모든 게임을 전수 검토한다.
+
+각 게임은 최소 다음 중 하나로 분류한다.
+
+- `COMPLIANT`: 현재 구현·게임별 문서·테스트가 새 규칙과 이미 일치한다.
+- `MIGRATION_REQUIRED`: 현재 구현이나 문서가 새 규칙과 충돌하며 후속 수정이 필요하다.
+- `NOT_APPLICABLE`: 게임 구조상 해당 규칙이 적용되지 않으며 그 이유가 명확하다.
+
+### MUST
+
+- 규칙 변경 PR의 작업 결과 또는 PR 설명에 영향도 감사 결과를 남긴다.
+- `IN_PROGRESS` 게임이 `MIGRATION_REQUIRED`라면 release 전에 충돌을 해소한다.
+- `RELEASED` 게임이 `MIGRATION_REQUIRED`라면 현재 동작을 임의로 같은 PR에서 바꾸지 않고 별도 migration/follow-up 범위를 정한다.
+- 게임별 문서와 실제 코드/테스트가 서로 다른 정책을 말하면 문서만 맞춰 적지 말고 runtime 영향까지 확인한다.
+- 특정 게임의 예외를 허용해야 한다면 공통 규칙을 조용히 위반하게 두지 않고 적용 제외 근거 또는 플랫폼 규칙 변경으로 명시한다.
+
+Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도의 의미적 판단까지 자동화할 수는 없다. 따라서 공통 규칙 변경 시 영향도 감사는 작업자의 필수 검토 절차다.
+
 ## 15. 신규 게임 구현 순서
 
 특별한 이유가 없다면 다음 순서로 개발한다.
@@ -660,7 +694,15 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 23. 구현 피드백을 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 재분류
 ```
 
-이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
+이 순서는 게임 고유 시각 연출을 늦추기 위한 강제 단계가 아니라, 네트워크와 권위 모델이 흔들린 상태에서 UI 복잡도를 먼저 키우지 않기 위한 기본 작업 순서다.
+
+세 문서의 `Implementation Plan`과 진행 기록은 다음 책임으로 구분한다.
+
+- `GAME_SPEC.md / Implementation Plan`: 기능·상태 머신·DB/RPC·플랫폼 연결의 설계 순서
+- `UI_DESIGN.md / Implementation Plan`: Visual Identity·layout·component·motion·responsive의 presentation 구현 순서
+- `DEVELOPMENT.md / Next Work`: 지금 실제 작업에서 다음으로 수행할 구체적인 행동
+
+같은 TODO를 세 문서에 복제해 각각 따로 관리하지 않는다. 16~20은 첫 공개 또는 큰 release에서 수행하는 closeout 단계이며, 작은 유지보수 수정에서는 변경 범위에 필요한 항목만 적용한다.
 
 ## 16. 완료 체크리스트
 
