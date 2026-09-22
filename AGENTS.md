@@ -59,12 +59,12 @@ fix/marble-stability-phase3-ci
 - Legacy 보호 설명을 제외한 현재 Game Platform 공통 규칙·가이드·템플릿에는 특정 platform-native 게임명이나 그 게임만의 구현 세부사항을 기준 규칙으로 넣지 않습니다. 게임별 내용은 해당 게임의 `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`, 게임별 테스트에 둡니다.
 - 사용자가 새로운 게임 개발을 요청하면 gameplay/runtime 구현 전에 게임 규칙·제품 범위와 원본 디자인·구성물·Visual Identity·자산 사용 가능 범위를 조사하고 `games/<game-id>/GAME_SPEC.md`, `games/<game-id>/DEVELOPMENT.md`, `games/<game-id>/UI_DESIGN.md`, `games/<game-id>/UI_DECISIONS.md`를 먼저 생성합니다.
 - 공개된 기존 보드게임을 구현하는 경우 공식 규칙서나 신뢰 가능한 규칙 출처를 우선 확인하고 `GAME_SPEC.md`에 출처와 해석 결정을 남깁니다. UI는 공식/퍼블리셔 자료와 실제 구성물을 조사하고 `UI_DESIGN.md`에 디자인 출처, 목표 판본, Visual Identity, 저작권·라이선스 판단과 구현 계획을 기록합니다. 확인되지 않은 규칙이나 자산 사용 권리는 추측하지 않습니다.
-- `GAME_SPEC.md`는 현재 기능 규칙·구조의 기준, `DEVELOPMENT.md`는 기능 개발 진행·검증 인수인계, `UI_DESIGN.md`는 현재 적용할 디자인 규칙·조사·참고 기준, `UI_DECISIONS.md`는 의미 있는 디자인 변경·대안·결정 이유·검증 이력을 기록합니다.
+- `GAME_SPEC.md`는 현재 기능 규칙·구조의 기준, `DEVELOPMENT.md`는 기능 개발 진행·검증 인수인계, `UI_DESIGN.md`는 소스 개발 전 전수 조사·분석으로 수립한 초기 디자인 baseline, `UI_DECISIONS.md`는 개발 시작 후의 의미 있는 디자인 변경·대안·결정 이유·검증 이력과 baseline override를 기록합니다.
 - bootstrap 단계에서는 `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`만 있는 게임 디렉터리를 Registry 등록 전 상태로 둘 수 있습니다. 실제 runtime 파일을 추가하는 순간 Game Registry와 기존 platform-native 규칙을 함께 적용합니다.
 - 각 platform-native 게임은 `games/<game-id>/DEVELOPMENT.md`를 기능 개발상태의 인수인계 문서로 유지하고, 디자인 개발의 진행·변경 이력은 `games/<game-id>/UI_DECISIONS.md`에 분리합니다.
-- `UI_DECISIONS.md`에는 모든 CSS 수치 변경을 쌓지 않고, 다음 작업자가 현재 UI만 보고 복원하기 어려운 의미 있는 디자인/interaction 결정과 그 이유를 기록합니다. 현재 채택된 디자인 기준이 바뀌면 `UI_DESIGN.md`도 같은 작업에서 정합화합니다.
-- 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
-- 사용자가 `체크포인트 기록하자`라고 요청하면 기능 개발 상태는 `DEVELOPMENT.md`에 갱신하고, 그 구간에 의미 있는 UI/interaction 결정이 있었다면 `UI_DECISIONS.md`도 함께 갱신합니다. 현재 디자인 기준 자체가 바뀌었다면 `UI_DESIGN.md`까지 정합화합니다. 변경이 없는 문서를 체크포인트라는 이유만으로 수정하지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다. 이 명령이 아닌 일반적인 새 채팅용 정리·문서·요약 요청은 자동으로 repository checkpoint 명령으로 해석하지 않습니다.
+- `UI_DECISIONS.md`에는 모든 CSS 수치 변경을 쌓지 않고, 다음 작업자가 현재 UI만 보고 복원하기 어려운 의미 있는 디자인/interaction 결정과 그 이유를 기록합니다. 개발 시작 후의 변경으로 `UI_DESIGN.md` baseline을 덮어쓰지 않으며, 같은 항목에서 충돌하면 최신 non-superseded `UI_DECISIONS.md`가 우선합니다.
+- 기존 신규 게임 개발을 이어갈 때는 새 브랜치를 만들기 전에 해당 `DEVELOPMENT.md`와 진행 중 game-id 브랜치를 확인합니다. UI Phase를 이어갈 때는 반드시 `UI_DESIGN.md` baseline과 `UI_DECISIONS.md`의 최신 non-superseded 결정을 함께 읽고, 후속 결정이 초기 Phase보다 우선하도록 하며 이미 반영된 디자인을 원복하지 않습니다. 명확한 진행 중 checkpoint branch가 있으면 그 브랜치를 이어갑니다.
+- 사용자가 `체크포인트 기록하자`라고 요청하면 기능 개발 상태는 `DEVELOPMENT.md`에 갱신하고, 그 구간에 의미 있는 UI/interaction 결정이 있었다면 `UI_DECISIONS.md`도 함께 갱신합니다. 개발 시작 후의 디자인 변경은 `UI_DESIGN.md`를 재작성하지 않고 `UI_DECISIONS.md`에 누적합니다. 변경이 없는 문서를 체크포인트라는 이유만으로 수정하지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다. 이 명령이 아닌 일반적인 새 채팅용 정리·문서·요약 요청은 자동으로 repository checkpoint 명령으로 해석하지 않습니다.
 - 위 사용자 명령과 별개로 Phase 완료, release closeout 등 `docs/game-platform-development-rules.md`가 정한 기존 `DEVELOPMENT.md` 갱신 규칙은 그대로 적용합니다.
 - 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 - 모든 platform-native 게임은 로비 또는 시작 전 화면에서 처음 플레이하는 사용자도 이해할 수 있는 상세 규칙 안내를 제공하고, 플레이 중에도 다시 확인할 수 있는 진입점을 유지합니다.
