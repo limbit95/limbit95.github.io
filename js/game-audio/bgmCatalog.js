@@ -11,7 +11,8 @@ const GAME_BGM_CATALOG = Object.freeze({
     licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
     attribution: '"Invariance" Kevin MacLeod (incompetech.com)',
     modified: false,
-    defaultVolume: 0.22,
+    defaultVolume: 0.7,
+    defaultOutputVolume: 0.6,
     loop: true,
   }),
 });
