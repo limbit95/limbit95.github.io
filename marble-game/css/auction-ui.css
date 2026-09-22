@@ -548,9 +548,18 @@
 body[data-play-mode="window"] .important-notice {
   top: 50%;
   left: 50%;
+  z-index: 2800;
   transform: translate(-50%, -50%);
   backdrop-filter: none;
   pointer-events: none;
+}
+
+body[data-auction-overlay-active="true"] .important-notice,
+body[data-play-mode="window"][data-auction-overlay-active="true"] .important-notice {
+  top: max(18px, env(safe-area-inset-top));
+  z-index: 3200;
+  max-width: min(680px, calc(100vw - 28px));
+  transform: translateX(-50%);
 }
 
 @media (max-width: 640px) {
