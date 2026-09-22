@@ -29,7 +29,7 @@ AGENTS.md
 - `games/<game-id>/` 디렉터리에 `DEVELOPMENT.md`가 없거나 필수 기능 인수인계 섹션이 빠진 경우
 - `games/<game-id>/` 디렉터리에 `UI_DECISIONS.md`가 없거나 필수 디자인 이력 섹션이 빠진 경우
 - `DEVELOPMENT.md`가 `Status: RELEASED`인데 `Active branch: main`이 아니거나 `## Release` 기록이 없는 경우
-- Registry 미등록 bootstrap 디렉터리에 `GAME_SPEC.md` / `UI_DESIGN.md` / `DEVELOPMENT.md` 외 runtime 파일이 추가된 경우
+- Registry 미등록 bootstrap 디렉터리에 `GAME_SPEC.md` / `DEVELOPMENT.md` / `UI_DESIGN.md` / `UI_DECISIONS.md` 외 runtime 파일이 추가된 경우
 - runtime이 있는 `games/<game-id>/` 디렉터리가 shared Game Registry에 등록되지 않은 경우
 - shared Game Registry에 등록했지만 실제 `games/<game-id>/` 디렉터리가 없는 경우
 - online shared 게임인데 `tests/game-db-integration/<game-id>.test.js`가 없는 경우
@@ -53,7 +53,26 @@ AGENTS.md
 - 신규 UI rulebook `docs/game-platform-ui-rules.md`가 존재하면 `AGENTS.md`, 메인 개발 규칙, `games/README.md`, `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`가 해당 UI rulebook을 명시해야 한다.
 - `AGENTS.md`와 `games/` 최상위 Markdown 가이드/템플릿은 별도 분류 표기 없이 `CURRENT`로 간주해 같은 game-agnostic 검사를 적용한다.
 
-따라서 새 공통 UI 문서가 단독으로 고립되지 않고 신규 게임 개발 진입점과 세 설계/인수인계 문서 체계까지 연결된다. 새 `docs/game-platform-*.md` 추가 자체는 Governance 테스트의 파일 목록을 수동으로 수정할 필요가 없으며, 분류 누락·권위 연결 누락·특정 신규 게임 종속 규칙이 자동으로 차단된다.
+따라서 새 공통 UI 문서가 단독으로 고립되지 않고 신규 게임 개발 진입점과 네 game-local 문서 체계까지 연결된다. 새 `docs/game-platform-*.md` 추가 자체는 Governance 테스트의 파일 목록을 수동으로 수정할 필요가 없으며, 분류 누락·권위 연결 누락·특정 신규 게임 종속 규칙이 자동으로 차단된다.
+
+## 공통 규칙 변경 전파 원칙
+
+Game Platform 규칙을 보완할 때는 문서 계층의 높이만 보고 무조건 최상위부터 또는 최하위부터 고치지 않는다. 먼저 **이번 변경의 세부 의미를 소유하는 topic-owner 문서**를 식별한다.
+
+기본 절차는 다음과 같다.
+
+1. 변경 전 현재 최상위 규칙과 shared/runtime 경계를 확인해 제안이 기존 플랫폼 구조와 충돌하지 않는지 먼저 감사한다.
+2. 충돌이 없다면 가장 구체적인 세부 의미는 topic-owner 문서에서 먼저 정의한다.
+   - 예: UI lifecycle·디자인 기록 방식은 `docs/game-platform-ui-rules.md`
+   - 기능 개발 lifecycle·기능 checkpoint는 `docs/game-platform-development-rules.md`
+   - 자동 검증 범위와 문서 연결 강제는 이 Governance 문서와 Guard 소스
+3. topic-owner의 의미가 확정된 뒤 `docs/game-platform-development-rules.md`, `AGENTS.md`, `games/README.md` 같은 상위/진입 문서에는 필요한 요약과 참조만 전파한다.
+4. 같은 세부 규칙을 여러 상위 문서에서 독립적으로 다시 정의하지 않는다. 상위 문서는 책임 문서를 가리키고 핵심 invariant만 반복한다.
+5. 상위 규칙과 충돌하는 하위 규칙 변경이 필요하다면 하위 문서를 먼저 임의 수정하지 않는다. 그 변경은 공통 아키텍처 변경으로 취급해 상위 규칙의 승인·정합화와 현재 platform-native 게임 영향도 감사를 함께 수행한다.
+6. 전파가 끝나면 Governance/contract 테스트와 현재 platform-native 게임의 `COMPLIANT` / `MIGRATION_REQUIRED` / `NOT_APPLICABLE` 영향을 확인한다.
+
+이 방식은 **세부 결정은 한 곳에서 소유하고 상위 문서는 그 결정을 참조하는 구조**를 유지해 규칙 중복과 drift를 줄인다. 따라서 topic-owner → 상위 참조 문서 → Governance/테스트 순서의 전파는 기존 Game Platform 구조를 훼손하는 방식이 아니라, 오히려 문서 권위와 책임 경계를 유지하기 위한 기본 변경 방식으로 사용한다.
+
 ## Legacy 경계
 
 Governance Guard는 Liar Game, Drawing Spy, The Game, Marble을 새 플랫폼 규칙으로 마이그레이션하지 않는다.
