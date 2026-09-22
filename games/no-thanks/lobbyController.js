@@ -101,6 +101,7 @@ export function createNoThanksLobbyController({
   let reconnectTriggers = null;
   let unsubscribePresence = null;
   let trackedRoomId = null;
+  let trackingGeneration = 0;
   let offlineListenerAttached = false;
   let disposed = false;
 
@@ -143,6 +144,7 @@ export function createNoThanksLobbyController({
   }
 
   function stopTracking() {
+    trackingGeneration += 1;
     reconnectTriggers?.stop();
     reconnectTriggers = null;
     coordinator?.dispose();
@@ -159,6 +161,12 @@ export function createNoThanksLobbyController({
 
   function onOffline() {
     emit({ connection: "offline" });
+  }
+
+  function isCurrentTracking(generation, roomId) {
+    return !disposed
+      && generation === trackingGeneration
+      && trackedRoomId === roomId;
   }
 
   function recoverMissingRoom(error) {
@@ -183,6 +191,7 @@ export function createNoThanksLobbyController({
 
     stopTracking();
     trackedRoomId = roomId;
+    const generation = trackingGeneration;
 
     const viewerId = snapshot?.viewer?.playerId;
     if (typeof viewerId !== "string" || !viewerId.trim()) {
@@ -193,6 +202,7 @@ export function createNoThanksLobbyController({
       roomId,
       userId: viewerId,
       onSync: (onlinePlayerIds) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         emit({
           presence: Object.freeze({
             ready: true,
@@ -202,6 +212,7 @@ export function createNoThanksLobbyController({
         });
       },
       onStatus: (status) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         emit({
           presence: Object.freeze({
             ...state.presence,
@@ -214,38 +225,46 @@ export function createNoThanksLobbyController({
     windowTarget.addEventListener("offline", onOffline);
     offlineListenerAttached = true;
 
-    coordinator = createSnapshotCoordinator({
+    const roomCoordinator = createSnapshotCoordinator({
       loadSnapshot: () => roomLobby.getLobbySnapshot({ roomId }),
       subscribeInvalidation: roomLobby.subscribeInvalidation,
       onSnapshot: (nextSnapshot) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         applySnapshot(nextSnapshot, { connection: "connected" });
       },
       onError: (error) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         if (recoverMissingRoom(error)) return;
         emit({ connection: "error", error });
         onError(error);
       },
     });
+    coordinator = roomCoordinator;
 
-    reconnectTriggers = createReconnectRefreshTriggers({
+    const roomReconnectTriggers = createReconnectRefreshTriggers({
       refresh: async (reason) => {
+        if (!isCurrentTracking(generation, roomId)) return null;
         emit({ connection: "reconnecting", error: null });
-        const result = await coordinator.refresh(reason);
+        const result = await roomCoordinator.refresh(reason);
+        if (!isCurrentTracking(generation, roomId)) return result;
         emit({ connection: "connected" });
         return result;
       },
       windowTarget,
       documentTarget,
       onError: (error) => {
+        if (!isCurrentTracking(generation, roomId)) return;
         if (recoverMissingRoom(error)) return;
         emit({ connection: "error", error });
         onError(error);
       },
     });
+    reconnectTriggers = roomReconnectTriggers;
 
     applySnapshot(snapshot, { connection: "connected" });
-    await coordinator.start();
-    reconnectTriggers.start();
+    await roomCoordinator.start();
+    if (!isCurrentTracking(generation, roomId)) return state.snapshot;
+    roomReconnectTriggers.start();
     return state.snapshot;
   }
 
@@ -411,12 +430,18 @@ export function createNoThanksLobbyController({
       }
     }
 
+    const activeCoordinator = coordinator;
+    const activeRoomId = trackedRoomId;
+    const generation = trackingGeneration;
+
     emit({ connection: "reconnecting", error: null });
     try {
-      const result = await coordinator.refresh(reason);
+      const result = await activeCoordinator.refresh(reason);
+      if (!isCurrentTracking(generation, activeRoomId)) return result;
       emit({ connection: "connected" });
       return result;
     } catch (error) {
+      if (!isCurrentTracking(generation, activeRoomId)) return null;
       if (recoverMissingRoom(error)) return null;
       emit({ connection: "error", error });
       onError(error);
