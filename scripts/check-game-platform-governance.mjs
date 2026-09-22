@@ -12,6 +12,7 @@ const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
 const FUNCTION_CHECKPOINT_COMMAND = "기능 체크포인트 기록하자";
 const DESIGN_CHECKPOINT_COMMAND = "디자인 체크포인트 기록하자";
+const LEGACY_GENERIC_CHECKPOINT_MARKER = "`체크포인트 기록하자`";
 const FUNCTION_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
   "games/README.md",
@@ -171,6 +172,20 @@ export function validatePlatformDocumentPolicy({
       if (typeof content !== "string" || !content.includes(DESIGN_CHECKPOINT_COMMAND)) {
         errors.push(
           `${filename} must identify the Game Platform design checkpoint command: ${DESIGN_CHECKPOINT_COMMAND}`,
+        );
+      }
+    }
+  }
+
+  if (documents[RULEBOOK_PATH] != null) {
+    for (const filename of unique([
+      ...FUNCTION_CHECKPOINT_POLICY_PATHS,
+      ...DESIGN_CHECKPOINT_POLICY_PATHS,
+    ])) {
+      const content = documents[filename];
+      if (typeof content === "string" && content.includes(LEGACY_GENERIC_CHECKPOINT_MARKER)) {
+        errors.push(
+          `${filename} must not restore the retired generic checkpoint command; use the functional/design commands explicitly.`,
         );
       }
     }
