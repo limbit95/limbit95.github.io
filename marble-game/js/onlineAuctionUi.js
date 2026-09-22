@@ -41,7 +41,6 @@ function participantCards(state, playerIds = []) {
     id: playerId,
     name: playerName(findPlayer(state, playerId)),
     order: index + 1,
-    openingBidder: index === 0,
   })));
 }
 
@@ -126,12 +125,6 @@ export function createOnlineAuctionUiModel(state, viewerPlayerId) {
     highestBidderId,
     highestBidderName: highestBidderId ? playerName(findPlayer(state, highestBidderId)) : null,
     minimumBid,
-    openingBidderPlayerId: auction.openingBidderPlayerId
-      ?? pending.openingBidderPlayerId
-      ?? auction.requesterPlayerId
-      ?? pending.requesterPlayerId
-      ?? participantPlayerIds[0]
-      ?? null,
     participantPlayerIds: Object.freeze([...participantPlayerIds]),
     participantCards: participantCards(state, participantPlayerIds),
     participant,
@@ -307,12 +300,6 @@ function renderParticipantList(documentObject, elements, model) {
 
     const badges = documentObject.createElement("span");
     badges.className = "auction-action-panel__participant-badges";
-    if (card.openingBidder) {
-      const firstBid = documentObject.createElement("span");
-      firstBid.className = "auction-action-panel__first-bid";
-      firstBid.textContent = "첫 입찰";
-      badges.append(firstBid);
-    }
     if (model.stage === "auction" && card.id === model.turnPlayerId) {
       const currentTurn = documentObject.createElement("span");
       currentTurn.className = "auction-action-panel__turn-badge";
@@ -548,7 +535,7 @@ export function setupOnlineAuctionUi({
     } else {
       elements.badge.textContent = "경매 진행";
       elements.primaryMetricLabel.textContent = "현재 최고가";
-      renderHighestBid(model.highestBid);
+      renderHighestBid(model.highestBid > 0 ? model.highestBid : model.openingBid);
       elements.secondaryMetricLabel.textContent = "다음 최소 입찰가";
       elements.secondaryMetricValue.textContent = money(model.minimumBid);
       elements.bidRow.hidden = !model.participant;
