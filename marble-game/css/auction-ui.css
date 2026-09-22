@@ -716,7 +716,7 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
 }
 
 .auction-selector__track[data-running="true"] {
-  animation: auctionProfileChain 2.8s cubic-bezier(0.08, 0.72, 0.1, 1) both;
+  animation: auctionProfileChain 2.8s cubic-bezier(0.08, 0.78, 0.12, 1) both;
 }
 
 .auction-selector__player {
@@ -775,28 +775,11 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
 }
 
 @keyframes auctionProfileChain {
-  0% {
+  from {
     transform: translateX(0);
   }
-  16% {
-    transform: translateX(calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * 7.5));
-  }
-  44% {
-    transform: translateX(calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * 14.5));
-  }
-  68% {
-    transform: translateX(calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * 20.5));
-  }
-  84% {
-    transform: translateX(calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * 24.5));
-  }
-  94% {
-    transform: translateX(calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * 26.3));
-  }
-  100% {
-    transform: translateX(
-      calc(-1 * (var(--selector-card-width) + var(--selector-gap)) * var(--selector-target-index))
-    );
+  to {
+    transform: translateX(var(--selector-target-x, 0px));
   }
 }
 
