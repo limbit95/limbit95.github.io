@@ -1,6 +1,6 @@
 import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r4";
 import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260922-r2";
-import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260919-r13";
+import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260923-r1";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
