@@ -127,8 +127,8 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
   assert.match(uiSource, /createAuctionIntroPresenter/);
-  assert.match(uiSource, /auctionIntroUi\.js\?v=20260922-r2/);
-  assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260923-r1/);
+  assert.match(uiSource, /auctionBidSound\.js\?v=20260923-r1/);
   assert.doesNotMatch(uiSource, /showAuctionUnsoldResult/);
   assert.doesNotMatch(uiSource, /auction-result-modal/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
