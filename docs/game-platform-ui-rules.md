@@ -114,19 +114,20 @@ games/<game-id>/UI_DESIGN.md
 
 이 문서는 **현재 구현이 따라야 할 게임-local UI/presentation 설계의 기준 문서**다.
 
-`GAME_SPEC.md`가 게임 규칙과 기능 구조를 정의하고, `UI_DESIGN.md`가 보이는 방식과 느껴지는 방식을 정의하며, `DEVELOPMENT.md`가 두 설계의 실제 구현 진행상태를 추적한다.
+`GAME_SPEC.md`가 게임 규칙과 기능 구조를 정의하고, `DEVELOPMENT.md`가 기능 개발 진행을 추적하며, `UI_DESIGN.md`는 현재 보이는 방식과 느껴지는 방식의 canonical 기준을 정의하고, `UI_DECISIONS.md`는 디자인 개발의 진행·변경 이유·검증 이력을 보존한다.
 
 ### 생성 시점
 
-신규 게임 bootstrap에서 다음 세 문서를 runtime보다 먼저 생성한다.
+신규 게임 bootstrap에서 다음 네 문서를 runtime보다 먼저 생성한다.
 
 ```text
 GAME_SPEC.md
-UI_DESIGN.md
 DEVELOPMENT.md
+UI_DESIGN.md
+UI_DECISIONS.md
 ```
 
-`games/UI_DESIGN_TEMPLATE.md`를 기준으로 작성한다.
+`games/UI_DESIGN_TEMPLATE.md`와 `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 작성한다.
 
 ### MUST: 갱신이 필요한 경우
 
@@ -141,11 +142,36 @@ DEVELOPMENT.md
 
 작은 spacing 값이나 commit 단위 변경을 쌓는 changelog로 사용하지 않는다.
 
+현재 디자인 기준을 바꾸는 결정이 발생하면 `UI_DESIGN.md`를 최신 결과로 정합화하고, 왜 바뀌었는지·어떤 대안을 버렸는지·실제 구현/검증 상태는 `UI_DECISIONS.md`에 기록한다.
+
+### UI_DECISIONS.md와의 연결
+
+모든 platform-native 게임은 다음 디자인 개발 이력 문서를 가진다.
+
+```text
+games/<game-id>/UI_DECISIONS.md
+```
+
+`UI_DECISIONS.md`는 다음을 기록한다.
+
+- 실제 브라우저 QA나 사용자 피드백으로 디자인이 바뀐 배경
+- 이전안과 검토한 대안, 최종 결정과 이유
+- 의미 있는 layout/component/interaction/motion/responsive 변경
+- 구현 상태와 UI/browser validation
+- 다음 디자인 작업 또는 미확정 polish
+- canonical `UI_DESIGN.md` 반영 여부
+
+모든 CSS 수치나 commit을 기록하지 않는다. 현재 화면만 보고도 자명한 미세 조정은 생략하고, 다음 작업자가 동일한 시행착오를 반복하거나 사용자 의도를 잃을 수 있는 결정만 남긴다.
+
+과거 결정이 뒤에서 바뀌어도 기존 기록을 삭제하지 않고 새 결정으로 대체하며 이전 항목을 `SUPERSEDED` 또는 `REVERTED`로 표시한다.
+
+`UI_DECISIONS.md`와 `UI_DESIGN.md`가 충돌하면 **현재 canonical 디자인 기준은 `UI_DESIGN.md`**다. 충돌이 발견되면 이력 문서를 현재 기준처럼 재해석하지 말고 실제 코드/사용자 결정과 대조해 정합화한다.
+
 ### DEVELOPMENT.md와의 연결
 
-UI 설계의 실제 구현 진행은 `DEVELOPMENT.md`의 Completed / Current Work / Next Work / Validation에서 추적한다.
+`DEVELOPMENT.md`는 기능 개발 handoff를 책임진다. 디자인 작업이 release 판단에 영향을 주는 경우 현재 design track을 짧게 참조할 수 있지만 UI 세부 진행·변경 이력은 `UI_DECISIONS.md`에 둔다.
 
-완료되지 않은 UI 항목을 `UI_DESIGN.md`에서 삭제해 현재 구현처럼 보이게 하지 않고, 설계 변경인지 단순 미구현인지 구분한다.
+완료되지 않은 UI 항목을 `UI_DESIGN.md`에서 삭제해 현재 구현처럼 보이게 하지 않고, canonical 설계 변경인지 단순 미구현인지 `UI_DECISIONS.md`에서 구분한다.
 
 ## 7. 실제 보드게임의 공간 구조 반영
 
@@ -159,7 +185,7 @@ UI 설계의 실제 구현 진행은 `DEVELOPMENT.md`의 Completed / Current Wor
 - 공개 정보와 비공개 정보의 시각적 구분
 - 보드에서 진행 방향과 상태를 읽는 방식
 
-원본 배치를 그대로 복제하는 것이 가독성을 해치면 웹 환경에 맞게 재구성할 수 있지만, 왜 재배치했는지 `UI_DESIGN.md`에 결정 근거를 남긴다.
+원본 배치를 그대로 복제하는 것이 가독성을 해치면 웹 환경에 맞게 재구성할 수 있다. 현재 채택된 재배치 기준은 `UI_DESIGN.md`, 왜 그 방향을 선택했는지와 이전 대안은 `UI_DECISIONS.md`에 남긴다.
 
 ## 8. 모션과 행동 피드백
 
@@ -207,9 +233,9 @@ UI는 최소 다음을 명확히 표현한다.
 
 ### Implementation Plan 책임
 
-`UI_DESIGN.md / Implementation Plan`은 Visual Identity, page/layout, component, motion, responsive와 asset 준비처럼 **presentation 구현 순서만** 관리한다. 기능 상태 머신, DB/RPC, 서버 권위 구현 순서는 `GAME_SPEC.md`에 두고, 현재 실제 다음 행동은 `DEVELOPMENT.md / Next Work`에서 추적한다.
+`UI_DESIGN.md / Implementation Plan`은 현재 디자인을 구현할 때의 **안정적인 presentation 적용 순서와 가이드**만 관리하며 live progress/changelog로 사용하지 않는다. 기능 상태 머신, DB/RPC, 서버 권위 구현 순서는 `GAME_SPEC.md`, 실제 기능 다음 작업은 `DEVELOPMENT.md / Next Work`, 실제 디자인 진행과 다음 UI 작업은 `UI_DECISIONS.md`에서 추적한다.
 
-같은 TODO를 세 문서에 반복 복제하지 않는다.
+같은 TODO나 결정 이력을 네 문서에 반복 복제하지 않는다.
 
 ## 11. 구현 완료 검증
 
@@ -223,7 +249,7 @@ UI 구현을 완료했다고 판단하기 전에 최소 다음을 확인한다.
 - gameplay 핵심 정보의 가독성이 충분한가
 - motion이 서버 권위와 충돌하지 않고 행동 순서를 이해시키는가
 - desktop/mobile에서 핵심 action을 사용할 수 있는가
-- `DEVELOPMENT.md`의 UI 진행상태가 실제 구현과 일치하는가
+- `UI_DECISIONS.md`의 디자인 진행·중요 결정·검증 이력이 실제 구현과 일치하는가
 
 ## 12. 공통화 경계
 
