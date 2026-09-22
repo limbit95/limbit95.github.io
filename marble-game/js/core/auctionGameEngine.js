@@ -166,6 +166,31 @@ function isVoteComplete(vote) {
     >= vote.eligiblePlayerIds.length;
 }
 
+function canonicalAuctionParticipantIds(state, playerIds) {
+  return Object.freeze([...playerIds].sort((leftId, rightId) => {
+    const left = state.players.find((player) => player.id === leftId);
+    const right = state.players.find((player) => player.id === rightId);
+    return Number(left?.seat ?? 0) - Number(right?.seat ?? 0);
+  }));
+}
+
+function rotateAuctionParticipantIds(playerIds, openingBidderPlayerId) {
+  const startIndex = playerIds.indexOf(openingBidderPlayerId);
+  if (startIndex < 0) throw new Error("Auction opening bidder must be a participant.");
+  return Object.freeze([
+    ...playerIds.slice(startIndex),
+    ...playerIds.slice(0, startIndex),
+  ]);
+}
+
+function selectAuctionOpeningBidder(playerIds, options = {}) {
+  if (!playerIds.length) throw new Error("Auction roulette requires participants.");
+  const random = typeof options.random === "function" ? options.random : Math.random;
+  const value = Number(random());
+  const normalized = Number.isFinite(value) ? Math.min(0.999999999, Math.max(0, value)) : 0;
+  return playerIds[Math.floor(normalized * playerIds.length)];
+}
+
 function settleAuctionWinner(state, action, auction, extraEvents = []) {
   const settlement = getPropertyAuctionSettlement(auction);
   if (!settlement?.winnerPlayerId) throw new Error("Auction winner is missing.");
@@ -215,10 +240,10 @@ function resolveAuctionVote(state, action, options, {
   timeout = false,
 } = {}) {
   const vote = requireAuctionVote(state);
-  const participantPlayerIds = [...vote.participantPlayerIds];
+  const joinedPlayerIds = [...vote.participantPlayerIds];
   const passedPlayerIds = [...vote.passedPlayerIds];
   const passed = new Set(passedPlayerIds);
-  const participants = new Set(participantPlayerIds);
+  const participants = new Set(joinedPlayerIds);
   const events = [...extraEvents];
 
   if (timeout) {
@@ -235,6 +260,7 @@ function resolveAuctionVote(state, action, options, {
     }
   }
 
+  const participantPlayerIds = canonicalAuctionParticipantIds(state, joinedPlayerIds);
   events.push({
     type: "AUCTION_VOTE_CLOSED",
     nodeId: vote.nodeId,
@@ -252,20 +278,17 @@ function resolveAuctionVote(state, action, options, {
     }, action);
   }
 
-  const openingBidderPlayerId = participantPlayerIds[0];
-  const auction = createPropertyAuction({
-    nodeId: vote.nodeId,
-    openingBid: vote.openingBid,
-    declinedByPlayerId: vote.declinedByPlayerId,
-    openingBidderPlayerId,
-    participantPlayerIds,
-    players: state.players,
-    turnDeadlineAt: participantPlayerIds.length > 1
-      ? deadlineAt(options, AUCTION_TIMING.bidTurnMs)
-      : null,
-  });
-
-  if (participantPlayerIds.length === 1 || auction.status === "WON") {
+  if (participantPlayerIds.length === 1) {
+    const openingBidderPlayerId = participantPlayerIds[0];
+    const auction = createPropertyAuction({
+      nodeId: vote.nodeId,
+      openingBid: vote.openingBid,
+      declinedByPlayerId: vote.declinedByPlayerId,
+      openingBidderPlayerId,
+      participantPlayerIds,
+      players: state.players,
+      turnDeadlineAt: null,
+    });
     return settleAuctionWinner(state, action, auction, [
       ...events,
       {
@@ -277,26 +300,120 @@ function resolveAuctionVote(state, action, options, {
     ]);
   }
 
+  const deadlineAtValue = deadlineAt(options, AUCTION_TIMING.startNoticeMs);
   return withVersion(state, {
     pendingChoice: Object.freeze({
-      type: "PROPERTY_AUCTION",
+      type: "AUCTION_START_SEQUENCE",
+      stage: "NOTICE",
       nodeId: vote.nodeId,
       openingBid: vote.openingBid,
-      openingBidderPlayerId,
-      requesterPlayerId: openingBidderPlayerId,
-      participantPlayerIds: Object.freeze(participantPlayerIds),
-      auction,
+      declinedByPlayerId: vote.declinedByPlayerId,
+      participantPlayerIds,
+      openingBidderPlayerId: null,
+      deadlineAt: deadlineAtValue,
     }),
     lastEvents: freezeEvents([
       ...events,
       {
-        type: "AUCTION_STARTED",
+        type: "AUCTION_START_NOTICE",
         nodeId: vote.nodeId,
         openingBid: vote.openingBid,
-        openingBidderPlayerId,
         participantPlayerIds,
-        highestBidderId: openingBidderPlayerId,
-        highestBid: vote.openingBid,
+        deadlineAt: deadlineAtValue,
+      },
+    ]),
+  }, action);
+}
+
+function advanceAuctionStartSequence(state, action, options) {
+  if (state.status !== GAME_STATUS.PLAYING || state.phase !== TURN_PHASES.WAITING_CHOICE) {
+    throw new Error(`AUCTION_START_ADVANCE is not allowed during ${state.phase}.`);
+  }
+  if (state.pendingChoice?.type !== "AUCTION_START_SEQUENCE") {
+    throw new Error("There is no auction start sequence to advance.");
+  }
+  if (action.playerId !== null && action.playerId !== undefined) {
+    throw new Error("AUCTION_START_ADVANCE must be performed by the game authority.");
+  }
+
+  const pending = state.pendingChoice;
+  if (!deadlineExpired(pending.deadlineAt, options)) {
+    throw new Error("Auction start sequence deadline has not expired.");
+  }
+
+  if (pending.stage === "NOTICE") {
+    const openingBidderPlayerId = selectAuctionOpeningBidder(pending.participantPlayerIds, options);
+    const deadlineAtValue = deadlineAt(options, AUCTION_TIMING.rouletteMs);
+    return withVersion(state, {
+      pendingChoice: Object.freeze({
+        ...pending,
+        stage: "ROULETTE",
+        openingBidderPlayerId,
+        deadlineAt: deadlineAtValue,
+      }),
+      lastEvents: freezeEvents([{
+        type: "AUCTION_ROULETTE_STARTED",
+        nodeId: pending.nodeId,
+        participantPlayerIds: pending.participantPlayerIds,
+        openingBidderPlayerId,
+        deadlineAt: deadlineAtValue,
+      }]),
+    }, action);
+  }
+
+  if (pending.stage !== "ROULETTE" || !pending.openingBidderPlayerId) {
+    throw new Error("Auction start sequence stage is invalid.");
+  }
+
+  const participantPlayerIds = rotateAuctionParticipantIds(
+    pending.participantPlayerIds,
+    pending.openingBidderPlayerId,
+  );
+  const turnDeadlineAt = deadlineAt(options, AUCTION_TIMING.bidTurnMs);
+  const auction = createPropertyAuction({
+    nodeId: pending.nodeId,
+    openingBid: pending.openingBid,
+    declinedByPlayerId: pending.declinedByPlayerId,
+    openingBidderPlayerId: pending.openingBidderPlayerId,
+    participantPlayerIds,
+    players: state.players,
+    turnDeadlineAt,
+  });
+
+  if (auction.status === "WON") {
+    return settleAuctionWinner(state, action, auction, [{
+      type: "AUCTION_ROULETTE_RESOLVED",
+      nodeId: pending.nodeId,
+      participantPlayerIds,
+      openingBidderPlayerId: pending.openingBidderPlayerId,
+    }]);
+  }
+
+  return withVersion(state, {
+    pendingChoice: Object.freeze({
+      type: "PROPERTY_AUCTION",
+      nodeId: pending.nodeId,
+      openingBid: pending.openingBid,
+      openingBidderPlayerId: pending.openingBidderPlayerId,
+      requesterPlayerId: pending.openingBidderPlayerId,
+      participantPlayerIds,
+      auction,
+    }),
+    lastEvents: freezeEvents([
+      {
+        type: "AUCTION_ROULETTE_RESOLVED",
+        nodeId: pending.nodeId,
+        participantPlayerIds,
+        openingBidderPlayerId: pending.openingBidderPlayerId,
+      },
+      {
+        type: "AUCTION_STARTED",
+        nodeId: pending.nodeId,
+        openingBid: pending.openingBid,
+        openingBidderPlayerId: pending.openingBidderPlayerId,
+        participantPlayerIds,
+        highestBidderId: pending.openingBidderPlayerId,
+        highestBid: pending.openingBid,
       },
     ]),
   }, action);
@@ -459,6 +576,10 @@ export function reducePhase7GameAction(state, action, options = {}) {
 
   if (action?.type === ACTION_TYPES.AUCTION_VOTE_CLOSE) {
     return closeAuctionVote(state, action, options);
+  }
+
+  if (action?.type === ACTION_TYPES.AUCTION_START_ADVANCE) {
+    return advanceAuctionStartSequence(state, action, options);
   }
 
   if (action?.type === ACTION_TYPES.AUCTION_BID) {
