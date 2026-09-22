@@ -767,8 +767,10 @@ test("UI phase continuation cannot revert later user design decisions", () => {
   assert.match(uiRules, /Developer Manual Design Review \/ Detail Polish/u);
   assert.match(uiRules, /하나의 디자인 영역이 안정화/u);
   assert.match(uiRules, /디자인 작업 PR을 merge\/close하거나 작업 브랜치를 종료하기 전/u);
+  assert.match(uiRules, /baseline에서 벗어나 확정된 디자인 변경, 수동 브라우저 리뷰 결과/u);
   assert.match(uiRules, /초기 Phase 문구와 최신 유효 결정이 충돌하면 최신 `UI_DECISIONS\.md`를 적용/u);
   assert.match(uiRules, /과거 설계안으로 원복/u);
+  assert.match(developmentRules, /디자인 Phase 완료 자체만으로 Decision Log를 만들지 않는다/u);
   assert.match(developmentRules, /기능 완료 이후 디자인 수동 리뷰 gate/u);
   assert.match(developmentRules, /기능 개발의 완료 상태와 디자인 polish 완료 상태를 같은 것으로 취급하지 않는다/u);
   assert.match(developmentRules, /이미 반영된 사용자 디자인 수정을 회귀시키지 않는다/u);
