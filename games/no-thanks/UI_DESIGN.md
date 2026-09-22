@@ -52,6 +52,13 @@
 
 ## Gameplay Layout
 
+- WAITING과 PLAYING은 같은 대형 직사각형 game board scene을 사용하고, 중앙에는 타원형 table을 둡니다.
+- 3–7인 좌석은 authoritative seat/turn order를 바꾸지 않고 viewer 기준 표현 순서만 회전해 자신의 좌석이 항상 6시 방향에 오게 합니다.
+- 좌석 프로필 이미지의 중심점이 타원형 테이블의 실제 외곽 테두리 중심선에 오도록 배치하고, 현재 차례 avatar만 약 30% 확대해 턴을 읽게 합니다.
+- 보드 우측 상단에는 room code / 인원 / ready / connection / host를 compact HUD로 표시하며, board mode에서는 공통 대형 sidebar roster를 숨깁니다.
+- 모바일에서도 host/ready/connection 상태는 compact indicator로 유지하고 핵심 상태를 통째로 숨기지 않습니다.
+- 보드 아래 개인 패널은 보드와 같은 폭을 사용하며 desktop chip 열은 약 192px, hand 영역은 많은 카드를 수용하도록 동적 overlap을 사용합니다.
+- 보유 카드는 좌상단/우하단 숫자를 유지하고 hover/focus 시 위로만 들어 올려 인접 카드 숫자를 가리지 않습니다.
 - 중앙에는 deck / 현재 공개 카드 / 공개 칩 더미가 하나의 핵심 zone으로 보이게 합니다.
 - 각 플레이어가 가져간 카드는 개인 패널에서 포커 카드처럼 일부 겹쳐 정리할 수 있게 하되 숫자 식별성을 유지합니다.
 - 겹치는 카드에서도 숫자를 읽을 수 있도록 최소 왼쪽 상단 정보가 항상 노출되게 설계하고, 필요하면 반대 모서리 정보도 사용합니다.
@@ -71,9 +78,9 @@
 
 ## Motion / Interaction
 
-- 카드 공개: deck에서 중앙 공개 zone까지 충분한 이동 시간과 뒤집힘이 느껴지는 flip을 사용합니다.
-- 칩 제출: 플레이어 프로필/seat에서 출발해 중앙 칩 더미에 도착한 뒤 authoritative count 증가가 보이도록 순서를 맞춥니다.
-- 카드 가져오기: 중앙 카드와 쌓인 칩이 선택한 플레이어의 영역으로 이동한 뒤 다음 카드 공개로 이어집니다.
+- 카드 공개: draw deck의 실제 위치에서 별도 fixed flight card가 출발해 약 760ms 동안 arc 이동과 flip을 수행합니다. presentation effect는 시작 시점이 아니라 landing 완료 시점까지 유지하며, 동일 snapshot 재렌더가 중간에 발생해도 실제 current card는 `is-awaiting-deal` 상태로 숨겨 둡니다. 이동 카드가 도착한 프레임에 최신 current-card DOM을 공개하고 약 130ms settle/fade로 handoff합니다. landing 완료 시 `roomId:version:currentCard:deckRemaining` 기반 settled deal key를 기록하며, 브라우저 visibility/pageshow reconnect refresh 또는 같은 페이지의 controller 재구성으로 동일 authoritative snapshot을 다시 받아도 이미 settled된 deal은 재생하지 않습니다. deck visual depth는 남은 카드 단계 규칙으로만 변합니다.
+- 칩 제출: 약 26px token이 플레이어 seat에서 중앙 pile까지 약 780ms 이동하고, 도착 후 약 100ms landing dwell을 거친 뒤 presentation count를 authoritative 최종 값으로 handoff합니다.
+- 카드 가져오기: TAKE_CARD 직전 중앙 공개 카드와 실제 중앙 칩 DOM을 fixed overlay로 보존해 authoritative snapshot render 때 원본이 먼저 사라져 보이지 않게 합니다. 공개 카드는 개인 패널의 기존 보유 카드가 없으면 맨 왼쪽, 있으면 현재 가장 오른쪽 카드 다음 transient slot으로 The Game과 같은 22% / 50% / 78% / 94% arc timing을 따라 이동·안착합니다. 카드 landing과 chip landing은 뒤이어 실행되는 deal effect와 별도 상태로 기록합니다. 한 번 안착한 카드는 다음 카드 deal 중 동일 snapshot 재렌더가 발생해도 다시 `is-awaiting-take-landing` 상태로 돌아가지 않으며, landing 대상은 해당 card value의 최신 DOM만 선택합니다. 중앙 칩은 TAKE 시점의 authoritative center count를 batch count로 고정하고 그 수만 한 번 소비합니다. 부루마블 money transfer처럼 각 visible chip의 실제 출발 위치에서 내 보유 칩 영역으로 짧은 stagger 곡선 이동을 수행하며, batch 전체가 끝난 같은 task에서 overlay를 제거하고 개인 칩 count/cluster를 authoritative 최종 값으로 handoff합니다. 카드/칩 handoff가 끝난 뒤에만 draw deck의 다음 카드 공개 motion을 시작합니다.
 - turn transition: action 완료 presentation 이후 다음 active player를 강조합니다.
 - timing 원칙: 상태 숫자 증가가 구성물 도착보다 먼저 보여 원인/결과가 뒤집히지 않게 합니다.
 - server-authoritative state와 presentation의 동기화 기준: 서버 결과가 truth이며 animation은 그 결과를 설명하는 presentation layer로만 동작합니다.

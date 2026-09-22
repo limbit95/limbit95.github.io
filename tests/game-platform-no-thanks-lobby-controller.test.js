@@ -422,6 +422,48 @@ test("No Thanks! controller sends versioned refuse and take gameplay actions", a
   assert.equal(takeController.current().snapshot.game.activePlayerId, "guest-a");
 });
 
+test("No Thanks! gameplay commands render only the authoritative result snapshot", async () => {
+  const roomAdapter = fakeAdapter({
+    activeSnapshot: snapshot({
+      version: 14,
+      status: "playing",
+      activePlayerId: "guest-a",
+    }),
+  });
+  const emissions = [];
+  const controller = createNoThanksLobbyController({
+    adapter: roomAdapter,
+    gameplayAdapter: fakeGameplayAdapter({
+      takeSnapshot: snapshot({
+        version: 15,
+        status: "playing",
+        activePlayerId: "guest-a",
+        centerCounters: 0,
+        counters: 12,
+      }),
+    }),
+    idFactory: () => "fast-action",
+    windowTarget: new EventTarget(),
+    documentTarget: new FakeDocument(),
+    onState: (state) => emissions.push({
+      version: state.snapshot?.version ?? null,
+      busy: state.busy,
+    }),
+  });
+
+  await controller.initialize();
+  emissions.length = 0;
+
+  await controller.takeCard();
+
+  assert.deepEqual(emissions, [{
+    version: 15,
+    busy: false,
+  }]);
+  assert.equal(controller.current().busy, false);
+  assert.equal(controller.current().snapshot.version, 15);
+});
+
 test("No Thanks! controller enters the terminal result view from takeCard", async () => {
   const roomAdapter = fakeAdapter({
     activeSnapshot: snapshot({
