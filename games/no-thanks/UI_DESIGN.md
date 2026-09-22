@@ -1,9 +1,9 @@
 # No Thanks! UI Design
 
-> 이 문서는 No Thanks!의 소스/UI 개발 당시 전수 조사·분석을 바탕으로 정리한 game-local 디자인 baseline입니다.
+> 이 문서는 UI_DECISIONS 체계 도입 전에 이미 진행된 No Thanks! UI 작업을 기준으로 고정한 **adoption baseline**입니다. 신규 게임의 pre-development UI_DESIGN과 달리, 도입 이전 구현·수정 결과가 일부 함께 포함되어 있을 수 있으며 과거를 추측해 억지로 분리하지 않습니다.
 > 플랫폼 공통 기준은 `docs/game-platform-ui-rules.md`, 기능 규칙은 `GAME_SPEC.md`, 개발 시작 후의 디자인 수정·결정·검증과 baseline override는 `UI_DECISIONS.md`, 기능 구현 진행은 `DEVELOPMENT.md`에서 관리합니다.
 >
-> 이 baseline 이후 사용자 피드백과 실제 구현 과정에서 수정된 디자인은 `UI_DECISIONS.md`의 최신 non-superseded 결정이 우선합니다. 이 문서의 초기 Phase를 근거로 이미 반영된 수정 사항을 원복하지 않습니다.
+> adoption 이후 또는 과거 기록 복원으로 확인된 디자인 변경은 `UI_DECISIONS.md`의 최신 non-superseded 결정이 우선합니다. 이 문서의 기존 Phase 문구를 근거로 이미 반영된 수정 사항을 원복하지 않습니다.
 
 ## Design Research
 
@@ -124,7 +124,7 @@
 - [ ] 카드 공개가 deck → 이동 → flip → 공개 완료 순서로 이해된다.
 - [ ] lobby → gameplay → result/rematch가 하나의 Visual Identity를 유지한다.
 - [ ] desktop/mobile에서 핵심 action과 정보가 한 화면 흐름으로 유지된다.
-- [ ] DEVELOPMENT.md가 실제 UI 구현 진행상태를 추적한다.
+- [ ] UI_DECISIONS.md가 adoption baseline 이후의 실제 UI 결정·검증·후속 작업을 추적한다.
 
 ## Open Questions / Deferred
 
