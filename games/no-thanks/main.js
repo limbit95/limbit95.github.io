@@ -513,22 +513,32 @@ function createTableCard(view, state, {
         }
       },
     }, [
-      el("span", {
-        className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
-        text: displayValue,
-      }),
-      el("span", {
-        className: "no-thanks-table-card__label",
-        text: "CURRENT",
-      }),
-      el("strong", {
-        className: "no-thanks-table-card__value",
-        text: displayValue,
-      }),
-      el("span", {
-        className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
-        text: displayValue,
-      }),
+      el("span", { className: "no-thanks-table-card__inner" }, [
+        el("span", {
+          className: "no-thanks-table-card__face no-thanks-table-card__front",
+        }, [
+          el("span", {
+            className: "no-thanks-number-card__corner no-thanks-number-card__corner--top",
+            text: displayValue,
+          }),
+          el("span", {
+            className: "no-thanks-table-card__label",
+            text: "CURRENT",
+          }),
+          el("strong", {
+            className: "no-thanks-table-card__value",
+            text: displayValue,
+          }),
+          el("span", {
+            className: "no-thanks-number-card__corner no-thanks-number-card__corner--bottom",
+            text: displayValue,
+          }),
+        ]),
+        el("span", {
+          className: "no-thanks-table-card__face no-thanks-table-card__back",
+          "aria-hidden": "true",
+        }),
+      ]),
     ]),
     el("span", {
       className: "no-thanks-table-card-action__hint",
@@ -653,6 +663,44 @@ function createChipFlight(view, playerId) {
   });
 }
 
+function syncBoardAnimationGeometry() {
+  const board = app.querySelector(".no-thanks-game-board");
+  if (!board) return;
+
+  window.requestAnimationFrame(() => {
+    const dealingCard = board.querySelector(".no-thanks-table-card.is-dealing");
+    const deck = board.querySelector(".no-thanks-draw-deck__stack");
+    if (dealingCard && deck) {
+      const cardRect = dealingCard.getBoundingClientRect();
+      const deckRect = deck.getBoundingClientRect();
+      const dealX = (deckRect.left + (deckRect.width / 2))
+        - (cardRect.left + (cardRect.width / 2));
+      const dealY = (deckRect.top + (deckRect.height / 2))
+        - (cardRect.top + (cardRect.height / 2));
+      dealingCard.style.setProperty("--no-thanks-deal-x", dealX.toFixed(2) + "px");
+      dealingCard.style.setProperty("--no-thanks-deal-y", dealY.toFixed(2) + "px");
+      dealingCard.classList.add("is-motion-ready");
+    }
+
+    const chipFlight = board.querySelector(".no-thanks-chip-flight");
+    const chipTarget = board.querySelector(".no-thanks-center-chips .no-thanks-chip-cluster")
+      ?? board.querySelector(".no-thanks-center-chips");
+    if (chipFlight && chipTarget) {
+      const flightRect = chipFlight.getBoundingClientRect();
+      const targetRect = chipTarget.getBoundingClientRect();
+      const dx = (targetRect.left + (targetRect.width / 2))
+        - (flightRect.left + (flightRect.width / 2));
+      const dy = (targetRect.top + (targetRect.height / 2))
+        - (flightRect.top + (flightRect.height / 2));
+      chipFlight.style.setProperty("--no-thanks-chip-mid-x", (dx * .48).toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-mid-y", (dy * .42 - 28).toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
+      chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
+      chipFlight.classList.add("is-motion-ready");
+    }
+  });
+}
+
 function createRoundTable(view, state, effects) {
   if (view.status === "waiting") {
     return el("div", { className: "no-thanks-round-table" }, [
@@ -732,20 +780,18 @@ function createWaitingPrimaryAction(view, state) {
   });
 }
 
-function createMyPanel(view, state) {
+function createMyPanel(view, state, panelActions = []) {
   const viewer = view.players.find((player) => player.id === view.currentUserId);
   const cards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
   const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const statusText = waiting
-    ? (view.isHost ? "방장은 항상 준비된 자리로 표시됩니다." : (view.isReady ? "준비 완료 · 게임 시작을 기다리고 있어요." : "준비 완료를 누르면 테이블에 착석합니다."))
-    : !view.activePlayerConnected
-      ? (view.activePlayerDisplayName ?? "현재 플레이어") + "님의 재접속을 기다리고 있어요."
-      : view.isMyTurn
-        ? (view.viewerCounters === 0
-          ? "내 차례 · 칩이 없어 현재 카드를 반드시 가져와야 해요."
-          : "내 차례 · 가운데 카드를 누르거나 오른쪽 칩 영역에서 칩을 내세요.")
-        : (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
+    ? (view.isHost
+      ? "방장은 항상 준비된 자리로 표시됩니다."
+      : (view.isReady
+        ? "준비 완료 · 게임 시작을 기다리고 있어요."
+        : "준비 완료를 누르면 테이블에 착석합니다."))
+    : "";
 
   return el("section", {
     className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
@@ -784,17 +830,22 @@ function createMyPanel(view, state) {
           text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
         }),
     ]),
-    waiting
-      ? el("div", { className: "no-thanks-my-panel__actions" }, [
-        el("p", { className: "no-thanks-my-panel__message", text: statusText }),
-        el("div", {
+    el("div", {
+      className: "no-thanks-my-panel__actions"
+        + (waiting ? " no-thanks-my-panel__actions--waiting" : " no-thanks-my-panel__actions--playing"),
+    }, [
+      waiting
+        ? el("p", { className: "no-thanks-my-panel__message", text: statusText })
+        : null,
+      waiting
+        ? el("div", {
           className: "no-thanks-my-panel__action-row is-single",
-        }, [createWaitingPrimaryAction(view, state)]),
-      ])
-      : el("p", {
-        className: "no-thanks-my-panel__message no-thanks-my-panel__message--playing",
-        text: statusText,
-      }),
+        }, [createWaitingPrimaryAction(view, state)])
+        : null,
+      panelActions.length > 0
+        ? el("div", { className: "no-thanks-panel-tools" }, panelActions)
+        : null,
+    ]),
   ]);
 }
 
@@ -817,7 +868,7 @@ function boardStatusMessage(view) {
   return (view.activePlayerDisplayName ?? "다른 플레이어") + "님의 차례예요.";
 }
 
-function createBoardScene(view, state) {
+function createBoardScene(view, state, panelActions = []) {
   const effects = readBoardTransitionEffects(view);
   const seats = prepareBoardSeats(view);
   return el("section", { className: "no-thanks-board-view" }, [
@@ -837,12 +888,12 @@ function createBoardScene(view, state) {
       createChipFlight(view, effects.chipFromPlayerId),
       createBoardHud(view),
     ]),
-    createMyPanel(view, state),
+    createMyPanel(view, state, panelActions),
   ]);
 }
 
-function createWaitingPanel(view, state) {
-  return createBoardScene(view, state);
+function createWaitingPanel(view, state, panelActions = []) {
+  return createBoardScene(view, state, panelActions);
 }
 
 function createPlayerCards(view) {
@@ -874,8 +925,8 @@ function createPlayerCards(view) {
   ]);
 }
 
-function createPlayingPanel(view, state) {
-  return createBoardScene(view, state);
+function createPlayingPanel(view, state, panelActions = []) {
+  return createBoardScene(view, state, panelActions);
 }
 
 function createGameOverPanel(view, state) {
@@ -1309,13 +1360,24 @@ function renderLobby(access, state) {
     })
     : null;
   const openRematchConfirm = () => rematchDialog?.showModal();
+  const lobbyActions = createLobbyActions(
+    view,
+    state,
+    openRules,
+    openHostLeaveConfirm,
+    openGameEndConfirm,
+    openRematchConfirm,
+  );
+  const boardMode = Boolean(
+    view && (view.status === "waiting" || view.gamePhase === "PLAYING"),
+  );
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
     : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
       ? createGameOverPanel(view, state)
       : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
-        ? createPlayingPanel(view, state)
-        : createWaitingPanel(view, state);
+        ? createPlayingPanel(view, state, boardMode ? lobbyActions : [])
+        : createWaitingPanel(view, state, boardMode ? lobbyActions : []);
 
   const shell = createGameShell({
     title: "No Thanks!",
@@ -1331,14 +1393,7 @@ function renderLobby(access, state) {
     },
     main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, rematchDialog],
     sidebar: createSidebar(view),
-    actions: createLobbyActions(
-      view,
-      state,
-      openRules,
-      openHostLeaveConfirm,
-      openGameEndConfirm,
-      openRematchConfirm,
-    ),
+    actions: boardMode ? [] : lobbyActions,
   });
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
@@ -1348,6 +1403,7 @@ function renderLobby(access, state) {
   replaceApp(shell);
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
+    syncBoardAnimationGeometry();
     void ensureBoardAvatarUrls(view, access);
   }
 }
