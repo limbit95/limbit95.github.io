@@ -29,6 +29,7 @@ test("platform DB contract freezes the minimum multiplayer safety scenarios", ()
       "duplicate_action_safe",
       "concurrent_action_single_commit",
       "reconnect_snapshot_authoritative",
+      "rematch_lifecycle_authoritative",
       "private_state_not_exposed",
     ],
   );

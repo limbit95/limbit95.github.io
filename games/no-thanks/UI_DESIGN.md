@@ -82,8 +82,8 @@
 ## Result / Rematch Presentation
 
 - 최종 점수의 카드 합, 남은 칩 차감, 공동 승리를 읽을 수 있어야 합니다.
-- Platform target: 재대결은 새 방 생성이 아니라 동일 room/player context에서 준비 상태로 전환되는 흐름을 사용합니다.
-- 현재 main 구현은 fresh-room rematch이므로 `MIGRATION_REQUIRED` 상태이며, platform-alignment 후 이 target을 실제 구현 기준으로 사용합니다.
+- 재대결은 새 방 생성이 아니라 동일 room/player context에서 준비 상태로 전환되는 흐름을 사용합니다.
+- same-room rematch가 authoritative lifecycle로 구현되어 room code와 active membership을 유지하고 이전 gameplay/private state만 초기화합니다.
 - rematch 준비 화면도 동일한 No Thanks! page identity 안에 유지합니다.
 - 각 플레이어 ready 상태와 방장의 시작 가능 조건을 명확히 표현합니다.
 - 재대결하지 않는 플레이어는 방 나가기 action을 사용할 수 있어야 합니다.

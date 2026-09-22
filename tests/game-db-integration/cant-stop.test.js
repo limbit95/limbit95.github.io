@@ -473,6 +473,50 @@ registerPlatformGameDbContract({
       );
     },
 
+    rematch_lifecycle_authoritative: async () => {
+      const { host, guest, started } = await startTwoPlayerGame("contract-rematch");
+      const terminalVersion = Number(started.version) + 100;
+      await setAuthoritativeGameState(started.room.id, {
+        ...started.game,
+        phase: "GAME_OVER",
+        winnerId: host.id,
+        runners: {},
+        latestDice: null,
+        legalPairings: [],
+      }, terminalVersion);
+
+      const waiting = await expectOk(await rpc("cant_stop_prepare_rematch", {
+        p_room_id: started.room.id,
+        p_expected_version: terminalVersion,
+        p_client_action_id: randomUUID(),
+      }, host.accessToken), "contract cant_stop_prepare_rematch");
+
+      assert.equal(waiting.room.id, started.room.id);
+      assert.equal(waiting.room.roomCode, started.room.roomCode);
+      assert.equal(waiting.room.status, "waiting");
+      assert.equal(waiting.game, null);
+      assert.equal(waiting.players.length, 2);
+
+      const reconnected = await expectOk(await rpc(
+        "cant_stop_get_my_active_room",
+        {},
+        guest.accessToken,
+      ), "contract rematch reconnect");
+      assert.equal(reconnected.room.id, started.room.id);
+      assert.equal(reconnected.room.status, "waiting");
+
+      const ready = await setReady(guest, waiting, true);
+      const restarted = await expectOk(await rpc("cant_stop_start_game", {
+        p_room_id: ready.room.id,
+        p_expected_version: Number(ready.version),
+        p_client_action_id: randomUUID(),
+      }, host.accessToken), "contract rematch restart");
+
+      assert.equal(restarted.room.id, started.room.id);
+      assert.equal(restarted.room.status, "playing");
+      assert.equal(restarted.game.phase, "TURN_ROLL");
+    },
+
     private_state_not_exposed: async () => {
       const host = await createTestUser("privacy-host");
       const guest = await createTestUser("privacy-guest");

@@ -171,6 +171,7 @@ function fakeGameplayAdapter({
   refuseSnapshot = null,
   takeSnapshot = null,
   endSnapshot = null,
+  rematchSnapshot = null,
 } = {}) {
   const calls = [];
   return {
@@ -203,6 +204,13 @@ function fakeGameplayAdapter({
         activePlayerId: "host",
         finalScores: null,
         winners: [],
+      });
+    },
+    async prepareRematch(input) {
+      calls.push(["prepareRematch", input]);
+      return rematchSnapshot ?? snapshot({
+        version: input.expectedVersion + 1,
+        status: "waiting",
       });
     },
   };
@@ -562,7 +570,7 @@ test("No Thanks! presence updates connectivity without mutating authoritative sn
   assert.equal(presenceAdapter.unsubscribed(), 1);
 });
 
-test("No Thanks! rematch policy closes the result room and creates a fresh room", async () => {
+test("No Thanks! rematch keeps the current room and returns the group to ready state", async () => {
   const roomAdapter = fakeAdapter({
     activeSnapshot: snapshot({
       version: 40,
@@ -576,32 +584,42 @@ test("No Thanks! rematch policy closes the result room and creates a fresh room"
       winners: ["host"],
     }),
   });
-  const controller = createController(roomAdapter);
+  const gameplayAdapter = fakeGameplayAdapter({
+    rematchSnapshot: snapshot({
+      version: 41,
+      roomId: "room-1",
+      roomCode: "ABC234",
+      status: "waiting",
+    }),
+  });
+  const controller = createController(roomAdapter, gameplayAdapter);
 
   await controller.initialize();
-  await controller.createRematchRoom();
+  await controller.prepareRematch();
 
   assert.deepEqual(
-    roomAdapter.calls.find(([name]) => name === "leaveRoom"),
-    ["leaveRoom", {
+    gameplayAdapter.calls.find(([name]) => name === "prepareRematch"),
+    ["prepareRematch", {
       roomId: "room-1",
       expectedVersion: 40,
+      clientActionId: "action-1",
     }],
   );
-  assert.deepEqual(
-    roomAdapter.calls.find(([name]) => name === "createRoom"),
-    ["createRoom", { maxPlayers: 7 }],
+  assert.equal(
+    roomAdapter.calls.some(([name]) => name === "leaveRoom" || name === "createRoom"),
+    false,
   );
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
-  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().snapshot.room.id, "room-1");
+  assert.equal(controller.current().snapshot.room.roomCode, "ABC234");
+  assert.equal(controller.current().snapshot.version, 41);
 });
 
-
-test("No Thanks! rematch ignores a late snapshot from the closed result room", async () => {
+test("No Thanks! rematch ignores a late terminal snapshot from before the same-room reset", async () => {
   const oldResult = snapshot({
     version: 40,
-    roomId: "room-old",
-    roomCode: "OLD234",
+    roomId: "room-1",
+    roomCode: "ABC234",
     status: "playing",
     gamePhase: "GAME_OVER",
     finalScores: {
@@ -611,16 +629,19 @@ test("No Thanks! rematch ignores a late snapshot from the closed result room", a
     },
     winners: ["host"],
   });
-  const freshRoom = snapshot({
-    version: 0,
-    roomId: "room-new",
-    roomCode: "NEW234",
+  const readyAgain = snapshot({
+    version: 41,
+    roomId: "room-1",
+    roomCode: "ABC234",
+    status: "waiting",
   });
   const roomAdapter = fakeAdapter({
     activeSnapshot: oldResult,
-    createdSnapshot: freshRoom,
   });
-  const controller = createController(roomAdapter);
+  const gameplayAdapter = fakeGameplayAdapter({
+    rematchSnapshot: readyAgain,
+  });
+  const controller = createController(roomAdapter, gameplayAdapter);
 
   await controller.initialize();
 
@@ -628,17 +649,17 @@ test("No Thanks! rematch ignores a late snapshot from the closed result room", a
   const oldRefresh = controller.refresh("old-result-race");
   await new Promise((resolve) => setImmediate(resolve));
 
-  await controller.createRematchRoom();
+  await controller.prepareRematch();
 
-  assert.equal(controller.current().snapshot.room.id, "room-new");
-  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().snapshot.room.id, "room-1");
+  assert.equal(controller.current().snapshot.version, 41);
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
 
   resolveOldRefresh(oldResult);
   await oldRefresh;
 
-  assert.equal(controller.current().snapshot.room.id, "room-new");
-  assert.equal(controller.current().snapshot.room.roomCode, "NEW234");
-  assert.equal(controller.current().snapshot.version, 0);
+  assert.equal(controller.current().snapshot.room.id, "room-1");
+  assert.equal(controller.current().snapshot.room.roomCode, "ABC234");
+  assert.equal(controller.current().snapshot.version, 41);
   assert.equal(controller.current().view, NO_THANKS_LOBBY_VIEW.WAITING);
 });

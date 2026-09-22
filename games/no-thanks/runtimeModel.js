@@ -141,6 +141,7 @@ const LOBBY_ERROR_MESSAGES = Object.freeze([
   ["GAME_STATE_REQUIRED", "게임 상태를 불러오지 못했어요. 최신 상태를 다시 확인해 주세요."],
   ["INVALID_GAME_ACTION", "지원하지 않는 게임 동작이에요."],
   ["GAME_IN_PROGRESS", "게임 진행 중에는 방을 나갈 수 없어요."],
+  ["REMATCH_NOT_AVAILABLE", "게임이 정상적으로 종료된 뒤에 재대결을 준비할 수 있어요."],
 ]);
 
 export function getNoThanksLobbyErrorMessage(error) {
