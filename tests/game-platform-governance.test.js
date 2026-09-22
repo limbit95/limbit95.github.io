@@ -39,6 +39,24 @@ function gameSpecDocument() {
   ].join("\n");
 }
 
+function uiDesignDocument() {
+  return [
+    "## Design Research",
+    "## Copyright / Asset Usage",
+    "## Visual Identity",
+    "## Page Identity",
+    "## Lobby / Setup Design",
+    "## Gameplay Layout",
+    "## Components",
+    "## Motion / Interaction",
+    "## Result / Rematch Presentation",
+    "## Responsive Strategy",
+    "## Implementation Plan",
+    "## Validation Checklist",
+    "## Open Questions / Deferred",
+  ].join("\n");
+}
+
 function developmentDocument() {
   return [
     "## Current Status",
@@ -253,6 +271,7 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
     ],
     baseGameDirectories: [],
@@ -262,6 +281,7 @@ test("pull request guard allows bootstrap documents without Registry and require
   const errors = validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
       { status: "A", path: "games/cant-stop/index.html" },
     ],
@@ -273,6 +293,7 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
       { status: "A", path: "games/cant-stop/index.html" },
       { status: "M", path: "games/shared/registry.js" },
@@ -383,4 +404,108 @@ test("Game Platform rules codify release closeout and post-release feedback loop
   assert.match(rules, /모든 신규 게임 release 뒤 플랫폼 회고/u);
   assert.match(rules, /게임 수가 늘어도 구조 이해 비용과 신규 개발 시간이 비례해서 증가하지 않도록/u);
   assert.match(rules, /SHARED \/ GAME-LOCAL \/ RELEASE-OPERATIONS/u);
+});
+
+
+test("repository state requires UI_DESIGN with required sections when the UI rulebook exists", () => {
+  const documents = {
+    "docs/game-platform-development-rules.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
+    "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
+    "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
+  };
+  const base = {
+    gameDirectories: ["sample-game"],
+    registry: [],
+    dbTestFiles: [],
+    gameFiles: {
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+    },
+    gameSpecDocuments: { "sample-game": gameSpecDocument() },
+    developmentDocuments: { "sample-game": developmentDocument() },
+    documents,
+  };
+
+  const missing = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: {},
+  });
+  assert.match(missing.join("\n"), /requires games\/sample-game\/UI_DESIGN\.md/u);
+
+  const incomplete = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": "## Design Research" },
+  });
+  assert.match(incomplete.join("\n"), /UI_DESIGN\.md is missing required section/u);
+
+  assert.deepEqual(validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+  }), []);
+});
+
+test("UI rulebook authority links are enforced across game entry documents and templates", () => {
+  const documents = {
+    "docs/game-platform-development-rules.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
+    "AGENTS.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/README.md": "docs/game-platform-development-rules.md docs/game-platform-ui-rules.md",
+    "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
+    "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
+  };
+
+  assert.deepEqual(validateRepositoryState({
+    gameDirectories: [],
+    registry: [],
+    dbTestFiles: [],
+    documents,
+  }), []);
+
+  const broken = validateRepositoryState({
+    gameDirectories: [],
+    registry: [],
+    dbTestFiles: [],
+    documents: {
+      ...documents,
+      "games/GAME_SPEC_TEMPLATE.md": "missing ui rulebook link",
+    },
+  });
+  assert.match(
+    broken.join("\n"),
+    /games\/GAME_SPEC_TEMPLATE\.md must identify docs\/game-platform-ui-rules\.md/u,
+  );
+});
+
+test("Game Platform rules require multiplayer rematch without prematurely forcing a shared RPC shape", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /모든 멀티플레이 platform-native 게임/u);
+  assert.match(rules, /기존 room \/ active player identity/u);
+  assert.match(rules, /참여 플레이어가 준비 완료/u);
+  assert.match(rules, /방장이 게임 시작/u);
+  assert.match(rules, /동일한 RPC 이름/u);
+});
+
+test("UI rulebook requires design research, independent page identity, and maintained UI_DESIGN documents", () => {
+  const uiRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
+    "utf8",
+  );
+
+  assert.match(uiRules, /신규 게임 개발 전 UI 조사/u);
+  assert.match(uiRules, /독립적인 디지털 공간/u);
+  assert.match(uiRules, /games\/<game-id>\/UI_DESIGN\.md/u);
+  assert.match(uiRules, /저작권·상표·라이선스/u);
+  assert.match(uiRules, /DEVELOPMENT\.md/u);
 });
