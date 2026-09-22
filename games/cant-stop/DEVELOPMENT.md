@@ -7,7 +7,7 @@
 
 - Phase: Phase 4
 - Status: RELEASED
-- Active branch: `feature/cant-stop-state-bgm-20260923`
+- Active branch: main
 - Last checkpoint: 2026-09-23
 
 ## Release Baseline
