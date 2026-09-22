@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { playAuctionBidSound } from "../js/auctionBidSound.js?v=20260922-r2";
+import { playAuctionBidSound } from "../js/auctionBidSound.js?v=20260922-r3";
 
 function createFakeAudioContext() {
   const oscillators = [];
@@ -60,16 +60,20 @@ function createFakeAudioContext() {
   };
 }
 
-test("Auction bid sound synthesizes one compact gavel cue", () => {
+test("Auction bid sound synthesizes a compact coin-counting cue", () => {
   const context = createFakeAudioContext();
 
   assert.equal(playAuctionBidSound({ context }), true);
-  assert.equal(context.oscillators.length, 2);
-  assert.equal(context.gains.length, 2);
-  assert.deepEqual(context.oscillators.map((oscillator) => oscillator.type), ["triangle", "square"]);
-  assert.deepEqual(context.oscillators.map((oscillator) => oscillator.startFrequency.value), [210, 980]);
-  assert.deepEqual(context.oscillators.map((oscillator) => oscillator.endFrequency.value), [92, 360]);
-  assert.ok(context.oscillators.every((oscillator) => oscillator.starts[0] === 4.01));
+  assert.equal(context.oscillators.length, 6);
+  assert.equal(context.gains.length, 6);
+  assert.deepEqual(context.oscillators.map((oscillator) => oscillator.type), [
+    "triangle", "triangle", "triangle", "triangle", "triangle", "sine",
+  ]);
+  assert.deepEqual(context.oscillators.slice(0, 5).map((oscillator) => oscillator.startFrequency.value), [
+    1320, 1680, 1460, 1940, 1580,
+  ]);
+  assert.ok(context.oscillators[0].starts[0] === 4.01);
+  assert.ok(context.oscillators[4].starts[0] > context.oscillators[0].starts[0]);
   assert.ok(context.oscillators.every((oscillator) => oscillator.stops[0] > oscillator.starts[0]));
   assert.ok(context.gains.every((gain) => gain.connectedTo === context.destination));
 });

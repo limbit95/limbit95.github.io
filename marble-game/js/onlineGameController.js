@@ -420,8 +420,19 @@ if (onlineRoomId) {
 
   function showImportantNotice(state) {
     if (!importantNotice) return;
+    const decisiveBid = [...state.lastEvents].reverse().find((event) => event.type === "AUCTION_DECISIVE_BID");
+    const surgeBid = [...state.lastEvents].reverse().find((event) => (
+      event.type === "AUCTION_BID_PLACED" && event.surge === true
+    ));
     let text = null;
-    for (let index = state.lastEvents.length - 1; index >= 0; index -= 1) {
+    if (decisiveBid) {
+      const player = state.players.find((candidate) => candidate.id === decisiveBid.playerId);
+      text = `${playerName(player)}이(가) ${money(decisiveBid.amount)}로 승부를 결정했습니다! 다른 참가자가 더 이상 입찰할 수 없어 경매가 종료되었습니다.`;
+    } else if (surgeBid) {
+      const player = state.players.find((candidate) => candidate.id === surgeBid.playerId);
+      text = `큰 폭의 입찰! ${playerName(player)}이(가) ${money(surgeBid.amount)}로 ${money(surgeBid.increase)} 올렸습니다.`;
+    }
+    if (!text) for (let index = state.lastEvents.length - 1; index >= 0; index -= 1) {
       const event = state.lastEvents[index];
       if (event.type === "GAME_FINISHED") {
         const winner = state.players.find((player) => player.id === event.winnerPlayerId);
