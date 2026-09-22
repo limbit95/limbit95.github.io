@@ -66,7 +66,7 @@ games/<game-id>/
 3. 이번 웹게임에서 지원할 인원, 규칙 버전/변형, online/local 범위와 제외 범위를 정한다.
 4. `games/<game-id>/GAME_SPEC.md`를 생성해 현재 게임 규칙과 기능 구현 설계를 기록한다.
 5. `games/<game-id>/DEVELOPMENT.md`를 생성해 기능 개발의 현재 진행·검증 상태와 다음 기능 작업을 기록한다.
-6. `games/<game-id>/UI_DESIGN.md`를 생성해 디자인 조사 결과, Visual Identity, 독립 페이지 경험, 현재 적용할 UI/presentation 기준과 validation 기준을 기록한다.
+6. `games/<game-id>/UI_DESIGN.md`를 생성해 디자인 전수 조사 결과, Visual Identity, 독립 페이지 경험, 최초 UI/presentation Phase와 validation 기준을 runtime 개발 전에 기록한다.
 7. `games/<game-id>/UI_DECISIONS.md`를 생성해 이후 의미 있는 디자인/interaction 변경, 대안, 결정 이유, 구현 상태와 디자인 검증 이력을 기록할 자리를 만든다.
 8. 규칙 해석, 디자인 출처, 자산 사용 권리가 불명확한 항목은 임의로 확정하지 않고 책임 문서의 `Open Questions / Deferred`에 남긴다.
 9. 네 문서가 최소 기준을 충족한 뒤 게임 규칙 엔진, Registry, DB/RPC, UI 등 실제 구현을 시작한다.
@@ -745,7 +745,7 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 
 - [ ] `games/<game-id>/`에 게임이 독립적으로 위치한다.
 - [ ] `games/<game-id>/GAME_SPEC.md`가 현재 게임 규칙, 구현 범위, 상태 머신, 플랫폼 경계를 반영한다.
-- [ ] `games/<game-id>/UI_DESIGN.md`가 디자인 조사 출처, 자산 사용 경계, Visual Identity, 독립 페이지 방향, motion/responsive/현재 디자인 기준을 반영한다.
+- [ ] `games/<game-id>/UI_DESIGN.md`가 runtime 개발 전 디자인 조사 출처, 자산 사용 경계, Visual Identity, 독립 페이지 방향, motion/responsive, 최초 Phase baseline을 반영한다.
 - [ ] `games/<game-id>/UI_DECISIONS.md`가 의미 있는 디자인 개발 진행, 변경 이유, 폐기/대체 결정, UI/browser validation과 후속 디자인 작업을 반영한다.
 - [ ] `games/<game-id>/DEVELOPMENT.md`가 GAME_SPEC 기준 기능 Phase/브랜치/다음 기능 작업/검증 상태를 반영하고 UI 세부 이력을 중복 관리하지 않는다.
 - [ ] Registry에 `platform: "shared"`로 등록되어 있다.
