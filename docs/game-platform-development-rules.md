@@ -33,6 +33,7 @@ Legacy의 현재 동작 보호가 우선이며, 신규 플랫폼과 맞추기 �
 - **SHOULD**: 특별한 이유가 없다면 기본적으로 따른다.
 - **GAME-LOCAL**: 해당 게임의 규칙과 구현에 남겨야 하는 영역이다.
 - **SHARED**: 게임 규칙과 무관하게 미래 게임에서도 반복되는 플랫폼 책임이다.
+- **ARCHITECTURE CHANGE**: 하위 topic-owner에서 발견한 필요가 현재 상위 Game Platform 규칙이나 shared contract의 허용 범위를 벗어나지만, 토의 결과 특정 게임의 예외가 아니라 플랫폼 전반에 필요한 변경으로 명시적으로 승격된 작업이다.
 
 ## 3. 작업 시작 전
 
@@ -102,6 +103,8 @@ games/<game-id>/
 개발이 시작된 뒤 사용자 피드백, 실제 브라우저 QA, 구현 관찰로 디자인을 수정하는 경우 그 변경으로 `UI_DESIGN.md`의 과거 baseline을 덮어쓰지 않는다. 이후 변경은 `UI_DECISIONS.md`에 기록한다. `UI_DESIGN.md`는 최초 조사·설계 당시 무엇을 근거로 어떤 방향과 Phase를 세웠는지 복원할 수 있어야 한다.
 
 MUST NOT: 후속 디자인 수정에 맞춰 `UI_DESIGN.md`를 계속 최신 화면으로 재작성해 최초 설계와 후속 변경의 경계를 없애지 않는다. 단, 출처 오기·명백한 사실 오류처럼 초기 조사 자체의 오류를 바로잡는 경우에는 수정 이유가 추적되도록 `UI_DECISIONS.md`에도 남긴다.
+
+이 4문서 체계 도입 전에 이미 runtime/UI 개발이 시작되었거나 release된 platform-native 게임은 과거를 꾸며내어 "개발 전 baseline"으로 재작성하지 않는다. 그런 게임은 도입 시점에 확인 가능한 가장 이른 신뢰 가능한 UI 설계 또는 현재 production/작업 baseline을 **adoption baseline**으로 명시할 수 있다. 이 예외는 기존 게임의 전환을 위한 것이며 신규 게임에는 적용하지 않는다. adoption 이후의 새 디자인 수정은 동일하게 `UI_DECISIONS.md`에 기록한다.
 
 ### MUST: UI_DECISIONS의 역할
 
@@ -657,9 +660,10 @@ tests/game-db-integration/<game-id>.test.js
 7. duplicate action 중복 적용 방지
 8. concurrent conflicting action의 single authoritative commit
 9. reconnect 시 authoritative snapshot 복원
-10. 다른 플레이어 private state 미노출
+10. 멀티플레이 게임의 same-room rematch lifecycle과 재시작 권한/조건의 server-side 검증
+11. 다른 플레이어 private state 미노출
 
-private state가 없는 게임도 10번을 생략하지 않고 **노출될 private state가 없음을 검증**한다.
+private state가 없는 게임도 11번을 생략하지 않고 **노출될 private state가 없음을 검증**한다.
 
 MUST: DB integration은 disposable local Supabase에서 검증한다.
 
@@ -681,6 +685,35 @@ MUST NOT: 테스트를 위해 production Supabase 데이터나 스키마를 직�
 MUST NOT: 현재 게임을 빠르게 구현하기 위한 편의 때문에 shared에 게임별 예외를 추가하지 않는다.
 
 MUST NOT: 실제 소비자가 없는 미래 기능을 추측해 범용 엔진으로 선행 구현하지 않는다.
+
+## 13A. 하위 규칙 발견과 Game Platform Architecture Change 승격
+
+신규 게임 개발 중 하위 game-local 문서나 topic-owner 규칙에서 현재 상위 규칙으로는 수용할 수 없는 필요가 먼저 발견될 수 있다. **하위에서 먼저 발견했다는 사실은 그 변경에 상위 권위를 부여하지 않는다.**
+
+### 일반 변경
+
+- 새 필요가 현재 상위 규칙과 shared/runtime 경계 안에서 세부화 가능한 경우 topic-owner 문서에서 가장 구체적인 규칙을 먼저 정의한다.
+- 이후 상위/진입 문서는 같은 세부 규칙을 다시 독립 정의하지 않고 필요한 invariant와 topic-owner 참조만 전파한다.
+
+### 상위 규칙과 충돌하는 경우
+
+- 토의·승격 없이 하위 문서 또는 runtime/source부터 상위 규칙을 벗어나게 수정하는 것은 **불허용**이다.
+- 소스 수정 전에 현재 상위 규칙, shared contract, 기존 platform-native 게임에 미치는 영향을 확인한다.
+- 사용자/maintainer와의 토의에서 해당 필요가 특정 게임의 예외가 아니라 Game Platform 전반에 필요한 변경이라고 명시적으로 합의되면 **ARCHITECTURE CHANGE**로 승격한다.
+- 승격된 뒤에는 하위 topic-owner와 상위 규칙을 같은 작업 범위에서 함께 정합화할 수 있으며, runtime 구현보다 규칙/계약 변경과 영향도 감사를 먼저 또는 같은 원자적 변경에서 완료한다.
+- 승격 전의 하위 제안을 기존 상위 규칙을 우회하는 임시 예외로 구현하지 않는다.
+
+ARCHITECTURE CHANGE 작업은 최소 다음을 함께 검토한다.
+
+1. `docs/game-platform-development-rules.md` 최상위 invariant
+2. 관련 topic-owner 문서(UI, DB/Test, Governance 등)
+3. `games/shared/` 계약과 관련 contract test
+4. game-local 템플릿과 신규 게임 bootstrap 규칙
+5. Governance Guard와 workflow/검증 범위
+6. Registry의 모든 `platform: "shared"` 게임 영향도
+7. Legacy 경계와 site-level 소비자 영향 여부
+
+세부 전파 절차와 자동 검증 경계는 `docs/game-platform-governance.md`의 **공통 규칙 변경 전파 원칙**을 따른다.
 
 ## 14. Legacy 경계
 
@@ -785,7 +818,7 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 - [ ] 진행 중 세션을 안전하게 끝낼 수 있는 게임 종료 경로와 종료 후 복구/이탈 흐름이 있다.
 - [ ] 멀티플레이 게임이라면 GAME_OVER → 재대결 준비 → 참여자 ready → 방장 시작 → 새 게임의 흐름이 있고 reconnect/이탈/최소 인원 조건을 authoritative하게 처리한다.
 - [ ] Common Game Shell 사용 여부와 게임-local UI 경계가 명확하다.
-- [ ] entry/lobby/gameplay/result/rematch가 `UI_DESIGN.md`의 Visual Identity를 유지하고 일반 청파 같이 페이지와 구별되는 독립적인 게임 공간으로 느껴진다.
+- [ ] entry/lobby/gameplay/result/rematch가 `UI_DESIGN.md` baseline과 최신 non-superseded `UI_DECISIONS.md` overrides로 계산한 유효 디자인을 유지하고 일반 청파 같이 페이지와 구별되는 독립적인 게임 공간으로 느껴진다.
 - [ ] UI_DESIGN validation checklist와 UI_DECISIONS의 desktop/mobile/interaction 검증 이력을 확인했다.
 - [ ] Invite를 제공한다면 `game_room` 계약을 사용한다.
 - [ ] DB/Test Contract 필수 시나리오를 모두 구현한다.
@@ -810,10 +843,11 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 신규 platform-native 게임 구현에서 문서 우선순위는 다음과 같다.
 
 1. **이 문서** — 현재 실행 규칙의 최상위 기준
-2. **`docs/game-platform-ui-rules.md`** — 신규 게임 UI 조사·Visual Identity·UI_DESIGN 관리와 presentation 실행 규칙
-3. **실제 `games/shared/` 코드와 계약 테스트** — 현재 구현된 계약의 최종 확인
-4. **`docs/game-platform-db-test-contract.md`** — DB/RPC 작업 시 적용하는 정식 품질 계약
-5. **`games/README.md`** — 현재 shared 모듈과 디렉터리 안내
+2. **`docs/game-platform-ui-rules.md`** — 신규 게임 UI 조사·Visual Identity·UI_DESIGN/UI_DECISIONS 관리와 presentation 실행 규칙
+3. **`docs/game-platform-governance.md`** — 공통 규칙 변경 전파, Architecture Change 승격 이후 영향도 감사와 자동 Guard 경계
+4. **실제 `games/shared/` 코드와 계약 테스트** — 현재 구현된 계약의 최종 확인
+5. **`docs/game-platform-db-test-contract.md`** — DB/RPC 작업 시 적용하는 정식 품질 계약
+6. **`games/README.md`** — 현재 shared 모듈과 디렉터리 안내
 
 다음 문서는 **배경/이력 참고용**이며 신규 게임 개발의 필수 선행 문서가 아니다.
 
