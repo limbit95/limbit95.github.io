@@ -555,16 +555,14 @@ function createTableCard(view, state, {
   ]);
 }
 
-function createDrawDeck(view, { dealing = false } = {}) {
+function createDrawDeck(view) {
   const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
   return el("div", {
     className: "no-thanks-draw-deck",
     "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
   }, [
     el("div", {
-      className: "no-thanks-draw-deck__stack"
-        + (visualCount === 0 ? " is-empty" : "")
-        + (dealing ? " is-dealing" : ""),
+      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
       "aria-hidden": "true",
     }, Array.from({ length: visualCount }, (_, index) => {
       const depth = visualCount - index - 1;
@@ -716,21 +714,29 @@ function syncBoardAnimationGeometry() {
 
     const dealingCard = board.querySelector(".no-thanks-table-card.is-dealing");
     const deck = board.querySelector(".no-thanks-draw-deck__stack");
-    if (dealingCard && deck) {
+    const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
+    if (dealingCard && deckTopCard) {
       const cardRect = dealingCard.getBoundingClientRect();
-      const deckRect = deck.getBoundingClientRect();
+      const deckRect = deckTopCard.getBoundingClientRect();
       const dealX = (deckRect.left + (deckRect.width / 2))
         - (cardRect.left + (cardRect.width / 2));
       const dealY = (deckRect.top + (deckRect.height / 2))
         - (cardRect.top + (cardRect.height / 2));
+      const startScale = Math.max(
+        .5,
+        Math.min(1, Math.min(
+          deckRect.width / cardRect.width,
+          deckRect.height / cardRect.height,
+        )),
+      );
       dealingCard.style.setProperty("--no-thanks-deal-x", dealX.toFixed(2) + "px");
       dealingCard.style.setProperty("--no-thanks-deal-y", dealY.toFixed(2) + "px");
       dealingCard.style.setProperty("--no-thanks-deal-mid-x", (dealX * .48).toFixed(2) + "px");
       dealingCard.style.setProperty("--no-thanks-deal-mid-y", (dealY * .48 - 12).toFixed(2) + "px");
+      dealingCard.style.setProperty("--no-thanks-deal-start-scale", startScale.toFixed(4));
       dealingCard.addEventListener("animationend", (event) => {
         if (event.target !== dealingCard || event.animationName !== "no-thanks-card-deal-path") return;
         dealingCard.classList.remove("is-dealing", "is-motion-ready", "is-submitting");
-        deck.classList.remove("is-dealing");
       }, { once: true });
       dealingCard.classList.add("is-motion-ready");
       started = true;
@@ -778,7 +784,7 @@ function createRoundTable(view, state, effects) {
 
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
-      createDrawDeck(view, { dealing: effects.dealCard }),
+      createDrawDeck(view),
       createTableCard(view, state, { dealIn: effects.dealCard }),
       createCenterChipAction(view, state),
     ]),
