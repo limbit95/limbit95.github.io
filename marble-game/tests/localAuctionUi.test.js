@@ -39,15 +39,15 @@ function voteChoice(participantPlayerIds = [], passedPlayerIds = []) {
 function auctionChoice({
   participantPlayerIds = ["p2", "p3"],
   passedPlayerIds = [],
-  highestBid = 360,
-  highestBidderId = "p2",
-  turnPlayerId = "p3",
+  highestBid = 0,
+  highestBidderId = null,
+  turnPlayerId = "p2",
 } = {}) {
   return {
     type: "PROPERTY_AUCTION",
     nodeId: "tokyo",
     openingBid: 360,
-    openingBidderPlayerId: participantPlayerIds[0],
+    starterPlayerId: participantPlayerIds[0],
     participantPlayerIds,
     auction: {
       type: "PROPERTY_AUCTION",
@@ -56,8 +56,8 @@ function auctionChoice({
       declinedByPlayerId: "p1",
       eligiblePlayerIds: ["p2", "p3"],
       participantPlayerIds,
-      openingBidderPlayerId: participantPlayerIds[0],
-      bidPlayerIds: [participantPlayerIds[0]],
+      starterPlayerId: participantPlayerIds[0],
+      bidPlayerIds: [],
       passedPlayerIds,
       highestBid,
       highestBidderId,
@@ -87,31 +87,32 @@ test("local vote model exposes one-time join/pass actions", () => {
   assert.equal(passed.canVotePass, false);
 });
 
-test("local participant cards preserve join order and first-bid badge", () => {
+test("local participant cards preserve join order without legacy first-bid metadata", () => {
   const model = createLocalAuctionUiModel(state(voteChoice(["p3", "p2"])), "p2");
   assert.deepEqual(model.participantCards.map((card) => ({
     id: card.id,
     order: card.order,
-    openingBidder: card.openingBidder,
   })), [
-    { id: "p3", order: 1, openingBidder: true },
-    { id: "p2", order: 2, openingBidder: false },
+    { id: "p3", order: 1 },
+    { id: "p2", order: 2 },
   ]);
+  assert.equal(model.participantCards.some((card) => "openingBidder" in card), false);
   assert.equal(model.participantCount, 2);
   assert.equal(model.waitingCount, 0);
 });
 
 test("competitive model only enables bid and pass for current participant", () => {
   const first = createLocalAuctionUiModel(state(auctionChoice()), "p2");
-  assert.equal(first.highestBid, 360);
-  assert.equal(first.minimumBid, 361);
-  assert.equal(first.canBid, false);
-  assert.equal(first.canPass, false);
+  assert.equal(first.highestBid, 0);
+  assert.equal(first.minimumBid, 360);
+  assert.equal(first.isTurn, true);
+  assert.equal(first.canBid, true);
+  assert.equal(first.canPass, true);
 
   const current = createLocalAuctionUiModel(state(auctionChoice()), "p3");
-  assert.equal(current.isTurn, true);
-  assert.equal(current.canBid, true);
-  assert.equal(current.canPass, true);
+  assert.equal(current.isTurn, false);
+  assert.equal(current.canBid, false);
+  assert.equal(current.canPass, false);
 });
 
 test("local Auction UI wires vote, participant cards, bidding, and deadline advancement", () => {
@@ -120,7 +121,7 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(uiSource, /session\.passAuctionVote\(selectedPlayerId\)/);
   assert.doesNotMatch(uiSource, /session\.withdrawAuction\(/);
   assert.doesNotMatch(uiSource, /session\.requestAuction\(/);
-  assert.match(uiSource, /첫 입찰/);
+  assert.doesNotMatch(uiSource, /첫 입찰/);
   assert.match(uiSource, /입찰 차례/);
   assert.match(uiSource, /AUCTION_BID_PLACED/);
   assert.match(uiSource, /playAuctionBidSound\(\)/);
@@ -132,7 +133,7 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.doesNotMatch(uiSource, /auction-result-modal/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /BID_EVENT_HOLD_MS = 2200/);
-  assert.match(uiSource, /renderHighestBid\(model\.highestBid\)/);
+  assert.match(uiSource, /renderHighestBid\(model\.highestBid > 0 \? model\.highestBid : model\.openingBid\)/);
   assert.match(uiSource, /bidEvent\.dataset\.surge = event\.surge === true/);
   assert.match(uiSource, /elements\.status\.hidden = model\.stage === "auction"/);
   assert.match(uiSource, /elements\.detail\.hidden = model\.stage === "auction"/);
@@ -140,8 +141,9 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(cssSource, /auctionBidValueCount/);
   assert.match(cssSource, /auctionSurgeBidEvent/);
   assert.match(cssSource, /\.auction-intro/);
-  assert.match(cssSource, /\.auction-roulette/);
-  assert.match(cssSource, /auctionRouletteSpin/);
+  assert.match(cssSource, /\.auction-selector/);
+  assert.match(cssSource, /auctionSelectorChain/);
+  assert.doesNotMatch(cssSource, /\.auction-roulette/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.auctionBid\(selectedPlayerId, amount\)/);
   assert.match(uiSource, /session\.auctionPass\(selectedPlayerId\)/);
