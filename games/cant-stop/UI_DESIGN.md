@@ -75,7 +75,7 @@
 - turn transition: action presentation이 끝난 뒤 다음 플레이어 강조
 - timing 원칙: authoritative 결과와 presentation 순서를 분리하되 서로 모순되지 않게 함
 - server-authoritative state와 presentation의 동기화 기준: UI는 snapshot 결과를 설명하고 client-local 계산을 truth로 사용하지 않음
-- sound: dice/bust 등 현재 v1 Web Audio 정책과 브라우저 autoplay 제한을 고려
+- sound: dice/bust Web Audio SFX는 game-local 효과음으로 유지한다. BGM은 page entry·entry·waiting·rematch waiting에서 `Frozen Star`, authoritative room status가 `playing`인 gameplay/GAME_OVER에서 `Mountain Emperor`를 사용한다. 상태 전환은 presentation-only이며 서버 snapshot truth를 변경하지 않는다. Player pause/저장 volume은 track 전환에서도 유지하고 브라우저 autoplay 제한을 따른다.
 
 ## Result / Rematch Presentation
 
@@ -108,6 +108,7 @@
 - [x] 일반 사이트와 구별되는 game-local board identity가 있다.
 - [x] dice, runner, permanent progress, claim을 구분할 수 있다.
 - [x] GAME_OVER → rematch lobby 흐름이 존재한다.
+- [x] 설산 대기 분위기(`Frozen Star`)와 실제 등반 gameplay(`Mountain Emperor`)를 상태별 BGM으로 구분하고 rematch waiting에서 대기 음악으로 복귀한다.
 - [ ] 후속 exploratory playtest에서 다양한 mobile 높이의 board/action 밀도를 계속 관찰한다.
 - [ ] 브라우저 autoplay 정책에 따른 remote sound 경험을 계속 관찰한다.
 
