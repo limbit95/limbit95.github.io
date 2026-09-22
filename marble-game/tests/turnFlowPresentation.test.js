@@ -43,19 +43,23 @@ test("purchase and Auction lifecycle results use the shared board notice", () =>
   }
 });
 
-test("competitive Auction intro announces, spins, holds the result, then names the first bidder", () => {
+test("competitive Auction intro uses the authoritative profile-chain starter selector", () => {
   assert.match(auctionIntroUiSource, /경매가 곧 시작됩니다!/);
-  assert.match(auctionIntroUiSource, /첫 입찰자를 정합니다/);
-  assert.match(auctionIntroUiSource, /phase === "roulette" && spinningKey !== key/);
-  assert.match(auctionIntroUiSource, /now < rouletteStopsAt/);
-  assert.match(auctionIntroUiSource, /now < winnerNoticeAt/);
-  assert.match(auctionIntroUiSource, /님이 첫 입찰 순서입니다!/);
+  assert.match(auctionIntroUiSource, /경매 시작 플레이어를 정합니다/);
+  assert.match(auctionIntroUiSource, /phase === "selector"/);
+  assert.match(auctionIntroUiSource, /now < selectorStopsAt/);
+  assert.match(auctionIntroUiSource, /starterPlayerId/);
+  assert.match(auctionIntroUiSource, /님부터 경매를 시작합니다!/);
+  assert.match(auctionIntroUiSource, /getPublicProfiles/);
+  assert.match(auctionIntroUiSource, /getSignedAvatarUrl/);
   assert.match(auctionIntroUiSource, /playAuctionStartSound\(\)/);
-  assert.match(auctionCssSource, /auctionRouletteSpin/);
-  assert.match(auctionCssSource, /rotate\(2520deg\)/);
-  assert.match(auctionCssSource, /\.auction-intro__winner/);
+  assert.match(auctionCssSource, /\.auction-selector/);
+  assert.match(auctionCssSource, /auctionSelectorChain/);
+  assert.doesNotMatch(auctionCssSource, /\.auction-roulette/);
+  assert.doesNotMatch(auctionIntroUiSource, /첫 입찰/);
   for (const source of [onlineSource, localSource]) {
     assert.match(source, /AUCTION_STARTING/);
+    assert.match(source, /시작 플레이어 추첨/);
   }
 });
 
@@ -82,13 +86,34 @@ test("Auction resolution notice appears concurrently with its follow-up animatio
   }
 });
 
-test("Auction notices stay above the active Auction panel", () => {
+test("Auction notices sit immediately above the active Auction panel", () => {
   for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
     assert.match(source, /auctionOverlayActive/);
+    assert.match(source, /syncAuctionNoticeAnchor/);
+    assert.match(source, /getBoundingClientRect/);
+    assert.match(source, /rect\.top - 10/);
   }
   assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
+  assert.match(auctionCssSource, /--auction-notice-top/);
   assert.match(auctionCssSource, /z-index: 3200/);
-  assert.match(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
+  assert.doesNotMatch(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
+});
+
+test("Auction runtime removes legacy first-bidder presentation residue", () => {
+  for (const source of [onlineAuctionUiSource, localAuctionUiSource, auctionIntroUiSource]) {
+    assert.doesNotMatch(source, /첫 입찰/);
+    assert.doesNotMatch(source, /openingBidder/);
+  }
+  assert.doesNotMatch(auctionCssSource, /auction-action-panel__first-bid/);
+});
+
+test("bid popup stays compact so the highest-bid metric remains visible", () => {
+  assert.match(auctionCssSource, /max-width: min\(286px, calc\(100% - 36px\)\)/);
+  assert.match(auctionCssSource, /right: 18px/);
+  assert.match(auctionCssSource, /font-size: clamp\(1\.3rem, 4vw, 1\.6rem\)/);
+  for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
+    assert.match(source, /renderHighestBid\(model\.highestBid > 0 \? model\.highestBid : model\.openingBid\)/);
+  }
 });
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
