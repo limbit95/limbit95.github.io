@@ -1,7 +1,7 @@
 # <Game Title> UI Design
 
-> 이 문서는 이 게임의 UI/UX와 presentation이 따라야 할 game-local 설계 기준입니다.
-> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`, 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 실제 구현 진행은 `DEVELOPMENT.md`를 따릅니다.
+> 이 문서는 이 게임의 UI/UX와 presentation이 현재 따라야 할 game-local 설계·참고 기준입니다. 변경 이력을 쌓는 문서가 아니라 현재 채택된 디자인 원칙을 유지합니다.
+> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`, 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 디자인 개발 진행·결정 이력은 `UI_DECISIONS.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 
 ## Design Research
 
@@ -103,7 +103,7 @@
 
 ## Implementation Plan
 
-> 이 섹션은 UI/presentation 구현 순서만 관리합니다. 기능/DB/RPC 구현 순서는 `GAME_SPEC.md`, 현재 바로 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
+> 이 섹션은 현재 디자인을 구현할 때의 안정적인 적용 순서/가이드를 관리합니다. 실시간 진행상황이나 변경 이력은 쌓지 않습니다. 기능/DB/RPC 구현 순서는 `GAME_SPEC.md`, 실제 디자인 진행·결정은 `UI_DECISIONS.md`, 기능 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
 
 1. <Visual Identity / page frame>
 2. <Lobby/setup>
@@ -124,8 +124,9 @@
 - [ ] 핵심 구성물과 action이 실제 게임의 플레이 감각을 전달한다.
 - [ ] animation timing이 authoritative state와 충돌하지 않는다.
 - [ ] desktop/mobile에서 핵심 정보와 action을 사용할 수 있다.
-- [ ] `DEVELOPMENT.md`가 실제 UI 구현 진행상태를 추적한다.
+- [ ] `UI_DECISIONS.md`가 실제 디자인 개발 진행·중요 결정·검증 이력을 추적한다.
 
 ## Open Questions / Deferred
 
 - <아직 확정하지 않은 디자인/asset/interaction 결정, 없으면 없음>
+- 이 항목이 확정되면 현재 기준은 이 문서에 반영하고, 결정 배경과 변경 이유는 `UI_DECISIONS.md`에 남깁니다.
