@@ -48,6 +48,7 @@ let seatedPlayerIds = new Set();
 let boardAvatarUrls = new Map();
 let boardAvatarLoadingIds = new Set();
 let boardPresentationState = null;
+let boardPresentationEffect = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -62,6 +63,7 @@ function disposeLobbyController() {
   boardAvatarUrls = new Map();
   boardAvatarLoadingIds = new Set();
   boardPresentationState = null;
+  boardPresentationEffect = null;
 }
 
 function createAccessNotice({
@@ -433,6 +435,10 @@ function createBoardSeat(view, seatInfo, index, total) {
         },
       }),
     ]),
+    el("span", {
+      className: "no-thanks-seat__name",
+      text: player.displayName,
+    }),
     active
       ? el("span", {
         className: "no-thanks-seat__turn",
@@ -618,6 +624,25 @@ function readBoardTransitionEffects(view) {
     activePlayerId: view.activePlayerId,
   };
   const previous = boardPresentationState;
+  const sameVersion = previous
+    && previous.roomId === current.roomId
+    && previous.version === current.version;
+
+  if (sameVersion) {
+    if (
+      boardPresentationEffect
+      && boardPresentationEffect.roomId === current.roomId
+      && boardPresentationEffect.version === current.version
+      && boardPresentationEffect.started !== true
+    ) {
+      return boardPresentationEffect;
+    }
+    return Object.freeze({
+      dealCard: false,
+      chipFromPlayerId: null,
+    });
+  }
+
   boardPresentationState = current;
 
   if (
@@ -625,8 +650,8 @@ function readBoardTransitionEffects(view) {
     || previous.roomId !== current.roomId
     || previous.gamePhase !== "PLAYING"
     || current.gamePhase !== "PLAYING"
-    || previous.version === current.version
   ) {
+    boardPresentationEffect = null;
     return Object.freeze({
       dealCard: false,
       chipFromPlayerId: null,
@@ -641,9 +666,19 @@ function readBoardTransitionEffects(view) {
     ? previous.activePlayerId
     : null;
 
-  return Object.freeze({
-    dealCard,
-    chipFromPlayerId,
+  boardPresentationEffect = dealCard || chipFromPlayerId
+    ? {
+      roomId: current.roomId,
+      version: current.version,
+      dealCard,
+      chipFromPlayerId,
+      started: false,
+    }
+    : null;
+
+  return boardPresentationEffect ?? Object.freeze({
+    dealCard: false,
+    chipFromPlayerId: null,
   });
 }
 
@@ -668,6 +703,9 @@ function syncBoardAnimationGeometry() {
   if (!board) return;
 
   window.requestAnimationFrame(() => {
+    if (!board.isConnected) return;
+    let started = false;
+
     const dealingCard = board.querySelector(".no-thanks-table-card.is-dealing");
     const deck = board.querySelector(".no-thanks-draw-deck__stack");
     if (dealingCard && deck) {
@@ -680,6 +718,7 @@ function syncBoardAnimationGeometry() {
       dealingCard.style.setProperty("--no-thanks-deal-x", dealX.toFixed(2) + "px");
       dealingCard.style.setProperty("--no-thanks-deal-y", dealY.toFixed(2) + "px");
       dealingCard.classList.add("is-motion-ready");
+      started = true;
     }
 
     const chipFlight = board.querySelector(".no-thanks-chip-flight");
@@ -697,6 +736,11 @@ function syncBoardAnimationGeometry() {
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
       chipFlight.classList.add("is-motion-ready");
+      started = true;
+    }
+
+    if (started && boardPresentationEffect) {
+      boardPresentationEffect.started = true;
     }
   });
 }
@@ -929,7 +973,7 @@ function createPlayingPanel(view, state, panelActions = []) {
   return createBoardScene(view, state, panelActions);
 }
 
-function createGameOverPanel(view, state) {
+function createGameOverPanel(view, state, openRematchConfirm = null) {
   const winnerNames = view.scoreboard
     .filter((entry) => entry.winner)
     .map((entry) => entry.displayName)
@@ -966,6 +1010,17 @@ function createGameOverPanel(view, state) {
       ])
     ))),
     createPlayerCards(view),
+    view.isHost && typeof openRematchConfirm === "function"
+      ? el("div", { className: "no-thanks-game-over__actions" }, [
+        el("button", {
+          className: "button no-thanks-game-over__rematch",
+          type: "button",
+          text: state.busy ? "준비 중…" : "재대결",
+          disabled: state.busy,
+          onClick: openRematchConfirm,
+        }),
+      ])
+      : null,
   ]);
 }
 
@@ -1127,11 +1182,11 @@ function createRematchDialog(onConfirm) {
   });
 
   dialog.append(el("div", { className: "no-thanks-confirm__content" }, [
-    el("p", { className: "no-thanks-entry__eyebrow", text: "새 게임" }),
+    el("p", { className: "no-thanks-entry__eyebrow", text: "재대결" }),
     el("h2", {
       id: "no-thanks-rematch-title",
       className: "no-thanks-confirm__title",
-      text: "새 게임 방을 만들까요?",
+      text: "재대결 방을 만들까요?",
     }),
     el("p", {
       className: "no-thanks-confirm__message",
@@ -1147,7 +1202,7 @@ function createRematchDialog(onConfirm) {
       el("button", {
         className: "button",
         type: "button",
-        text: "새 방 만들기",
+        text: "재대결 방 만들기",
         onClick: async () => {
           dialog.close();
           await onConfirm();
@@ -1224,16 +1279,6 @@ function createLobbyActions(
   if (!view) return actions;
 
   if (view.gamePhase === "GAME_OVER") {
-    if (view.isHost) {
-      actions.unshift(el("button", {
-        className: "game-platform-shell__button",
-        type: "button",
-        text: state.busy ? "처리 중…" : "새 게임 방 만들기",
-        disabled: state.busy,
-        onClick: openRematchConfirm,
-      }));
-    }
-
     actions.push(el("button", {
       className: "game-platform-shell__button game-platform-shell__button--danger",
       type: "button",
@@ -1374,7 +1419,7 @@ function renderLobby(access, state) {
   const main = state.view === NO_THANKS_LOBBY_VIEW.ENTRY
     ? createEntryPanel(state, displayName)
     : state.view === NO_THANKS_LOBBY_VIEW.GAME_OVER
-      ? createGameOverPanel(view, state)
+      ? createGameOverPanel(view, state, openRematchConfirm)
       : state.view === NO_THANKS_LOBBY_VIEW.PLAYING
         ? createPlayingPanel(view, state, boardMode ? lobbyActions : [])
         : createWaitingPanel(view, state, boardMode ? lobbyActions : []);
