@@ -284,6 +284,7 @@ export function validatePullRequestChanges({
     const gamePaths = paths.filter((file) => platformGameIdFromPath(file) === gameId);
     const allowed = new Set([
       `games/${gameId}/GAME_SPEC.md`,
+      `games/${gameId}/UI_DESIGN.md`,
       `games/${gameId}/DEVELOPMENT.md`,
     ]);
     return gamePaths.some((file) => !allowed.has(file));
