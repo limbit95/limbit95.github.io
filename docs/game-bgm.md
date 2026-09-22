@@ -45,7 +45,7 @@ Player UI는 다음 네 요소만 유지한다.
 
 사용자가 일시정지를 누르면 상태는 `PAUSED_BY_USER`가 되며 전역 interaction listener를 설치하지 않는다. 다시 듣고 싶을 때는 Player의 재생 버튼만 사용한다.
 
-볼륨은 `localStorage`에 저장한다. 새 document가 생성되면 `hasEverPlayed`, interaction 대기 여부 같은 runtime 상태는 다시 초기화한다.
+볼륨은 `localStorage`에 저장한다. Player의 slider 값은 사용자 설정값으로 그대로 유지하고, 게임별 `volumeMultiplier`는 실제 Audio 출력에만 적용한다. 따라서 The Game의 기본 slider 값은 0.22를 유지하지만 실제 초기 출력은 0.44가 된다. 새 document가 생성되면 `hasEverPlayed`, interaction 대기 여부 같은 runtime 상태는 다시 초기화한다.
 
 ## 5. The Game Pilot
 
@@ -55,7 +55,8 @@ Player UI는 다음 네 요소만 유지한다.
 - Official source: Incompetech
 - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`)
 - License: CC BY 4.0
-- Default volume: 0.22
+- Default slider volume: 0.22
+- Output volume multiplier: 2.0
 - Loop: enabled
 
 Player의 출처 영역은 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지, 사용자가 제공한 YouTube 확인 영상, CC BY 4.0 라이선스를 함께 표시한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다.
