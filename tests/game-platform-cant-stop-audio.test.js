@@ -12,6 +12,57 @@ import {
   createCantStopBgmSession,
   getCantStopBgmTrack,
 } from "../games/cant-stop/bgm.js";
+import {
+  BGM_STATE,
+  createBgmController,
+} from "../js/game-audio/bgmController.js";
+
+class MemoryStorage {
+  #values = new Map();
+
+  getItem(key) {
+    return this.#values.has(key) ? this.#values.get(key) : null;
+  }
+
+  setItem(key, value) {
+    this.#values.set(key, String(value));
+  }
+}
+
+class FakeInteractionTarget {
+  listeners = new Map();
+
+  addEventListener(type, listener) {
+    if (!this.listeners.has(type)) this.listeners.set(type, new Set());
+    this.listeners.get(type).add(listener);
+  }
+
+  removeEventListener(type, listener) {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  listenerCount(type) {
+    return this.listeners.get(type)?.size ?? 0;
+  }
+}
+
+class FakeAudio {
+  src = "";
+  preload = "";
+  loop = false;
+  volume = 1;
+  playCalls = 0;
+  pauseCalls = 0;
+
+  play() {
+    this.playCalls += 1;
+    return Promise.resolve();
+  }
+
+  pause() {
+    this.pauseCalls += 1;
+  }
+}
 
 const cantStopIndex = readFileSync(
   new URL("../games/cant-stop/index.html", import.meta.url),
@@ -100,6 +151,39 @@ test("Can't Stop BGM session switches from lobby music to gameplay music and bac
   session.destroy();
   assert.equal(playerDestroyed, true);
   assert.deepEqual(calls.at(-1), ["destroy"]);
+});
+
+test("shared BGM controller switches Can't Stop tracks without resetting user playback ownership", async () => {
+  const audio = new FakeAudio();
+  const interactions = new FakeInteractionTarget();
+  const controller = createBgmController({
+    track: getCantStopBgmTrack(CANT_STOP_BGM_MODE.LOBBY),
+    audioFactory: () => audio,
+    interactionTarget: interactions,
+    storage: new MemoryStorage(),
+  });
+
+  await controller.start({ autoplayRequested: true });
+  assert.equal(controller.getState().track?.title, "Frozen Star");
+  assert.equal(controller.getState().hasEverPlayed, true);
+  assert.equal(audio.playCalls, 1);
+
+  await controller.switchTrack(getCantStopBgmTrack(CANT_STOP_BGM_MODE.PLAYING));
+  assert.equal(controller.getState().track?.title, "Mountain Emperor");
+  assert.equal(controller.getState().status, BGM_STATE.PLAYING);
+  assert.equal(controller.getState().hasEverPlayed, true);
+  assert.equal(audio.playCalls, 2);
+  assert.equal(interactions.listenerCount("pointerdown"), 0);
+
+  controller.pauseByUser();
+  const callsAfterPause = audio.playCalls;
+
+  await controller.switchTrack(getCantStopBgmTrack(CANT_STOP_BGM_MODE.LOBBY));
+  assert.equal(controller.getState().track?.title, "Frozen Star");
+  assert.equal(controller.getState().status, BGM_STATE.PAUSED_BY_USER);
+  assert.equal(controller.getState().userPaused, true);
+  assert.equal(audio.playCalls, callsAfterPause);
+  assert.equal(interactions.listenerCount("pointerdown"), 0);
 });
 
 test("Can't Stop page wires the shared BGM player and authoritative playing-state switch", () => {
