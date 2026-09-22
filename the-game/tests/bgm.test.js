@@ -78,8 +78,8 @@ test("The Game BGM catalog carries verified attribution metadata", () => {
   assert.equal(track?.artist, "Kevin MacLeod");
   assert.equal(track?.isrc, "USUAN1100847");
   assert.equal(track?.license, "CC BY 4.0");
-  assert.equal(track?.defaultVolume, 0.22);
-  assert.equal(track?.defaultOutputMultiplier, 2);
+  assert.equal(track?.defaultVolume, 0.7);
+  assert.equal(track?.defaultOutputVolume, 0.6);
   assert.match(track?.sourceUrl ?? "", /incompetech\.com/u);
   assert.equal(track?.previewUrl, "https://www.youtube.com/watch?v=CpPQeDIA2S0");
   assert.equal(getGameBgm("missing"), null);
@@ -93,7 +93,7 @@ test("BGM volume is clamped and persisted", () => {
   assert.equal(writeBgmVolume(-2, { storage }), 0);
 });
 
-test("BGM output boost does not move the saved slider value", () => {
+test("BGM default slider and output volume are mapped independently", () => {
   const audio = new FakeAudio();
   const controller = createBgmController({
     track: getGameBgm("the-game"),
@@ -102,14 +102,14 @@ test("BGM output boost does not move the saved slider value", () => {
     storage: new MemoryStorage(),
   });
 
-  assert.equal(controller.getState().volume, 0.22);
-  assert.equal(controller.getState().outputVolume, 0.44);
-  assert.equal(audio.volume, 0.44);
+  assert.equal(controller.getState().volume, 0.7);
+  assert.equal(controller.getState().outputVolume, 0.6);
+  assert.equal(audio.volume, 0.6);
 
-  controller.setVolume(0.3);
-  assert.equal(controller.getState().volume, 0.3);
-  assert.ok(controller.getState().outputVolume > 0.44);
-  assert.ok(controller.getState().outputVolume < 1);
+  controller.setVolume(0.35);
+  assert.equal(controller.getState().volume, 0.35);
+  assert.equal(controller.getState().outputVolume, 0.3);
+  assert.equal(audio.volume, 0.3);
 
   controller.setVolume(1);
   assert.equal(controller.getState().volume, 1);
