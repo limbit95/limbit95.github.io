@@ -2,7 +2,7 @@
 
 > 이 문서는 기능 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다. 긴 changelog 대신 현재 기능 상태와 다음 행동을 유지합니다.
 >
-> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, 현재 UI/presentation 기준은 `UI_DESIGN.md`, 디자인 개발 진행·변경 이력은 `UI_DECISIONS.md`에서 관리합니다. 이 문서에는 UI 세부 변경사를 중복 기록하지 않고 기능 구현·검증 상태와 release 관점의 상위 UI 트랙 상태만 참조합니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI는 `UI_DESIGN.md`의 소스 개발 전 baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서에는 UI 세부 변경사를 중복 기록하지 않고 기능 구현·검증 상태와 release 관점의 상위 UI 트랙 상태만 참조합니다.
 > 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`를 따릅니다.
 
 ## Current Status
@@ -32,7 +32,7 @@
 ## Decisions
 
 - <확정된 게임 규칙/기능 아키텍처 결정>
-- UI/presentation 결정은 `UI_DECISIONS.md`에 기록하고, 현재 디자인 기준 자체가 바뀌었다면 `UI_DESIGN.md`를 정합화합니다.
+- UI/presentation의 개발 시작 후 결정은 `UI_DECISIONS.md`에 기록하며 `UI_DESIGN.md` baseline을 현재 화면에 맞춰 재작성하지 않습니다.
 
 ## Validation
 
