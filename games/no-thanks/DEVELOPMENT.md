@@ -1,7 +1,7 @@
 # No Thanks! 개발 진행
 
 > 이 문서는 현재 개발 상태를 다음 작업자나 다음 채팅으로 전달하기 위한 인수인계 문서입니다.
-> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, UI/presentation 설계의 기준은 `UI_DESIGN.md`입니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, UI/presentation 현재 기준은 `UI_DESIGN.md`, 디자인 개발 진행·변경 이력은 `UI_DECISIONS.md`입니다. 이 문서에 이미 남아 있는 UI Phase 기록은 과거 인수인계 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
 
 ## Current Status
 
