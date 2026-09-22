@@ -534,6 +534,10 @@
 @media (prefers-reduced-motion: reduce) {
   .auction-action-panel__participant-row[data-current-turn="true"],
   .auction-action-panel__bid-event[data-active="true"],
+  .auction-start-sequence__card,
+  .auction-start-sequence__card::before,
+  .auction-start-sequence__wheel.is-spinning,
+  .auction-start-sequence__winner,
   .auction-action-panel__bid-event[data-active="true"] .auction-action-panel__bid-paddle {
     animation: none;
   }
@@ -542,6 +546,214 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+}
+
+.auction-start-sequence {
+  position: fixed;
+  z-index: 68;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.auction-start-sequence[hidden] {
+  display: none;
+}
+
+.auction-start-sequence__card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  width: min(520px, calc(100vw - 36px));
+  padding: 26px 28px;
+  border: 1px solid rgba(255, 226, 154, 0.72);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(243, 194, 83, 0.2), transparent 46%),
+    linear-gradient(160deg, rgba(23, 35, 49, 0.98), rgba(10, 18, 29, 0.98));
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42), 0 0 42px rgba(243, 194, 83, 0.14);
+  text-align: center;
+  overflow: hidden;
+}
+
+.auction-start-sequence[data-stage="notice"] .auction-start-sequence__card {
+  animation: auctionStartNotice 2.4s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+.auction-start-sequence__card::before {
+  content: "";
+  position: absolute;
+  inset: -40% -80%;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 240, 196, 0.16) 50%, transparent 62%);
+  transform: translateX(-35%);
+  animation: auctionStartShine 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.auction-start-sequence__eyebrow {
+  position: relative;
+  color: #f3c253;
+  font-size: 0.72rem;
+  font-weight: 1000;
+  letter-spacing: 0.16em;
+}
+
+.auction-start-sequence__title {
+  position: relative;
+  color: #fffaf0;
+  font-size: clamp(1.7rem, 5vw, 2.45rem);
+  font-weight: 1000;
+  letter-spacing: -0.045em;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+}
+
+.auction-start-sequence__subtitle {
+  position: relative;
+  color: #becbd6;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.auction-start-sequence__roulette {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.auction-start-sequence__roulette[hidden] {
+  display: none;
+}
+
+.auction-start-sequence__pointer {
+  position: absolute;
+  z-index: 3;
+  top: -7px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 13px solid transparent;
+  border-left: 13px solid transparent;
+  border-top: 24px solid #fff4c7;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.35));
+  transform: translateX(-50%);
+}
+
+.auction-start-sequence__wheel {
+  position: relative;
+  width: min(300px, 70vw);
+  aspect-ratio: 1;
+  border: 8px solid #fff8df;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 5px rgba(23, 35, 49, 0.38),
+    0 16px 44px rgba(0, 0, 0, 0.4),
+    0 0 28px rgba(243, 194, 83, 0.18);
+}
+
+.auction-start-sequence__wheel::after {
+  content: "M";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 5px solid #fff8df;
+  border-radius: 50%;
+  background: #172331;
+  color: #ffe29a;
+  font-size: 1.25rem;
+  font-weight: 1000;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.auction-start-sequence__wheel.is-spinning {
+  animation: auctionRouletteSpin 2.9s cubic-bezier(0.12, 0.72, 0.17, 1) forwards;
+}
+
+.auction-start-sequence__wheel-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  margin: -14px 0 0 -19px;
+  color: #142333;
+  font-size: 0.75rem;
+  font-weight: 1000;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
+  transform:
+    rotate(var(--auction-roulette-label-angle))
+    translateY(-112px)
+    rotate(calc(-1 * var(--auction-roulette-label-angle)));
+}
+
+.auction-start-sequence__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.auction-start-sequence__legend-chip {
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--auction-roulette-color) 68%, white);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--auction-roulette-color) 18%, transparent);
+  color: #f7fafc;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.auction-start-sequence__winner {
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: rgba(243, 194, 83, 0.16);
+  color: #ffe29a;
+  font-size: 0.94rem;
+  font-weight: 1000;
+  box-shadow: 0 0 24px rgba(243, 194, 83, 0.14);
+  animation: auctionRouletteWinner 0.36s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+@keyframes auctionStartNotice {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0) scale(1.025);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.98;
+    transform: scale(1);
+  }
+}
+
+@keyframes auctionStartShine {
+  0%, 18% { transform: translateX(-42%); }
+  72%, 100% { transform: translateX(42%); }
+}
+
+@keyframes auctionRouletteSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--auction-roulette-end)); }
+}
+
+@keyframes auctionRouletteWinner {
+  from { opacity: 0; transform: translateY(6px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .important-notice,
@@ -554,6 +766,27 @@ body[data-play-mode="window"] .important-notice {
 }
 
 @media (max-width: 640px) {
+  .auction-start-sequence {
+    padding: 14px;
+  }
+
+  .auction-start-sequence__card {
+    width: min(100%, calc(100vw - 20px));
+    padding: 22px 16px;
+    border-radius: 20px;
+  }
+
+  .auction-start-sequence__wheel {
+    width: min(260px, 72vw);
+  }
+
+  .auction-start-sequence__wheel-label {
+    transform:
+      rotate(var(--auction-roulette-label-angle))
+      translateY(-96px)
+      rotate(calc(-1 * var(--auction-roulette-label-angle)));
+  }
+
   .auction-action-panel {
     width: min(100%, calc(100vw - 24px));
     max-height: calc(100dvh - 24px);
