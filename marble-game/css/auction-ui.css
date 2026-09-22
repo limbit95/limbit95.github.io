@@ -352,14 +352,17 @@
 .auction-action-panel__bid-event {
   position: absolute;
   z-index: 4;
-  left: 50%;
-  top: 50%;
+  top: 58%;
+  right: 18px;
+  left: auto;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
-  min-width: min(380px, calc(100% - 32px));
-  padding: 18px 22px;
+  gap: 12px;
+  width: fit-content;
+  min-width: 0;
+  max-width: min(300px, calc(100% - 36px));
+  padding: 16px 18px;
   border: 1px solid rgba(255, 226, 154, 0.55);
   border-radius: 18px;
   background:
@@ -367,7 +370,7 @@
     rgba(17, 27, 39, 0.97);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), 0 0 34px rgba(243, 194, 83, 0.12);
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.86);
+  transform: translateY(-50%) scale(0.86);
   opacity: 0;
 }
 
@@ -478,41 +481,41 @@
 @keyframes auctionBidEvent {
   0% {
     opacity: 0;
-    transform: translate(-50%, -42%) scale(0.82);
+    transform: translateY(-42%) scale(0.82);
   }
   12% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.04);
+    transform: translateY(-50%) scale(1.04);
   }
   86% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(-50%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -58%) scale(0.96);
+    transform: translateY(-58%) scale(0.96);
   }
 }
 
 @keyframes auctionSurgeBidEvent {
   0% {
     opacity: 0;
-    transform: translate(-50%, -42%) scale(0.76);
+    transform: translateY(-42%) scale(0.76);
   }
   14% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.1);
+    transform: translateY(-50%) scale(1.1);
   }
   28% {
-    transform: translate(-50%, -50%) scale(0.98);
+    transform: translateY(-50%) scale(0.98);
   }
   86% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(-50%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -58%) scale(0.96);
+    transform: translateY(-58%) scale(0.96);
   }
 }
 
@@ -540,24 +543,25 @@
 
   .auction-action-panel__bid-event[data-active="true"] {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    transform: translateY(-50%) scale(1);
   }
 }
 
-.important-notice,
-body[data-play-mode="window"] .important-notice {
+.important-notice[data-notice-layer="global"],
+body[data-play-mode="window"] .important-notice[data-notice-layer="global"] {
+  position: fixed;
   top: 50%;
   left: 50%;
-  z-index: 2800;
+  z-index: 5000;
   transform: translate(-50%, -50%);
   backdrop-filter: none;
   pointer-events: none;
 }
 
-body[data-auction-overlay-active="true"] .important-notice,
-body[data-play-mode="window"][data-auction-overlay-active="true"] .important-notice {
+body[data-auction-overlay-active="true"] .important-notice[data-notice-layer="global"],
+body[data-play-mode="window"][data-auction-overlay-active="true"] .important-notice[data-notice-layer="global"] {
   top: max(18px, env(safe-area-inset-top));
-  z-index: 3200;
+  z-index: 5000;
   max-width: min(680px, calc(100vw - 28px));
   transform: translateX(-50%);
 }
