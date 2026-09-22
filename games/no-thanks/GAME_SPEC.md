@@ -1,8 +1,8 @@
 # No Thanks! 게임 명세
 
 > 이 문서는 No Thanks!가 어떤 게임이며 청파 같이에서 어떤 규칙과 구조로 구현할지 정의하는 게임별 설계 기준입니다.
-> 실제 개발 진행 상황은 같은 디렉터리의 `DEVELOPMENT.md`에서 관리합니다.
-> 상세 UI/presentation 기준은 같은 디렉터리의 `UI_DESIGN.md`에서 관리합니다.
+> 실제 기능 개발 진행 상황은 같은 디렉터리의 `DEVELOPMENT.md`에서 관리합니다.
+> 상세 UI/presentation 현재 기준은 같은 디렉터리의 `UI_DESIGN.md`, 디자인 개발 진행·결정 이력은 `UI_DECISIONS.md`에서 관리합니다.
 
 ## Game Overview
 
