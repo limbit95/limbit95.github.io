@@ -41,8 +41,8 @@ test("online Marble boot entry bypasses stale Pages module caches", () => {
 test("online recovery and Classic renderer entries bypass stale modules while untouched imports stay pinned", () => {
   assert.match(indexHtml, /"\.\/js\/onlineSession\.js\?v=20260910-r8": "\.\/js\/onlineSession\.js\?v=20260915-r1"/);
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
-  assert.match(controllerSource, /onlineSession\.js\?v=20260919-r13/);
-  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260919-r13/);
+  assert.match(controllerSource, /onlineSession\.js\?v=20260923-r1/);
+  assert.match(twoDControllerSource, /onlineSession\.js\?v=20260923-r1/);
   assert.match(tradeUiSource, /onlineSession\.js\?v=20260919-r13/);
   
   assert.match(liquidationUiSource, /onlineSession\.js\?v=20260919-r13/);
