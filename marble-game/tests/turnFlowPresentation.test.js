@@ -43,17 +43,20 @@ test("purchase and Auction lifecycle results use the shared board notice", () =>
   }
 });
 
-test("competitive Auction intro announces, spins, holds the result, then names the first bidder", () => {
+test("competitive Auction intro uses the profile-chain selector and selected starter result", () => {
   assert.match(auctionIntroUiSource, /경매가 곧 시작됩니다!/);
-  assert.match(auctionIntroUiSource, /첫 입찰자를 정합니다/);
-  assert.match(auctionIntroUiSource, /phase === "roulette" && spinningKey !== key/);
-  assert.match(auctionIntroUiSource, /now < rouletteStopsAt/);
-  assert.match(auctionIntroUiSource, /now < winnerNoticeAt/);
-  assert.match(auctionIntroUiSource, /님이 첫 입찰 순서입니다!/);
+  assert.match(auctionIntroUiSource, /경매 시작 플레이어를 정합니다/);
+  assert.match(auctionIntroUiSource, /경매 시작 플레이어 추첨/);
+  assert.match(auctionIntroUiSource, /phase === "selector"/);
+  assert.match(auctionIntroUiSource, /selectorStopsAt/);
+  assert.match(auctionIntroUiSource, /starterPlayerId/);
+  assert.match(auctionIntroUiSource, /createSignedUrl/);
+  assert.match(auctionIntroUiSource, /님부터 경매를 시작합니다!/);
   assert.match(auctionIntroUiSource, /playAuctionStartSound\(\)/);
-  assert.match(auctionCssSource, /auctionRouletteSpin/);
-  assert.match(auctionCssSource, /rotate\(2520deg\)/);
-  assert.match(auctionCssSource, /\.auction-intro__winner/);
+  assert.match(auctionCssSource, /auctionProfileChainSpin/);
+  assert.match(auctionCssSource, /\.auction-selector__profile/);
+  assert.doesNotMatch(auctionCssSource, /auctionRouletteSpin/);
+  assert.doesNotMatch(auctionIntroUiSource, /첫 입찰/);
   for (const source of [onlineSource, localSource]) {
     assert.match(source, /AUCTION_STARTING/);
   }
@@ -64,7 +67,7 @@ test("shared result notice stays centered without an Auction dialog backdrop", (
     assert.doesNotMatch(source, /showAuctionUnsoldResult/);
     assert.doesNotMatch(source, /auction-result-modal/);
   }
-  assert.match(auctionCssSource, /\.important-notice,[\s\S]*top: 50%/);
+  assert.match(auctionCssSource, /important-notice\[data-notice-layer="global"\][\s\S]*top: 50%/);
   assert.match(auctionCssSource, /transform: translate\(-50%, -50%\)/);
   assert.match(auctionCssSource, /backdrop-filter: none/);
   assert.doesNotMatch(auctionCssSource, /auction-result-modal::backdrop/);
@@ -82,13 +85,20 @@ test("Auction resolution notice appears concurrently with its follow-up animatio
   }
 });
 
-test("Auction notices stay above the active Auction panel", () => {
+test("Auction notices are portaled and positioned immediately above the active Auction panel", () => {
   for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
     assert.match(source, /auctionOverlayActive/);
+    assert.match(source, /--auction-notice-bottom/);
+    assert.match(source, /getBoundingClientRect\(\)/);
+  }
+  for (const source of [onlineSource, localSource]) {
+    assert.match(source, /document\.body\.append\(importantNotice\)/);
+    assert.match(source, /noticeLayer = "global"/);
   }
   assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
-  assert.match(auctionCssSource, /z-index: 3200/);
-  assert.match(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
+  assert.match(auctionCssSource, /bottom: var\(--auction-notice-bottom/);
+  assert.match(auctionCssSource, /z-index: 1250/);
+  assert.doesNotMatch(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
 });
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
