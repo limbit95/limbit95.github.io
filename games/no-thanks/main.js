@@ -788,6 +788,7 @@ function createDealFlight(target, sourceRect) {
     return null;
   }
 
+  inner.style.transform = "rotateY(180deg)";
   flight.append(inner);
   Object.assign(flight.style, {
     left: startLeft.toFixed(2) + "px",
