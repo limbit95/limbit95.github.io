@@ -145,7 +145,7 @@ test("local Auction UI wires vote, participant cards, bidding, and deadline adva
   assert.match(cssSource, /auctionProfileChainSpin/);
   assert.doesNotMatch(cssSource, /\.auction-roulette/);
   assert.doesNotMatch(cssSource, /auctionRouletteSpin/);
-  assert.match(cssSource, /max-width: min\(300px, calc\(100% - 36px\)\)/);
+  assert.match(cssSource, /max-width: min\(240px, calc\(100% - 36px\)\)/);
   assert.match(cssSource, /--auction-notice-bottom/);
   assert.match(uiSource, /15초/);
   assert.match(uiSource, /session\.auctionBid\(selectedPlayerId, amount\)/);
