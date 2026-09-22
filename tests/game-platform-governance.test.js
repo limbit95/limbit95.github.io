@@ -300,8 +300,9 @@ test("platform checkpoint user trigger and lifecycle rule stay canonical across 
       ].join("\n"),
     },
   });
-  assert.equal(staleTrigger.length, 1);
-  assert.match(staleTrigger[0], /games\/README\.md must use the canonical Game Platform DEVELOPMENT\.md user checkpoint trigger/u);
+  assert.equal(staleTrigger.length, 2);
+  assert.match(staleTrigger.join("\n"), /games\/README\.md must use the canonical Game Platform DEVELOPMENT\.md user checkpoint trigger/u);
+  assert.match(staleTrigger.join("\n"), /games\/README\.md contains ambiguous DEVELOPMENT\.md checkpoint wording/u);
 
   const missingLifecycle = validatePlatformDocumentPolicy({
     registry: [],
