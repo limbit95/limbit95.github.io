@@ -69,7 +69,7 @@ fix/marble-stability-phase3-ci
 - 사용자가 `기능 체크포인트 기록하자`라고 요청하면 기능 개발 상태를 `DEVELOPMENT.md`에 기록하고, 기능 설계가 바뀐 경우에만 `GAME_SPEC.md`를 함께 정합화합니다. 디자인 문서는 이 명령 때문에 수정하지 않습니다.
 - 사용자가 `디자인 체크포인트 기록하자`라고 요청하면 현재까지 안정화된 의미 있는 디자인 결정을 `UI_DECISIONS.md`에 기록합니다. 초기 `UI_DESIGN.md` baseline은 재작성하지 않고, 기능 진행 문서는 이 명령 때문에 수정하지 않습니다.
 - 두 checkpoint 명령은 같은 요청에서 함께 사용할 수 있으며, 각각의 책임 문서만 갱신합니다. 접두어가 없는 일반적인 checkpoint 표현이나 새 채팅용 정리·문서·요약 요청은 공식 repository checkpoint 명령으로 자동 해석하지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다.
-- 위 사용자 명령과 별개로 Phase 완료, release closeout 등 `docs/game-platform-development-rules.md`가 정한 기존 `DEVELOPMENT.md` 갱신 규칙은 그대로 적용합니다.
+- 두 사용자 명령과 별개로 기능 Phase 완료·release closeout의 `DEVELOPMENT.md` 갱신 시점과 디자인 lifecycle의 `UI_DECISIONS.md` 기록 트리거는 계속 적용합니다.
 - 중간 checkpoint에서는 Phase를 완료 처리하지 않으며 실제 완료 항목, 미완료 항목, 다음 첫 작업, 검증 상태를 명확히 구분합니다.
 - 모든 platform-native 게임은 로비 또는 시작 전 화면에서 처음 플레이하는 사용자도 이해할 수 있는 상세 규칙 안내를 제공하고, 플레이 중에도 다시 확인할 수 있는 진입점을 유지합니다.
 - 모든 platform-native 게임은 진행 중 세션을 안전하게 끝낼 수 있는 명시적 게임 종료 경로를 제공하며, 온라인 멀티플레이 종료는 서버 권위와 확인 UI를 적용합니다.
