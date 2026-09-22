@@ -96,6 +96,8 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
   root.append(equalizer, toggle, volumeButton, sourceButton, volumePanel, sourcePanel);
   mount.append(root);
 
+  const ownerDocument = root.ownerDocument ?? document;
+
   function closePopovers(except = null) {
     if (except !== volumePanel) {
       volumePanel.hidden = true;
@@ -131,6 +133,12 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     controller.setVolume(volumeInput.value);
   });
 
+  function onOutsidePointerDown(event) {
+    if (!root.contains(event.target)) closePopovers();
+  }
+
+  ownerDocument.addEventListener("pointerdown", onOutsidePointerDown);
+
   const unsubscribe = controller.subscribe((state) => {
     const playing = state.status === BGM_STATE.PLAYING;
     root.dataset.bgmState = state.status;
@@ -147,6 +155,7 @@ export function mountBgmPlayer({ controller, mount = document.body } = {}) {
     root,
     destroy() {
       unsubscribe();
+      ownerDocument.removeEventListener("pointerdown", onOutsidePointerDown);
       root.remove();
     },
   });

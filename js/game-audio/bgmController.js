@@ -30,6 +30,22 @@ function isUsefulKeyboardActivation(event) {
   return event.key === "Enter" || event.key === " ";
 }
 
+function mapOutputVolume(volume, defaultVolume, defaultOutputVolume) {
+  const logicalVolume = Math.min(1, Math.max(0, Number(volume) || 0));
+  const pivot = Math.min(1, Math.max(0, Number(defaultVolume) || 0));
+  const outputPivot = Math.min(1, Math.max(0, Number(defaultOutputVolume) || 0));
+
+  if (pivot <= 0) return logicalVolume;
+  if (logicalVolume <= pivot) {
+    return outputPivot * (logicalVolume / pivot);
+  }
+
+  if (pivot >= 1 || outputPivot >= 1) return 1;
+
+  const progress = (logicalVolume - pivot) / (1 - pivot);
+  return outputPivot + ((1 - outputPivot) * progress);
+}
+
 export function createBgmController({
   track,
   audioFactory = createDefaultAudio,
@@ -44,7 +60,16 @@ export function createBgmController({
   audio.src = track.src;
   audio.preload = "auto";
   audio.loop = track.loop !== false;
-  audio.volume = readBgmVolume({ storage, fallback: track.defaultVolume });
+
+  const defaultVolume = Number(track.defaultVolume);
+  const defaultOutputVolume = Number(track.defaultOutputVolume);
+  let volume = readBgmVolume({ storage, fallback: defaultVolume });
+
+  function applyOutputVolume() {
+    audio.volume = mapOutputVolume(volume, defaultVolume, defaultOutputVolume);
+  }
+
+  applyOutputVolume();
 
   const listeners = new Set();
   let status = BGM_STATE.IDLE;
@@ -60,7 +85,8 @@ export function createBgmController({
       status,
       hasEverPlayed,
       userPaused,
-      volume: Number(audio.volume),
+      volume,
+      outputVolume: Number(audio.volume),
       interactionBound,
       lastError,
     });
@@ -179,9 +205,9 @@ export function createBgmController({
   }
 
   function setVolume(value) {
-    if (destroyed) return Number(audio.volume);
-    const volume = writeBgmVolume(value, { storage });
-    audio.volume = volume;
+    if (destroyed) return volume;
+    volume = writeBgmVolume(value, { storage });
+    applyOutputVolume();
     emit();
     return volume;
   }
