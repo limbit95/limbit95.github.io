@@ -255,9 +255,9 @@ test("document authority links are enforced only when the rulebook exists", () =
     registry: [],
     dbTestFiles: [],
     documents: {
-      "docs/game-platform-development-rules.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
-      "AGENTS.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
-      "games/README.md": "rules\n사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.\n`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
+      "docs/game-platform-development-rules.md": "rules\n체크포인트 기록하자",
+      "AGENTS.md": "rules\n체크포인트 기록하자",
+      "games/README.md": "rules\n체크포인트 기록하자",
       "games/GAME_SPEC_TEMPLATE.md": "rules",
       "games/DEVELOPMENT_TEMPLATE.md": "rules",
       "games/UI_DESIGN_TEMPLATE.md": "rules",
@@ -268,81 +268,48 @@ test("document authority links are enforced only when the rulebook exists", () =
   assert.equal(errors.length, 7);
 });
 
-test("platform checkpoint user trigger and lifecycle rule stay canonical across command entrypoints", () => {
-  const trigger = "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.";
-  const lifecycle = "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.";
+test("platform checkpoint command stays consistent across command entrypoints", () => {
+  const command = "체크포인트 기록하자";
 
   assert.deepEqual(validatePlatformDocumentPolicy({
     registry: [],
     documents: {
       "docs/game-platform-development-rules.md": [
         "> **문서 분류:** CURRENT",
-        trigger,
-        lifecycle,
+        command,
       ].join("\n"),
-      "AGENTS.md": [trigger, lifecycle].join("\n"),
-      "games/README.md": [trigger, lifecycle].join("\n"),
+      "AGENTS.md": command,
+      "games/README.md": command,
     },
   }), []);
 
-  const staleTrigger = validatePlatformDocumentPolicy({
+  const missingCommand = validatePlatformDocumentPolicy({
     registry: [],
     documents: {
       "docs/game-platform-development-rules.md": [
         "> **문서 분류:** CURRENT",
-        trigger,
-        lifecycle,
+        command,
       ].join("\n"),
-      "AGENTS.md": [trigger, lifecycle].join("\n"),
-      "games/README.md": [
-        "사용자가 중간 checkpoint 기록을 요청할 때 DEVELOPMENT.md를 갱신한다.",
-        lifecycle,
-      ].join("\n"),
+      "AGENTS.md": command,
+      "games/README.md": "일반적인 진행상황 정리 요청",
     },
   });
-  assert.equal(staleTrigger.length, 2);
-  assert.match(staleTrigger.join("\n"), /games\/README\.md must use the canonical Game Platform DEVELOPMENT\.md user checkpoint trigger/u);
-  assert.match(staleTrigger.join("\n"), /games\/README\.md contains ambiguous DEVELOPMENT\.md checkpoint wording/u);
+  assert.equal(missingCommand.length, 1);
+  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform DEVELOPMENT\.md checkpoint command/u);
 
-  const missingLifecycle = validatePlatformDocumentPolicy({
+  const deprecatedPhrase = validatePlatformDocumentPolicy({
     registry: [],
     documents: {
       "docs/game-platform-development-rules.md": [
         "> **문서 분류:** CURRENT",
-        trigger,
-        lifecycle,
+        command,
       ].join("\n"),
-      "AGENTS.md": [trigger, lifecycle].join("\n"),
-      "games/README.md": trigger,
+      "AGENTS.md": command,
+      "games/README.md": [command, "디벨롭 파일에 기록해줘"].join("\n"),
     },
   });
-  assert.equal(missingLifecycle.length, 1);
-  assert.match(missingLifecycle[0], /games\/README\.md must preserve the canonical Game Platform DEVELOPMENT\.md lifecycle update rule/u);
-});
-
-test("current platform documents reject stale broad checkpoint trigger wording", () => {
-  const errors = validatePlatformDocumentPolicy({
-    registry: [],
-    documents: {
-      "docs/game-platform-development-rules.md": [
-        "> **문서 분류:** CURRENT",
-        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
-        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
-      ].join("\n"),
-      "AGENTS.md": [
-        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
-        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
-      ].join("\n"),
-      "games/README.md": [
-        "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.",
-        "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.",
-      ].join("\n"),
-      "games/NEW_GAME_GUIDE.md": "사용자가 중간 checkpoint 기록을 요청할 때 DEVELOPMENT.md를 갱신한다.",
-    },
-  });
-
-  assert.equal(errors.length, 1);
-  assert.match(errors[0], /contains ambiguous DEVELOPMENT\.md checkpoint wording/u);
+  assert.equal(deprecatedPhrase.length, 1);
+  assert.match(deprecatedPhrase[0], /must not use the deprecated DEVELOPMENT\.md checkpoint phrase/u);
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {

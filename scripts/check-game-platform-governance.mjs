@@ -10,19 +10,13 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
-const DEVELOPMENT_CHECKPOINT_TRIGGER = "사용자 요청을 repository checkpoint 명령으로 해석하는 명시적 트리거는 요청 문장에서 `디벨롭 파일에`가 실제 기록 대상으로 지정된 경우다.";
-const DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD = "`디벨롭 파일에` 트리거는 사용자 요청의 해석에만 적용하며, Phase 시작/작업 범위 확정, Phase 완료, release closeout, 중요한 기능·UI 설계 변경, blocker/known issue 발생 등 `DEVELOPMENT.md`의 기존 필수·기본 갱신 시점을 제한하지 않는다.";
+const DEVELOPMENT_CHECKPOINT_COMMAND = "체크포인트 기록하자";
 const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
   "games/README.md",
   RULEBOOK_PATH,
 ]);
-const DEVELOPMENT_CHECKPOINT_AMBIGUOUS_PATTERNS = Object.freeze([
-  "게임 진행 checkpoint의 명시적 트리거는 사용자의 요청 문장에 `디벨롭 파일에`라는 표현이 포함된 경우다.",
-  "사용자가 명시적으로 중간 진행 기록을 요청할 때",
-  "사용자가 중간 checkpoint 기록을 요청할 때",
-  "Phase 완료 시와 사용자가 중간 checkpoint 기록을 요청할 때",
-]);
+const DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE = "디벨롭 파일에";
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
 const GAME_GUIDE_PATH_PATTERN = /^games\/[^/]+\.md$/u;
@@ -131,14 +125,6 @@ export function validatePlatformDocumentPolicy({
 
     if (classification === "HISTORY") continue;
 
-    for (const pattern of DEVELOPMENT_CHECKPOINT_AMBIGUOUS_PATTERNS) {
-      if (content.includes(pattern)) {
-        errors.push(
-          `Current Game Platform document ${filename} contains ambiguous DEVELOPMENT.md checkpoint wording: ${pattern}`,
-        );
-      }
-    }
-
     for (const game of sharedGames) {
       if (containsPlatformGameReference(content, game)) {
         errors.push(
@@ -151,20 +137,22 @@ export function validatePlatformDocumentPolicy({
   if (documents[RULEBOOK_PATH] != null) {
     for (const filename of DEVELOPMENT_CHECKPOINT_POLICY_PATHS) {
       const content = documents[filename];
-      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_TRIGGER)) {
+      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_COMMAND)) {
         errors.push(
-          `${filename} must use the canonical Game Platform DEVELOPMENT.md user checkpoint trigger: ${DEVELOPMENT_CHECKPOINT_TRIGGER}`,
+          `${filename} must identify the Game Platform DEVELOPMENT.md checkpoint command: ${DEVELOPMENT_CHECKPOINT_COMMAND}`,
         );
       }
-      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD)) {
+      if (typeof content === "string" && content.includes(DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE)) {
         errors.push(
-          `${filename} must preserve the canonical Game Platform DEVELOPMENT.md lifecycle update rule: ${DEVELOPMENT_CHECKPOINT_LIFECYCLE_GUARD}`,
+          `${filename} must not use the deprecated DEVELOPMENT.md checkpoint phrase: ${DEPRECATED_DEVELOPMENT_CHECKPOINT_PHRASE}`,
         );
       }
     }
   }
 
   return errors;
+}
+export function validateRepositoryState({  return errors;
 }
 export function validateRepositoryState({
   gameDirectories,
