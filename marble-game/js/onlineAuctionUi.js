@@ -339,9 +339,20 @@ export function setupOnlineAuctionUi({
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
   const setAuctionOverlayActive = (active) => {
-    if (!documentObject.body?.dataset) return;
-    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
-    else delete documentObject.body.dataset.auctionOverlayActive;
+    const body = documentObject.body;
+    if (!body?.dataset) return;
+    if (!active) {
+      delete body.dataset.auctionOverlayActive;
+      body.style.removeProperty("--auction-notice-bottom");
+      return;
+    }
+    body.dataset.auctionOverlayActive = "true";
+    if (!elements.panel.hidden) {
+      const rect = elements.panel.getBoundingClientRect();
+      const viewportHeight = Number(documentObject.defaultView?.innerHeight) || 0;
+      const bottom = Math.max(12, viewportHeight - rect.top + 10);
+      body.style.setProperty("--auction-notice-bottom", `${bottom}px`);
+    }
   };
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
@@ -499,9 +510,9 @@ export function setupOnlineAuctionUi({
       return;
     }
 
-    setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
+    setAuctionOverlayActive(true);
     elements.title.textContent = model.nodeLabel;
     updateTimer(model);
     renderParticipantList(documentObject, elements, model);
