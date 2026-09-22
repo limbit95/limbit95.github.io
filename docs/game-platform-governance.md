@@ -72,6 +72,14 @@ Governance Guard는 각 platform-native 게임 디렉터리에 `GAME_SPEC.md`, `
 
 `UI_DESIGN.md` 검사는 디자인 조사, 자산 사용 경계, Visual Identity, page/lobby/gameplay/result-rematch, motion, responsive, 구현 계획, validation 섹션의 구조적 존재를 확인한다. 특정 색상이나 디자인의 미적 적합성을 CI가 판단하는 것은 아니며 그 의미적 검토는 `docs/game-platform-ui-rules.md`의 작업 절차와 실제 브라우저 검증이 담당한다.
 
+세 문서가 각각 독립 파일로만 존재하고 서로 고립되는 것을 막기 위해 game-local cross-link도 검사한다.
+
+- `GAME_SPEC.md` → `UI_DESIGN.md`, `DEVELOPMENT.md`
+- `UI_DESIGN.md` → `GAME_SPEC.md`, `DEVELOPMENT.md`
+- `DEVELOPMENT.md` → `GAME_SPEC.md`, `UI_DESIGN.md`
+
+다만 Guard는 어느 문서의 내용이 의미적으로 다른 문서와 모순되는지까지 판정하지 않는다. 기능 lifecycle은 `GAME_SPEC.md`, presentation은 `UI_DESIGN.md`, 실제 구현 진행상태는 `DEVELOPMENT.md`를 기준으로 작업자가 정합성을 검토한다.
+
 Release 상태는 최소한의 기계적 정합성도 검사한다. `Status: RELEASED`인 게임은 production baseline이므로 `Active branch: main`이어야 하고 날짜가 포함된 `## Release` 섹션을 가져야 한다. 이는 실제 production migration 여부나 플레이 품질을 추론하는 검사가 아니라, 종료된 작업 브랜치가 현재 기준으로 남는 문서 오류를 막기 위한 guard다.
 
 Guard는 규칙/디자인 출처의 신뢰도, 게임 규칙의 의미적 정확성, Visual Identity의 품질, 자산 사용 권리의 법적 판단, Phase 진행상황의 사실 여부까지 자동 판정하지 않는다. 또한 각 게임의 재대결 구현이 실제 멀티클라이언트에서 완전한지를 문서 구조만으로 추론하지 않는다. 해당 내용은 `docs/game-platform-development-rules.md`, `docs/game-platform-ui-rules.md`, 게임별 테스트와 실제 브라우저 검증으로 확인한다.
