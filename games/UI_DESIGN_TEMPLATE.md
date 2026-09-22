@@ -131,4 +131,4 @@
 ## Open Questions / Deferred
 
 - <아직 확정하지 않은 디자인/asset/interaction 결정, 없으면 없음>
-- 이 항목이 확정되면 현재 기준은 이 문서에 반영하고, 결정 배경과 변경 이유는 `UI_DECISIONS.md`에 남깁니다.
+- runtime 개발 전에 확정된 내용은 이 baseline에 반영합니다. 개발 시작 후 확정되는 변경은 이 문서를 덮어쓰지 않고 `UI_DECISIONS.md`에 남깁니다.
