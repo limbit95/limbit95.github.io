@@ -126,7 +126,7 @@
 - [ ] 핵심 구성물과 action이 실제 게임의 플레이 감각을 전달한다.
 - [ ] animation timing이 authoritative state와 충돌하지 않는다.
 - [ ] desktop/mobile에서 핵심 정보와 action을 사용할 수 있다.
-- [ ] `UI_DECISIONS.md`가 실제 디자인 개발 진행·중요 결정·검증 이력을 추적한다.
+- [ ] 개발 시작 후 baseline에서 벗어난 의미 있는 디자인 결정·수동 리뷰 결과·검증 이력이 있다면 `UI_DECISIONS.md`가 이를 추적한다.
 
 ## Open Questions / Deferred
 
