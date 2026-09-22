@@ -23,6 +23,7 @@
 runtime 구현 전에 게임 규칙 조사와 함께 최소 다음을 조사한다.
 
 - 공식 제품/퍼블리셔 페이지와 공식 규칙서
+- 공식 또는 신뢰 가능한 시각 자료가 존재하면 텍스트 설명만으로 Visual Identity를 확정하지 않고 실제 카드·보드·패키지·토큰 등 visual reference를 직접 확인한다.
 - 박스, 카드, 보드, 칩, 토큰, 말, 주사위 등 실제 구성물
 - 대표 색상과 보조/강조 색상
 - 로고가 아닌 게임을 연상시키는 기능적 심볼과 형태
@@ -33,6 +34,19 @@ runtime 구현 전에 게임 규칙 조사와 함께 최소 다음을 조사한�
 - 사용하려는 이미지, 로고, 일러스트, 폰트, 사운드 등 자산의 저작권·상표·라이선스·사용 조건
 
 조사 결과는 구현 전에 `games/<game-id>/UI_DESIGN.md`에 기록한다.
+
+조사 기록은 가능한 범위에서 **출처 → 관찰한 디자인 요소 → 구현 결정**이 추적되게 남긴다.
+
+예:
+
+```text
+Source: 공식 제품 페이지 / 규칙서 / 실제 구성물 사진
+Observed: 카드 모서리 숫자 위치, 주 색상, 칩 형태, 테이블 배치
+Decision: 직접 사용 / 독자 재구성 / 사용하지 않음
+Reason: 라이선스, 가독성, responsive adaptation 등
+```
+
+단순 링크 모음만 남기지 않고 그 자료가 실제 설계 결정에 어떤 근거가 됐는지 기록한다.
 
 MUST NOT: 조사 없이 청파 같이 일반 페이지의 색상과 컴포넌트를 그대로 복사해 게임의 기본 디자인으로 확정하지 않는다.
 
@@ -190,6 +204,12 @@ UI는 최소 다음을 명확히 표현한다.
 - 핵심 숫자와 상태는 구성물이 겹쳐도 읽을 수 있는 위치를 우선한다.
 - hover에만 의존하는 핵심 interaction을 만들지 않는다.
 - mobile에서 터치 target과 modal/overlay가 gameplay를 막지 않는지 검증한다.
+
+### Implementation Plan 책임
+
+`UI_DESIGN.md / Implementation Plan`은 Visual Identity, page/layout, component, motion, responsive와 asset 준비처럼 **presentation 구현 순서만** 관리한다. 기능 상태 머신, DB/RPC, 서버 권위 구현 순서는 `GAME_SPEC.md`에 두고, 현재 실제 다음 행동은 `DEVELOPMENT.md / Next Work`에서 추적한다.
+
+같은 TODO를 세 문서에 반복 복제하지 않는다.
 
 ## 11. 구현 완료 검증
 
