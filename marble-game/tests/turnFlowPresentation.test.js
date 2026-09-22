@@ -64,13 +64,13 @@ test("shared result notice stays centered without an Auction dialog backdrop", (
     assert.doesNotMatch(source, /showAuctionUnsoldResult/);
     assert.doesNotMatch(source, /auction-result-modal/);
   }
-  assert.match(auctionCssSource, /\.important-notice,[\s\S]*top: 50%/);
+  assert.match(auctionCssSource, /important-notice\[data-notice-layer="global"\][\s\S]*position: fixed/);
   assert.match(auctionCssSource, /transform: translate\(-50%, -50%\)/);
   assert.match(auctionCssSource, /backdrop-filter: none/);
   assert.doesNotMatch(auctionCssSource, /auction-result-modal::backdrop/);
 });
 
-test("Auction resolution notice appears concurrently with its follow-up animation", () => {
+test("Auction resolution notice starts before its follow-up animation", () => {
   for (const source of [onlineSource, localSource]) {
     assert.match(source, /AUCTION_DECISIVE_BID/);
     assert.match(source, /보유 골드보다 높은/);
@@ -80,6 +80,15 @@ test("Auction resolution notice appears concurrently with its follow-up animatio
     assert.doesNotMatch(source, /presentDecisiveBidNotice/);
     assert.doesNotMatch(source, /DECISIVE_BID_NOTICE_HOLD_MS/);
   }
+
+  assert.ok(
+    onlineSource.indexOf("if (auctionResolution) showImportantNotice(state);")
+      < onlineSource.indexOf("if (animate) await animateState(state, { remote });"),
+  );
+  assert.ok(
+    localSource.indexOf("if (auctionResolution) showImportantNotice(state);")
+      < localSource.indexOf("await playStateEvents(state);"),
+  );
 });
 
 test("Auction notices stay above the active Auction panel", () => {
@@ -87,8 +96,12 @@ test("Auction notices stay above the active Auction panel", () => {
     assert.match(source, /auctionOverlayActive/);
   }
   assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
-  assert.match(auctionCssSource, /z-index: 3200/);
+  assert.match(auctionCssSource, /z-index: 5000/);
   assert.match(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
+  for (const source of [onlineSource, localSource]) {
+    assert.match(source, /document\.body\.append\(importantNotice\)/);
+    assert.match(source, /noticeLayer = "global"/);
+  }
 });
 
 test("local play mirrors automatic result-to-next-turn progression", () => {
