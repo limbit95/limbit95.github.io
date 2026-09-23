@@ -135,6 +135,7 @@ export function mapOnlineGameSnapshot(snapshot) {
     id: player.id,
     userId: player.userId,
     name: player.name,
+    avatarPath: typeof player.avatarPath === "string" ? player.avatarPath : null,
     seat: Number(player.seat),
     positionNodeId: player.positionNodeId,
     money: Number(player.money),
