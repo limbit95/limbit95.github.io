@@ -28,6 +28,17 @@
 
 게임에 private state가 존재하지 않더라도 11번은 생략하지 않는다. 해당 게임의 snapshot에 private 정보가 없음을 명시적으로 검증한다.
 
+## Data API 권한 계약
+
+다음 규칙은 위 11개 behavioral scenario를 늘리는 별도 gameplay contract가 아니라, migration이 같은 서버 경계를 실제 DB 권한으로 보존하기 위한 구현 계약이다.
+
+- Data API에 노출되는 schema의 새 table/view/function/sequence는 프로젝트의 자동 default privilege에 의존하지 않는다. 생성하거나 변경하는 migration에서 `anon`, `authenticated`, `service_role` 중 실제 호출 주체와 필요한 최소 `GRANT`/`REVOKE`를 명시한다.
+- 테이블 privilege와 RLS는 서로 다른 보안 계층으로 각각 검토한다. 직접 읽기나 쓰기가 필요한 테이블에만 필요한 privilege를 부여하고, 허용 row 범위는 RLS 또는 서버 권위 RPC가 별도로 제한한다.
+- public RPC는 기본 `PUBLIC EXECUTE`에 의존하지 않는다. 실제 호출 주체만 실행할 수 있도록 기존 실행 권한을 회수한 뒤 필요한 role에만 `EXECUTE`를 허용한다.
+- `service_role`에도 관행적으로 모든 객체 권한을 열지 않는다. 서버가 Data API로 직접 접근해야 하는 객체와 작업에 필요한 최소 권한만 허용하며, browser runtime에는 `service_role` credential을 노출하지 않는다.
+- `SECURITY DEFINER` RPC 내부에서만 사용하는 상태 테이블처럼 browser의 직접 Data API 접근이 필요하지 않은 객체는 `anon`/`authenticated` table privilege를 열지 않아도 된다.
+- 이미 운영에 적용된 migration의 과거 SQL을 권한 보정 목적으로 다시 작성하지 않는다. 기존 객체의 권한을 보정해야 하면 새로운 forward migration으로 현재 최종 권한을 명시한다.
+
 ## 사용 위치
 
 공통 계약 러너:

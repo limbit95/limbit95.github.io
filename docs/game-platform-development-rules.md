@@ -646,6 +646,8 @@ MUST NOT: 게임마다 별도의 새로운 invite target type이나 전용 invit
 
 신규 온라인 platform-native 게임은 `tests/game-db-integration/platformContract.js`의 공통 계약을 첫 구현부터 적용한다.
 
+MUST: DB migration이 Data API 노출 schema에 table/view/function/sequence를 생성·변경하면 프로젝트의 자동 default privilege에 의존하지 않고 `docs/game-platform-db-test-contract.md`의 Data API 권한 계약에 따라 역할별 `GRANT`/`REVOKE`, 테이블 RLS, RPC `EXECUTE` 경계를 명시적으로 검토한다.
+
 게임별 테스트 파일 예:
 
 ```text

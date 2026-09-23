@@ -46,6 +46,9 @@
 ## 4. 보안 원칙
 
 - 공개 schema의 청파 같이 테이블은 RLS를 유지합니다.
+- Data API에 노출되는 schema의 새 table/view/function/sequence는 Supabase/Postgres 기본 권한에 의존하지 않습니다. 객체를 생성하거나 변경하는 migration에서 `anon`, `authenticated`, `service_role` 중 실제 호출 주체와 필요한 최소 `GRANT`/`REVOKE`를 명시적으로 검토합니다.
+- 테이블 권한과 RLS는 서로 다른 보안 계층으로 취급해 둘 다 검토하며, RLS가 켜져 있다는 이유로 과도한 table privilege를 남기거나 table privilege가 있다는 이유로 RLS를 생략하지 않습니다.
+- 직접 Data API 접근이 필요하지 않은 객체에는 브라우저 role 권한을 주지 않으며, `service_role`도 관행적으로 `GRANT ALL`하지 않고 서버에서 직접 접근이 필요한 범위만 허용합니다.
 - 브라우저에는 publishable/anon key만 사용하며 `service_role` 또는 secret key를 넣지 않습니다.
 - 사용자 권한은 프론트 UI 숨김으로 보장하지 않고 RLS/RPC에서 다시 검증합니다.
 - `SECURITY DEFINER` 함수는 목적이 명확한 경우에만 사용합니다.
