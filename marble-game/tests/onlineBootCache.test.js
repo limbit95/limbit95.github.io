@@ -8,6 +8,7 @@ const playWindowSource = readFileSync(new URL("../js/playWindow.js", import.meta
 const twoDControllerSource = readFileSync(new URL("../js/onlineGameController2d.js", import.meta.url), "utf8");
 const controllerSource = readFileSync(new URL("../js/onlineGameController.js", import.meta.url), "utf8");
 const sessionSource = readFileSync(new URL("../js/onlineSession.js", import.meta.url), "utf8");
+const auctionUiSource = readFileSync(new URL("../js/onlineAuctionUi.js", import.meta.url), "utf8");
 const tradeUiSource = readFileSync(new URL("../js/onlineTradeUi.js", import.meta.url), "utf8");
 const liquidationUiSource = readFileSync(new URL("../js/onlineLiquidationUi.js", import.meta.url), "utf8");
 const presenceSource = readFileSync(new URL("../js/onlinePresenceHud.js", import.meta.url), "utf8");
@@ -18,19 +19,19 @@ const costEntrySource = readFileSync(new URL("../js/renderer/threeClassicCostPre
 const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicPrototypeDiagnostics.js", import.meta.url), "utf8");
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
-  assert.match(indexHtml, /data-marble-build="20260923-r2"/);
-  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260923-r2/);
+  assert.match(indexHtml, /data-marble-build="20260923-r3"/);
+  assert.match(indexHtml, /marbleBootstrap\.js\?v=20260923-r3/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
-  assert.match(indexHtml, /auction-ui\.css\?v=20260923-r2/);
+  assert.match(indexHtml, /auction-ui\.css\?v=20260923-r3/);
   assert.doesNotMatch(indexHtml, /coin-motion-polish\.css/);
   assert.match(indexHtml, /start-salary-celebration\.css\?v=20260912-r1/);
   assert.match(indexHtml, /presentation-timing\.css\?v=20260916-r2/);
   assert.match(indexHtml, /"\.\/js\/diceStage\.js": "\.\/js\/diceStageOnlineLazy\.js\?v=20260912-r13"/);
   assert.match(indexHtml, /"\.\/js\/onlinePlayRoute\.js": "\.\/js\/onlinePlayRoute\.js\?v=20260911-r11"/);
   assert.match(bootstrapSource, /multiplayerLobby\.js\?v=20260914-r8/);
-  assert.match(bootstrapSource, /playWindow\.js\?v=20260923-r2/);
-  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260923-r2"/);
+  assert.match(bootstrapSource, /playWindow\.js\?v=20260923-r3/);
+  assert.match(playWindowSource, /ONLINE_BOOT_REVISION = "20260923-r3"/);
   assert.match(playWindowSource, /onlineGameApi\.js/);
   assert.match(playWindowSource, /onlineGameController\.js/);
   assert.match(playWindowSource, /url\.searchParams\.set\("v", ONLINE_BOOT_REVISION\)/);
@@ -43,9 +44,9 @@ test("online recovery and Classic renderer entries bypass stale modules while un
   assert.match(controllerSource, /onlineStartup\.js\?v=20260910-r8/);
   assert.match(controllerSource, /onlineSession\.js\?v=20260923-r2/);
   assert.match(twoDControllerSource, /onlineSession\.js\?v=20260923-r2/);
-  assert.match(tradeUiSource, /onlineSession\.js\?v=20260919-r13/);
-  
-  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260919-r13/);
+  assert.match(auctionUiSource, /onlineSession\.js\?v=20260923-r2/);
+  assert.match(tradeUiSource, /onlineSession\.js\?v=20260923-r2/);
+  assert.match(liquidationUiSource, /onlineSession\.js\?v=20260923-r2/);
   
   assert.match(controllerSource, /onlinePresenceHud\.js\?v=20260910-r8/);
   assert.match(sessionSource, /onlineGameApi\.js\?v=20260919-r13/);
