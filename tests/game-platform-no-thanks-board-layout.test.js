@@ -6,6 +6,8 @@ import {
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
+  getNoThanksResultHandMargins,
+  getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "../games/no-thanks/boardLayout.js";
@@ -78,6 +80,42 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksHandOverlap(13), -30);
   assert.equal(getNoThanksHandOverlap(18), -40);
   assert.equal(getNoThanksHandOverlap(24), -50);
+
+  assert.equal(getNoThanksResultHandOverlap(4), -2);
+  assert.equal(getNoThanksResultHandOverlap(8), -7);
+  assert.equal(getNoThanksResultHandOverlap(12), -13);
+  assert.equal(getNoThanksResultHandOverlap(17), -21);
+  assert.equal(getNoThanksResultHandOverlap(24), -30);
+
+  const roomyResult = getNoThanksResultHandMargins(9, {
+    availableWidth: 720,
+    cardWidth: 68,
+    runStartCount: 3,
+  });
+  assert.deepEqual(roomyResult, { overlap: -7, runMargin: 12 });
+
+  const compactResult = getNoThanksResultHandMargins(9, {
+    availableWidth: 430,
+    cardWidth: 68,
+    runStartCount: 3,
+  });
+  assert.ok(compactResult.overlap < -7);
+  assert.ok(compactResult.runMargin < 12);
+  assert.ok(
+    (9 * 68) + (5 * compactResult.overlap) + (3 * compactResult.runMargin) <= 430.000001,
+    "responsive result hand must fit within the measured card rack",
+  );
+
+  const denseResult = getNoThanksResultHandMargins(24, {
+    availableWidth: 330,
+    cardWidth: 68,
+    runStartCount: 8,
+  });
+  assert.ok(denseResult.overlap < -50);
+  assert.ok(
+    (24 * 68) + (15 * denseResult.overlap) + (8 * denseResult.runMargin) <= 330.000001,
+    "large result hands must increase overlap enough to stay inside the rack",
+  );
 
   assert.equal(getNoThanksVisibleChipCount(0), 0);
   assert.equal(getNoThanksVisibleChipCount(6), 6);
