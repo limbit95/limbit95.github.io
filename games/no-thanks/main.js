@@ -1668,12 +1668,11 @@ function createWaitingPanel(view, state, panelActions = []) {
 
 function getNoThanksResultHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 3) return -10;
-  if (count <= 5) return -30;
-  if (count <= 8) return -40;
-  if (count <= 12) return -45;
-  if (count <= 17) return -48;
-  return -49;
+  if (count <= 5) return -6;
+  if (count <= 9) return -16;
+  if (count <= 14) return -27;
+  if (count <= 19) return -37;
+  return -46;
 }
 
 function createResultPlayerPanels(view, {
