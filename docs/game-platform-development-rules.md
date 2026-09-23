@@ -567,6 +567,7 @@ MUST: 게임 목록에서 진입한 뒤의 entry/lobby/gameplay/result/rematch�
 - 규칙 안내는 처음 플레이하는 사용자가 읽고 바로 플레이할 수 있을 정도로 목표, 구성요소, 턴 순서, 가능한 선택, 실패/패널티, 종료/승리 조건, 대표 예시를 충분히 설명한다.
 - 공개된 기존 보드게임은 공식 규칙서, 퍼블리셔 자료 또는 신뢰 가능한 규칙 출처를 먼저 확인하고 구현 규칙과 사용자 안내가 같은 해석을 사용해야 한다.
 - 규칙이 짧거나 중간 분량이면 modal/dialog를 사용할 수 있고, 내용이 길거나 예시·도표가 많으면 game-local 전용 규칙 페이지를 사용한다.
+- 규칙 modal/page의 Visual Identity, game component 활용, 정보 계층, 접근성·responsive presentation은 `docs/game-platform-ui-rules.md`의 게임 규칙 안내 presentation 기준을 따른다.
 - 규칙 원문을 장문 복제하지 않고 출처를 남긴 뒤 웹게임에 필요한 사실과 해석을 상세히 재구성한다.
 - 실제 플레이 중에도 규칙 안내를 다시 열 수 있는 경로를 유지하는 것을 기본값으로 한다.
 
