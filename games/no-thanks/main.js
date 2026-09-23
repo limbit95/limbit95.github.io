@@ -1782,7 +1782,7 @@ function readAcknowledgedWinnerCelebrationKey() {
 }
 
 function acknowledgeWinnerCelebration(celebrationKey) {
-  acknowledgeWinnerCelebration(celebrationKey);
+  acknowledgedWinnerCelebrationKey = celebrationKey;
   try {
     window.sessionStorage?.setItem(WINNER_CELEBRATION_STORAGE_KEY, celebrationKey);
   } catch {
@@ -2350,6 +2350,7 @@ function renderLobby(access, state) {
   if (winnerCelebrationDialog) {
     window.requestAnimationFrame(() => {
       if (winnerCelebrationDialog.isConnected && !winnerCelebrationDialog.open) {
+        acknowledgeWinnerCelebration(winnerCelebrationKey);
         winnerCelebrationDialog.showModal();
       }
     });
