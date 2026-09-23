@@ -37,6 +37,7 @@ function gameSpecDocument() {
     "## Validation Plan",
     "## Open Questions / Deferred",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
     "DEVELOPMENT.md",
   ].join("\n");
 }
@@ -57,7 +58,21 @@ function uiDesignDocument() {
     "## Validation Checklist",
     "## Open Questions / Deferred",
     "GAME_SPEC.md",
+    "UI_DECISIONS.md",
     "DEVELOPMENT.md",
+  ].join("\n");
+}
+
+function uiDecisionDocument() {
+  return [
+    "## Current Design Track",
+    "## Decision Log",
+    "## Superseded / Rejected",
+    "## Validation History",
+    "## Open Follow-up",
+    "GAME_SPEC.md",
+    "DEVELOPMENT.md",
+    "UI_DESIGN.md",
   ].join("\n");
 }
 
@@ -75,6 +90,7 @@ function developmentDocument() {
     "## Known Issues / Deferred",
     "GAME_SPEC.md",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
   ].join("\n");
 }
 
@@ -95,6 +111,7 @@ function releasedDevelopmentDocument({
     "## Known Issues / Deferred",
     "GAME_SPEC.md",
     "UI_DESIGN.md",
+    "UI_DECISIONS.md",
     ...(includeRelease ? ["## Release — 2026-09-21"] : []),
   ].join("\n");
 }
@@ -255,9 +272,9 @@ test("document authority links are enforced only when the rulebook exists", () =
     registry: [],
     dbTestFiles: [],
     documents: {
-      "docs/game-platform-development-rules.md": "rules\n체크포인트 기록하자",
-      "AGENTS.md": "rules\n체크포인트 기록하자",
-      "games/README.md": "rules\n체크포인트 기록하자",
+      "docs/game-platform-development-rules.md": "rules\n기능 체크포인트 기록하자",
+      "AGENTS.md": "rules\n기능 체크포인트 기록하자",
+      "games/README.md": "rules\n기능 체크포인트 기록하자",
       "docs/game-platform-strategy.md": "rules",
       "docs/game-platform-invite-analysis.md": "rules",
     },
@@ -265,8 +282,8 @@ test("document authority links are enforced only when the rulebook exists", () =
   assert.equal(errors.length, 4);
 });
 
-test("platform checkpoint command stays consistent across command entrypoints", () => {
-  const command = "체크포인트 기록하자";
+test("functional checkpoint command stays consistent across functional entrypoints", () => {
+  const command = "기능 체크포인트 기록하자";
 
   assert.deepEqual(validatePlatformDocumentPolicy({
     registry: [],
@@ -292,8 +309,114 @@ test("platform checkpoint command stays consistent across command entrypoints", 
     },
   });
   assert.equal(missingCommand.length, 1);
-  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform DEVELOPMENT\.md checkpoint command/u);
+  assert.match(missingCommand[0], /games\/README\.md must identify the Game Platform functional checkpoint command/u);
+});
 
+test("design checkpoint command stays consistent across design entrypoints", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+
+  const documents = {
+    "docs/game-platform-development-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-ui-rules.md",
+      functionCommand,
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "docs/game-platform-ui-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-development-rules.md",
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+  };
+
+  assert.deepEqual(validatePlatformDocumentPolicy({ registry: [], documents }), []);
+
+  const missingDesignCommand = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      ...documents,
+      "docs/game-platform-ui-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-development-rules.md",
+        lifecycle,
+      ].join("\n"),
+    },
+  });
+  assert.equal(missingDesignCommand.length, 1);
+  assert.match(missingDesignCommand[0], /game-platform-ui-rules\.md must identify the Game Platform design checkpoint command/u);
+});
+
+test("retired generic checkpoint command cannot return as a standalone command", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+  const legacyCommand = `\`${["체크포인트", "기록하자"].join(" ")}\``;
+
+  const errors = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      "docs/game-platform-development-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-ui-rules.md",
+        functionCommand,
+        designCommand,
+        lifecycle,
+        legacyCommand,
+      ].join("\n"),
+      "docs/game-platform-ui-rules.md": [
+        "> **문서 분류:** CURRENT",
+        "docs/game-platform-development-rules.md",
+        designCommand,
+        lifecycle,
+      ].join("\n"),
+      "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+      "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    },
+  });
+
+  assert.equal(errors.filter((error) => /retired generic checkpoint command/u.test(error)).length, 1);
+});
+
+test("platform entrypoints preserve the manual UI decision review lifecycle", () => {
+  const functionCommand = "기능 체크포인트 기록하자";
+  const designCommand = "디자인 체크포인트 기록하자";
+  const lifecycle = "UI_DECISIONS.md Developer Manual Design Review";
+
+  const documents = {
+    "docs/game-platform-development-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-ui-rules.md",
+      functionCommand,
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "docs/game-platform-ui-rules.md": [
+      "> **문서 분류:** CURRENT",
+      "docs/game-platform-development-rules.md",
+      designCommand,
+      lifecycle,
+    ].join("\n"),
+    "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+    "games/README.md": [functionCommand, designCommand, "UI_DECISIONS.md", "수동 브라우저"].join("\n"),
+  };
+
+  assert.deepEqual(validatePlatformDocumentPolicy({ registry: [], documents }), []);
+
+  const missingManualReview = validatePlatformDocumentPolicy({
+    registry: [],
+    documents: {
+      ...documents,
+      "AGENTS.md": [functionCommand, designCommand, "UI_DECISIONS.md"].join("\n"),
+    },
+  });
+  assert.equal(missingManualReview.length, 1);
+  assert.match(missingManualReview[0], /manual-browser design review lifecycle/u);
 });
 
 test("pull request guard blocks Legacy and Game Platform runtime changes in the same PR", () => {
@@ -310,8 +433,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
     ],
     baseGameDirectories: [],
     headGameDirectories: ["cant-stop"],
@@ -320,8 +444,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   const errors = validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
       { status: "A", path: "games/cant-stop/index.html" },
     ],
     baseGameDirectories: [],
@@ -332,8 +457,9 @@ test("pull request guard allows bootstrap documents without Registry and require
   assert.deepEqual(validatePullRequestChanges({
     changedFiles: [
       { status: "A", path: "games/cant-stop/GAME_SPEC.md" },
-      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
       { status: "A", path: "games/cant-stop/DEVELOPMENT.md" },
+      { status: "A", path: "games/cant-stop/UI_DESIGN.md" },
+      { status: "A", path: "games/cant-stop/UI_DECISIONS.md" },
       { status: "A", path: "games/cant-stop/index.html" },
       { status: "M", path: "games/shared/registry.js" },
     ],
@@ -446,7 +572,7 @@ test("Game Platform rules codify release closeout and post-release feedback loop
 });
 
 
-test("repository state requires UI_DESIGN with required sections when the UI rulebook exists", () => {
+test("repository state requires UI_DESIGN and UI_DECISIONS with required sections when the UI rulebook exists", () => {
   const documents = {
     "docs/game-platform-development-rules.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-ui-rules.md": "docs/game-platform-development-rules.md",
@@ -455,6 +581,7 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -463,9 +590,10 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
     registry: [],
     dbTestFiles: [],
     gameFiles: {
-      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md", "UI_DECISIONS.md"],
     },
     gameSpecDocuments: { "sample-game": gameSpecDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
     developmentDocuments: { "sample-game": developmentDocument() },
     documents,
   };
@@ -482,9 +610,24 @@ test("repository state requires UI_DESIGN with required sections when the UI rul
   });
   assert.match(incomplete.join("\n"), /UI_DESIGN\.md is missing required section/u);
 
+  const missingDecisions = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: {},
+  });
+  assert.match(missingDecisions.join("\n"), /requires games\/sample-game\/UI_DECISIONS\.md/u);
+
+  const incompleteDecisions = validateRepositoryState({
+    ...base,
+    uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": "## Decision Log" },
+  });
+  assert.match(incompleteDecisions.join("\n"), /UI_DECISIONS\.md is missing required section/u);
+
   assert.deepEqual(validateRepositoryState({
     ...base,
     uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
   }), []);
 });
 
@@ -497,6 +640,7 @@ test("UI rulebook authority links are enforced across game entry documents and t
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -523,6 +667,55 @@ test("UI rulebook authority links are enforced across game entry documents and t
   );
 });
 
+test("governance defines topic-owner first rule propagation without duplicating detailed rules", () => {
+  const governance = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-governance.md"),
+    "utf8",
+  );
+
+  assert.match(governance, /공통 규칙 변경 전파 원칙/u);
+  assert.match(governance, /topic-owner 문서/u);
+  assert.match(governance, /상위\/진입 문서에는 필요한 요약과 참조만 전파/u);
+  assert.match(governance, /같은 세부 규칙을 여러 상위 문서에서 독립적으로 다시 정의하지 않는다/u);
+  assert.match(governance, /상위 규칙과 충돌하는 하위 필요/u);
+  assert.match(governance, /ARCHITECTURE CHANGE/u);
+  assert.match(governance, /발견\/토의 단계에서는 제안으로만 유지/u);
+  assert.match(governance, /COMPLIANT.*MIGRATION_REQUIRED.*NOT_APPLICABLE/su);
+});
+
+test("development rules promote parent-conflicting lower-level needs to architecture changes before source work", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const agents = readFileSync(path.join(repositoryRoot, "AGENTS.md"), "utf8");
+
+  assert.match(rules, /ARCHITECTURE CHANGE/u);
+  assert.match(rules, /하위에서 먼저 발견했다는 사실은 그 변경에 상위 권위를 부여하지 않는다/u);
+  assert.match(rules, /토의·승격 없이.*불허용/su);
+  assert.match(rules, /소스 수정 전에.*상위 규칙.*shared contract.*영향/su);
+  assert.match(rules, /Game Platform 전반에 필요한 변경이라고 명시적으로 합의되면.*ARCHITECTURE CHANGE/su);
+  assert.match(rules, /shared runtime\/API가 비호환으로 바뀌는 경우.*RELEASED consumer.*공통 계약만 먼저 merge하지 않는다/su);
+  assert.match(agents, /Game Platform ARCHITECTURE CHANGE/u);
+});
+
+test("development DB quality gate stays aligned with the 11-scenario DB contract", () => {
+  const rules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const dbContract = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-db-test-contract.md"),
+    "utf8",
+  );
+
+  assert.match(rules, /10\. 멀티플레이 게임의 same-room rematch lifecycle/u);
+  assert.match(rules, /11\. 다른 플레이어 private state 미노출/u);
+  assert.match(rules, /private state가 없는 게임도 11번/u);
+  assert.match(dbContract, /10\. 멀티플레이 게임 종료 후 재대결/u);
+  assert.match(dbContract, /11\. 다른 플레이어의 private state/u);
+});
+
 test("Game Platform rules require multiplayer rematch without prematurely forcing a shared RPC shape", () => {
   const rules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
@@ -536,7 +729,7 @@ test("Game Platform rules require multiplayer rematch without prematurely forcin
   assert.match(rules, /동일한 RPC 이름/u);
 });
 
-test("UI rulebook requires design research, independent page identity, and maintained UI_DESIGN documents", () => {
+test("UI rulebook treats UI_DESIGN as pre-development baseline and UI_DECISIONS as later overrides", () => {
   const uiRules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
     "utf8",
@@ -545,12 +738,62 @@ test("UI rulebook requires design research, independent page identity, and maint
   assert.match(uiRules, /신규 게임 개발 전 UI 조사/u);
   assert.match(uiRules, /독립적인 디지털 공간/u);
   assert.match(uiRules, /games\/<game-id>\/UI_DESIGN\.md/u);
+  assert.match(uiRules, /games\/<game-id>\/UI_DECISIONS\.md/u);
   assert.match(uiRules, /저작권·상표·라이선스/u);
-  assert.match(uiRules, /DEVELOPMENT\.md/u);
+  assert.match(uiRules, /최신 non-superseded `UI_DECISIONS\.md` 결정이 우선/u);
+  assert.match(uiRules, /effective design/u);
+  assert.match(uiRules, /후속 변경을 되돌리는 근거로 사용할 수 없다/u);
+  assert.match(uiRules, /기존 게임의 adoption baseline/u);
+  assert.match(uiRules, /신규 게임의 pre-development baseline 의무를 약화하지 않는다/u);
 });
 
 
-test("development handoff rules track GAME_SPEC and UI_DESIGN implementation status", () => {
+test("UI phase continuation cannot revert later user design decisions", () => {
+  const uiRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
+    "utf8",
+  );
+  const developmentRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const decisionsTemplate = readFileSync(
+    path.join(repositoryRoot, "games", "UI_DECISIONS_TEMPLATE.md"),
+    "utf8",
+  );
+
+  assert.match(uiRules, /Phase를 이어갈 때 디자인 회귀 방지/u);
+  assert.match(uiRules, /디자인 개발 lifecycle과 UI_DECISIONS 기록 타이밍/u);
+  assert.match(uiRules, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(uiRules, /하나의 디자인 영역이 안정화/u);
+  assert.match(uiRules, /디자인 작업 PR을 merge\/close하거나 작업 브랜치를 종료하기 전/u);
+  assert.match(uiRules, /baseline에서 벗어나 확정된 디자인 변경, 수동 브라우저 리뷰 결과/u);
+  assert.match(uiRules, /초기 Phase 문구와 최신 유효 결정이 충돌하면 최신 `UI_DECISIONS\.md`를 적용/u);
+  assert.match(uiRules, /과거 설계안으로 원복/u);
+  assert.match(developmentRules, /디자인 Phase 완료 자체만으로 Decision Log를 만들지 않는다/u);
+  assert.match(developmentRules, /기능 완료 이후 디자인 수동 리뷰 gate/u);
+  assert.match(developmentRules, /기능 개발의 완료 상태와 디자인 polish 완료 상태를 같은 것으로 취급하지 않는다/u);
+  assert.match(developmentRules, /이미 반영된 사용자 디자인 수정을 회귀시키지 않는다/u);
+  assert.match(developmentRules, /UI_DESIGN\.md.*baseline.*UI_DECISIONS\.md.*최신 non-superseded/su);
+  assert.match(decisionsTemplate, /Lifecycle stage:/u);
+  assert.match(decisionsTemplate, /## Recording Timing/u);
+  assert.match(decisionsTemplate, /developer manual browser review/u);
+  assert.match(decisionsTemplate, /Decision ID:/u);
+  assert.match(decisionsTemplate, /Supersedes:/u);
+  assert.match(decisionsTemplate, /UI_DESIGN\.md \+ UI_DECISIONS\.md overrides/u);
+});
+
+test("actual game platform entry docs route work through developer manual design review", () => {
+  const agents = readFileSync(path.join(repositoryRoot, "AGENTS.md"), "utf8");
+  const readme = readFileSync(path.join(repositoryRoot, "games", "README.md"), "utf8");
+
+  assert.match(agents, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(agents, /디자인 PR merge\/close, 작업 브랜치 종료, release closeout 전/u);
+  assert.match(readme, /Developer Manual Design Review \/ Detail Polish/u);
+  assert.match(readme, /최초 `UI_DESIGN\.md`를 계획대로 구현한 사실 자체는 `UI_DECISIONS\.md`에 중복 기록하지 않습니다/u);
+});
+
+test("development handoff stays functional while UI decisions track design progress", () => {
   const rules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
     "utf8",
@@ -560,13 +803,12 @@ test("development handoff rules track GAME_SPEC and UI_DESIGN implementation sta
     "utf8",
   );
 
-  assert.match(rules, /GAME_SPEC\.md.*UI_DESIGN\.md.*실제 구현 상태/us);
-  assert.match(rules, /UI\/presentation.*Validation/su);
-  assert.match(rules, /Visual Identity, page\/layout, 핵심 component, motion, responsive/u);
+  assert.match(rules, /DEVELOPMENT\.md.*현재 기능 개발 상태/us);
+  assert.match(rules, /UI_DECISIONS\.md.*디자인 개발 진행/su);
   assert.match(rules, /UI_DESIGN\.md.*Validation Checklist/u);
-  assert.match(template, /UI \/ presentation:/u);
-  assert.match(template, /UI \/ browser:/u);
-  assert.match(template, /미확정 asset\/license/u);
+  assert.match(template, /Design track reference:/u);
+  assert.match(template, /UI_DECISIONS\.md/u);
+  assert.doesNotMatch(template, /UI \/ presentation:/u);
 });
 
 
@@ -579,6 +821,7 @@ test("game-local documents must cross-reference the other design and handoff doc
     "games/GAME_SPEC_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/DEVELOPMENT_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "games/UI_DESIGN_TEMPLATE.md": "docs/game-platform-ui-rules.md",
+    "games/UI_DECISIONS_TEMPLATE.md": "docs/game-platform-ui-rules.md",
     "docs/game-platform-strategy.md": "docs/game-platform-development-rules.md",
     "docs/game-platform-invite-analysis.md": "docs/game-platform-development-rules.md",
   };
@@ -587,10 +830,11 @@ test("game-local documents must cross-reference the other design and handoff doc
     registry: [],
     dbTestFiles: [],
     gameFiles: {
-      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md"],
+      "sample-game": ["DEVELOPMENT.md", "GAME_SPEC.md", "UI_DESIGN.md", "UI_DECISIONS.md"],
     },
     gameSpecDocuments: { "sample-game": gameSpecDocument() },
     uiDesignDocuments: { "sample-game": uiDesignDocument() },
+    uiDecisionDocuments: { "sample-game": uiDecisionDocument() },
     developmentDocuments: { "sample-game": developmentDocument() },
     documents,
   };
@@ -620,6 +864,14 @@ test("game-local documents must cross-reference the other design and handoff doc
     },
   });
   assert.match(brokenDevelopment.join("\n"), /DEVELOPMENT\.md must reference GAME_SPEC\.md/u);
+
+  const brokenDecisions = validateRepositoryState({
+    ...base,
+    uiDecisionDocuments: {
+      "sample-game": uiDecisionDocument().replace("UI_DESIGN.md", ""),
+    },
+  });
+  assert.match(brokenDecisions.join("\n"), /UI_DECISIONS\.md must reference UI_DESIGN\.md/u);
 });
 
 test("platform rules define document authority and current-game impact auditing", () => {
@@ -628,10 +880,11 @@ test("platform rules define document authority and current-game impact auditing"
     "utf8",
   );
 
-  assert.match(rules, /게임별 세 문서의 권위와 충돌 해결/u);
+  assert.match(rules, /게임별 네 문서의 권위와 충돌 해결/u);
   assert.match(rules, /GAME_SPEC\.md.*기능 lifecycle/su);
+  assert.match(rules, /DEVELOPMENT\.md.*기능 구현.*현재 Phase/su);
   assert.match(rules, /UI_DESIGN\.md.*presentation/su);
-  assert.match(rules, /DEVELOPMENT\.md.*현재 진행상태/su);
+  assert.match(rules, /UI_DECISIONS\.md.*디자인 개발 진행/su);
   assert.match(rules, /COMPLIANT/u);
   assert.match(rules, /MIGRATION_REQUIRED/u);
   assert.match(rules, /NOT_APPLICABLE/u);

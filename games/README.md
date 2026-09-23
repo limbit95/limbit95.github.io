@@ -12,12 +12,18 @@
 - Drawing Spy는 Liar Game 내부 모드이므로 별도 루트로 이동하지 않습니다.
 - 기존 게임은 새 플랫폼 기능이나 공통 레이아웃을 강제로 적용하지 않습니다.
 - 새 게임은 가능한 한 `games/<game-id>/` 아래에 두고 `games/shared/`의 공통 계약을 사용합니다.
-- 신규 게임은 runtime 구현 전에 `games/GAME_SPEC_TEMPLATE.md`와 `games/UI_DESIGN_TEMPLATE.md`를 기준으로 `games/<game-id>/GAME_SPEC.md`와 `games/<game-id>/UI_DESIGN.md`를 만들고, 게임 규칙·제품 범위·상태 머신·플랫폼 경계뿐 아니라 원본 디자인 조사·Visual Identity·독립 페이지 경험·자산 사용 경계·UI 구현 계획을 먼저 정리합니다.
-- `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`만 존재하는 bootstrap 디렉터리는 미완성 게임 노출을 막기 위해 Registry 등록 전 상태로 둘 수 있습니다. runtime 파일을 추가하는 순간 Registry 규칙이 적용됩니다.
-- 각 platform-native 게임은 `GAME_SPEC.md`를 기능 설계 기준, `UI_DESIGN.md`를 UI/presentation 설계 기준, `DEVELOPMENT.md`를 두 설계의 실제 구현 진행상태를 추적하는 인수인계 문서로 관리합니다.
-- 사용자가 `체크포인트 기록하자`라고 요청하면 해당 게임의 `DEVELOPMENT.md`를 현재 상태로 갱신합니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다. 그 외 일반적인 새 채팅용 정리·문서·요약 요청은 repository checkpoint 명령으로 확대 해석하지 않습니다.
-- 이 사용자 명령과 별개로 Phase 완료, release closeout 등 Development Rules의 기존 `DEVELOPMENT.md` 갱신 시점은 그대로 유지합니다.
-- 게임 규칙, 턴 상태 머신, 승패 조건, 게임별 Visual Identity·레이아웃·애니메이션은 각 게임에 남겨 둡니다.
+- 신규 게임은 runtime 구현 전에 `games/GAME_SPEC_TEMPLATE.md`, `games/DEVELOPMENT_TEMPLATE.md`, `games/UI_DESIGN_TEMPLATE.md`, `games/UI_DECISIONS_TEMPLATE.md`를 기준으로 `games/<game-id>/GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`를 만들고, 기능 기준과 디자인 기준뿐 아니라 각 트랙의 진행 기록 경계까지 먼저 정리합니다.
+- `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`만 존재하는 bootstrap 디렉터리는 미완성 게임 노출을 막기 위해 Registry 등록 전 상태로 둘 수 있습니다. runtime 파일을 추가하는 순간 Registry 규칙이 적용됩니다.
+- 각 platform-native 게임은 `GAME_SPEC.md`를 현재 기능 설계 기준, `DEVELOPMENT.md`를 기능 구현·검증 진행 인수인계, `UI_DESIGN.md`를 runtime 개발 전 디자인 전수 조사·분석과 최초 Phase를 담은 baseline, `UI_DECISIONS.md`를 개발 시작 후 디자인 진행·변경 의사결정·검증과 baseline override 이력으로 관리합니다.
+- `기능 체크포인트 기록하자`는 `DEVELOPMENT.md` 중심의 기능 handoff 명령이며 기능 설계 변경이 있을 때만 `GAME_SPEC.md`를 함께 정합화합니다. 디자인 문서는 이 명령 때문에 수정하지 않습니다.
+- `디자인 체크포인트 기록하자`는 `UI_DECISIONS.md` 중심의 디자인 handoff 명령이며 현재까지 안정화된 확정 디자인 decision만 기록합니다. `UI_DESIGN.md` baseline과 기능 진행 문서는 이 명령 때문에 수정하지 않습니다.
+- 두 명령은 한 요청에서 함께 사용할 수 있습니다. 접두어가 없는 일반적인 checkpoint 표현이나 새 채팅용 정리·문서·요약 요청은 공식 repository checkpoint 명령으로 확대 해석하지 않습니다. 유효한 현재 작업 브랜치가 있으면 그 브랜치에 commit하고, 없으면 저장소의 일반 브랜치 규칙에 따라 별도 작업 브랜치를 사용합니다.
+- 두 사용자 명령과 별개로 기능 Phase 완료, 디자인 lifecycle 기록 트리거, release closeout 등 규칙 문서의 기존 자동 갱신 시점은 그대로 유지합니다.
+- 게임 규칙, 턴 상태 머신, 승패 조건은 기능 문서에, 게임별 Visual Identity·레이아웃·애니메이션의 최초 baseline과 후속 변경 이력은 각각 `UI_DESIGN.md`와 `UI_DECISIONS.md`에 남겨 둡니다.
+- UI Phase를 이어갈 때 초기 계획과 후속 결정이 충돌하면 최신 non-superseded `UI_DECISIONS.md`를 우선하며, 이미 반영된 사용자 디자인 수정을 과거 `UI_DESIGN.md` 안으로 회귀시키지 않습니다.
+- 기능 구현이 release 후보 수준에 도달하면 디자인을 자동 완료 처리하지 않고 Developer Manual Design Review / Detail Polish로 전환합니다. 개발자가 실제 브라우저에서 플레이하며 요청한 디테일 수정은 영역이 안정화된 시점에 `UI_DECISIONS.md`에 확정 decision 단위로 남기며, 디자인 PR/브랜치 종료 또는 release closeout 전에 누락을 확인합니다.
+- 최초 `UI_DESIGN.md`를 계획대로 구현한 사실 자체는 `UI_DECISIONS.md`에 중복 기록하지 않습니다. 이 문서는 baseline에서 벗어난 확정 변경과 개발자의 수동 디자인 리뷰 결과를 보존하는 데 사용합니다.
+- game-local 작업에서 상위 Game Platform 규칙과 충돌하는 새 필요를 발견하면 일반 하위 변경으로 바로 구현하지 않습니다. 플랫폼 전반에 필요한 변경으로 토의·합의되면 **ARCHITECTURE CHANGE**로 승격해 Development Rules와 Governance의 상·하위 정합화 및 전체 platform-native 게임 영향도 감사를 거칩니다.
 - 멀티플레이 게임은 게임 종료 후 동일 room/player context에서 재대결 준비 상태로 전환하고, 참여자 준비 완료 후 방장이 다시 시작할 수 있는 흐름을 기본 제품 요구사항으로 설계합니다. 내부 RPC/adapter 공통화는 별도 근거 없이 강제하지 않습니다.
 
 ## Released game lifecycle
@@ -26,7 +32,7 @@
 
 후속 수정은 종료된 feature 브랜치를 재사용하지 않고 최신 `main`에서 새 브랜치로 시작합니다. 구현 중 발견한 플랫폼 교훈은 [Game Platform Development Rules](../docs/game-platform-development-rules.md)의 release feedback loop에 따라 SHARED / GAME-LOCAL / RELEASE-OPERATIONS로 다시 분류합니다.
 
-특정 platform-native 게임의 구현을 다른 신규 게임의 기준 사례로 삼지 않습니다. 현재 공통 계약과 규칙 문서, 템플릿을 기준으로 시작하고 게임별 구현은 해당 게임 디렉터리 안의 `GAME_SPEC.md`, `UI_DESIGN.md`, `DEVELOPMENT.md`에서 정의합니다.
+특정 platform-native 게임의 구현을 다른 신규 게임의 기준 사례로 삼지 않습니다. 현재 공통 계약과 규칙 문서, 템플릿을 기준으로 시작하고 게임별 기능 기준/진행과 디자인 기준/이력은 해당 게임 디렉터리 안의 `GAME_SPEC.md`, `DEVELOPMENT.md`, `UI_DESIGN.md`, `UI_DECISIONS.md`에서 분리해 관리합니다.
 ## Phase 3 foundation
 
 - `registry.js`: 게임 메타데이터와 capability Registry

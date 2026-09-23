@@ -10,11 +10,25 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
-const DEVELOPMENT_CHECKPOINT_COMMAND = "체크포인트 기록하자";
-const DEVELOPMENT_CHECKPOINT_POLICY_PATHS = Object.freeze([
+const FUNCTION_CHECKPOINT_COMMAND = "기능 체크포인트 기록하자";
+const DESIGN_CHECKPOINT_COMMAND = "디자인 체크포인트 기록하자";
+const RETIRED_GENERIC_CHECKPOINT_MARKER = `\`${["체크포인트", "기록하자"].join(" ")}\``;
+const FUNCTION_CHECKPOINT_POLICY_PATHS = Object.freeze([
   "AGENTS.md",
   "games/README.md",
   RULEBOOK_PATH,
+]);
+const DESIGN_CHECKPOINT_POLICY_PATHS = Object.freeze([
+  "AGENTS.md",
+  "games/README.md",
+  RULEBOOK_PATH,
+  UI_RULEBOOK_PATH,
+]);
+const UI_DECISION_LIFECYCLE_POLICY_PATHS = Object.freeze([
+  "AGENTS.md",
+  "games/README.md",
+  RULEBOOK_PATH,
+  UI_RULEBOOK_PATH,
 ]);
 const PLATFORM_DOCUMENT_CLASS_PATTERN = /^> \*\*문서 분류:\*\* (CURRENT|HISTORY)\s*$/mu;
 const PLATFORM_DOCUMENT_PATH_PATTERN = /^docs\/game-platform-.+\.md$/u;
@@ -47,6 +61,13 @@ const UI_DESIGN_REQUIRED_SECTIONS = Object.freeze([
   "## Validation Checklist",
   "## Open Questions / Deferred",
 ]);
+const UI_DECISIONS_REQUIRED_SECTIONS = Object.freeze([
+  "## Current Design Track",
+  "## Decision Log",
+  "## Superseded / Rejected",
+  "## Validation History",
+  "## Open Follow-up",
+]);
 const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
   "## Current Status",
   "## Completed",
@@ -58,8 +79,9 @@ const DEVELOPMENT_REQUIRED_SECTIONS = Object.freeze([
 ]);
 const BOOTSTRAP_ALLOWED_FILES = Object.freeze(new Set([
   "GAME_SPEC.md",
-  "UI_DESIGN.md",
   "DEVELOPMENT.md",
+  "UI_DESIGN.md",
+  "UI_DECISIONS.md",
 ]));
 
 function normalizePath(value) {
@@ -134,11 +156,50 @@ export function validatePlatformDocumentPolicy({
   }
 
   if (documents[RULEBOOK_PATH] != null) {
-    for (const filename of DEVELOPMENT_CHECKPOINT_POLICY_PATHS) {
+    for (const filename of FUNCTION_CHECKPOINT_POLICY_PATHS) {
       const content = documents[filename];
-      if (typeof content !== "string" || !content.includes(DEVELOPMENT_CHECKPOINT_COMMAND)) {
+      if (typeof content !== "string" || !content.includes(FUNCTION_CHECKPOINT_COMMAND)) {
         errors.push(
-          `${filename} must identify the Game Platform DEVELOPMENT.md checkpoint command: ${DEVELOPMENT_CHECKPOINT_COMMAND}`,
+          `${filename} must identify the Game Platform functional checkpoint command: ${FUNCTION_CHECKPOINT_COMMAND}`,
+        );
+      }
+    }
+  }
+
+  if (documents[RULEBOOK_PATH] != null && documents[UI_RULEBOOK_PATH] != null) {
+    for (const filename of DESIGN_CHECKPOINT_POLICY_PATHS) {
+      const content = documents[filename];
+      if (typeof content !== "string" || !content.includes(DESIGN_CHECKPOINT_COMMAND)) {
+        errors.push(
+          `${filename} must identify the Game Platform design checkpoint command: ${DESIGN_CHECKPOINT_COMMAND}`,
+        );
+      }
+    }
+  }
+
+  if (documents[RULEBOOK_PATH] != null) {
+    for (const filename of unique([
+      ...FUNCTION_CHECKPOINT_POLICY_PATHS,
+      ...DESIGN_CHECKPOINT_POLICY_PATHS,
+    ])) {
+      const content = documents[filename];
+      if (typeof content === "string" && content.includes(RETIRED_GENERIC_CHECKPOINT_MARKER)) {
+        errors.push(
+          `${filename} must not restore the retired generic checkpoint command; use the functional/design commands explicitly.`,
+        );
+      }
+    }
+  }
+
+  if (documents[UI_RULEBOOK_PATH] != null && documents[RULEBOOK_PATH] != null) {
+    for (const filename of UI_DECISION_LIFECYCLE_POLICY_PATHS) {
+      const content = documents[filename];
+      const identifiesDecisionLog = typeof content === "string" && content.includes("UI_DECISIONS.md");
+      const identifiesManualReview = typeof content === "string"
+        && (content.includes("Developer Manual Design Review") || content.includes("수동 브라우저"));
+      if (!identifiesDecisionLog || !identifiesManualReview) {
+        errors.push(
+          `${filename} must identify the UI_DECISIONS.md manual-browser design review lifecycle.`,
         );
       }
     }
@@ -153,6 +214,7 @@ export function validateRepositoryState({
   gameFiles = {},
   gameSpecDocuments = {},
   uiDesignDocuments = {},
+  uiDecisionDocuments = {},
   developmentDocuments = {},
   documents = {},
 }) {
@@ -183,7 +245,7 @@ export function validateRepositoryState({
         }
       }
       if (documents[UI_RULEBOOK_PATH] != null) {
-        for (const linkedDocument of ["UI_DESIGN.md", "DEVELOPMENT.md"]) {
+        for (const linkedDocument of ["UI_DESIGN.md", "UI_DECISIONS.md", "DEVELOPMENT.md"]) {
           if (!gameSpec.includes(linkedDocument)) {
             errors.push(`games/${gameId}/GAME_SPEC.md must reference ${linkedDocument}.`);
           }
@@ -201,9 +263,25 @@ export function validateRepositoryState({
             errors.push(`games/${gameId}/UI_DESIGN.md is missing required section: ${section}`);
           }
         }
-        for (const linkedDocument of ["GAME_SPEC.md", "DEVELOPMENT.md"]) {
+        for (const linkedDocument of ["GAME_SPEC.md", "DEVELOPMENT.md", "UI_DECISIONS.md"]) {
           if (!uiDesign.includes(linkedDocument)) {
             errors.push(`games/${gameId}/UI_DESIGN.md must reference ${linkedDocument}.`);
+          }
+        }
+      }
+
+      const uiDecisions = uiDecisionDocuments[gameId];
+      if (typeof uiDecisions !== "string") {
+        errors.push(`Platform game ${gameId} requires games/${gameId}/UI_DECISIONS.md.`);
+      } else {
+        for (const section of UI_DECISIONS_REQUIRED_SECTIONS) {
+          if (!uiDecisions.includes(section)) {
+            errors.push(`games/${gameId}/UI_DECISIONS.md is missing required section: ${section}`);
+          }
+        }
+        for (const linkedDocument of ["GAME_SPEC.md", "DEVELOPMENT.md", "UI_DESIGN.md"]) {
+          if (!uiDecisions.includes(linkedDocument)) {
+            errors.push(`games/${gameId}/UI_DECISIONS.md must reference ${linkedDocument}.`);
           }
         }
       }
@@ -219,7 +297,7 @@ export function validateRepositoryState({
         }
       }
       if (documents[UI_RULEBOOK_PATH] != null) {
-        for (const linkedDocument of ["GAME_SPEC.md", "UI_DESIGN.md"]) {
+        for (const linkedDocument of ["GAME_SPEC.md", "UI_DESIGN.md", "UI_DECISIONS.md"]) {
           if (!development.includes(linkedDocument)) {
             errors.push(`games/${gameId}/DEVELOPMENT.md must reference ${linkedDocument}.`);
           }
@@ -286,6 +364,7 @@ export function validateRepositoryState({
       ["games/GAME_SPEC_TEMPLATE.md", documents["games/GAME_SPEC_TEMPLATE.md"]],
       ["games/DEVELOPMENT_TEMPLATE.md", documents["games/DEVELOPMENT_TEMPLATE.md"]],
       ["games/UI_DESIGN_TEMPLATE.md", documents["games/UI_DESIGN_TEMPLATE.md"]],
+      ["games/UI_DECISIONS_TEMPLATE.md", documents["games/UI_DECISIONS_TEMPLATE.md"]],
     ];
     for (const [filename, content] of requiredUiLinks) {
       if (typeof content !== "string" || !content.includes(UI_RULEBOOK_PATH)) {
@@ -320,8 +399,9 @@ export function validatePullRequestChanges({
     const gamePaths = paths.filter((file) => platformGameIdFromPath(file) === gameId);
     const allowed = new Set([
       `games/${gameId}/GAME_SPEC.md`,
-      `games/${gameId}/UI_DESIGN.md`,
       `games/${gameId}/DEVELOPMENT.md`,
+      `games/${gameId}/UI_DESIGN.md`,
+      `games/${gameId}/UI_DECISIONS.md`,
     ]);
     return gamePaths.some((file) => !allowed.has(file));
   });
@@ -469,6 +549,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   const gameFiles = readGameFiles(gamesDirectory, gameDirectories);
   const gameSpecDocuments = readGameDocuments(gamesDirectory, gameDirectories, "GAME_SPEC.md");
   const uiDesignDocuments = readGameDocuments(gamesDirectory, gameDirectories, "UI_DESIGN.md");
+  const uiDecisionDocuments = readGameDocuments(gamesDirectory, gameDirectories, "UI_DECISIONS.md");
   const developmentDocuments = readGameDocuments(gamesDirectory, gameDirectories, "DEVELOPMENT.md");
   const documents = readPlatformPolicyDocuments(repositoryRoot);
 
@@ -479,6 +560,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     gameFiles,
     gameSpecDocuments,
     uiDesignDocuments,
+    uiDecisionDocuments,
     developmentDocuments,
     documents,
   });

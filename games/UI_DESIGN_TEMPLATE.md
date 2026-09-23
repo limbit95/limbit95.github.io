@@ -1,7 +1,8 @@
 # <Game Title> UI Design
 
-> 이 문서는 이 게임의 UI/UX와 presentation이 따라야 할 game-local 설계 기준입니다.
-> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`, 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 실제 구현 진행은 `DEVELOPMENT.md`를 따릅니다.
+> 이 문서는 신규 게임의 runtime/UI 소스 개발을 시작하기 전에 디자인 전수 조사와 분석을 바탕으로 수립하는 game-local 초기 UI/presentation baseline입니다.
+> 개발 시작 후 발생하는 사용자 피드백·디자인 수정·대안·검증 이력은 이 문서를 덮어쓰지 않고 `UI_DECISIONS.md`에 기록합니다.
+> 공통 UI 조사/설계 규칙은 `docs/game-platform-ui-rules.md`, 게임 기능 설계는 같은 디렉터리의 `GAME_SPEC.md`, 기능 개발 진행은 `DEVELOPMENT.md`를 따릅니다.
 
 ## Design Research
 
@@ -103,7 +104,8 @@
 
 ## Implementation Plan
 
-> 이 섹션은 UI/presentation 구현 순서만 관리합니다. 기능/DB/RPC 구현 순서는 `GAME_SPEC.md`, 현재 바로 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
+> 이 섹션은 소스 개발 시작 전에 수립한 최초 UI/presentation Phase와 구현 순서를 기록합니다. 개발 중 이 순서나 세부안이 변경되면 이 baseline을 지우거나 재작성하지 않고 `UI_DECISIONS.md`에 override 결정을 남깁니다.
+> 기능/DB/RPC 구현 순서는 `GAME_SPEC.md`, 실제 디자인 진행·변경 결정은 `UI_DECISIONS.md`, 기능 다음 작업은 `DEVELOPMENT.md / Next Work`에서 관리합니다.
 
 1. <Visual Identity / page frame>
 2. <Lobby/setup>
@@ -124,8 +126,9 @@
 - [ ] 핵심 구성물과 action이 실제 게임의 플레이 감각을 전달한다.
 - [ ] animation timing이 authoritative state와 충돌하지 않는다.
 - [ ] desktop/mobile에서 핵심 정보와 action을 사용할 수 있다.
-- [ ] `DEVELOPMENT.md`가 실제 UI 구현 진행상태를 추적한다.
+- [ ] 개발 시작 후 baseline에서 벗어난 의미 있는 디자인 결정·수동 리뷰 결과·검증 이력이 있다면 `UI_DECISIONS.md`가 이를 추적한다.
 
 ## Open Questions / Deferred
 
 - <아직 확정하지 않은 디자인/asset/interaction 결정, 없으면 없음>
+- runtime 개발 전에 확정된 내용은 이 baseline에 반영합니다. 개발 시작 후 확정되는 변경은 이 문서를 덮어쓰지 않고 `UI_DECISIONS.md`에 남깁니다.
