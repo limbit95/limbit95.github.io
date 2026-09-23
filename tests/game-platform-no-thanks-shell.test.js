@@ -67,6 +67,16 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
 });
 
 
+test("No Thanks! room header emphasizes game identity without duplicating the room code", () => {
+  assert.match(runtime, /칩으로 버틸지, 카드와 칩을 가져갈지—한 번의 선택이 흐름을 바꾸는 심리전 카드 게임/u);
+  assert.match(runtime, /roomLabel: view\?\.roomCode \? "LIVE ROOM" : null/u);
+  assert.doesNotMatch(runtime, /roomLabel: view\?\.roomCode \? `방 \$\{view\.roomCode\}` : null/u);
+  assert.match(runtime, /no-thanks-shell--in-room/u);
+  assert.match(styles, /\.no-thanks-shell \.game-platform-shell__description/u);
+  assert.match(styles, /\.no-thanks-shell \.game-platform-shell__room::before/u);
+  assert.match(styles, /\.no-thanks-shell--in-room \.game-platform-status--success/u);
+});
+
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
   assert.match(runtime, /대기실을 닫을까요/u);
   assert.match(runtime, /참가자 모두가 방에서 나가게 됩니다/u);
