@@ -10,27 +10,54 @@
 
 - Status: RELEASED
 - Lifecycle stage: RELEASED
-- Current UI phase / scope: v1 release baseline 유지, 필요 시 post-release polish
-- Active branch: main
+- Current UI phase / scope: post-release Rules Guide redesign 승인 완료
+- Active branch: main (PR #382 병합 후 handoff baseline)
 - Last updated: 2026-09-23
 - Adoption baseline: `UI_DESIGN.md` (v1 release state)
-- Active overrides: 없음
-- Next design work: 없음. 새 UI 작업이 시작되면 최신 main에서 별도 브랜치를 사용합니다.
+- Active overrides: CS-UI-001
+- Next design work: 전체 gameplay presentation 재구성은 별도 실험 PR #383에서 검증합니다.
 
 ## Decision Log
 
-- 현재 v1 release baseline 이후 별도로 확정된 game-local 디자인 수정 decision은 없습니다.
-- 후속 수동 브라우저 리뷰에서 실제 디자인 수정이 확정되면 Decision ID를 부여해 이 섹션에 추가합니다.
-- 문서 체계 도입 자체는 게임 화면 디자인 결정이 아니므로 Decision Log에 기록하지 않습니다.
+### 2026-09-23 — Alpine Rules Guide
+
+- Decision ID: CS-UI-001
+- Applies to: rules/help modal, Visual Identity, rules presentation, responsive dialog
+- Supersedes: 없음
+- Source: developer manual browser review + Game Platform Rules Guide Presentation experiment
+- Context / trigger: v1 규칙 modal은 설산 계열 색상은 사용했지만 긴 텍스트 카드 중심이어서, 처음 플레이하는 사용자가 pairing, runner, push/stop, bust, win 같은 핵심 메커니즘을 게임 구성물과 연결해 이해하기 어려웠습니다.
+- Previous / alternatives:
+  - 기존 compact text-section modal 유지
+  - No Thanks! 규칙 modal의 카드/칩 구조를 재사용
+  - Can’t Stop 고유 구성물과 설산 메타포로 새로 설계
+- Decision:
+  - 규칙 modal을 `MOUNTAIN GUIDE · HOW TO PLAY` 콘셉트의 alpine play guide로 재구성합니다.
+  - 기존 v1의 설산, 4개 주사위, runner, 2–12 mountain columns, push-your-luck 언어를 사용하고 다른 게임의 modal layout은 복제하지 않습니다.
+  - 상단에 `ROLL → PAIR & CLIMB → PUSH OR STOP` 핵심 loop를 quick guide로 제공합니다.
+  - 2–12 mountain 구조, 4 dice pairing 예시, runner 최대 3개, PUSH/STOP, BUST, 3-column win, server-authoritative adaptation을 각각 game-local visual example로 설명합니다.
+  - 기존 상세 규칙 문장은 유지하여 visual example 없이도 semantic text만으로 전체 규칙을 이해할 수 있게 합니다.
+  - 공식 artwork/logo는 직접 사용하지 않고 기존 자체 dice/runner/alpine presentation으로 재구성합니다.
+  - desktop/mobile에서 같은 정보 순서를 유지하고 작은 화면에서는 visual example을 본문 아래로 재배치합니다.
+- Rationale: 규칙 안내를 일반 도움말이 아니라 실제 gameplay presentation의 일부로 만들면서도 규칙 정확성, 접근성, 저작권 경계를 유지합니다.
+- Affected surfaces: rules modal header, quick loop, rule sections, dice/runner/mountain visual examples, source footer, mobile dialog
+- Implementation status: IMPLEMENTED
+- Validation: 2026-09-23 사용자 실제 화면 리뷰에서 “거의 손 안대도 될 정도의 퀄리티”로 승인. Game Platform governance run #493 성공.
+- Baseline relation: `UI_DESIGN.md` adoption baseline의 game-local rules modal 방향을 구체화하고 기존 text-heavy presentation을 대체합니다.
+- Related functional boundary: 규칙 사실과 필수 설명 내용은 `GAME_SPEC.md`를 유지하며 runtime rules/DB/RPC/state authority는 변경하지 않습니다.
 
 ## Superseded / Rejected
 
-- 없음. 과거 UI 변경사는 이 문서 도입만으로 소급 재구성하지 않습니다.
+- v1의 text-heavy rules modal presentation은 CS-UI-001에 의해 superseded.
+- No Thanks!의 rules modal layout을 Can’t Stop에 재사용하는 방향은 game-local identity 원칙에 따라 채택하지 않았습니다.
+- 과거 UI 변경사는 이 문서 도입만으로 소급 재구성하지 않습니다.
 
 ## Validation History
 
-- 2026-09-23 — 이 문서 추가 자체는 runtime UI를 변경하지 않으므로 신규 브라우저 UI 검증 대상이 아닙니다.
+- 2026-09-23 — UI_DECISIONS 체계 도입 당시 v1 release baseline만 기록.
+- 2026-09-23 — CS-UI-001 alpine rules guide: desktop 실제 화면 수동 리뷰 승인.
+- 2026-09-23 — Game Platform governance run #493: JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard 모두 success.
 
 ## Open Follow-up
 
-- 후속 UI 개선이 시작되면 사용자 피드백, 대안, 최종 결정, 구현 상태와 실제 브라우저 검증을 이 문서에 기록합니다.
+- PR #383에서 동일 공통 디자인 규칙이 Entry/Lobby/Gameplay/Result 전체에도 일관되게 작동하는지 별도 실험합니다.
+- 후속 수정이 확정되면 `UI_DESIGN.md` baseline을 덮어쓰지 말고 Decision Log에 추가합니다.

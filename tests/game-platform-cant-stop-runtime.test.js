@@ -90,6 +90,40 @@ test("Can't Stop gameplay keeps pairing selection out of the board and inside th
   assert.match(app, /createCantStopPairingPresentation/u);
 });
 
+test("Can't Stop rules guide applies the game-local alpine presentation contract", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+  const guide = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "rulesHelp.js"),
+    "utf8",
+  );
+
+  assert.match(app, /MOUNTAIN GUIDE · HOW TO PLAY/u);
+  assert.match(app, /cant-stop-rules-dialog__quick-loop/u);
+  assert.match(app, /createRulesSectionVisual/u);
+  assert.match(app, /cant-stop-rules-mini-mountain/u);
+  assert.match(app, /cant-stop-rules-visual--pairing/u);
+  assert.match(app, /cant-stop-rules-visual--bust/u);
+  assert.match(app, /cant-stop-rules-visual--win/u);
+  assert.match(app, /section\.paragraphs\.map/u);
+  assert.match(guide, /visual: "board"/u);
+  assert.match(guide, /visual: "pairing"/u);
+  assert.match(guide, /visual: "bust"/u);
+  assert.match(guide, /visual: "win"/u);
+  assert.match(css, /Experimental platform-rule validation/u);
+  assert.match(css, /\.cant-stop-rules-dialog__hero/u);
+  assert.match(css, /\.cant-stop-rules-dialog__quick-loop/u);
+  assert.match(css, /\.cant-stop-rules-section\.has-visual/u);
+  assert.match(css, /\.cant-stop-rules-visual--decision/u);
+  assert.match(css, /@media \(max-width: 760px\)/u);
+});
+
 test("Can't Stop runtime HTML opts into the Common Game Shell stylesheet and app module", () => {
   const html = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "index.html"),
