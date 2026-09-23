@@ -679,6 +679,38 @@ test("no-thanks gameplay: concurrent duplicate retries converge on one snapshot"
   assert.equal(authoritative.game.centerCounters, 1);
 });
 
+test("no-thanks start game stores a truly shuffled 3-35 deck", async () => {
+  const room = await startGame("randomized-deck");
+
+  const privateRows = await expectOk(await request(
+    `/rest/v1/no_thanks_room_private_state?room_id=eq.${room.started.room.id}&select=draw_deck,excluded_cards`,
+    {
+      key: serviceRoleKey,
+      token: serviceRoleKey,
+    },
+  ), "inspect randomized No Thanks deck");
+
+  assert.equal(privateRows.length, 1);
+  const fullDeck = [
+    Number(room.started.game.currentCard),
+    ...privateRows[0].draw_deck.map(Number),
+    ...privateRows[0].excluded_cards.map(Number),
+  ];
+  const canonicalDeck = Array.from({ length: 33 }, (_, index) => index + 3);
+
+  assert.equal(fullDeck.length, 33);
+  assert.deepEqual(
+    [...fullDeck].sort((left, right) => left - right),
+    canonicalDeck,
+    "shuffled deck must still contain every card from 3 through 35 exactly once",
+  );
+  assert.notDeepEqual(
+    fullDeck,
+    canonicalDeck,
+    "stored deck order must not preserve the canonical 3 through 35 sequence",
+  );
+});
+
 test("no-thanks gameplay: taking a card collects center counters and keeps the turn", async () => {
   const room = await startGame("gameplay-take");
   const firstCard = room.started.game.currentCard;
