@@ -52,6 +52,7 @@ let boardPresentationEffect = null;
 let pendingTakePresentation = null;
 let lastSettledDealKey = null;
 let acknowledgedWinnerCelebrationKey = null;
+const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -67,7 +68,6 @@ function disposeLobbyController() {
   boardAvatarLoadingIds = new Set();
   boardPresentationState = null;
   boardPresentationEffect = null;
-  acknowledgedWinnerCelebrationKey = null;
   clearPendingTakePresentation();
 }
 
@@ -1668,11 +1668,11 @@ function createWaitingPanel(view, state, panelActions = []) {
 
 function getNoThanksResultHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -6;
-  if (count <= 9) return -16;
-  if (count <= 14) return -27;
-  if (count <= 19) return -37;
-  return -46;
+  if (count <= 5) return -4;
+  if (count <= 9) return -11;
+  if (count <= 14) return -20;
+  if (count <= 19) return -29;
+  return -38;
 }
 
 function createResultPlayerPanels(view, {
@@ -1722,7 +1722,10 @@ function createResultPlayerPanels(view, {
             : null,
         ]),
         entry.score != null
-          ? el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` })
+          ? el("div", { className: "no-thanks-result-player__score-card" }, [
+            el("span", { text: "FINAL SCORE" }),
+            el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` }),
+          ])
           : null,
       ]),
       hasCounters
@@ -1730,7 +1733,6 @@ function createResultPlayerPanels(view, {
           el("span", { className: "no-thanks-my-panel__label", text: "최종 보유 칩" }),
           el("strong", { className: "no-thanks-result-player__chip-count", text: String(entry.counters) }),
           createChipCluster(entry.counters, {
-            compact: true,
             label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
             emptyText: "칩 없음",
           }),
@@ -1746,7 +1748,10 @@ function createResultPlayerPanels(view, {
         ]),
         cards.length > 0
           ? el("div", { className: "no-thanks-result-hand" },
-            cards.map((card, index) => createHandCard(card, index, overlap)))
+            cards.map((card, index) => {
+              const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
+              return createHandCard(card, index, startsNewRun ? 8 : overlap);
+            }))
           : el("div", {
             className: "no-thanks-result-hand no-thanks-hand--empty",
             text: "획득 카드 없음",
@@ -1764,7 +1769,25 @@ function getWinnerCelebrationKey(view) {
   const scores = view.scoreboard
     .map((entry) => `${entry.id}:${entry.score}`)
     .join("|");
-  return `${view.roomId}:${view.endReason}:${scores}`;
+  return `${view.roomId}:${view.version}:${view.endReason}:${scores}`;
+}
+
+function readAcknowledgedWinnerCelebrationKey() {
+  try {
+    return window.sessionStorage?.getItem(WINNER_CELEBRATION_STORAGE_KEY)
+      || acknowledgedWinnerCelebrationKey;
+  } catch {
+    return acknowledgedWinnerCelebrationKey;
+  }
+}
+
+function acknowledgeWinnerCelebration(celebrationKey) {
+  acknowledgeWinnerCelebration(celebrationKey);
+  try {
+    window.sessionStorage?.setItem(WINNER_CELEBRATION_STORAGE_KEY, celebrationKey);
+  } catch {
+    // In-memory acknowledgement still prevents repeat rendering for this page lifecycle.
+  }
 }
 
 function createWinnerCelebration(view, celebrationKey) {
@@ -1776,10 +1799,10 @@ function createWinnerCelebration(view, celebrationKey) {
     "aria-labelledby": "no-thanks-winner-celebration-title",
   });
   dialog.addEventListener("cancel", () => {
-    acknowledgedWinnerCelebrationKey = celebrationKey;
+    acknowledgeWinnerCelebration(celebrationKey);
   });
   dialog.addEventListener("close", () => {
-    acknowledgedWinnerCelebrationKey = celebrationKey;
+    acknowledgeWinnerCelebration(celebrationKey);
   });
 
   const palette = ["red", "blue", "yellow", "teal"];
@@ -1801,7 +1824,7 @@ function createWinnerCelebration(view, celebrationKey) {
   const joint = winners.length > 1;
 
   const close = () => {
-    acknowledgedWinnerCelebrationKey = celebrationKey;
+    acknowledgeWinnerCelebration(celebrationKey);
     dialog.close();
   };
 
@@ -2233,9 +2256,6 @@ function renderLobby(access, state) {
   if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
     clearPendingTakePresentation();
   }
-  if (view && view.gamePhase !== "GAME_OVER") {
-    acknowledgedWinnerCelebrationKey = null;
-  }
 
   const rulesDialog = createRulesDialog();
   const openRules = () => rulesDialog.showModal();
@@ -2263,7 +2283,7 @@ function renderLobby(access, state) {
   const openGameEndConfirm = () => gameEndDialog?.showModal();
   const winnerCelebrationKey = getWinnerCelebrationKey(view);
   const winnerCelebrationDialog = winnerCelebrationKey
-    && acknowledgedWinnerCelebrationKey !== winnerCelebrationKey
+    && readAcknowledgedWinnerCelebrationKey() !== winnerCelebrationKey
     ? createWinnerCelebration(view, winnerCelebrationKey)
     : null;
   const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
