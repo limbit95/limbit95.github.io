@@ -51,7 +51,7 @@ let boardPresentationState = null;
 let boardPresentationEffect = null;
 let pendingTakePresentation = null;
 let lastSettledDealKey = null;
-let winnerCelebrationAcknowledged = false;
+let acknowledgedWinnerCelebrationKey = null;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -67,7 +67,7 @@ function disposeLobbyController() {
   boardAvatarLoadingIds = new Set();
   boardPresentationState = null;
   boardPresentationEffect = null;
-  winnerCelebrationAcknowledged = false;
+  acknowledgedWinnerCelebrationKey = null;
   clearPendingTakePresentation();
 }
 
@@ -1670,10 +1670,10 @@ function getNoThanksResultHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
   if (count <= 3) return -10;
   if (count <= 5) return -30;
-  if (count <= 9) return -43;
-  if (count <= 14) return -48;
-  if (count <= 19) return -50;
-  return -51;
+  if (count <= 8) return -40;
+  if (count <= 12) return -45;
+  if (count <= 17) return -48;
+  return -49;
 }
 
 function createResultPlayerPanels(view, {
@@ -1705,7 +1705,7 @@ function createResultPlayerPanels(view, {
       className: "no-thanks-result-player" + (entry.winner ? " is-winner" : ""),
       dataset: { playerId: entry.id },
     }, [
-      el("header", { className: "no-thanks-result-player__header" }, [
+      el("div", { className: "no-thanks-result-player__summary" }, [
         entry.rank != null
           ? el("span", {
             className: "no-thanks-result-player__rank",
@@ -1726,37 +1726,49 @@ function createResultPlayerPanels(view, {
           ? el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` })
           : null,
       ]),
-      el("div", { className: "no-thanks-result-player__body" }, [
-        hasCounters
-          ? el("div", { className: "no-thanks-result-player__chips" }, [
-            el("span", { className: "no-thanks-my-panel__label", text: "최종 보유 칩" }),
-            el("strong", { className: "no-thanks-result-player__chip-count", text: String(entry.counters) }),
-            createChipCluster(entry.counters, {
-              compact: true,
-              label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
-              emptyText: "칩 없음",
-            }),
-          ])
-          : null,
-        el("div", { className: "no-thanks-result-player__cards" }, [
-          el("div", { className: "no-thanks-result-player__cards-head" }, [
-            el("span", { className: "no-thanks-my-panel__label", text: "획득 카드" }),
-            el("strong", { text: `${cards.length}장` }),
-          ]),
-          cards.length > 0
-            ? el("div", { className: "no-thanks-result-hand" },
-              cards.map((card, index) => createHandCard(card, index, overlap)))
-            : el("div", {
-              className: "no-thanks-result-hand no-thanks-hand--empty",
-              text: "획득 카드 없음",
-            }),
+      hasCounters
+        ? el("div", { className: "no-thanks-result-player__chips" }, [
+          el("span", { className: "no-thanks-my-panel__label", text: "최종 보유 칩" }),
+          el("strong", { className: "no-thanks-result-player__chip-count", text: String(entry.counters) }),
+          createChipCluster(entry.counters, {
+            compact: true,
+            label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
+            emptyText: "칩 없음",
+          }),
+        ])
+        : el("div", {
+          className: "no-thanks-result-player__chips no-thanks-result-player__chips--empty",
+          text: "최종 칩 정보 없음",
+        }),
+      el("div", { className: "no-thanks-result-player__cards" }, [
+        el("div", { className: "no-thanks-result-player__cards-head" }, [
+          el("span", { className: "no-thanks-my-panel__label", text: "획득 카드" }),
+          el("strong", { text: `${cards.length}장` }),
         ]),
+        cards.length > 0
+          ? el("div", { className: "no-thanks-result-hand" },
+            cards.map((card, index) => createHandCard(card, index, overlap)))
+          : el("div", {
+            className: "no-thanks-result-hand no-thanks-hand--empty",
+            text: "획득 카드 없음",
+          }),
       ]),
     ]);
   }));
 }
 
-function createWinnerCelebration(view) {
+function getWinnerCelebrationKey(view) {
+  if (!view || view.gamePhase !== "GAME_OVER" || view.endReason !== "LAST_CARD_TAKEN") {
+    return null;
+  }
+
+  const scores = view.scoreboard
+    .map((entry) => `${entry.id}:${entry.score}`)
+    .join("|");
+  return `${view.roomId}:${view.endReason}:${scores}`;
+}
+
+function createWinnerCelebration(view, celebrationKey) {
   const winners = view.scoreboard.filter((entry) => entry.winner);
   if (view.endReason !== "LAST_CARD_TAKEN" || winners.length === 0) return null;
 
@@ -1765,10 +1777,10 @@ function createWinnerCelebration(view) {
     "aria-labelledby": "no-thanks-winner-celebration-title",
   });
   dialog.addEventListener("cancel", () => {
-    winnerCelebrationAcknowledged = true;
+    acknowledgedWinnerCelebrationKey = celebrationKey;
   });
   dialog.addEventListener("close", () => {
-    winnerCelebrationAcknowledged = true;
+    acknowledgedWinnerCelebrationKey = celebrationKey;
   });
 
   const palette = ["red", "blue", "yellow", "teal"];
@@ -1790,7 +1802,7 @@ function createWinnerCelebration(view) {
   const joint = winners.length > 1;
 
   const close = () => {
-    winnerCelebrationAcknowledged = true;
+    acknowledgedWinnerCelebrationKey = celebrationKey;
     dialog.close();
   };
 
@@ -2222,8 +2234,8 @@ function renderLobby(access, state) {
   if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
     clearPendingTakePresentation();
   }
-  if (view?.gamePhase !== "GAME_OVER") {
-    winnerCelebrationAcknowledged = false;
+  if (view && view.gamePhase !== "GAME_OVER") {
+    acknowledgedWinnerCelebrationKey = null;
   }
 
   const rulesDialog = createRulesDialog();
@@ -2250,8 +2262,10 @@ function renderLobby(access, state) {
     })
     : null;
   const openGameEndConfirm = () => gameEndDialog?.showModal();
-  const winnerCelebrationDialog = view?.gamePhase === "GAME_OVER"
-    ? createWinnerCelebration(view)
+  const winnerCelebrationKey = getWinnerCelebrationKey(view);
+  const winnerCelebrationDialog = winnerCelebrationKey
+    && acknowledgedWinnerCelebrationKey !== winnerCelebrationKey
+    ? createWinnerCelebration(view, winnerCelebrationKey)
     : null;
   const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
     ? createRematchDialog(async () => {
@@ -2314,7 +2328,7 @@ function renderLobby(access, state) {
 
   replaceApp(shell);
 
-  if (winnerCelebrationDialog && !winnerCelebrationAcknowledged) {
+  if (winnerCelebrationDialog) {
     window.requestAnimationFrame(() => {
       if (winnerCelebrationDialog.isConnected && !winnerCelebrationDialog.open) {
         winnerCelebrationDialog.showModal();
