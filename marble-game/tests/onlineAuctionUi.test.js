@@ -181,7 +181,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.doesNotMatch(cssSource, /\.auction-roulette/);
   assert.doesNotMatch(cssSource, /auctionRouletteSpin/);
   assert.match(introSource, /starterPlayerId/);
-  assert.match(introSource, /createSignedUrl/);
+  assert.match(introSource, /getSignedAvatarUrl/);
   assert.match(introSource, /avatarPath/);
   assert.match(introSource, /경매 시작 플레이어 추첨/);
   assert.match(cssSource, /큰 폭의 입찰/);
