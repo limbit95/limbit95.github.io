@@ -67,6 +67,25 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
 });
 
 
+test("No Thanks! rules dialog uses game-local card and chip visual language", () => {
+  assert.match(runtime, /HOW TO PLAY/u);
+  assert.match(runtime, /no-thanks-rules__hero-card/u);
+  assert.match(runtime, /no-thanks-rules__hero-chip/u);
+  assert.match(runtime, /no-thanks-rules__choice--refuse/u);
+  assert.match(runtime, /no-thanks-rules__choice--take/u);
+  assert.match(runtime, /no-thanks-rules__score-demo/u);
+  assert.match(runtime, /LOWEST SCORE WINS/u);
+  assert.match(runtime, /3–35/u);
+  assert.match(runtime, /9장/u);
+  assert.match(runtime, /24장/u);
+  assert.match(styles, /\.no-thanks-rules__header[\s\S]*linear-gradient\(145deg, #335a64, #24444f 74%\)/u);
+  assert.match(styles, /\.no-thanks-rules__hero-card/u);
+  assert.match(styles, /\.no-thanks-rules__choice-chip/u);
+  assert.match(styles, /\.no-thanks-rules__score-card/u);
+  assert.match(styles, /\.no-thanks-rules__finish-badge/u);
+  assert.match(styles, /@media \(max-width: 700px\)/u);
+});
+
 test("No Thanks! page carries a game-local environmental background identity", () => {
   assert.match(page, /theme-color" content="#284650"/u);
   assert.match(styles, /linear-gradient\(145deg, #31515a 0%, #294750 48%, #203a43 100%\)/u);
