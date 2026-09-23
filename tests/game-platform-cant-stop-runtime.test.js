@@ -124,6 +124,39 @@ test("Can't Stop rules guide applies the game-local alpine presentation contract
   assert.match(css, /@media \(max-width: 760px\)/u);
 });
 
+test("Can't Stop full visual experiment carries the alpine expedition identity through every game state", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /ALPINE EXPEDITION · PUSH YOUR LUCK/u);
+  assert.match(app, /등반 베이스캠프/u);
+  assert.match(app, /EXPEDITION BRIEFING/u);
+  assert.match(app, /cant-stop-board--game-over/u);
+  assert.match(app, /cant-stop-board--push-stop/u);
+  assert.match(app, /cant-stop-shell--game-over/u);
+  assert.match(app, /cant-stop-shell--pairing/u);
+  assert.match(app, /cant-stop-shell--push-stop/u);
+  assert.match(app, /cant-stop-shell--rolling/u);
+
+  assert.match(css, /Full visual redesign experiment/u);
+  assert.match(css, /#cant-stop-app::before/u);
+  assert.match(css, /\.cant-stop-shell--entry \.game-platform-shell__header/u);
+  assert.match(css, /\.cant-stop-entry-briefing__route/u);
+  assert.match(css, /\.cant-stop-room-guide__primary/u);
+  assert.match(css, /\.cant-stop-board__mountain/u);
+  assert.match(css, /\.cant-stop-column::before/u);
+  assert.match(css, /\.cant-stop-marker--runner[\s\S]*background: #f4fbfb !important/u);
+  assert.match(css, /\.cant-stop-die-visual[\s\S]*#df4d50/u);
+  assert.match(css, /\.cant-stop-shell--game-over \.game-platform-shell__header/u);
+  assert.match(css, /@media \(max-width: 560px\)/u);
+});
+
 test("Can't Stop runtime HTML opts into the Common Game Shell stylesheet and app module", () => {
   const html = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "index.html"),
