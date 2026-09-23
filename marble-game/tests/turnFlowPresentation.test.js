@@ -51,8 +51,11 @@ test("competitive Auction intro uses the profile-chain selector and selected sta
   assert.match(auctionIntroUiSource, /selectorStopsAt/);
   assert.match(auctionIntroUiSource, /auction\.turnPlayerId[\s\S]*auction\.starterPlayerId/);
   assert.match(auctionIntroUiSource, /prepareChainTarget/);
+  assert.match(auctionIntroUiSource, /targetIndex \* step/);
+  assert.doesNotMatch(auctionIntroUiSource, /targetIndex \* step\) - \(\(viewportWidth - itemWidth\)/);
   assert.match(auctionIntroUiSource, /starterPlayerId/);
-  assert.match(auctionIntroUiSource, /createSignedUrl/);
+  assert.match(auctionIntroUiSource, /getSignedAvatarUrl/);
+  assert.doesNotMatch(auctionIntroUiSource, /avatarUrlCache/);
   assert.match(auctionIntroUiSource, /님부터 경매를 시작합니다!/);
   assert.match(auctionIntroUiSource, /playAuctionStartSound\(\)/);
   assert.match(auctionCssSource, /auctionProfileChainSpin/);
