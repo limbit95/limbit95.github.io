@@ -951,6 +951,24 @@ function createBoard(view, state, {
     }
     : gameplayHeading(view);
   const busting = state.effect?.type === "bust";
+  const phaseClass = waiting
+    ? "cant-stop-board--waiting"
+    : view.isGameOver
+      ? "cant-stop-board--game-over"
+      : view.phase === "PAIRING_SELECTION"
+        ? "cant-stop-board--pairing"
+        : view.phase === "PUSH_OR_STOP"
+          ? "cant-stop-board--push-stop"
+          : "cant-stop-board--roll";
+  const phaseIcon = waiting
+    ? "▲"
+    : view.isGameOver
+      ? "⚑"
+      : view.phase === "PAIRING_SELECTION"
+        ? "↗"
+        : view.phase === "PUSH_OR_STOP"
+          ? "◆"
+          : "●";
 
   const tracks = el("div", { className: "cant-stop-board__tracks" },
     view.columns.map((column) => el("section", {
@@ -1003,7 +1021,7 @@ function createBoard(view, state, {
     ])));
 
   return el("section", {
-    className: "cant-stop-board",
+    className: `cant-stop-board ${phaseClass}`,
     "aria-label": "Can’t Stop 보드",
   }, [
     el("div", {
@@ -1011,10 +1029,12 @@ function createBoard(view, state, {
         "cant-stop-board__intro",
         waiting ? "cant-stop-board__intro--waiting" : "",
         view.phase === "PAIRING_SELECTION" ? "cant-stop-board__intro--pairing" : "",
+        view.isGameOver ? "cant-stop-board__intro--game-over" : "",
+        view.phase === "PUSH_OR_STOP" ? "cant-stop-board__intro--push-stop" : "",
       ].filter(Boolean).join(" "),
     }, [
       el("div", { className: "cant-stop-board__phase-icon", "aria-hidden": "true" }, [
-        el("span", { text: "▲" }),
+        el("span", { text: phaseIcon }),
       ]),
       el("div", { className: "cant-stop-board__phase-copy" }, [
         el("p", {
@@ -1390,8 +1410,8 @@ function createLobbySidebar(view, state, {
   return el("section", { className: "cant-stop-runtime-notes cant-stop-room-guide" }, [
     el("div", { className: "cant-stop-room-guide__header" }, [
       el("div", {}, [
-        el("p", { className: "cant-stop-room-guide__eyebrow", text: "WAITING ROOM" }),
-        el("h2", { className: "cant-stop-runtime-notes__title", text: "방 안내" }),
+        el("p", { className: "cant-stop-room-guide__eyebrow", text: "BASE CAMP" }),
+        el("h2", { className: "cant-stop-runtime-notes__title", text: "등반 베이스캠프" }),
       ]),
       el("strong", {
         className: "cant-stop-room-guide__code",
@@ -1550,11 +1570,21 @@ function renderApprovedRuntime(state) {
   let hostUserId = null;
   let roomLabel = null;
   let sidebar = el("section", { className: "cant-stop-runtime-notes cant-stop-runtime-notes--entry" }, [
-    el("h2", { className: "cant-stop-runtime-notes__title", text: "온라인 플레이" }),
+    el("div", { className: "cant-stop-entry-briefing__header" }, [
+      el("p", { className: "cant-stop-room-guide__eyebrow", text: "EXPEDITION BRIEFING" }),
+      el("h2", { className: "cant-stop-runtime-notes__title", text: "등반 준비" }),
+    ]),
+    el("div", { className: "cant-stop-entry-briefing__route", "aria-hidden": "true" }, [
+      el("span", { text: "ROLL" }),
+      el("i", { text: "→" }),
+      el("span", { text: "CLIMB" }),
+      el("i", { text: "→" }),
+      el("span", { text: "STOP?" }),
+    ]),
     el("ul", { className: "cant-stop-runtime-notes__list" }, [
-      el("li", { text: "2~4명이 한 방에서 함께 플레이해요." }),
-      el("li", { text: "방 코드는 6자리로 생성돼요." }),
-      el("li", { text: "게임 시작 순서는 서버에서 무작위로 정해요." }),
+      el("li", { text: "2~4명이 같은 산길에서 정상 세 곳을 먼저 노려요." }),
+      el("li", { text: "네 개의 주사위를 두 쌍으로 묶어 오를 길을 정해요." }),
+      el("li", { text: "계속 오를지 멈춰 진척을 저장할지 매 턴 선택해요." }),
     ]),
     el("div", { className: "cant-stop-runtime-notes__actions" }, [
       rulesActionButton("cant-stop-runtime-notes__rules"),
@@ -1587,8 +1617,8 @@ function renderApprovedRuntime(state) {
 
   const shell = createGameShell({
     title: "Can’t Stop",
-    eyebrow: "CHEONGPA GAME · PHASE 4",
-    description: "주사위 조합으로 열을 오르고, 멈출 타이밍을 선택하는 push-your-luck 게임",
+    eyebrow: "ALPINE EXPEDITION · PUSH YOUR LUCK",
+    description: "네 개의 주사위로 길을 만들고, 멈출 타이밍을 결정해 세 개의 정상에 먼저 오르세요.",
     backHref: "../../#/games",
     roomLabel,
     connection: connectionFor(state),
@@ -1610,6 +1640,22 @@ function renderApprovedRuntime(state) {
         ? "cant-stop-shell--playing"
         : "cant-stop-shell--waiting",
   );
+
+  if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING && state.snapshot?.game) {
+    const phase = state.snapshot.game.phase;
+    shell.classList.add(
+      phase === "GAME_OVER"
+        ? "cant-stop-shell--game-over"
+        : phase === "PAIRING_SELECTION"
+          ? "cant-stop-shell--pairing"
+          : phase === "PUSH_OR_STOP"
+            ? "cant-stop-shell--push-stop"
+            : "cant-stop-shell--roll",
+    );
+    if (state.busyAction === "rollDice") {
+      shell.classList.add("cant-stop-shell--rolling");
+    }
+  }
 
   const suppressConnectionCard = state.view !== CANT_STOP_LOBBY_VIEW.ENTRY
     || state.connection === "connected";
