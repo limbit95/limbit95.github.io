@@ -5,14 +5,21 @@
 
 ## Current Status
 
-- Phase: Release readiness — functional/operational gates pending; design track은 `UI_DECISIONS.md`에서 별도 PAUSED
+- Phase: Release readiness — core gameplay/DB/presentation 구현 완료, functional/operational browser gates pending; design closeout 완료
 - Status: IN_PROGRESS
-- Active branch: `main` (현재 구현 브랜치 없음; 이 checkpoint가 main에 반영된 뒤 handoff baseline으로 사용)
+- Active branch: `main` (이 checkpoint PR 병합 후 handoff baseline)
+- Current main baseline: `c43f96f984b90049b59b163bffd16c9a5fb5cf04`
 - Phase A–D merge baseline: `66531c7820285b37dc8d1e2961156ab95560758f`
+- Design baseline: `UI_DESIGN.md` + `UI_DECISIONS.md` NT-UI-001~007
+- Registry capability: `online=false / local=false / invite=false / presence=false`
 - 마지막 기록: 2026-09-23
 
 ## Completed
 
+- 2026-09-23 PR #378을 main에 병합해 muted blue environmental identity, compact `LIVE ROOM` header, first-place celebration overlay, `FINAL TABLE` result plates를 현재 디자인 baseline으로 확정했습니다. 세부 디자인 결정은 `UI_DECISIONS.md`의 NT-UI-001~004가 소유합니다.
+- 2026-09-23 PR #381을 최신 main과 동기화한 뒤 main에 병합했습니다. in-room reconnecting banner를 조용히 처리하는 presentation, centered `FINAL WINNER` card, No Thanks! tabletop Rules Guide를 구현했고 NT-UI-005~007로 기록했습니다. merge commit은 `c43f96f984b90049b59b163bffd16c9a5fb5cf04`입니다.
+- PR #381에서 카드 공개 순서의 서버 권위 random deck 계약을 다시 검증했습니다. start RPC는 3~35의 33장을 서버에서 무작위 정렬한 뒤 24장을 draw deck으로 사용하고 9장을 비공개 제외하며, 이후 공개 카드는 private draw deck 순서대로 소비합니다. 결과/보유 카드가 오름차순으로 보이는 것은 획득 카드 정렬 presentation/state 정리 때문이며 reveal 순서를 정렬하는 로직은 아닙니다. 기존 gameplay DB 로직은 수정하지 않고 회귀 테스트만 추가했습니다.
+- 최신 Game Platform의 Rules Guide Presentation 공통 규칙과 No Thanks! `NT-UI-007`의 책임 경계가 일치함을 확인했습니다. 규칙 사실은 `GAME_SPEC.md`/server-authoritative gameplay가 소유하고, 규칙 modal의 game-local presentation은 `UI_DESIGN.md + UI_DECISIONS.md`가 소유합니다.
 - Board UI Phase A–D 작업 PR #364 (`feature/no-thanks-board-ui-phase1-a-d`)을 최신 `main`과 충돌 없이 재동기화한 뒤 2026-09-22에 병합했습니다. 병합 commit은 `66531c7820285b37dc8d1e2961156ab95560758f`입니다.
 - WAITING / PLAYING 공통 대형 board scene, 3–7인 viewer 6시 기준 좌석 회전, compact HUD, site profile avatar, 실제 타원 table border 중심선 기반 좌석 geometry를 현재 main baseline으로 확정했습니다.
 - 개인 패널의 `내 보유 칩`, 정확한 own chip count/cluster, 오름차순 획득 카드, 동적 overlap, corner number, top-only hover/focus를 구현했습니다.
@@ -141,18 +148,19 @@
 
 ## Current Work
 
-- Phase A–D 구현과 안정화는 PR #364 병합으로 완료했으며, 해당 UI 세부 이력은 과거 기록으로 보존합니다.
-- 아직 게임을 `RELEASED`로 전환하지 않았으며 기능/운영 관점에서는 Registry capability 활성화와 실제 운영 브라우저 release gate가 남아 있습니다.
-- 디자인 트랙은 `UI_DECISIONS.md`의 `MANUAL_DESIGN_REVIEW (PAUSED)` 상태가 기준이며, 이 문서에서 Phase E나 visual polish 세부 TODO를 중복 관리하지 않습니다.
-- 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 명확한 진행 중 checkpoint/implementation 브랜치가 있으면 그 브랜치를 이어가고, 없다면 종료된 `feature/no-thanks-board-ui-phase1-a-d`를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
+- core rules, Room/Lobby, server-authoritative gameplay, Presence/reconnect 계약, same-room rematch, 운영 DB migration/hardening, Phase A–D board UI와 2026-09-23 후속 디자인 closeout까지 main에 반영했습니다.
+- 아직 게임을 `RELEASED`로 전환하지 않았습니다. 남은 핵심 범위는 `RELEASE_CHECKLIST.md`의 실제 운영 브라우저 gate, rematch/reconnect 수동 확인, 승인회원 production smoke와 Registry capability activation입니다.
+- 디자인 트랙은 `UI_DECISIONS.md`의 `FINAL / DESIGN_CLOSEOUT` 상태가 기준입니다. NT-UI-001~007이 현재 main의 active design baseline이며 Phase E 후보는 release blocker가 아닌 후속 polish입니다.
+- Registry의 No Thanks! capability는 현재 모두 비활성입니다. release gate 완료 전에는 `online/presence`를 선행 활성화하지 않고, `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
+- 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 진행 중 구현 브랜치가 없다면 종료된 과거 브랜치를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
 
 ## Next Work
 
-1. 다음 기능/운영 작업 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `RELEASE_CHECKLIST.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. UI 작업이 포함되면 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 decision을 추가로 확인합니다.
-2. `RELEASE_CHECKLIST.md`의 same-room rematch / Presence / reconnect / 운영 브라우저 smoke gate를 완료합니다.
-3. production 상태와 게임별 DB/Test Contract, 권한 경계가 release 기준과 일치하는지 최종 확인합니다.
-4. 남은 release blocker가 없을 때 실제 제공할 `online` / `presence` capability만 Registry에서 활성화하고 사용자 노출 경로를 검증합니다. `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
-5. 디자인 closeout 상태는 `UI_DECISIONS.md`에서 확인한 뒤 기능/운영 gate와 함께 release closeout 여부를 판단합니다.
+1. 다음 기능/운영 작업 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `RELEASE_CHECKLIST.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. UI 작업이 포함되면 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md` NT-UI-001~007을 함께 적용합니다.
+2. `RELEASE_CHECKLIST.md`의 same-room rematch / Presence / reconnect / 실제 데스크톱·모바일 브라우저 gate를 완료합니다.
+3. 운영 Supabase에서 승인회원 create/join/snapshot/gameplay smoke를 수행하고 현재 migration/권한/RLS/private-state 경계가 release 기준과 일치하는지 최종 확인합니다.
+4. 기능/운영 release blocker가 모두 해소되면 별도 activation PR에서 실제 제공할 `online` 및 필요 시 `presence` capability를 활성화하고 게임 목록의 사용자 노출 상태를 검증합니다. `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
+5. release 직전 `DEVELOPMENT.md`, `RELEASE_CHECKLIST.md`, `UI_DECISIONS.md`의 상태를 다시 대조하고 `RELEASED` 전환 여부를 결정합니다.
 
 ## Decisions
 
@@ -221,6 +229,13 @@
 
 ## Validation
 
+- 최신 체크포인트:
+  - PR #378 디자인 작업은 Game Platform governance를 통과한 뒤 main에 병합했습니다.
+  - PR #381은 최신 main 동기화 후 `behind 0 / mergeable` 상태를 확인했고 Game Platform governance run #502에서 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard가 모두 성공했습니다.
+  - PR #381 merge commit `c43f96f984b90049b59b163bffd16c9a5fb5cf04`가 현재 main baseline임을 확인했습니다.
+  - No Thanks! Registry는 현재 `capabilities: {}`로 해석되어 `online/local/invite/presence` 모두 비활성 상태임을 재확인했습니다.
+  - 카드 random deck 계약은 foundation migration과 회귀 테스트로 재검증했고 서버 로직 변경은 필요하지 않았습니다.
+  - 디자인 checkpoint에서 NT-UI-001~007을 현재 active baseline으로 재확인했고, `RELEASE_CHECKLIST.md`의 design closeout gate와 정합성을 맞췄습니다.
 - 완료:
   - Phase A–D 최종 브랜치 head `71ac396077628e53bebe1bbbc862c1c7383f64b9`를 당시 최신 main과 동기화한 상태에서 PR #364가 mergeable / behind 0임을 확인했습니다.
   - 최종 브랜치에서 Game Platform JavaScript syntax, shared module link, Game Platform contract tests, Governance Guard와 `build-assets`가 모두 통과했습니다.

@@ -38,10 +38,10 @@
 
 ## Design closeout gate
 
-- [ ] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision을 함께 확인
-- [ ] 수동 디자인 리뷰에서 확정된 수정이 코드에만 남고 `UI_DECISIONS.md`에 누락되지 않았는지 확인
-- [ ] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분
-- [ ] `UI_DECISIONS.md / Current Design Track`에 release 가능 상태를 명확히 기록
+- [x] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision(NT-UI-001~007)을 함께 확인
+- [x] 수동 디자인 리뷰에서 확정된 수정이 코드에만 남지 않도록 `UI_DECISIONS.md`에 기록
+- [x] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분 — Phase E 공개 획득 카드 popover/추가 polish는 post-closeout follow-up
+- [x] `UI_DECISIONS.md / Current Design Track`을 `FINAL / DESIGN_CLOSEOUT`으로 기록
 
 ## Production database gates
 

@@ -8,10 +8,10 @@
 
 ## Current Design Track
 
-- Status: ACTIVE
+- Status: FINAL
 - Lifecycle stage: DESIGN_CLOSEOUT
-- Current UI phase / scope: PR #381 result/header refinement + tabletop Rules Guide 구현 완료, main 병합 전 최신 공통 UI 규칙 정합성 검증 중
-- Active branch: `fix/no-thanks-result-sync-and-deck-randomness-20260923`
+- Current UI phase / scope: room/gameplay/result/rules presentation 수동 리뷰 및 closeout 완료
+- Active branch: `main`
 - Last updated: 2026-09-23
 - Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
 - Active overrides:
@@ -22,7 +22,8 @@
   - NT-UI-005 — quiet in-room reconnect presentation
   - NT-UI-006 — centered FINAL WINNER result card
   - NT-UI-007 — tabletop Rules Guide
-- Next design work: 최신 main의 Game Platform Rules Guide Presentation 규칙을 동기화한 뒤 충돌/CI를 확인하고 PR #381 closeout을 진행합니다. Phase E 후보인 다른 플레이어 공개 획득 카드 popover는 별도 후속 scope로 유지합니다.
+- Main design baseline: PR #378 + PR #381, latest merge commit `c43f96f984b90049b59b163bffd16c9a5fb5cf04`
+- Next design work: 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-closeout follow-up으로 유지합니다.
 
 ## Decision Log
 
@@ -121,7 +122,7 @@
   - authoritative snapshot refresh/reconnect 동작 자체는 변경하지 않습니다.
 - Rationale: 자동 복구 가능한 일시적 동기화는 조용히 처리하고, 사용자가 대응해야 할 실패 상태만 시각적으로 승격합니다.
 - Implementation status: IMPLEMENTED
-- Validation: PR #381 Game Platform governance 자동 검증 통과. 최신 main 동기화 후 최종 회귀 검증 예정.
+- Validation: 최신 main 동기화 후 PR #381 Game Platform governance run #502에서 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard 모두 성공했고 main 병합 완료.
 - Baseline relation: NT-UI-002의 connection-state presentation 일부를 후속 override.
 - Functional boundary: reconnect/snapshot/network semantics 변경 없음.
 
@@ -139,7 +140,7 @@
   - mobile에서도 winner card의 중심 hierarchy와 chip motif가 무너지지 않게 축소합니다.
 - Rationale: 승자 선언 → FINAL TABLE이라는 결과 정보 순서를 명확히 만들고, game-over presentation을 카드/칩 언어 안에서 마무리합니다.
 - Implementation status: IMPLEMENTED
-- Validation: PR #381 shell regression test 및 Game Platform governance 자동 검증 통과.
+- Validation: PR #381 shell regression test와 최신 main 동기화 후 Game Platform governance run #502가 성공했고 main 병합 완료.
 - Baseline relation: NT-UI-003/004의 game-over experience를 연결하는 후속 presentation override.
 - Functional boundary: winner/final score 계산은 기존 server-authoritative result를 그대로 사용합니다.
 
@@ -163,7 +164,7 @@
   - 700px 이하에서는 setup/choice/scoring 구조를 세로로 재배치하고 modal 내부 scroll을 유지합니다.
 - Rationale: 규칙 안내 자체를 No Thanks! gameplay presentation의 일부로 만들면서 처음 플레이하는 사용자가 핵심 선택과 점수 구조를 실제 구성물 언어로 더 빠르게 이해하게 합니다.
 - Implementation status: IMPLEMENTED
-- Validation: PR #381 rules-modal regression test 및 Game Platform governance 자동 검증 통과. 이후 동일 원칙을 Can’t Stop Rules Guide와 전체 redesign에 적용해 공통 UI 규칙으로 승격됨.
+- Validation: PR #381 rules-modal regression test와 최신 main 동기화 후 Game Platform governance run #502가 성공했고 main 병합 완료. 이후 동일 원칙을 Can’t Stop Rules Guide와 전체 redesign에 적용해 공통 UI 규칙으로 승격됨.
 - Baseline relation: `UI_DESIGN.md`의 game-local modal 방향을 구체화하고 기존 generic rules presentation을 대체합니다.
 - Functional boundary: 규칙 사실은 `GAME_SPEC.md`/authoritative gameplay를 따르며 DB/RPC/game state를 변경하지 않습니다.
 
@@ -182,10 +183,12 @@
 - 2026-09-23 — PR #378 room header / environmental identity / winner celebration / FINAL TABLE result design automated governance 반복 검증.
 - 2026-09-23 — FINAL TABLE 결과 디자인에 대해 developer manual browser review 완료 및 main 병합 승인.
 - 2026-09-23 — PR #381 quiet reconnect / FINAL WINNER card / tabletop Rules Guide 구현 및 자동 회귀 검증 완료.
+- 2026-09-23 — 최신 main 동기화 후 PR #381 Game Platform governance run #502 전체 성공.
+- 2026-09-23 — PR #381 main 병합 완료. merge commit: `c43f96f984b90049b59b163bffd16c9a5fb5cf04`.
 - 2026-09-23 — Tabletop Rules Guide에서 검증한 game-local rules presentation 원칙이 Can’t Stop 실험을 거쳐 Game Platform 공통 UI 규칙으로 승격됨.
+- 2026-09-23 — 기능 체크포인트와 함께 디자인 closeout을 재검토해 NT-UI-001~007이 현재 main의 active design baseline임을 확인.
 
 ## Open Follow-up
 
-- PR #381 병합 전 최신 main의 공통 Rules Guide Presentation 규칙과 정합성을 최종 확인합니다.
-- Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 후속 polish는 UI 트랙 재개 시 별도 scope로 진행합니다.
+- Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 후속 polish는 release blocker가 아닌 별도 post-closeout scope로 진행합니다.
 - 과거 No Thanks! 관련 PR/commit의 pre-UI_DECISIONS 디자인 결정을 복원할 필요가 생기면 실제 main·과거 증거·현재 active decision을 함께 대조하고 폐기된 안을 되살리지 않습니다.
