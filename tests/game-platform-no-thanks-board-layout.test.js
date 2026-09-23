@@ -112,7 +112,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /NO CHIP/u);
   assert.match(runtime, /createCenterChipAction/u);
   assert.match(runtime, /count > 0[\s\S]*?no-thanks-center-chips__count/u);
-  assert.match(runtime, /createDrawDeck\(view\)/u);
+  assert.match(runtime, /createDrawDeck\(view(?:,|\))/u);
   assert.match(runtime, /deck\?\.querySelector\("span:last-child"\) \?\? deck/u);
   assert.match(runtime, /function createDealFlight/u);
   assert.match(runtime, /className = "no-thanks-card-flight"/u);
