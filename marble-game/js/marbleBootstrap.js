@@ -1,6 +1,6 @@
 import "../../js/accessTracker.js";
 
-const BOOTSTRAP_REVISION = "20260923-r2";
+const BOOTSTRAP_REVISION = "20260923-r3";
 const PLAY_QUERY_KEY = "play";
 const ONLINE_ROOM_QUERY_KEY = "onlineRoom";
 const ONLINE_VISUAL_QUERY_KEY = "marbleVisuals";
@@ -25,12 +25,12 @@ export async function loadMarblePage({
   }
 
   if (mode === "online-2d") {
-    await importModule("./playWindow.js?v=20260923-r2");
+    await importModule("./playWindow.js?v=20260923-r3");
     return mode;
   }
 
   if (mode === "online") {
-    await importModule("./playWindow.js?v=20260923-r2");
+    await importModule("./playWindow.js?v=20260923-r3");
     await importModule("./diceCharge.js?v=20260910-r12");
     await importModule("./onlineGameExit.js?v=20260910-r13");
     await importModule("./ownershipVisualLoader.js?v=20260910-r10");
@@ -41,7 +41,7 @@ export async function loadMarblePage({
     // Keep the dedicated local play window free from lobby and online lifecycle modules.
     await importModule("./app.js?v=20260923-r2");
     await importModule("./diceCharge.js?v=20260910-r7");
-    await importModule("./playWindow.js?v=20260923-r2");
+    await importModule("./playWindow.js?v=20260923-r3");
     await importModule("./ownershipVisualLoader.js?v=20260910-r10");
     return mode;
   }
@@ -49,7 +49,7 @@ export async function loadMarblePage({
   await importModule("./app.js?v=20260923-r2");
   await importModule("./multiplayerLobby.js?v=20260914-r8");
   await importModule("./diceCharge.js?v=20260910-r7");
-  await importModule("./playWindow.js?v=20260923-r2");
+  await importModule("./playWindow.js?v=20260923-r3");
   await importModule("./onlineGameExit.js?v=20260910-r10");
   await importModule("./ownershipVisualLoader.js?v=20260910-r10");
   return mode;
