@@ -87,9 +87,7 @@ export function createNoThanksLobbyViewModel(snapshot, currentUserId, {
       .sort((left, right) => left.score - right.score || left.seat - right.seat)
       .map((player, index, sorted) => ({
         ...player,
-        rank: index > 0 && sorted[index - 1].score === player.score
-          ? sorted[index - 1].rank
-          : index + 1,
+        rank: sorted.findIndex((candidate) => candidate.score === player.score) + 1,
       }))
     : [];
 
