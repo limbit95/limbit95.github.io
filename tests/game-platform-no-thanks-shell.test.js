@@ -59,7 +59,7 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
   assert.match(runtime, /게임 규칙/u);
   assert.match(styles, /\.no-thanks-rules/u);
   assert.match(styles, /\.no-thanks-online-entry/u);
-  assert.match(styles, /\.no-thanks-scoreboard/u);
+  assert.match(styles, /\.no-thanks-result-players/u);
   assert.match(runtime, /const boardMode = Boolean/u);
   assert.match(runtime, /actions: boardMode \? \[\] : lobbyActions/u);
   assert.match(runtime, /no-thanks-panel-tools/u);
@@ -68,8 +68,11 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
 
 
 test("No Thanks! page carries a game-local environmental background identity", () => {
-  assert.match(page, /theme-color" content="#1d3541"/u);
-  assert.match(styles, /linear-gradient\(145deg, #294955 0%, #203b47 48%, #172f39 100%\)/u);
+  assert.match(page, /theme-color" content="#284650"/u);
+  assert.match(styles, /linear-gradient\(145deg, #31515a 0%, #294750 48%, #203a43 100%\)/u);
+  assert.match(page, /no-thanks-world-decor/u);
+  assert.match(page, /no-thanks-world-card--one/u);
+  assert.match(page, /no-thanks-world-chip--four/u);
   assert.match(styles, /\.no-thanks-app::before/u);
   assert.match(styles, /content: "33"/u);
   assert.match(styles, /\.no-thanks-app::after/u);
@@ -86,6 +89,23 @@ test("No Thanks! room header emphasizes game identity without duplicating the ro
   assert.match(styles, /\.no-thanks-shell \.game-platform-shell__description/u);
   assert.match(styles, /\.no-thanks-shell \.game-platform-shell__room::before/u);
   assert.match(styles, /\.no-thanks-shell--in-room \.game-platform-status--success/u);
+});
+
+test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
+  assert.match(runtime, /createResultPlayerPanels/u);
+  assert.match(runtime, /createHandCard\(card, index, overlap\)/u);
+  assert.match(runtime, /createChipCluster\(entry\.counters/u);
+  assert.match(runtime, /최종 보유 칩/u);
+  assert.match(runtime, /createWinnerCelebration/u);
+  assert.match(runtime, /no-thanks-winner-celebration/u);
+  assert.match(runtime, /showModal\(\)/u);
+  assert.match(runtime, /winnerCelebrationAcknowledged/u);
+  assert.match(runtime, /LAST_CARD_TAKEN/u);
+  assert.match(styles, /\.no-thanks-result-player/u);
+  assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
+  assert.match(styles, /\.no-thanks-winner-confetti/u);
+  assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
+  assert.match(styles, /prefers-reduced-motion/u);
 });
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
