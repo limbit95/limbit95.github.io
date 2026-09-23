@@ -803,6 +803,80 @@ body::after {
   line-height: 1.65;
 }
 
+.no-thanks-game-over__hero.is-winner-result {
+  justify-items: center;
+  gap: .55rem;
+  text-align: center;
+}
+
+.no-thanks-game-over__hero.is-winner-result > p:last-child {
+  max-width: 54rem;
+}
+
+.no-thanks-game-over__winner-card {
+  position: relative;
+  width: min(100%, 620px);
+  display: grid;
+  justify-items: center;
+  gap: .28rem;
+  padding: .9rem 4.25rem 1rem;
+  overflow: hidden;
+  border: 2px solid rgba(223, 187, 89, .48);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% -18%, rgba(241, 208, 112, .25), transparent 45%),
+    linear-gradient(145deg, #375c65, #294952 72%);
+  box-shadow:
+    0 12px 28px rgba(30, 58, 64, .14),
+    inset 0 0 0 1px rgba(255, 255, 255, .06);
+}
+
+.no-thanks-game-over__winner-label {
+  color: #f0cf70;
+  font-size: .62rem;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+
+.no-thanks-game-over__winner-card h2 {
+  color: #fff;
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  line-height: 1.16;
+  text-shadow: 0 2px 0 rgba(17, 45, 51, .18);
+}
+
+.no-thanks-game-over__winner-motif {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  transform: translateY(-50%);
+}
+
+.no-thanks-game-over__winner-chip {
+  width: 28px;
+  height: 28px;
+  margin-left: -9px;
+  border: 2px solid #7f1f1a;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .48) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .2),
+    inset 0 -3px 5px rgba(89, 16, 13, .28),
+    0 5px 10px rgba(9, 29, 34, .18);
+}
+
+.no-thanks-game-over__winner-chip:nth-child(2) {
+  translate: 0 -7px;
+}
+
+.no-thanks-game-over__winner-chip:nth-child(3) {
+  translate: 0 6px;
+}
+
 .no-thanks-shell--game-over {
   width: min(calc(100% - 1rem), 1680px);
 }
@@ -1482,6 +1556,15 @@ body::after {
     right: 14px;
   }
 
+  .no-thanks-game-over__winner-card {
+    padding-inline: 3rem;
+  }
+
+  .no-thanks-game-over__winner-motif {
+    right: .55rem;
+    transform: translateY(-50%) scale(.8);
+  }
+
   .no-thanks-winner-fx-card[data-card="3"],
   .no-thanks-winner-fx-card[data-card="4"],
   .no-thanks-winner-fx-chip[data-chip="3"],
@@ -1555,7 +1638,8 @@ body::after {
   content: "";
 }
 
-.no-thanks-shell--in-room .game-platform-status--success {
+.no-thanks-shell--in-room .game-platform-status--success,
+.no-thanks-shell--in-room .game-platform-status[data-game-connection-state="reconnecting"] {
   display: none;
 }
 
