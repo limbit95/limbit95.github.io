@@ -2722,7 +2722,19 @@ function renderLobby(access, state) {
   }
 
   const confirmedTakePlayerId = view ? getConfirmedTakePlayerId(view) : null;
-  if (confirmedTakePlayerId && !pendingTakePresentation) {
+  const completedFinalTakeKey = view?.gamePhase === "GAME_OVER"
+    ? `${view.roomId}:${view.version}:final-take`
+    : null;
+  const finalTakeAlreadyCompleted = Boolean(
+    completedFinalTakeKey
+    && finalTakeTransition?.key === completedFinalTakeKey
+    && finalTakeTransition.completed === true,
+  );
+  if (
+    confirmedTakePlayerId
+    && !pendingTakePresentation
+    && !finalTakeAlreadyCompleted
+  ) {
     captureTakePresentationFromBoard(boardPresentationState, confirmedTakePlayerId);
   }
 
