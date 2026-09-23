@@ -137,6 +137,22 @@ body::after {
   transform: rotate(-9deg);
 }
 
+.no-thanks-world-card--three {
+  top: 47vh;
+  left: 2.2vw;
+  width: clamp(68px, 5.6vw, 92px);
+  opacity: .11;
+  transform: rotate(-6deg);
+}
+
+.no-thanks-world-card--four {
+  top: 4vh;
+  right: 18vw;
+  width: clamp(70px, 5.8vw, 96px);
+  opacity: .1;
+  transform: rotate(6deg);
+}
+
 .no-thanks-world-chip {
   position: absolute;
   width: 32px;
@@ -177,6 +193,27 @@ body::after {
   transform: rotate(-13deg);
 }
 
+.no-thanks-world-chip--five {
+  top: 8vh;
+  right: 4vw;
+  opacity: .44;
+  transform: rotate(8deg) scale(.88);
+}
+
+.no-thanks-world-chip--six {
+  bottom: 43vh;
+  left: 16vw;
+  opacity: .42;
+  transform: rotate(-9deg) scale(.82);
+}
+
+.no-thanks-world-chip--seven {
+  right: 3.5vw;
+  bottom: 20vh;
+  opacity: .46;
+  transform: rotate(12deg) scale(.9);
+}
+
 .no-thanks-loading,
 .no-thanks-access {
   min-height: 100vh;
@@ -203,8 +240,13 @@ body::after {
   body::after,
   .no-thanks-app::after,
   .no-thanks-world-card--two,
+  .no-thanks-world-card--three,
+  .no-thanks-world-card--four,
   .no-thanks-world-chip--two,
-  .no-thanks-world-chip--four {
+  .no-thanks-world-chip--four,
+  .no-thanks-world-chip--five,
+  .no-thanks-world-chip--six,
+  .no-thanks-world-chip--seven {
     display: none;
   }
 
@@ -782,20 +824,21 @@ body::after {
 .no-thanks-result-players {
   --result-card-width: 56px;
   --result-card-height: 76px;
-  min-width: max(100%, calc(var(--result-player-count) * 178px + (var(--result-player-count) - 1) * .65rem));
+  min-width: max(100%, calc(var(--result-player-count) * 330px + (var(--result-player-count) - 1) * .65rem));
   display: grid;
-  grid-template-columns: repeat(var(--result-player-count), minmax(178px, 1fr));
+  grid-template-columns: repeat(var(--result-player-count), minmax(330px, 1fr));
   gap: .65rem;
   overflow-x: auto;
-  padding: .15rem .1rem .55rem;
+  padding: 1.05rem .1rem .65rem;
   scrollbar-width: thin;
 }
 
 .no-thanks-result-player {
   min-width: 0;
-  overflow: hidden;
+  min-height: 132px;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(88px, .8fr) 82px minmax(0, 1.65fr);
+  align-items: stretch;
   border: 1px solid rgba(47, 75, 84, .16);
   border-radius: 18px;
   background:
@@ -806,21 +849,21 @@ body::after {
 .no-thanks-result-player.is-winner {
   border-color: rgba(188, 139, 48, .42);
   background:
-    radial-gradient(circle at 50% 0%, rgba(255, 225, 145, .22), transparent 42%),
+    radial-gradient(circle at 20% 0%, rgba(255, 225, 145, .22), transparent 42%),
     linear-gradient(180deg, rgba(255, 254, 247, .99), rgba(248, 250, 245, .97));
   box-shadow:
     0 0 0 2px rgba(222, 180, 86, .08),
     0 12px 28px rgba(87, 71, 35, .12);
 }
 
-.no-thanks-result-player__header {
+.no-thanks-result-player__summary {
   min-width: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: .48rem;
-  padding: .62rem .68rem;
-  border-bottom: 1px solid rgba(47, 75, 84, .11);
+  align-content: center;
+  justify-items: start;
+  gap: .38rem;
+  padding: .72rem .66rem;
+  border-right: 1px solid rgba(47, 75, 84, .11);
 }
 
 .no-thanks-result-player__rank {
@@ -876,20 +919,21 @@ body::after {
   white-space: nowrap;
 }
 
-.no-thanks-result-player__body {
+.no-thanks-result-player__chips {
   min-width: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  justify-items: center;
+  align-content: center;
+  gap: .18rem;
+  padding: .58rem .35rem;
+  border-right: 1px solid rgba(47, 75, 84, .1);
+  text-align: center;
 }
 
-.no-thanks-result-player__chips {
-  min-height: 78px;
-  display: grid;
-  grid-template-columns: auto auto minmax(54px, 1fr);
-  align-items: center;
-  gap: .35rem;
-  padding: .5rem .62rem;
-  border-bottom: 1px solid rgba(47, 75, 84, .1);
+.no-thanks-result-player__chips--empty {
+  color: var(--muted);
+  font-size: .66rem;
+  line-height: 1.35;
 }
 
 .no-thanks-result-player__chip-count {
@@ -899,17 +943,16 @@ body::after {
 }
 
 .no-thanks-result-player__chips .no-thanks-chip-cluster {
-  justify-self: end;
-  transform: scale(.82);
-  transform-origin: center right;
+  transform: scale(.78);
+  transform-origin: center;
 }
 
 .no-thanks-result-player__cards {
   min-width: 0;
   display: grid;
-  align-content: start;
-  gap: .28rem;
-  padding: .5rem .58rem .58rem;
+  align-content: center;
+  gap: .25rem;
+  padding: .54rem .5rem .48rem;
 }
 
 .no-thanks-result-player__cards-head {
@@ -926,11 +969,11 @@ body::after {
 
 .no-thanks-result-hand {
   min-width: 0;
-  height: 91px;
+  height: 92px;
   overflow: visible;
   display: flex;
   align-items: flex-end;
-  padding: 12px 4px 2px;
+  padding: 15px 4px 2px;
 }
 
 .no-thanks-result-hand.no-thanks-hand--empty {
@@ -1241,8 +1284,12 @@ body::after {
 
 @media (max-width: 900px) {
   .no-thanks-result-players {
-    grid-template-columns: repeat(var(--result-player-count), minmax(168px, 1fr));
-    min-width: max(100%, calc(var(--result-player-count) * 168px + (var(--result-player-count) - 1) * .55rem));
+    grid-template-columns: repeat(var(--result-player-count), minmax(310px, 1fr));
+    min-width: max(100%, calc(var(--result-player-count) * 310px + (var(--result-player-count) - 1) * .55rem));
+  }
+
+  .no-thanks-result-player {
+    grid-template-columns: minmax(82px, .75fr) 76px minmax(0, 1.55fr);
   }
 }
 
@@ -1258,18 +1305,24 @@ body::after {
   .no-thanks-result-players {
     --result-card-width: 52px;
     --result-card-height: 71px;
-    grid-template-columns: repeat(var(--result-player-count), minmax(158px, 1fr));
-    min-width: max(100%, calc(var(--result-player-count) * 158px + (var(--result-player-count) - 1) * .5rem));
+    grid-template-columns: repeat(var(--result-player-count), minmax(286px, 1fr));
+    min-width: max(100%, calc(var(--result-player-count) * 286px + (var(--result-player-count) - 1) * .5rem));
+  }
+
+  .no-thanks-result-player {
+    grid-template-columns: 76px 70px minmax(0, 1fr);
+  }
+
+  .no-thanks-result-player__summary {
+    padding-inline: .5rem;
   }
 
   .no-thanks-result-player__chips {
-    grid-template-columns: auto auto;
+    padding-inline: .24rem;
   }
 
   .no-thanks-result-player__chips .no-thanks-chip-cluster {
-    grid-column: 1 / -1;
-    justify-self: center;
-    transform-origin: center;
+    transform: scale(.7);
   }
 
   .no-thanks-winner-fx-card[data-card="3"],
