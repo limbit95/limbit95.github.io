@@ -114,5 +114,5 @@ test("trade panel includes responsive composer and pending response states", () 
 });
 
 test("trade UI shares the same canonical onlineSession module instance as controllers", () => {
-  assert.match(uiSource, /from "\.\/onlineSession\.js\?v=20260919-r13"/);
+  assert.match(uiSource, /from "\.\/onlineSession\.js\?v=20260923-r2"/);
 });

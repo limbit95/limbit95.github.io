@@ -17,9 +17,9 @@ test("strict online 2D bootstrap evaluates only the play-window entry", async ()
   });
 
   assert.equal(mode, "online-2d");
-  assert.deepEqual(imports, ["./playWindow.js?v=20260923-r2"]);
+  assert.deepEqual(imports, ["./playWindow.js?v=20260923-r3"]);
   assert.equal(documentObject.body.dataset.marbleBootstrapMode, "online-2d");
-  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260923-r2");
+  assert.equal(documentObject.body.dataset.marbleBootstrapRevision, "20260923-r3");
 });
 
 test("online gameplay bootstrap restores dice charge, game exit, and ownership loader", async () => {
@@ -32,7 +32,7 @@ test("online gameplay bootstrap restores dice charge, game exit, and ownership l
 
   assert.equal(mode, "online");
   assert.deepEqual(imports, [
-    "./playWindow.js?v=20260923-r2",
+    "./playWindow.js?v=20260923-r3",
     "./diceCharge.js?v=20260910-r12",
     "./onlineGameExit.js?v=20260910-r13",
     "./ownershipVisualLoader.js?v=20260910-r10",
@@ -54,7 +54,7 @@ test("lobby route keeps the existing full module graph", async () => {
     "./app.js?v=20260923-r2",
     "./multiplayerLobby.js?v=20260914-r8",
     "./diceCharge.js?v=20260910-r7",
-    "./playWindow.js?v=20260923-r2",
+    "./playWindow.js?v=20260923-r3",
     "./onlineGameExit.js?v=20260910-r10",
     "./ownershipVisualLoader.js?v=20260910-r10",
   ]);

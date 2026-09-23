@@ -1,4 +1,4 @@
-import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260919-r13";
+import { getActiveOnlineClassicSession } from "./onlineSession.js?v=20260923-r2";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
