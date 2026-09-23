@@ -67,6 +67,17 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
 });
 
 
+test("No Thanks! page carries a game-local environmental background identity", () => {
+  assert.match(page, /theme-color" content="#1d3541"/u);
+  assert.match(styles, /linear-gradient\(145deg, #294955 0%, #203b47 48%, #172f39 100%\)/u);
+  assert.match(styles, /\.no-thanks-app::before/u);
+  assert.match(styles, /content: "33"/u);
+  assert.match(styles, /\.no-thanks-app::after/u);
+  assert.match(styles, /content: "12"/u);
+  assert.match(styles, /radial-gradient\(circle at center, #d94a3f/u);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.no-thanks-app::after[\s\S]*display: none/u);
+});
+
 test("No Thanks! room header emphasizes game identity without duplicating the room code", () => {
   assert.match(runtime, /칩으로 버틸지, 카드와 칩을 가져갈지—한 번의 선택이 흐름을 바꾸는 심리전 카드 게임/u);
   assert.match(runtime, /roomLabel: view\?\.roomCode \? "LIVE ROOM" : null/u);
