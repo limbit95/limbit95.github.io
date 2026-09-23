@@ -51,6 +51,8 @@ let boardPresentationState = null;
 let boardPresentationEffect = null;
 let pendingTakePresentation = null;
 let lastSettledDealKey = null;
+let acknowledgedWinnerCelebrationKey = null;
+const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -1664,33 +1666,220 @@ function createWaitingPanel(view, state, panelActions = []) {
   return createBoardScene(view, state, panelActions);
 }
 
-function createPlayerCards(view) {
-  return el("section", { className: "no-thanks-owned" }, [
-    el("h3", { className: "no-thanks-owned__title", text: "획득 카드" }),
-    el("div", { className: "no-thanks-owned__list" }, view.players.map((player) => (
-      el("article", {
-        className: "no-thanks-owned__player" + (player.id === view.activePlayerId ? " is-active" : ""),
-      }, [
-        el("div", { className: "no-thanks-owned__player-head" }, [
-          el("strong", { text: player.displayName }),
-          player.id === view.activePlayerId && view.gamePhase === "PLAYING"
-            ? el("span", { className: "no-thanks-owned__turn", text: "현재 차례" })
-            : null,
+function getNoThanksResultHandOverlap(cardCount) {
+  const count = Math.max(0, Number(cardCount) || 0);
+  if (count <= 5) return -2;
+  if (count <= 9) return -7;
+  if (count <= 14) return -13;
+  if (count <= 19) return -21;
+  return -30;
+}
+
+function createResultPlayerPanels(view, {
+  scored = true,
+} = {}) {
+  const entries = scored && view.scoreboard.length > 0
+    ? view.scoreboard
+    : view.players.map((player) => ({
+      id: player.id,
+      displayName: player.displayName,
+      rank: null,
+      score: null,
+      counters: null,
+      winner: false,
+      cards: player.cards,
+      seat: player.seat,
+    }));
+
+  return el("section", {
+    className: "no-thanks-result-players",
+    style: { "--result-player-count": String(Math.max(entries.length, 1)) },
+    "aria-label": scored ? "최종 순위와 플레이어 결과" : "게임 종료 시 플레이어 카드",
+  }, entries.map((entry) => {
+    const cards = [...(entry.cards ?? [])].sort((left, right) => left - right);
+    const overlap = getNoThanksResultHandOverlap(cards.length);
+    const hasCounters = Number.isInteger(entry.counters);
+
+    return el("article", {
+      className: "no-thanks-result-player" + (entry.winner ? " is-winner" : ""),
+      dataset: {
+        playerId: entry.id,
+        rank: entry.rank == null ? "end" : String(entry.rank),
+      },
+    }, [
+      entry.winner
+        ? el("div", { className: "no-thanks-result-player__winner-ribbon", text: "WINNER" })
+        : null,
+      el("header", { className: "no-thanks-result-player__masthead" }, [
+        el("div", {
+          className: "no-thanks-result-player__rank-medal"
+            + (entry.rank == null ? " no-thanks-result-player__rank-medal--ended" : ""),
+          "aria-label": entry.rank == null ? "게임 종료" : String(entry.rank) + "등",
+        }, [
+          el("small", { text: entry.rank == null ? "RESULT" : "RANK" }),
+          el("strong", {
+            text: entry.rank == null ? "END" : (entry.rank === 1 ? "1ST" : String(entry.rank)),
+          }),
         ]),
-        el("div", { className: "no-thanks-owned__cards" },
-          player.cards.length > 0
-            ? player.cards.map((card) => el("span", {
-              className: "no-thanks-owned__card",
-              text: String(card),
-            }))
-            : [el("span", {
-              className: "no-thanks-owned__empty",
-              text: "아직 획득한 카드가 없어요",
-            })],
-        ),
-      ])
-    ))),
-  ]);
+        el("div", { className: "no-thanks-result-player__identity" }, [
+          el("small", { text: "PLAYER" }),
+          el("strong", { text: entry.displayName }),
+        ]),
+        entry.score != null
+          ? el("div", { className: "no-thanks-result-player__score-card" }, [
+            el("span", { text: "FINAL SCORE" }),
+            el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` }),
+          ])
+          : null,
+      ]),
+      el("div", { className: "no-thanks-result-player__playmat" }, [
+        hasCounters
+          ? el("section", { className: "no-thanks-result-player__chip-tray" }, [
+            el("div", { className: "no-thanks-result-player__section-head" }, [
+              el("span", { text: "CHIPS" }),
+              el("strong", { text: String(entry.counters) }),
+            ]),
+            createChipCluster(entry.counters, {
+              label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
+              emptyText: "칩 없음",
+            }),
+          ])
+          : el("section", {
+            className: "no-thanks-result-player__chip-tray no-thanks-result-player__chip-tray--empty",
+            text: "최종 칩 정보 없음",
+          }),
+        el("section", { className: "no-thanks-result-player__card-rack" }, [
+          el("div", { className: "no-thanks-result-player__section-head" }, [
+            el("span", { text: "ACQUIRED CARDS" }),
+            el("strong", { text: `${cards.length}장` }),
+          ]),
+          cards.length > 0
+            ? el("div", { className: "no-thanks-result-hand" },
+              cards.map((card, index) => {
+                const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
+                return createHandCard(card, index, startsNewRun ? 12 : overlap);
+              }))
+            : el("div", {
+              className: "no-thanks-result-hand no-thanks-hand--empty",
+              text: "획득 카드 없음",
+            }),
+        ]),
+      ]),
+    ]);
+  }));
+}
+
+function getWinnerCelebrationKey(view) {
+  if (!view || view.gamePhase !== "GAME_OVER" || view.endReason !== "LAST_CARD_TAKEN") {
+    return null;
+  }
+
+  const scores = view.scoreboard
+    .map((entry) => `${entry.id}:${entry.score}`)
+    .join("|");
+  return `${view.roomId}:${view.version}:${view.endReason}:${scores}`;
+}
+
+function readAcknowledgedWinnerCelebrationKey() {
+  try {
+    return window.sessionStorage?.getItem(WINNER_CELEBRATION_STORAGE_KEY)
+      || acknowledgedWinnerCelebrationKey;
+  } catch {
+    return acknowledgedWinnerCelebrationKey;
+  }
+}
+
+function acknowledgeWinnerCelebration(celebrationKey) {
+  acknowledgedWinnerCelebrationKey = celebrationKey;
+  try {
+    window.sessionStorage?.setItem(WINNER_CELEBRATION_STORAGE_KEY, celebrationKey);
+  } catch {
+    // In-memory acknowledgement still prevents repeat rendering for this page lifecycle.
+  }
+}
+
+function createWinnerCelebration(view, celebrationKey) {
+  const winners = view.scoreboard.filter((entry) => entry.winner);
+  if (view.endReason !== "LAST_CARD_TAKEN" || winners.length === 0) return null;
+
+  const dialog = el("dialog", {
+    className: "no-thanks-winner-celebration",
+    "aria-labelledby": "no-thanks-winner-celebration-title",
+  });
+  dialog.addEventListener("cancel", () => {
+    acknowledgeWinnerCelebration(celebrationKey);
+  });
+  dialog.addEventListener("close", () => {
+    acknowledgeWinnerCelebration(celebrationKey);
+  });
+
+  const palette = ["red", "blue", "yellow", "teal"];
+  const confetti = Array.from({ length: 84 }, (_, index) => el("i", {
+    className: "no-thanks-winner-confetti",
+    dataset: { tone: palette[index % palette.length] },
+    style: {
+      "--confetti-x": `${(index * 37) % 101}%`,
+      "--confetti-drift": `${-110 + ((index * 53) % 221)}px`,
+      "--confetti-delay": `${(index * 71) % 780}ms`,
+      "--confetti-duration": `${2200 + ((index * 47) % 1700)}ms`,
+      "--confetti-spin": `${540 + ((index * 83) % 1260)}deg`,
+    },
+    "aria-hidden": "true",
+  }));
+
+  const winnerNames = winners.map((entry) => entry.displayName);
+  const score = winners[0]?.score;
+  const joint = winners.length > 1;
+
+  const close = () => {
+    acknowledgeWinnerCelebration(celebrationKey);
+    dialog.close();
+  };
+
+  dialog.append(
+    el("div", { className: "no-thanks-winner-celebration__fx", "aria-hidden": "true" }, [
+      ...confetti,
+      ...["7", "18", "28", "33"].map((value, index) => el("span", {
+        className: "no-thanks-winner-fx-card",
+        dataset: { card: String(index + 1), tone: getNoThanksCardTone(Number(value)) },
+        text: value,
+      })),
+      ...Array.from({ length: 8 }, (_, index) => el("span", {
+        className: "no-thanks-winner-fx-chip",
+        dataset: { chip: String(index + 1) },
+      })),
+    ]),
+    el("section", { className: "no-thanks-winner-celebration__card" }, [
+      el("p", { className: "no-thanks-winner-celebration__eyebrow", text: "NO THANKS! WINNER" }),
+      el("div", { className: "no-thanks-winner-celebration__rank", text: "1" }),
+      el("h2", {
+        id: "no-thanks-winner-celebration-title",
+        text: joint
+          ? `${winnerNames.join(", ")} 공동 1등!`
+          : `${winnerNames[0]}님, 1등!`,
+      }),
+      el("p", {
+        className: "no-thanks-winner-celebration__message",
+        text: score == null
+          ? "가장 좋은 선택으로 이번 게임의 승자가 됐어요."
+          : `최종 ${score}점으로 가장 낮은 점수를 기록했어요. 축하합니다!`,
+      }),
+      el("div", { className: "no-thanks-winner-celebration__motif", "aria-hidden": "true" }, [
+        el("span", { className: "no-thanks-winner-celebration__mini-card", text: "NO" }),
+        el("span", { className: "no-thanks-winner-celebration__mini-chip" }),
+        el("span", { className: "no-thanks-winner-celebration__mini-card", text: "THANKS!" }),
+      ]),
+      el("button", {
+        className: "button no-thanks-winner-celebration__close",
+        type: "button",
+        text: "게임 결과 확인하기",
+        autofocus: true,
+        onClick: close,
+      }),
+    ]),
+  );
+
+  return dialog;
 }
 
 function createPlayingPanel(view, state, panelActions = []) {
@@ -1717,23 +1906,11 @@ function createGameOverPanel(view, state, openRematchConfirm = null) {
       el("p", {
         text: hostTerminated
           ? "이번 게임은 점수 계산 없이 종료됐습니다. 결과를 확인한 뒤 결과방에서 나갈 수 있어요."
-          : "연속된 숫자 묶음은 가장 낮은 카드만 더하고, 남은 칩 수를 뺀 최종 점수예요. 가장 낮은 점수가 승리합니다.",
+          : "모든 카드를 가져갔습니다. 플레이어별 최종 카드와 보유 칩, 점수를 한눈에 확인해 보세요.",
       }),
     ]),
     createInlineError(state.error),
-    el("div", { className: "no-thanks-scoreboard" }, view.scoreboard.map((entry, index) => (
-      el("article", {
-        className: `no-thanks-scoreboard__row${entry.winner ? " is-winner" : ""}`,
-      }, [
-        el("span", { className: "no-thanks-scoreboard__rank", text: String(index + 1) }),
-        el("strong", { className: "no-thanks-scoreboard__name", text: entry.displayName }),
-        entry.winner
-          ? el("span", { className: "no-thanks-scoreboard__badge", text: "승리" })
-          : null,
-        el("strong", { className: "no-thanks-scoreboard__score", text: `${entry.score}점` }),
-      ])
-    ))),
-    createPlayerCards(view),
+    createResultPlayerPanels(view, { scored: !hostTerminated }),
     view.isHost && typeof openRematchConfirm === "function"
       ? el("div", { className: "no-thanks-game-over__actions" }, [
         el("button", {
@@ -2112,6 +2289,11 @@ function renderLobby(access, state) {
     })
     : null;
   const openGameEndConfirm = () => gameEndDialog?.showModal();
+  const winnerCelebrationKey = getWinnerCelebrationKey(view);
+  const winnerCelebrationDialog = winnerCelebrationKey
+    && readAcknowledgedWinnerCelebrationKey() !== winnerCelebrationKey
+    ? createWinnerCelebration(view, winnerCelebrationKey)
+    : null;
   const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
     ? createRematchDialog(async () => {
       try {
@@ -2143,9 +2325,9 @@ function renderLobby(access, state) {
 
   const shell = createGameShell({
     title: "No Thanks!",
-    description: "칩을 내고 거절할지, 카드와 쌓인 칩을 가져올지 선택하는 카드 게임",
+    description: "칩으로 버틸지, 카드와 칩을 가져갈지—한 번의 선택이 흐름을 바꾸는 심리전 카드 게임",
     backHref: "/#/games",
-    roomLabel: view?.roomCode ? `방 ${view.roomCode}` : null,
+    roomLabel: view?.roomCode ? "LIVE ROOM" : null,
     connection: connectionFor(state),
     players: shellPlayers(access, displayName, view),
     currentUserId: access.userId,
@@ -2153,16 +2335,34 @@ function renderLobby(access, state) {
     onRetryConnection: () => {
       void lobbyController?.refresh("retry").catch(() => {});
     },
-    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, rematchDialog],
+    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, winnerCelebrationDialog, rematchDialog],
     sidebar: createSidebar(view),
     actions: boardMode ? [] : lobbyActions,
   });
 
+  shell.classList.add("no-thanks-shell");
+
+  if (view) {
+    shell.classList.add("no-thanks-shell--in-room");
+  }
+
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
     shell.classList.add("no-thanks-shell--board");
   }
+  if (view?.gamePhase === "GAME_OVER") {
+    shell.classList.add("no-thanks-shell--game-over");
+  }
 
   replaceApp(shell);
+
+  if (winnerCelebrationDialog) {
+    window.requestAnimationFrame(() => {
+      if (winnerCelebrationDialog.isConnected && !winnerCelebrationDialog.open) {
+        acknowledgeWinnerCelebration(winnerCelebrationKey);
+        winnerCelebrationDialog.showModal();
+      }
+    });
+  }
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
     syncBoardAnimationGeometry();

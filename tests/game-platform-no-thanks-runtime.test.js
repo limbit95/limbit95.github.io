@@ -130,6 +130,7 @@ test("No Thanks! result view sorts final scores and preserves joint winners", ()
   const source = snapshot();
   source.room.status = "playing";
   source.viewer.counters = 5;
+  source.players[0].cards = [20];
   source.game = {
     phase: "GAME_OVER",
     turnOrder: ["host", "guest-a", "guest-b"],
@@ -151,11 +152,17 @@ test("No Thanks! result view sorts final scores and preserves joint winners", ()
   assert.equal(view.gamePhase, "GAME_OVER");
   assert.deepEqual(view.winners, ["guest-a", "guest-b"]);
   assert.deepEqual(
-    view.scoreboard.map(({ id, score, winner }) => ({ id, score, winner })),
+    view.scoreboard.map(({ id, rank, score, counters, winner }) => ({
+      id,
+      rank,
+      score,
+      counters,
+      winner,
+    })),
     [
-      { id: "guest-a", score: 9, winner: true },
-      { id: "guest-b", score: 9, winner: true },
-      { id: "host", score: 17, winner: false },
+      { id: "guest-a", rank: 1, score: 9, counters: 3, winner: true },
+      { id: "guest-b", rank: 1, score: 9, counters: 10, winner: true },
+      { id: "host", rank: 3, score: 17, counters: 3, winner: false },
     ],
   );
   assert.equal(

@@ -1,3 +1,5 @@
+import { calculateCardScore } from "./rules.js";
+
 export const NO_THANKS_LOBBY_VIEW = Object.freeze({
   ENTRY: "entry",
   WAITING: "waiting",
@@ -67,15 +69,26 @@ export function createNoThanksLobbyViewModel(snapshot, currentUserId, {
     : [];
   const scoreboard = finalScores
     ? players
-      .map((player) => ({
-        id: player.id,
-        displayName: player.displayName,
-        score: Number(finalScores[player.id]),
-        winner: winnerIds.includes(player.id),
-        seat: player.seat,
-      }))
+      .map((player) => {
+        const score = Number(finalScores[player.id]);
+        return {
+          id: player.id,
+          displayName: player.displayName,
+          score,
+          counters: Number.isFinite(score)
+            ? Math.max(0, calculateCardScore(player.cards) - score)
+            : null,
+          winner: winnerIds.includes(player.id),
+          seat: player.seat,
+          cards: player.cards,
+        };
+      })
       .filter((player) => Number.isFinite(player.score))
       .sort((left, right) => left.score - right.score || left.seat - right.seat)
+      .map((player, index, sorted) => ({
+        ...player,
+        rank: sorted.findIndex((candidate) => candidate.score === player.score) + 1,
+      }))
     : [];
 
   return Object.freeze({
