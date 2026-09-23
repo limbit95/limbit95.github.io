@@ -950,7 +950,6 @@ body::after {
 .no-thanks-result-hand .no-thanks-hand-card:focus-visible {
   top: -15px;
   transform: translateY(-4px) scale(1.055);
-  z-index: 80 !important;
   box-shadow: 0 11px 18px rgba(35, 55, 58, .22);
 }
 
@@ -1288,9 +1287,10 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .no-thanks-winner-confetti,
-  .no-thanks-winner-fx-card,
-  .no-thanks-winner-fx-chip,
+  .no-thanks-winner-celebration__fx {
+    display: none;
+  }
+
   .no-thanks-winner-celebration__card {
     animation: none !important;
   }
