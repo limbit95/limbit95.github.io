@@ -679,6 +679,48 @@ body {
 }
 
 
+/* Manual design review: room header polish */
+.no-thanks-shell .game-platform-shell__description {
+  max-width: 54rem;
+  margin-top: .12rem;
+  padding: .5rem .72rem;
+  border-left: 3px solid rgba(76, 117, 111, .48);
+  border-radius: 0 10px 10px 0;
+  background: rgba(232, 240, 235, .7);
+  color: #506a70;
+  font-size: .92rem;
+  font-weight: 680;
+  line-height: 1.55;
+}
+
+.no-thanks-shell .game-platform-shell__room {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .44rem .7rem;
+  border: 1px solid rgba(47, 75, 84, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 5px 16px rgba(52, 76, 71, .08);
+  color: var(--forest-900);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.no-thanks-shell .game-platform-shell__room::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6f9d8f;
+  box-shadow: 0 0 0 3px rgba(111, 157, 143, .12);
+  content: "";
+}
+
+.no-thanks-shell--in-room .game-platform-status--success {
+  display: none;
+}
+
 /* Board UI redesign: Phase A-D */
 .no-thanks-shell--board {
   width: min(calc(100% - 1rem), 1680px);
@@ -699,7 +741,7 @@ body {
 }
 
 .no-thanks-shell--board .game-platform-shell__description {
-  font-size: .88rem;
+  font-size: .9rem;
 }
 
 .no-thanks-shell--board .game-platform-status {
