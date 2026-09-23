@@ -73,6 +73,8 @@ test("No Thanks! page carries a game-local environmental background identity", (
   assert.match(page, /no-thanks-world-decor/u);
   assert.match(page, /no-thanks-world-card--one/u);
   assert.match(page, /no-thanks-world-chip--four/u);
+  assert.match(page, /no-thanks-world-card--four/u);
+  assert.match(page, /no-thanks-world-chip--seven/u);
   assert.match(styles, /\.no-thanks-app::before/u);
   assert.match(styles, /content: "33"/u);
   assert.match(styles, /\.no-thanks-app::after/u);
@@ -97,15 +99,26 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /createChipCluster\(entry\.counters/u);
   assert.match(runtime, /최종 보유 칩/u);
   assert.match(runtime, /createWinnerCelebration/u);
+  assert.match(runtime, /getWinnerCelebrationKey/u);
+  assert.match(runtime, /acknowledgedWinnerCelebrationKey/u);
+  assert.match(runtime, /if \(view && view\.gamePhase !== "GAME_OVER"\)/u);
   assert.match(runtime, /no-thanks-winner-celebration/u);
   assert.match(runtime, /showModal\(\)/u);
-  assert.match(runtime, /winnerCelebrationAcknowledged/u);
   assert.match(runtime, /LAST_CARD_TAKEN/u);
   assert.match(styles, /\.no-thanks-result-player/u);
+  assert.match(styles, /grid-template-columns: minmax\(88px, \.8fr\) 82px minmax\(0, 1\.65fr\)/u);
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
   assert.match(styles, /prefers-reduced-motion/u);
+});
+
+test("No Thanks! winner celebration stays acknowledged across transient rerenders", () => {
+  assert.match(runtime, /function getWinnerCelebrationKey\(view\)/u);
+  assert.match(runtime, /return `\$\{view\.roomId\}:\$\{view\.endReason\}:\$\{scores\}`/u);
+  assert.match(runtime, /acknowledgedWinnerCelebrationKey !== winnerCelebrationKey/u);
+  assert.match(runtime, /if \(view && view\.gamePhase !== "GAME_OVER"\)/u);
+  assert.doesNotMatch(runtime, /if \(view\?\.gamePhase !== "GAME_OVER"\)/u);
 });
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
