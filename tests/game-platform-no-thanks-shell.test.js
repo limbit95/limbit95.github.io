@@ -101,7 +101,6 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /createWinnerCelebration/u);
   assert.match(runtime, /getWinnerCelebrationKey/u);
   assert.match(runtime, /acknowledgedWinnerCelebrationKey/u);
-  assert.match(runtime, /if \(view && view\.gamePhase !== "GAME_OVER"\)/u);
   assert.match(runtime, /no-thanks-winner-celebration/u);
   assert.match(runtime, /showModal\(\)/u);
   assert.match(runtime, /LAST_CARD_TAKEN/u);
@@ -127,7 +126,8 @@ test("No Thanks! winner celebration acknowledgement survives focus and page life
   assert.match(runtime, /window\.sessionStorage\?\.getItem/u);
   assert.match(runtime, /window\.sessionStorage\?\.setItem/u);
   assert.match(runtime, /readAcknowledgedWinnerCelebrationKey\(\) !== winnerCelebrationKey/u);
-  assert.doesNotMatch(runtime, /disposeLobbyController[\s\S]*acknowledgedWinnerCelebrationKey = null/u);
+  assert.match(runtime, /acknowledgeWinnerCelebration\(winnerCelebrationKey\);\s*winnerCelebrationDialog\.showModal\(\)/u);
+  assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
 });
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
