@@ -39,6 +39,7 @@ fix/marble-stability-phase3-ci
 - 요청과 관계없는 리팩터링, 파일 이동, 이름 변경, 포맷 전체 변경은 하지 않습니다.
 - 기존에 사용 중인 패턴과 유틸리티가 있다면 새 구조를 추가하기 전에 우선 재사용합니다.
 - 외부 의존성 추가는 꼭 필요한 경우에만 하며, 기존 방식으로 해결할 수 있는지 먼저 확인합니다.
+- Supabase DB 객체를 새로 생성하거나 기존 객체의 Data API 권한 경계를 변경할 때는 권한을 프로젝트 기본값에 맡기지 않고 실제 호출 주체와 필요한 최소 권한을 명시적으로 검토합니다. 본 사이트 DB는 `supabase/README.md`, Game Platform DB/RPC는 `docs/game-platform-db-test-contract.md`를 세부 기준으로 따릅니다.
 - GitHub Actions 워크플로 수정이나 불필요한 CI 실행을 유발하는 변경은 요청이 없는 한 하지 않습니다.
 
 ## 문서 점검 및 변경 안전 원칙

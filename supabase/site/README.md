@@ -2,7 +2,7 @@
 
 이 디렉터리는 **청파 같이 본 사이트**의 Supabase baseline과 이후 운영 migration을 보존합니다.
 
-게임 영역(Liar Game, Splendor)의 소스와 DB 객체는 이 디렉터리의 관리 범위에서 제외합니다.
+Legacy와 platform-native를 포함한 게임 전용 소스와 DB 객체는 이 디렉터리의 관리 범위에서 제외하며, 각 게임의 전용 migration 영역에서 별도 관리합니다.
 
 ## 구성
 
@@ -125,9 +125,10 @@ select public.bootstrap_system_admin('<verified-admin-uuid>'::uuid);
 - 운영 DB를 추측해서 덮어쓰지 않습니다.
 - 새 DDL 변경은 실제 적용 migration과 GitHub 기록을 함께 남깁니다.
 - 운영 반영 전 RLS, 함수 실행 권한, trigger 영향 범위를 확인합니다.
+- 새 Data API 노출 객체 또는 기존 객체의 권한 경계를 다루는 DDL은 상위 `supabase/README.md`의 명시적 권한 원칙을 따릅니다.
 - 이미 적용된 migration을 운영 DB에 재실행하지 않습니다.
 - Advisor의 SECURITY DEFINER 경고는 실제 호출 주체와 함수 내부 권한 검사를 확인한 뒤 판단합니다.
-- `liar_*`, `splendor_*` 객체와 게임 전용 SQL은 별도 관리하며 이 디렉터리에서 수정하지 않습니다.
+- 게임 전용 DB 객체와 SQL은 각 게임 영역에서 별도 관리하며 이 디렉터리에서 수정하지 않습니다.
 
 ### 다단계 회원가입 이메일 OTP 배포
 
