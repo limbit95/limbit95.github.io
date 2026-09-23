@@ -105,7 +105,15 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /showModal\(\)/u);
   assert.match(runtime, /LAST_CARD_TAKEN/u);
   assert.match(styles, /\.no-thanks-result-player/u);
-  assert.match(styles, /grid-template-columns: minmax\(160px, 176px\) 128px minmax\(180px, 1fr\)/u);
+  assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/u);
+  assert.match(styles, /\.no-thanks-result-player\.is-winner[\s\S]*grid-column: 1 \/ -1/u);
+  assert.match(runtime, /no-thanks-result-player__masthead/u);
+  assert.match(runtime, /no-thanks-result-player__playmat/u);
+  assert.match(runtime, /no-thanks-result-player__chip-tray/u);
+  assert.match(runtime, /no-thanks-result-player__card-rack/u);
+  assert.match(runtime, /no-thanks-result-player__winner-ribbon/u);
+  assert.match(styles, /data-rank="2"/u);
+  assert.match(styles, /data-rank="3"/u);
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
   assert.match(runtime, /if \(count <= 5\) return -2/u);
   assert.match(runtime, /if \(count <= 9\) return -7/u);
