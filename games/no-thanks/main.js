@@ -1668,11 +1668,11 @@ function createWaitingPanel(view, state, panelActions = []) {
 
 function getNoThanksResultHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -4;
-  if (count <= 9) return -11;
-  if (count <= 14) return -20;
-  if (count <= 19) return -29;
-  return -38;
+  if (count <= 5) return -2;
+  if (count <= 9) return -7;
+  if (count <= 14) return -13;
+  if (count <= 19) return -21;
+  return -30;
 }
 
 function createResultPlayerPanels(view, {
@@ -1715,18 +1715,18 @@ function createResultPlayerPanels(view, {
             className: "no-thanks-result-player__rank no-thanks-result-player__rank--ended",
             text: "END",
           }),
-        el("div", { className: "no-thanks-result-player__identity" }, [
-          el("strong", { text: entry.displayName }),
-          entry.winner
-            ? el("span", { className: "no-thanks-result-player__winner", text: "WINNER" })
-            : null,
-        ]),
         entry.score != null
           ? el("div", { className: "no-thanks-result-player__score-card" }, [
             el("span", { text: "FINAL SCORE" }),
             el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` }),
           ])
           : null,
+        el("div", { className: "no-thanks-result-player__identity" }, [
+          el("strong", { text: entry.displayName }),
+          entry.winner
+            ? el("span", { className: "no-thanks-result-player__winner", text: "WINNER" })
+            : null,
+        ]),
       ]),
       hasCounters
         ? el("div", { className: "no-thanks-result-player__chips" }, [
@@ -1750,7 +1750,7 @@ function createResultPlayerPanels(view, {
           ? el("div", { className: "no-thanks-result-hand" },
             cards.map((card, index) => {
               const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
-              return createHandCard(card, index, startsNewRun ? 8 : overlap);
+              return createHandCard(card, index, startsNewRun ? 12 : overlap);
             }))
           : el("div", {
             className: "no-thanks-result-hand no-thanks-hand--empty",
