@@ -396,7 +396,8 @@ body::after {
 
 .no-thanks-rules {
   width: min(calc(100% - 1.25rem), 860px);
-  max-height: min(90vh, 880px);
+  height: min(94dvh, 920px);
+  max-height: 94dvh;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -417,6 +418,7 @@ body::after {
 
 .no-thanks-rules__content {
   min-height: 0;
+  height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -896,6 +898,7 @@ body::after {
 @media (max-width: 700px) {
   .no-thanks-rules {
     width: min(calc(100% - .75rem), 860px);
+    height: 92dvh;
     max-height: 92dvh;
     border-radius: 22px;
   }
