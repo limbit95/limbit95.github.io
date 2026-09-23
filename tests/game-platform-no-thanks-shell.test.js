@@ -106,8 +106,13 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /showModal\(\)/u);
   assert.match(runtime, /LAST_CARD_TAKEN/u);
   assert.match(styles, /\.no-thanks-result-player/u);
-  assert.match(styles, /grid-template-columns: minmax\(88px, \.8fr\) 82px minmax\(0, 1\.65fr\)/u);
+  assert.match(styles, /grid-template-columns: minmax\(108px, 118px\) 86px minmax\(156px, 1fr\)/u);
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
+  assert.match(runtime, /if \(count <= 5\) return -6/u);
+  assert.match(runtime, /if \(count <= 9\) return -16/u);
+  assert.match(runtime, /if \(count <= 14\) return -27/u);
+  assert.match(runtime, /if \(count <= 19\) return -37/u);
+  assert.match(runtime, /return -46/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
   assert.match(styles, /prefers-reduced-motion/u);
