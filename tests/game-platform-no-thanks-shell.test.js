@@ -106,24 +106,28 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /showModal\(\)/u);
   assert.match(runtime, /LAST_CARD_TAKEN/u);
   assert.match(styles, /\.no-thanks-result-player/u);
-  assert.match(styles, /grid-template-columns: minmax\(108px, 118px\) 86px minmax\(156px, 1fr\)/u);
+  assert.match(styles, /grid-template-columns: minmax\(132px, 146px\) 104px minmax\(168px, 1fr\)/u);
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
-  assert.match(runtime, /if \(count <= 5\) return -6/u);
-  assert.match(runtime, /if \(count <= 9\) return -16/u);
-  assert.match(runtime, /if \(count <= 14\) return -27/u);
-  assert.match(runtime, /if \(count <= 19\) return -37/u);
-  assert.match(runtime, /return -46/u);
+  assert.match(runtime, /if \(count <= 5\) return -4/u);
+  assert.match(runtime, /if \(count <= 9\) return -11/u);
+  assert.match(runtime, /if \(count <= 14\) return -20/u);
+  assert.match(runtime, /if \(count <= 19\) return -29/u);
+  assert.match(runtime, /return -38/u);
+  assert.match(runtime, /startsNewRun \? 8 : overlap/u);
+  assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
   assert.match(styles, /prefers-reduced-motion/u);
 });
 
-test("No Thanks! winner celebration stays acknowledged across transient rerenders", () => {
+test("No Thanks! winner celebration acknowledgement survives focus and page lifecycle rerenders", () => {
   assert.match(runtime, /function getWinnerCelebrationKey\(view\)/u);
-  assert.match(runtime, /return `\$\{view\.roomId\}:\$\{view\.endReason\}:\$\{scores\}`/u);
-  assert.match(runtime, /acknowledgedWinnerCelebrationKey !== winnerCelebrationKey/u);
-  assert.match(runtime, /if \(view && view\.gamePhase !== "GAME_OVER"\)/u);
-  assert.doesNotMatch(runtime, /if \(view\?\.gamePhase !== "GAME_OVER"\)/u);
+  assert.match(runtime, /return `\$\{view\.roomId\}:\$\{view\.version\}:\$\{view\.endReason\}:\$\{scores\}`/u);
+  assert.match(runtime, /WINNER_CELEBRATION_STORAGE_KEY/u);
+  assert.match(runtime, /window\.sessionStorage\?\.getItem/u);
+  assert.match(runtime, /window\.sessionStorage\?\.setItem/u);
+  assert.match(runtime, /readAcknowledgedWinnerCelebrationKey\(\) !== winnerCelebrationKey/u);
+  assert.doesNotMatch(runtime, /disposeLobbyController[\s\S]*acknowledgedWinnerCelebrationKey = null/u);
 });
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
