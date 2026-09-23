@@ -116,64 +116,129 @@ function createRulesDialog() {
   });
 
   const closeButton = el("button", {
-    className: "button button--secondary",
+    className: "no-thanks-rules__close",
     type: "button",
     text: "닫기",
+    "aria-label": "게임 규칙 닫기",
     onClick: () => dialog.close(),
   });
 
+  const ruleCard = (number, title, body, className = "") => el("section", {
+    className: `no-thanks-rules__rule-card${className ? ` ${className}` : ""}`,
+  }, [
+    el("span", { className: "no-thanks-rules__step", text: String(number).padStart(2, "0") }),
+    el("div", { className: "no-thanks-rules__rule-copy" }, [
+      el("h3", { text: title }),
+      body,
+    ]),
+  ]);
+
+  const scoreCard = (value, tone = "blue") => el("span", {
+    className: "no-thanks-rules__score-card",
+    dataset: { tone },
+    text: String(value),
+  });
+
   dialog.append(el("div", { className: "no-thanks-rules__content" }, [
-    el("div", { className: "no-thanks-rules__header" }, [
-      el("div", {}, [
-        el("p", { className: "no-thanks-rules__eyebrow", text: "게임 규칙" }),
+    el("header", { className: "no-thanks-rules__header" }, [
+      el("div", { className: "no-thanks-rules__heading" }, [
+        el("p", { className: "no-thanks-rules__eyebrow", text: "HOW TO PLAY" }),
         el("h2", {
           id: "no-thanks-rules-title",
           className: "no-thanks-rules__title",
           text: "No Thanks! 기본 규칙",
         }),
+        el("p", {
+          className: "no-thanks-rules__subtitle",
+          text: "카드를 피할지, 칩과 함께 가져갈지. 가장 낮은 점수를 만드는 사람이 승리합니다.",
+        }),
+      ]),
+      el("div", { className: "no-thanks-rules__hero", "aria-hidden": "true" }, [
+        el("span", { className: "no-thanks-rules__hero-card", text: "24" }),
+        el("span", { className: "no-thanks-rules__hero-chip no-thanks-rules__hero-chip--one" }),
+        el("span", { className: "no-thanks-rules__hero-chip no-thanks-rules__hero-chip--two" }),
+        el("span", { className: "no-thanks-rules__hero-chip no-thanks-rules__hero-chip--three" }),
       ]),
       closeButton,
     ]),
     el("div", { className: "no-thanks-rules__body" }, [
-      el("section", {}, [
-        el("h3", { text: "목표" }),
+      el("section", { className: "no-thanks-rules__goal" }, [
+        el("span", { className: "no-thanks-rules__goal-label", text: "GOAL" }),
+        el("strong", { text: "가장 낮은 최종 점수를 만들어라" }),
         el("p", {
-          text: "숫자 카드 점수에서 남은 칩 수를 뺀 최종 점수를 가장 낮게 만드는 게임입니다.",
+          text: "숫자 카드 점수에서 마지막에 남은 칩 수를 뺀 값이 최종 점수입니다.",
         }),
       ]),
-      el("section", {}, [
-        el("h3", { text: "게임 준비" }),
-        el("p", {
-          text: "3~7명이 플레이합니다. 3부터 35까지의 숫자 카드 33장 중 9장을 보지 않고 제외해 24장을 사용합니다.",
-        }),
-        el("p", {
-          text: "3~5명은 칩 11개, 6명은 9개, 7명은 7개로 시작하며 각자의 칩 수는 다른 플레이어에게 공개하지 않습니다.",
-        }),
-      ]),
-      el("section", {}, [
-        el("h3", { text: "내 차례의 선택" }),
-        el("ul", {}, [
-          el("li", { text: "거절하기: 칩 1개를 현재 카드 위에 놓고 다음 플레이어에게 차례를 넘깁니다." }),
-          el("li", { text: "가져오기: 현재 카드와 카드 위에 쌓인 칩을 모두 가져옵니다." }),
-          el("li", { text: "칩이 0개라면 거절할 수 없고 반드시 카드를 가져와야 합니다." }),
-          el("li", { text: "카드를 가져온 플레이어가 다음 카드에서도 계속 선택합니다." }),
+      ruleCard(1, "게임 준비", el("div", { className: "no-thanks-rules__setup" }, [
+        el("div", { className: "no-thanks-rules__setup-item" }, [
+          el("strong", { text: "3–35" }),
+          el("span", { text: "숫자 카드 33장" }),
         ]),
-      ]),
-      el("section", {}, [
-        el("h3", { text: "점수 계산" }),
+        el("div", { className: "no-thanks-rules__setup-arrow", text: "→", "aria-hidden": "true" }),
+        el("div", { className: "no-thanks-rules__setup-item" }, [
+          el("strong", { text: "9장" }),
+          el("span", { text: "보지 않고 제외" }),
+        ]),
+        el("div", { className: "no-thanks-rules__setup-arrow", text: "→", "aria-hidden": "true" }),
+        el("div", { className: "no-thanks-rules__setup-item is-accent" }, [
+          el("strong", { text: "24장" }),
+          el("span", { text: "실제 게임 덱" }),
+        ]),
         el("p", {
-          text: "연속된 숫자 카드는 묶음에서 가장 낮은 숫자만 점수에 더합니다. 마지막에 남은 칩 수만큼 점수를 뺍니다.",
+          className: "no-thanks-rules__setup-note",
+          text: "3~5명은 칩 11개, 6명은 9개, 7명은 7개로 시작합니다. 개인 칩 수는 다른 플레이어에게 공개하지 않습니다.",
         }),
+      ])),
+      ruleCard(2, "내 차례에는 둘 중 하나", el("div", { className: "no-thanks-rules__choice-grid" }, [
+        el("article", { className: "no-thanks-rules__choice no-thanks-rules__choice--refuse" }, [
+          el("div", { className: "no-thanks-rules__choice-icon" }, [
+            el("span", { className: "no-thanks-rules__choice-chip" }),
+          ]),
+          el("div", {}, [
+            el("strong", { text: "NO THANKS!" }),
+            el("p", { text: "칩 1개를 현재 카드 위에 놓고 다음 플레이어에게 넘깁니다." }),
+          ]),
+        ]),
+        el("article", { className: "no-thanks-rules__choice no-thanks-rules__choice--take" }, [
+          el("div", { className: "no-thanks-rules__choice-icon" }, [
+            el("span", { className: "no-thanks-rules__choice-card", text: "17" }),
+          ]),
+          el("div", {}, [
+            el("strong", { text: "TAKE" }),
+            el("p", { text: "현재 카드와 카드 위에 쌓인 모든 칩을 가져옵니다." }),
+          ]),
+        ]),
         el("p", {
-          text: "예: 3, 10, 11, 12, 20을 가지고 칩이 5개라면 카드 점수는 3 + 10 + 20 = 33, 최종 점수는 28입니다.",
+          className: "no-thanks-rules__choice-note",
+          text: "칩이 0개라면 거절할 수 없습니다. 카드를 가져온 플레이어가 다음 공개 카드에서도 계속 선택합니다.",
         }),
-      ]),
-      el("section", {}, [
-        el("h3", { text: "게임 종료" }),
+      ])),
+      ruleCard(3, "연속 숫자는 한 묶음", el("div", { className: "no-thanks-rules__score-demo" }, [
+        el("div", { className: "no-thanks-rules__score-hand", "aria-label": "예시 카드 3, 10, 11, 12, 20" }, [
+          scoreCard(3, "teal"),
+          el("span", { className: "no-thanks-rules__score-gap", "aria-hidden": "true" }),
+          scoreCard(10, "blue"),
+          scoreCard(11, "blue"),
+          scoreCard(12, "blue"),
+          el("span", { className: "no-thanks-rules__score-gap", "aria-hidden": "true" }),
+          scoreCard(20, "yellow"),
+        ]),
+        el("div", { className: "no-thanks-rules__equation" }, [
+          el("span", { text: "카드 점수" }),
+          el("strong", { text: "3 + 10 + 20 = 33" }),
+          el("span", { className: "no-thanks-rules__equation-minus", text: "− 칩 5개" }),
+          el("strong", { className: "no-thanks-rules__equation-final", text: "최종 28점" }),
+        ]),
         el("p", {
-          text: "마지막 카드가 가져가지는 순간 게임이 끝납니다. 최종 점수가 가장 낮은 플레이어가 승리하고, 같은 최저 점수라면 공동 승리입니다.",
+          text: "10·11·12처럼 연속된 숫자 묶음에서는 가장 낮은 숫자 10만 점수에 포함됩니다.",
         }),
-      ]),
+      ])),
+      ruleCard(4, "마지막 카드까지 가져가면 종료", el("div", { className: "no-thanks-rules__finish" }, [
+        el("span", { className: "no-thanks-rules__finish-badge", text: "LOWEST SCORE WINS" }),
+        el("p", {
+          text: "모든 카드가 분배되면 게임이 끝납니다. 최종 점수가 가장 낮은 플레이어가 승리하며, 같은 최저 점수라면 공동 승리입니다.",
+        }),
+      ]), "no-thanks-rules__rule-card--finish"),
     ]),
   ]));
 
