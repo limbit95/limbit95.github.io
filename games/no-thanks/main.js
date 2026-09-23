@@ -1893,16 +1893,28 @@ function createGameOverPanel(view, state, openRematchConfirm = null) {
     .join(", ");
   const hostTerminated = view.endReason === "HOST_TERMINATED";
 
+  const hasWinnerResult = !hostTerminated && Boolean(winnerNames);
+
   return el("section", { className: "no-thanks-game-over" }, [
-    el("div", { className: "no-thanks-game-over__hero" }, [
+    el("div", {
+      className: "no-thanks-game-over__hero" + (hasWinnerResult ? " is-winner-result" : ""),
+    }, [
       el("p", { className: "no-thanks-entry__eyebrow", text: "GAME OVER" }),
-      el("h2", {
-        text: hostTerminated
-          ? "방장이 게임을 종료했어요."
-          : winnerNames
-            ? `${winnerNames} 승리!`
+      hasWinnerResult
+        ? el("div", { className: "no-thanks-game-over__winner-card" }, [
+          el("span", { className: "no-thanks-game-over__winner-label", text: "FINAL WINNER" }),
+          el("h2", { text: `${winnerNames} 승리!` }),
+          el("div", { className: "no-thanks-game-over__winner-motif", "aria-hidden": "true" }, [
+            el("span", { className: "no-thanks-game-over__winner-chip" }),
+            el("span", { className: "no-thanks-game-over__winner-chip" }),
+            el("span", { className: "no-thanks-game-over__winner-chip" }),
+          ]),
+        ])
+        : el("h2", {
+          text: hostTerminated
+            ? "방장이 게임을 종료했어요."
             : "게임이 종료됐어요.",
-      }),
+        }),
       el("p", {
         text: hostTerminated
           ? "이번 게임은 점수 계산 없이 종료됐습니다. 결과를 확인한 뒤 결과방에서 나갈 수 있어요."
