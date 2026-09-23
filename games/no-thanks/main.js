@@ -26,6 +26,8 @@ import {
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
+  getNoThanksResultHandMargins,
+  getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "./boardLayout.js";
@@ -52,6 +54,7 @@ let boardPresentationEffect = null;
 let pendingTakePresentation = null;
 let lastSettledDealKey = null;
 let acknowledgedWinnerCelebrationKey = null;
+let resultHandLayoutFrame = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 
 function replaceApp(node) {
@@ -69,6 +72,10 @@ function disposeLobbyController() {
   boardPresentationState = null;
   boardPresentationEffect = null;
   clearPendingTakePresentation();
+  if (resultHandLayoutFrame != null) {
+    window.cancelAnimationFrame(resultHandLayoutFrame);
+    resultHandLayoutFrame = null;
+  }
 }
 
 function createAccessNotice({
@@ -1437,6 +1444,50 @@ async function animatePendingTakePresentation(effect) {
   completeBoardPresentationEffect(effect);
 }
 
+function syncResultHandLayouts() {
+  if (resultHandLayoutFrame != null) {
+    window.cancelAnimationFrame(resultHandLayoutFrame);
+  }
+
+  resultHandLayoutFrame = window.requestAnimationFrame(() => {
+    resultHandLayoutFrame = null;
+
+    app.querySelectorAll(".no-thanks-result-hand:not(.no-thanks-hand--empty)")
+      .forEach((hand) => {
+        const cards = [...hand.querySelectorAll(".no-thanks-hand-card")];
+        if (cards.length <= 1) return;
+
+        const handStyle = window.getComputedStyle(hand);
+        const paddingLeft = Number.parseFloat(handStyle.paddingLeft) || 0;
+        const paddingRight = Number.parseFloat(handStyle.paddingRight) || 0;
+        const availableWidth = Math.max(
+          0,
+          hand.clientWidth - paddingLeft - paddingRight,
+        );
+        const cardWidth = cards[0]?.getBoundingClientRect().width ?? 0;
+        const runStartCount = cards
+          .slice(1)
+          .filter((card) => card.dataset.runStart === "true")
+          .length;
+        const margins = getNoThanksResultHandMargins(cards.length, {
+          availableWidth,
+          cardWidth,
+          runStartCount,
+        });
+
+        cards.forEach((card, index) => {
+          if (index === 0) {
+            card.style.marginLeft = "0";
+            return;
+          }
+          const margin = card.dataset.runStart === "true"
+            ? margins.runMargin
+            : margins.overlap;
+          card.style.marginLeft = String(margin) + "px";
+        });
+      });
+  });
+}
 function syncBoardAnimationGeometry() {
   const board = app.querySelector(".no-thanks-game-board");
   if (!board) return;
@@ -1520,6 +1571,7 @@ function createRoundTable(view, state, effects) {
 
 function createHandCard(card, index, overlap, {
   incoming = false,
+  runStart = false,
 } = {}) {
   const value = String(card);
   return el("button", {
@@ -1529,6 +1581,7 @@ function createHandCard(card, index, overlap, {
       tone: getNoThanksCardTone(card),
       cardValue: value,
       incoming: incoming ? "true" : "false",
+      runStart: runStart ? "true" : "false",
     },
     style: {
       marginLeft: index === 0 ? "0" : String(overlap) + "px",
@@ -1731,14 +1784,6 @@ function createWaitingPanel(view, state, panelActions = []) {
   return createBoardScene(view, state, panelActions);
 }
 
-function getNoThanksResultHandOverlap(cardCount) {
-  const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -2;
-  if (count <= 9) return -7;
-  if (count <= 14) return -13;
-  if (count <= 19) return -21;
-  return -30;
-}
 
 function createResultPlayerPanels(view, {
   scored = true,
@@ -1822,7 +1867,9 @@ function createResultPlayerPanels(view, {
             ? el("div", { className: "no-thanks-result-hand" },
               cards.map((card, index) => {
                 const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
-                return createHandCard(card, index, startsNewRun ? 12 : overlap);
+                return createHandCard(card, index, startsNewRun ? 12 : overlap, {
+                  runStart: startsNewRun,
+                });
               }))
             : el("div", {
               className: "no-thanks-result-hand no-thanks-hand--empty",
@@ -2435,10 +2482,13 @@ function renderLobby(access, state) {
   if (winnerCelebrationDialog) {
     window.requestAnimationFrame(() => {
       if (winnerCelebrationDialog.isConnected && !winnerCelebrationDialog.open) {
-        acknowledgeWinnerCelebration(winnerCelebrationKey);
         winnerCelebrationDialog.showModal();
       }
     });
+  }
+
+  if (view?.gamePhase === "GAME_OVER") {
+    syncResultHandLayouts();
   }
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
@@ -2569,6 +2619,8 @@ async function boot() {
     }));
   }
 }
+
+window.addEventListener("resize", syncResultHandLayouts, { passive: true });
 
 window.addEventListener("pagehide", () => {
   unsubscribeAccess?.();
