@@ -906,7 +906,8 @@ body::after {
 .no-thanks-result-player__identity strong {
   overflow: hidden;
   color: var(--forest-900);
-  font-size: .82rem;
+  font-size: 1rem;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -914,42 +915,44 @@ body::after {
 .no-thanks-result-player__winner {
   width: fit-content;
   color: #a27123;
-  font-size: .6rem;
+  font-size: .62rem;
   font-weight: 950;
   letter-spacing: .1em;
 }
 
 .no-thanks-result-player__score-card {
   width: fit-content;
-  display: inline-flex;
-  align-items: baseline;
-  gap: .34rem;
-  padding: .34rem .48rem;
-  border: 1px solid rgba(62, 103, 98, .16);
+  min-width: 74px;
+  display: grid;
+  justify-items: center;
+  gap: .08rem;
+  padding: .4rem .52rem .44rem;
+  border: 3px solid rgba(255, 255, 255, .92);
   border-radius: 10px;
-  background:
-    linear-gradient(145deg, rgba(235, 243, 240, .96), rgba(247, 250, 248, .96));
+  background: linear-gradient(150deg, #6f9ca9, #527b86);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, .58),
-    0 4px 10px rgba(42, 71, 68, .06);
+    0 0 0 1px rgba(52, 91, 99, .14),
+    0 6px 14px rgba(42, 71, 68, .14);
 }
 
 .no-thanks-result-player.is-winner .no-thanks-result-player__score-card {
-  border-color: rgba(184, 139, 47, .25);
-  background:
-    linear-gradient(145deg, rgba(255, 244, 207, .92), rgba(255, 251, 236, .96));
+  background: linear-gradient(150deg, #e8c665, #c79a38);
+  box-shadow:
+    0 0 0 1px rgba(127, 91, 23, .14),
+    0 6px 14px rgba(99, 74, 26, .16);
 }
 
 .no-thanks-result-player__score-card > span {
-  color: #71817e;
-  font-size: .54rem;
-  font-weight: 900;
-  letter-spacing: .07em;
+  color: rgba(255, 255, 255, .78);
+  font-size: .5rem;
+  font-weight: 950;
+  letter-spacing: .08em;
 }
 
 .no-thanks-result-player__score {
-  color: var(--forest-900);
-  font-size: 1rem;
+  color: #fff;
+  font-size: 1.12rem;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -977,7 +980,7 @@ body::after {
 }
 
 .no-thanks-result-player__chips .no-thanks-chip-cluster {
-  transform: scale(.78);
+  transform: scale(.86);
   transform-origin: center;
 }
 
