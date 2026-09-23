@@ -1,7 +1,7 @@
 # Can't Stop Development
 
 > 현재 개발 상태를 다음 작업자/채팅으로 전달하는 인수인계 문서입니다.
-> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`, UI/presentation 설계의 기준은 `UI_DESIGN.md`입니다.
+> 게임 규칙과 기능 설계의 기준은 같은 디렉터리의 `GAME_SPEC.md`입니다. UI/presentation은 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded override를 함께 적용합니다. 이 문서의 기존 UI 관련 항목은 과거 release 이력으로 보존하되 이후 세부 UI 이력은 `UI_DECISIONS.md`에 기록합니다.
 
 ## Current Status
 
@@ -23,7 +23,7 @@
 - 2026-09-23 BGM polish: page entry/entry/waiting/rematch waiting에는 `Frozen Star`, authoritative `PLAYING` 상태에는 `Mountain Emperor`를 적용했다. 기존 공통 BGM Player와 저장 volume/pause 정책을 재사용하고 dice/blizzard Web Audio SFX는 분리 유지했다.
 - 2026-09-22 Game Platform UI 규칙 도입에 맞춰 현재 v1의 Visual Identity, page/lobby/gameplay/result-rematch presentation 기준을 `UI_DESIGN.md`에 소급 문서화했다. runtime 동작은 변경하지 않았다.
 - 최신 Game Platform 규칙과 shared 계약을 확인했다.
-- 당시 신규 게임 초기 세팅에 `GAME_SPEC.md`를 의무화하는 bootstrap 규칙 방향을 확정했다. 현재 플랫폼 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 3문서 bootstrap이다.
+- 당시 신규 게임 초기 세팅에 `GAME_SPEC.md`를 의무화하는 bootstrap 규칙 방향을 확정했다. 이후 플랫폼 규칙은 `GAME_SPEC.md` + `DEVELOPMENT.md` + `UI_DESIGN.md` + `UI_DECISIONS.md` 4문서 bootstrap으로 발전했다.
 - Can't Stop 원본 규칙을 여러 공개 규칙 자료로 교차 확인했다.
 - 2–12 column, four-dice pairing, three-runner, push/stop, bust, claim, three-column win 규칙을 구현 기준으로 정리했다.
 - Game Platform의 SHARED 책임과 Can't Stop GAME-LOCAL 책임을 분리했다.
@@ -47,7 +47,7 @@
 - 게임 시작 시 서버가 turn order를 무작위로 확정해 authoritative `game_state`에 저장하도록 구현했다.
 - `createCantStopRoomLobbyAdapter`를 Shared `defineRoomLobbyAdapter` 계약에 연결하고 Realtime Postgres Changes를 invalidation 신호로만 사용하도록 구현했다.
 - Game DB integration harness가 Can’t Stop migration을 disposable Supabase에 replay하도록 확장했다.
-- `tests/game-db-integration/cant-stop.test.js`에 플랫폼 필수 10개 DB 시나리오를 등록했다.
+- 당시 `tests/game-db-integration/cant-stop.test.js`에 플랫폼 필수 10개 DB 시나리오를 등록했다. 이후 공통 계약에 same-room rematch가 추가되어 현재는 11개 필수 시나리오를 구현한다.
 - 기존 DB integration workflow에 `supabase/cant-stop/**/*.sql` 경로만 추가했으며 별도 workflow는 만들지 않았다.
 - 승인회원 runtime에 방 만들기 / 코드 참가 / 준비 / 준비 취소 / 방장 시작 / 나가기 사용자 흐름을 연결했다.
 - authoritative lobby snapshot을 Common Game Shell roster와 room label에 연결했다.
@@ -119,7 +119,7 @@
 - BGM은 Game Platform shared contract로 올리지 않고 site-level `js/game-audio/` utility를 game-local presentation에서 소비한다. entry/waiting/rematch waiting은 `Frozen Star`, authoritative room `playing`은 `Mountain Emperor`로 고정한다. 사용자 pause는 상태 전환보다 우선한다.
 - 공식 로드맵 단계명은 `Phase 4`를 사용하며 임의의 `Phase 4A`를 만들지 않는다.
 - Can’t Stop은 기존 게임을 복사하지 않고 `games/cant-stop/`에서 처음부터 platform-native로 개발한다.
-- bootstrap 당시에는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두는 기준을 사용했으나, 현재 신규 게임 공통 기준은 `GAME_SPEC.md` + `UI_DESIGN.md` + `DEVELOPMENT.md` 세 문서다. Can't Stop은 release baseline을 보존하면서 현재 UI 기준을 `UI_DESIGN.md`에 소급 문서화했다.
+- bootstrap 당시에는 `GAME_SPEC.md`와 `DEVELOPMENT.md`만 두는 기준을 사용했으나, 현재 신규 게임 공통 기준은 `GAME_SPEC.md` + `DEVELOPMENT.md` + `UI_DESIGN.md` + `UI_DECISIONS.md` 네 문서다. Can't Stop의 `UI_DESIGN.md`는 v1 release 시점 baseline을 소급 문서화했고, 이후 디자인 변경은 `UI_DECISIONS.md`에 남긴다.
 - game-specific dice/pairing/runner 규칙은 `games/shared/`로 올리지 않는다.
 - online gameplay의 주사위 결과와 상태 전이는 최종적으로 서버가 authoritative하게 결정한다.
 - 첫 플레이어는 사전 주사위 없이 게임 시작 RPC가 서버에서 turn order를 무작위로 한 번 확정하고 authoritative state에 저장하는 방식으로 결정한다.

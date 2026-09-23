@@ -34,7 +34,14 @@
 - [ ] 동일 사용자의 2개 탭 접속 시 Presence가 사용자 1명으로 표시되는지 확인
 - [ ] 모바일 백그라운드 → foreground 복귀 시 authoritative snapshot 재조회 확인
 - [ ] 네트워크 offline → online 복귀 시 connection banner와 최신 snapshot 복원 확인
-- [ ] 결과방에서 새 게임 방 생성 → 새 room code 공유 → 기존 참가자 재참가 확인
+- [ ] 결과방에서 재대결 준비 → 같은 room code와 참가자 맥락 유지 → ready 재설정 → 방장 재시작 확인
+
+## Design closeout gate
+
+- [ ] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision을 함께 확인
+- [ ] 수동 디자인 리뷰에서 확정된 수정이 코드에만 남고 `UI_DECISIONS.md`에 누락되지 않았는지 확인
+- [ ] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분
+- [ ] `UI_DECISIONS.md / Current Design Track`에 release 가능 상태를 명확히 기록
 
 ## Production database gates
 
