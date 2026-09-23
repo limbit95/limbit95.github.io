@@ -91,6 +91,7 @@ test("No Thanks! room header emphasizes game identity without duplicating the ro
   assert.match(styles, /\.no-thanks-shell \.game-platform-shell__description/u);
   assert.match(styles, /\.no-thanks-shell \.game-platform-shell__room::before/u);
   assert.match(styles, /\.no-thanks-shell--in-room \.game-platform-status--success/u);
+  assert.match(styles, /game-platform-status\[data-game-connection-state="reconnecting"\]/u);
 });
 
 test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
@@ -161,6 +162,17 @@ test("No Thanks! terminal screen distinguishes a host-terminated game", () => {
   assert.match(runtime, /HOST_TERMINATED/u);
   assert.match(runtime, /방장이 게임을 종료했어요/u);
   assert.match(runtime, /결과방 나가기/u);
+});
+
+test("No Thanks! completed result centers the winner in a game-styled card", () => {
+  assert.match(runtime, /hasWinnerResult/u);
+  assert.match(runtime, /no-thanks-game-over__hero" \+ \(hasWinnerResult \? " is-winner-result" : ""\)/u);
+  assert.match(runtime, /no-thanks-game-over__winner-card/u);
+  assert.match(runtime, /FINAL WINNER/u);
+  assert.match(runtime, /no-thanks-game-over__winner-chip/u);
+  assert.match(styles, /\.no-thanks-game-over__hero\.is-winner-result/u);
+  assert.match(styles, /\.no-thanks-game-over__winner-card/u);
+  assert.match(styles, /justify-items: center/u);
 });
 
 
