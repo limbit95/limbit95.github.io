@@ -1,5 +1,5 @@
 import { playAuctionBidSound, prepareAuctionBidSound } from "./auctionBidSound.js?v=20260922-r4";
-import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260922-r2";
+import { createAuctionIntroPresenter } from "./auctionIntroUi.js?v=20260923-r2";
 import { CLASSIC_RULES } from "./themes/classic/rules.js";
 import { formatThemeMoney } from "./themes/money.js";
 
@@ -40,7 +40,6 @@ function participantCards(state, playerIds = []) {
     id: playerId,
     name: playerName(findPlayer(state, playerId)),
     order: index + 1,
-    openingBidder: index === 0,
   })));
 }
 
@@ -145,7 +144,7 @@ function ensureAuctionStyles(documentObject) {
   if (documentObject.querySelector("link[data-auction-style]")) return;
   const link = documentObject.createElement("link");
   link.rel = "stylesheet";
-  link.href = new URL("../css/auction-ui.css?v=20260922-r4", import.meta.url).href;
+  link.href = new URL("../css/auction-ui.css?v=20260923-r2", import.meta.url).href;
   link.dataset.auctionStyle = "true";
   documentObject.head.append(link);
 }
@@ -320,12 +319,6 @@ function renderParticipantList(documentObject, elements, model) {
 
     const badges = documentObject.createElement("span");
     badges.className = "auction-action-panel__participant-badges";
-    if (card.openingBidder) {
-      const firstBid = documentObject.createElement("span");
-      firstBid.className = "auction-action-panel__first-bid";
-      firstBid.textContent = "첫 입찰";
-      badges.append(firstBid);
-    }
     if (model.stage === "auction" && card.id === model.turnPlayerId) {
       const currentTurn = documentObject.createElement("span");
       currentTurn.className = "auction-action-panel__turn-badge";
@@ -353,9 +346,20 @@ export function setupLocalAuctionUi({
   ensureAuctionStyles(documentObject);
   const elements = createPanel(documentObject, dock);
   const setAuctionOverlayActive = (active) => {
-    if (!documentObject.body?.dataset) return;
-    if (active) documentObject.body.dataset.auctionOverlayActive = "true";
-    else delete documentObject.body.dataset.auctionOverlayActive;
+    const body = documentObject.body;
+    if (!body?.dataset) return;
+    if (!active) {
+      delete body.dataset.auctionOverlayActive;
+      body.style.removeProperty("--auction-notice-bottom");
+      return;
+    }
+    body.dataset.auctionOverlayActive = "true";
+    if (!elements.panel.hidden) {
+      const rect = elements.panel.getBoundingClientRect();
+      const viewportHeight = Number(documentObject.defaultView?.innerHeight) || 0;
+      const bottom = Math.max(12, viewportHeight - rect.top + 10);
+      body.style.setProperty("--auction-notice-bottom", `${bottom}px`);
+    }
   };
   const introPresenter = createAuctionIntroPresenter({
     documentObject,
@@ -524,9 +528,9 @@ export function setupLocalAuctionUi({
     }
 
     selectedPlayerId = model.selectedPlayerId;
-    setAuctionOverlayActive(true);
     elements.panel.hidden = false;
     elements.panel.dataset.auctionStage = model.stage;
+    setAuctionOverlayActive(true);
     elements.title.textContent = model.nodeLabel;
     syncPlayerOptions(model);
     updateTimer(model);

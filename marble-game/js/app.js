@@ -1,7 +1,7 @@
 import { GAME_STATUS } from "./core/gameEngine.js";
 import { TURN_PHASES } from "./core/turnMachine.js";
 import { createThreeDiceStage } from "./diceStage.js";
-import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260922-r5";
+import { setupLocalAuctionUi } from "./localAuctionUi.js?v=20260923-r2";
 import { createLocalClassicSession } from "./localPlaytest.js";
 import { createClassicThreePrototypeRenderer } from "./renderer/threeClassicPrototype.js";
 import { createClassicTileInfo } from "./tileInfo.js";
@@ -34,6 +34,10 @@ const primaryActionButton = document.querySelector("[data-primary-action]");
 const secondaryActionButton = document.querySelector("[data-secondary-action]");
 const eventLog = document.querySelector("[data-event-log]");
 const importantNotice = document.querySelector("[data-important-notice]");
+if (importantNotice && importantNotice.parentElement !== document.body) {
+  document.body.append(importantNotice);
+  importantNotice.dataset.noticeLayer = "global";
+}
 const moveCountPop = document.querySelector("[data-move-count-pop]");
 const tileInfoModal = document.querySelector("[data-tile-info-modal]");
 const tileInfoType = document.querySelector("[data-tile-info-type]");
@@ -403,7 +407,7 @@ function eventText(state, event) {
     case "EVENT_DRAWN": return `${playerLabel} · ${event.label}`;
     case "REST_ASSIGNED": return `${playerLabel} · ${event.skipTurns}턴 휴식`;
     case "TURN_SKIPPED": return `${playerLabel} · 휴식으로 턴 건너뜀`;
-    case "AUCTION_STARTING": return "경매 시작 준비 · 첫 입찰자 추첨";
+    case "AUCTION_STARTING": return "경매 시작 준비 · 시작 플레이어 추첨";
     case "AUCTION_DECISIVE_BID": return `${playerLabel} · 결정적 입찰 ${money(event.amount)}`;
     case "CHOICE_DECLINED": return `${playerLabel} · 선택 건너뜀`;
     case "PLAYER_BANKRUPT": return `${playerLabel} · 파산`;
