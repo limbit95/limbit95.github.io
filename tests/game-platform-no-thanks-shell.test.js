@@ -164,6 +164,28 @@ test("No Thanks! winner celebration uses one persistent dialog instance until th
   assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
 });
 
+test("No Thanks! game start stages deck setup, chip allocation, goal copy, and the first deal", () => {
+  assert.match(runtime, /previous\.status === "waiting"/u);
+  assert.match(runtime, /current\.status === "playing"/u);
+  assert.match(runtime, /gameStart: true/u);
+  assert.match(runtime, /startDeckReady: false/u);
+  assert.match(runtime, /startChipsReady: false/u);
+  assert.match(runtime, /calculateInitialCounters\(view\.playerCount\)/u);
+  assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
+  assert.match(runtime, /function animateGameStartChips\(board, view, effect\)/u);
+  assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
+  assert.match(runtime, /곧 게임이 시작됩니다\./u);
+  assert.match(runtime, /GAME_START_DEAL_PAUSE_MS = 950/u);
+  assert.match(runtime, /await runDealPresentation\(effect\)/u);
+  assert.match(runtime, /locked: gameStarting/u);
+  assert.match(runtime, /startPending: gameStarting && effects\.startDeckReady !== true/u);
+  assert.match(styles, /\.no-thanks-game-start-message/u);
+  assert.match(styles, /\.no-thanks-game-start-deck-flight/u);
+  assert.match(styles, /\.no-thanks-game-start-chip-flight/u);
+  assert.match(styles, /\.no-thanks-draw-deck\.is-game-start-pending/u);
+  assert.match(styles, /\.no-thanks-my-panel__chips\.is-awaiting-start-chips/u);
+});
+
 test("No Thanks! waiting action copy uses centered two-line guidance", () => {
   assert.match(runtime, /\["준비 완료를 누르면", "테이블에 착석합니다"\]/u);
   assert.match(runtime, /\["준비 완료", "게임 시작을 기다리고 있어요\."\]/u);
