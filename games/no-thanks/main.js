@@ -2143,9 +2143,9 @@ function renderLobby(access, state) {
 
   const shell = createGameShell({
     title: "No Thanks!",
-    description: "칩을 내고 거절할지, 카드와 쌓인 칩을 가져올지 선택하는 카드 게임",
+    description: "칩으로 버틸지, 카드와 칩을 가져갈지—한 번의 선택이 흐름을 바꾸는 심리전 카드 게임",
     backHref: "/#/games",
-    roomLabel: view?.roomCode ? `방 ${view.roomCode}` : null,
+    roomLabel: view?.roomCode ? "LIVE ROOM" : null,
     connection: connectionFor(state),
     players: shellPlayers(access, displayName, view),
     currentUserId: access.userId,
@@ -2157,6 +2157,12 @@ function renderLobby(access, state) {
     sidebar: createSidebar(view),
     actions: boardMode ? [] : lobbyActions,
   });
+
+  shell.classList.add("no-thanks-shell");
+
+  if (view) {
+    shell.classList.add("no-thanks-shell--in-room");
+  }
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
     shell.classList.add("no-thanks-shell--board");
