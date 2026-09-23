@@ -4,6 +4,13 @@ import { test } from "node:test";
 
 import { createNoThanksGameplayAdapter } from "../games/no-thanks/gameplay.js";
 
+const foundationMigration = readFileSync(
+  new URL(
+    "../supabase/no-thanks/20260921225000_no_thanks_room_lobby_foundation.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const migration = readFileSync(
   new URL(
     "../supabase/no-thanks/20260922055300_no_thanks_gameplay_actions.sql",
@@ -86,6 +93,20 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
       p_client_action_id: "rematch-1",
     }],
   ]);
+});
+
+test("No Thanks! start game randomizes the 3-35 deck before excluding nine cards", () => {
+  assert.match(
+    foundationMigration,
+    /select generate_series\(3, 35\) as card\s+order by random\(\)/u,
+  );
+  assert.match(foundationMigration, /v_draw_deck := v_cards\[1:24\]/u);
+  assert.match(foundationMigration, /v_excluded := v_cards\[25:33\]/u);
+  assert.match(foundationMigration, /'currentCard', v_draw_deck\[1\]/u);
+  assert.doesNotMatch(
+    foundationMigration,
+    /select generate_series\(3, 35\) as card\s+order by card/u,
+  );
 });
 
 test("No Thanks! gameplay migration keeps actions versioned, idempotent, and server-authoritative", () => {
