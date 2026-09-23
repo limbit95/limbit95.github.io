@@ -48,6 +48,7 @@
 - 플레이어 roster:
 - host / ready 표현:
 - rules entry:
+- rules / help presentation: <modal 또는 전용 page, Visual Identity 연결, 핵심 메커니즘 시각화, scroll/responsive 방식>
 - start action:
 - invite / room code presentation:
 - desktop / mobile 배치:
@@ -70,6 +71,7 @@
 - Player panel:
 - Buttons:
 - Modal / dialog:
+- Rules visual examples: <카드/주사위/말/칩/보드 등 실제 game component를 활용해 설명할 핵심 규칙과 accessibility fallback>
 - Status / toast / event message:
 - Result component:
 
@@ -123,6 +125,8 @@
 - [ ] 게임 고유 Visual Identity가 정의되어 있다.
 - [ ] 일반 청파 같이 페이지와 구별되는 독립적인 game page identity가 있다.
 - [ ] lobby → gameplay → result/rematch가 하나의 디자인 언어를 유지한다.
+- [ ] 규칙 안내가 generic 문서 UI로 분리되지 않고 해당 게임의 Visual Identity와 정보 계층을 유지한다.
+- [ ] 규칙의 핵심 시각 예시는 실제 규칙과 일치하고, 장식 없이도 텍스트/semantic structure로 이해할 수 있다.
 - [ ] 핵심 구성물과 action이 실제 게임의 플레이 감각을 전달한다.
 - [ ] animation timing이 authoritative state와 충돌하지 않는다.
 - [ ] desktop/mobile에서 핵심 정보와 action을 사용할 수 있다.
