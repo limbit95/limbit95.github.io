@@ -1,19 +1,15 @@
 import { playAuctionStartSound } from "./auctionBidSound.js?v=20260922-r4";
 
-const AVATAR_BUCKET = "avatars";
 const CHAIN_REPEAT_COUNT = 6;
 const AVATAR_SIGNED_URL_TTL_SECONDS = 600;
-const avatarUrlCache = new Map();
-let supabaseClientPromise = null;
+let profileApiPromise = null;
 
-async function getSupabaseClient() {
-  if (typeof window === "undefined") return null;
-  if (!supabaseClientPromise) {
-    supabaseClientPromise = import("../../js/supabaseClient.js")
-      .then((module) => module.supabase ?? null)
+async function getProfileApi() {
+  if (!profileApiPromise) {
+    profileApiPromise = import("../../js/api/profiles.js")
       .catch(() => null);
   }
-  return supabaseClientPromise;
+  return profileApiPromise;
 }
 
 function timeMs(value) {
@@ -38,18 +34,9 @@ function playerInitial(player, fallbackId = null) {
 
 async function signedAvatarUrl(avatarPath) {
   if (!avatarPath) return null;
-  if (!avatarUrlCache.has(avatarPath)) {
-    avatarUrlCache.set(avatarPath, (async () => {
-      const supabase = await getSupabaseClient();
-      if (!supabase?.storage) return null;
-      const { data, error } = await supabase.storage
-        .from(AVATAR_BUCKET)
-        .createSignedUrl(avatarPath, AVATAR_SIGNED_URL_TTL_SECONDS);
-      if (error) return null;
-      return data?.signedUrl ?? null;
-    })());
-  }
-  return avatarUrlCache.get(avatarPath);
+  const profileApi = await getProfileApi();
+  if (!profileApi?.getSignedAvatarUrl) return null;
+  return profileApi.getSignedAvatarUrl(avatarPath, AVATAR_SIGNED_URL_TTL_SECONDS);
 }
 
 function hydrateAvatarImage(image, fallback, avatarPath) {
@@ -166,7 +153,7 @@ function prepareChainTarget(elements, targetIndex) {
   const trackStyle = getComputedStyle(elements.track);
   const gap = Number.parseFloat(trackStyle.columnGap || trackStyle.gap || "0") || 0;
   const step = itemWidth + gap;
-  const offset = Math.max(0, (targetIndex * step) - ((viewportWidth - itemWidth) / 2));
+  const offset = Math.max(0, targetIndex * step);
   elements.track.style.setProperty("--selector-target-x", `${-offset}px`);
   return true;
 }
