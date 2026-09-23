@@ -104,6 +104,46 @@ MUST NOT: 조사 없이 청파 같이 일반 페이지의 색상과 컴포넌트
 
 초기 구현에서 모든 polish를 완성할 필요는 없지만, 방향이 정해지지 않은 상태에서 generic UI를 먼저 굳히지 않는다.
 
+## 5A. 게임 규칙 안내도 Gameplay Presentation의 일부다
+
+게임 규칙 modal/page는 게임 밖의 일반 도움말 문서가 아니라 **처음 플레이하는 사용자가 실제 구성물과 행동 구조를 이해하는 game-local presentation**으로 설계한다.
+
+규칙 내용의 기능적 사실과 필수 설명 범위는 `GAME_SPEC.md`와 `docs/game-platform-development-rules.md`가 책임진다. 이 섹션은 그 내용을 어떤 시각 언어와 정보 계층으로 전달할지에 대한 UI 기준을 소유한다.
+
+### MUST
+
+- 규칙 안내는 해당 게임의 `Visual Identity`와 동일한 색상, 형태, 타이포그래피, 재질감 또는 공간 메타포를 유지한다. 일반 서비스의 generic 문서/modal 스타일을 그대로 기본값으로 확정하지 않는다.
+- 규칙 안내의 시각화는 `GAME_SPEC.md`에 정의된 실제 규칙과 같은 의미를 사용해야 하며, 예쁜 연출을 위해 규칙을 단순화하거나 다른 동작처럼 보이게 만들지 않는다.
+- 핵심 목표, 턴/행동 순서, 주요 선택, 실패·위험·패널티, 종료·승리 조건과 대표 예시는 명확한 정보 계층으로 구분한다.
+- 카드, 주사위, 말, 칩, 보드, 트랙 등 게임 구성물을 표현할 때는 `UI_DESIGN.md`의 자산 사용 경계와 game-local component 언어를 재사용하거나 독자적으로 재구성한다. 사용 권리가 불명확한 공식 artwork를 규칙 설명이라는 이유로 직접 복제하지 않는다.
+- 시각적 예시가 있더라도 핵심 규칙은 텍스트/semantic structure만으로도 이해 가능해야 한다. 색상·장식·animation 하나에만 의미를 의존하지 않는다.
+- modal/dialog를 사용하면 작은 높이 화면에서도 제목, 닫기 경로, 핵심 규칙, 내부 scroll이 안정적으로 동작해야 하며 gameplay를 복구 불가능하게 가리지 않는다. 전용 rules page를 쓰는 경우에도 동일한 game-local presentation 기준을 적용한다.
+- desktop/mobile에서 핵심 예시와 본문 순서가 무너지지 않는지 확인한다.
+
+### SHOULD
+
+- 실제 구성물, 공간 구조, 행동 순서나 계산을 시각화했을 때 처음 플레이하는 사용자의 이해가 크게 좋아지는 핵심 메커니즘은 **게임 구성물 언어를 활용한 짧은 시각적 예시**로 보여준다.
+- 규칙이 길면 모든 문단을 장식하기보다 목표 → 핵심 loop → 중요한 예외/위험 → 승리의 순서를 우선하고, 반복되는 세부 설명은 읽기 쉬운 section/card 구조로 정리한다.
+- 게임 플레이 화면에서 이미 익히게 되는 component를 규칙 안내에서도 재사용해 “설명 속 구성물”과 “실제 플레이 구성물”의 인지 차이를 줄인다.
+
+### MUST NOT
+
+- 특정 다른 게임의 규칙 modal layout이나 장식 구조를 공통 template처럼 복제하지 않는다.
+- 규칙 안내를 화려하게 만들기 위해 본문 가독성, 접근성, scroll 안정성 또는 핵심 설명 순서를 희생하지 않는다.
+- 규칙 모달의 시각적 polish를 이유로 공통 Shell, authoritative state, 게임 규칙 계산을 UI layer에서 다시 구현하지 않는다.
+
+### game-local 문서 연결
+
+신규 게임은 runtime 개발 전에 `UI_DESIGN.md`에서 최소 다음을 정한다.
+
+- rules entry 위치와 modal / dedicated page 선택
+- rules/help presentation이 Visual Identity를 유지하는 방식
+- 핵심 메커니즘 중 시각화할 대상과 사용할 game component
+- 긴 설명의 정보 계층, scroll, desktop/mobile adaptation
+- 자산 사용 및 저작권 경계
+
+개발 시작 후 실제 브라우저 리뷰에서 규칙 안내의 layout, visual example, 정보 계층 또는 responsive 방식이 의미 있게 바뀌면 `UI_DESIGN.md` baseline을 덮어쓰지 않고 `UI_DECISIONS.md`에 최신 non-superseded 결정으로 기록한다.
+
 ## 6. UI_DESIGN.md 관리 규칙
 
 모든 platform-native 게임은 다음 문서를 가진다.
