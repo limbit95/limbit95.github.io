@@ -1702,60 +1702,68 @@ function createResultPlayerPanels(view, {
 
     return el("article", {
       className: "no-thanks-result-player" + (entry.winner ? " is-winner" : ""),
-      dataset: { playerId: entry.id },
+      dataset: {
+        playerId: entry.id,
+        rank: entry.rank == null ? "end" : String(entry.rank),
+      },
     }, [
-      el("div", { className: "no-thanks-result-player__summary" }, [
-        entry.rank != null
-          ? el("span", {
-            className: "no-thanks-result-player__rank",
-            text: entry.rank === 1 ? "1ST" : String(entry.rank),
-            "aria-label": String(entry.rank) + "등",
-          })
-          : el("span", {
-            className: "no-thanks-result-player__rank no-thanks-result-player__rank--ended",
-            text: "END",
+      entry.winner
+        ? el("div", { className: "no-thanks-result-player__winner-ribbon", text: "WINNER" })
+        : null,
+      el("header", { className: "no-thanks-result-player__masthead" }, [
+        el("div", {
+          className: "no-thanks-result-player__rank-medal"
+            + (entry.rank == null ? " no-thanks-result-player__rank-medal--ended" : ""),
+          "aria-label": entry.rank == null ? "게임 종료" : String(entry.rank) + "등",
+        }, [
+          el("small", { text: entry.rank == null ? "RESULT" : "RANK" }),
+          el("strong", {
+            text: entry.rank == null ? "END" : (entry.rank === 1 ? "1ST" : String(entry.rank)),
           }),
+        ]),
+        el("div", { className: "no-thanks-result-player__identity" }, [
+          el("small", { text: "PLAYER" }),
+          el("strong", { text: entry.displayName }),
+        ]),
         entry.score != null
           ? el("div", { className: "no-thanks-result-player__score-card" }, [
             el("span", { text: "FINAL SCORE" }),
             el("strong", { className: "no-thanks-result-player__score", text: `${entry.score}점` }),
           ])
           : null,
-        el("div", { className: "no-thanks-result-player__identity" }, [
-          el("strong", { text: entry.displayName }),
-          entry.winner
-            ? el("span", { className: "no-thanks-result-player__winner", text: "WINNER" })
-            : null,
-        ]),
       ]),
-      hasCounters
-        ? el("div", { className: "no-thanks-result-player__chips" }, [
-          el("span", { className: "no-thanks-my-panel__label", text: "최종 보유 칩" }),
-          el("strong", { className: "no-thanks-result-player__chip-count", text: String(entry.counters) }),
-          createChipCluster(entry.counters, {
-            label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
-            emptyText: "칩 없음",
+      el("div", { className: "no-thanks-result-player__playmat" }, [
+        hasCounters
+          ? el("section", { className: "no-thanks-result-player__chip-tray" }, [
+            el("div", { className: "no-thanks-result-player__section-head" }, [
+              el("span", { text: "CHIPS" }),
+              el("strong", { text: String(entry.counters) }),
+            ]),
+            createChipCluster(entry.counters, {
+              label: `${entry.displayName} 최종 보유 칩 ${entry.counters}개`,
+              emptyText: "칩 없음",
+            }),
+          ])
+          : el("section", {
+            className: "no-thanks-result-player__chip-tray no-thanks-result-player__chip-tray--empty",
+            text: "최종 칩 정보 없음",
           }),
-        ])
-        : el("div", {
-          className: "no-thanks-result-player__chips no-thanks-result-player__chips--empty",
-          text: "최종 칩 정보 없음",
-        }),
-      el("div", { className: "no-thanks-result-player__cards" }, [
-        el("div", { className: "no-thanks-result-player__cards-head" }, [
-          el("span", { className: "no-thanks-my-panel__label", text: "획득 카드" }),
-          el("strong", { text: `${cards.length}장` }),
+        el("section", { className: "no-thanks-result-player__card-rack" }, [
+          el("div", { className: "no-thanks-result-player__section-head" }, [
+            el("span", { text: "ACQUIRED CARDS" }),
+            el("strong", { text: `${cards.length}장` }),
+          ]),
+          cards.length > 0
+            ? el("div", { className: "no-thanks-result-hand" },
+              cards.map((card, index) => {
+                const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
+                return createHandCard(card, index, startsNewRun ? 12 : overlap);
+              }))
+            : el("div", {
+              className: "no-thanks-result-hand no-thanks-hand--empty",
+              text: "획득 카드 없음",
+            }),
         ]),
-        cards.length > 0
-          ? el("div", { className: "no-thanks-result-hand" },
-            cards.map((card, index) => {
-              const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
-              return createHandCard(card, index, startsNewRun ? 12 : overlap);
-            }))
-          : el("div", {
-            className: "no-thanks-result-hand no-thanks-hand--empty",
-            text: "획득 카드 없음",
-          }),
       ]),
     ]);
   }));
