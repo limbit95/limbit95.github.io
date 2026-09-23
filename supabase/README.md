@@ -2,7 +2,7 @@
 
 이 문서는 **청파 같이 본 사이트**의 Supabase 변경 원칙을 정의합니다.
 
-> 게임 영역(Liar Game, Splendor)의 테이블, RPC, Realtime, 문서와 SQL은 이 문서의 정리·리팩터링 범위에서 제외합니다. 게임 영역은 별도 변경 요청이 있을 때만 수정합니다.
+> Legacy와 platform-native를 포함한 게임 전용 테이블, RPC, Realtime, 문서와 SQL은 이 문서의 정리·리팩터링 범위에서 제외합니다. 게임 영역은 각 게임의 전용 DB/RPC 계약과 migration에서 별도 관리합니다.
 
 ## 1. 현재 Source of Truth
 
@@ -46,7 +46,7 @@
 ## 4. 보안 원칙
 
 - 공개 schema의 청파 같이 테이블은 RLS를 유지합니다.
-- Data API에 노출되는 schema의 새 table/view/function/sequence는 Supabase/Postgres 기본 권한에 의존하지 않습니다. 객체를 생성하거나 변경하는 migration에서 `anon`, `authenticated`, `service_role` 중 실제 호출 주체와 필요한 최소 `GRANT`/`REVOKE`를 명시적으로 검토합니다.
+- Data API에 노출되는 schema에 새 table/view/function/sequence를 생성하거나 기존 객체의 호출 role·직접 접근 방식 등 권한 경계를 변경할 때는 Supabase/Postgres 기본 권한에 의존하지 않습니다. 해당 migration에서 `anon`, `authenticated`, `service_role` 중 실제 호출 주체와 필요한 최소 `GRANT`/`REVOKE`를 명시적으로 검토합니다. 같은 객체의 구현만 바꾸고 권한 경계가 유지되는 변경에는 권한 SQL 반복을 강제하지 않습니다.
 - 테이블 권한과 RLS는 서로 다른 보안 계층으로 취급해 둘 다 검토하며, RLS가 켜져 있다는 이유로 과도한 table privilege를 남기거나 table privilege가 있다는 이유로 RLS를 생략하지 않습니다.
 - 직접 Data API 접근이 필요하지 않은 객체에는 브라우저 role 권한을 주지 않으며, `service_role`도 관행적으로 `GRANT ALL`하지 않고 서버에서 직접 접근이 필요한 범위만 허용합니다.
 - 브라우저에는 publishable/anon key만 사용하며 `service_role` 또는 secret key를 넣지 않습니다.
@@ -75,14 +75,13 @@
 
 ## 6. 게임 영역 보호 규칙
 
-청파 같이 본 사이트 정리 작업에서는 아래 영역을 수정하지 않습니다.
+청파 같이 본 사이트 정리 작업에서는 Legacy와 platform-native를 포함한 게임 전용 DB 영역을 수정하지 않습니다.
 
-- `liar_*` 테이블/RPC/Realtime 구조
-- `splendor_*` 테이블/RPC/Realtime 구조
-- `supabase/liar-game/`
+- 게임 전용 테이블/RPC/Realtime 구조
+- `supabase/<game-id>/` 아래의 게임 전용 migration
 - 게임 전용 SQL 및 게임 전용 문서
 
-공통 DB 변경이 게임에 영향을 줄 가능성이 있으면 변경 전에 영향도를 별도로 확인합니다.
+공통 DB 변경이 게임에 영향을 줄 가능성이 있으면 변경 전에 영향도를 별도로 확인합니다. 특정 게임명을 이 목록에 계속 추가하는 방식으로 범위를 관리하지 않습니다.
 
 ## 7. 활동 장소 검색 Edge Function 설정
 
