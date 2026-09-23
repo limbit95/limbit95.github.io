@@ -748,6 +748,32 @@ test("UI rulebook treats UI_DESIGN as pre-development baseline and UI_DECISIONS 
 });
 
 
+test("rules guide presentation stays split between functional and visual authority", () => {
+  const uiRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),
+    "utf8",
+  );
+  const developmentRules = readFileSync(
+    path.join(repositoryRoot, "docs", "game-platform-development-rules.md"),
+    "utf8",
+  );
+  const template = readFileSync(
+    path.join(repositoryRoot, "games", "UI_DESIGN_TEMPLATE.md"),
+    "utf8",
+  );
+
+  assert.match(uiRules, /게임 규칙 안내도 Gameplay Presentation의 일부/u);
+  assert.match(uiRules, /규칙 내용의 기능적 사실과 필수 설명 범위는 `GAME_SPEC.md`/u);
+  assert.match(uiRules, /generic 문서\/modal 스타일을 그대로 기본값으로 확정하지 않는다/u);
+  assert.match(uiRules, /게임 구성물 언어를 활용한 짧은 시각적 예시/u);
+  assert.match(uiRules, /텍스트\/semantic structure만으로도 이해 가능/u);
+  assert.match(uiRules, /특정 다른 게임의 규칙 modal layout/u);
+  assert.match(developmentRules, /규칙 modal\/page의 Visual Identity.*game-platform-ui-rules.md/su);
+  assert.match(template, /rules \/ help presentation:/u);
+  assert.match(template, /Rules visual examples:/u);
+  assert.match(template, /규칙 안내가 generic 문서 UI로 분리되지 않고/u);
+});
+
 test("UI phase continuation cannot revert later user design decisions", () => {
   const uiRules = readFileSync(
     path.join(repositoryRoot, "docs", "game-platform-ui-rules.md"),

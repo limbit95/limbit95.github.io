@@ -169,6 +169,160 @@ function showDialog(dialog) {
   else dialog.setAttribute("open", "");
 }
 
+function createRulesPair(dice, sum) {
+  return el("div", {
+    className: "cant-stop-rules-pair",
+    "aria-hidden": "true",
+  }, [
+    el("div", { className: "cant-stop-rules-pair__dice" }, [
+      createDieFace(dice[0], { mini: true }),
+      createDieFace(dice[1], { mini: true }),
+    ]),
+    el("span", { text: "=" }),
+    el("strong", { text: String(sum) }),
+  ]);
+}
+
+function createRulesSectionVisual(type) {
+  if (type === "board") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--board",
+      "aria-hidden": "true",
+    }, [
+      el("div", { className: "cant-stop-rules-mini-mountain" },
+        Array.from({ length: 11 }, (_, index) => el("span", {
+          className: "cant-stop-rules-mini-column",
+          dataset: { number: String(index + 2) },
+        }, [
+          el("i", {}),
+          el("strong", { text: String(index + 2) }),
+        ]))),
+      el("span", { className: "cant-stop-rules-visual__caption", text: "2–12 · 정상까지 서로 다른 길이" }),
+    ]);
+  }
+
+  if (type === "turn") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--turn",
+      "aria-hidden": "true",
+    }, [
+      el("span", { className: "cant-stop-rules-turn-step", text: "ROLL" }),
+      el("span", { className: "cant-stop-rules-turn-arrow", text: "→" }),
+      el("span", { className: "cant-stop-rules-turn-step", text: "PAIR" }),
+      el("span", { className: "cant-stop-rules-turn-arrow", text: "→" }),
+      el("span", { className: "cant-stop-rules-turn-step is-accent", text: "CLIMB" }),
+    ]);
+  }
+
+  if (type === "pairing") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--pairing",
+      "aria-hidden": "true",
+    }, [
+      el("div", { className: "cant-stop-rules-dice-row" }, [
+        createDieFace(1, { mini: true }),
+        createDieFace(2, { mini: true }),
+        createDieFace(3, { mini: true }),
+        createDieFace(4, { mini: true }),
+      ]),
+      el("div", { className: "cant-stop-rules-pair-row" }, [
+        createRulesPair([1, 2], 3),
+        createRulesPair([3, 4], 7),
+      ]),
+      el("span", { className: "cant-stop-rules-visual__caption", text: "네 주사위 → 두 쌍 → 두 열" }),
+    ]);
+  }
+
+  if (type === "runners") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--runners",
+      "aria-hidden": "true",
+    }, [
+      el("strong", { text: "MAX 3" }),
+      el("div", { className: "cant-stop-rules-runner-row" }, [
+        el("span", { className: "cant-stop-rules-runner" }),
+        el("span", { className: "cant-stop-rules-runner" }),
+        el("span", { className: "cant-stop-rules-runner" }),
+        el("span", { className: "cant-stop-rules-runner is-locked" }),
+      ]),
+      el("span", { className: "cant-stop-rules-visual__caption", text: "세 개의 열까지만 동시에 등반" }),
+    ]);
+  }
+
+  if (type === "stop") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--decision",
+      "aria-hidden": "true",
+    }, [
+      el("div", { className: "cant-stop-rules-decision is-push" }, [
+        el("span", { text: "PUSH" }),
+        el("strong", { text: "한 번 더" }),
+      ]),
+      el("div", { className: "cant-stop-rules-decision is-stop" }, [
+        el("span", { text: "STOP" }),
+        el("strong", { text: "진척 저장" }),
+      ]),
+    ]);
+  }
+
+  if (type === "bust") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--bust",
+      "aria-hidden": "true",
+    }, [
+      el("span", { className: "cant-stop-rules-bust-runner" }),
+      el("div", {}, [
+        el("strong", { text: "BUST!" }),
+        el("span", { text: "이번 턴 임시 진척을 잃음" }),
+      ]),
+    ]);
+  }
+
+  if (type === "win") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--win",
+      "aria-hidden": "true",
+    }, [
+      el("div", { className: "cant-stop-rules-peak-row" }, [
+        el("span", { text: "1" }),
+        el("span", { text: "2" }),
+        el("span", { text: "3" }),
+      ]),
+      el("strong", { text: "3 COLUMNS" }),
+      el("span", { className: "cant-stop-rules-visual__caption", text: "세 개의 정상을 먼저 확정하면 승리" }),
+    ]);
+  }
+
+  if (type === "server") {
+    return el("div", {
+      className: "cant-stop-rules-visual cant-stop-rules-visual--server",
+      "aria-hidden": "true",
+    }, [
+      el("span", { className: "cant-stop-rules-server-shield", text: "✓" }),
+      el("div", {}, [
+        el("strong", { text: "SERVER AUTHORITATIVE" }),
+        el("span", { text: "주사위 · 이동 · 승리 판정" }),
+      ]),
+    ]);
+  }
+
+  return null;
+}
+
+function createRulesSection(section) {
+  const visual = createRulesSectionVisual(section.visual);
+  return el("section", {
+    className: "cant-stop-rules-section" + (visual ? " has-visual" : ""),
+    dataset: section.visual ? { rulesVisual: section.visual } : null,
+  }, [
+    el("div", { className: "cant-stop-rules-section__copy" }, [
+      el("h3", { text: section.title }),
+      ...section.paragraphs.map((paragraph) => el("p", { text: paragraph })),
+    ]),
+    visual,
+  ]);
+}
+
 function ensureRulesDialog() {
   if (rulesDialog?.isConnected) return rulesDialog;
 
@@ -176,35 +330,68 @@ function ensureRulesDialog() {
     className: "cant-stop-rules-dialog",
     "aria-labelledby": "cant-stop-rules-title",
   }, [
-    el("div", { className: "cant-stop-dialog__header" }, [
-      el("div", {}, [
-        el("p", { className: "cant-stop-dialog__eyebrow", text: "HOW TO PLAY" }),
+    el("header", { className: "cant-stop-rules-dialog__hero" }, [
+      el("div", { className: "cant-stop-rules-dialog__heading" }, [
+        el("p", { className: "cant-stop-dialog__eyebrow", text: "MOUNTAIN GUIDE · HOW TO PLAY" }),
         el("h2", {
           className: "cant-stop-dialog__title",
           id: "cant-stop-rules-title",
           text: CANT_STOP_RULES_GUIDE.title,
         }),
+        el("p", {
+          className: "cant-stop-rules-dialog__intro",
+          text: CANT_STOP_RULES_GUIDE.intro,
+        }),
+      ]),
+      el("div", { className: "cant-stop-rules-dialog__hero-piece", "aria-hidden": "true" }, [
+        el("div", { className: "cant-stop-rules-dialog__hero-dice" }, [
+          createDieFace(2, { mini: true }),
+          createDieFace(5, { mini: true }),
+          createDieFace(3, { mini: true }),
+          createDieFace(6, { mini: true }),
+        ]),
+        el("div", { className: "cant-stop-rules-dialog__hero-runners" }, [
+          el("span", { className: "cant-stop-rules-runner" }),
+          el("span", { className: "cant-stop-rules-runner" }),
+          el("span", { className: "cant-stop-rules-runner" }),
+        ]),
+      ]),
+      el("div", { className: "cant-stop-rules-dialog__ridge", "aria-hidden": "true" }, [
+        el("span", {}),
+        el("span", {}),
+        el("span", {}),
       ]),
       el("button", {
         className: "cant-stop-dialog__close",
         type: "button",
         text: "닫기",
+        "aria-label": "게임 규칙 닫기",
         onClick: () => closeDialog(rulesDialog),
       }),
     ]),
-    el("p", {
-      className: "cant-stop-rules-dialog__intro",
-      text: CANT_STOP_RULES_GUIDE.intro,
-    }),
+    el("div", { className: "cant-stop-rules-dialog__quick-loop", "aria-label": "핵심 진행 순서" }, [
+      el("div", {}, [
+        el("span", { text: "01" }),
+        el("strong", { text: "ROLL" }),
+        el("small", { text: "주사위 4개" }),
+      ]),
+      el("i", { text: "→", "aria-hidden": "true" }),
+      el("div", {}, [
+        el("span", { text: "02" }),
+        el("strong", { text: "PAIR & CLIMB" }),
+        el("small", { text: "두 쌍을 골라 등반" }),
+      ]),
+      el("i", { text: "→", "aria-hidden": "true" }),
+      el("div", {}, [
+        el("span", { text: "03" }),
+        el("strong", { text: "PUSH OR STOP" }),
+        el("small", { text: "위험을 감수하거나 저장" }),
+      ]),
+    ]),
     el("div", { className: "cant-stop-rules-dialog__body" },
-      CANT_STOP_RULES_GUIDE.sections.map((section) => el("section", {
-        className: "cant-stop-rules-section",
-      }, [
-        el("h3", { text: section.title }),
-        ...section.paragraphs.map((paragraph) => el("p", { text: paragraph })),
-      ]))),
+      CANT_STOP_RULES_GUIDE.sections.map(createRulesSection)),
     el("footer", { className: "cant-stop-rules-dialog__sources" }, [
-      el("strong", { text: "규칙 참고" }),
+      el("strong", { text: "RULE REFERENCES" }),
       el("div", { className: "cant-stop-rules-dialog__source-links" },
         CANT_STOP_RULES_GUIDE.sources.map((source) => el("a", {
           href: source.href,
@@ -764,6 +951,24 @@ function createBoard(view, state, {
     }
     : gameplayHeading(view);
   const busting = state.effect?.type === "bust";
+  const phaseClass = waiting
+    ? "cant-stop-board--waiting"
+    : view.isGameOver
+      ? "cant-stop-board--game-over"
+      : view.phase === "PAIRING_SELECTION"
+        ? "cant-stop-board--pairing"
+        : view.phase === "PUSH_OR_STOP"
+          ? "cant-stop-board--push-stop"
+          : "cant-stop-board--roll";
+  const phaseIcon = waiting
+    ? "▲"
+    : view.isGameOver
+      ? "⚑"
+      : view.phase === "PAIRING_SELECTION"
+        ? "↗"
+        : view.phase === "PUSH_OR_STOP"
+          ? "◆"
+          : "●";
 
   const tracks = el("div", { className: "cant-stop-board__tracks" },
     view.columns.map((column) => el("section", {
@@ -816,7 +1021,7 @@ function createBoard(view, state, {
     ])));
 
   return el("section", {
-    className: "cant-stop-board",
+    className: `cant-stop-board ${phaseClass}`,
     "aria-label": "Can’t Stop 보드",
   }, [
     el("div", {
@@ -824,10 +1029,12 @@ function createBoard(view, state, {
         "cant-stop-board__intro",
         waiting ? "cant-stop-board__intro--waiting" : "",
         view.phase === "PAIRING_SELECTION" ? "cant-stop-board__intro--pairing" : "",
+        view.isGameOver ? "cant-stop-board__intro--game-over" : "",
+        view.phase === "PUSH_OR_STOP" ? "cant-stop-board__intro--push-stop" : "",
       ].filter(Boolean).join(" "),
     }, [
       el("div", { className: "cant-stop-board__phase-icon", "aria-hidden": "true" }, [
-        el("span", { text: "▲" }),
+        el("span", { text: phaseIcon }),
       ]),
       el("div", { className: "cant-stop-board__phase-copy" }, [
         el("p", {
@@ -1203,8 +1410,8 @@ function createLobbySidebar(view, state, {
   return el("section", { className: "cant-stop-runtime-notes cant-stop-room-guide" }, [
     el("div", { className: "cant-stop-room-guide__header" }, [
       el("div", {}, [
-        el("p", { className: "cant-stop-room-guide__eyebrow", text: "WAITING ROOM" }),
-        el("h2", { className: "cant-stop-runtime-notes__title", text: "방 안내" }),
+        el("p", { className: "cant-stop-room-guide__eyebrow", text: "BASE CAMP" }),
+        el("h2", { className: "cant-stop-runtime-notes__title", text: "등반 베이스캠프" }),
       ]),
       el("strong", {
         className: "cant-stop-room-guide__code",
@@ -1363,11 +1570,21 @@ function renderApprovedRuntime(state) {
   let hostUserId = null;
   let roomLabel = null;
   let sidebar = el("section", { className: "cant-stop-runtime-notes cant-stop-runtime-notes--entry" }, [
-    el("h2", { className: "cant-stop-runtime-notes__title", text: "온라인 플레이" }),
+    el("div", { className: "cant-stop-entry-briefing__header" }, [
+      el("p", { className: "cant-stop-room-guide__eyebrow", text: "EXPEDITION BRIEFING" }),
+      el("h2", { className: "cant-stop-runtime-notes__title", text: "등반 준비" }),
+    ]),
+    el("div", { className: "cant-stop-entry-briefing__route", "aria-hidden": "true" }, [
+      el("span", { text: "ROLL" }),
+      el("i", { text: "→" }),
+      el("span", { text: "CLIMB" }),
+      el("i", { text: "→" }),
+      el("span", { text: "STOP?" }),
+    ]),
     el("ul", { className: "cant-stop-runtime-notes__list" }, [
-      el("li", { text: "2~4명이 한 방에서 함께 플레이해요." }),
-      el("li", { text: "방 코드는 6자리로 생성돼요." }),
-      el("li", { text: "게임 시작 순서는 서버에서 무작위로 정해요." }),
+      el("li", { text: "2~4명이 같은 산길에서 정상 세 곳을 먼저 노려요." }),
+      el("li", { text: "네 개의 주사위를 두 쌍으로 묶어 오를 길을 정해요." }),
+      el("li", { text: "계속 오를지 멈춰 진척을 저장할지 매 턴 선택해요." }),
     ]),
     el("div", { className: "cant-stop-runtime-notes__actions" }, [
       rulesActionButton("cant-stop-runtime-notes__rules"),
@@ -1400,8 +1617,8 @@ function renderApprovedRuntime(state) {
 
   const shell = createGameShell({
     title: "Can’t Stop",
-    eyebrow: "CHEONGPA GAME · PHASE 4",
-    description: "주사위 조합으로 열을 오르고, 멈출 타이밍을 선택하는 push-your-luck 게임",
+    eyebrow: "ALPINE EXPEDITION · PUSH YOUR LUCK",
+    description: "네 개의 주사위로 길을 만들고, 멈출 타이밍을 결정해 세 개의 정상에 먼저 오르세요.",
     backHref: "../../#/games",
     roomLabel,
     connection: connectionFor(state),
@@ -1423,6 +1640,22 @@ function renderApprovedRuntime(state) {
         ? "cant-stop-shell--playing"
         : "cant-stop-shell--waiting",
   );
+
+  if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING && state.snapshot?.game) {
+    const phase = state.snapshot.game.phase;
+    shell.classList.add(
+      phase === "GAME_OVER"
+        ? "cant-stop-shell--game-over"
+        : phase === "PAIRING_SELECTION"
+          ? "cant-stop-shell--pairing"
+          : phase === "PUSH_OR_STOP"
+            ? "cant-stop-shell--push-stop"
+            : "cant-stop-shell--roll",
+    );
+    if (state.busyAction === "rollDice") {
+      shell.classList.add("cant-stop-shell--rolling");
+    }
+  }
 
   const suppressConnectionCard = state.view !== CANT_STOP_LOBBY_VIEW.ENTRY
     || state.connection === "connected";
