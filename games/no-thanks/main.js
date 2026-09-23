@@ -29,6 +29,7 @@ import {
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "./boardLayout.js";
+import { calculateInitialCounters } from "./rules.js";
 
 const app = document.getElementById("app");
 const DEFAULT_BOARD_AVATAR_URL = "../../assets/images/default-avatar.svg";
@@ -57,6 +58,7 @@ let activeWinnerCelebrationKey = null;
 let activeWinnerCelebrationDialog = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 const FINAL_RESULT_DELAY_MS = 3000;
+const GAME_START_DEAL_PAUSE_MS = 950;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -74,6 +76,7 @@ function disposeLobbyController() {
   boardPresentationEffect = null;
   finalTakeTransition = null;
   clearPendingTakePresentation();
+  clearGameStartPresentationArtifacts();
   activeWinnerCelebrationDialog?.remove();
   activeWinnerCelebrationDialog = null;
   activeWinnerCelebrationKey = null;
@@ -693,21 +696,29 @@ function createBoardHud(view) {
 
 function createTableCard(view, state, {
   dealIn = false,
+  locked = false,
 } = {}) {
   const value = view.currentCard;
   const displayValue = value == null ? "?" : String(value);
-  const canTake = !state.busy && view.canTake;
+  const canTake = !locked && !state.busy && view.canTake;
   return el("div", { className: "no-thanks-table-card-action" }, [
     el("button", {
       className: "no-thanks-table-card"
         + (dealIn ? " is-awaiting-deal" : ""),
       type: "button",
       disabled: !canTake,
-      dataset: { tone: getNoThanksCardTone(value) },
-      title: canTake ? "이 카드를 가져옵니다." : "현재 차례에만 카드를 가져올 수 있어요.",
-      "aria-label": value == null
-        ? "현재 카드 없음"
-        : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : ""),
+      dataset: {
+        tone: getNoThanksCardTone(value),
+        cardValue: value == null ? "" : displayValue,
+      },
+      title: locked
+        ? "게임 준비가 끝나면 첫 카드를 선택할 수 있어요."
+        : (canTake ? "이 카드를 가져옵니다." : "현재 차례에만 카드를 가져올 수 있어요."),
+      "aria-label": locked
+        ? "첫 카드를 준비 중"
+        : (value == null
+          ? "현재 카드 없음"
+          : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : "")),
       onClick: async (event) => {
         if (!canTake) return;
         const takePresentation = beginTakePresentation(view, event.currentTarget);
@@ -750,15 +761,19 @@ function createTableCard(view, state, {
     ]),
     el("span", {
       className: "no-thanks-table-card-action__hint",
-      text: canTake ? "카드를 눌러 가져오기" : "현재 차례만 선택 가능",
+      text: locked
+        ? "첫 카드 준비 중"
+        : (canTake ? "카드를 눌러 가져오기" : "현재 차례만 선택 가능"),
     }),
   ]);
 }
 
-function createDrawDeck(view) {
+function createDrawDeck(view, {
+  startPending = false,
+} = {}) {
   const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
   return el("div", {
-    className: "no-thanks-draw-deck",
+    className: "no-thanks-draw-deck" + (startPending ? " is-game-start-pending" : ""),
     "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
   }, [
     el("div", {
@@ -782,8 +797,9 @@ function createDrawDeck(view) {
 
 function createCenterChipAction(view, state, {
   displayCount = null,
+  locked = false,
 } = {}) {
-  const canRefuse = !state.busy && view.canRefuse;
+  const canRefuse = !locked && !state.busy && view.canRefuse;
   const count = Number(view.centerCounters) || 0;
   const visibleCount = Number.isInteger(displayCount)
     ? Math.max(0, displayCount)
@@ -816,7 +832,9 @@ function createCenterChipAction(view, state, {
       className: "button button--secondary no-thanks-center-chips__action",
       type: "button",
       disabled: !canRefuse,
-      text: view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기",
+      text: locked
+        ? "칩 준비 중"
+        : (view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기"),
       onClick: async (event) => {
         if (!canRefuse) return;
         event.currentTarget.disabled = true;
@@ -901,6 +919,7 @@ function readBoardTransitionEffects(view) {
   const current = {
     roomId: view.roomId,
     version: view.version,
+    status: view.status,
     gamePhase: view.gamePhase,
     currentCard: view.currentCard,
     deckRemaining: view.deckRemaining,
@@ -932,11 +951,16 @@ function readBoardTransitionEffects(view) {
           boardPresentationEffect.dealCard
           && boardPresentationEffect.completed !== true
         )
+        || (
+          boardPresentationEffect.gameStart
+          && boardPresentationEffect.completed !== true
+        )
       )
     ) {
       return boardPresentationEffect;
     }
     return Object.freeze({
+      gameStart: false,
       dealCard: false,
       chipFromPlayerId: null,
       chipPreviousCount: null,
@@ -945,7 +969,38 @@ function readBoardTransitionEffects(view) {
     });
   }
 
+  const gameStarted = Boolean(
+    previous
+    && previous.roomId === current.roomId
+    && previous.status === "waiting"
+    && current.status === "playing"
+    && current.gamePhase === "PLAYING"
+    && Number.isInteger(current.currentCard),
+  );
+
   boardPresentationState = current;
+
+  if (gameStarted) {
+    boardPresentationEffect = {
+      roomId: current.roomId,
+      version: current.version,
+      gameStart: true,
+      dealKey: dealPresentationKey(current),
+      dealCard: true,
+      chipFromPlayerId: null,
+      chipPreviousCount: null,
+      takeByViewer: false,
+      takeByOpponent: false,
+      startDeckReady: false,
+      startChipsReady: false,
+      started: false,
+      running: false,
+      completed: false,
+      takeCardLanded: false,
+      takeChipsLanded: false,
+    };
+    return boardPresentationEffect;
+  }
 
   if (
     !previous
@@ -956,6 +1011,7 @@ function readBoardTransitionEffects(view) {
     boardPresentationEffect = null;
     if (current.gamePhase === "PLAYING") markDealSettled(current);
     return Object.freeze({
+      gameStart: false,
       dealCard: false,
       chipFromPlayerId: null,
       takeByViewer: false,
@@ -998,6 +1054,7 @@ function readBoardTransitionEffects(view) {
     ? {
       roomId: current.roomId,
       version: current.version,
+      gameStart: false,
       dealKey: dealCard ? dealPresentationKey(current) : null,
       dealCard,
       chipFromPlayerId,
@@ -1021,6 +1078,7 @@ function readBoardTransitionEffects(view) {
     : null;
 
   return boardPresentationEffect ?? Object.freeze({
+    gameStart: false,
     dealCard: false,
     chipFromPlayerId: null,
     takeByViewer: false,
@@ -1573,6 +1631,383 @@ async function animatePendingTakeToSeat(effect) {
   completeBoardPresentationEffect(effect);
 }
 
+
+function clearGameStartPresentationArtifacts() {
+  document.querySelectorAll(
+    ".no-thanks-game-start-message,"
+    + " .no-thanks-game-start-deck-flight,"
+    + " .no-thanks-game-start-chip-flight,"
+    + " .no-thanks-game-start-chip-badge",
+  ).forEach((node) => node.remove());
+}
+
+function isCurrentBoardPresentationEffect(effect) {
+  return Boolean(effect && boardPresentationEffect === effect);
+}
+
+function createGameStartMessage(board) {
+  const table = board?.querySelector(".no-thanks-round-table");
+  const tableRect = table?.getBoundingClientRect?.();
+  if (!tableRect || tableRect.width <= 0 || tableRect.height <= 0) return null;
+
+  const message = el("div", {
+    className: "no-thanks-game-start-message",
+    role: "status",
+    "aria-live": "polite",
+    style: {
+      left: (tableRect.left + (tableRect.width / 2)).toFixed(2) + "px",
+      top: (tableRect.top + (tableRect.height / 2)).toFixed(2) + "px",
+    },
+  }, [
+    el("section", { className: "no-thanks-game-start-message__card" }, [
+      el("span", { className: "no-thanks-game-start-message__eyebrow", text: "NO THANKS!" }),
+      el("h2", {
+        className: "no-thanks-game-start-message__title",
+        text: "가장 적은 점수를 낸 플레이어가 승리합니다!",
+      }),
+      el("p", {
+        className: "no-thanks-game-start-message__body",
+        text: "칩을 아끼고, 높은 숫자 카드는 영리하게 피하세요.",
+      }),
+    ]),
+  ]);
+  document.body.append(message);
+  return message;
+}
+
+async function swapGameStartMessage(message, {
+  title,
+  body,
+  phase,
+}) {
+  if (!message?.isConnected) return;
+  const titleNode = message.querySelector(".no-thanks-game-start-message__title");
+  const bodyNode = message.querySelector(".no-thanks-game-start-message__body");
+
+  if (typeof message.animate === "function" && !prefersReducedMotion()) {
+    const outgoing = message.animate([
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
+      { opacity: 0, transform: "translate(-50%, -48%) scale(.96)" },
+    ], {
+      duration: 150,
+      easing: "ease-in",
+      fill: "forwards",
+    });
+    await outgoing.finished.catch(() => {});
+  }
+
+  message.dataset.phase = phase;
+  if (titleNode) titleNode.textContent = title;
+  if (bodyNode) bodyNode.textContent = body;
+
+  if (typeof message.animate === "function" && !prefersReducedMotion()) {
+    const incoming = message.animate([
+      { opacity: 0, transform: "translate(-50%, -52%) scale(.96)" },
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
+    ], {
+      duration: 190,
+      easing: "cubic-bezier(.18, .76, .2, 1)",
+      fill: "forwards",
+    });
+    await incoming.finished.catch(() => {});
+  } else {
+    message.style.opacity = "1";
+  }
+}
+
+function revealGameStartDeck(effect) {
+  if (effect) effect.startDeckReady = true;
+  const deck = app.querySelector(".no-thanks-draw-deck.is-game-start-pending");
+  deck?.classList.remove("is-game-start-pending");
+  deck?.classList.add("is-game-start-settled");
+  window.setTimeout(() => deck?.classList.remove("is-game-start-settled"), 360);
+}
+
+function revealGameStartChips(effect) {
+  if (effect) effect.startChipsReady = true;
+  const chips = app.querySelector(".no-thanks-my-panel__chips.is-awaiting-start-chips");
+  chips?.classList.remove("is-awaiting-start-chips");
+  commitViewerChipLanding();
+  chips?.classList.add("is-start-chip-landed");
+  window.setTimeout(() => chips?.classList.remove("is-start-chip-landed"), 420);
+}
+
+async function animateGameStartDeck(board, effect) {
+  const stack = board?.querySelector(".no-thanks-draw-deck__stack");
+  const targets = [...(stack?.querySelectorAll("span") ?? [])];
+  if (
+    !stack
+    || targets.length === 0
+    || prefersReducedMotion()
+    || typeof targets[0]?.animate !== "function"
+  ) {
+    revealGameStartDeck(effect);
+    return;
+  }
+
+  const flights = targets.map((target, index) => {
+    const targetRect = target.getBoundingClientRect();
+    const flight = document.createElement("span");
+    flight.className = "no-thanks-game-start-deck-flight";
+    flight.setAttribute("aria-hidden", "true");
+    Object.assign(flight.style, {
+      left: (targetRect.left + 118 + ((index % 2) * 18)).toFixed(2) + "px",
+      top: (targetRect.top - 74 + (index * 7)).toFixed(2) + "px",
+      width: targetRect.width.toFixed(2) + "px",
+      height: targetRect.height.toFixed(2) + "px",
+    });
+    document.body.append(flight);
+    return { flight, targetRect, index };
+  });
+
+  await Promise.all(flights.map(({ flight, targetRect, index }) => {
+    const rect = flight.getBoundingClientRect();
+    const dx = targetRect.left - rect.left;
+    const dy = targetRect.top - rect.top;
+    const animation = flight.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(.78) rotateZ(12deg)",
+        opacity: 0,
+      },
+      {
+        offset: .18,
+        transform: "translate3d(-10px, 10px, 0) scale(.92) rotateZ(7deg)",
+        opacity: 1,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1) rotateZ(0deg)`,
+        opacity: 1,
+      },
+    ], {
+      duration: 520 + (index * 42),
+      delay: index * 42,
+      easing: "cubic-bezier(.18, .74, .22, 1)",
+      fill: "forwards",
+    });
+    return animation.finished.catch(() => {});
+  }));
+
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    flights.forEach(({ flight }) => flight.remove());
+    return;
+  }
+
+  revealGameStartDeck(effect);
+  flights.forEach(({ flight }) => flight.remove());
+}
+
+async function animateGameStartChips(board, view, effect) {
+  const table = board?.querySelector(".no-thanks-round-table");
+  const tableRect = table?.getBoundingClientRect?.();
+  const seats = [...(board?.querySelectorAll(".no-thanks-seat") ?? [])];
+  if (!tableRect || seats.length === 0 || prefersReducedMotion()) {
+    revealGameStartChips(effect);
+    return;
+  }
+
+  const initialCount = calculateInitialCounters(view.playerCount);
+  const sourceX = tableRect.left + (tableRect.width / 2);
+  const sourceY = tableRect.top + (tableRect.height / 2);
+
+  await Promise.all(seats.map((seat, seatIndex) => {
+    const avatar = seat.querySelector(".no-thanks-seat__avatar-frame");
+    const targetRect = avatar?.getBoundingClientRect?.();
+    if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
+      return Promise.resolve();
+    }
+
+    const targetX = targetRect.left + (targetRect.width / 2);
+    const targetY = targetRect.top + (targetRect.height / 2);
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const chipFlights = Array.from({ length: 2 }, (_, chipIndex) => {
+      const chip = document.createElement("span");
+      chip.className = "no-thanks-game-start-chip-flight";
+      chip.setAttribute("aria-hidden", "true");
+      Object.assign(chip.style, {
+        left: (sourceX - 14 + (chipIndex * 7)).toFixed(2) + "px",
+        top: (sourceY - 14 - (chipIndex * 4)).toFixed(2) + "px",
+      });
+      document.body.append(chip);
+      return chip;
+    });
+    const badge = el("span", {
+      className: "no-thanks-game-start-chip-badge",
+      text: "×" + String(initialCount),
+      "aria-hidden": "true",
+      style: {
+        left: (sourceX + 8).toFixed(2) + "px",
+        top: (sourceY - 12).toFixed(2) + "px",
+      },
+    });
+    document.body.append(badge);
+
+    const animations = chipFlights.map((chip, chipIndex) => {
+      const arc = 34 + (chipIndex * 9);
+      const animation = chip.animate([
+        {
+          transform: "translate3d(0, 0, 0) scale(.72) rotate(0deg)",
+          opacity: 0,
+        },
+        {
+          offset: .2,
+          transform: `translate3d(${dx * .15}px, ${(dy * .08) - arc}px, 0) scale(1) rotate(80deg)`,
+          opacity: 1,
+        },
+        {
+          offset: .62,
+          transform: `translate3d(${dx * .62}px, ${(dy * .48) - arc}px, 0) scale(.9) rotate(300deg)`,
+          opacity: 1,
+        },
+        {
+          transform: `translate3d(${dx}px, ${dy}px, 0) scale(.35) rotate(560deg)`,
+          opacity: 0,
+        },
+      ], {
+        duration: 650,
+        delay: (seatIndex * 62) + (chipIndex * 28),
+        easing: "cubic-bezier(.18, .76, .22, 1)",
+        fill: "forwards",
+      });
+      return animation.finished.catch(() => {});
+    });
+
+    const badgeAnimation = badge.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(.8)",
+        opacity: 0,
+      },
+      {
+        offset: .38,
+        transform: `translate3d(${dx * .38}px, ${(dy * .28) - 32}px, 0) scale(.92)`,
+        opacity: .78,
+      },
+      {
+        offset: .82,
+        transform: `translate3d(${dx}px, ${dy - 22}px, 0) scale(1)`,
+        opacity: 1,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy - 28}px, 0) scale(.96)`,
+        opacity: 0,
+      },
+    ], {
+      duration: 800,
+      delay: seatIndex * 62,
+      easing: "cubic-bezier(.18, .76, .22, 1)",
+      fill: "forwards",
+    });
+
+    return Promise.all([
+      ...animations,
+      badgeAnimation.finished.catch(() => {}),
+    ]).then(() => {
+      chipFlights.forEach((chip) => chip.remove());
+      badge.remove();
+      avatar.classList.add("is-start-chip-received");
+      window.setTimeout(() => avatar.classList.remove("is-start-chip-received"), 300);
+    });
+  }));
+
+  if (!isCurrentBoardPresentationEffect(effect)) return;
+  revealGameStartChips(effect);
+}
+
+function unlockGameStartControls(view) {
+  const card = app.querySelector(".no-thanks-table-card[data-card-value]");
+  if (card) {
+    card.disabled = !view.canTake;
+    const value = card.dataset.cardValue;
+    card.title = view.canTake
+      ? "이 카드를 가져옵니다."
+      : "현재 차례에만 카드를 가져올 수 있어요.";
+    card.setAttribute(
+      "aria-label",
+      value
+        ? "현재 카드 " + value + (view.canTake ? ", 눌러서 가져오기" : "")
+        : "현재 카드 없음",
+    );
+  }
+
+  const hint = app.querySelector(".no-thanks-table-card-action__hint");
+  if (hint) {
+    hint.textContent = view.canTake ? "카드를 눌러 가져오기" : "현재 차례만 선택 가능";
+  }
+
+  const chipAction = app.querySelector(".no-thanks-center-chips__action");
+  if (chipAction) {
+    chipAction.disabled = !view.canRefuse;
+    chipAction.textContent = view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기";
+  }
+}
+
+async function runGameStartPresentation(effect, view) {
+  const board = app.querySelector(".no-thanks-game-board");
+  if (!board) {
+    revealGameStartDeck(effect);
+    revealGameStartChips(effect);
+    await runDealPresentation(effect);
+    return;
+  }
+
+  clearGameStartPresentationArtifacts();
+  const message = createGameStartMessage(board);
+  const reducedMotion = prefersReducedMotion();
+
+  if (reducedMotion) {
+    revealGameStartDeck(effect);
+    revealGameStartChips(effect);
+    await waitForPresentation(260);
+  } else {
+    await Promise.all([
+      animateGameStartDeck(board, effect),
+      animateGameStartChips(board, view, effect),
+    ]);
+  }
+
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    message?.remove();
+    clearGameStartPresentationArtifacts();
+    return;
+  }
+
+  await swapGameStartMessage(message, {
+    phase: "ready",
+    title: "곧 게임이 시작됩니다.",
+    body: "첫 카드를 공개합니다.",
+  });
+  await waitForPresentation(reducedMotion ? 320 : GAME_START_DEAL_PAUSE_MS);
+
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    message?.remove();
+    clearGameStartPresentationArtifacts();
+    return;
+  }
+
+  if (message?.isConnected && typeof message.animate === "function" && !reducedMotion) {
+    const closing = message.animate([
+      { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
+      { opacity: 0, transform: "translate(-50%, -48%) scale(.96)" },
+    ], {
+      duration: 170,
+      easing: "ease-in",
+      fill: "forwards",
+    });
+    await closing.finished.catch(() => {});
+  }
+  message?.remove();
+
+  await runDealPresentation(effect);
+  if (!isCurrentBoardPresentationEffect(effect)) return;
+
+  board.classList.remove("is-game-starting");
+  unlockGameStartControls(view);
+  const statusLabel = board.querySelector(".no-thanks-board__status span");
+  const statusMessage = board.querySelector(".no-thanks-board__status strong");
+  if (statusLabel) statusLabel.textContent = "PLAYING";
+  if (statusMessage) statusMessage.textContent = boardStatusMessage(view);
+}
+
 function completeBoardPresentationEffect(effect) {
   if (!effect) return;
   if (effect.dealCard && effect.dealKey) {
@@ -1580,6 +2015,9 @@ function completeBoardPresentationEffect(effect) {
   }
   effect.running = false;
   effect.completed = true;
+  if (effect.gameStart) {
+    app.querySelector(".no-thanks-game-board")?.classList.remove("is-game-starting");
+  }
 }
 
 async function runDealPresentation(effect) {
@@ -1625,7 +2063,7 @@ async function animatePendingTakePresentation(effect) {
   completeBoardPresentationEffect(effect);
 }
 
-function syncBoardAnimationGeometry() {
+function syncBoardAnimationGeometry(view) {
   const board = app.querySelector(".no-thanks-game-board");
   if (!board) return;
 
@@ -1639,6 +2077,13 @@ function syncBoardAnimationGeometry() {
     }
 
     if (effect?.running === true) return;
+
+    if (effect?.gameStart && effect.completed !== true) {
+      effect.started = true;
+      effect.running = true;
+      void runGameStartPresentation(effect, view);
+      return;
+    }
 
     if (effect?.takeByViewer && pendingTakePresentation) {
       effect.started = true;
@@ -1702,12 +2147,19 @@ function createRoundTable(view, state, effects) {
     ]);
   }
 
+  const gameStarting = Boolean(effects?.gameStart && effects.completed !== true);
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
-      createDrawDeck(view),
-      createTableCard(view, state, { dealIn: effects.dealCard }),
+      createDrawDeck(view, {
+        startPending: gameStarting && effects.startDeckReady !== true,
+      }),
+      createTableCard(view, state, {
+        dealIn: effects.dealCard,
+        locked: gameStarting,
+      }),
       createCenterChipAction(view, state, {
         displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
+        locked: gameStarting,
       }),
     ]),
   ]);
@@ -1788,6 +2240,11 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     effects?.takeByViewer
     && effects.takeChipsLanded !== true,
   );
+  const waitingForStartChips = Boolean(
+    effects?.gameStart
+    && effects.completed !== true
+    && effects.startChipsReady !== true,
+  );
   const previousCards = holdingIncomingCard
     ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
     : finalCards;
@@ -1797,9 +2254,11 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
   const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const finalCounters = Number(view.viewerCounters) || 0;
-  const displayCounters = holdingIncomingChips
-    ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
-    : finalCounters;
+  const displayCounters = waitingForStartChips
+    ? 0
+    : (holdingIncomingChips
+      ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
+      : finalCounters);
   const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
   const statusLines = waiting
     ? (view.isHost
@@ -1814,7 +2273,8 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     "aria-label": "내 플레이 패널",
   }, [
     el("div", {
-      className: "no-thanks-my-panel__chips",
+      className: "no-thanks-my-panel__chips"
+        + (waitingForStartChips ? " is-awaiting-start-chips" : ""),
       dataset: waiting
         ? {}
         : {
@@ -1902,17 +2362,22 @@ function boardStatusMessage(view) {
 function createBoardScene(view, state, panelActions = []) {
   const effects = readBoardTransitionEffects(view);
   const seats = prepareBoardSeats(view);
+  const gameStarting = Boolean(effects?.gameStart && effects.completed !== true);
   return el("section", { className: "no-thanks-board-view" }, [
     createInlineError(state.error),
     el("section", {
-      className: "no-thanks-game-board",
+      className: "no-thanks-game-board" + (gameStarting ? " is-game-starting" : ""),
       "aria-label": view.status === "waiting" ? "No Thanks 대기 테이블" : "No Thanks 게임 보드",
     }, [
       el("div", { className: "no-thanks-board__status" }, [
         el("span", {
-          text: view.status === "waiting" ? "WAITING ROOM" : "PLAYING",
+          text: view.status === "waiting"
+            ? "WAITING ROOM"
+            : (gameStarting ? "TABLE SETUP" : "PLAYING"),
         }),
-        el("strong", { text: boardStatusMessage(view) }),
+        el("strong", {
+          text: gameStarting ? "게임 테이블을 준비하고 있어요." : boardStatusMessage(view),
+        }),
       ]),
       createRoundTable(view, state, effects),
       ...seats.map((seatInfo, index) => createBoardSeat(view, seatInfo, index, seats.length)),
@@ -2840,7 +3305,7 @@ function renderLobby(access, state) {
   }
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
-    syncBoardAnimationGeometry();
+    syncBoardAnimationGeometry(view);
     void ensureBoardAvatarUrls(view, access);
   }
 }
