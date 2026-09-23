@@ -59,13 +59,84 @@ test("No Thanks! shell exposes room and server-authoritative gameplay actions", 
   assert.match(runtime, /게임 규칙/u);
   assert.match(styles, /\.no-thanks-rules/u);
   assert.match(styles, /\.no-thanks-online-entry/u);
-  assert.match(styles, /\.no-thanks-scoreboard/u);
+  assert.match(styles, /\.no-thanks-result-players/u);
   assert.match(runtime, /const boardMode = Boolean/u);
   assert.match(runtime, /actions: boardMode \? \[\] : lobbyActions/u);
   assert.match(runtime, /no-thanks-panel-tools/u);
   assert.match(styles, /\.no-thanks-shell--board \.game-platform-shell__actions:empty/u);
 });
 
+
+test("No Thanks! page carries a game-local environmental background identity", () => {
+  assert.match(page, /theme-color" content="#284650"/u);
+  assert.match(styles, /linear-gradient\(145deg, #31515a 0%, #294750 48%, #203a43 100%\)/u);
+  assert.match(page, /no-thanks-world-decor/u);
+  assert.match(page, /no-thanks-world-card--one/u);
+  assert.match(page, /no-thanks-world-chip--four/u);
+  assert.match(page, /no-thanks-world-card--four/u);
+  assert.match(page, /no-thanks-world-chip--seven/u);
+  assert.match(styles, /\.no-thanks-app::before/u);
+  assert.match(styles, /content: "33"/u);
+  assert.match(styles, /\.no-thanks-app::after/u);
+  assert.match(styles, /content: "12"/u);
+  assert.match(styles, /radial-gradient\(circle at center, #d94a3f/u);
+  assert.match(styles, /@media \(max-width: 720px\)[\s\S]*\.no-thanks-app::after[\s\S]*display: none/u);
+});
+
+test("No Thanks! room header emphasizes game identity without duplicating the room code", () => {
+  assert.match(runtime, /칩으로 버틸지, 카드와 칩을 가져갈지—한 번의 선택이 흐름을 바꾸는 심리전 카드 게임/u);
+  assert.match(runtime, /roomLabel: view\?\.roomCode \? "LIVE ROOM" : null/u);
+  assert.doesNotMatch(runtime, /roomLabel: view\?\.roomCode \? `방 \$\{view\.roomCode\}` : null/u);
+  assert.match(runtime, /no-thanks-shell--in-room/u);
+  assert.match(styles, /\.no-thanks-shell \.game-platform-shell__description/u);
+  assert.match(styles, /\.no-thanks-shell \.game-platform-shell__room::before/u);
+  assert.match(styles, /\.no-thanks-shell--in-room \.game-platform-status--success/u);
+});
+
+test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
+  assert.match(runtime, /createResultPlayerPanels/u);
+  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? 12 : overlap\)/u);
+  assert.match(runtime, /createChipCluster\(entry\.counters/u);
+  assert.match(runtime, /최종 보유 칩/u);
+  assert.match(runtime, /createWinnerCelebration/u);
+  assert.match(runtime, /getWinnerCelebrationKey/u);
+  assert.match(runtime, /acknowledgedWinnerCelebrationKey/u);
+  assert.match(runtime, /no-thanks-winner-celebration/u);
+  assert.match(runtime, /showModal\(\)/u);
+  assert.match(runtime, /LAST_CARD_TAKEN/u);
+  assert.match(styles, /\.no-thanks-result-player/u);
+  assert.match(styles, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/u);
+  assert.match(styles, /\.no-thanks-result-player\.is-winner[\s\S]*grid-column: 1 \/ -1/u);
+  assert.match(runtime, /no-thanks-result-player__masthead/u);
+  assert.match(runtime, /no-thanks-result-player__playmat/u);
+  assert.match(runtime, /no-thanks-result-player__chip-tray/u);
+  assert.match(runtime, /no-thanks-result-player__card-rack/u);
+  assert.match(runtime, /no-thanks-result-player__winner-ribbon/u);
+  assert.match(styles, /data-rank="2"/u);
+  assert.match(styles, /data-rank="3"/u);
+  assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
+  assert.match(runtime, /if \(count <= 5\) return -2/u);
+  assert.match(runtime, /if \(count <= 9\) return -7/u);
+  assert.match(runtime, /if \(count <= 14\) return -13/u);
+  assert.match(runtime, /if \(count <= 19\) return -21/u);
+  assert.match(runtime, /return -30/u);
+  assert.match(runtime, /startsNewRun \? 12 : overlap/u);
+  assert.match(styles, /\.no-thanks-result-player__score-card/u);
+  assert.match(styles, /\.no-thanks-winner-confetti/u);
+  assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
+  assert.match(styles, /prefers-reduced-motion/u);
+});
+
+test("No Thanks! winner celebration acknowledgement survives focus and page lifecycle rerenders", () => {
+  assert.match(runtime, /function getWinnerCelebrationKey\(view\)/u);
+  assert.match(runtime, /return `\$\{view\.roomId\}:\$\{view\.version\}:\$\{view\.endReason\}:\$\{scores\}`/u);
+  assert.match(runtime, /WINNER_CELEBRATION_STORAGE_KEY/u);
+  assert.match(runtime, /window\.sessionStorage\?\.getItem/u);
+  assert.match(runtime, /window\.sessionStorage\?\.setItem/u);
+  assert.match(runtime, /readAcknowledgedWinnerCelebrationKey\(\) !== winnerCelebrationKey/u);
+  assert.match(runtime, /acknowledgeWinnerCelebration\(winnerCelebrationKey\);\s*winnerCelebrationDialog\.showModal\(\)/u);
+  assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
+});
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {
   assert.match(runtime, /대기실을 닫을까요/u);
