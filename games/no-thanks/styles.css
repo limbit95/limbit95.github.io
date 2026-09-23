@@ -917,6 +917,20 @@ body::after {
   color: #533c10;
 }
 
+.no-thanks-result-player[data-rank="2"] .no-thanks-result-player__rank-medal {
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, .62), transparent 10%),
+    linear-gradient(145deg, #d8e0e1, #9eaeb1);
+  color: #42575c;
+}
+
+.no-thanks-result-player[data-rank="3"] .no-thanks-result-player__rank-medal {
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, .46), transparent 10%),
+    linear-gradient(145deg, #d6a270, #9b6841);
+  color: #4d2f1c;
+}
+
 .no-thanks-result-player__rank-medal--ended {
   background: linear-gradient(145deg, #77898d, #5f7378);
 }
