@@ -10,7 +10,7 @@ body {
   background:
     radial-gradient(circle at 50% 10%, rgba(103, 145, 157, .28), transparent 34rem),
     radial-gradient(circle at 20% 90%, rgba(70, 111, 122, .16), transparent 28rem),
-    linear-gradient(145deg, #294955 0%, #203b47 48%, #172f39 100%);
+    linear-gradient(145deg, #31515a 0%, #294750 48%, #203a43 100%);
   color: var(--ink);
   font-family: var(--font);
 }
@@ -98,6 +98,85 @@ body::after {
   transform: rotate(8deg);
 }
 
+.no-thanks-world-decor {
+  position: fixed;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.no-thanks-world-card {
+  position: absolute;
+  width: clamp(78px, 6.5vw, 104px);
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  border: 5px solid rgba(255, 255, 255, .66);
+  border-radius: 15px;
+  background: linear-gradient(150deg, rgba(183, 214, 223, .88), rgba(108, 163, 181, .84));
+  box-shadow:
+    0 15px 34px rgba(8, 25, 31, .2),
+    inset 0 0 0 1px rgba(42, 81, 96, .18);
+  color: rgba(255, 255, 255, .72);
+  font-size: clamp(2.2rem, 4vw, 3.6rem);
+  font-weight: 950;
+  opacity: .14;
+  text-shadow: 0 2px 0 rgba(28, 68, 82, .14);
+}
+
+.no-thanks-world-card--one {
+  top: 7vh;
+  left: 8vw;
+  transform: rotate(7deg);
+}
+
+.no-thanks-world-card--two {
+  right: 6vw;
+  bottom: 32vh;
+  transform: rotate(-9deg);
+}
+
+.no-thanks-world-chip {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border: 2px solid rgba(127, 31, 26, .78);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .44) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .18),
+    inset 0 -3px 5px rgba(89, 16, 13, .26),
+    0 6px 14px rgba(8, 23, 29, .2);
+  opacity: .54;
+}
+
+.no-thanks-world-chip--one {
+  top: 28vh;
+  left: 4.5vw;
+  transform: rotate(-7deg);
+}
+
+.no-thanks-world-chip--two {
+  top: 39vh;
+  right: 8vw;
+  transform: rotate(11deg);
+}
+
+.no-thanks-world-chip--three {
+  bottom: 19vh;
+  left: 11vw;
+  transform: rotate(5deg);
+}
+
+.no-thanks-world-chip--four {
+  right: 13vw;
+  bottom: 8vh;
+  transform: rotate(-13deg);
+}
+
 .no-thanks-loading,
 .no-thanks-access {
   min-height: 100vh;
@@ -122,7 +201,10 @@ body::after {
   }
 
   body::after,
-  .no-thanks-app::after {
+  .no-thanks-app::after,
+  .no-thanks-world-card--two,
+  .no-thanks-world-chip--two,
+  .no-thanks-world-chip--four {
     display: none;
   }
 
@@ -133,6 +215,28 @@ body::after {
     border-width: 5px;
     border-radius: 15px;
     opacity: .13;
+  }
+
+  .no-thanks-world-card--one {
+    top: 11vh;
+    left: 1.4rem;
+    width: 72px;
+    opacity: .1;
+  }
+
+  .no-thanks-world-chip--one {
+    top: 34vh;
+    left: .6rem;
+    opacity: .36;
+    transform: scale(.82);
+  }
+
+  .no-thanks-world-chip--three {
+    left: auto;
+    right: .5rem;
+    bottom: 15vh;
+    opacity: .32;
+    transform: scale(.78);
   }
 }
 
