@@ -5772,7 +5772,8 @@ body::after {
 .no-thanks-game-start-shuffle-deck[data-shuffle-step="spread"] span,
 .no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-one"] span,
 .no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-two"] span,
-.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-three"] span {
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-three"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-four"] span {
   filter: drop-shadow(0 11px 15px rgba(8, 29, 34, .32));
 }
 
