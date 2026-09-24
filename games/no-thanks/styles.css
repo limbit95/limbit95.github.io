@@ -5136,3 +5136,224 @@ body::after {
     animation: none;
   }
 }
+
+
+/* Opening-sequence refinement: prepared waiting table + personal chip allocation. */
+.no-thanks-round-table__waiting-layout {
+  position: relative;
+  z-index: 2;
+  width: min(88%, 620px);
+  display: grid;
+  grid-template-columns: minmax(78px, .8fr) minmax(220px, 2.1fr) minmax(92px, .9fr);
+  align-items: center;
+  justify-items: center;
+  gap: clamp(.55rem, 1.8vw, 1.15rem);
+}
+
+.no-thanks-round-table__waiting-layout .no-thanks-round-table__waiting {
+  width: 100%;
+  min-width: 0;
+}
+
+.no-thanks-round-table__waiting-copy {
+  display: grid;
+  justify-items: center;
+  gap: .06rem;
+}
+
+.no-thanks-round-table__waiting-copy > span {
+  display: block;
+}
+
+.no-thanks-round-table__waiting-object {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+}
+
+.no-thanks-draw-deck--waiting {
+  transform: scale(.94);
+  transform-origin: center;
+}
+
+.no-thanks-start-chip-bank {
+  position: relative;
+  width: 112px;
+  display: grid;
+  justify-items: center;
+  gap: .28rem;
+  color: rgba(255, 255, 255, .82);
+  transition: opacity .24s ease, transform .24s ease;
+}
+
+.no-thanks-start-chip-bank__pile {
+  position: relative;
+  width: 112px;
+  height: 82px;
+}
+
+.no-thanks-start-chip-bank__chip {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 2px solid #7f1f1a;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .48) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .2),
+    inset 0 -3px 5px rgba(89, 16, 13, .3),
+    0 5px 10px rgba(33, 21, 18, .24);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.no-thanks-start-chip-bank__chip::before {
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(255, 204, 194, .6);
+  border-radius: 50%;
+  content: "";
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(5n + 1) { left: 2px; top: 45px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 2) { left: 21px; top: 31px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 3) { left: 42px; top: 44px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 4) { left: 61px; top: 29px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 5) { left: 78px; top: 43px; }
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 6):nth-child(-n + 10) {
+  transform: translate(-4px, -11px) scale(.96);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 11):nth-child(-n + 15) {
+  transform: translate(3px, -21px) scale(.92);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 16) {
+  transform: translate(-1px, -30px) scale(.88);
+}
+
+.no-thanks-start-chip-bank__pile.is-distributing .no-thanks-start-chip-bank__chip.is-leaving {
+  opacity: .15;
+  transform: translateY(-8px) scale(.72);
+}
+
+.no-thanks-start-chip-bank__label {
+  font-size: .58rem;
+  font-weight: 950;
+  letter-spacing: .1em;
+  opacity: .72;
+}
+
+.no-thanks-start-chip-zone {
+  position: relative;
+  width: 120px;
+  min-height: 118px;
+  display: grid;
+  place-items: center;
+}
+
+.no-thanks-start-chip-zone > .no-thanks-center-chips {
+  grid-area: 1 / 1;
+}
+
+.no-thanks-start-chip-zone > .no-thanks-start-chip-bank {
+  grid-area: 1 / 1;
+}
+
+.no-thanks-center-chips.is-game-start-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.92);
+}
+
+.no-thanks-center-chips.is-game-start-revealed {
+  animation: no-thanks-start-center-chips-in .28s cubic-bezier(.18, .78, .22, 1);
+}
+
+.no-thanks-start-chip-bank.is-distributed {
+  opacity: 0;
+  transform: translateY(-4px) scale(.92);
+}
+
+@keyframes no-thanks-start-center-chips-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.no-thanks-game-start-chip-flight {
+  width: 28px;
+  height: 28px;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips {
+  position: relative;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips::after {
+  position: absolute;
+  left: 50%;
+  bottom: .35rem;
+  color: var(--muted);
+  content: "칩 배분 대기";
+  font-size: .62rem;
+  font-weight: 850;
+  letter-spacing: .04em;
+  opacity: .72;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.no-thanks-my-panel__chips.is-start-chip-landed::after {
+  content: "";
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table__waiting-layout {
+    width: min(92%, 540px);
+    grid-template-columns: 68px minmax(150px, 1fr) 76px;
+    gap: .32rem;
+  }
+
+  .no-thanks-draw-deck--waiting {
+    transform: scale(.76);
+  }
+
+  .no-thanks-start-chip-bank {
+    width: 82px;
+    transform: scale(.78);
+    transform-origin: center;
+  }
+
+  .no-thanks-start-chip-bank__label {
+    font-size: .52rem;
+  }
+
+  .no-thanks-round-table__waiting-copy {
+    font-size: .72rem;
+  }
+
+  .no-thanks-start-chip-zone {
+    width: 92px;
+    min-height: 98px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-center-chips.is-game-start-revealed {
+    animation: none;
+  }
+
+  .no-thanks-start-chip-bank,
+  .no-thanks-start-chip-bank__chip {
+    transition: none;
+  }
+}
