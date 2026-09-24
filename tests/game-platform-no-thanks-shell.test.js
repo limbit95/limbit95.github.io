@@ -367,7 +367,11 @@ test("No Thanks! deal presentation keeps the source deck until the flight depart
 test("No Thanks! personal hand targets the sorted run-aware slot and slides existing cards aside", () => {
   assert.match(runtime, /function createPersonalHandCards\(cards,/u);
   assert.match(runtime, /const orderedCards = \[\.\.\.cards\]\.sort\(\(left, right\) => left - right\)/u);
-  assert.match(runtime, /const runMargin = getNoThanksHandRunMargin\(orderedCards\.length\)/u);
+  assert.match(runtime, /const margins = getNoThanksHandMargins\(orderedCards\.length\)/u);
+  assert.match(runtime, /function syncPersonalHandLayout\(\)/u);
+  assert.match(runtime, /const availableWidth = Math\.max\([\s\S]*?hand\.clientWidth - paddingLeft - paddingRight/u);
+  assert.match(runtime, /getNoThanksHandMargins\(cards\.length, \{[\s\S]*?availableWidth,[\s\S]*?cardWidth,[\s\S]*?runStartCount/u);
+  assert.match(runtime, /syncPersonalHandLayout\(\);\s*syncBoardSeatGeometry\(board\)/u);
   assert.match(runtime, /const startsNewRun = index > 0 && card !== orderedCards\[index - 1\] \+ 1/u);
   assert.match(runtime, /incomingCardValue != null && Number\(card\) === Number\(incomingCardValue\)/u);
   assert.match(runtime, /function captureViewerHandRects\(\)/u);
