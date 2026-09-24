@@ -485,6 +485,7 @@ function beginTakePresentation(view, sourceCard) {
     previousViewerCounters: Number(view.viewerCounters) || 0,
     previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
     chipCount: Math.max(0, Math.floor(Number(view.centerCounters) || 0)),
+    sourceCard,
     cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
     chipFlights: reducedMotion ? [] : createTakeChipFlights(view.centerCounters),
   };
@@ -517,6 +518,7 @@ function captureTakePresentationFromBoard(previous, takerPlayerId) {
     previousViewerCounters: Number(previous.viewerCounters) || 0,
     previousViewerCards: [...(previous.viewerCards ?? [])].sort((left, right) => left - right),
     chipCount: Math.max(0, Math.floor(Number(previous.centerCounters) || 0)),
+    sourceCard,
     cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
     chipFlights: reducedMotion ? [] : createTakeChipFlights(previous.centerCounters),
   };
@@ -1399,6 +1401,7 @@ function commitTakeCardLanding(effect, presentation) {
 }
 
 async function animateTakeCardToHand(presentation, effect) {
+  presentation?.sourceCard?.classList.add("is-take-source-hidden");
   const flight = presentation?.cardFlight;
   const target = findTakeCardLandingTarget(presentation?.cardValue);
   if (!flight?.isConnected || !target?.isConnected || typeof flight.animate !== "function") {
@@ -1562,6 +1565,7 @@ function findBoardSeatAvatar(playerId) {
 }
 
 async function animateTakeCardToSeat(presentation) {
+  presentation?.sourceCard?.classList.add("is-take-source-hidden");
   const flight = presentation?.cardFlight;
   const target = findBoardSeatAvatar(presentation?.takerPlayerId);
   if (!target?.isConnected) {
@@ -2799,9 +2803,18 @@ function getNoThanksResultHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
   if (count <= 5) return -2;
   if (count <= 9) return -7;
-  if (count <= 14) return -13;
-  if (count <= 19) return -21;
-  return -30;
+  if (count <= 12) return -14;
+  if (count <= 15) return -20;
+  if (count <= 18) return -26;
+  if (count <= 21) return -32;
+  return -36;
+}
+
+function getNoThanksResultRunOverlap(cardCount, overlap) {
+  const count = Math.max(0, Number(cardCount) || 0);
+  if (count <= 9) return 10;
+  if (count <= 12) return 4;
+  return Math.min(-4, overlap + 8);
 }
 
 function createResultPlayerPanels(view, {
@@ -2886,7 +2899,8 @@ function createResultPlayerPanels(view, {
             ? el("div", { className: "no-thanks-result-hand" },
               cards.map((card, index) => {
                 const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
-                return createHandCard(card, index, startsNewRun ? 12 : overlap);
+                const runOverlap = getNoThanksResultRunOverlap(cards.length, overlap);
+                return createHandCard(card, index, startsNewRun ? runOverlap : overlap);
               }))
             : el("div", {
               className: "no-thanks-result-hand no-thanks-hand--empty",
