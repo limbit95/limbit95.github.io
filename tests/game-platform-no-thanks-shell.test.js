@@ -259,6 +259,10 @@ test("No Thanks! opening chips land one by one into the viewer's final pile layo
   assert.match(runtime, /value\.textContent = String\(Math\.min\(index \+ 1, viewerChipCount\)\)/u);
   assert.match(runtime, /chip\.remove\(\)/u);
   assert.match(runtime, /opponent\.target\.classList\.add\("is-start-chip-received"\)/u);
+  assert.match(runtime, /offset:\s*\.94[\s\S]*?opacity:\s*1/u);
+  assert.match(runtime, /delay \+ Math\.round\(duration \* \.9\)/u);
+  assert.match(runtime, /scale\(\$\{toViewer \? "\.88" : "\.16"\}\)/u);
+  assert.match(runtime, /opacity:\s*toViewer \? 1 : 0/u);
   assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip[\s\S]*opacity:\s*0/u);
   assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip\.is-start-chip-arrived[\s\S]*opacity:\s*1/u);
 });
