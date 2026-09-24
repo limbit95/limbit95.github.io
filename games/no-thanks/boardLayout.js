@@ -36,12 +36,16 @@ export function getNoThanksCardTone(value) {
 
 export function getNoThanksHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -8;
-  if (count <= 9) return -18;
-  if (count <= 13) return -28;
-  if (count <= 17) return -38;
-  if (count <= 21) return -46;
-  return -52;
+  if (count <= 5) return -26;
+  if (count <= 9) return -38;
+  if (count <= 13) return -48;
+  if (count <= 17) return -56;
+  if (count <= 21) return -62;
+  return -66;
+}
+
+export function getNoThanksHandRunMargin(cardCount) {
+  return Math.min(-14, getNoThanksHandOverlap(cardCount) + 8);
 }
 
 
