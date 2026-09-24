@@ -5,17 +5,22 @@
 
 ## Current Status
 
-- Phase: Release readiness — core gameplay/DB/presentation 구현 완료, functional/operational browser gates pending; design closeout 완료
+- Phase: Release readiness — core gameplay/DB/presentation 통합 완료, functional/operational browser gates와 신규 production migration 적용 확인 pending; design closeout 갱신 완료
 - Status: IN_PROGRESS
 - Active branch: `main` (이 checkpoint PR 병합 후 handoff baseline)
-- Current main baseline: `c43f96f984b90049b59b163bffd16c9a5fb5cf04`
+- Current main baseline: `91d9ca42b6340888f6c9680bda2dcce604da6ed3` (PR #394 merge)
 - Phase A–D merge baseline: `66531c7820285b37dc8d1e2961156ab95560758f`
-- Design baseline: `UI_DESIGN.md` + `UI_DECISIONS.md` NT-UI-001~007
+- Design baseline: `UI_DESIGN.md` + `UI_DECISIONS.md` NT-UI-001~011
 - Registry capability: `online=false / local=false / invite=false / presence=false`
-- 마지막 기록: 2026-09-23
+- 마지막 기록: 2026-09-24
 
 ## Completed
 
+- 2026-09-24 통합 PR #394를 최신 `main`에서 충돌 검토한 뒤 병합했습니다. PR #390 final-take presentation, PR #391 game-start opening presentation, PR #389 release-blocker 안정화 변경을 하나의 통합 브랜치에서 순차 결합했고, 최신 main의 No Thanks! BGM 변경을 보존한 채 merge commit `91d9ca42b6340888f6c9680bda2dcce604da6ed3`으로 main에 반영했습니다.
+- PR #389의 `20260924073500_no_thanks_randomized_draw_order.sql`을 통합해 `generate_series(3, 35)`가 실제 행을 만든 뒤 `ORDER BY random()`이 평가되도록 start RPC를 보정했습니다. disposable Game DB integration에서 3~35 전체 33장이 정확히 한 번씩 존재하면서 canonical ascending order와 다른 실제 shuffled order를 저장하는 회귀 테스트를 통과했습니다.
+- 게임 시작 presentation은 WAITING 테이블의 고정 deck/chip 위치, 2.5초 안내 카드 2장, 중앙 chip bank의 동시 배분, 4단계 card shuffle, 정돈 직후 기존 first-card deal/flip으로 연결되는 순서를 확정했습니다. viewer 시작 칩은 개인 패널의 최종 chip-pile 슬롯에 하나씩 쌓이고, 다른 플레이어 몫은 seat avatar에 닿으면서 흡수되도록 연출합니다.
+- TAKE/종료 presentation lifecycle을 보강했습니다. 마지막 카드 TAKE에서는 원형 테이블의 source card를 flight 시작과 동시에 숨겨 중복 잔상을 제거하고, 방장 수동 종료에서는 실행 중 deal animation을 cancel하여 종료 이후 카드 공개 애니메이션이 재생되지 않도록 했습니다.
+- 개인 패널과 FINAL TABLE의 많은 획득 카드는 최대 24장까지 고려합니다. 일반 hand overlap은 장수에 따라 더 타이트해지고, 결과 rack은 실제 available width와 run 시작 수를 측정해 overlap/run margin을 동적으로 다시 계산하여 overflow를 방지합니다.
 - 2026-09-23 PR #378을 main에 병합해 muted blue environmental identity, compact `LIVE ROOM` header, first-place celebration overlay, `FINAL TABLE` result plates를 현재 디자인 baseline으로 확정했습니다. 세부 디자인 결정은 `UI_DECISIONS.md`의 NT-UI-001~004가 소유합니다.
 - 2026-09-23 PR #381을 최신 main과 동기화한 뒤 main에 병합했습니다. in-room reconnecting banner를 조용히 처리하는 presentation, centered `FINAL WINNER` card, No Thanks! tabletop Rules Guide를 구현했고 NT-UI-005~007로 기록했습니다. merge commit은 `c43f96f984b90049b59b163bffd16c9a5fb5cf04`입니다.
 - PR #381에서 카드 공개 순서의 서버 권위 random deck 계약을 다시 검증했습니다. start RPC는 3~35의 33장을 서버에서 무작위 정렬한 뒤 24장을 draw deck으로 사용하고 9장을 비공개 제외하며, 이후 공개 카드는 private draw deck 순서대로 소비합니다. 결과/보유 카드가 오름차순으로 보이는 것은 획득 카드 정렬 presentation/state 정리 때문이며 reveal 순서를 정렬하는 로직은 아닙니다. 기존 gameplay DB 로직은 수정하지 않고 회귀 테스트만 추가했습니다.
@@ -148,19 +153,20 @@
 
 ## Current Work
 
-- core rules, Room/Lobby, server-authoritative gameplay, Presence/reconnect 계약, same-room rematch, 운영 DB migration/hardening, Phase A–D board UI와 2026-09-23 후속 디자인 closeout까지 main에 반영했습니다.
-- 아직 게임을 `RELEASED`로 전환하지 않았습니다. 남은 핵심 범위는 `RELEASE_CHECKLIST.md`의 실제 운영 브라우저 gate, rematch/reconnect 수동 확인, 승인회원 production smoke와 Registry capability activation입니다.
-- 디자인 트랙은 `UI_DECISIONS.md`의 `FINAL / DESIGN_CLOSEOUT` 상태가 기준입니다. NT-UI-001~007이 현재 main의 active design baseline이며 Phase E 후보는 release blocker가 아닌 후속 polish입니다.
+- core rules, Room/Lobby, server-authoritative gameplay, Presence/reconnect 계약, same-room rematch, 기존 운영 DB hardening, Phase A–D board UI와 PR #394의 opening/final-take/result-rack polish까지 main에 반영했습니다.
+- 아직 게임을 `RELEASED`로 전환하지 않았습니다. 남은 핵심 범위는 `RELEASE_CHECKLIST.md`의 실제 운영 브라우저 gate, rematch/reconnect 수동 확인, 신규 randomized-draw migration의 운영 적용 확인, 승인회원 production smoke와 Registry capability activation입니다.
+- 디자인 트랙은 `UI_DECISIONS.md`의 `FINAL / DESIGN_CLOSEOUT` 상태가 기준입니다. NT-UI-001~011이 현재 main의 active design baseline이며 Phase E 후보는 release blocker가 아닌 후속 polish입니다.
 - Registry의 No Thanks! capability는 현재 모두 비활성입니다. release gate 완료 전에는 `online/presence`를 선행 활성화하지 않고, `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
 - 다음 구현 시작 전 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. 진행 중 구현 브랜치가 없다면 종료된 과거 브랜치를 재사용하지 않고 최신 `main`에서 새 브랜치를 생성합니다.
 
 ## Next Work
 
-1. 다음 기능/운영 작업 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `RELEASE_CHECKLIST.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. UI 작업이 포함되면 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md` NT-UI-001~007을 함께 적용합니다.
+1. 다음 기능/운영 작업 시작 시 최신 `main`, 이 `DEVELOPMENT.md`, `GAME_SPEC.md`, `RELEASE_CHECKLIST.md`와 No Thanks! 관련 진행 중 game-id 브랜치를 먼저 확인합니다. UI 작업이 포함되면 `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md` NT-UI-001~011을 함께 적용합니다.
 2. `RELEASE_CHECKLIST.md`의 same-room rematch / Presence / reconnect / 실제 데스크톱·모바일 브라우저 gate를 완료합니다.
-3. 운영 Supabase에서 승인회원 create/join/snapshot/gameplay smoke를 수행하고 현재 migration/권한/RLS/private-state 경계가 release 기준과 일치하는지 최종 확인합니다.
-4. 기능/운영 release blocker가 모두 해소되면 별도 activation PR에서 실제 제공할 `online` 및 필요 시 `presence` capability를 활성화하고 게임 목록의 사용자 노출 상태를 검증합니다. `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
-5. release 직전 `DEVELOPMENT.md`, `RELEASE_CHECKLIST.md`, `UI_DECISIONS.md`의 상태를 다시 대조하고 `RELEASED` 전환 여부를 결정합니다.
+3. 운영 Supabase에 `20260924073500_no_thanks_randomized_draw_order.sql`을 적용하고 migration history를 확인한 뒤 승인회원 create/join/snapshot/gameplay smoke를 수행합니다.
+4. 운영 DB의 권한/RLS/private-state 경계와 randomized draw order가 release 기준과 일치하는지 최종 확인합니다.
+5. 기능/운영 release blocker가 모두 해소되면 별도 activation PR에서 실제 제공할 `online` 및 필요 시 `presence` capability를 활성화하고 게임 목록의 사용자 노출 상태를 검증합니다. `invite`는 별도 구현·검증 전까지 비활성으로 유지합니다.
+6. release 직전 `DEVELOPMENT.md`, `RELEASE_CHECKLIST.md`, `UI_DECISIONS.md`의 상태를 다시 대조하고 `RELEASED` 전환 여부를 결정합니다.
 
 ## Decisions
 
@@ -230,12 +236,13 @@
 ## Validation
 
 - 최신 체크포인트:
-  - PR #378 디자인 작업은 Game Platform governance를 통과한 뒤 main에 병합했습니다.
-  - PR #381은 최신 main 동기화 후 `behind 0 / mergeable` 상태를 확인했고 Game Platform governance run #502에서 JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard가 모두 성공했습니다.
-  - PR #381 merge commit `c43f96f984b90049b59b163bffd16c9a5fb5cf04`가 현재 main baseline임을 확인했습니다.
-  - No Thanks! Registry는 현재 `capabilities: {}`로 해석되어 `online/local/invite/presence` 모두 비활성 상태임을 재확인했습니다.
-  - 카드 random deck 계약은 foundation migration과 회귀 테스트로 재검증했고 서버 로직 변경은 필요하지 않았습니다.
-  - 디자인 checkpoint에서 NT-UI-001~007을 현재 active baseline으로 재확인했고, `RELEASE_CHECKLIST.md`의 design closeout gate와 정합성을 맞췄습니다.
+  - 통합 PR #394는 당시 최신 `main` `9d3007c5737e95d8584f40e2ce5a6071636b0fa7` 기준 `behind 0 / mergeable` 상태를 확인하고 병합했습니다. merge commit `91d9ca42b6340888f6c9680bda2dcce604da6ed3`가 현재 기능/디자인 handoff baseline입니다.
+  - PR #394 통합 head에서 Game Platform governance #555, Site static checks #3446, Game DB integration #258이 모두 성공했습니다.
+  - PR #389 / #390 / #391의 변경이 통합 브랜치에 각각 `behind 0`으로 포함됐음을 확인한 뒤 main 병합했습니다.
+  - randomized draw-order migration은 disposable DB에서 3~35 전체 카드 집합 보존 + 비정렬 저장을 회귀 검증했습니다. 다만 이 migration의 **운영 Supabase 적용은 아직 release gate로 남아 있습니다.**
+  - 마지막 카드 source-card 중복, 수동 종료 후 stale deal animation, 최대 24장 결과 rack overflow에 대한 회귀 테스트를 추가/갱신했고 통합 governance에서 통과했습니다.
+  - No Thanks! Registry는 현재 `capabilities: {}`로 해석되어 `online/local/invite/presence` 모두 비활성 상태를 유지합니다.
+  - 디자인 checkpoint에서 NT-UI-001~011을 현재 active baseline으로 갱신하고 `RELEASE_CHECKLIST.md`의 design closeout gate와 정합성을 맞춥니다.
 - 완료:
   - Phase A–D 최종 브랜치 head `71ac396077628e53bebe1bbbc862c1c7383f64b9`를 당시 최신 main과 동기화한 상태에서 PR #364가 mergeable / behind 0임을 확인했습니다.
   - 최종 브랜치에서 Game Platform JavaScript syntax, shared module link, Game Platform contract tests, Governance Guard와 `build-assets`가 모두 통과했습니다.

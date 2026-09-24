@@ -14,6 +14,8 @@
 - [x] Presence lifecycle / 다중 탭 user merge 계약 테스트
 - [x] 3개 독립 인증 세션 자연 종료 통합 검증
 - [x] 7개 독립 인증 세션 full refuse cycle / private counter 격리 통합 검증
+- [x] start RPC가 3~35 전체 33장을 정확히 한 번씩 포함하면서 canonical ascending order와 다른 randomized draw order를 저장하는 회귀 검증
+- [x] 마지막 카드 TAKE source-card 중복 제거 / 수동 종료 시 active deal cancel / 최대 24장 result-rack responsive fit 계약 검증
 
 ## Rematch / post-game
 
@@ -38,14 +40,15 @@
 
 ## Design closeout gate
 
-- [x] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision(NT-UI-001~007)을 함께 확인
-- [x] 수동 디자인 리뷰에서 확정된 수정이 코드에만 남지 않도록 `UI_DECISIONS.md`에 기록
+- [x] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision(NT-UI-001~011)을 함께 확인
+- [x] 수동 디자인 리뷰에서 확정된 game-start / transfer-continuity / maximum-hand 수정이 코드에만 남지 않도록 `UI_DECISIONS.md`에 NT-UI-009~011로 기록
 - [x] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분 — Phase E 공개 획득 카드 popover/추가 polish는 post-closeout follow-up
 - [x] `UI_DECISIONS.md / Current Design Track`을 `FINAL / DESIGN_CLOSEOUT`으로 기록
 
 ## Production database gates
 
 - [x] 운영 DB migration 적용 순서 재확인
+- [ ] `20260924073500_no_thanks_randomized_draw_order.sql` 운영 Supabase 적용 및 migration history 확인
 - [x] Room/Lobby foundation 운영 migration 적용
 - [x] Gameplay actions 운영 migration 적용
 - [x] 공개 room/player 테이블만 Supabase Realtime publication에 등록
@@ -55,11 +58,14 @@
 - [x] private table이 authenticated SELECT 및 Realtime publication에 노출되지 않는지 운영 환경 재확인
 - [x] public gameplay/create RPC execute 권한이 authenticated에만 허용되는지 운영 환경 재확인
 
-운영 migration history:
+운영 적용 확인 완료 migration history:
 - `no_thanks_room_lobby_foundation`
 - `no_thanks_gameplay_actions`
 - `no_thanks_realtime_publication`
 - `no_thanks_private_helper_permissions`
+
+main에 추가됐지만 운영 적용 확인 전:
+- `20260924073500_no_thanks_randomized_draw_order.sql` — start RPC의 실제 randomized 3~35 draw order 보정. release 전에 운영 적용 및 migration history 확인 필요.
 
 Advisor에서 No Thanks! 관련으로 남는 항목 중 `no_thanks_room_actions / no_thanks_room_private_state`의 RLS-without-policy는 직접 table access를 막는 의도적인 deny-all 경계입니다. public `SECURITY DEFINER` RPC 경고는 authenticated 사용자에게 의도적으로 노출한 API이며 각 함수가 승인회원/room/turn/version 권한을 서버에서 다시 검증합니다. FK covering index 2건은 현재 QA 차단 이슈가 아닌 INFO 항목으로 release hardening에서 재검토합니다.
 

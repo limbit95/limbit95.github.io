@@ -10,7 +10,7 @@
 
 - Status: FINAL
 - Lifecycle stage: DESIGN_CLOSEOUT
-- Current UI phase / scope: room/gameplay/result/rules presentation 수동 리뷰 및 closeout 완료
+- Current UI phase / scope: room/gameplay/result/rules closeout + 2026-09-24 game-start/transfer/dense-hand post-closeout polish 반영 완료
 - Active branch: `main`
 - Last updated: 2026-09-24
 - Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
@@ -23,7 +23,10 @@
   - NT-UI-006 — centered FINAL WINNER result card
   - NT-UI-007 — tabletop Rules Guide
   - NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
-- Main design baseline: PR #378 + PR #381, latest merge commit `c43f96f984b90049b59b163bffd16c9a5fb5cf04`
+  - NT-UI-009 — staged tabletop game-start sequence
+  - NT-UI-010 — authoritative transfer continuity at take/end boundaries
+  - NT-UI-011 — maximum-hand responsive overlap
+- Main design baseline: PR #394 merge commit `91d9ca42b6340888f6c9680bda2dcce604da6ed3` (prior active decisions + PR #393 BGM + #389/#390/#391 integration)
 - Next design work: 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-closeout follow-up으로 유지합니다.
 
 ## Decision Log
@@ -187,6 +190,67 @@
 - Baseline relation: `UI_DESIGN.md`의 sound 방향을 실제 사용자 확정 soundtrack으로 구체화한 post-closeout override.
 - Functional boundary: gameplay state / RPC / DB authority / 카드·칩 규칙 변경 없음.
 
+### NT-UI-009 — Staged tabletop game-start sequence
+
+- Status: ACTIVE
+- Applies to: WAITING → PLAYING 전환 직후의 opening presentation
+- Source: 2026-09-24 iterative manual design review
+- Context / trigger: 방장이 게임 시작을 눌렀을 때 board가 즉시 나타나 첫 카드가 공개되는 흐름은 준비된 카드·칩 게임을 시작한다는 몰입감이 약했고, 대기 화면과 플레이 화면의 deck/chip 위치가 바뀌면 순간이동처럼 보였습니다.
+- Decision:
+  - WAITING 원형 테이블에 실제 플레이와 동일한 좌표의 draw deck과 중앙 chip bank를 미리 배치합니다.
+  - 중앙에는 compact `게임 준비 중 / 모두 준비되면 / 바로 시작합니다.` card를 사용하고 deck/center/chip 세 슬롯의 위치는 WAITING과 PLAYING에서 동일하게 유지합니다.
+  - host start 후 goal message card와 `곧 게임이 시작됩니다.` message card를 각각 2.5초 노출합니다.
+  - 두 번째 message card의 fade-out이 완전히 끝나면 추가 idle delay 없이 table setup motion을 시작합니다.
+  - 중앙 chip bank의 배분과 deck shuffle은 동시에 시작하되 chip 배분이 먼저 끝나고 deck shuffle은 더 길게 이어집니다.
+  - viewer에게 지급되는 시작 칩은 중앙 bank에서 빠져나와 개인 패널의 최종 chip-pile 슬롯에 하나씩 그대로 쌓입니다. 다른 플레이어 몫은 seat avatar로 이동하고 avatar에 닿는 마지막 구간에서만 작아지며 투명해져 흡수되는 인상을 줍니다.
+  - source chip은 각 flight가 출발할 때 중앙 bank에서 함께 사라져 실제로 더미가 줄어드는 모습을 유지합니다.
+  - draw deck은 새 카드가 날아와 쌓이는 방식이 아니라 이미 놓인 deck이 펼쳐진 뒤 **4번의 discrete mix beat**를 거치고 다시 한 덱으로 모입니다. 각 beat 사이에는 짧은 hold를 두되 개별 이동은 부드러운 easing을 사용합니다.
+  - deck 정돈이 끝나는 즉시 기존 deck → current-card deal/flip animation으로 첫 카드를 공개합니다. 첫 카드 landing 전까지 TAKE/REFUSE는 잠급니다.
+  - opening sequence는 실제 WAITING → PLAYING authoritative transition에서만 재생하고 reload/reconnect로 이미 PLAYING에 들어온 경우 재생하지 않습니다.
+  - `prefers-reduced-motion`에서는 대규모 이동 motion을 생략하고 동일 authoritative state로 빠르게 수렴합니다.
+- Rationale: game state를 바꾸지 않고도 카드와 칩이 실제 테이블에 준비되고 배분되는 물리적 흐름을 보여 주며, 대기→플레이 전환에서 위치 점프와 과도한 idle 시간을 제거합니다.
+- Implementation status: IMPLEMENTED
+- Validation: PR #391 반복 manual review 후 PR #394에 통합. PR #394 integration head에서 Game Platform governance #555와 Site static checks #3446 성공.
+- Baseline relation: `UI_DESIGN.md`의 tabletop motion / cause→movement→authoritative result 원칙을 game-start 영역에 구체화한 post-closeout override.
+- Functional boundary: room status/current card/chip count의 authority는 서버 snapshot이 소유하고 opening은 presentation layer에서만 conceal/reveal/flight를 수행합니다.
+
+### NT-UI-010 — Authoritative transfer continuity at take/end boundaries
+
+- Status: ACTIVE
+- Applies to: TAKE_CARD, opponent take presentation, last-card transition, host manual termination
+- Source: 2026-09-24 iterative manual design review
+- Context / trigger: TAKE 시 실제 source component와 flight component가 동시에 보이거나, 마지막 카드 획득 뒤 테이블에 원본 카드가 남거나, 수동 게임 종료 직후 이미 예약된 deal animation이 재생되면 authoritative state와 시각 상태가 어긋나 보였습니다.
+- Decision:
+  - TAKE presentation은 source component가 이동을 시작하는 순간 원본 presentation을 숨기고 flight copy만 보이게 합니다.
+  - viewer TAKE의 카드/칩은 실제 개인 패널의 최종 landing target으로 이동하며, opponent TAKE의 공개 획득 요소는 해당 player seat/avatar 방향으로 수렴합니다.
+  - 마지막 카드 TAKE에서도 원형 테이블의 source card를 flight 시작과 함께 숨겨, 개인 패널로 이동하는 카드와 테이블 카드가 중복 노출되지 않게 합니다.
+  - 마지막 카드가 landing한 뒤에는 3초간 game-local `게임 결과를 집계 중입니다` gate를 거쳐 FINAL TABLE로 전환합니다.
+  - 방장이 진행 중 게임을 수동 종료하면 활성 deal presentation을 즉시 cancel하고 flight/receiving 상태를 정리하여 종료 이후 새 카드가 뒤집혀 이동하는 연출을 남기지 않습니다.
+  - opponent seat로 흡수되는 시작/이동 칩은 flight 대부분 구간에서 선명도를 유지하고 avatar contact 직전 마지막 구간에서만 fade/scale down합니다.
+- Rationale: 애니메이션이 authoritative snapshot과 다른 카드/칩을 주장하지 않도록 하고, 실제 구성물이 한 위치에서 다른 위치로 이동했다는 continuity를 유지합니다.
+- Implementation status: IMPLEMENTED
+- Validation: PR #390/#391 회귀 테스트를 PR #394에서 통합하고 Game Platform governance #555 통과.
+- Baseline relation: Phase A–D TAKE/deal motion과 NT-UI-003/004의 game-over transition을 보강하는 post-closeout override.
+- Functional boundary: TAKE legality, next card, final score, end reason은 기존 server-authoritative RPC/snapshot만 사용하며 presentation cancel/hide는 결과를 변경하지 않습니다.
+
+### NT-UI-011 — Maximum-hand responsive overlap
+
+- Status: ACTIVE
+- Applies to: gameplay 개인 획득 카드 hand / GAME_OVER FINAL TABLE acquired-card rack
+- Source: 2026-09-24 manual review of dense hands
+- Context / trigger: 획득 카드가 많아질수록 개인 패널과 결과 카드 rack 바깥으로 카드가 밀려나고, 연속 숫자 run 사이의 고정 간격도 dense hand에서 지나치게 많은 폭을 사용했습니다.
+- Decision:
+  - 첫 버전 24장 draw deck을 기준으로 한 플레이어가 최대 24장을 보유할 수 있는 worst case까지 레이아웃에 포함합니다.
+  - gameplay hand overlap은 보유 장수 구간에 따라 단계적으로 더 타이트해집니다.
+  - FINAL TABLE은 기본 card-count overlap 단계뿐 아니라 실제 rack의 available width, card width, run-start count를 측정해 overlap과 run margin을 동적으로 다시 계산합니다.
+  - 새 run 시작점의 간격도 카드 수/가용 폭이 부족하면 함께 축소하며, dense hand 때문에 horizontal overflow가 발생하지 않게 합니다.
+  - 왼쪽 상단/오른쪽 하단 corner number와 기존 hover/focus UX는 유지하여 겹침이 커져도 카드 값을 읽을 수 있게 합니다.
+- Rationale: 고정 폭을 늘려 화면 전체를 키우는 대신 카드 수에 따라 presentation 밀도를 조절하여 데스크톱/좁은 viewport 모두에서 최대 hand를 수용합니다.
+- Implementation status: IMPLEMENTED
+- Validation: PR #389의 measured result-rack 계산과 PR #391의 강화된 최대-hand overlap을 PR #394에서 통합. Game Platform governance #555 / Site static checks #3446 통과.
+- Baseline relation: NT-UI-004 FINAL TABLE card rack과 `UI_DESIGN.md` 개인 패널 overlap 정책의 후속 override.
+- Functional boundary: 카드 보유/정렬/점수 데이터는 변경하지 않고 DOM spacing만 계산합니다.
+
 ## Superseded / Rejected
 
 - 기존 generic text-list 중심 rules modal은 NT-UI-007에 의해 superseded.
@@ -207,6 +271,10 @@
 - 2026-09-23 — Tabletop Rules Guide에서 검증한 game-local rules presentation 원칙이 Can’t Stop 실험을 거쳐 Game Platform 공통 UI 규칙으로 승격됨.
 - 2026-09-23 — 기능 체크포인트와 함께 디자인 closeout을 재검토해 NT-UI-001~007이 현재 main의 active design baseline임을 확인.
 - 2026-09-24 — user-selected No Thanks! soundtrack을 NT-UI-008로 확정하고 shared BGM 패턴으로 구현.
+- 2026-09-24 — PR #390/#391의 final-take 및 game-start presentation을 반복 manual review로 다듬고 NT-UI-009~010의 안정된 motion/transition 원칙으로 확정.
+- 2026-09-24 — dense hand overflow 수정과 PR #389 measured result-rack 계산을 통합해 NT-UI-011로 확정.
+- 2026-09-24 — 통합 PR #394를 최신 main 대비 `behind 0 / mergeable` 상태와 Governance/Site/DB 통과를 확인한 뒤 main에 병합. merge commit: `91d9ca42b6340888f6c9680bda2dcce604da6ed3`.
+- 2026-09-24 — post-#394 디자인 체크포인트에서 NT-UI-001~011을 현재 active design baseline으로 재확인.
 
 ## Open Follow-up
 
