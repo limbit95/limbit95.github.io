@@ -143,7 +143,10 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /getNoThanksResultHandMargins/u);
   assert.match(runtime, /runStart: runStart \? "true" : "false"/u);
   assert.match(runtime, /function syncResultHandLayouts\(\)/u);
-  assert.match(runtime, /window\.addEventListener\("resize", syncResultHandLayouts/u);
+  assert.match(
+    runtime,
+    /window\.addEventListener\("resize", \(\) => \{[\s\S]*?syncPersonalHandLayout\(\);[\s\S]*?syncResultHandLayouts\(\)/u,
+  );
   assert.match(runtime, /startsNewRun \? baseMargins\.runMargin : overlap/u);
   assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
