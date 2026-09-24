@@ -117,7 +117,10 @@ test("No Thanks! room header emphasizes game identity without duplicating the ro
 
 test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
   assert.match(runtime, /createResultPlayerPanels/u);
-  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? runOverlap : overlap\)/u);
+  assert.match(
+    runtime,
+    /createHandCard\([\s\S]*?startsNewRun \? baseMargins\.runMargin : overlap,[\s\S]*?runStart: startsNewRun/u,
+  );
   assert.match(runtime, /createChipCluster\(entry\.counters/u);
   assert.match(runtime, /최종 보유 칩/u);
   assert.match(runtime, /createWinnerCelebration/u);
