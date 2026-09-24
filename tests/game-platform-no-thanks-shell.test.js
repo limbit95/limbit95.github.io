@@ -271,12 +271,11 @@ test("No Thanks! opening chips land one by one into the viewer's final pile layo
   assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip\.is-start-chip-arrived[\s\S]*opacity:\s*1/u);
 });
 
-test("No Thanks! waiting action copy uses centered two-line guidance", () => {
-  assert.match(runtime, /\["준비 완료를 누르면", "테이블에 착석합니다"\]/u);
-  assert.match(runtime, /\["준비 완료", "게임 시작을 기다리고 있어요\."\]/u);
-  assert.match(runtime, /statusLines\.map\(\(line\) => el\("span", \{ text: line \}\)\)/u);
-  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*justify-items: center/u);
-  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*text-align: center/u);
+test("No Thanks! waiting personal action area keeps only the primary button", () => {
+  assert.doesNotMatch(runtime, /const statusLines = waiting/u);
+  assert.doesNotMatch(runtime, /statusLines\.map/u);
+  assert.match(runtime, /no-thanks-my-panel__action-row is-single/u);
+  assert.match(runtime, /createWaitingPrimaryAction\(view, state\)/u);
 });
 
 test("No Thanks! opponent take sends the public card and chips into the taker's seat avatar", () => {
@@ -335,6 +334,55 @@ test("No Thanks! host termination cancels any active deal animation before endin
   assert.match(runtime, /text: "게임 종료"[\s\S]*?cancelActiveDealPresentation\(\)[\s\S]*?await onConfirm\(\)/u);
   assert.match(runtime, /view\.endReason === "HOST_TERMINATED"[\s\S]*?cancelActiveDealPresentation\(\)/u);
   assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard, effect\)/u);
+});
+
+test("No Thanks! opening unlock updates the same card and chip handlers without a refresh", () => {
+  assert.match(
+    runtime,
+    /const canTake = !state\.busy && view\.canTake;[\s\S]*?const canInteract = !locked && canTake;[\s\S]*?disabled: !canInteract/u,
+  );
+  assert.match(runtime, /if \(event\.currentTarget\.disabled \|\| !canTake\) return;/u);
+  assert.match(
+    runtime,
+    /const canRefuse = !state\.busy && view\.canRefuse;[\s\S]*?const canInteract = !locked && canRefuse;[\s\S]*?disabled: !canInteract/u,
+  );
+  assert.match(runtime, /if \(event\.currentTarget\.disabled \|\| !canRefuse\) return;/u);
+  assert.match(runtime, /function unlockGameStartControls\(view\)/u);
+});
+
+test("No Thanks! deal presentation keeps the source deck until the flight departs", () => {
+  assert.match(runtime, /deckPreviousCount:/u);
+  assert.match(runtime, /deckFinalCount:/u);
+  assert.match(runtime, /const deckDisplayRemaining = effects\?\.dealCard[\s\S]*?effects\.deckPreviousCount/u);
+  assert.match(runtime, /createDrawDeck\(view, \{ displayRemaining: deckDisplayRemaining \}\)/u);
+  assert.match(runtime, /function commitDrawDeckDeparture\(effect\)/u);
+  assert.match(
+    runtime,
+    /\} = created;\s*commitDrawDeckDeparture\(effect\);\s*const dx/u,
+  );
+});
+
+test("No Thanks! personal hand targets the sorted run-aware slot for normal and final takes", () => {
+  assert.match(runtime, /function createPersonalHandCards\(cards,/u);
+  assert.match(runtime, /const orderedCards = \[\.\.\.cards\]\.sort\(\(left, right\) => left - right\)/u);
+  assert.match(runtime, /const startsNewRun = index > 0 && card !== orderedCards\[index - 1\] \+ 1/u);
+  assert.match(runtime, /incomingCardValue != null && Number\(card\) === Number\(incomingCardValue\)/u);
+  assert.match(
+    runtime,
+    /createPersonalHandCards\(cards, \{\s*incomingCardValue: holdingIncomingCard \? effects\.takeCardValue : null/u,
+  );
+  assert.match(
+    runtime,
+    /hand\.replaceChildren\(\.\.\.createPersonalHandCards\(finalCards, \{\s*incomingCardValue: presentation\.cardValue/u,
+  );
+});
+
+test("No Thanks! backgrounding settles an active deal instead of replaying it on restore", () => {
+  assert.match(runtime, /document\.addEventListener\("visibilitychange"/u);
+  assert.match(runtime, /if \(!document\.hidden \|\| boardPresentationEffect\?\.gameStart\) return;/u);
+  assert.match(runtime, /cancelActiveDealPresentation\(\)/u);
+  assert.match(runtime, /commitDrawDeckDeparture\(boardPresentationEffect\)/u);
+  assert.match(runtime, /completeBoardPresentationEffect\(boardPresentationEffect\)/u);
 });
 
 test("No Thanks! opening starts the first deal immediately after shuffle completion", () => {
