@@ -5780,3 +5780,10 @@ body::after {
 .no-thanks-game-start-shuffle-deck[data-shuffle-step="gather"] span {
   filter: drop-shadow(0 7px 10px rgba(8, 29, 34, .22));
 }
+
+
+/* Final-take continuity: the flight is the only visible copy of the source card. */
+.no-thanks-table-card.is-take-source-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
