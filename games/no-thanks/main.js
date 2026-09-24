@@ -29,8 +29,7 @@ import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
-  getNoThanksHandOverlap,
-  getNoThanksHandRunMargin,
+  getNoThanksHandMargins,
   getNoThanksResultHandMargins,
   getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
@@ -2546,6 +2545,46 @@ async function animatePendingTakePresentation(effect) {
   completeBoardPresentationEffect(effect);
 }
 
+function syncPersonalHandLayout() {
+  const hand = app.querySelector(
+    ".no-thanks-my-panel--playing .no-thanks-hand:not(.no-thanks-hand--empty)",
+  );
+  if (!hand) return;
+
+  const cards = [...hand.querySelectorAll(".no-thanks-hand-card")];
+  if (cards.length <= 1) return;
+
+  const handStyle = window.getComputedStyle(hand);
+  const paddingLeft = Number.parseFloat(handStyle.paddingLeft) || 0;
+  const paddingRight = Number.parseFloat(handStyle.paddingRight) || 0;
+  const availableWidth = Math.max(
+    0,
+    hand.clientWidth - paddingLeft - paddingRight,
+  );
+  const cardWidth = cards[0]?.getBoundingClientRect().width ?? 0;
+  const runStartCount = cards
+    .slice(1)
+    .filter((card) => card.dataset.runStart === "true")
+    .length;
+  const margins = getNoThanksHandMargins(cards.length, {
+    availableWidth,
+    cardWidth,
+    runStartCount,
+  });
+
+  cards.forEach((card, index) => {
+    if (index === 0) {
+      card.style.marginLeft = "0";
+      return;
+    }
+    card.style.marginLeft = String(
+      card.dataset.runStart === "true"
+        ? margins.runMargin
+        : margins.overlap,
+    ) + "px";
+  });
+}
+
 function syncResultHandLayouts() {
   if (resultHandLayoutFrame != null) {
     window.cancelAnimationFrame(resultHandLayoutFrame);
@@ -2597,6 +2636,7 @@ function syncBoardAnimationGeometry(view) {
 
   window.requestAnimationFrame(() => {
     if (!board.isConnected) return;
+    syncPersonalHandLayout();
     syncBoardSeatGeometry(board);
 
     const effect = boardPresentationEffect;
@@ -2795,15 +2835,14 @@ function createPersonalHandCards(cards, {
   incomingCardValue = null,
 } = {}) {
   const orderedCards = [...cards].sort((left, right) => left - right);
-  const overlap = getNoThanksHandOverlap(orderedCards.length);
-  const runMargin = getNoThanksHandRunMargin(orderedCards.length);
+  const margins = getNoThanksHandMargins(orderedCards.length);
 
   return orderedCards.map((card, index) => {
     const startsNewRun = index > 0 && card !== orderedCards[index - 1] + 1;
     return createHandCard(
       card,
       index,
-      startsNewRun ? runMargin : overlap,
+      startsNewRun ? margins.runMargin : margins.overlap,
       {
         incoming: incomingCardValue != null && Number(card) === Number(incomingCardValue),
         runStart: startsNewRun,
@@ -3319,6 +3358,7 @@ function prepareFinalViewerTakeDestination(view, presentation) {
     hand.replaceChildren(...createPersonalHandCards(finalCards, {
       incomingCardValue: presentation.cardValue,
     }));
+    syncPersonalHandLayout();
   }
   if (count) {
     count.dataset.finalCount = String(finalCards.length);
@@ -4060,7 +4100,10 @@ async function boot() {
   }
 }
 
-window.addEventListener("resize", syncResultHandLayouts, { passive: true });
+window.addEventListener("resize", () => {
+  syncPersonalHandLayout();
+  syncResultHandLayouts();
+}, { passive: true });
 
 function cancelDealPresentationOnFocusLoss() {
   if (activeDealPresentation) cancelActiveDealPresentation();
