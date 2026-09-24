@@ -159,7 +159,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /duration:\s*700/u);
   assert.match(runtime, /animatePendingTakePresentation\(effect\)/u);
   assert.match(runtime, /await Promise\.all\(\[[\s\S]*?animateTakeCardToHand[\s\S]*?animateTakeChipsToPanel/u);
-  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard\)/u);
+  assert.match(runtime, /await animateDealFlight\\(dealingCard, deckTopCard, effect\\)/u);
   assert.match(runtime, /boardPresentationEffect\.dealCard[\s\S]*?boardPresentationEffect\.completed !== true/u);
   assert.match(runtime, /running:\s*false[\s\S]*?completed:\s*false/u);
   assert.match(runtime, /takeCardLanded:\s*false/u);
