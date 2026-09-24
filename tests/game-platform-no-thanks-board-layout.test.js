@@ -6,6 +6,8 @@ import {
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
+  getNoThanksResultHandMargins,
+  getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "../games/no-thanks/boardLayout.js";
@@ -75,9 +77,47 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
 
   assert.equal(getNoThanksHandOverlap(3), -8);
   assert.equal(getNoThanksHandOverlap(8), -18);
-  assert.equal(getNoThanksHandOverlap(13), -30);
-  assert.equal(getNoThanksHandOverlap(18), -40);
-  assert.equal(getNoThanksHandOverlap(24), -50);
+  assert.equal(getNoThanksHandOverlap(13), -28);
+  assert.equal(getNoThanksHandOverlap(18), -46);
+  assert.equal(getNoThanksHandOverlap(24), -52);
+
+  assert.equal(getNoThanksResultHandOverlap(4), -2);
+  assert.equal(getNoThanksResultHandOverlap(8), -7);
+  assert.equal(getNoThanksResultHandOverlap(12), -14);
+  assert.equal(getNoThanksResultHandOverlap(15), -20);
+  assert.equal(getNoThanksResultHandOverlap(18), -26);
+  assert.equal(getNoThanksResultHandOverlap(21), -32);
+  assert.equal(getNoThanksResultHandOverlap(24), -36);
+
+  const roomyResult = getNoThanksResultHandMargins(9, {
+    availableWidth: 720,
+    cardWidth: 68,
+    runStartCount: 3,
+  });
+  assert.deepEqual(roomyResult, { overlap: -7, runMargin: 10 });
+
+  const compactResult = getNoThanksResultHandMargins(9, {
+    availableWidth: 430,
+    cardWidth: 68,
+    runStartCount: 3,
+  });
+  assert.ok(compactResult.overlap < -7);
+  assert.ok(compactResult.runMargin < 10);
+  assert.ok(
+    (9 * 68) + (5 * compactResult.overlap) + (3 * compactResult.runMargin) <= 430.000001,
+    "responsive result hand must fit within the measured card rack",
+  );
+
+  const denseResult = getNoThanksResultHandMargins(24, {
+    availableWidth: 330,
+    cardWidth: 68,
+    runStartCount: 8,
+  });
+  assert.ok(denseResult.overlap < -52);
+  assert.ok(
+    (24 * 68) + (15 * denseResult.overlap) + (8 * denseResult.runMargin) <= 330.000001,
+    "maximum result hands must increase overlap enough to stay inside the rack",
+  );
 
   assert.equal(getNoThanksVisibleChipCount(0), 0);
   assert.equal(getNoThanksVisibleChipCount(6), 6);
@@ -112,7 +152,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /NO CHIP/u);
   assert.match(runtime, /createCenterChipAction/u);
   assert.match(runtime, /count > 0[\s\S]*?no-thanks-center-chips__count/u);
-  assert.match(runtime, /createDrawDeck\(view\)/u);
+  assert.match(runtime, /createDrawDeck\(view(?:,|\))/u);
   assert.match(runtime, /deck\?\.querySelector\("span:last-child"\) \?\? deck/u);
   assert.match(runtime, /function createDealFlight/u);
   assert.match(runtime, /className = "no-thanks-card-flight"/u);
@@ -159,7 +199,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /duration:\s*700/u);
   assert.match(runtime, /animatePendingTakePresentation\(effect\)/u);
   assert.match(runtime, /await Promise\.all\(\[[\s\S]*?animateTakeCardToHand[\s\S]*?animateTakeChipsToPanel/u);
-  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard\)/u);
+  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard, effect\)/u);
   assert.match(runtime, /boardPresentationEffect\.dealCard[\s\S]*?boardPresentationEffect\.completed !== true/u);
   assert.match(runtime, /running:\s*false[\s\S]*?completed:\s*false/u);
   assert.match(runtime, /takeCardLanded:\s*false/u);

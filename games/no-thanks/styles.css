@@ -396,7 +396,8 @@ body::after {
 
 .no-thanks-rules {
   width: min(calc(100% - 1.25rem), 860px);
-  max-height: min(90vh, 880px);
+  height: min(94dvh, 920px);
+  max-height: 94dvh;
   padding: 0;
   overflow: hidden;
   border: 0;
@@ -417,6 +418,7 @@ body::after {
 
 .no-thanks-rules__content {
   min-height: 0;
+  height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
 }
@@ -896,6 +898,7 @@ body::after {
 @media (max-width: 700px) {
   .no-thanks-rules {
     width: min(calc(100% - .75rem), 860px);
+    height: 92dvh;
     max-height: 92dvh;
     border-radius: 22px;
   }
@@ -2912,9 +2915,17 @@ body::after {
 
 .no-thanks-my-panel__message {
   margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: .06rem;
   color: var(--muted);
   font-size: .76rem;
   line-height: 1.45;
+  text-align: center;
+}
+
+.no-thanks-my-panel__message > span {
+  display: block;
 }
 
 .no-thanks-my-panel__action-row {
@@ -4685,4 +4696,1097 @@ body::after {
 
 .no-thanks-take-chip-flight {
   animation: none !important;
+}
+
+
+/* No Thanks! take handoff and final-count presentation — 2026-09-24 */
+.no-thanks-seat__avatar-frame.is-receiving-take {
+  animation: no-thanks-seat-take-receive .42s cubic-bezier(.18, .78, .22, 1);
+}
+
+@keyframes no-thanks-seat-take-receive {
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 198, 88, 0);
+    transform: scale(1);
+  }
+  55% {
+    box-shadow: 0 0 0 7px rgba(240, 198, 88, .24);
+    transform: scale(1.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 198, 88, 0);
+    transform: scale(1);
+  }
+}
+
+.no-thanks-result-calculating {
+  width: min(calc(100% - 1.5rem), 430px);
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: #fff;
+}
+
+.no-thanks-result-calculating::backdrop {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(103, 158, 177, .18), transparent 30%),
+    rgba(10, 29, 36, .76);
+  backdrop-filter: blur(4px);
+}
+
+.no-thanks-result-calculating__card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: .7rem;
+  padding: 1.55rem 1.35rem 1.4rem;
+  overflow: hidden;
+  border: 2px solid rgba(223, 187, 89, .46);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% -15%, rgba(241, 208, 112, .2), transparent 44%),
+    linear-gradient(145deg, #375c65, #294952 72%);
+  box-shadow:
+    0 26px 70px rgba(4, 19, 24, .34),
+    inset 0 0 0 1px rgba(255, 255, 255, .06);
+  text-align: center;
+}
+
+.no-thanks-result-calculating__eyebrow {
+  margin: 0;
+  color: #f0cf70;
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+
+.no-thanks-result-calculating__card h2,
+.no-thanks-result-calculating__card p {
+  margin: 0;
+}
+
+.no-thanks-result-calculating__card h2 {
+  color: #fff;
+  font-size: clamp(1.35rem, 5vw, 1.8rem);
+  line-height: 1.2;
+}
+
+.no-thanks-result-calculating__card > p:last-of-type {
+  max-width: 32rem;
+  color: rgba(235, 244, 246, .82);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+
+.no-thanks-result-calculating__motif {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.no-thanks-result-calculating__number-card {
+  width: 52px;
+  aspect-ratio: 3 / 4;
+  display: grid;
+  place-items: center;
+  border: 4px solid rgba(255, 255, 255, .88);
+  border-radius: 10px;
+  background: linear-gradient(145deg, #72aec4, #4c879c);
+  box-shadow: 0 10px 20px rgba(5, 24, 29, .2);
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 950;
+  transform: rotate(-7deg);
+}
+
+.no-thanks-result-calculating__number-card.is-back {
+  background: linear-gradient(145deg, #6aa89a, #467f73);
+  transform: rotate(7deg);
+}
+
+.no-thanks-result-calculating__chip {
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  margin-inline: -8px;
+  border: 2px solid #7f1f1a;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .48) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .2),
+    inset 0 -3px 5px rgba(89, 16, 13, .28),
+    0 8px 16px rgba(4, 19, 24, .22);
+}
+
+.no-thanks-result-calculating__dots {
+  display: flex;
+  gap: .34rem;
+  padding-top: .1rem;
+}
+
+.no-thanks-result-calculating__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f0cf70;
+  animation: no-thanks-result-count-dot .9s ease-in-out infinite alternate;
+}
+
+.no-thanks-result-calculating__dots i:nth-child(2) {
+  animation-delay: .15s;
+}
+
+.no-thanks-result-calculating__dots i:nth-child(3) {
+  animation-delay: .3s;
+}
+
+@keyframes no-thanks-result-count-dot {
+  from {
+    opacity: .3;
+    transform: translateY(1px) scale(.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-seat__avatar-frame.is-receiving-take,
+  .no-thanks-result-calculating__dots i {
+    animation: none;
+  }
+}
+
+
+/* Game-start presentation: table setup -> chip allocation -> first reveal. */
+.no-thanks-game-board.is-game-starting .no-thanks-seat__turn {
+  opacity: 0;
+}
+
+.no-thanks-draw-deck.is-game-start-pending .no-thanks-draw-deck__stack span,
+.no-thanks-draw-deck.is-game-start-pending .no-thanks-draw-deck__count {
+  opacity: 0;
+}
+
+.no-thanks-draw-deck.is-game-start-settled .no-thanks-draw-deck__stack {
+  animation: no-thanks-start-deck-settle .34s cubic-bezier(.18, .76, .22, 1);
+}
+
+@keyframes no-thanks-start-deck-settle {
+  0% {
+    transform: translateY(-4px) scale(.96);
+    filter: drop-shadow(0 8px 10px rgba(9, 29, 34, .12));
+  }
+  58% {
+    transform: translateY(2px) scale(1.025);
+    filter: drop-shadow(0 12px 16px rgba(9, 29, 34, .2));
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-my-panel__value,
+.no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-chip-cluster {
+  opacity: 0;
+  transform: scale(.82);
+}
+
+.no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-my-panel__value,
+.no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-chip-cluster {
+  animation: no-thanks-start-chip-panel-land .4s cubic-bezier(.18, .82, .22, 1.12);
+}
+
+@keyframes no-thanks-start-chip-panel-land {
+  0% {
+    opacity: .15;
+    transform: translateY(-6px) scale(.78);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(1px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.no-thanks-game-start-message {
+  position: fixed;
+  z-index: 112;
+  width: min(390px, calc(100vw - 2rem));
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: no-thanks-start-message-in .22s cubic-bezier(.18, .76, .22, 1) both;
+}
+
+.no-thanks-game-start-message__card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: .42rem;
+  padding: 1.05rem 1.15rem 1rem;
+  overflow: hidden;
+  border: 2px solid rgba(229, 198, 111, .52);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 50% -35%, rgba(241, 208, 112, .25), transparent 56%),
+    linear-gradient(145deg, rgba(55, 92, 101, .98), rgba(41, 73, 82, .98) 72%);
+  box-shadow:
+    0 22px 54px rgba(8, 28, 34, .3),
+    inset 0 0 0 1px rgba(255, 255, 255, .07);
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(6px);
+}
+
+.no-thanks-game-start-message__card::before,
+.no-thanks-game-start-message__card::after {
+  position: absolute;
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.no-thanks-game-start-message__card::before {
+  top: -18px;
+  left: 20px;
+  width: 46px;
+  height: 46px;
+  border: 2px solid rgba(127, 31, 26, .7);
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .46) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  opacity: .82;
+}
+
+.no-thanks-game-start-message__card::after {
+  right: 20px;
+  bottom: -34px;
+  width: 70px;
+  height: 92px;
+  border: 4px solid rgba(255, 255, 255, .62);
+  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(114, 174, 196, .86), rgba(76, 135, 156, .86));
+  opacity: .28;
+  transform: rotate(10deg);
+}
+
+.no-thanks-game-start-message__eyebrow {
+  position: relative;
+  z-index: 1;
+  color: #f0cf70;
+  font-size: .62rem;
+  font-weight: 950;
+  letter-spacing: .16em;
+}
+
+.no-thanks-game-start-message__title,
+.no-thanks-game-start-message__body {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.no-thanks-game-start-message__title {
+  max-width: 23rem;
+  color: #fff;
+  font-size: clamp(1.12rem, 3vw, 1.42rem);
+  line-height: 1.28;
+  text-wrap: balance;
+}
+
+.no-thanks-game-start-message__body {
+  max-width: 22rem;
+  color: rgba(236, 245, 247, .82);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+
+.no-thanks-game-start-message[data-phase="ready"] .no-thanks-game-start-message__card {
+  border-color: rgba(121, 181, 202, .62);
+  background:
+    radial-gradient(circle at 50% -35%, rgba(121, 181, 202, .28), transparent 56%),
+    linear-gradient(145deg, rgba(49, 87, 96, .98), rgba(36, 68, 79, .98) 72%);
+}
+
+@keyframes no-thanks-start-message-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.no-thanks-game-start-deck-flight {
+  position: fixed;
+  z-index: 109;
+  box-sizing: border-box;
+  border: 3px solid rgba(255, 255, 255, .84);
+  border-radius: 10px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .08) 0 5px, transparent 5px 10px),
+    #183f48;
+  box-shadow: 0 12px 22px rgba(8, 29, 34, .3);
+  will-change: transform, opacity;
+}
+
+.no-thanks-game-start-chip-flight {
+  position: fixed;
+  z-index: 111;
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border: 2px solid #7f1f1a;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .48) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .2),
+    inset 0 -3px 5px rgba(89, 16, 13, .3),
+    0 7px 13px rgba(47, 18, 16, .3);
+  will-change: transform, opacity;
+}
+
+.no-thanks-game-start-chip-flight::before {
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgba(255, 204, 194, .62);
+  border-radius: 50%;
+  content: "";
+}
+
+.no-thanks-game-start-chip-badge {
+  position: fixed;
+  z-index: 113;
+  min-width: 36px;
+  padding: .18rem .38rem;
+  border: 1px solid rgba(240, 207, 112, .52);
+  border-radius: 999px;
+  pointer-events: none;
+  background: rgba(36, 68, 79, .94);
+  box-shadow: 0 6px 14px rgba(8, 29, 34, .2);
+  color: #f7dc91;
+  font-size: .64rem;
+  font-weight: 950;
+  line-height: 1.1;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+.no-thanks-seat__avatar-frame.is-start-chip-received {
+  animation: no-thanks-start-seat-chip-receive .3s cubic-bezier(.18, .8, .22, 1.15);
+}
+
+@keyframes no-thanks-start-seat-chip-receive {
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 198, 88, 0);
+    transform: scale(1);
+  }
+  58% {
+    box-shadow: 0 0 0 7px rgba(240, 198, 88, .22);
+    transform: scale(1.07);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 198, 88, 0);
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-game-start-message {
+    width: min(330px, calc(100vw - 1rem));
+  }
+
+  .no-thanks-game-start-message__card {
+    padding: .85rem .9rem .82rem;
+    border-radius: 17px;
+  }
+
+  .no-thanks-game-start-message__title {
+    font-size: 1.03rem;
+  }
+
+  .no-thanks-game-start-message__body {
+    font-size: .72rem;
+  }
+
+  .no-thanks-game-start-chip-flight {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-draw-deck.is-game-start-settled .no-thanks-draw-deck__stack,
+  .no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-my-panel__value,
+  .no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-chip-cluster,
+  .no-thanks-game-start-message,
+  .no-thanks-seat__avatar-frame.is-start-chip-received {
+    animation: none;
+  }
+}
+
+
+/* Opening-sequence refinement: prepared waiting table + personal chip allocation. */
+.no-thanks-round-table__waiting-layout {
+  position: relative;
+  z-index: 2;
+  width: min(88%, 620px);
+  display: grid;
+  grid-template-columns: minmax(78px, .8fr) minmax(220px, 2.1fr) minmax(92px, .9fr);
+  align-items: center;
+  justify-items: center;
+  gap: clamp(.55rem, 1.8vw, 1.15rem);
+}
+
+.no-thanks-round-table__waiting-layout .no-thanks-round-table__waiting {
+  width: 100%;
+  min-width: 0;
+}
+
+.no-thanks-round-table__waiting-copy {
+  display: grid;
+  justify-items: center;
+  gap: .06rem;
+}
+
+.no-thanks-round-table__waiting-copy > span {
+  display: block;
+}
+
+.no-thanks-round-table__waiting-object {
+  min-width: 0;
+  display: grid;
+  place-items: center;
+}
+
+.no-thanks-draw-deck--waiting {
+  transform: scale(.94);
+  transform-origin: center;
+}
+
+.no-thanks-start-chip-bank {
+  position: relative;
+  width: 112px;
+  display: grid;
+  justify-items: center;
+  gap: .28rem;
+  color: rgba(255, 255, 255, .82);
+  transition: opacity .24s ease, transform .24s ease;
+}
+
+.no-thanks-start-chip-bank__pile {
+  position: relative;
+  width: 112px;
+  height: 82px;
+}
+
+.no-thanks-start-chip-bank__chip {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  border: 2px solid #7f1f1a;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, .48) 0 6%, transparent 7% 100%),
+    radial-gradient(circle at center, #d94a3f 0 36%, #b52f29 37% 48%, #ef675a 49% 58%, #a52722 59% 72%, #d64a3f 73% 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .2),
+    inset 0 -3px 5px rgba(89, 16, 13, .3),
+    0 5px 10px rgba(33, 21, 18, .24);
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.no-thanks-start-chip-bank__chip::before {
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(255, 204, 194, .6);
+  border-radius: 50%;
+  content: "";
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(5n + 1) { left: 2px; top: 45px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 2) { left: 21px; top: 31px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 3) { left: 42px; top: 44px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 4) { left: 61px; top: 29px; }
+.no-thanks-start-chip-bank__chip:nth-child(5n + 5) { left: 78px; top: 43px; }
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 6):nth-child(-n + 10) {
+  transform: translate(-4px, -11px) scale(.96);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 11):nth-child(-n + 15) {
+  transform: translate(3px, -21px) scale(.92);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 16) {
+  transform: translate(-1px, -30px) scale(.88);
+}
+
+.no-thanks-start-chip-bank__pile.is-distributing .no-thanks-start-chip-bank__chip.is-leaving {
+  opacity: .15;
+  transform: translateY(-8px) scale(.72);
+}
+
+.no-thanks-start-chip-bank__label {
+  font-size: .58rem;
+  font-weight: 950;
+  letter-spacing: .1em;
+  opacity: .72;
+}
+
+.no-thanks-start-chip-zone {
+  position: relative;
+  width: 120px;
+  min-height: 118px;
+  display: grid;
+  place-items: center;
+}
+
+.no-thanks-start-chip-zone > .no-thanks-center-chips {
+  grid-area: 1 / 1;
+}
+
+.no-thanks-start-chip-zone > .no-thanks-start-chip-bank {
+  grid-area: 1 / 1;
+}
+
+.no-thanks-center-chips.is-game-start-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.92);
+}
+
+.no-thanks-center-chips.is-game-start-revealed {
+  animation: no-thanks-start-center-chips-in .28s cubic-bezier(.18, .78, .22, 1);
+}
+
+.no-thanks-start-chip-bank.is-distributed {
+  opacity: 0;
+  transform: translateY(-4px) scale(.92);
+}
+
+@keyframes no-thanks-start-center-chips-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.no-thanks-game-start-chip-flight {
+  width: 28px;
+  height: 28px;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips {
+  position: relative;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips::after {
+  position: absolute;
+  left: 50%;
+  bottom: .35rem;
+  color: var(--muted);
+  content: "칩 배분 대기";
+  font-size: .62rem;
+  font-weight: 850;
+  letter-spacing: .04em;
+  opacity: .72;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.no-thanks-my-panel__chips.is-start-chip-landed::after {
+  content: "";
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table__waiting-layout {
+    width: min(92%, 540px);
+    grid-template-columns: 68px minmax(150px, 1fr) 76px;
+    gap: .32rem;
+  }
+
+  .no-thanks-draw-deck--waiting {
+    transform: scale(.76);
+  }
+
+  .no-thanks-start-chip-bank {
+    width: 82px;
+    transform: scale(.78);
+    transform-origin: center;
+  }
+
+  .no-thanks-start-chip-bank__label {
+    font-size: .52rem;
+  }
+
+  .no-thanks-round-table__waiting-copy {
+    font-size: .72rem;
+  }
+
+  .no-thanks-start-chip-zone {
+    width: 92px;
+    min-height: 98px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-center-chips.is-game-start-revealed {
+    animation: none;
+  }
+
+  .no-thanks-start-chip-bank,
+  .no-thanks-start-chip-bank__chip {
+    transition: none;
+  }
+}
+
+
+/* Opening-sequence visibility/shuffle correction. */
+.no-thanks-game-board.is-game-starting .no-thanks-draw-deck {
+  opacity: 1;
+  visibility: visible;
+}
+
+.no-thanks-draw-deck__stack.is-start-shuffling {
+  z-index: 4;
+}
+
+.no-thanks-draw-deck__stack.is-start-shuffling span {
+  filter: drop-shadow(0 10px 14px rgba(8, 29, 34, .24));
+  will-change: transform;
+}
+
+.no-thanks-draw-deck__stack.is-start-tidied {
+  animation: no-thanks-start-deck-tidy .34s cubic-bezier(.18, .78, .22, 1);
+}
+
+@keyframes no-thanks-start-deck-tidy {
+  0% {
+    transform: scale(.975) rotate(-.6deg);
+  }
+  62% {
+    transform: scale(1.025) rotate(.3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 21):nth-child(-n + 25) {
+  transform: translate(-5px, -39px) scale(.84);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 26):nth-child(-n + 30) {
+  transform: translate(4px, -47px) scale(.8);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 31):nth-child(-n + 35) {
+  transform: translate(-2px, -55px) scale(.76);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 36) {
+  transform: translate(3px, -63px) scale(.72);
+}
+
+.no-thanks-start-chip-bank__pile {
+  height: 96px;
+}
+
+.no-thanks-start-chip-zone {
+  min-height: 132px;
+}
+
+.no-thanks-game-start-chip-flight {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .24),
+    inset 0 -3px 5px rgba(89, 16, 13, .34),
+    0 10px 18px rgba(47, 18, 16, .38);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-draw-deck__stack.is-start-tidied {
+    animation: none;
+  }
+}
+
+
+/* Opening polish: stable object positions, gameplay chip language, stronger riffle shuffle. */
+.no-thanks-round-table__objects--waiting {
+  width: min(84%, 680px);
+  grid-template-columns: minmax(100px, .8fr) minmax(150px, 1.1fr) minmax(100px, .8fr);
+  gap: clamp(.9rem, 2.3vw, 2rem);
+}
+
+.no-thanks-round-table__waiting-card {
+  width: min(100%, 230px);
+  display: grid;
+  justify-items: center;
+  gap: .28rem;
+  padding: .88rem .9rem .82rem;
+  border: 1px solid rgba(255, 255, 255, .22);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% -28%, rgba(238, 208, 126, .16), transparent 58%),
+    rgba(28, 73, 65, .72);
+  box-shadow:
+    0 12px 28px rgba(16, 39, 35, .2),
+    inset 0 0 0 1px rgba(255, 255, 255, .045);
+  color: rgba(255, 255, 255, .96);
+  text-align: center;
+  backdrop-filter: blur(5px);
+}
+
+.no-thanks-round-table__waiting-card > span {
+  color: rgba(241, 212, 133, .9);
+  font-size: .57rem;
+  font-weight: 950;
+  letter-spacing: .15em;
+}
+
+.no-thanks-round-table__waiting-card > strong {
+  font-size: clamp(1.05rem, 1.8vw, 1.38rem);
+  line-height: 1.2;
+}
+
+.no-thanks-round-table__waiting-card .no-thanks-round-table__waiting-copy {
+  margin: .08rem 0 0;
+  color: rgba(239, 247, 244, .76);
+  font-size: .72rem;
+  font-weight: 760;
+  line-height: 1.42;
+}
+
+.no-thanks-draw-deck--waiting {
+  transform: none;
+}
+
+.no-thanks-start-chip-bank {
+  width: 140px;
+  min-height: 96px;
+  gap: 0;
+}
+
+.no-thanks-start-chip-bank__pile {
+  position: relative;
+  width: 140px;
+  height: 96px;
+}
+
+.no-thanks-start-chip-bank__cluster {
+  position: absolute !important;
+  left: 0;
+  top: 0;
+  margin: 0 !important;
+  transform-origin: center;
+  transition:
+    opacity .16s ease,
+    transform .18s cubic-bezier(.18, .76, .22, 1);
+}
+
+.no-thanks-start-chip-bank__cluster.is-back {
+  opacity: .88;
+  transform: translate(5px, -12px) scale(.96);
+}
+
+.no-thanks-start-chip-bank__cluster.is-front {
+  transform: translate(-4px, 11px) scale(1);
+}
+
+.no-thanks-start-chip-bank .no-thanks-chip.is-leaving {
+  opacity: .12;
+  transform: translateY(-10px) scale(.7);
+}
+
+.no-thanks-start-chip-bank__label {
+  display: none;
+}
+
+.no-thanks-game-start-shuffle-deck {
+  position: fixed !important;
+  z-index: 124;
+  margin: 0 !important;
+  pointer-events: none;
+  transform-origin: 50% 54%;
+  will-change: transform, filter, opacity;
+}
+
+.no-thanks-game-start-shuffle-deck span {
+  will-change: transform, opacity;
+  filter: drop-shadow(0 8px 12px rgba(8, 29, 34, .26));
+}
+
+.no-thanks-draw-deck__stack.is-start-shuffle-source-hidden {
+  opacity: 0;
+}
+
+.no-thanks-draw-deck__stack.is-start-tidied {
+  animation: no-thanks-start-deck-impact .32s cubic-bezier(.16, .86, .24, 1.12);
+}
+
+@keyframes no-thanks-start-deck-impact {
+  0% {
+    transform: translateY(-5px) scale(1.08);
+    filter: drop-shadow(0 17px 22px rgba(8, 29, 34, .34));
+  }
+  56% {
+    transform: translateY(3px) scale(.975);
+    filter: drop-shadow(0 8px 11px rgba(8, 29, 34, .2));
+  }
+  100% {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-round-table__objects--waiting {
+    width: 84%;
+    grid-template-columns: minmax(82px, .8fr) minmax(120px, 1fr) minmax(82px, .8fr);
+  }
+
+  .no-thanks-round-table__waiting-card {
+    width: min(100%, 190px);
+    padding-inline: .7rem;
+  }
+
+  .no-thanks-start-chip-bank {
+    transform: scale(.82);
+    transform-origin: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table__objects--waiting {
+    width: 86%;
+    grid-template-columns: .7fr 1fr .7fr;
+    gap: .3rem;
+  }
+
+  .no-thanks-round-table__waiting-card {
+    width: min(100%, 146px);
+    gap: .18rem;
+    padding: .55rem .45rem;
+    border-radius: 13px;
+  }
+
+  .no-thanks-round-table__waiting-card > span {
+    font-size: .46rem;
+  }
+
+  .no-thanks-round-table__waiting-card > strong {
+    font-size: .84rem;
+  }
+
+  .no-thanks-round-table__waiting-card .no-thanks-round-table__waiting-copy {
+    font-size: .58rem;
+  }
+
+  .no-thanks-start-chip-bank {
+    width: 140px;
+    transform: scale(.6);
+    transform-origin: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-draw-deck__stack.is-start-tidied {
+    animation: none;
+  }
+}
+
+
+/* Opening continuity: waiting/playing share identical object-slot centers. */
+.no-thanks-round-table__slot {
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.no-thanks-round-table__slot.is-deck,
+.no-thanks-round-table__slot.is-center,
+.no-thanks-round-table__slot.is-chips {
+  justify-self: stretch;
+}
+
+.no-thanks-start-chip-zone {
+  width: 140px;
+  min-height: 96px;
+}
+
+.no-thanks-start-chip-bank .no-thanks-chip.is-leaving,
+.no-thanks-start-chip-bank .no-thanks-chip[data-distributed="true"] {
+  opacity: 0 !important;
+  visibility: hidden;
+  transform: translateY(-12px) scale(.58) !important;
+}
+
+.no-thanks-start-chip-bank__cluster {
+  pointer-events: none;
+}
+
+.no-thanks-game-start-shuffle-deck {
+  overflow: visible;
+}
+
+.no-thanks-game-start-shuffle-deck span {
+  transform-origin: center;
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-start-chip-zone {
+    width: 116px;
+    min-height: 86px;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-start-chip-zone {
+    width: 92px;
+    min-height: 72px;
+  }
+}
+
+
+/* Opening position lock: waiting and playing use identical absolute slot centers. */
+.no-thanks-round-table__objects,
+.no-thanks-round-table__objects--waiting {
+  position: relative;
+  width: min(84%, 680px);
+  height: clamp(132px, 15vw, 184px);
+  display: block;
+}
+
+.no-thanks-round-table__slot {
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.no-thanks-round-table__slot.is-deck {
+  left: 16%;
+}
+
+.no-thanks-round-table__slot.is-center {
+  left: 50%;
+}
+
+.no-thanks-round-table__slot.is-chips {
+  left: 84%;
+}
+
+.no-thanks-round-table__slot > * {
+  max-width: 100%;
+}
+
+.no-thanks-start-chip-bank__pile.is-distributing {
+  isolation: isolate;
+}
+
+.no-thanks-start-chip-bank .no-thanks-chip[data-distributed="true"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-round-table__objects,
+  .no-thanks-round-table__objects--waiting {
+    width: 84%;
+    height: 150px;
+  }
+
+  .no-thanks-round-table__slot {
+    width: 31%;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table__objects,
+  .no-thanks-round-table__objects--waiting {
+    width: 86%;
+    height: 118px;
+  }
+
+  .no-thanks-round-table__slot.is-deck {
+    left: 17%;
+  }
+
+  .no-thanks-round-table__slot.is-chips {
+    left: 83%;
+  }
+}
+
+
+/* Opening chip landing: reveal the final personal chip pile one real slot at a time. */
+.no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-my-panel__value {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips
+.no-thanks-chip-cluster.is-awaiting-start-stack {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-chip-cluster.is-awaiting-start-stack .no-thanks-chip {
+  opacity: 0;
+  transform: translateY(-5px) scale(.72);
+  transition:
+    opacity .08s ease-out,
+    transform .12s cubic-bezier(.18, .9, .22, 1.12);
+}
+
+.no-thanks-chip-cluster.is-awaiting-start-stack .no-thanks-chip.is-start-chip-arrived,
+.no-thanks-chip-cluster .no-thanks-chip.is-start-chip-arrived {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-chip-cluster {
+  animation: none;
+}
+
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="spread"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-one"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-two"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-three"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-four"] span {
+  filter: drop-shadow(0 11px 15px rgba(8, 29, 34, .32));
+}
+
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="gather"] span {
+  filter: drop-shadow(0 7px 10px rgba(8, 29, 34, .22));
+}
+
+
+/* Final-take continuity: the flight is the only visible copy of the source card. */
+.no-thanks-table-card.is-take-source-hidden {
+  opacity: 0;
+  visibility: hidden;
 }

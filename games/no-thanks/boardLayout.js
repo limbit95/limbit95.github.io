@@ -38,9 +38,85 @@ export function getNoThanksHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
   if (count <= 5) return -8;
   if (count <= 9) return -18;
-  if (count <= 14) return -30;
-  if (count <= 19) return -40;
-  return -50;
+  if (count <= 13) return -28;
+  if (count <= 17) return -38;
+  if (count <= 21) return -46;
+  return -52;
+}
+
+
+export function getNoThanksResultHandOverlap(cardCount) {
+  const count = Math.max(0, Number(cardCount) || 0);
+  if (count <= 5) return -2;
+  if (count <= 9) return -7;
+  if (count <= 12) return -14;
+  if (count <= 15) return -20;
+  if (count <= 18) return -26;
+  if (count <= 21) return -32;
+  return -36;
+}
+
+export function getNoThanksResultHandMargins(cardCount, {
+  availableWidth,
+  cardWidth,
+  runStartCount = 0,
+} = {}) {
+  const count = Math.max(0, Math.floor(Number(cardCount) || 0));
+  const baseOverlap = getNoThanksResultHandOverlap(count);
+  const baseRunMargin = count <= 9
+    ? 10
+    : (count <= 12 ? 4 : Math.min(-4, baseOverlap + 8));
+
+  if (count <= 1) {
+    return Object.freeze({ overlap: 0, runMargin: 0 });
+  }
+
+  const width = Number(availableWidth);
+  const card = Number(cardWidth);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(card) || card <= 0) {
+    return Object.freeze({ overlap: baseOverlap, runMargin: baseRunMargin });
+  }
+
+  const transitions = count - 1;
+  const runStarts = Math.max(
+    0,
+    Math.min(transitions, Math.floor(Number(runStartCount) || 0)),
+  );
+  const regularTransitions = transitions - runStarts;
+  const baseTotalWidth = (count * card)
+    + (regularTransitions * baseOverlap)
+    + (runStarts * baseRunMargin);
+
+  if (baseTotalWidth <= width) {
+    return Object.freeze({ overlap: baseOverlap, runMargin: baseRunMargin });
+  }
+
+  const transitionSpace = Math.max(0, width - card);
+  const baseRegularStep = Math.max(0, card + baseOverlap);
+  const baseRunStep = Math.max(0, card + baseRunMargin);
+  const desiredRunBonus = Math.max(0, baseRunStep - baseRegularStep);
+  const averageStep = transitionSpace / transitions;
+  const minimumVisibleStep = Math.min(6, Math.max(0, averageStep));
+
+  let regularStep = runStarts > 0
+    ? (transitionSpace - (runStarts * desiredRunBonus)) / transitions
+    : averageStep;
+  if (!Number.isFinite(regularStep)) regularStep = 0;
+
+  regularStep = Math.min(baseRegularStep, Math.max(minimumVisibleStep, regularStep));
+  const remainingForRunBonus = Math.max(
+    0,
+    transitionSpace - (regularStep * transitions),
+  );
+  const runBonus = runStarts > 0
+    ? Math.min(desiredRunBonus, remainingForRunBonus / runStarts)
+    : 0;
+  const runStep = Math.min(baseRunStep, regularStep + runBonus);
+
+  return Object.freeze({
+    overlap: regularStep - card,
+    runMargin: runStep - card,
+  });
 }
 
 
