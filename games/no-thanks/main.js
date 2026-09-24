@@ -59,7 +59,6 @@ let activeWinnerCelebrationDialog = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 const FINAL_RESULT_DELAY_MS = 3000;
 const GAME_START_MESSAGE_HOLD_MS = 2500;
-const GAME_START_SETUP_PAUSE_MS = 1000;
 const GAME_START_DEAL_PAUSE_MS = 950;
 
 function replaceApp(node) {
@@ -1638,6 +1637,7 @@ function clearGameStartPresentationArtifacts() {
   document.querySelectorAll(
     ".no-thanks-game-start-message,"
     + " .no-thanks-game-start-deck-flight,"
+    + " .no-thanks-game-start-shuffle-deck,"
     + " .no-thanks-game-start-chip-flight,"
     + " .no-thanks-game-start-chip-badge",
   ).forEach((node) => node.remove());
@@ -1748,63 +1748,151 @@ async function animateGameStartDeck(board, effect) {
     ? board
     : app.querySelector(".no-thanks-game-board");
   const stack = liveBoard?.querySelector(".no-thanks-draw-deck__stack");
-  const cards = [...(stack?.querySelectorAll("span") ?? [])];
+  const sourceCards = [...(stack?.querySelectorAll("span") ?? [])];
 
   if (
     !stack
-    || cards.length === 0
+    || sourceCards.length === 0
     || prefersReducedMotion()
-    || typeof cards[0]?.animate !== "function"
+    || typeof sourceCards[0]?.animate !== "function"
   ) {
     revealGameStartDeck(effect);
     return;
   }
 
-  stack.classList.add("is-start-shuffling");
+  const stackRect = stack.getBoundingClientRect();
+  const overlay = stack.cloneNode(true);
+  overlay.classList.add("no-thanks-game-start-shuffle-deck");
+  Object.assign(overlay.style, {
+    left: stackRect.left.toFixed(2) + "px",
+    top: stackRect.top.toFixed(2) + "px",
+    width: stackRect.width.toFixed(2) + "px",
+    height: stackRect.height.toFixed(2) + "px",
+  });
+  document.body.append(overlay);
+  stack.classList.add("is-start-shuffle-source-hidden");
 
-  await Promise.all(cards.map((card, index) => {
+  const cards = [...overlay.querySelectorAll("span")];
+  const stackAnimation = overlay.animate([
+    {
+      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
+      offset: 0,
+    },
+    {
+      transform: "translate3d(0, -8px, 0) scale(1.09) rotateZ(-1.5deg)",
+      filter: "drop-shadow(0 20px 28px rgba(8, 29, 34, .36))",
+      offset: .28,
+    },
+    {
+      transform: "translate3d(0, 5px, 0) scale(1.04) rotateZ(1.1deg)",
+      filter: "drop-shadow(0 14px 22px rgba(8, 29, 34, .3))",
+      offset: .72,
+    },
+    {
+      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
+      offset: 1,
+    },
+  ], {
+    duration: 1240,
+    easing: "cubic-bezier(.16, .78, .2, 1)",
+    fill: "both",
+  });
+
+  const cardAnimations = cards.map((card, index) => {
+    const baseTransform = getComputedStyle(card).transform;
     const direction = index % 2 === 0 ? -1 : 1;
-    const spread = 18 + ((index % 4) * 7);
-    const lift = 9 + ((index % 3) * 5);
-    const rotation = direction * (5 + ((index % 4) * 2.5));
-    const delay = index * 55;
+    const spread = 50 + ((index % 4) * 10);
+    const lift = 18 + ((index % 3) * 7);
+    const rotation = direction * (10 + ((index % 3) * 3));
+    const cross = direction * -30;
 
+    card.style.zIndex = String(40 + (index % 2 === 0 ? index : cards.length + index));
     const animation = card.animate([
       {
-        transform: card.style.transform || "translate(0, 0) rotate(0deg)",
+        transform: baseTransform,
         opacity: 1,
         offset: 0,
       },
       {
-        transform: `translate(${direction * spread}px, ${-lift}px) rotate(${rotation}deg)`,
+        transform: `translate3d(${direction * spread}px, ${-lift}px, 0) rotateZ(${rotation}deg) scale(1.04)`,
         opacity: 1,
-        offset: .34,
+        offset: .26,
       },
       {
-        transform: `translate(${direction * (spread * .58)}px, ${lift * .36}px) rotate(${rotation * -.45}deg)`,
+        transform: `translate3d(${cross}px, ${6 + ((index % 2) * 8)}px, 0) rotateZ(${rotation * -.62}deg) scale(.98)`,
         opacity: 1,
-        offset: .68,
+        offset: .54,
       },
       {
-        transform: card.style.transform || "translate(0, 0) rotate(0deg)",
+        transform: `translate3d(${direction * 15}px, -5px, 0) rotateZ(${direction * 3}deg) scale(1.015)`,
+        opacity: 1,
+        offset: .78,
+      },
+      {
+        transform: baseTransform,
         opacity: 1,
         offset: 1,
       },
     ], {
-      duration: 760,
-      delay,
-      easing: "cubic-bezier(.18, .76, .22, 1)",
+      duration: 1080,
+      delay: index * 34,
+      easing: "cubic-bezier(.16, .78, .2, 1)",
       fill: "both",
     });
-    return animation.finished.catch(() => {});
-  }));
+    return animation;
+  });
 
-  if (!isCurrentBoardPresentationEffect(effect)) return;
+  await Promise.all([
+    stackAnimation.finished.catch(() => {}),
+    ...cardAnimations.map((animation) => animation.finished.catch(() => {})),
+  ]);
 
-  stack.classList.remove("is-start-shuffling");
-  stack.classList.add("is-start-tidied");
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    overlay.remove();
+    app.querySelector(".no-thanks-draw-deck__stack.is-start-shuffle-source-hidden")
+      ?.classList.remove("is-start-shuffle-source-hidden");
+    return;
+  }
+
+  cardAnimations.forEach((animation) => animation.cancel());
+  stackAnimation.cancel();
+
+  const settle = overlay.animate([
+    {
+      transform: "translate3d(0, -2px, 0) scale(1.07)",
+      opacity: 1,
+    },
+    {
+      transform: "translate3d(0, 5px, 0) scale(.97)",
+      opacity: 1,
+      offset: .48,
+    },
+    {
+      transform: "translate3d(0, 0, 0) scale(1)",
+      opacity: 1,
+      offset: .82,
+    },
+    {
+      transform: "translate3d(0, 0, 0) scale(1)",
+      opacity: 0,
+      offset: 1,
+    },
+  ], {
+    duration: 300,
+    easing: "cubic-bezier(.18, .8, .22, 1)",
+    fill: "forwards",
+  });
+
+  const currentStack = app.querySelector(".no-thanks-draw-deck__stack");
+  currentStack?.classList.remove("is-start-shuffle-source-hidden");
+  currentStack?.classList.add("is-start-tidied");
   revealGameStartDeck(effect);
-  window.setTimeout(() => stack.classList.remove("is-start-tidied"), 360);
+
+  await settle.finished.catch(() => {});
+  overlay.remove();
+  window.setTimeout(() => currentStack?.classList.remove("is-start-tidied"), 320);
 }
 
 async function animateGameStartChips(board, view, effect) {
@@ -1814,7 +1902,7 @@ async function animateGameStartChips(board, view, effect) {
   const sourcePile = liveBoard?.querySelector(
     ".no-thanks-start-chip-bank:not(.is-waiting) .no-thanks-start-chip-bank__pile",
   );
-  const sourceChips = [...(sourcePile?.querySelectorAll(".no-thanks-start-chip-bank__chip") ?? [])];
+  const sourceChips = [...(sourcePile?.querySelectorAll(".no-thanks-chip") ?? [])];
   const target = app.querySelector(
     ".no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-chip-cluster",
   );
@@ -1965,7 +2053,6 @@ async function runGameStartPresentation(effect, view) {
   const message = createGameStartMessage(board);
   const reducedMotion = prefersReducedMotion();
   const messageHold = reducedMotion ? 850 : GAME_START_MESSAGE_HOLD_MS;
-  const setupPause = reducedMotion ? 220 : GAME_START_SETUP_PAUSE_MS;
   const dealPause = reducedMotion ? 260 : GAME_START_DEAL_PAUSE_MS;
 
   await waitForPresentation(messageHold);
@@ -2001,7 +2088,6 @@ async function runGameStartPresentation(effect, view) {
   }
   message?.remove();
 
-  await waitForPresentation(setupPause);
   if (!isCurrentBoardPresentationEffect(effect)) {
     clearGameStartPresentationArtifacts();
     return;
@@ -2172,22 +2258,25 @@ function syncBoardAnimationGeometry(view) {
 function createGameStartChipBank({
   waiting = false,
 } = {}) {
-  const chipCount = waiting ? 40 : 36;
+  const backCluster = createChipCluster(16, {
+    label: "시작 칩 더미 뒤쪽 16개",
+  });
+  const frontCluster = createChipCluster(16, {
+    label: "시작 칩 더미 앞쪽 16개",
+  });
+  backCluster.classList.add("no-thanks-start-chip-bank__cluster", "is-back");
+  frontCluster.classList.add("no-thanks-start-chip-bank__cluster", "is-front");
+
   return el("div", {
     className: "no-thanks-start-chip-bank" + (waiting ? " is-waiting" : ""),
-    "aria-label": waiting ? "게임 시작용 칩 더미" : "시작 칩 배분 더미",
+    "aria-label": "게임 시작용 칩 더미 32개",
   }, [
     el("div", {
       className: "no-thanks-start-chip-bank__pile",
-      "aria-hidden": "true",
-    }, Array.from({ length: chipCount }, (_, index) => el("span", {
-      className: "no-thanks-start-chip-bank__chip",
-      style: { zIndex: String(index + 1) },
-    }))),
-    el("strong", {
-      className: "no-thanks-start-chip-bank__label",
-      text: waiting ? "START CHIPS" : "CHIP BANK",
-    }),
+    }, [
+      backCluster,
+      frontCluster,
+    ]),
   ]);
 }
 
@@ -2200,21 +2289,19 @@ function createWaitingTableDeck() {
 function createRoundTable(view, state, effects) {
   if (view.status === "waiting") {
     return el("div", { className: "no-thanks-round-table" }, [
-      el("div", { className: "no-thanks-round-table__waiting-layout" }, [
-        el("div", { className: "no-thanks-round-table__waiting-object is-deck" }, [
-          createWaitingTableDeck(),
-        ]),
-        el("div", { className: "no-thanks-round-table__waiting" }, [
+      el("div", {
+        className: "no-thanks-round-table__objects no-thanks-round-table__objects--waiting",
+      }, [
+        createWaitingTableDeck(),
+        el("section", { className: "no-thanks-round-table__waiting-card" }, [
           el("span", { text: "NO THANKS!" }),
-          el("strong", { text: "게임 테이블 준비 중" }),
+          el("strong", { text: "게임 준비 중" }),
           el("p", { className: "no-thanks-round-table__waiting-copy" }, [
-            el("span", { text: "준비를 마친 플레이어가 자리를 채우면" }),
-            el("span", { text: "이 테이블에서 바로 게임이 시작됩니다." }),
+            el("span", { text: "모두 준비되면" }),
+            el("span", { text: "바로 시작합니다." }),
           ]),
         ]),
-        el("div", { className: "no-thanks-round-table__waiting-object is-chips" }, [
-          createGameStartChipBank({ waiting: true }),
-        ]),
+        createGameStartChipBank({ waiting: true }),
       ]),
     ]);
   }
