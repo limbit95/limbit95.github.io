@@ -214,10 +214,12 @@ test("No Thanks! opening deck uses discrete spread, mix, mix, and gather snap be
   assert.match(runtime, /visualShuffleCount = 12/u);
   assert.match(runtime, /const shuffleOrderOne = \[5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4\]/u);
   assert.match(runtime, /const shuffleOrderTwo = \[8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6\]/u);
+  assert.match(runtime, /const shuffleOrderThree = \[2, 9, 5, 11, 4, 0, 8, 1, 10, 6, 3, 7\]/u);
   assert.match(runtime, /const runSnapStep = async/u);
   assert.match(runtime, /className: "spread"/u);
   assert.match(runtime, /className: "mix-one"/u);
   assert.match(runtime, /className: "mix-two"/u);
+  assert.match(runtime, /className: "mix-three"/u);
   assert.match(runtime, /className: "gather"/u);
   assert.match(runtime, /duration: 360, hold: 220/u);
   assert.match(runtime, /duration: 320, hold: 180/u);
@@ -227,6 +229,7 @@ test("No Thanks! opening deck uses discrete spread, mix, mix, and gather snap be
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="spread"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-one"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-two"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-three"\]/u);
 });
 
 test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distribution", () => {
@@ -237,6 +240,7 @@ test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distri
   assert.match(runtime, /duration: 360, hold: 220, className: "spread"/u);
   assert.match(runtime, /duration: 320, hold: 180, className: "mix-one"/u);
   assert.match(runtime, /duration: 320, hold: 180, className: "mix-two"/u);
+  assert.match(runtime, /duration: 320, hold: 180, className: "mix-three"/u);
   assert.match(runtime, /duration: 360, hold: 0, className: "gather"/u);
   assert.match(runtime, /const delay = index \* 38/u);
 });
