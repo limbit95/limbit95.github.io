@@ -5737,3 +5737,44 @@ body::after {
     left: 83%;
   }
 }
+
+
+/* Opening chip landing: reveal the final personal chip pile one real slot at a time. */
+.no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-my-panel__value {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-my-panel__chips.is-awaiting-start-chips
+.no-thanks-chip-cluster.is-awaiting-start-stack {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-chip-cluster.is-awaiting-start-stack .no-thanks-chip {
+  opacity: 0;
+  transform: translateY(-5px) scale(.72);
+  transition:
+    opacity .08s ease-out,
+    transform .12s cubic-bezier(.18, .9, .22, 1.12);
+}
+
+.no-thanks-chip-cluster.is-awaiting-start-stack .no-thanks-chip.is-start-chip-arrived,
+.no-thanks-chip-cluster .no-thanks-chip.is-start-chip-arrived {
+  opacity: 1;
+  transform: none;
+}
+
+.no-thanks-my-panel__chips.is-start-chip-landed .no-thanks-chip-cluster {
+  animation: none;
+}
+
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="spread"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-one"] span,
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="mix-two"] span {
+  filter: drop-shadow(0 11px 15px rgba(8, 29, 34, .32));
+}
+
+.no-thanks-game-start-shuffle-deck[data-shuffle-step="gather"] span {
+  filter: drop-shadow(0 7px 10px rgba(8, 29, 34, .22));
+}
