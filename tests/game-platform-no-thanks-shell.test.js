@@ -219,12 +219,26 @@ test("No Thanks! opening deck uses discrete spread, mix, mix, and gather snap be
   assert.match(runtime, /className: "mix-one"/u);
   assert.match(runtime, /className: "mix-two"/u);
   assert.match(runtime, /className: "gather"/u);
-  assert.match(runtime, /duration: 160, hold: 170/u);
-  assert.match(runtime, /duration: 135, hold: 145/u);
-  assert.match(runtime, /duration: 175, hold: 0/u);
+  assert.match(runtime, /duration: 360, hold: 220/u);
+  assert.match(runtime, /duration: 320, hold: 180/u);
+  assert.match(runtime, /duration: 360, hold: 0/u);
+  assert.match(runtime, /easing: "cubic-bezier\(\.2, \.72, \.2, 1\)"/u);
+  assert.match(runtime, /duration: 380/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="spread"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-one"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-two"\]/u);
+});
+
+test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distribution", () => {
+  assert.match(
+    runtime,
+    /Promise\.all\(\[\s*animateGameStartDeck\(setupBoard, effect\),\s*animateGameStartChips\(setupBoard, view, effect\),\s*\]\)/u,
+  );
+  assert.match(runtime, /duration: 360, hold: 220, className: "spread"/u);
+  assert.match(runtime, /duration: 320, hold: 180, className: "mix-one"/u);
+  assert.match(runtime, /duration: 320, hold: 180, className: "mix-two"/u);
+  assert.match(runtime, /duration: 360, hold: 0, className: "gather"/u);
+  assert.match(runtime, /const delay = index \* 38/u);
 });
 
 test("No Thanks! opening chips land one by one into the viewer's final pile layout while opponents absorb theirs", () => {
