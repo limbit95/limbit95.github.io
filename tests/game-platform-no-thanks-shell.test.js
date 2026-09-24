@@ -115,7 +115,7 @@ test("No Thanks! room header emphasizes game identity without duplicating the ro
 
 test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
   assert.match(runtime, /createResultPlayerPanels/u);
-  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? 12 : overlap\)/u);
+  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? runOverlap : overlap\)/u);
   assert.match(runtime, /createChipCluster\(entry\.counters/u);
   assert.match(runtime, /최종 보유 칩/u);
   assert.match(runtime, /createWinnerCelebration/u);
@@ -137,10 +137,14 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
   assert.match(runtime, /if \(count <= 5\) return -2/u);
   assert.match(runtime, /if \(count <= 9\) return -7/u);
-  assert.match(runtime, /if \(count <= 14\) return -13/u);
-  assert.match(runtime, /if \(count <= 19\) return -21/u);
-  assert.match(runtime, /return -30/u);
-  assert.match(runtime, /startsNewRun \? 12 : overlap/u);
+  assert.match(runtime, /if \(count <= 12\) return -14/u);
+  assert.match(runtime, /if \(count <= 15\) return -20/u);
+  assert.match(runtime, /if \(count <= 18\) return -26/u);
+  assert.match(runtime, /if \(count <= 21\) return -32/u);
+  assert.match(runtime, /return -36/u);
+  assert.match(runtime, /function getNoThanksResultRunOverlap\(cardCount, overlap\)/u);
+  assert.match(runtime, /return Math\.min\(-4, overlap \+ 8\)/u);
+  assert.match(runtime, /startsNewRun \? runOverlap : overlap/u);
   assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
@@ -284,6 +288,19 @@ test("No Thanks! opponent take sends the public card and chips into the taker's 
   assert.match(runtime, /animatePendingTakeToSeat/u);
   assert.match(styles, /\.no-thanks-seat__avatar-frame\.is-receiving-take/u);
   assert.match(styles, /@keyframes no-thanks-seat-take-receive/u);
+});
+
+test("No Thanks! final take hides the held table-card source while its transfer flight moves", () => {
+  assert.match(runtime, /sourceCard,\s*cardFlight:/u);
+  assert.match(
+    runtime,
+    /async function animateTakeCardToHand\(presentation, effect\) \{\s*presentation\?\.sourceCard\?\.classList\.add\("is-take-source-hidden"\)/u,
+  );
+  assert.match(
+    runtime,
+    /async function animateTakeCardToSeat\(presentation\) \{\s*presentation\?\.sourceCard\?\.classList\.add\("is-take-source-hidden"\)/u,
+  );
+  assert.match(styles, /\.no-thanks-table-card\.is-take-source-hidden[\s\S]*visibility:\s*hidden/u);
 });
 
 test("No Thanks! final take lands before a three-second game-styled result calculation gate", () => {
