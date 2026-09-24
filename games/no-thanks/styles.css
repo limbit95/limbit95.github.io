@@ -5357,3 +5357,72 @@ body::after {
     transition: none;
   }
 }
+
+
+/* Opening-sequence visibility/shuffle correction. */
+.no-thanks-game-board.is-game-starting .no-thanks-draw-deck {
+  opacity: 1;
+  visibility: visible;
+}
+
+.no-thanks-draw-deck__stack.is-start-shuffling {
+  z-index: 4;
+}
+
+.no-thanks-draw-deck__stack.is-start-shuffling span {
+  filter: drop-shadow(0 10px 14px rgba(8, 29, 34, .24));
+  will-change: transform;
+}
+
+.no-thanks-draw-deck__stack.is-start-tidied {
+  animation: no-thanks-start-deck-tidy .34s cubic-bezier(.18, .78, .22, 1);
+}
+
+@keyframes no-thanks-start-deck-tidy {
+  0% {
+    transform: scale(.975) rotate(-.6deg);
+  }
+  62% {
+    transform: scale(1.025) rotate(.3deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 21):nth-child(-n + 25) {
+  transform: translate(-5px, -39px) scale(.84);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 26):nth-child(-n + 30) {
+  transform: translate(4px, -47px) scale(.8);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 31):nth-child(-n + 35) {
+  transform: translate(-2px, -55px) scale(.76);
+}
+
+.no-thanks-start-chip-bank__chip:nth-child(n + 36) {
+  transform: translate(3px, -63px) scale(.72);
+}
+
+.no-thanks-start-chip-bank__pile {
+  height: 96px;
+}
+
+.no-thanks-start-chip-zone {
+  min-height: 132px;
+}
+
+.no-thanks-game-start-chip-flight {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 160, 146, .24),
+    inset 0 -3px 5px rgba(89, 16, 13, .34),
+    0 10px 18px rgba(47, 18, 16, .38);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .no-thanks-draw-deck__stack.is-start-tidied {
+    animation: none;
+  }
+}
