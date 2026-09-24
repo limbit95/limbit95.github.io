@@ -208,34 +208,37 @@ test("No Thanks! waiting and playing tables share exact deck, center, and chip s
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
 });
 
-test("No Thanks! opening deck scatters, cross-mixes, then converges back into one deck", () => {
+test("No Thanks! opening deck uses discrete spread, mix, mix, and gather snap beats", () => {
   assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
   assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
   assert.match(runtime, /visualShuffleCount = 12/u);
-  assert.match(runtime, /const scatterPoints = \[/u);
-  assert.match(runtime, /\(index \* 5 \+ 3\) % scatterPoints\.length/u);
-  assert.match(runtime, /\(index \* 7 \+ 8\) % scatterPoints\.length/u);
-  assert.match(runtime, /const mixX = mixRawX \* spreadScale \* \.82/u);
-  assert.match(runtime, /const crossX = crossRawX \* spreadScale \* \.5/u);
-  assert.match(runtime, /duration: 1540/u);
-  assert.match(runtime, /currentStack\?\.classList\.add\("is-start-tidied"\)/u);
-  assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
-  assert.match(styles, /@keyframes no-thanks-start-deck-impact/u);
+  assert.match(runtime, /const shuffleOrderOne = \[5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4\]/u);
+  assert.match(runtime, /const shuffleOrderTwo = \[8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6\]/u);
+  assert.match(runtime, /const runSnapStep = async/u);
+  assert.match(runtime, /className: "spread"/u);
+  assert.match(runtime, /className: "mix-one"/u);
+  assert.match(runtime, /className: "mix-two"/u);
+  assert.match(runtime, /className: "gather"/u);
+  assert.match(runtime, /duration: 160, hold: 170/u);
+  assert.match(runtime, /duration: 135, hold: 145/u);
+  assert.match(runtime, /duration: 175, hold: 0/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="spread"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-one"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-two"\]/u);
 });
 
-test("No Thanks! opening chips distribute simultaneously to the viewer panel and other seat avatars", () => {
-  assert.match(runtime, /calculateInitialCounters\(view\.playerCount\)/u);
-  assert.match(runtime, /const viewerChipCount = Math\.min\(initialCount, sourceChips\.length\)/u);
-  assert.match(runtime, /const opponentPlayers = view\.players\.filter/u);
-  assert.match(runtime, /findBoardSeatAvatar\(player\.id\)/u);
-  assert.match(runtime, /\.no-thanks-my-panel__chips\.is-awaiting-start-chips \.no-thanks-chip-cluster/u);
-  assert.match(runtime, /sourceChip\.setAttribute\("data-distributed", "true"\)/u);
-  assert.match(runtime, /const delay = index \* 38/u);
+test("No Thanks! opening chips land one by one into the viewer's final pile layout while opponents absorb theirs", () => {
+  assert.match(runtime, /const renderedChipCount = waitingForStartChips[\s\S]*?finalCounters/u);
+  assert.match(runtime, /cluster\.classList\.add\("is-awaiting-start-stack"\)/u);
+  assert.match(runtime, /chip\.dataset\.startLandingIndex = String\(index\)/u);
+  assert.match(runtime, /viewerTarget\.querySelectorAll\("\.no-thanks-chip\[data-start-landing-index\]"\)/u);
+  assert.match(runtime, /const viewerLandingRects = viewerLandingChips\.map/u);
+  assert.match(runtime, /viewerLandingChip\.classList\.add\("is-start-chip-arrived"\)/u);
+  assert.match(runtime, /value\.textContent = String\(Math\.min\(index \+ 1, viewerChipCount\)\)/u);
+  assert.match(runtime, /chip\.remove\(\)/u);
   assert.match(runtime, /opponent\.target\.classList\.add\("is-start-chip-received"\)/u);
-  assert.match(runtime, /scale\(\$\{toViewer \? "\.88" : "\.2"\}\)/u);
-  assert.match(runtime, /opacity: toViewer \? 1 : 0/u);
-  assert.match(styles, /\.no-thanks-start-chip-bank \.no-thanks-chip\[data-distributed="true"\][\s\S]*opacity:\s*0/u);
-  assert.match(styles, /\.no-thanks-seat__avatar-frame\.is-start-chip-received/u);
+  assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip[\s\S]*opacity:\s*0/u);
+  assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip\.is-start-chip-arrived[\s\S]*opacity:\s*1/u);
 });
 
 test("No Thanks! waiting action copy uses centered two-line guidance", () => {
