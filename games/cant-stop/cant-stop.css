@@ -3647,12 +3647,13 @@ body {
   justify-content: center;
   justify-items: center;
   align-content: center;
+  padding-top: .78rem;
 }
 
 .cant-stop-rules-mini-mountain {
   width: max-content;
   max-width: 100%;
-  height: 70px;
+  height: 84px;
   margin-inline: auto;
   display: flex;
   align-items: flex-end;
@@ -3845,11 +3846,12 @@ body {
 }
 
 .cant-stop-rules-visual--bust {
-  grid-template-columns: 64px auto;
+  grid-template-columns: auto auto;
   align-items: center;
   justify-content: center;
   justify-items: start;
-  gap: .8rem;
+  gap: .55rem;
+  padding-inline: .85rem;
   background:
     radial-gradient(circle at 14% 18%, rgba(255,255,255,.7), transparent 18%),
     linear-gradient(145deg, #eaf4f6, #d6e8ec);
@@ -3860,6 +3862,7 @@ body {
   width: 34px;
   height: 46px;
   display: block;
+  margin-right: 1.05rem;
   border-radius: 14px 14px 8px 8px;
   background: linear-gradient(180deg, #f7fbfb, #9ec9d2);
   box-shadow: 0 8px 13px rgba(59, 93, 102, .13);
@@ -3876,14 +3879,22 @@ body {
   font-weight: 950;
 }
 
+.cant-stop-rules-visual--bust > div {
+  display: grid;
+  gap: .12rem;
+}
+
 .cant-stop-rules-visual--bust strong {
   color: #416b78;
   font-size: 1rem;
+  line-height: 1.1;
 }
 
-.cant-stop-rules-visual--bust span {
+.cant-stop-rules-visual--bust > div span {
   color: #789097;
   font-size: .68rem;
+  line-height: 1.35;
+  white-space: nowrap;
 }
 
 .cant-stop-rules-visual--win {
