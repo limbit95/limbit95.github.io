@@ -198,45 +198,44 @@ test("No Thanks! waiting and playing tables share exact deck, center, and chip s
   assert.match(runtime, /no-thanks-round-table__slot is-deck/u);
   assert.match(runtime, /no-thanks-round-table__slot is-center/u);
   assert.match(runtime, /no-thanks-round-table__slot is-chips/u);
-  assert.match(styles, /\.no-thanks-round-table__slot[\s\S]*place-items:\s*center/u);
+  assert.match(styles, /\.no-thanks-round-table__slot[\s\S]*position:\s*absolute/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-deck[\s\S]*left:\s*16%/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-center[\s\S]*left:\s*50%/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-chips[\s\S]*left:\s*84%/u);
   assert.match(styles, /\.no-thanks-round-table__objects--waiting/u);
   assert.match(styles, /\.no-thanks-round-table__waiting-card/u);
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-back/u);
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
 });
 
-test("No Thanks! opening deck scatters freely across the table and converges back into one deck", () => {
+test("No Thanks! opening deck scatters, cross-mixes, then converges back into one deck", () => {
   assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
-  assert.match(runtime, /const liveBoard = board\?\.isConnected[\s\S]*?app\.querySelector\("\.no-thanks-game-board"\)/u);
   assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
   assert.match(runtime, /visualShuffleCount = 12/u);
   assert.match(runtime, /const scatterPoints = \[/u);
-  assert.match(runtime, /\[-122, -54, -24\]/u);
-  assert.match(runtime, /\[128, -46, 26\]/u);
-  assert.match(runtime, /duration: 1520/u);
+  assert.match(runtime, /\(index \* 5 \+ 3\) % scatterPoints\.length/u);
+  assert.match(runtime, /\(index \* 7 \+ 8\) % scatterPoints\.length/u);
+  assert.match(runtime, /const mixX = mixRawX \* spreadScale \* \.82/u);
+  assert.match(runtime, /const crossX = crossRawX \* spreadScale \* \.5/u);
+  assert.match(runtime, /duration: 1540/u);
   assert.match(runtime, /currentStack\?\.classList\.add\("is-start-tidied"\)/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
   assert.match(styles, /@keyframes no-thanks-start-deck-impact/u);
 });
 
-test("No Thanks! opening chips fall from the table bank into only the viewer personal chip panel", () => {
+test("No Thanks! opening chips distribute simultaneously to the viewer panel and other seat avatars", () => {
   assert.match(runtime, /calculateInitialCounters\(view\.playerCount\)/u);
-  assert.match(runtime, /function animateGameStartChips\(board, view, effect\)/u);
-  assert.match(runtime, /\.no-thanks-start-chip-bank:not\(\.is-waiting\) \.no-thanks-start-chip-bank__pile/u);
-  assert.match(
-    runtime,
-    /\.no-thanks-my-panel__chips\.is-awaiting-start-chips \.no-thanks-chip-cluster/u,
-  );
-  assert.match(runtime, /\.no-thanks-start-chip-bank__cluster\.is-front \.no-thanks-chip/u);
-  assert.match(runtime, /\.no-thanks-start-chip-bank__cluster\.is-back \.no-thanks-chip/u);
-  assert.match(runtime, /Array\.from\(\{ length: initialCount \}/u);
-  assert.match(runtime, /sourceChip\.classList\.add\("is-leaving"\)/u);
+  assert.match(runtime, /const viewerChipCount = Math\.min\(initialCount, sourceChips\.length\)/u);
+  assert.match(runtime, /const opponentPlayers = view\.players\.filter/u);
+  assert.match(runtime, /findBoardSeatAvatar\(player\.id\)/u);
+  assert.match(runtime, /\.no-thanks-my-panel__chips\.is-awaiting-start-chips \.no-thanks-chip-cluster/u);
   assert.match(runtime, /sourceChip\.setAttribute\("data-distributed", "true"\)/u);
-  assert.match(runtime, /delay: index \* 52/u);
-  assert.match(runtime, /revealGameStartChips\(effect\)/u);
-  assert.match(styles, /\.no-thanks-game-start-chip-flight/u);
+  assert.match(runtime, /const delay = index \* 38/u);
+  assert.match(runtime, /opponent\.target\.classList\.add\("is-start-chip-received"\)/u);
+  assert.match(runtime, /scale\(\$\{toViewer \? "\.88" : "\.2"\}\)/u);
+  assert.match(runtime, /opacity: toViewer \? 1 : 0/u);
   assert.match(styles, /\.no-thanks-start-chip-bank \.no-thanks-chip\[data-distributed="true"\][\s\S]*opacity:\s*0/u);
-  assert.match(styles, /\.no-thanks-my-panel__chips\.is-awaiting-start-chips/u);
+  assert.match(styles, /\.no-thanks-seat__avatar-frame\.is-start-chip-received/u);
 });
 
 test("No Thanks! waiting action copy uses centered two-line guidance", () => {
