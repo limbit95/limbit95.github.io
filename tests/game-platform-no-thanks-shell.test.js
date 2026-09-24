@@ -147,15 +147,52 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(styles, /prefers-reduced-motion/u);
 });
 
-test("No Thanks! winner celebration acknowledgement survives focus and page lifecycle rerenders", () => {
+test("No Thanks! winner celebration uses one persistent dialog instance until the user closes it", () => {
   assert.match(runtime, /function getWinnerCelebrationKey\(view\)/u);
   assert.match(runtime, /return `\$\{view\.roomId\}:\$\{view\.version\}:\$\{view\.endReason\}:\$\{scores\}`/u);
   assert.match(runtime, /WINNER_CELEBRATION_STORAGE_KEY/u);
   assert.match(runtime, /window\.sessionStorage\?\.getItem/u);
   assert.match(runtime, /window\.sessionStorage\?\.setItem/u);
-  assert.match(runtime, /readAcknowledgedWinnerCelebrationKey\(\) !== winnerCelebrationKey/u);
-  assert.match(runtime, /acknowledgeWinnerCelebration\(winnerCelebrationKey\);\s*winnerCelebrationDialog\.showModal\(\)/u);
+  assert.match(runtime, /function showWinnerCelebrationOnce\(view, celebrationKey\)/u);
+  assert.match(runtime, /activeWinnerCelebrationKey === celebrationKey/u);
+  assert.match(runtime, /document\.body\.append\(dialog\)/u);
+  assert.match(runtime, /dialog\.addEventListener\("close",[\s\S]*?acknowledgeWinnerCelebration\(celebrationKey\)/u);
+  assert.doesNotMatch(
+    runtime,
+    /acknowledgeWinnerCelebration\(winnerCelebrationKey\);\s*winnerCelebrationDialog\.showModal\(\)/u,
+  );
   assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
+});
+
+test("No Thanks! waiting action copy uses centered two-line guidance", () => {
+  assert.match(runtime, /\["준비 완료를 누르면", "테이블에 착석합니다"\]/u);
+  assert.match(runtime, /\["준비 완료", "게임 시작을 기다리고 있어요\."\]/u);
+  assert.match(runtime, /statusLines\.map\(\(line\) => el\("span", \{ text: line \}\)\)/u);
+  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*justify-items: center/u);
+  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*text-align: center/u);
+});
+
+test("No Thanks! opponent take sends the public card and chips into the taker's seat avatar", () => {
+  assert.match(runtime, /takeByOpponent/u);
+  assert.match(runtime, /function findBoardSeatAvatar\(playerId\)/u);
+  assert.match(runtime, /function animateTakeCardToSeat\(presentation\)/u);
+  assert.match(runtime, /function animateTakeChipsToSeat\(presentation\)/u);
+  assert.match(runtime, /scale\(\.16\)/u);
+  assert.match(runtime, /animatePendingTakeToSeat/u);
+  assert.match(styles, /\.no-thanks-seat__avatar-frame\.is-receiving-take/u);
+  assert.match(styles, /@keyframes no-thanks-seat-take-receive/u);
+});
+
+test("No Thanks! final take lands before a three-second game-styled result calculation gate", () => {
+  assert.match(runtime, /const FINAL_RESULT_DELAY_MS = 3000/u);
+  assert.match(runtime, /function holdFinalTakeTransition\(access, view, takerPlayerId\)/u);
+  assert.match(runtime, /function prepareFinalViewerTakeDestination\(view, presentation\)/u);
+  assert.match(runtime, /게임 결과를 집계 중입니다/u);
+  assert.match(runtime, /await waitForPresentation\(FINAL_RESULT_DELAY_MS\)/u);
+  assert.match(runtime, /view\.endReason !== "LAST_CARD_TAKEN"/u);
+  assert.match(styles, /\.no-thanks-result-calculating/u);
+  assert.match(styles, /\.no-thanks-result-calculating__number-card/u);
+  assert.match(styles, /\.no-thanks-result-calculating__chip/u);
 });
 
 test("No Thanks! host waiting-room exit requires an explicit destructive confirmation", () => {

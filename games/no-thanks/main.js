@@ -59,7 +59,11 @@ let boardPresentationEffect = null;
 let pendingTakePresentation = null;
 let lastSettledDealKey = null;
 let acknowledgedWinnerCelebrationKey = null;
+let finalTakeTransition = null;
+let activeWinnerCelebrationKey = null;
+let activeWinnerCelebrationDialog = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
+const FINAL_RESULT_DELAY_MS = 3000;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -75,7 +79,11 @@ function disposeLobbyController() {
   boardAvatarLoadingIds = new Set();
   boardPresentationState = null;
   boardPresentationEffect = null;
+  finalTakeTransition = null;
   clearPendingTakePresentation();
+  activeWinnerCelebrationDialog?.remove();
+  activeWinnerCelebrationDialog = null;
+  activeWinnerCelebrationKey = null;
 }
 
 function createAccessNotice({
@@ -467,21 +475,52 @@ function createTakeChipFlights(expectedCount) {
 
 function beginTakePresentation(view, sourceCard) {
   clearPendingTakePresentation();
-  if (prefersReducedMotion()) return null;
 
   const viewer = view.players.find((player) => player.id === view.currentUserId);
-  const cardFlight = createTakeCardFlight(sourceCard);
-  if (!cardFlight) return null;
-
+  const reducedMotion = prefersReducedMotion();
   const presentation = {
     roomId: view.roomId,
     sourceVersion: Number(view.version),
     cardValue: Number(view.currentCard),
+    takerPlayerId: view.currentUserId,
+    takeByViewer: true,
     previousViewerCounters: Number(view.viewerCounters) || 0,
     previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
     chipCount: Math.max(0, Math.floor(Number(view.centerCounters) || 0)),
-    cardFlight,
-    chipFlights: createTakeChipFlights(view.centerCounters),
+    cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
+    chipFlights: reducedMotion ? [] : createTakeChipFlights(view.centerCounters),
+  };
+  pendingTakePresentation = presentation;
+  return presentation;
+}
+
+function captureTakePresentationFromBoard(previous, takerPlayerId) {
+  if (!previous || !takerPlayerId) return null;
+
+  if (
+    pendingTakePresentation
+    && pendingTakePresentation.roomId === previous.roomId
+    && pendingTakePresentation.sourceVersion === Number(previous.version)
+    && pendingTakePresentation.cardValue === Number(previous.currentCard)
+    && pendingTakePresentation.takerPlayerId === takerPlayerId
+  ) {
+    return pendingTakePresentation;
+  }
+
+  clearPendingTakePresentation();
+  const sourceCard = app.querySelector(".no-thanks-table-card");
+  const reducedMotion = prefersReducedMotion();
+  const presentation = {
+    roomId: previous.roomId,
+    sourceVersion: Number(previous.version),
+    cardValue: Number(previous.currentCard),
+    takerPlayerId,
+    takeByViewer: takerPlayerId === previous.currentUserId,
+    previousViewerCounters: Number(previous.viewerCounters) || 0,
+    previousViewerCards: [...(previous.viewerCards ?? [])].sort((left, right) => left - right),
+    chipCount: Math.max(0, Math.floor(Number(previous.centerCounters) || 0)),
+    cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
+    chipFlights: reducedMotion ? [] : createTakeChipFlights(previous.centerCounters),
   };
   pendingTakePresentation = presentation;
   return presentation;
@@ -877,6 +916,12 @@ function readBoardTransitionEffects(view) {
     currentUserId: view.currentUserId,
     viewerCounters: Number(view.viewerCounters) || 0,
     viewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+    playerCards: Object.fromEntries(
+      view.players.map((player) => [
+        player.id,
+        [...(player.cards ?? [])].sort((left, right) => left - right),
+      ]),
+    ),
   };
   const previous = boardPresentationState;
   const sameVersion = previous
@@ -903,6 +948,7 @@ function readBoardTransitionEffects(view) {
       chipFromPlayerId: null,
       chipPreviousCount: null,
       takeByViewer: false,
+      takeByOpponent: false,
     });
   }
 
@@ -920,6 +966,7 @@ function readBoardTransitionEffects(view) {
       dealCard: false,
       chipFromPlayerId: null,
       takeByViewer: false,
+      takeByOpponent: false,
     });
   }
 
@@ -935,16 +982,26 @@ function readBoardTransitionEffects(view) {
     ? Number(previous.centerCounters) || 0
     : null;
   const takePresentation = pendingTakePresentation;
-  const takeByViewer = Boolean(
+  const takerPlayerId = takePresentation?.takerPlayerId ?? null;
+  const previousTakerCards = takerPlayerId
+    ? (previous.playerCards?.[takerPlayerId] ?? [])
+    : [];
+  const currentTakerCards = takerPlayerId
+    ? (current.playerCards?.[takerPlayerId] ?? [])
+    : [];
+  const takeConfirmed = Boolean(
     takePresentation
     && takePresentation.roomId === current.roomId
     && takePresentation.sourceVersion === Number(previous.version)
     && takePresentation.cardValue === Number(previous.currentCard)
-    && previous.activePlayerId === current.currentUserId
-    && current.viewerCards.includes(takePresentation.cardValue),
+    && previous.activePlayerId === takerPlayerId
+    && !previousTakerCards.includes(takePresentation.cardValue)
+    && currentTakerCards.includes(takePresentation.cardValue),
   );
+  const takeByViewer = takeConfirmed && takerPlayerId === current.currentUserId;
+  const takeByOpponent = takeConfirmed && takerPlayerId !== current.currentUserId;
 
-  boardPresentationEffect = dealCard || chipFromPlayerId || takeByViewer
+  boardPresentationEffect = dealCard || chipFromPlayerId || takeConfirmed
     ? {
       roomId: current.roomId,
       version: current.version,
@@ -953,7 +1010,9 @@ function readBoardTransitionEffects(view) {
       chipFromPlayerId,
       chipPreviousCount,
       takeByViewer,
-      takeCardValue: takeByViewer ? takePresentation.cardValue : null,
+      takeByOpponent,
+      takePlayerId: takeConfirmed ? takerPlayerId : null,
+      takeCardValue: takeConfirmed ? takePresentation.cardValue : null,
       takePreviousViewerCounters: takeByViewer
         ? takePresentation.previousViewerCounters
         : null,
@@ -972,9 +1031,9 @@ function readBoardTransitionEffects(view) {
     dealCard: false,
     chipFromPlayerId: null,
     takeByViewer: false,
+    takeByOpponent: false,
   });
 }
-
 function createChipFlight(view, playerId) {
   if (!playerId) return null;
   const ordered = orderBoardPlayers(view.players, view.currentUserId);
@@ -1392,6 +1451,135 @@ async function animateTakeChipsToPanel(presentation, effect) {
   commitViewerChipLanding(effect);
 }
 
+
+function findBoardSeatAvatar(playerId) {
+  if (!playerId) return null;
+  const seat = [...app.querySelectorAll(".no-thanks-seat")]
+    .find((candidate) => candidate.dataset.playerId === playerId);
+  return seat?.querySelector(".no-thanks-seat__avatar-frame") ?? null;
+}
+
+async function animateTakeCardToSeat(presentation) {
+  const flight = presentation?.cardFlight;
+  const target = findBoardSeatAvatar(presentation?.takerPlayerId);
+  if (!target?.isConnected) {
+    flight?.remove();
+    return;
+  }
+
+  target.classList.add("is-receiving-take");
+  try {
+    if (!flight?.isConnected || typeof flight.animate !== "function") return;
+
+    const flightRect = flight.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const destinationX = targetRect.left + (targetRect.width / 2);
+    const destinationY = targetRect.top + (targetRect.height / 2);
+    const startX = flightRect.left + (flightRect.width / 2);
+    const startY = flightRect.top + (flightRect.height / 2);
+    const dx = destinationX - startX;
+    const dy = destinationY - startY;
+
+    const animation = flight.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+        opacity: 1,
+        offset: 0,
+      },
+      {
+        transform: `translate3d(${dx * .28}px, ${dy * .18 - 30}px, 0) scale(.78) rotateZ(-3deg)`,
+        opacity: 1,
+        offset: .32,
+      },
+      {
+        transform: `translate3d(${dx * .68}px, ${dy * .58 - 20}px, 0) scale(.45) rotateZ(2deg)`,
+        opacity: .94,
+        offset: .7,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(.16) rotateZ(0deg)`,
+        opacity: 0,
+        offset: 1,
+      },
+    ], {
+      duration: 720,
+      easing: "cubic-bezier(.18, .76, .2, 1)",
+      fill: "forwards",
+    });
+    await animation.finished.catch(() => {});
+  } finally {
+    flight?.remove();
+    window.setTimeout(() => target.classList.remove("is-receiving-take"), 180);
+  }
+}
+
+async function animateTakeChipsToSeat(presentation) {
+  const flights = presentation?.chipFlights ?? [];
+  const target = findBoardSeatAvatar(presentation?.takerPlayerId);
+  if (flights.length === 0 || !target?.isConnected) {
+    flights.forEach((flight) => flight.remove());
+    return;
+  }
+
+  const targetRect = target.getBoundingClientRect();
+  const destinationX = targetRect.left + (targetRect.width / 2);
+  const destinationY = targetRect.top + (targetRect.height / 2);
+  const animations = flights.map((flight, index) => {
+    if (typeof flight.animate !== "function") return Promise.resolve();
+
+    const rect = flight.getBoundingClientRect();
+    const startX = rect.left + (rect.width / 2);
+    const startY = rect.top + (rect.height / 2);
+    const dx = destinationX - startX;
+    const dy = destinationY - startY;
+    const drift = (index - ((flights.length - 1) / 2)) * 4;
+    const animation = flight.animate([
+      {
+        transform: "translate3d(0, 0, 0) scale(.96) rotate(0deg)",
+        opacity: 1,
+      },
+      {
+        offset: .48,
+        transform: `translate3d(${dx * .5 + drift}px, ${dy * .42 - 38}px, 0) scale(.72) rotate(260deg)`,
+        opacity: .95,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(.22) rotate(560deg)`,
+        opacity: 0,
+      },
+    ], {
+      duration: 610,
+      delay: index * 24,
+      easing: "cubic-bezier(.18, .78, .22, 1)",
+      fill: "forwards",
+    });
+    return animation.finished.catch(() => {});
+  });
+
+  await Promise.all(animations);
+  flights.forEach((flight) => flight.remove());
+}
+
+async function animatePendingTakeToSeat(effect) {
+  const presentation = pendingTakePresentation;
+  if (!presentation) {
+    completeBoardPresentationEffect(effect);
+    return;
+  }
+
+  await Promise.all([
+    animateTakeCardToSeat(presentation),
+    animateTakeChipsToSeat(presentation),
+  ]);
+  clearPendingTakePresentation(presentation);
+
+  if (effect?.dealCard) {
+    await runDealPresentation(effect);
+    return;
+  }
+  completeBoardPresentationEffect(effect);
+}
+
 function completeBoardPresentationEffect(effect) {
   if (!effect) return;
   if (effect.dealCard && effect.dealKey) {
@@ -1463,6 +1651,13 @@ function syncBoardAnimationGeometry() {
       effect.started = true;
       effect.running = true;
       void animatePendingTakePresentation(effect);
+      return;
+    }
+
+    if (effect?.takeByOpponent && pendingTakePresentation) {
+      effect.started = true;
+      effect.running = true;
+      void animatePendingTakeToSeat(effect);
       return;
     }
 
@@ -1613,13 +1808,13 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
     : finalCounters;
   const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
-  const statusText = waiting
+  const statusLines = waiting
     ? (view.isHost
-      ? "방장은 항상 준비된 자리로 표시됩니다."
+      ? ["방장은 항상 준비된 자리로 표시됩니다."]
       : (view.isReady
-        ? "준비 완료 · 게임 시작을 기다리고 있어요."
-        : "준비 완료를 누르면 테이블에 착석합니다."))
-    : "";
+        ? ["준비 완료", "게임 시작을 기다리고 있어요."]
+        : ["준비 완료를 누르면", "테이블에 착석합니다"]))
+    : [];
 
   return el("section", {
     className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
@@ -1677,7 +1872,8 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
         + (waiting ? " no-thanks-my-panel__actions--waiting" : " no-thanks-my-panel__actions--playing"),
     }, [
       waiting
-        ? el("p", { className: "no-thanks-my-panel__message", text: statusText })
+        ? el("p", { className: "no-thanks-my-panel__message" },
+          statusLines.map((line) => el("span", { text: line })))
         : null,
       waiting
         ? el("div", {
@@ -1878,9 +2074,6 @@ function createWinnerCelebration(view, celebrationKey) {
     className: "no-thanks-winner-celebration",
     "aria-labelledby": "no-thanks-winner-celebration-title",
   });
-  dialog.addEventListener("cancel", () => {
-    acknowledgeWinnerCelebration(celebrationKey);
-  });
   dialog.addEventListener("close", () => {
     acknowledgeWinnerCelebration(celebrationKey);
   });
@@ -1904,7 +2097,6 @@ function createWinnerCelebration(view, celebrationKey) {
   const joint = winners.length > 1;
 
   const close = () => {
-    acknowledgeWinnerCelebration(celebrationKey);
     dialog.close();
   };
 
@@ -1952,6 +2144,197 @@ function createWinnerCelebration(view, celebrationKey) {
   );
 
   return dialog;
+}
+
+function showWinnerCelebrationOnce(view, celebrationKey) {
+  if (
+    !celebrationKey
+    || readAcknowledgedWinnerCelebrationKey() === celebrationKey
+    || activeWinnerCelebrationKey === celebrationKey
+  ) {
+    return;
+  }
+
+  activeWinnerCelebrationDialog?.remove();
+  const dialog = createWinnerCelebration(view, celebrationKey);
+  if (!dialog) return;
+
+  activeWinnerCelebrationKey = celebrationKey;
+  activeWinnerCelebrationDialog = dialog;
+  dialog.addEventListener("close", () => {
+    if (activeWinnerCelebrationDialog === dialog) {
+      dialog.remove();
+      activeWinnerCelebrationDialog = null;
+      activeWinnerCelebrationKey = null;
+    }
+  }, { once: true });
+  document.body.append(dialog);
+
+  window.requestAnimationFrame(() => {
+    if (
+      activeWinnerCelebrationDialog === dialog
+      && dialog.isConnected
+      && !dialog.open
+    ) {
+      dialog.showModal();
+    }
+  });
+}
+
+function getConfirmedTakePlayerId(view) {
+  const previous = boardPresentationState;
+  if (
+    !previous
+    || previous.roomId !== view?.roomId
+    || previous.gamePhase !== "PLAYING"
+    || !Number.isInteger(Number(previous.currentCard))
+    || !previous.activePlayerId
+  ) {
+    return null;
+  }
+
+  const takerPlayerId = previous.activePlayerId;
+  const beforeCards = previous.playerCards?.[takerPlayerId] ?? [];
+  const afterCards = view.players
+    .find((player) => player.id === takerPlayerId)
+    ?.cards ?? [];
+  return !beforeCards.includes(Number(previous.currentCard))
+    && afterCards.includes(Number(previous.currentCard))
+    ? takerPlayerId
+    : null;
+}
+
+function createResultCalculationDialog() {
+  const dialog = el("dialog", {
+    className: "no-thanks-result-calculating",
+    "aria-labelledby": "no-thanks-result-calculating-title",
+  });
+  dialog.addEventListener("cancel", (event) => event.preventDefault());
+  dialog.append(el("section", { className: "no-thanks-result-calculating__card" }, [
+    el("p", { className: "no-thanks-result-calculating__eyebrow", text: "FINAL COUNT" }),
+    el("div", { className: "no-thanks-result-calculating__motif", "aria-hidden": "true" }, [
+      el("span", { className: "no-thanks-result-calculating__number-card", text: "24" }),
+      el("span", { className: "no-thanks-result-calculating__chip" }),
+      el("span", { className: "no-thanks-result-calculating__number-card is-back", text: "?" }),
+    ]),
+    el("h2", {
+      id: "no-thanks-result-calculating-title",
+      text: "게임 결과를 집계 중입니다",
+    }),
+    el("p", {
+      text: "획득한 카드와 남은 칩을 확인하고 있어요. 잠시만 기다려 주세요.",
+    }),
+    el("div", { className: "no-thanks-result-calculating__dots", "aria-hidden": "true" }, [
+      el("i"), el("i"), el("i"),
+    ]),
+  ]));
+  return dialog;
+}
+
+function waitForPresentation(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function prepareFinalViewerTakeDestination(view, presentation) {
+  if (!presentation?.takeByViewer) return;
+
+  const viewer = view.players.find((player) => player.id === view.currentUserId);
+  const finalCards = [...(viewer?.cards ?? [])].sort((left, right) => left - right);
+  const hand = app.querySelector(".no-thanks-hand");
+  const count = app.querySelector(".no-thanks-my-panel__card-count");
+  if (hand && finalCards.length > 0) {
+    const overlap = getNoThanksHandOverlap(finalCards.length);
+    hand.classList.remove("no-thanks-hand--empty");
+    hand.replaceChildren(...finalCards.map((card, index) => createHandCard(
+      card,
+      index,
+      overlap,
+      { incoming: card === presentation.cardValue },
+    )));
+  }
+  if (count) {
+    count.dataset.finalCount = String(finalCards.length);
+    count.textContent = String(Math.max(0, finalCards.length - 1)) + "장";
+  }
+
+  const chips = app.querySelector(".no-thanks-my-panel__chips");
+  if (chips) {
+    const fallbackCount = presentation.previousViewerCounters + presentation.chipCount;
+    const finalCount = Number.isInteger(Number(view.viewerCounters))
+      ? Number(view.viewerCounters)
+      : fallbackCount;
+    chips.dataset.finalCount = String(Math.max(0, finalCount));
+  }
+}
+
+async function runFinalTakeTransition(access, view, transitionKey) {
+  const presentation = pendingTakePresentation;
+  try {
+    if (presentation?.takeByViewer) {
+      prepareFinalViewerTakeDestination(view, presentation);
+      const effect = {
+        takeByViewer: true,
+        takeCardLanded: false,
+        takeChipsLanded: false,
+        dealCard: false,
+      };
+      await Promise.all([
+        animateTakeCardToHand(presentation, effect),
+        animateTakeChipsToPanel(presentation, effect),
+      ]);
+    } else if (presentation) {
+      await Promise.all([
+        animateTakeCardToSeat(presentation),
+        animateTakeChipsToSeat(presentation),
+      ]);
+    }
+    clearPendingTakePresentation(presentation);
+
+    const dialog = createResultCalculationDialog();
+    document.body.append(dialog);
+    dialog.showModal();
+    await waitForPresentation(FINAL_RESULT_DELAY_MS);
+    dialog.close();
+    dialog.remove();
+  } finally {
+    finalTakeTransition = {
+      key: transitionKey,
+      running: false,
+      completed: true,
+    };
+  }
+
+  const latest = lobbyController?.current();
+  if (latest?.snapshot?.room?.id === view.roomId) {
+    renderLobby(access, latest);
+  }
+}
+
+function holdFinalTakeTransition(access, view, takerPlayerId) {
+  if (
+    view?.gamePhase !== "GAME_OVER"
+    || view.endReason !== "LAST_CARD_TAKEN"
+    || !takerPlayerId
+  ) {
+    return false;
+  }
+
+  const transitionKey = `${view.roomId}:${view.version}:final-take`;
+  if (finalTakeTransition?.key === transitionKey) {
+    return finalTakeTransition.running === true;
+  }
+
+  const presentation = captureTakePresentationFromBoard(
+    boardPresentationState,
+    takerPlayerId,
+  );
+  finalTakeTransition = {
+    key: transitionKey,
+    running: true,
+    completed: false,
+  };
+  void runFinalTakeTransition(access, view, transitionKey);
+  return true;
 }
 
 function createPlayingPanel(view, state, panelActions = []) {
@@ -2351,6 +2734,30 @@ function renderLobby(access, state) {
       : NO_THANKS_BGM_MODE.LOBBY,
   );
 
+  const confirmedTakePlayerId = view ? getConfirmedTakePlayerId(view) : null;
+  const completedFinalTakeKey = view?.gamePhase === "GAME_OVER"
+    ? `${view.roomId}:${view.version}:final-take`
+    : null;
+  const finalTakeAlreadyCompleted = Boolean(
+    completedFinalTakeKey
+    && finalTakeTransition?.key === completedFinalTakeKey
+    && finalTakeTransition.completed === true,
+  );
+  if (
+    confirmedTakePlayerId
+    && !pendingTakePresentation
+    && !finalTakeAlreadyCompleted
+  ) {
+    captureTakePresentationFromBoard(boardPresentationState, confirmedTakePlayerId);
+  }
+
+  if (
+    view?.gamePhase === "GAME_OVER"
+    && holdFinalTakeTransition(access, view, confirmedTakePlayerId)
+  ) {
+    return;
+  }
+
   if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
     clearPendingTakePresentation();
   }
@@ -2380,10 +2787,6 @@ function renderLobby(access, state) {
     : null;
   const openGameEndConfirm = () => gameEndDialog?.showModal();
   const winnerCelebrationKey = getWinnerCelebrationKey(view);
-  const winnerCelebrationDialog = winnerCelebrationKey
-    && readAcknowledgedWinnerCelebrationKey() !== winnerCelebrationKey
-    ? createWinnerCelebration(view, winnerCelebrationKey)
-    : null;
   const rematchDialog = view?.isHost && view.gamePhase === "GAME_OVER"
     ? createRematchDialog(async () => {
       try {
@@ -2425,7 +2828,7 @@ function renderLobby(access, state) {
     onRetryConnection: () => {
       void lobbyController?.refresh("retry").catch(() => {});
     },
-    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, winnerCelebrationDialog, rematchDialog],
+    main: [main, rulesDialog, hostLeaveDialog, gameEndDialog, rematchDialog],
     sidebar: createSidebar(view),
     actions: boardMode ? [] : lobbyActions,
   });
@@ -2445,13 +2848,8 @@ function renderLobby(access, state) {
 
   replaceApp(shell);
 
-  if (winnerCelebrationDialog) {
-    window.requestAnimationFrame(() => {
-      if (winnerCelebrationDialog.isConnected && !winnerCelebrationDialog.open) {
-        acknowledgeWinnerCelebration(winnerCelebrationKey);
-        winnerCelebrationDialog.showModal();
-      }
-    });
+  if (winnerCelebrationKey) {
+    showWinnerCelebrationOnce(view, winnerCelebrationKey);
   }
 
   if (view && (view.status === "waiting" || view.gamePhase === "PLAYING")) {
