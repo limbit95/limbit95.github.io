@@ -3644,12 +3644,14 @@ body {
 }
 
 .cant-stop-rules-visual--board {
+  justify-content: center;
   justify-items: center;
   align-content: center;
 }
 
 .cant-stop-rules-mini-mountain {
-  width: min(100%, 250px);
+  width: max-content;
+  max-width: 100%;
   height: 70px;
   margin-inline: auto;
   display: flex;
@@ -3843,7 +3845,9 @@ body {
 }
 
 .cant-stop-rules-visual--bust {
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 64px auto;
+  align-items: center;
+  justify-content: center;
   justify-items: start;
   gap: .8rem;
   background:
@@ -3916,7 +3920,9 @@ body {
 }
 
 .cant-stop-rules-visual--server {
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 42px auto;
+  align-items: center;
+  justify-content: center;
   justify-items: start;
   gap: .72rem;
 }
