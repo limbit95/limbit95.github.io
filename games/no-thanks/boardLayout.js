@@ -35,17 +35,84 @@ export function getNoThanksCardTone(value) {
 }
 
 export function getNoThanksHandOverlap(cardCount) {
-  const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -34;
-  if (count <= 9) return -46;
-  if (count <= 13) return -56;
-  if (count <= 17) return -64;
-  if (count <= 21) return -70;
+  const count = Math.max(0, Math.floor(Number(cardCount) || 0));
+  if (count <= 4) return 0;
+  if (count === 5) return -4;
+  if (count === 6) return -8;
+  if (count === 7) return -12;
+  if (count === 8) return -16;
+  if (count === 9) return -20;
+  if (count === 10) return -24;
+  if (count === 11) return -28;
+  if (count === 12) return -32;
+  if (count === 13) return -36;
+  if (count === 14) return -40;
+  if (count === 15) return -44;
+  if (count === 16) return -48;
+  if (count === 17) return -52;
+  if (count === 18) return -56;
+  if (count === 19) return -60;
+  if (count === 20) return -64;
+  if (count === 21) return -68;
+  if (count === 22) return -70;
+  if (count === 23) return -72;
   return -74;
 }
 
+function getNoThanksHandRunMarginForOverlap(overlap) {
+  return Math.min(14, overlap + 26);
+}
+
 export function getNoThanksHandRunMargin(cardCount) {
-  return Math.min(-8, getNoThanksHandOverlap(cardCount) + 26);
+  return getNoThanksHandRunMarginForOverlap(getNoThanksHandOverlap(cardCount));
+}
+
+export function getNoThanksHandMargins(cardCount, {
+  availableWidth,
+  cardWidth,
+  runStartCount = 0,
+} = {}) {
+  const count = Math.max(0, Math.floor(Number(cardCount) || 0));
+  if (count <= 1) {
+    return Object.freeze({ overlap: 0, runMargin: 0 });
+  }
+
+  const fallbackOverlap = getNoThanksHandOverlap(count);
+  const fallbackRunMargin = getNoThanksHandRunMargin(count);
+  const width = Number(availableWidth);
+  const card = Number(cardWidth);
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(card) || card <= 0) {
+    return Object.freeze({
+      overlap: fallbackOverlap,
+      runMargin: fallbackRunMargin,
+    });
+  }
+
+  const transitions = count - 1;
+  const runStarts = Math.max(
+    0,
+    Math.min(transitions, Math.floor(Number(runStartCount) || 0)),
+  );
+  const regularTransitions = transitions - runStarts;
+  const minimumVisibleStep = Math.min(card, 14);
+  const minimumOverlap = Math.max(-74, minimumVisibleStep - card);
+
+  const totalWidthFor = (overlap) => {
+    const runMargin = getNoThanksHandRunMarginForOverlap(overlap);
+    return (count * card)
+      + (regularTransitions * overlap)
+      + (runStarts * runMargin);
+  };
+
+  let overlap = 0;
+  while (overlap > minimumOverlap && totalWidthFor(overlap) > width) {
+    overlap = Math.max(minimumOverlap, overlap - 4);
+  }
+
+  return Object.freeze({
+    overlap,
+    runMargin: getNoThanksHandRunMarginForOverlap(overlap),
+  });
 }
 
 
