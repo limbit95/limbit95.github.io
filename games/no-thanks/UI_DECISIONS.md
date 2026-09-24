@@ -8,11 +8,11 @@
 
 ## Current Design Track
 
-- Status: FINAL
-- Lifecycle stage: DESIGN_CLOSEOUT
-- Current UI phase / scope: room/gameplay/result/rules closeout + 2026-09-24 game-start/transfer/dense-hand post-closeout polish 반영 완료
-- Active branch: `main`
-- Last updated: 2026-09-24
+- Status: IN_REVIEW
+- Lifecycle stage: DEVELOPER_MANUAL_DESIGN_REVIEW
+- Current UI phase / scope: room/gameplay/result/rules closeout + 2026-09-25 gameplay hand/motion/focus post-closeout polish
+- Active branch: `fix/no-thanks-turn-and-card-flow-20260924`
+- Last updated: 2026-09-25
 - Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
 - Active overrides:
   - NT-UI-001 — muted blue game-local environmental background
@@ -26,6 +26,7 @@
   - NT-UI-009 — staged tabletop game-start sequence
   - NT-UI-010 — authoritative transfer continuity at take/end boundaries
   - NT-UI-011 — maximum-hand responsive overlap
+  - NT-UI-012 — tighter gameplay hand and ordered insertion slide
 - Main design baseline: PR #394 merge commit `91d9ca42b6340888f6c9680bda2dcce604da6ed3` (prior active decisions + PR #393 BGM + #389/#390/#391 integration)
 - Next design work: 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-closeout follow-up으로 유지합니다.
 
@@ -251,6 +252,29 @@
 - Baseline relation: NT-UI-004 FINAL TABLE card rack과 `UI_DESIGN.md` 개인 패널 overlap 정책의 후속 override.
 - Functional boundary: 카드 보유/정렬/점수 데이터는 변경하지 않고 DOM spacing만 계산합니다.
 
+### NT-UI-012 — Tighter gameplay hand and ordered insertion slide
+
+- Status: ACTIVE
+- Applies to: gameplay 개인 획득 카드 hand / TAKE_CARD landing motion
+- Supersedes: NT-UI-011의 gameplay hand density 수치와 TAKE 후 기존 카드가 단계적으로 재배치되던 presentation
+- Source: 2026-09-25 developer manual browser review
+- Context / trigger: 개인 hand는 카드 수가 늘어날수록 더 타이트하게 겹쳐도 hover/focus로 값을 확인할 수 있고, 새 카드를 오름차순 위치에 바로 넣을 때 기존 카드가 순간적으로 자리만 바꾸면 실제 카드 사이에 공간을 만드는 감각이 약했습니다.
+- Decision:
+  - gameplay hand는 적은 카드부터 과도하게 겹치지 않습니다. 카드 장수별 fallback overlap을 1장 단위로 세분화하되, 실제 화면에서는 개인 패널의 사용 가능한 폭과 카드 폭을 측정해 **오른쪽 여백이 남아 있으면 펼친 상태를 우선**합니다.
+  - 펼친 카드가 실제 가용 폭을 넘기기 시작할 때만 약 5px 단위로 overlap level을 한 단계씩 높이고, 카드가 더 늘어나거나 viewport가 좁아질수록 필요한 만큼만 추가 압축합니다.
+  - 같은 연속 숫자 run 내부는 이 adaptive overlap을 사용하고, 새 run 시작점은 일반 카드 간격보다 최대 약 28px 더 넓게 유지해 연속 묶음 경계를 한눈에 구분할 수 있게 합니다.
+  - run 경계 공간까지 포함해 폭이 부족해질 때에는 run 간격도 함께 점진적으로 줄이되 항상 같은 run 내부보다 넓게 유지합니다.
+  - 이 adaptive spacing은 gameplay 개인 패널에만 적용하며 FINAL TABLE의 measured result-rack 계산은 그대로 유지합니다.
+  - TAKE 성공 시 새 카드는 처음부터 최종 오름차순 slot을 landing target으로 사용합니다.
+  - 기존 보유 카드는 authoritative rerender 전 좌표와 최종 정렬 좌표의 차이를 기준으로 약 420ms FLIP-style slide를 적용해 새 카드가 들어올 공간을 부드럽게 만듭니다.
+  - 마지막 카드 TAKE도 동일한 정렬/slide 원칙을 사용합니다.
+  - `prefers-reduced-motion`에서는 기존 카드 slide를 생략하고 최종 정렬 상태로 즉시 수렴합니다.
+- Rationale: 개인 패널 높이와 폭을 늘리지 않고 카드 밀도를 높이면서도, 정렬 변경을 순간적인 점프가 아니라 실제 카드를 옆으로 밀어 자리를 만드는 동작으로 읽히게 합니다.
+- Implementation status: IMPLEMENTED
+- Validation: PR #396 후속 작업에서 Game Platform governance 및 developer manual browser review 예정.
+- Baseline relation: NT-UI-011의 dense-hand 원칙을 유지하되 gameplay hand의 구체 밀도와 TAKE insertion motion을 후속 override합니다. FINAL TABLE의 measured result-rack 계산은 변경하지 않습니다.
+- Functional boundary: 카드 보유 순서/점수/RPC authority는 변경하지 않고 presentation geometry와 motion만 조정합니다.
+
 ## Superseded / Rejected
 
 - 기존 generic text-list 중심 rules modal은 NT-UI-007에 의해 superseded.
@@ -275,6 +299,7 @@
 - 2026-09-24 — dense hand overflow 수정과 PR #389 measured result-rack 계산을 통합해 NT-UI-011로 확정.
 - 2026-09-24 — 통합 PR #394를 최신 main 대비 `behind 0 / mergeable` 상태와 Governance/Site/DB 통과를 확인한 뒤 main에 병합. merge commit: `91d9ca42b6340888f6c9680bda2dcce604da6ed3`.
 - 2026-09-24 — post-#394 디자인 체크포인트에서 NT-UI-001~011을 현재 active design baseline으로 재확인.
+- 2026-09-25 — PR #396 follow-up manual review에서 gameplay hand density와 sorted insertion slide를 NT-UI-012로 확정하고, opening goal copy의 명시적 2줄 배치와 focus/visibility deal replay 방지를 함께 구현.
 
 ## Open Follow-up
 

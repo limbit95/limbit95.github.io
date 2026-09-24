@@ -29,7 +29,7 @@ import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
-  getNoThanksHandOverlap,
+  getNoThanksHandMargins,
   getNoThanksResultHandMargins,
   getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
@@ -68,6 +68,7 @@ let activeWinnerCelebrationDialog = null;
 let activeDealPresentation = null;
 let resultHandLayoutFrame = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
+const DEAL_PRESENTATION_STORAGE_KEY = "no-thanks:last-deal-presentation";
 const FINAL_RESULT_DELAY_MS = 3000;
 const GAME_START_MESSAGE_HOLD_MS = 2500;
 
@@ -432,6 +433,18 @@ function rectSnapshot(rect) {
   return Object.values(snapshot).every(Number.isFinite) ? snapshot : null;
 }
 
+function captureViewerHandRects() {
+  return Object.fromEntries(
+    [...app.querySelectorAll(".no-thanks-hand .no-thanks-hand-card")]
+      .map((card) => {
+        const value = card.dataset.cardValue;
+        const rect = rectSnapshot(card.getBoundingClientRect());
+        return value && rect ? [value, rect] : null;
+      })
+      .filter(Boolean),
+  );
+}
+
 function clearPendingTakePresentation(expected = pendingTakePresentation) {
   if (!expected || pendingTakePresentation !== expected) return;
   expected.cardFlight?.remove();
@@ -498,6 +511,7 @@ function beginTakePresentation(view, sourceCard) {
     takeByViewer: true,
     previousViewerCounters: Number(view.viewerCounters) || 0,
     previousViewerCards: [...(viewer?.cards ?? [])].sort((left, right) => left - right),
+    previousHandRects: captureViewerHandRects(),
     chipCount: Math.max(0, Math.floor(Number(view.centerCounters) || 0)),
     sourceCard,
     cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
@@ -531,6 +545,7 @@ function captureTakePresentationFromBoard(previous, takerPlayerId) {
     takeByViewer: takerPlayerId === previous.currentUserId,
     previousViewerCounters: Number(previous.viewerCounters) || 0,
     previousViewerCards: [...(previous.viewerCards ?? [])].sort((left, right) => left - right),
+    previousHandRects: captureViewerHandRects(),
     chipCount: Math.max(0, Math.floor(Number(previous.centerCounters) || 0)),
     sourceCard,
     cardFlight: reducedMotion ? null : createTakeCardFlight(sourceCard),
@@ -718,13 +733,14 @@ function createTableCard(view, state, {
 } = {}) {
   const value = view.currentCard;
   const displayValue = value == null ? "?" : String(value);
-  const canTake = !locked && !state.busy && view.canTake;
+  const canTake = !state.busy && view.canTake;
+  const canInteract = !locked && canTake;
   return el("div", { className: "no-thanks-table-card-action" }, [
     el("button", {
       className: "no-thanks-table-card"
         + (dealIn ? " is-awaiting-deal" : ""),
       type: "button",
-      disabled: !canTake,
+      disabled: !canInteract,
       dataset: {
         tone: getNoThanksCardTone(value),
         cardValue: value == null ? "" : displayValue,
@@ -738,7 +754,7 @@ function createTableCard(view, state, {
           ? "현재 카드 없음"
           : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : "")),
       onClick: async (event) => {
-        if (!canTake) return;
+        if (event.currentTarget.disabled || !canTake) return;
         const takePresentation = beginTakePresentation(view, event.currentTarget);
         event.currentTarget.disabled = true;
         event.currentTarget.classList.add("is-submitting");
@@ -786,29 +802,65 @@ function createTableCard(view, state, {
   ]);
 }
 
+function createDrawDeckCards(remaining) {
+  const visualCount = getNoThanksDeckVisualCount(remaining);
+  return Array.from({ length: visualCount }, (_, index) => {
+    const depth = visualCount - index - 1;
+    return el("span", {
+      style: {
+        transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
+        zIndex: String(index + 1),
+      },
+    });
+  });
+}
+
+function setDrawDeckRemaining(deck, remaining) {
+  if (!deck) return;
+  const safeRemaining = Math.max(0, Math.floor(Number(remaining) || 0));
+  const stack = deck.querySelector(".no-thanks-draw-deck__stack");
+  const count = deck.querySelector(".no-thanks-draw-deck__count");
+  if (stack) {
+    const cards = createDrawDeckCards(safeRemaining);
+    stack.replaceChildren(...cards);
+    stack.classList.toggle("is-empty", cards.length === 0);
+  }
+  if (count) count.textContent = String(safeRemaining) + "장";
+  deck.dataset.visibleRemaining = String(safeRemaining);
+  deck.setAttribute("aria-label", "남은 카드 " + String(safeRemaining) + "장");
+}
+
+function commitDrawDeckDeparture(effect) {
+  const finalRemaining = Number(effect?.deckFinalCount);
+  if (!Number.isInteger(finalRemaining)) return;
+  setDrawDeckRemaining(app.querySelector(".no-thanks-draw-deck"), finalRemaining);
+  if (effect) effect.deckDeparted = true;
+}
+
 function createDrawDeck(view, {
   startPending = false,
+  displayRemaining = null,
 } = {}) {
-  const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
+  const finalRemaining = Math.max(0, Math.floor(Number(view.deckRemaining) || 0));
+  const visibleRemaining = displayRemaining != null && Number.isInteger(Number(displayRemaining))
+    ? Math.max(0, Math.floor(Number(displayRemaining)))
+    : finalRemaining;
+  const cards = createDrawDeckCards(visibleRemaining);
   return el("div", {
     className: "no-thanks-draw-deck" + (startPending ? " is-game-start-pending" : ""),
-    "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
+    "aria-label": "남은 카드 " + String(visibleRemaining) + "장",
+    dataset: {
+      finalRemaining: String(finalRemaining),
+      visibleRemaining: String(visibleRemaining),
+    },
   }, [
     el("div", {
-      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
+      className: "no-thanks-draw-deck__stack" + (cards.length === 0 ? " is-empty" : ""),
       "aria-hidden": "true",
-    }, Array.from({ length: visualCount }, (_, index) => {
-      const depth = visualCount - index - 1;
-      return el("span", {
-        style: {
-          transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
-          zIndex: String(index + 1),
-        },
-      });
-    })),
+    }, cards),
     el("strong", {
       className: "no-thanks-draw-deck__count",
-      text: String(view.deckRemaining ?? "—") + "장",
+      text: String(visibleRemaining) + "장",
     }),
   ]);
 }
@@ -817,7 +869,8 @@ function createCenterChipAction(view, state, {
   displayCount = null,
   locked = false,
 } = {}) {
-  const canRefuse = !locked && !state.busy && view.canRefuse;
+  const canRefuse = !state.busy && view.canRefuse;
+  const canInteract = !locked && canRefuse;
   const count = Number(view.centerCounters) || 0;
   const visibleCount = Number.isInteger(displayCount)
     ? Math.max(0, displayCount)
@@ -849,12 +902,12 @@ function createCenterChipAction(view, state, {
     el("button", {
       className: "button button--secondary no-thanks-center-chips__action",
       type: "button",
-      disabled: !canRefuse,
+      disabled: !canInteract,
       text: locked
         ? "칩 준비 중"
         : (view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기"),
       onClick: async (event) => {
-        if (!canRefuse) return;
+        if (event.currentTarget.disabled || !canRefuse) return;
         event.currentTarget.disabled = true;
         event.currentTarget.classList.add("is-submitting");
         try {
@@ -922,14 +975,32 @@ function dealPresentationKey(state) {
   ].join(":");
 }
 
+function readLastSettledDealKey() {
+  try {
+    return window.sessionStorage?.getItem(DEAL_PRESENTATION_STORAGE_KEY)
+      || lastSettledDealKey;
+  } catch {
+    return lastSettledDealKey;
+  }
+}
+
+function rememberSettledDealKey(key) {
+  if (!key) return;
+  lastSettledDealKey = key;
+  try {
+    window.sessionStorage?.setItem(DEAL_PRESENTATION_STORAGE_KEY, key);
+  } catch {
+    // In-memory acknowledgement still prevents replay for this page lifecycle.
+  }
+}
+
 function markDealSettled(state) {
-  const key = dealPresentationKey(state);
-  if (key) lastSettledDealKey = key;
+  rememberSettledDealKey(dealPresentationKey(state));
 }
 
 function isDealAlreadySettled(state) {
   const key = dealPresentationKey(state);
-  return Boolean(key && key === lastSettledDealKey);
+  return Boolean(key && key === readLastSettledDealKey());
 }
 
 function readBoardTransitionEffects(view) {
@@ -1005,6 +1076,8 @@ function readBoardTransitionEffects(view) {
       gameStart: true,
       dealKey: dealPresentationKey(current),
       dealCard: true,
+      deckPreviousCount: Math.max(0, (Number(current.deckRemaining) || 0) + 1),
+      deckFinalCount: Math.max(0, Number(current.deckRemaining) || 0),
       chipFromPlayerId: null,
       chipPreviousCount: null,
       takeByViewer: false,
@@ -1075,6 +1148,8 @@ function readBoardTransitionEffects(view) {
       gameStart: false,
       dealKey: dealCard ? dealPresentationKey(current) : null,
       dealCard,
+      deckPreviousCount: dealCard ? Math.max(0, Number(previous.deckRemaining) || 0) : null,
+      deckFinalCount: dealCard ? Math.max(0, Number(current.deckRemaining) || 0) : null,
       chipFromPlayerId,
       chipPreviousCount,
       takeByViewer,
@@ -1218,6 +1293,7 @@ async function animateDealFlight(target, source, effect = null) {
     startTop,
     startScale,
   } = created;
+  commitDrawDeckDeparture(effect);
   const dx = targetRect.left - startLeft;
   const dy = targetRect.top - startTop;
   const scaleAt = (progress) => startScale + ((1 - startScale) * progress);
@@ -1398,6 +1474,43 @@ function findTakeCardLandingTarget(cardValue, stateClass = "is-awaiting-take-lan
   return app.querySelector(
     '.no-thanks-hand-card[data-card-value="' + String(cardValue) + '"].' + stateClass,
   );
+}
+
+function animateExistingHandReorder(presentation) {
+  const previousRects = presentation?.previousHandRects ?? {};
+  if (prefersReducedMotion() || Object.keys(previousRects).length === 0) {
+    return Promise.resolve();
+  }
+
+  const animations = [...app.querySelectorAll(".no-thanks-hand .no-thanks-hand-card")]
+    .map((card) => {
+      const previousRect = previousRects[card.dataset.cardValue];
+      const currentRect = rectSnapshot(card.getBoundingClientRect());
+      if (!previousRect || !currentRect || typeof card.animate !== "function") {
+        return null;
+      }
+
+      const dx = previousRect.left - currentRect.left;
+      const dy = previousRect.top - currentRect.top;
+      if (Math.abs(dx) < .5 && Math.abs(dy) < .5) return null;
+
+      const animation = card.animate([
+        {
+          transform: `translate3d(${dx.toFixed(2)}px, ${dy.toFixed(2)}px, 0)`,
+        },
+        {
+          transform: "translate3d(0, 0, 0)",
+        },
+      ], {
+        duration: 420,
+        easing: "cubic-bezier(.2, .72, .2, 1)",
+      });
+
+      return animation.finished.catch(() => {});
+    })
+    .filter(Boolean);
+
+  return Promise.all(animations);
 }
 
 function commitTakeCardLanding(effect, presentation) {
@@ -1733,8 +1846,10 @@ function createGameStartMessage(board) {
       el("span", { className: "no-thanks-game-start-message__eyebrow", text: "NO THANKS!" }),
       el("h2", {
         className: "no-thanks-game-start-message__title",
-        text: "가장 적은 점수를 낸 플레이어가 승리합니다!",
-      }),
+      }, [
+        el("span", { text: "가장 적은 점수를 낸" }),
+        el("span", { text: "플레이어가 승리합니다." }),
+      ]),
       el("p", {
         className: "no-thanks-game-start-message__body",
         text: "칩을 아끼고, 높은 숫자 카드는 영리하게 피하세요.",
@@ -2356,7 +2471,7 @@ async function runGameStartPresentation(effect, view) {
 function completeBoardPresentationEffect(effect) {
   if (!effect) return;
   if (effect.dealCard && effect.dealKey) {
-    lastSettledDealKey = effect.dealKey;
+    rememberSettledDealKey(effect.dealKey);
   }
   effect.running = false;
   effect.completed = true;
@@ -2365,19 +2480,40 @@ function completeBoardPresentationEffect(effect) {
   }
 }
 
+function settleDealPresentationWithoutMotion(effect) {
+  commitDrawDeckDeparture(effect);
+  app.querySelector(".no-thanks-table-card")?.classList.remove(
+    "is-awaiting-deal",
+    "is-deal-landed",
+    "is-flight-started",
+  );
+  completeBoardPresentationEffect(effect);
+}
+
 async function runDealPresentation(effect) {
+  if (effect?.dealKey) rememberSettledDealKey(effect.dealKey);
+
   const board = app.querySelector(".no-thanks-game-board");
   const dealingCard = board?.querySelector(".no-thanks-table-card");
   const deck = board?.querySelector(".no-thanks-draw-deck__stack");
   const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
+  const focusLost = document.hidden
+    || (typeof document.hasFocus === "function" && !document.hasFocus());
+
+  if (focusLost) {
+    settleDealPresentationWithoutMotion(effect);
+    return;
+  }
 
   if (!dealingCard || !deckTopCard) {
+    commitDrawDeckDeparture(effect);
     completeBoardPresentationEffect(effect);
     return;
   }
 
   dealingCard.classList.add("is-awaiting-deal");
   if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+    commitDrawDeckDeparture(effect);
     dealingCard.classList.remove("is-awaiting-deal");
     completeBoardPresentationEffect(effect);
     return;
@@ -2398,6 +2534,7 @@ async function animatePendingTakePresentation(effect) {
   await Promise.all([
     animateTakeCardToHand(presentation, effect),
     animateTakeChipsToPanel(presentation, effect),
+    animateExistingHandReorder(presentation),
   ]);
   clearPendingTakePresentation(presentation);
 
@@ -2406,6 +2543,46 @@ async function animatePendingTakePresentation(effect) {
     return;
   }
   completeBoardPresentationEffect(effect);
+}
+
+function syncPersonalHandLayout() {
+  const hand = app.querySelector(
+    ".no-thanks-my-panel--playing .no-thanks-hand:not(.no-thanks-hand--empty)",
+  );
+  if (!hand) return;
+
+  const cards = [...hand.querySelectorAll(".no-thanks-hand-card")];
+  if (cards.length <= 1) return;
+
+  const handStyle = window.getComputedStyle(hand);
+  const paddingLeft = Number.parseFloat(handStyle.paddingLeft) || 0;
+  const paddingRight = Number.parseFloat(handStyle.paddingRight) || 0;
+  const availableWidth = Math.max(
+    0,
+    hand.clientWidth - paddingLeft - paddingRight,
+  );
+  const cardWidth = cards[0]?.getBoundingClientRect().width ?? 0;
+  const runStartCount = cards
+    .slice(1)
+    .filter((card) => card.dataset.runStart === "true")
+    .length;
+  const margins = getNoThanksHandMargins(cards.length, {
+    availableWidth,
+    cardWidth,
+    runStartCount,
+  });
+
+  cards.forEach((card, index) => {
+    if (index === 0) {
+      card.style.marginLeft = "0";
+      return;
+    }
+    card.style.marginLeft = String(
+      card.dataset.runStart === "true"
+        ? margins.runMargin
+        : margins.overlap,
+    ) + "px";
+  });
 }
 
 function syncResultHandLayouts() {
@@ -2459,6 +2636,7 @@ function syncBoardAnimationGeometry(view) {
 
   window.requestAnimationFrame(() => {
     if (!board.isConnected) return;
+    syncPersonalHandLayout();
     syncBoardSeatGeometry(board);
 
     const effect = boardPresentationEffect;
@@ -2584,6 +2762,9 @@ function createRoundTable(view, state, effects) {
   }
 
   const gameStarting = Boolean(effects?.gameStart && effects.completed !== true);
+  const deckDisplayRemaining = effects?.dealCard && effects.completed !== true
+    ? effects.deckPreviousCount
+    : null;
   const centerChipAction = createCenterChipAction(view, state, {
     displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
     locked: gameStarting,
@@ -2596,7 +2777,7 @@ function createRoundTable(view, state, effects) {
     el("div", { className: "no-thanks-round-table__objects" }, [
       el("div", {
         className: "no-thanks-round-table__slot is-deck",
-      }, [createDrawDeck(view)]),
+      }, [createDrawDeck(view, { displayRemaining: deckDisplayRemaining })]),
       el("div", {
         className: "no-thanks-round-table__slot is-center",
       }, [
@@ -2648,6 +2829,26 @@ function createHandCard(card, index, overlap, {
       text: value,
     }),
   ]);
+}
+
+function createPersonalHandCards(cards, {
+  incomingCardValue = null,
+} = {}) {
+  const orderedCards = [...cards].sort((left, right) => left - right);
+  const margins = getNoThanksHandMargins(orderedCards.length);
+
+  return orderedCards.map((card, index) => {
+    const startsNewRun = index > 0 && card !== orderedCards[index - 1] + 1;
+    return createHandCard(
+      card,
+      index,
+      startsNewRun ? margins.runMargin : margins.overlap,
+      {
+        incoming: incomingCardValue != null && Number(card) === Number(incomingCardValue),
+        runStart: startsNewRun,
+      },
+    );
+  });
 }
 
 function createWaitingPrimaryAction(view, state) {
@@ -2705,9 +2906,8 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
     : finalCards;
   const cards = holdingIncomingCard
-    ? [...previousCards, effects.takeCardValue]
+    ? [...previousCards, effects.takeCardValue].sort((left, right) => left - right)
     : finalCards;
-  const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const finalCounters = Number(view.viewerCounters) || 0;
   const displayCounters = waitingForStartChips
@@ -2719,13 +2919,6 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     ? finalCounters
     : displayCounters;
   const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
-  const statusLines = waiting
-    ? (view.isHost
-      ? ["방장은 항상 준비된 자리로 표시됩니다."]
-      : (view.isReady
-        ? ["준비 완료", "게임 시작을 기다리고 있어요."]
-        : ["준비 완료를 누르면", "테이블에 착석합니다"]))
-    : [];
 
   return el("section", {
     className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
@@ -2779,10 +2972,9 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
         }),
       ]),
       cards.length > 0
-        ? el("div", { className: "no-thanks-hand" },
-          cards.map((card, index) => createHandCard(card, index, overlap, {
-            incoming: holdingIncomingCard && index === cards.length - 1,
-          })))
+        ? el("div", { className: "no-thanks-hand" }, createPersonalHandCards(cards, {
+          incomingCardValue: holdingIncomingCard ? effects.takeCardValue : null,
+        }))
         : el("div", {
           className: "no-thanks-hand no-thanks-hand--empty",
           text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
@@ -2792,10 +2984,6 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
       className: "no-thanks-my-panel__actions"
         + (waiting ? " no-thanks-my-panel__actions--waiting" : " no-thanks-my-panel__actions--playing"),
     }, [
-      waiting
-        ? el("p", { className: "no-thanks-my-panel__message" },
-          statusLines.map((line) => el("span", { text: line })))
-        : null,
       waiting
         ? el("div", {
           className: "no-thanks-my-panel__action-row is-single",
@@ -3166,14 +3354,11 @@ function prepareFinalViewerTakeDestination(view, presentation) {
   const hand = app.querySelector(".no-thanks-hand");
   const count = app.querySelector(".no-thanks-my-panel__card-count");
   if (hand && finalCards.length > 0) {
-    const overlap = getNoThanksHandOverlap(finalCards.length);
     hand.classList.remove("no-thanks-hand--empty");
-    hand.replaceChildren(...finalCards.map((card, index) => createHandCard(
-      card,
-      index,
-      overlap,
-      { incoming: card === presentation.cardValue },
-    )));
+    hand.replaceChildren(...createPersonalHandCards(finalCards, {
+      incomingCardValue: presentation.cardValue,
+    }));
+    syncPersonalHandLayout();
   }
   if (count) {
     count.dataset.finalCount = String(finalCards.length);
@@ -3204,6 +3389,7 @@ async function runFinalTakeTransition(access, view, transitionKey) {
       await Promise.all([
         animateTakeCardToHand(presentation, effect),
         animateTakeChipsToPanel(presentation, effect),
+        animateExistingHandReorder(presentation),
       ]);
     } else if (presentation) {
       await Promise.all([
@@ -3914,7 +4100,19 @@ async function boot() {
   }
 }
 
-window.addEventListener("resize", syncResultHandLayouts, { passive: true });
+window.addEventListener("resize", () => {
+  syncPersonalHandLayout();
+  syncResultHandLayouts();
+}, { passive: true });
+
+function cancelDealPresentationOnFocusLoss() {
+  if (activeDealPresentation) cancelActiveDealPresentation();
+}
+
+window.addEventListener("blur", cancelDealPresentationOnFocusLoss);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) cancelDealPresentationOnFocusLoss();
+});
 
 window.addEventListener("pagehide", (event) => {
   if (!event.persisted) noThanksBgm.destroy();

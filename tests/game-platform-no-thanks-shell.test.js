@@ -143,7 +143,10 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(runtime, /getNoThanksResultHandMargins/u);
   assert.match(runtime, /runStart: runStart \? "true" : "false"/u);
   assert.match(runtime, /function syncResultHandLayouts\(\)/u);
-  assert.match(runtime, /window\.addEventListener\("resize", syncResultHandLayouts/u);
+  assert.match(
+    runtime,
+    /window\.addEventListener\("resize", \(\) => \{[\s\S]*?syncPersonalHandLayout\(\);[\s\S]*?syncResultHandLayouts\(\)/u,
+  );
   assert.match(runtime, /startsNewRun \? baseMargins\.runMargin : overlap/u);
   assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
@@ -177,7 +180,9 @@ test("No Thanks! game start moves directly from the second message into setup an
   assert.match(runtime, /GAME_START_MESSAGE_HOLD_MS = 2500/u);
   assert.doesNotMatch(runtime, /GAME_START_SETUP_PAUSE_MS/u);
   assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
-  assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
+  assert.match(runtime, /el\("span", \{ text: "가장 적은 점수를 낸" \}\)/u);
+  assert.match(runtime, /el\("span", \{ text: "플레이어가 승리합니다\." \}\)/u);
+  assert.match(styles, /\.no-thanks-game-start-message__title > span[\s\S]*?display:\s*block/u);
   assert.match(runtime, /곧 게임이 시작됩니다\./u);
   assert.match(
     runtime,
@@ -271,12 +276,11 @@ test("No Thanks! opening chips land one by one into the viewer's final pile layo
   assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip\.is-start-chip-arrived[\s\S]*opacity:\s*1/u);
 });
 
-test("No Thanks! waiting action copy uses centered two-line guidance", () => {
-  assert.match(runtime, /\["준비 완료를 누르면", "테이블에 착석합니다"\]/u);
-  assert.match(runtime, /\["준비 완료", "게임 시작을 기다리고 있어요\."\]/u);
-  assert.match(runtime, /statusLines\.map\(\(line\) => el\("span", \{ text: line \}\)\)/u);
-  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*justify-items: center/u);
-  assert.match(styles, /\.no-thanks-my-panel__message[\s\S]*text-align: center/u);
+test("No Thanks! waiting personal action area keeps only the primary button", () => {
+  assert.doesNotMatch(runtime, /const statusLines = waiting/u);
+  assert.doesNotMatch(runtime, /statusLines\.map/u);
+  assert.match(runtime, /no-thanks-my-panel__action-row is-single/u);
+  assert.match(runtime, /createWaitingPrimaryAction\(view, state\)/u);
 });
 
 test("No Thanks! opponent take sends the public card and chips into the taker's seat avatar", () => {
@@ -335,6 +339,70 @@ test("No Thanks! host termination cancels any active deal animation before endin
   assert.match(runtime, /text: "게임 종료"[\s\S]*?cancelActiveDealPresentation\(\)[\s\S]*?await onConfirm\(\)/u);
   assert.match(runtime, /view\.endReason === "HOST_TERMINATED"[\s\S]*?cancelActiveDealPresentation\(\)/u);
   assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard, effect\)/u);
+});
+
+test("No Thanks! opening unlock updates the same card and chip handlers without a refresh", () => {
+  assert.match(
+    runtime,
+    /const canTake = !state\.busy && view\.canTake;[\s\S]*?const canInteract = !locked && canTake;[\s\S]*?disabled: !canInteract/u,
+  );
+  assert.match(runtime, /if \(event\.currentTarget\.disabled \|\| !canTake\) return;/u);
+  assert.match(
+    runtime,
+    /const canRefuse = !state\.busy && view\.canRefuse;[\s\S]*?const canInteract = !locked && canRefuse;[\s\S]*?disabled: !canInteract/u,
+  );
+  assert.match(runtime, /if \(event\.currentTarget\.disabled \|\| !canRefuse\) return;/u);
+  assert.match(runtime, /function unlockGameStartControls\(view\)/u);
+});
+
+test("No Thanks! deal presentation keeps the source deck until the flight departs", () => {
+  assert.match(runtime, /deckPreviousCount:/u);
+  assert.match(runtime, /deckFinalCount:/u);
+  assert.match(runtime, /const deckDisplayRemaining = effects\?\.dealCard[\s\S]*?effects\.deckPreviousCount/u);
+  assert.match(runtime, /createDrawDeck\(view, \{ displayRemaining: deckDisplayRemaining \}\)/u);
+  assert.match(runtime, /function commitDrawDeckDeparture\(effect\)/u);
+  assert.match(
+    runtime,
+    /\} = created;\s*commitDrawDeckDeparture\(effect\);\s*const dx/u,
+  );
+});
+
+test("No Thanks! personal hand targets the sorted run-aware slot and slides existing cards aside", () => {
+  assert.match(runtime, /function createPersonalHandCards\(cards,/u);
+  assert.match(runtime, /const orderedCards = \[\.\.\.cards\]\.sort\(\(left, right\) => left - right\)/u);
+  assert.match(runtime, /const margins = getNoThanksHandMargins\(orderedCards\.length\)/u);
+  assert.match(runtime, /function syncPersonalHandLayout\(\)/u);
+  assert.match(runtime, /const availableWidth = Math\.max\([\s\S]*?hand\.clientWidth - paddingLeft - paddingRight/u);
+  assert.match(runtime, /getNoThanksHandMargins\(cards\.length, \{[\s\S]*?availableWidth,[\s\S]*?cardWidth,[\s\S]*?runStartCount/u);
+  assert.match(runtime, /syncPersonalHandLayout\(\);\s*syncBoardSeatGeometry\(board\)/u);
+  assert.match(runtime, /const startsNewRun = index > 0 && card !== orderedCards\[index - 1\] \+ 1/u);
+  assert.match(runtime, /incomingCardValue != null && Number\(card\) === Number\(incomingCardValue\)/u);
+  assert.match(runtime, /function captureViewerHandRects\(\)/u);
+  assert.match(runtime, /previousHandRects: captureViewerHandRects\(\)/u);
+  assert.match(runtime, /function animateExistingHandReorder\(presentation\)/u);
+  assert.match(runtime, /duration:\s*420/u);
+  assert.match(runtime, /translate3d\(\$\{dx\.toFixed\(2\)\}px, \$\{dy\.toFixed\(2\)\}px, 0\)/u);
+  assert.match(
+    runtime,
+    /animateTakeCardToHand\(presentation, effect\),[\s\S]*?animateExistingHandReorder\(presentation\)/u,
+  );
+  assert.match(
+    runtime,
+    /hand\.replaceChildren\(\.\.\.createPersonalHandCards\(finalCards, \{\s*incomingCardValue: presentation\.cardValue/u,
+  );
+});
+
+test("No Thanks! deal presentation is acknowledged once across focus and visibility changes", () => {
+  assert.match(runtime, /DEAL_PRESENTATION_STORAGE_KEY/u);
+  assert.match(runtime, /function readLastSettledDealKey\(\)/u);
+  assert.match(runtime, /window\.sessionStorage\?\.getItem\(DEAL_PRESENTATION_STORAGE_KEY\)/u);
+  assert.match(runtime, /window\.sessionStorage\?\.setItem\(DEAL_PRESENTATION_STORAGE_KEY, key\)/u);
+  assert.match(runtime, /if \(effect\?\.dealKey\) rememberSettledDealKey\(effect\.dealKey\)/u);
+  assert.match(runtime, /const focusLost = document\.hidden[\s\S]*?document\.hasFocus/u);
+  assert.match(runtime, /settleDealPresentationWithoutMotion\(effect\)/u);
+  assert.match(runtime, /window\.addEventListener\("blur", cancelDealPresentationOnFocusLoss\)/u);
+  assert.match(runtime, /document\.addEventListener\("visibilitychange"/u);
+  assert.match(runtime, /if \(document\.hidden\) cancelDealPresentationOnFocusLoss\(\)/u);
 });
 
 test("No Thanks! opening starts the first deal immediately after shuffle completion", () => {

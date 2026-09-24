@@ -5003,6 +5003,11 @@ body::after {
   text-wrap: balance;
 }
 
+.no-thanks-game-start-message__title > span {
+  display: block;
+  white-space: nowrap;
+}
+
 .no-thanks-game-start-message__body {
   max-width: 22rem;
   color: rgba(236, 245, 247, .82);

@@ -5,7 +5,9 @@ import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
+  getNoThanksHandMargins,
   getNoThanksHandOverlap,
+  getNoThanksHandRunMargin,
   getNoThanksResultHandMargins,
   getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
@@ -75,11 +77,47 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksCardTone(19), "yellow");
   assert.equal(getNoThanksCardTone(35), "pink");
 
-  assert.equal(getNoThanksHandOverlap(3), -8);
+  assert.equal(getNoThanksHandOverlap(3), 0);
+  assert.equal(getNoThanksHandOverlap(5), -6);
   assert.equal(getNoThanksHandOverlap(8), -18);
-  assert.equal(getNoThanksHandOverlap(13), -28);
-  assert.equal(getNoThanksHandOverlap(18), -46);
-  assert.equal(getNoThanksHandOverlap(24), -52);
+  assert.equal(getNoThanksHandOverlap(13), -38);
+  assert.equal(getNoThanksHandOverlap(18), -58);
+  assert.equal(getNoThanksHandOverlap(24), -74);
+
+  assert.equal(getNoThanksHandRunMargin(3), 16);
+  assert.equal(getNoThanksHandRunMargin(5), 16);
+  assert.equal(getNoThanksHandRunMargin(8), 10);
+  assert.equal(getNoThanksHandRunMargin(13), -10);
+  assert.equal(getNoThanksHandRunMargin(18), -30);
+  assert.equal(getNoThanksHandRunMargin(24), -46);
+
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 720,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: 0, runMargin: 16 },
+    "roomy hand should stay fully spread with slightly wider run gaps",
+  );
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 710,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: -5, runMargin: 16 },
+    "hand should begin with a slightly tighter overlap only after natural width no longer fits",
+  );
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 620,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: -20, runMargin: 8 },
+    "overlap should tighten in small steps while preserving a slightly wider run gap",
+  );
 
   assert.equal(getNoThanksResultHandOverlap(4), -2);
   assert.equal(getNoThanksResultHandOverlap(8), -7);
@@ -211,7 +249,7 @@ test("No Thanks! Phase A-D board UI keeps board, HUD, seat, and personal panel c
   assert.match(runtime, /function isDealAlreadySettled/u);
   assert.match(runtime, /const dealCard = !isDealAlreadySettled\(current\)/u);
   assert.match(runtime, /dealKey: dealCard \? dealPresentationKey\(current\) : null/u);
-  assert.match(runtime, /lastSettledDealKey = effect\.dealKey/u);
+  assert.match(runtime, /rememberSettledDealKey\(effect\.dealKey\)/u);
   assert.match(runtime, /current\.gamePhase === "PLAYING"\) markDealSettled\(current\)/u);
   assert.match(runtime, /function completeBoardPresentationEffect/u);
   assert.match(runtime, /function runDealPresentation/u);
