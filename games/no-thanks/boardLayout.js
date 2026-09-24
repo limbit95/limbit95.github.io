@@ -38,9 +38,10 @@ export function getNoThanksHandOverlap(cardCount) {
   const count = Math.max(0, Number(cardCount) || 0);
   if (count <= 5) return -8;
   if (count <= 9) return -18;
-  if (count <= 14) return -30;
-  if (count <= 19) return -40;
-  return -50;
+  if (count <= 13) return -28;
+  if (count <= 17) return -38;
+  if (count <= 21) return -46;
+  return -52;
 }
 
 
