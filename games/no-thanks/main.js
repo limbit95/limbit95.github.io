@@ -2106,6 +2106,8 @@ async function animateGameStartChips(board, view, effect) {
     });
 
     return animation.finished.catch(() => {}).then(() => {
+      chip.remove();
+
       if (toViewer && viewerLandingChip?.isConnected) {
         viewerLandingChip.classList.add("is-start-chip-arrived");
         const value = app.querySelector(
