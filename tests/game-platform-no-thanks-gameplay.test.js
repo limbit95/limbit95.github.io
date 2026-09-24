@@ -18,6 +18,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const randomizedDrawOrderMigration = readFileSync(
+  new URL(
+    "../supabase/no-thanks/20260924073500_no_thanks_randomized_draw_order.sql",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const rematchMigration = readFileSync(
   new URL(
     "../supabase/no-thanks/20260922085900_no_thanks_rematch.sql",
@@ -95,17 +102,22 @@ test("No Thanks! gameplay adapter maps refuse/take intents to one game-local RPC
   ]);
 });
 
-test("No Thanks! start game randomizes the 3-35 deck before excluding nine cards", () => {
+test("No Thanks! start game randomizes generated card rows before excluding nine cards", () => {
   assert.match(
-    foundationMigration,
+    randomizedDrawOrderMigration,
+    /select array_agg\(card order by random\(\)\)[\s\S]*from generate_series\(3, 35\) as card/u,
+  );
+  assert.doesNotMatch(
+    randomizedDrawOrderMigration,
     /select generate_series\(3, 35\) as card\s+order by random\(\)/u,
   );
-  assert.match(foundationMigration, /v_draw_deck := v_cards\[1:24\]/u);
-  assert.match(foundationMigration, /v_excluded := v_cards\[25:33\]/u);
-  assert.match(foundationMigration, /'currentCard', v_draw_deck\[1\]/u);
-  assert.doesNotMatch(
+  assert.match(randomizedDrawOrderMigration, /v_draw_deck := v_cards\[1:24\]/u);
+  assert.match(randomizedDrawOrderMigration, /v_excluded := v_cards\[25:33\]/u);
+  assert.match(randomizedDrawOrderMigration, /'currentCard', v_draw_deck\[1\]/u);
+  assert.match(
     foundationMigration,
-    /select generate_series\(3, 35\) as card\s+order by card/u,
+    /create or replace function public\.no_thanks_start_game/u,
+    "the additive migration must override the already-deployed foundation function",
   );
 });
 

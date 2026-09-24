@@ -83,7 +83,9 @@ test("No Thanks! rules dialog uses game-local card and chip visual language", ()
   assert.match(styles, /\.no-thanks-rules__choice-chip/u);
   assert.match(styles, /\.no-thanks-rules__score-card/u);
   assert.match(styles, /\.no-thanks-rules__finish-badge/u);
-  assert.match(styles, /@media \(max-width: 700px\)/u);
+  assert.match(styles, /height: min\(94dvh, 920px\)/u);
+  assert.match(styles, /\.no-thanks-rules__content[\s\S]*height: 100%/u);
+  assert.match(styles, /@media \(max-width: 700px\)[\s\S]*height: 92dvh/u);
 });
 
 test("No Thanks! page carries a game-local environmental background identity", () => {
@@ -135,16 +137,11 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(styles, /data-rank="2"/u);
   assert.match(styles, /data-rank="3"/u);
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
-  assert.match(runtime, /if \(count <= 5\) return -2/u);
-  assert.match(runtime, /if \(count <= 9\) return -7/u);
-  assert.match(runtime, /if \(count <= 12\) return -14/u);
-  assert.match(runtime, /if \(count <= 15\) return -20/u);
-  assert.match(runtime, /if \(count <= 18\) return -26/u);
-  assert.match(runtime, /if \(count <= 21\) return -32/u);
-  assert.match(runtime, /return -36/u);
-  assert.match(runtime, /function getNoThanksResultRunOverlap\(cardCount, overlap\)/u);
-  assert.match(runtime, /return Math\.min\(-4, overlap \+ 8\)/u);
-  assert.match(runtime, /startsNewRun \? runOverlap : overlap/u);
+  assert.match(runtime, /getNoThanksResultHandMargins/u);
+  assert.match(runtime, /runStart: runStart \? "true" : "false"/u);
+  assert.match(runtime, /function syncResultHandLayouts\(\)/u);
+  assert.match(runtime, /window\.addEventListener\("resize", syncResultHandLayouts/u);
+  assert.match(runtime, /startsNewRun \? baseMargins\.runMargin : overlap/u);
   assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);

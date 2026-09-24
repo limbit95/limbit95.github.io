@@ -30,6 +30,8 @@ import {
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
+  getNoThanksResultHandMargins,
+  getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
   orderBoardPlayers,
 } from "./boardLayout.js";
@@ -64,6 +66,7 @@ let finalTakeTransition = null;
 let activeWinnerCelebrationKey = null;
 let activeWinnerCelebrationDialog = null;
 let activeDealPresentation = null;
+let resultHandLayoutFrame = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 const FINAL_RESULT_DELAY_MS = 3000;
 const GAME_START_MESSAGE_HOLD_MS = 2500;
@@ -86,6 +89,10 @@ function disposeLobbyController() {
   clearPendingTakePresentation();
   cancelActiveDealPresentation();
   clearGameStartPresentationArtifacts();
+  if (resultHandLayoutFrame != null) {
+    window.cancelAnimationFrame(resultHandLayoutFrame);
+    resultHandLayoutFrame = null;
+  }
   activeWinnerCelebrationDialog?.remove();
   activeWinnerCelebrationDialog = null;
   activeWinnerCelebrationKey = null;
@@ -2401,6 +2408,51 @@ async function animatePendingTakePresentation(effect) {
   completeBoardPresentationEffect(effect);
 }
 
+function syncResultHandLayouts() {
+  if (resultHandLayoutFrame != null) {
+    window.cancelAnimationFrame(resultHandLayoutFrame);
+  }
+
+  resultHandLayoutFrame = window.requestAnimationFrame(() => {
+    resultHandLayoutFrame = null;
+
+    app.querySelectorAll(".no-thanks-result-hand:not(.no-thanks-hand--empty)")
+      .forEach((hand) => {
+        const cards = [...hand.querySelectorAll(".no-thanks-hand-card")];
+        if (cards.length <= 1) return;
+
+        const handStyle = window.getComputedStyle(hand);
+        const paddingLeft = Number.parseFloat(handStyle.paddingLeft) || 0;
+        const paddingRight = Number.parseFloat(handStyle.paddingRight) || 0;
+        const availableWidth = Math.max(
+          0,
+          hand.clientWidth - paddingLeft - paddingRight,
+        );
+        const cardWidth = cards[0]?.getBoundingClientRect().width ?? 0;
+        const runStartCount = cards
+          .slice(1)
+          .filter((card) => card.dataset.runStart === "true")
+          .length;
+        const margins = getNoThanksResultHandMargins(cards.length, {
+          availableWidth,
+          cardWidth,
+          runStartCount,
+        });
+
+        cards.forEach((card, index) => {
+          if (index === 0) {
+            card.style.marginLeft = "0";
+            return;
+          }
+          const margin = card.dataset.runStart === "true"
+            ? margins.runMargin
+            : margins.overlap;
+          card.style.marginLeft = String(margin) + "px";
+        });
+      });
+  });
+}
+
 function syncBoardAnimationGeometry(view) {
   const board = app.querySelector(".no-thanks-game-board");
   if (!board) return;
@@ -2569,6 +2621,7 @@ function createRoundTable(view, state, effects) {
 
 function createHandCard(card, index, overlap, {
   incoming = false,
+  runStart = false,
 } = {}) {
   const value = String(card);
   return el("button", {
@@ -2578,6 +2631,7 @@ function createHandCard(card, index, overlap, {
       tone: getNoThanksCardTone(card),
       cardValue: value,
       incoming: incoming ? "true" : "false",
+      runStart: runStart ? "true" : "false",
     },
     style: {
       marginLeft: index === 0 ? "0" : String(overlap) + "px",
@@ -2806,24 +2860,6 @@ function createWaitingPanel(view, state, panelActions = []) {
   return createBoardScene(view, state, panelActions);
 }
 
-function getNoThanksResultHandOverlap(cardCount) {
-  const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 5) return -2;
-  if (count <= 9) return -7;
-  if (count <= 12) return -14;
-  if (count <= 15) return -20;
-  if (count <= 18) return -26;
-  if (count <= 21) return -32;
-  return -36;
-}
-
-function getNoThanksResultRunOverlap(cardCount, overlap) {
-  const count = Math.max(0, Number(cardCount) || 0);
-  if (count <= 9) return 10;
-  if (count <= 12) return 4;
-  return Math.min(-4, overlap + 8);
-}
-
 function createResultPlayerPanels(view, {
   scored = true,
 } = {}) {
@@ -2846,7 +2882,8 @@ function createResultPlayerPanels(view, {
     "aria-label": scored ? "최종 순위와 플레이어 결과" : "게임 종료 시 플레이어 카드",
   }, entries.map((entry) => {
     const cards = [...(entry.cards ?? [])].sort((left, right) => left - right);
-    const overlap = getNoThanksResultHandOverlap(cards.length);
+    const baseMargins = getNoThanksResultHandMargins(cards.length);
+    const overlap = baseMargins.overlap;
     const hasCounters = Number.isInteger(entry.counters);
 
     return el("article", {
@@ -2906,8 +2943,12 @@ function createResultPlayerPanels(view, {
             ? el("div", { className: "no-thanks-result-hand" },
               cards.map((card, index) => {
                 const startsNewRun = index > 0 && card !== cards[index - 1] + 1;
-                const runOverlap = getNoThanksResultRunOverlap(cards.length, overlap);
-                return createHandCard(card, index, startsNewRun ? runOverlap : overlap);
+                return createHandCard(
+                  card,
+                  index,
+                  startsNewRun ? baseMargins.runMargin : overlap,
+                  { runStart: startsNewRun },
+                );
               }))
             : el("div", {
               className: "no-thanks-result-hand no-thanks-hand--empty",
@@ -3735,6 +3776,10 @@ function renderLobby(access, state) {
 
   replaceApp(shell);
 
+  if (view?.gamePhase === "GAME_OVER") {
+    syncResultHandLayouts();
+  }
+
   if (winnerCelebrationKey) {
     showWinnerCelebrationOnce(view, winnerCelebrationKey);
   }
@@ -3868,6 +3913,8 @@ async function boot() {
     }));
   }
 }
+
+window.addEventListener("resize", syncResultHandLayouts, { passive: true });
 
 window.addEventListener("pagehide", (event) => {
   if (!event.persisted) noThanksBgm.destroy();
