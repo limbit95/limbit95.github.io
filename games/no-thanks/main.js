@@ -56,10 +56,10 @@ let acknowledgedWinnerCelebrationKey = null;
 let finalTakeTransition = null;
 let activeWinnerCelebrationKey = null;
 let activeWinnerCelebrationDialog = null;
+let activeDealPresentation = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 const FINAL_RESULT_DELAY_MS = 3000;
 const GAME_START_MESSAGE_HOLD_MS = 2500;
-const GAME_START_DEAL_PAUSE_MS = 950;
 
 function replaceApp(node) {
   app.replaceChildren(node);
@@ -77,6 +77,7 @@ function disposeLobbyController() {
   boardPresentationEffect = null;
   finalTakeTransition = null;
   clearPendingTakePresentation();
+  cancelActiveDealPresentation();
   clearGameStartPresentationArtifacts();
   activeWinnerCelebrationDialog?.remove();
   activeWinnerCelebrationDialog = null;
@@ -1157,7 +1158,36 @@ function createDealFlight(target, sourceRect) {
   };
 }
 
-async function animateDealFlight(target, source) {
+function cancelActiveDealPresentation() {
+  const presentation = activeDealPresentation;
+  if (!presentation) return;
+
+  presentation.cancelled = true;
+  presentation.animations.forEach((animation) => {
+    try {
+      animation.cancel();
+    } catch {
+      // Ignore browser animation cleanup failures.
+    }
+  });
+  presentation.flight?.remove();
+  presentation.target?.classList.remove("is-receiving-card");
+  document.querySelectorAll(
+    ".no-thanks-table-card.is-awaiting-deal,"
+      + " .no-thanks-table-card.is-deal-landed,"
+      + " .no-thanks-table-card.is-flight-started",
+  ).forEach((card) => {
+    card.classList.remove("is-awaiting-deal", "is-deal-landed", "is-flight-started");
+  });
+
+  if (presentation.effect && presentation.effect.completed !== true) {
+    completeBoardPresentationEffect(presentation.effect);
+  }
+  activeDealPresentation = null;
+}
+
+
+async function animateDealFlight(target, source, effect = null) {
   if (!target?.isConnected || !source?.isConnected) return false;
 
   const sourceRect = source.getBoundingClientRect();
@@ -1175,6 +1205,14 @@ async function animateDealFlight(target, source) {
   const dx = targetRect.left - startLeft;
   const dy = targetRect.top - startTop;
   const scaleAt = (progress) => startScale + ((1 - startScale) * progress);
+  const presentation = {
+    flight,
+    target,
+    effect,
+    animations: [],
+    cancelled: false,
+  };
+  activeDealPresentation = presentation;
 
   target.classList.add("is-receiving-card");
 
@@ -1216,6 +1254,8 @@ async function animateDealFlight(target, source) {
       fill: "forwards",
     });
 
+    presentation.animations.push(pathAnimation);
+
     const flipAnimation = inner.animate([
       { transform: "rotateY(180deg) rotateX(0deg)", offset: 0 },
       { transform: "rotateY(180deg) rotateX(1deg)", offset: .2 },
@@ -1229,10 +1269,14 @@ async function animateDealFlight(target, source) {
       fill: "forwards",
     });
 
+    presentation.animations.push(flipAnimation);
+
     await Promise.all([
       pathAnimation.finished.catch(() => {}),
       flipAnimation.finished.catch(() => {}),
     ]);
+
+    if (presentation.cancelled) return false;
 
     const landingTarget = document.querySelector(".no-thanks-table-card.is-awaiting-deal")
       ?? target;
@@ -1258,9 +1302,15 @@ async function animateDealFlight(target, source) {
       easing: "cubic-bezier(.2, .72, .2, 1)",
       fill: "forwards",
     });
+    presentation.animations.push(settle);
     await settle.finished.catch(() => {});
-    landingTarget?.classList.remove("is-deal-landed");
+    if (!presentation.cancelled) {
+      landingTarget?.classList.remove("is-deal-landed");
+    }
   } finally {
+    if (activeDealPresentation === presentation) {
+      activeDealPresentation = null;
+    }
     flight.remove();
     target.classList.remove("is-receiving-card");
   }
@@ -1815,6 +1865,7 @@ async function animateGameStartDeck(board, effect) {
   const shuffleOrderOne = [5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4];
   const shuffleOrderTwo = [8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6];
   const shuffleOrderThree = [2, 9, 5, 11, 4, 0, 8, 1, 10, 6, 3, 7];
+  const shuffleOrderFour = [10, 4, 7, 0, 9, 2, 6, 11, 1, 5, 8, 3];
 
   const transformForPoint = (pointIndex, scale = 1) => {
     const [x, y, rotation] = scatterPoints[pointIndex % scatterPoints.length];
@@ -1867,7 +1918,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(index)),
-    { duration: 360, hold: 220, className: "spread" },
+    { duration: 380, hold: 250, className: "spread" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1877,7 +1928,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderOne[index], .92)),
-    { duration: 320, hold: 180, className: "mix-one" },
+    { duration: 340, hold: 210, className: "mix-one" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1887,7 +1938,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderTwo[index], .72)),
-    { duration: 320, hold: 180, className: "mix-two" },
+    { duration: 340, hold: 210, className: "mix-two" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1897,7 +1948,17 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderThree[index], .84)),
-    { duration: 320, hold: 180, className: "mix-three" },
+    { duration: 340, hold: 210, className: "mix-three" },
+  );
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    overlay.remove();
+    stack.classList.remove("is-start-shuffle-source-hidden");
+    return;
+  }
+
+  await runSnapStep(
+    cards.map((_, index) => transformForPoint(shuffleOrderFour[index], .78)),
+    { duration: 340, hold: 210, className: "mix-four" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1907,7 +1968,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => baseTransforms[index]),
-    { duration: 360, hold: 0, className: "gather" },
+    { duration: 380, hold: 0, className: "gather" },
   );
 
   const settle = overlay.animate([
@@ -2189,7 +2250,6 @@ async function runGameStartPresentation(effect, view) {
   const message = createGameStartMessage(board);
   const reducedMotion = prefersReducedMotion();
   const messageHold = reducedMotion ? 850 : GAME_START_MESSAGE_HOLD_MS;
-  const dealPause = reducedMotion ? 260 : GAME_START_DEAL_PAUSE_MS;
 
   await waitForPresentation(messageHold);
   if (!isCurrentBoardPresentationEffect(effect)) {
@@ -2251,7 +2311,6 @@ async function runGameStartPresentation(effect, view) {
     return;
   }
 
-  await waitForPresentation(dealPause);
   if (!app.querySelector(".no-thanks-game-board")) return;
   await runDealPresentation(effect);
   if (!isCurrentBoardPresentationEffect(effect)) return;
@@ -2296,7 +2355,7 @@ async function runDealPresentation(effect) {
   }
 
   dealingCard.classList.add("is-flight-started");
-  await animateDealFlight(dealingCard, deckTopCard);
+  await animateDealFlight(dealingCard, deckTopCard, effect);
   completeBoardPresentationEffect(effect);
 }
 
@@ -3320,6 +3379,7 @@ function createGameEndDialog(onConfirm) {
         type: "button",
         text: "게임 종료",
         onClick: async () => {
+          cancelActiveDealPresentation();
           dialog.close();
           await onConfirm();
         },
@@ -3517,6 +3577,10 @@ function renderLobby(access, state) {
       }));
       return;
     }
+  }
+
+  if (view?.gamePhase === "GAME_OVER" && view.endReason === "HOST_TERMINATED") {
+    cancelActiveDealPresentation();
   }
 
   const confirmedTakePlayerId = view ? getConfirmedTakePlayerId(view) : null;
