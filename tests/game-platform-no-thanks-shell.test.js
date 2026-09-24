@@ -115,7 +115,7 @@ test("No Thanks! room header emphasizes game identity without duplicating the ro
 
 test("No Thanks! result presentation reuses hand and chip language with a winner celebration modal", () => {
   assert.match(runtime, /createResultPlayerPanels/u);
-  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? 12 : overlap\)/u);
+  assert.match(runtime, /createHandCard\(card, index, startsNewRun \? runOverlap : overlap\)/u);
   assert.match(runtime, /createChipCluster\(entry\.counters/u);
   assert.match(runtime, /최종 보유 칩/u);
   assert.match(runtime, /createWinnerCelebration/u);
@@ -137,10 +137,14 @@ test("No Thanks! result presentation reuses hand and chip language with a winner
   assert.match(styles, /\.no-thanks-result-hand \.no-thanks-hand-card:hover/u);
   assert.match(runtime, /if \(count <= 5\) return -2/u);
   assert.match(runtime, /if \(count <= 9\) return -7/u);
-  assert.match(runtime, /if \(count <= 14\) return -13/u);
-  assert.match(runtime, /if \(count <= 19\) return -21/u);
-  assert.match(runtime, /return -30/u);
-  assert.match(runtime, /startsNewRun \? 12 : overlap/u);
+  assert.match(runtime, /if \(count <= 12\) return -14/u);
+  assert.match(runtime, /if \(count <= 15\) return -20/u);
+  assert.match(runtime, /if \(count <= 18\) return -26/u);
+  assert.match(runtime, /if \(count <= 21\) return -32/u);
+  assert.match(runtime, /return -36/u);
+  assert.match(runtime, /function getNoThanksResultRunOverlap\(cardCount, overlap\)/u);
+  assert.match(runtime, /return Math\.min\(-4, overlap \+ 8\)/u);
+  assert.match(runtime, /startsNewRun \? runOverlap : overlap/u);
   assert.match(styles, /\.no-thanks-result-player__score-card/u);
   assert.match(styles, /\.no-thanks-winner-confetti/u);
   assert.match(styles, /@keyframes no-thanks-winner-confetti-fall/u);
@@ -164,6 +168,109 @@ test("No Thanks! winner celebration uses one persistent dialog instance until th
   assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
 });
 
+test("No Thanks! game start moves directly from the second message into setup and the first deal", () => {
+  assert.match(runtime, /previous\.status === "waiting"/u);
+  assert.match(runtime, /current\.status === "playing"/u);
+  assert.match(runtime, /gameStart: true/u);
+  assert.match(runtime, /startDeckReady: false/u);
+  assert.match(runtime, /startChipsReady: false/u);
+  assert.match(runtime, /GAME_START_MESSAGE_HOLD_MS = 2500/u);
+  assert.doesNotMatch(runtime, /GAME_START_SETUP_PAUSE_MS/u);
+  assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
+  assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
+  assert.match(runtime, /곧 게임이 시작됩니다\./u);
+  assert.match(
+    runtime,
+    /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?message\?\.remove\(\)[\s\S]*?const setupBoard = app\.querySelector[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await runDealPresentation\(effect\)/u,
+  );
+  assert.match(runtime, /locked: gameStarting/u);
+  assert.match(runtime, /const liveBoard = board\?\.isConnected/u);
+  assert.match(styles, /\.no-thanks-game-start-message/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
+  assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-tidied/u);
+});
+
+test("No Thanks! waiting and playing tables share exact deck, center, and chip slot centers", () => {
+  assert.match(runtime, /function createWaitingTableDeck\(\)/u);
+  assert.match(runtime, /function createGameStartChipBank/u);
+  assert.match(runtime, /const backCluster = createChipCluster\(16/u);
+  assert.match(runtime, /const frontCluster = createChipCluster\(16/u);
+  assert.match(runtime, /게임 시작용 칩 더미 32개/u);
+  assert.match(runtime, /게임 준비 중/u);
+  assert.match(runtime, /모두 준비되면/u);
+  assert.match(runtime, /바로 시작합니다\./u);
+  assert.match(runtime, /no-thanks-round-table__slot is-deck/u);
+  assert.match(runtime, /no-thanks-round-table__slot is-center/u);
+  assert.match(runtime, /no-thanks-round-table__slot is-chips/u);
+  assert.match(styles, /\.no-thanks-round-table__slot[\s\S]*position:\s*absolute/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-deck[\s\S]*left:\s*16%/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-center[\s\S]*left:\s*50%/u);
+  assert.match(styles, /\.no-thanks-round-table__slot\.is-chips[\s\S]*left:\s*84%/u);
+  assert.match(styles, /\.no-thanks-round-table__objects--waiting/u);
+  assert.match(styles, /\.no-thanks-round-table__waiting-card/u);
+  assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-back/u);
+  assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
+});
+
+test("No Thanks! opening deck uses discrete spread, four mix beats, and gather", () => {
+  assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
+  assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
+  assert.match(runtime, /visualShuffleCount = 12/u);
+  assert.match(runtime, /const shuffleOrderOne = \[5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4\]/u);
+  assert.match(runtime, /const shuffleOrderTwo = \[8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6\]/u);
+  assert.match(runtime, /const shuffleOrderThree = \[2, 9, 5, 11, 4, 0, 8, 1, 10, 6, 3, 7\]/u);
+  assert.match(runtime, /const shuffleOrderFour = \[10, 4, 7, 0, 9, 2, 6, 11, 1, 5, 8, 3\]/u);
+  assert.match(runtime, /const runSnapStep = async/u);
+  assert.match(runtime, /className: "spread"/u);
+  assert.match(runtime, /className: "mix-one"/u);
+  assert.match(runtime, /className: "mix-two"/u);
+  assert.match(runtime, /className: "mix-three"/u);
+  assert.match(runtime, /className: "mix-four"/u);
+  assert.match(runtime, /className: "gather"/u);
+  assert.match(runtime, /duration: 380, hold: 250/u);
+  assert.match(runtime, /duration: 340, hold: 210/u);
+  assert.match(runtime, /duration: 380, hold: 0/u);
+  assert.match(runtime, /easing: "cubic-bezier\(\.2, \.72, \.2, 1\)"/u);
+  assert.match(runtime, /duration: 380/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="spread"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-one"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-two"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-three"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-four"\]/u);
+});
+
+test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distribution", () => {
+  assert.match(
+    runtime,
+    /Promise\.all\(\[\s*animateGameStartDeck\(setupBoard, effect\),\s*animateGameStartChips\(setupBoard, view, effect\),\s*\]\)/u,
+  );
+  assert.match(runtime, /duration: 380, hold: 250, className: "spread"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-one"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-two"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-three"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-four"/u);
+  assert.match(runtime, /duration: 380, hold: 0, className: "gather"/u);
+  assert.match(runtime, /const delay = index \* 38/u);
+});
+
+test("No Thanks! opening chips land one by one into the viewer's final pile layout while opponents absorb theirs", () => {
+  assert.match(runtime, /const renderedChipCount = waitingForStartChips[\s\S]*?finalCounters/u);
+  assert.match(runtime, /cluster\.classList\.add\("is-awaiting-start-stack"\)/u);
+  assert.match(runtime, /chip\.dataset\.startLandingIndex = String\(index\)/u);
+  assert.match(runtime, /viewerTarget\.querySelectorAll\("\.no-thanks-chip\[data-start-landing-index\]"\)/u);
+  assert.match(runtime, /const viewerLandingRects = viewerLandingChips\.map/u);
+  assert.match(runtime, /viewerLandingChip\.classList\.add\("is-start-chip-arrived"\)/u);
+  assert.match(runtime, /value\.textContent = String\(Math\.min\(index \+ 1, viewerChipCount\)\)/u);
+  assert.match(runtime, /chip\.remove\(\)/u);
+  assert.match(runtime, /opponent\.target\?\.classList\.add\("is-start-chip-received"\)/u);
+  assert.match(runtime, /offset:\s*\.94[\s\S]*?opacity:\s*1/u);
+  assert.match(runtime, /delay \+ Math\.round\(duration \* \.9\)/u);
+  assert.match(runtime, /scale\(\$\{toViewer \? "\.88" : "\.16"\}\)/u);
+  assert.match(runtime, /opacity:\s*toViewer \? 1 : 0/u);
+  assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip[\s\S]*opacity:\s*0/u);
+  assert.match(styles, /\.no-thanks-chip-cluster\.is-awaiting-start-stack \.no-thanks-chip\.is-start-chip-arrived[\s\S]*opacity:\s*1/u);
+});
+
 test("No Thanks! waiting action copy uses centered two-line guidance", () => {
   assert.match(runtime, /\["준비 완료를 누르면", "테이블에 착석합니다"\]/u);
   assert.match(runtime, /\["준비 완료", "게임 시작을 기다리고 있어요\."\]/u);
@@ -181,6 +288,19 @@ test("No Thanks! opponent take sends the public card and chips into the taker's 
   assert.match(runtime, /animatePendingTakeToSeat/u);
   assert.match(styles, /\.no-thanks-seat__avatar-frame\.is-receiving-take/u);
   assert.match(styles, /@keyframes no-thanks-seat-take-receive/u);
+});
+
+test("No Thanks! final take hides the held table-card source while its transfer flight moves", () => {
+  assert.match(runtime, /sourceCard,\s*cardFlight:/u);
+  assert.match(
+    runtime,
+    /async function animateTakeCardToHand\(presentation, effect\) \{\s*presentation\?\.sourceCard\?\.classList\.add\("is-take-source-hidden"\)/u,
+  );
+  assert.match(
+    runtime,
+    /async function animateTakeCardToSeat\(presentation\) \{\s*presentation\?\.sourceCard\?\.classList\.add\("is-take-source-hidden"\)/u,
+  );
+  assert.match(styles, /\.no-thanks-table-card\.is-take-source-hidden[\s\S]*visibility:\s*hidden/u);
 });
 
 test("No Thanks! final take lands before a three-second game-styled result calculation gate", () => {
@@ -206,6 +326,25 @@ test("No Thanks! page does not render a literal newline escape between scripts",
   assert.doesNotMatch(page, /<\/script>\\\\n\s*<script/u);
 });
 
+
+test("No Thanks! host termination cancels any active deal animation before ending", () => {
+  assert.match(runtime, /let activeDealPresentation = null/u);
+  assert.match(runtime, /function cancelActiveDealPresentation\(\)/u);
+  assert.match(runtime, /presentation\.animations\.forEach/u);
+  assert.match(runtime, /animation\.cancel\(\)/u);
+  assert.match(runtime, /text: "게임 종료"[\s\S]*?cancelActiveDealPresentation\(\)[\s\S]*?await onConfirm\(\)/u);
+  assert.match(runtime, /view\.endReason === "HOST_TERMINATED"[\s\S]*?cancelActiveDealPresentation\(\)/u);
+  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard, effect\)/u);
+});
+
+test("No Thanks! opening starts the first deal immediately after shuffle completion", () => {
+  assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
+  assert.doesNotMatch(runtime, /waitForPresentation\(dealPause\)/u);
+  assert.match(
+    runtime,
+    /Promise\.all\(\[[\s\S]*?animateGameStartDeck\(setupBoard, effect\)[\s\S]*?animateGameStartChips\(setupBoard, view, effect\)[\s\S]*?\]\)[\s\S]*?await runDealPresentation\(effect\)/u,
+  );
+});
 
 test("No Thanks! in-progress host termination requires confirmation", () => {
   assert.match(runtime, /진행 중인 게임을 종료할까요/u);
