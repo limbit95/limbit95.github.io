@@ -78,18 +78,18 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksCardTone(35), "pink");
 
   assert.equal(getNoThanksHandOverlap(3), 0);
-  assert.equal(getNoThanksHandOverlap(5), -4);
-  assert.equal(getNoThanksHandOverlap(8), -16);
-  assert.equal(getNoThanksHandOverlap(13), -36);
-  assert.equal(getNoThanksHandOverlap(18), -56);
+  assert.equal(getNoThanksHandOverlap(5), -6);
+  assert.equal(getNoThanksHandOverlap(8), -18);
+  assert.equal(getNoThanksHandOverlap(13), -38);
+  assert.equal(getNoThanksHandOverlap(18), -58);
   assert.equal(getNoThanksHandOverlap(24), -74);
 
-  assert.equal(getNoThanksHandRunMargin(3), 14);
-  assert.equal(getNoThanksHandRunMargin(5), 14);
+  assert.equal(getNoThanksHandRunMargin(3), 16);
+  assert.equal(getNoThanksHandRunMargin(5), 16);
   assert.equal(getNoThanksHandRunMargin(8), 10);
   assert.equal(getNoThanksHandRunMargin(13), -10);
   assert.equal(getNoThanksHandRunMargin(18), -30);
-  assert.equal(getNoThanksHandRunMargin(24), -48);
+  assert.equal(getNoThanksHandRunMargin(24), -46);
 
   assert.deepEqual(
     getNoThanksHandMargins(8, {
@@ -97,8 +97,8 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
       cardWidth: 86,
       runStartCount: 2,
     }),
-    { overlap: 0, runMargin: 14 },
-    "roomy hand should stay fully spread with visible run gaps",
+    { overlap: 0, runMargin: 16 },
+    "roomy hand should stay fully spread with slightly wider run gaps",
   );
   assert.deepEqual(
     getNoThanksHandMargins(8, {
@@ -106,8 +106,8 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
       cardWidth: 86,
       runStartCount: 2,
     }),
-    { overlap: -4, runMargin: 14 },
-    "hand should begin with the lightest overlap only after natural width no longer fits",
+    { overlap: -5, runMargin: 16 },
+    "hand should begin with a slightly tighter overlap only after natural width no longer fits",
   );
   assert.deepEqual(
     getNoThanksHandMargins(8, {
@@ -115,8 +115,8 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
       cardWidth: 86,
       runStartCount: 2,
     }),
-    { overlap: -20, runMargin: 6 },
-    "overlap should tighten in small steps while preserving extra space between runs",
+    { overlap: -20, runMargin: 8 },
+    "overlap should tighten in small steps while preserving a slightly wider run gap",
   );
 
   assert.equal(getNoThanksResultHandOverlap(4), -2);
