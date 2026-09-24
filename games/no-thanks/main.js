@@ -1719,10 +1719,6 @@ async function swapGameStartMessage(message, {
 
 function revealGameStartDeck(effect) {
   if (effect) effect.startDeckReady = true;
-  const deck = app.querySelector(".no-thanks-draw-deck.is-game-start-pending");
-  deck?.classList.remove("is-game-start-pending");
-  deck?.classList.add("is-game-start-settled");
-  window.setTimeout(() => deck?.classList.remove("is-game-start-settled"), 360);
 }
 
 function revealGameStartChips(effect) {
@@ -1748,71 +1744,74 @@ function revealGameStartChips(effect) {
 }
 
 async function animateGameStartDeck(board, effect) {
-  const stack = board?.querySelector(".no-thanks-draw-deck__stack");
-  const targets = [...(stack?.querySelectorAll("span") ?? [])];
+  const liveBoard = board?.isConnected
+    ? board
+    : app.querySelector(".no-thanks-game-board");
+  const stack = liveBoard?.querySelector(".no-thanks-draw-deck__stack");
+  const cards = [...(stack?.querySelectorAll("span") ?? [])];
+
   if (
     !stack
-    || targets.length === 0
+    || cards.length === 0
     || prefersReducedMotion()
-    || typeof targets[0]?.animate !== "function"
+    || typeof cards[0]?.animate !== "function"
   ) {
     revealGameStartDeck(effect);
     return;
   }
 
-  const flights = targets.map((target, index) => {
-    const targetRect = target.getBoundingClientRect();
-    const flight = document.createElement("span");
-    flight.className = "no-thanks-game-start-deck-flight";
-    flight.setAttribute("aria-hidden", "true");
-    Object.assign(flight.style, {
-      left: (targetRect.left + 118 + ((index % 2) * 18)).toFixed(2) + "px",
-      top: (targetRect.top - 74 + (index * 7)).toFixed(2) + "px",
-      width: targetRect.width.toFixed(2) + "px",
-      height: targetRect.height.toFixed(2) + "px",
-    });
-    document.body.append(flight);
-    return { flight, targetRect, index };
-  });
+  stack.classList.add("is-start-shuffling");
 
-  await Promise.all(flights.map(({ flight, targetRect, index }) => {
-    const rect = flight.getBoundingClientRect();
-    const dx = targetRect.left - rect.left;
-    const dy = targetRect.top - rect.top;
-    const animation = flight.animate([
+  await Promise.all(cards.map((card, index) => {
+    const direction = index % 2 === 0 ? -1 : 1;
+    const spread = 18 + ((index % 4) * 7);
+    const lift = 9 + ((index % 3) * 5);
+    const rotation = direction * (5 + ((index % 4) * 2.5));
+    const delay = index * 55;
+
+    const animation = card.animate([
       {
-        transform: "translate3d(0, 0, 0) scale(.78) rotateZ(12deg)",
-        opacity: 0,
+        transform: card.style.transform || "translate(0, 0) rotate(0deg)",
+        opacity: 1,
+        offset: 0,
       },
       {
-        offset: .18,
-        transform: "translate3d(-10px, 10px, 0) scale(.92) rotateZ(7deg)",
+        transform: `translate(${direction * spread}px, ${-lift}px) rotate(${rotation}deg)`,
         opacity: 1,
+        offset: .34,
       },
       {
-        transform: `translate3d(${dx}px, ${dy}px, 0) scale(1) rotateZ(0deg)`,
+        transform: `translate(${direction * (spread * .58)}px, ${lift * .36}px) rotate(${rotation * -.45}deg)`,
         opacity: 1,
+        offset: .68,
+      },
+      {
+        transform: card.style.transform || "translate(0, 0) rotate(0deg)",
+        opacity: 1,
+        offset: 1,
       },
     ], {
-      duration: 520 + (index * 42),
-      delay: index * 42,
-      easing: "cubic-bezier(.18, .74, .22, 1)",
-      fill: "forwards",
+      duration: 760,
+      delay,
+      easing: "cubic-bezier(.18, .76, .22, 1)",
+      fill: "both",
     });
     return animation.finished.catch(() => {});
   }));
 
-  if (!isCurrentBoardPresentationEffect(effect)) {
-    flights.forEach(({ flight }) => flight.remove());
-    return;
-  }
+  if (!isCurrentBoardPresentationEffect(effect)) return;
 
+  stack.classList.remove("is-start-shuffling");
+  stack.classList.add("is-start-tidied");
   revealGameStartDeck(effect);
-  flights.forEach(({ flight }) => flight.remove());
+  window.setTimeout(() => stack.classList.remove("is-start-tidied"), 360);
 }
 
 async function animateGameStartChips(board, view, effect) {
-  const sourcePile = board?.querySelector(
+  const liveBoard = board?.isConnected
+    ? board
+    : app.querySelector(".no-thanks-game-board");
+  const sourcePile = liveBoard?.querySelector(
     ".no-thanks-start-chip-bank:not(.is-waiting) .no-thanks-start-chip-bank__pile",
   );
   const sourceChips = [...(sourcePile?.querySelectorAll(".no-thanks-start-chip-bank__chip") ?? [])];
@@ -2008,13 +2007,20 @@ async function runGameStartPresentation(effect, view) {
     return;
   }
 
+  const setupBoard = app.querySelector(".no-thanks-game-board");
+  if (!setupBoard) {
+    revealGameStartDeck(effect);
+    revealGameStartChips(effect);
+    return;
+  }
+
   if (reducedMotion) {
     revealGameStartDeck(effect);
     revealGameStartChips(effect);
   } else {
     await Promise.all([
-      animateGameStartDeck(board, effect),
-      animateGameStartChips(board, view, effect),
+      animateGameStartDeck(setupBoard, effect),
+      animateGameStartChips(setupBoard, view, effect),
     ]);
   }
 
@@ -2024,13 +2030,15 @@ async function runGameStartPresentation(effect, view) {
   }
 
   await waitForPresentation(dealPause);
+  if (!app.querySelector(".no-thanks-game-board")) return;
   await runDealPresentation(effect);
   if (!isCurrentBoardPresentationEffect(effect)) return;
 
-  board.classList.remove("is-game-starting");
+  const finalBoard = app.querySelector(".no-thanks-game-board");
+  finalBoard?.classList.remove("is-game-starting");
   unlockGameStartControls(view);
-  const statusLabel = board.querySelector(".no-thanks-board__status span");
-  const statusMessage = board.querySelector(".no-thanks-board__status strong");
+  const statusLabel = finalBoard?.querySelector(".no-thanks-board__status span");
+  const statusMessage = finalBoard?.querySelector(".no-thanks-board__status strong");
   if (statusLabel) statusLabel.textContent = "PLAYING";
   if (statusMessage) statusMessage.textContent = boardStatusMessage(view);
 }
@@ -2164,7 +2172,7 @@ function syncBoardAnimationGeometry(view) {
 function createGameStartChipBank({
   waiting = false,
 } = {}) {
-  const chipCount = waiting ? 20 : 18;
+  const chipCount = waiting ? 40 : 36;
   return el("div", {
     className: "no-thanks-start-chip-bank" + (waiting ? " is-waiting" : ""),
     "aria-label": waiting ? "게임 시작용 칩 더미" : "시작 칩 배분 더미",
@@ -2222,9 +2230,7 @@ function createRoundTable(view, state, effects) {
 
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
-      createDrawDeck(view, {
-        startPending: gameStarting && effects.startDeckReady !== true,
-      }),
+      createDrawDeck(view),
       createTableCard(view, state, {
         dealIn: effects.dealCard,
         locked: gameStarting,
