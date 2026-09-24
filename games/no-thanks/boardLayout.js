@@ -37,30 +37,30 @@ export function getNoThanksCardTone(value) {
 export function getNoThanksHandOverlap(cardCount) {
   const count = Math.max(0, Math.floor(Number(cardCount) || 0));
   if (count <= 4) return 0;
-  if (count === 5) return -4;
-  if (count === 6) return -8;
-  if (count === 7) return -12;
-  if (count === 8) return -16;
-  if (count === 9) return -20;
-  if (count === 10) return -24;
-  if (count === 11) return -28;
-  if (count === 12) return -32;
-  if (count === 13) return -36;
-  if (count === 14) return -40;
-  if (count === 15) return -44;
-  if (count === 16) return -48;
-  if (count === 17) return -52;
-  if (count === 18) return -56;
-  if (count === 19) return -60;
-  if (count === 20) return -64;
-  if (count === 21) return -68;
-  if (count === 22) return -70;
-  if (count === 23) return -72;
+  if (count === 5) return -6;
+  if (count === 6) return -10;
+  if (count === 7) return -14;
+  if (count === 8) return -18;
+  if (count === 9) return -22;
+  if (count === 10) return -26;
+  if (count === 11) return -30;
+  if (count === 12) return -34;
+  if (count === 13) return -38;
+  if (count === 14) return -42;
+  if (count === 15) return -46;
+  if (count === 16) return -50;
+  if (count === 17) return -54;
+  if (count === 18) return -58;
+  if (count === 19) return -62;
+  if (count === 20) return -66;
+  if (count === 21) return -70;
+  if (count === 22) return -72;
+  if (count === 23) return -73;
   return -74;
 }
 
 function getNoThanksHandRunMarginForOverlap(overlap) {
-  return Math.min(14, overlap + 26);
+  return Math.min(16, overlap + 28);
 }
 
 export function getNoThanksHandRunMargin(cardCount) {
@@ -106,7 +106,7 @@ export function getNoThanksHandMargins(cardCount, {
 
   let overlap = 0;
   while (overlap > minimumOverlap && totalWidthFor(overlap) > width) {
-    overlap = Math.max(minimumOverlap, overlap - 4);
+    overlap = Math.max(minimumOverlap, overlap - 5);
   }
 
   return Object.freeze({
