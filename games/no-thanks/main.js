@@ -58,6 +58,8 @@ let activeWinnerCelebrationKey = null;
 let activeWinnerCelebrationDialog = null;
 const WINNER_CELEBRATION_STORAGE_KEY = "no-thanks:winner-celebration";
 const FINAL_RESULT_DELAY_MS = 3000;
+const GAME_START_MESSAGE_HOLD_MS = 2500;
+const GAME_START_SETUP_PAUSE_MS = 1000;
 const GAME_START_DEAL_PAUSE_MS = 950;
 
 function replaceApp(node) {
@@ -1725,11 +1727,24 @@ function revealGameStartDeck(effect) {
 
 function revealGameStartChips(effect) {
   if (effect) effect.startChipsReady = true;
+
+  const sourceBank = app.querySelector(".no-thanks-start-chip-bank:not(.is-waiting)");
+  sourceBank?.classList.add("is-distributed");
+
+  const centerChips = app.querySelector(".no-thanks-center-chips.is-game-start-hidden");
+  centerChips?.classList.remove("is-game-start-hidden");
+  centerChips?.classList.add("is-game-start-revealed");
+
   const chips = app.querySelector(".no-thanks-my-panel__chips.is-awaiting-start-chips");
   chips?.classList.remove("is-awaiting-start-chips");
   commitViewerChipLanding();
   chips?.classList.add("is-start-chip-landed");
-  window.setTimeout(() => chips?.classList.remove("is-start-chip-landed"), 420);
+
+  window.setTimeout(() => {
+    sourceBank?.remove();
+    centerChips?.classList.remove("is-game-start-revealed");
+    chips?.classList.remove("is-start-chip-landed");
+  }, 420);
 }
 
 async function animateGameStartDeck(board, effect) {
@@ -1797,120 +1812,117 @@ async function animateGameStartDeck(board, effect) {
 }
 
 async function animateGameStartChips(board, view, effect) {
-  const table = board?.querySelector(".no-thanks-round-table");
-  const tableRect = table?.getBoundingClientRect?.();
-  const seats = [...(board?.querySelectorAll(".no-thanks-seat") ?? [])];
-  if (!tableRect || seats.length === 0 || prefersReducedMotion()) {
+  const sourcePile = board?.querySelector(
+    ".no-thanks-start-chip-bank:not(.is-waiting) .no-thanks-start-chip-bank__pile",
+  );
+  const sourceChips = [...(sourcePile?.querySelectorAll(".no-thanks-start-chip-bank__chip") ?? [])];
+  const target = app.querySelector(
+    ".no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-chip-cluster",
+  );
+  const sourceRect = sourcePile?.getBoundingClientRect?.();
+  const targetRect = target?.getBoundingClientRect?.();
+
+  if (
+    !sourceRect
+    || !targetRect
+    || sourceRect.width <= 0
+    || sourceRect.height <= 0
+    || targetRect.width <= 0
+    || targetRect.height <= 0
+    || prefersReducedMotion()
+  ) {
     revealGameStartChips(effect);
     return;
   }
 
   const initialCount = calculateInitialCounters(view.playerCount);
-  const sourceX = tableRect.left + (tableRect.width / 2);
-  const sourceY = tableRect.top + (tableRect.height / 2);
+  const targetCenterX = targetRect.left + (targetRect.width / 2);
+  const targetCenterY = targetRect.top + (targetRect.height / 2);
+  const flights = Array.from({ length: initialCount }, (_, index) => {
+    const sourceChip = sourceChips[index % Math.max(1, sourceChips.length)];
+    const chipRect = sourceChip?.getBoundingClientRect?.() ?? sourceRect;
+    const chip = document.createElement("span");
+    chip.className = "no-thanks-game-start-chip-flight";
+    chip.setAttribute("aria-hidden", "true");
 
-  await Promise.all(seats.map((seat, seatIndex) => {
-    const avatar = seat.querySelector(".no-thanks-seat__avatar-frame");
-    const targetRect = avatar?.getBoundingClientRect?.();
-    if (!targetRect || targetRect.width <= 0 || targetRect.height <= 0) {
-      return Promise.resolve();
-    }
-
-    const targetX = targetRect.left + (targetRect.width / 2);
-    const targetY = targetRect.top + (targetRect.height / 2);
-    const dx = targetX - sourceX;
-    const dy = targetY - sourceY;
-    const chipFlights = Array.from({ length: 2 }, (_, chipIndex) => {
-      const chip = document.createElement("span");
-      chip.className = "no-thanks-game-start-chip-flight";
-      chip.setAttribute("aria-hidden", "true");
-      Object.assign(chip.style, {
-        left: (sourceX - 14 + (chipIndex * 7)).toFixed(2) + "px",
-        top: (sourceY - 14 - (chipIndex * 4)).toFixed(2) + "px",
-      });
-      document.body.append(chip);
-      return chip;
+    const startX = chipRect.left + (chipRect.width / 2);
+    const startY = chipRect.top + (chipRect.height / 2);
+    Object.assign(chip.style, {
+      left: (startX - 14).toFixed(2) + "px",
+      top: (startY - 14).toFixed(2) + "px",
+      zIndex: String(111 + index),
     });
-    const badge = el("span", {
-      className: "no-thanks-game-start-chip-badge",
-      text: "×" + String(initialCount),
-      "aria-hidden": "true",
-      style: {
-        left: (sourceX + 8).toFixed(2) + "px",
-        top: (sourceY - 12).toFixed(2) + "px",
-      },
-    });
-    document.body.append(badge);
+    document.body.append(chip);
 
-    const animations = chipFlights.map((chip, chipIndex) => {
-      const arc = 34 + (chipIndex * 9);
-      const animation = chip.animate([
-        {
-          transform: "translate3d(0, 0, 0) scale(.72) rotate(0deg)",
-          opacity: 0,
-        },
-        {
-          offset: .2,
-          transform: `translate3d(${dx * .15}px, ${(dy * .08) - arc}px, 0) scale(1) rotate(80deg)`,
-          opacity: 1,
-        },
-        {
-          offset: .62,
-          transform: `translate3d(${dx * .62}px, ${(dy * .48) - arc}px, 0) scale(.9) rotate(300deg)`,
-          opacity: 1,
-        },
-        {
-          transform: `translate3d(${dx}px, ${dy}px, 0) scale(.35) rotate(560deg)`,
-          opacity: 0,
-        },
-      ], {
-        duration: 650,
-        delay: (seatIndex * 62) + (chipIndex * 28),
-        easing: "cubic-bezier(.18, .76, .22, 1)",
-        fill: "forwards",
-      });
-      return animation.finished.catch(() => {});
-    });
+    return {
+      chip,
+      sourceChip,
+      startX,
+      startY,
+      index,
+    };
+  });
 
-    const badgeAnimation = badge.animate([
+  sourcePile?.classList.add("is-distributing");
+
+  await Promise.all(flights.map(({
+    chip,
+    sourceChip,
+    startX,
+    startY,
+    index,
+  }) => {
+    const column = (index % 5) - 2;
+    const row = Math.floor(index / 5);
+    const destinationX = targetCenterX + (column * 9) - startX;
+    const destinationY = targetCenterY + ((row - 1) * 5) - startY;
+    const arc = 42 + ((index % 4) * 8);
+    const spin = 420 + ((index % 3) * 95);
+
+    window.setTimeout(() => {
+      if (sourceChip?.isConnected) sourceChip.classList.add("is-leaving");
+    }, index * 52);
+
+    if (typeof chip.animate !== "function") return Promise.resolve();
+
+    const animation = chip.animate([
       {
-        transform: "translate3d(0, 0, 0) scale(.8)",
-        opacity: 0,
+        transform: "translate3d(0, 0, 0) scale(.88) rotate(0deg)",
+        opacity: .82,
+        offset: 0,
       },
       {
-        offset: .38,
-        transform: `translate3d(${dx * .38}px, ${(dy * .28) - 32}px, 0) scale(.92)`,
-        opacity: .78,
-      },
-      {
-        offset: .82,
-        transform: `translate3d(${dx}px, ${dy - 22}px, 0) scale(1)`,
+        transform: `translate3d(${destinationX * .14}px, ${(destinationY * .08) - arc}px, 0) scale(1.04) rotate(${spin * .18}deg)`,
         opacity: 1,
+        offset: .18,
       },
       {
-        transform: `translate3d(${dx}px, ${dy - 28}px, 0) scale(.96)`,
-        opacity: 0,
+        transform: `translate3d(${destinationX * .62}px, ${(destinationY * .52) - (arc * .7)}px, 0) scale(.96) rotate(${spin * .7}deg)`,
+        opacity: 1,
+        offset: .66,
+      },
+      {
+        transform: `translate3d(${destinationX}px, ${destinationY}px, 0) scale(.92) rotate(${spin}deg)`,
+        opacity: 1,
+        offset: 1,
       },
     ], {
-      duration: 800,
-      delay: seatIndex * 62,
-      easing: "cubic-bezier(.18, .76, .22, 1)",
+      duration: 690 + ((index % 3) * 45),
+      delay: index * 52,
+      easing: "cubic-bezier(.17, .76, .22, 1)",
       fill: "forwards",
     });
-
-    return Promise.all([
-      ...animations,
-      badgeAnimation.finished.catch(() => {}),
-    ]).then(() => {
-      chipFlights.forEach((chip) => chip.remove());
-      badge.remove();
-      avatar.classList.add("is-start-chip-received");
-      window.setTimeout(() => avatar.classList.remove("is-start-chip-received"), 300);
-    });
+    return animation.finished.catch(() => {});
   }));
 
-  if (!isCurrentBoardPresentationEffect(effect)) return;
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    flights.forEach(({ chip }) => chip.remove());
+    return;
+  }
+
   revealGameStartChips(effect);
+  await waitForPresentation(110);
+  flights.forEach(({ chip }) => chip.remove());
 }
 
 function unlockGameStartControls(view) {
@@ -1953,18 +1965,11 @@ async function runGameStartPresentation(effect, view) {
   clearGameStartPresentationArtifacts();
   const message = createGameStartMessage(board);
   const reducedMotion = prefersReducedMotion();
+  const messageHold = reducedMotion ? 850 : GAME_START_MESSAGE_HOLD_MS;
+  const setupPause = reducedMotion ? 220 : GAME_START_SETUP_PAUSE_MS;
+  const dealPause = reducedMotion ? 260 : GAME_START_DEAL_PAUSE_MS;
 
-  if (reducedMotion) {
-    revealGameStartDeck(effect);
-    revealGameStartChips(effect);
-    await waitForPresentation(260);
-  } else {
-    await Promise.all([
-      animateGameStartDeck(board, effect),
-      animateGameStartChips(board, view, effect),
-    ]);
-  }
-
+  await waitForPresentation(messageHold);
   if (!isCurrentBoardPresentationEffect(effect)) {
     message?.remove();
     clearGameStartPresentationArtifacts();
@@ -1974,9 +1979,9 @@ async function runGameStartPresentation(effect, view) {
   await swapGameStartMessage(message, {
     phase: "ready",
     title: "곧 게임이 시작됩니다.",
-    body: "첫 카드를 공개합니다.",
+    body: "테이블을 세팅하고 첫 카드를 공개합니다.",
   });
-  await waitForPresentation(reducedMotion ? 320 : GAME_START_DEAL_PAUSE_MS);
+  await waitForPresentation(messageHold);
 
   if (!isCurrentBoardPresentationEffect(effect)) {
     message?.remove();
@@ -1989,7 +1994,7 @@ async function runGameStartPresentation(effect, view) {
       { opacity: 1, transform: "translate(-50%, -50%) scale(1)" },
       { opacity: 0, transform: "translate(-50%, -48%) scale(.96)" },
     ], {
-      duration: 170,
+      duration: 190,
       easing: "ease-in",
       fill: "forwards",
     });
@@ -1997,6 +2002,28 @@ async function runGameStartPresentation(effect, view) {
   }
   message?.remove();
 
+  await waitForPresentation(setupPause);
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    clearGameStartPresentationArtifacts();
+    return;
+  }
+
+  if (reducedMotion) {
+    revealGameStartDeck(effect);
+    revealGameStartChips(effect);
+  } else {
+    await Promise.all([
+      animateGameStartDeck(board, effect),
+      animateGameStartChips(board, view, effect),
+    ]);
+  }
+
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    clearGameStartPresentationArtifacts();
+    return;
+  }
+
+  await waitForPresentation(dealPause);
   await runDealPresentation(effect);
   if (!isCurrentBoardPresentationEffect(effect)) return;
 
@@ -2134,20 +2161,65 @@ function syncBoardAnimationGeometry(view) {
   });
 }
 
+function createGameStartChipBank({
+  waiting = false,
+} = {}) {
+  const chipCount = waiting ? 20 : 18;
+  return el("div", {
+    className: "no-thanks-start-chip-bank" + (waiting ? " is-waiting" : ""),
+    "aria-label": waiting ? "게임 시작용 칩 더미" : "시작 칩 배분 더미",
+  }, [
+    el("div", {
+      className: "no-thanks-start-chip-bank__pile",
+      "aria-hidden": "true",
+    }, Array.from({ length: chipCount }, (_, index) => el("span", {
+      className: "no-thanks-start-chip-bank__chip",
+      style: { zIndex: String(index + 1) },
+    }))),
+    el("strong", {
+      className: "no-thanks-start-chip-bank__label",
+      text: waiting ? "START CHIPS" : "CHIP BANK",
+    }),
+  ]);
+}
+
+function createWaitingTableDeck() {
+  const deck = createDrawDeck({ deckRemaining: 24 });
+  deck.classList.add("no-thanks-draw-deck--waiting");
+  return deck;
+}
+
 function createRoundTable(view, state, effects) {
   if (view.status === "waiting") {
     return el("div", { className: "no-thanks-round-table" }, [
-      el("div", { className: "no-thanks-round-table__waiting" }, [
-        el("span", { text: "NO THANKS!" }),
-        el("strong", { text: "게임 테이블 준비 중" }),
-        el("p", {
-          text: "준비를 마친 플레이어가 자리를 채우면 이 테이블에서 바로 게임이 시작됩니다.",
-        }),
+      el("div", { className: "no-thanks-round-table__waiting-layout" }, [
+        el("div", { className: "no-thanks-round-table__waiting-object is-deck" }, [
+          createWaitingTableDeck(),
+        ]),
+        el("div", { className: "no-thanks-round-table__waiting" }, [
+          el("span", { text: "NO THANKS!" }),
+          el("strong", { text: "게임 테이블 준비 중" }),
+          el("p", { className: "no-thanks-round-table__waiting-copy" }, [
+            el("span", { text: "준비를 마친 플레이어가 자리를 채우면" }),
+            el("span", { text: "이 테이블에서 바로 게임이 시작됩니다." }),
+          ]),
+        ]),
+        el("div", { className: "no-thanks-round-table__waiting-object is-chips" }, [
+          createGameStartChipBank({ waiting: true }),
+        ]),
       ]),
     ]);
   }
 
   const gameStarting = Boolean(effects?.gameStart && effects.completed !== true);
+  const centerChipAction = createCenterChipAction(view, state, {
+    displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
+    locked: gameStarting,
+  });
+  if (gameStarting) {
+    centerChipAction.classList.add("is-game-start-hidden");
+  }
+
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
       createDrawDeck(view, {
@@ -2157,10 +2229,12 @@ function createRoundTable(view, state, effects) {
         dealIn: effects.dealCard,
         locked: gameStarting,
       }),
-      createCenterChipAction(view, state, {
-        displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
-        locked: gameStarting,
-      }),
+      gameStarting
+        ? el("div", { className: "no-thanks-start-chip-zone" }, [
+          createGameStartChipBank(),
+          centerChipAction,
+        ])
+        : centerChipAction,
     ]),
   ]);
 }
