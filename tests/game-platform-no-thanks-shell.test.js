@@ -186,7 +186,7 @@ test("No Thanks! game start moves directly from the second message into setup an
   assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-tidied/u);
 });
 
-test("No Thanks! waiting table keeps gameplay object positions with compact copy and a double chip pile", () => {
+test("No Thanks! waiting and playing tables share exact deck, center, and chip slot centers", () => {
   assert.match(runtime, /function createWaitingTableDeck\(\)/u);
   assert.match(runtime, /function createGameStartChipBank/u);
   assert.match(runtime, /const backCluster = createChipCluster\(16/u);
@@ -195,22 +195,26 @@ test("No Thanks! waiting table keeps gameplay object positions with compact copy
   assert.match(runtime, /게임 준비 중/u);
   assert.match(runtime, /모두 준비되면/u);
   assert.match(runtime, /바로 시작합니다\./u);
-  assert.match(runtime, /no-thanks-round-table__objects no-thanks-round-table__objects--waiting/u);
+  assert.match(runtime, /no-thanks-round-table__slot is-deck/u);
+  assert.match(runtime, /no-thanks-round-table__slot is-center/u);
+  assert.match(runtime, /no-thanks-round-table__slot is-chips/u);
+  assert.match(styles, /\.no-thanks-round-table__slot[\s\S]*place-items:\s*center/u);
   assert.match(styles, /\.no-thanks-round-table__objects--waiting/u);
   assert.match(styles, /\.no-thanks-round-table__waiting-card/u);
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-back/u);
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
 });
 
-test("No Thanks! opening deck uses a strong fixed overlay riffle then settles back in place", () => {
+test("No Thanks! opening deck scatters freely across the table and converges back into one deck", () => {
   assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
   assert.match(runtime, /const liveBoard = board\?\.isConnected[\s\S]*?app\.querySelector\("\.no-thanks-game-board"\)/u);
   assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
-  assert.match(runtime, /overlay\.classList\.add\("no-thanks-game-start-shuffle-deck"\)/u);
-  assert.match(runtime, /spread = 50 \+ \(\(index % 4\) \* 10\)/u);
-  assert.match(runtime, /duration: 1240/u);
+  assert.match(runtime, /visualShuffleCount = 12/u);
+  assert.match(runtime, /const scatterPoints = \[/u);
+  assert.match(runtime, /\[-122, -54, -24\]/u);
+  assert.match(runtime, /\[128, -46, 26\]/u);
+  assert.match(runtime, /duration: 1520/u);
   assert.match(runtime, /currentStack\?\.classList\.add\("is-start-tidied"\)/u);
-  assert.doesNotMatch(runtime, /startPending: gameStarting && effects\.startDeckReady !== true/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
   assert.match(styles, /@keyframes no-thanks-start-deck-impact/u);
 });
@@ -223,11 +227,15 @@ test("No Thanks! opening chips fall from the table bank into only the viewer per
     runtime,
     /\.no-thanks-my-panel__chips\.is-awaiting-start-chips \.no-thanks-chip-cluster/u,
   );
-  assert.match(runtime, /querySelectorAll\("\.no-thanks-chip"\)/u);
+  assert.match(runtime, /\.no-thanks-start-chip-bank__cluster\.is-front \.no-thanks-chip/u);
+  assert.match(runtime, /\.no-thanks-start-chip-bank__cluster\.is-back \.no-thanks-chip/u);
   assert.match(runtime, /Array\.from\(\{ length: initialCount \}/u);
+  assert.match(runtime, /sourceChip\.classList\.add\("is-leaving"\)/u);
+  assert.match(runtime, /sourceChip\.setAttribute\("data-distributed", "true"\)/u);
   assert.match(runtime, /delay: index \* 52/u);
   assert.match(runtime, /revealGameStartChips\(effect\)/u);
   assert.match(styles, /\.no-thanks-game-start-chip-flight/u);
+  assert.match(styles, /\.no-thanks-start-chip-bank \.no-thanks-chip\[data-distributed="true"\][\s\S]*opacity:\s*0/u);
   assert.match(styles, /\.no-thanks-my-panel__chips\.is-awaiting-start-chips/u);
 });
 
