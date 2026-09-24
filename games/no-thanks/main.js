@@ -1814,6 +1814,7 @@ async function animateGameStartDeck(board, effect) {
   ];
   const shuffleOrderOne = [5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4];
   const shuffleOrderTwo = [8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6];
+  const shuffleOrderThree = [2, 9, 5, 11, 4, 0, 8, 1, 10, 6, 3, 7];
 
   const transformForPoint = (pointIndex, scale = 1) => {
     const [x, y, rotation] = scatterPoints[pointIndex % scatterPoints.length];
@@ -1887,6 +1888,16 @@ async function animateGameStartDeck(board, effect) {
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderTwo[index], .72)),
     { duration: 320, hold: 180, className: "mix-two" },
+  );
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    overlay.remove();
+    stack.classList.remove("is-start-shuffle-source-hidden");
+    return;
+  }
+
+  await runSnapStep(
+    cards.map((_, index) => transformForPoint(shuffleOrderThree[index], .84)),
+    { duration: 320, hold: 180, className: "mix-three" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
