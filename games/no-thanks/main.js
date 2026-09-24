@@ -1769,66 +1769,97 @@ async function animateGameStartDeck(board, effect) {
     width: stackRect.width.toFixed(2) + "px",
     height: stackRect.height.toFixed(2) + "px",
   });
+
+  const originalOverlayCards = [...overlay.querySelectorAll("span")];
+  const visualShuffleCount = 12;
+  for (let index = originalOverlayCards.length; index < visualShuffleCount; index += 1) {
+    const clone = originalOverlayCards[index % originalOverlayCards.length].cloneNode(true);
+    clone.style.transform = originalOverlayCards[index % originalOverlayCards.length].style.transform;
+    overlay.append(clone);
+  }
+
   document.body.append(overlay);
   stack.classList.add("is-start-shuffle-source-hidden");
 
   const cards = [...overlay.querySelectorAll("span")];
-  const stackAnimation = overlay.animate([
+  const spreadScale = Math.max(.62, Math.min(1.12, stackRect.width / 82));
+  const scatterPoints = [
+    [-122, -54, -24],
+    [-86, -112, 15],
+    [-35, -132, -10],
+    [24, -126, 20],
+    [82, -102, -16],
+    [128, -46, 26],
+    [118, 24, 14],
+    [76, 82, -20],
+    [18, 104, 12],
+    [-46, 96, -24],
+    [-102, 58, 18],
+    [-132, 2, -12],
+  ];
+
+  const liftAnimation = overlay.animate([
     {
-      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      transform: "translate3d(0, 0, 0) scale(1)",
       filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
       offset: 0,
     },
     {
-      transform: "translate3d(0, -8px, 0) scale(1.09) rotateZ(-1.5deg)",
-      filter: "drop-shadow(0 20px 28px rgba(8, 29, 34, .36))",
-      offset: .28,
+      transform: "translate3d(0, -10px, 0) scale(1.1)",
+      filter: "drop-shadow(0 24px 32px rgba(8, 29, 34, .4))",
+      offset: .3,
     },
     {
-      transform: "translate3d(0, 5px, 0) scale(1.04) rotateZ(1.1deg)",
-      filter: "drop-shadow(0 14px 22px rgba(8, 29, 34, .3))",
+      transform: "translate3d(0, -6px, 0) scale(1.08)",
+      filter: "drop-shadow(0 22px 28px rgba(8, 29, 34, .36))",
       offset: .72,
     },
     {
-      transform: "translate3d(0, 0, 0) scale(1) rotateZ(0deg)",
+      transform: "translate3d(0, 0, 0) scale(1)",
       filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
       offset: 1,
     },
   ], {
-    duration: 1240,
+    duration: 1520,
     easing: "cubic-bezier(.16, .78, .2, 1)",
     fill: "both",
   });
 
   const cardAnimations = cards.map((card, index) => {
     const baseTransform = getComputedStyle(card).transform;
-    const direction = index % 2 === 0 ? -1 : 1;
-    const spread = 50 + ((index % 4) * 10);
-    const lift = 18 + ((index % 3) * 7);
-    const rotation = direction * (10 + ((index % 3) * 3));
-    const cross = direction * -30;
+    const [rawX, rawY, rotation] = scatterPoints[index % scatterPoints.length];
+    const x = rawX * spreadScale;
+    const y = rawY * spreadScale;
+    const driftX = x * .86 + (((index % 3) - 1) * 14 * spreadScale);
+    const driftY = y * .82 + (((index % 4) - 1.5) * 9 * spreadScale);
+    const driftRotation = rotation * -.42 + ((index % 2 === 0 ? -1 : 1) * 5);
 
-    card.style.zIndex = String(40 + (index % 2 === 0 ? index : cards.length + index));
-    const animation = card.animate([
+    card.style.zIndex = String(70 + index);
+    return card.animate([
       {
         transform: baseTransform,
         opacity: 1,
         offset: 0,
       },
       {
-        transform: `translate3d(${direction * spread}px, ${-lift}px, 0) rotateZ(${rotation}deg) scale(1.04)`,
+        transform: `translate3d(${x * .32}px, ${y * .22}px, 0) rotateZ(${rotation * .35}deg) scale(1.02)`,
         opacity: 1,
-        offset: .26,
+        offset: .2,
       },
       {
-        transform: `translate3d(${cross}px, ${6 + ((index % 2) * 8)}px, 0) rotateZ(${rotation * -.62}deg) scale(.98)`,
+        transform: `translate3d(${x}px, ${y}px, 0) rotateZ(${rotation}deg) scale(1.06)`,
         opacity: 1,
-        offset: .54,
+        offset: .48,
       },
       {
-        transform: `translate3d(${direction * 15}px, -5px, 0) rotateZ(${direction * 3}deg) scale(1.015)`,
+        transform: `translate3d(${driftX}px, ${driftY}px, 0) rotateZ(${driftRotation}deg) scale(1.02)`,
         opacity: 1,
-        offset: .78,
+        offset: .65,
+      },
+      {
+        transform: `translate3d(${x * .28}px, ${y * .2}px, 0) rotateZ(${rotation * .22}deg) scale(1.015)`,
+        opacity: 1,
+        offset: .84,
       },
       {
         transform: baseTransform,
@@ -1836,16 +1867,15 @@ async function animateGameStartDeck(board, effect) {
         offset: 1,
       },
     ], {
-      duration: 1080,
-      delay: index * 34,
+      duration: 1380,
+      delay: index * 26,
       easing: "cubic-bezier(.16, .78, .2, 1)",
       fill: "both",
     });
-    return animation;
   });
 
   await Promise.all([
-    stackAnimation.finished.catch(() => {}),
+    liftAnimation.finished.catch(() => {}),
     ...cardAnimations.map((animation) => animation.finished.catch(() => {})),
   ]);
 
@@ -1857,31 +1887,29 @@ async function animateGameStartDeck(board, effect) {
   }
 
   cardAnimations.forEach((animation) => animation.cancel());
-  stackAnimation.cancel();
+  liftAnimation.cancel();
 
   const settle = overlay.animate([
     {
-      transform: "translate3d(0, -2px, 0) scale(1.07)",
+      transform: "translate3d(0, -5px, 0) scale(1.08)",
       opacity: 1,
+      filter: "drop-shadow(0 20px 28px rgba(8, 29, 34, .34))",
     },
     {
-      transform: "translate3d(0, 5px, 0) scale(.97)",
+      transform: "translate3d(0, 5px, 0) scale(.965)",
       opacity: 1,
-      offset: .48,
-    },
-    {
-      transform: "translate3d(0, 0, 0) scale(1)",
-      opacity: 1,
-      offset: .82,
+      filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .2))",
+      offset: .5,
     },
     {
       transform: "translate3d(0, 0, 0) scale(1)",
       opacity: 0,
+      filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .16))",
       offset: 1,
     },
   ], {
-    duration: 300,
-    easing: "cubic-bezier(.18, .8, .22, 1)",
+    duration: 330,
+    easing: "cubic-bezier(.18, .82, .22, 1)",
     fill: "forwards",
   });
 
@@ -1902,7 +1930,18 @@ async function animateGameStartChips(board, view, effect) {
   const sourcePile = liveBoard?.querySelector(
     ".no-thanks-start-chip-bank:not(.is-waiting) .no-thanks-start-chip-bank__pile",
   );
-  const sourceChips = [...(sourcePile?.querySelectorAll(".no-thanks-chip") ?? [])];
+  const sourceChips = [
+    ...[...(
+      sourcePile?.querySelectorAll(
+        ".no-thanks-start-chip-bank__cluster.is-front .no-thanks-chip",
+      ) ?? []
+    )].reverse(),
+    ...[...(
+      sourcePile?.querySelectorAll(
+        ".no-thanks-start-chip-bank__cluster.is-back .no-thanks-chip",
+      ) ?? []
+    )].reverse(),
+  ];
   const target = app.querySelector(
     ".no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-chip-cluster",
   );
@@ -1967,7 +2006,10 @@ async function animateGameStartChips(board, view, effect) {
     const spin = 420 + ((index % 3) * 95);
 
     window.setTimeout(() => {
-      if (sourceChip?.isConnected) sourceChip.classList.add("is-leaving");
+      if (sourceChip?.isConnected) {
+        sourceChip.classList.add("is-leaving");
+        sourceChip.setAttribute("data-distributed", "true");
+      }
     }, index * 52);
 
     if (typeof chip.animate !== "function") return Promise.resolve();
@@ -2292,16 +2334,24 @@ function createRoundTable(view, state, effects) {
       el("div", {
         className: "no-thanks-round-table__objects no-thanks-round-table__objects--waiting",
       }, [
-        createWaitingTableDeck(),
-        el("section", { className: "no-thanks-round-table__waiting-card" }, [
-          el("span", { text: "NO THANKS!" }),
-          el("strong", { text: "게임 준비 중" }),
-          el("p", { className: "no-thanks-round-table__waiting-copy" }, [
-            el("span", { text: "모두 준비되면" }),
-            el("span", { text: "바로 시작합니다." }),
+        el("div", {
+          className: "no-thanks-round-table__slot is-deck",
+        }, [createWaitingTableDeck()]),
+        el("div", {
+          className: "no-thanks-round-table__slot is-center",
+        }, [
+          el("section", { className: "no-thanks-round-table__waiting-card" }, [
+            el("span", { text: "NO THANKS!" }),
+            el("strong", { text: "게임 준비 중" }),
+            el("p", { className: "no-thanks-round-table__waiting-copy" }, [
+              el("span", { text: "모두 준비되면" }),
+              el("span", { text: "바로 시작합니다." }),
+            ]),
           ]),
         ]),
-        createGameStartChipBank({ waiting: true }),
+        el("div", {
+          className: "no-thanks-round-table__slot is-chips",
+        }, [createGameStartChipBank({ waiting: true })]),
       ]),
     ]);
   }
@@ -2317,17 +2367,27 @@ function createRoundTable(view, state, effects) {
 
   return el("div", { className: "no-thanks-round-table" }, [
     el("div", { className: "no-thanks-round-table__objects" }, [
-      createDrawDeck(view),
-      createTableCard(view, state, {
-        dealIn: effects.dealCard,
-        locked: gameStarting,
-      }),
-      gameStarting
-        ? el("div", { className: "no-thanks-start-chip-zone" }, [
-          createGameStartChipBank(),
-          centerChipAction,
-        ])
-        : centerChipAction,
+      el("div", {
+        className: "no-thanks-round-table__slot is-deck",
+      }, [createDrawDeck(view)]),
+      el("div", {
+        className: "no-thanks-round-table__slot is-center",
+      }, [
+        createTableCard(view, state, {
+          dealIn: effects.dealCard,
+          locked: gameStarting,
+        }),
+      ]),
+      el("div", {
+        className: "no-thanks-round-table__slot is-chips",
+      }, [
+        gameStarting
+          ? el("div", { className: "no-thanks-start-chip-zone" }, [
+            createGameStartChipBank(),
+            centerChipAction,
+          ])
+          : centerChipAction,
+      ]),
     ]),
   ]);
 }
