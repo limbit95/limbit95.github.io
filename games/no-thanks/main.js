@@ -718,13 +718,14 @@ function createTableCard(view, state, {
 } = {}) {
   const value = view.currentCard;
   const displayValue = value == null ? "?" : String(value);
-  const canTake = !locked && !state.busy && view.canTake;
+  const canTake = !state.busy && view.canTake;
+  const canInteract = !locked && canTake;
   return el("div", { className: "no-thanks-table-card-action" }, [
     el("button", {
       className: "no-thanks-table-card"
         + (dealIn ? " is-awaiting-deal" : ""),
       type: "button",
-      disabled: !canTake,
+      disabled: !canInteract,
       dataset: {
         tone: getNoThanksCardTone(value),
         cardValue: value == null ? "" : displayValue,
@@ -738,7 +739,7 @@ function createTableCard(view, state, {
           ? "현재 카드 없음"
           : "현재 카드 " + displayValue + (canTake ? ", 눌러서 가져오기" : "")),
       onClick: async (event) => {
-        if (!canTake) return;
+        if (event.currentTarget.disabled || !canTake) return;
         const takePresentation = beginTakePresentation(view, event.currentTarget);
         event.currentTarget.disabled = true;
         event.currentTarget.classList.add("is-submitting");
@@ -786,29 +787,65 @@ function createTableCard(view, state, {
   ]);
 }
 
+function createDrawDeckCards(remaining) {
+  const visualCount = getNoThanksDeckVisualCount(remaining);
+  return Array.from({ length: visualCount }, (_, index) => {
+    const depth = visualCount - index - 1;
+    return el("span", {
+      style: {
+        transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
+        zIndex: String(index + 1),
+      },
+    });
+  });
+}
+
+function setDrawDeckRemaining(deck, remaining) {
+  if (!deck) return;
+  const safeRemaining = Math.max(0, Math.floor(Number(remaining) || 0));
+  const stack = deck.querySelector(".no-thanks-draw-deck__stack");
+  const count = deck.querySelector(".no-thanks-draw-deck__count");
+  if (stack) {
+    const cards = createDrawDeckCards(safeRemaining);
+    stack.replaceChildren(...cards);
+    stack.classList.toggle("is-empty", cards.length === 0);
+  }
+  if (count) count.textContent = String(safeRemaining) + "장";
+  deck.dataset.visibleRemaining = String(safeRemaining);
+  deck.setAttribute("aria-label", "남은 카드 " + String(safeRemaining) + "장");
+}
+
+function commitDrawDeckDeparture(effect) {
+  const finalRemaining = Number(effect?.deckFinalCount);
+  if (!Number.isInteger(finalRemaining)) return;
+  setDrawDeckRemaining(app.querySelector(".no-thanks-draw-deck"), finalRemaining);
+  if (effect) effect.deckDeparted = true;
+}
+
 function createDrawDeck(view, {
   startPending = false,
+  displayRemaining = null,
 } = {}) {
-  const visualCount = getNoThanksDeckVisualCount(view.deckRemaining);
+  const finalRemaining = Math.max(0, Math.floor(Number(view.deckRemaining) || 0));
+  const visibleRemaining = displayRemaining != null && Number.isInteger(Number(displayRemaining))
+    ? Math.max(0, Math.floor(Number(displayRemaining)))
+    : finalRemaining;
+  const cards = createDrawDeckCards(visibleRemaining);
   return el("div", {
     className: "no-thanks-draw-deck" + (startPending ? " is-game-start-pending" : ""),
-    "aria-label": "남은 카드 " + String(view.deckRemaining ?? 0) + "장",
+    "aria-label": "남은 카드 " + String(visibleRemaining) + "장",
+    dataset: {
+      finalRemaining: String(finalRemaining),
+      visibleRemaining: String(visibleRemaining),
+    },
   }, [
     el("div", {
-      className: "no-thanks-draw-deck__stack" + (visualCount === 0 ? " is-empty" : ""),
+      className: "no-thanks-draw-deck__stack" + (cards.length === 0 ? " is-empty" : ""),
       "aria-hidden": "true",
-    }, Array.from({ length: visualCount }, (_, index) => {
-      const depth = visualCount - index - 1;
-      return el("span", {
-        style: {
-          transform: "translate(" + String(depth * -4) + "px, " + String(depth * 3) + "px) rotate(" + String(depth * -0.9) + "deg)",
-          zIndex: String(index + 1),
-        },
-      });
-    })),
+    }, cards),
     el("strong", {
       className: "no-thanks-draw-deck__count",
-      text: String(view.deckRemaining ?? "—") + "장",
+      text: String(visibleRemaining) + "장",
     }),
   ]);
 }
@@ -817,7 +854,8 @@ function createCenterChipAction(view, state, {
   displayCount = null,
   locked = false,
 } = {}) {
-  const canRefuse = !locked && !state.busy && view.canRefuse;
+  const canRefuse = !state.busy && view.canRefuse;
+  const canInteract = !locked && canRefuse;
   const count = Number(view.centerCounters) || 0;
   const visibleCount = Number.isInteger(displayCount)
     ? Math.max(0, displayCount)
@@ -849,12 +887,12 @@ function createCenterChipAction(view, state, {
     el("button", {
       className: "button button--secondary no-thanks-center-chips__action",
       type: "button",
-      disabled: !canRefuse,
+      disabled: !canInteract,
       text: locked
         ? "칩 준비 중"
         : (view.viewerCounters === 0 ? "칩 없음" : "칩 1개 내기"),
       onClick: async (event) => {
-        if (!canRefuse) return;
+        if (event.currentTarget.disabled || !canRefuse) return;
         event.currentTarget.disabled = true;
         event.currentTarget.classList.add("is-submitting");
         try {
@@ -1005,6 +1043,8 @@ function readBoardTransitionEffects(view) {
       gameStart: true,
       dealKey: dealPresentationKey(current),
       dealCard: true,
+      deckPreviousCount: Math.max(0, (Number(current.deckRemaining) || 0) + 1),
+      deckFinalCount: Math.max(0, Number(current.deckRemaining) || 0),
       chipFromPlayerId: null,
       chipPreviousCount: null,
       takeByViewer: false,
@@ -1075,6 +1115,8 @@ function readBoardTransitionEffects(view) {
       gameStart: false,
       dealKey: dealCard ? dealPresentationKey(current) : null,
       dealCard,
+      deckPreviousCount: dealCard ? Math.max(0, Number(previous.deckRemaining) || 0) : null,
+      deckFinalCount: dealCard ? Math.max(0, Number(current.deckRemaining) || 0) : null,
       chipFromPlayerId,
       chipPreviousCount,
       takeByViewer,
@@ -1218,6 +1260,7 @@ async function animateDealFlight(target, source, effect = null) {
     startTop,
     startScale,
   } = created;
+  commitDrawDeckDeparture(effect);
   const dx = targetRect.left - startLeft;
   const dy = targetRect.top - startTop;
   const scaleAt = (progress) => startScale + ((1 - startScale) * progress);
@@ -2372,12 +2415,14 @@ async function runDealPresentation(effect) {
   const deckTopCard = deck?.querySelector("span:last-child") ?? deck;
 
   if (!dealingCard || !deckTopCard) {
+    commitDrawDeckDeparture(effect);
     completeBoardPresentationEffect(effect);
     return;
   }
 
   dealingCard.classList.add("is-awaiting-deal");
   if (prefersReducedMotion() || typeof dealingCard.animate !== "function") {
+    commitDrawDeckDeparture(effect);
     dealingCard.classList.remove("is-awaiting-deal");
     completeBoardPresentationEffect(effect);
     return;
@@ -2584,6 +2629,9 @@ function createRoundTable(view, state, effects) {
   }
 
   const gameStarting = Boolean(effects?.gameStart && effects.completed !== true);
+  const deckDisplayRemaining = effects?.dealCard && effects.completed !== true
+    ? effects.deckPreviousCount
+    : null;
   const centerChipAction = createCenterChipAction(view, state, {
     displayCount: effects.chipFromPlayerId ? effects.chipPreviousCount : null,
     locked: gameStarting,
@@ -2596,7 +2644,7 @@ function createRoundTable(view, state, effects) {
     el("div", { className: "no-thanks-round-table__objects" }, [
       el("div", {
         className: "no-thanks-round-table__slot is-deck",
-      }, [createDrawDeck(view)]),
+      }, [createDrawDeck(view, { displayRemaining: deckDisplayRemaining })]),
       el("div", {
         className: "no-thanks-round-table__slot is-center",
       }, [
@@ -2648,6 +2696,27 @@ function createHandCard(card, index, overlap, {
       text: value,
     }),
   ]);
+}
+
+function createPersonalHandCards(cards, {
+  incomingCardValue = null,
+} = {}) {
+  const orderedCards = [...cards].sort((left, right) => left - right);
+  const overlap = getNoThanksHandOverlap(orderedCards.length);
+  const { runMargin } = getNoThanksResultHandMargins(orderedCards.length);
+
+  return orderedCards.map((card, index) => {
+    const startsNewRun = index > 0 && card !== orderedCards[index - 1] + 1;
+    return createHandCard(
+      card,
+      index,
+      startsNewRun ? runMargin : overlap,
+      {
+        incoming: incomingCardValue != null && Number(card) === Number(incomingCardValue),
+        runStart: startsNewRun,
+      },
+    );
+  });
 }
 
 function createWaitingPrimaryAction(view, state) {
@@ -2705,9 +2774,8 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     ? [...(effects.takePreviousViewerCards ?? [])].sort((left, right) => left - right)
     : finalCards;
   const cards = holdingIncomingCard
-    ? [...previousCards, effects.takeCardValue]
+    ? [...previousCards, effects.takeCardValue].sort((left, right) => left - right)
     : finalCards;
-  const overlap = getNoThanksHandOverlap(cards.length);
   const waiting = view.status === "waiting";
   const finalCounters = Number(view.viewerCounters) || 0;
   const displayCounters = waitingForStartChips
@@ -2719,13 +2787,6 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     ? finalCounters
     : displayCounters;
   const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
-  const statusLines = waiting
-    ? (view.isHost
-      ? ["방장은 항상 준비된 자리로 표시됩니다."]
-      : (view.isReady
-        ? ["준비 완료", "게임 시작을 기다리고 있어요."]
-        : ["준비 완료를 누르면", "테이블에 착석합니다"]))
-    : [];
 
   return el("section", {
     className: "no-thanks-my-panel " + (waiting ? "no-thanks-my-panel--waiting" : "no-thanks-my-panel--playing"),
@@ -2779,10 +2840,9 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
         }),
       ]),
       cards.length > 0
-        ? el("div", { className: "no-thanks-hand" },
-          cards.map((card, index) => createHandCard(card, index, overlap, {
-            incoming: holdingIncomingCard && index === cards.length - 1,
-          })))
+        ? el("div", { className: "no-thanks-hand" }, createPersonalHandCards(cards, {
+          incomingCardValue: holdingIncomingCard ? effects.takeCardValue : null,
+        }))
         : el("div", {
           className: "no-thanks-hand no-thanks-hand--empty",
           text: waiting ? "게임 시작 후 획득한 카드가 이곳에 표시됩니다." : "아직 획득한 카드가 없어요.",
@@ -2792,10 +2852,6 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
       className: "no-thanks-my-panel__actions"
         + (waiting ? " no-thanks-my-panel__actions--waiting" : " no-thanks-my-panel__actions--playing"),
     }, [
-      waiting
-        ? el("p", { className: "no-thanks-my-panel__message" },
-          statusLines.map((line) => el("span", { text: line })))
-        : null,
       waiting
         ? el("div", {
           className: "no-thanks-my-panel__action-row is-single",
@@ -3166,14 +3222,10 @@ function prepareFinalViewerTakeDestination(view, presentation) {
   const hand = app.querySelector(".no-thanks-hand");
   const count = app.querySelector(".no-thanks-my-panel__card-count");
   if (hand && finalCards.length > 0) {
-    const overlap = getNoThanksHandOverlap(finalCards.length);
     hand.classList.remove("no-thanks-hand--empty");
-    hand.replaceChildren(...finalCards.map((card, index) => createHandCard(
-      card,
-      index,
-      overlap,
-      { incoming: card === presentation.cardValue },
-    )));
+    hand.replaceChildren(...createPersonalHandCards(finalCards, {
+      incomingCardValue: presentation.cardValue,
+    }));
   }
   if (count) {
     count.dataset.finalCount = String(finalCards.length);
@@ -3915,6 +3967,17 @@ async function boot() {
 }
 
 window.addEventListener("resize", syncResultHandLayouts, { passive: true });
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden || boardPresentationEffect?.gameStart) return;
+
+  cancelActiveDealPresentation();
+  if (boardPresentationEffect?.dealCard && boardPresentationEffect.completed !== true) {
+    commitDrawDeckDeparture(boardPresentationEffect);
+    completeBoardPresentationEffect(boardPresentationEffect);
+  }
+  clearPendingTakePresentation();
+});
 
 window.addEventListener("pagehide", (event) => {
   if (!event.persisted) noThanksBgm.destroy();
