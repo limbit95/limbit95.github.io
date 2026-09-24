@@ -208,28 +208,31 @@ test("No Thanks! waiting and playing tables share exact deck, center, and chip s
   assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
 });
 
-test("No Thanks! opening deck uses discrete spread, mix, mix, and gather snap beats", () => {
+test("No Thanks! opening deck uses discrete spread, four mix beats, and gather", () => {
   assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
   assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
   assert.match(runtime, /visualShuffleCount = 12/u);
   assert.match(runtime, /const shuffleOrderOne = \[5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4\]/u);
   assert.match(runtime, /const shuffleOrderTwo = \[8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6\]/u);
   assert.match(runtime, /const shuffleOrderThree = \[2, 9, 5, 11, 4, 0, 8, 1, 10, 6, 3, 7\]/u);
+  assert.match(runtime, /const shuffleOrderFour = \[10, 4, 7, 0, 9, 2, 6, 11, 1, 5, 8, 3\]/u);
   assert.match(runtime, /const runSnapStep = async/u);
   assert.match(runtime, /className: "spread"/u);
   assert.match(runtime, /className: "mix-one"/u);
   assert.match(runtime, /className: "mix-two"/u);
   assert.match(runtime, /className: "mix-three"/u);
+  assert.match(runtime, /className: "mix-four"/u);
   assert.match(runtime, /className: "gather"/u);
-  assert.match(runtime, /duration: 360, hold: 220/u);
-  assert.match(runtime, /duration: 320, hold: 180/u);
-  assert.match(runtime, /duration: 360, hold: 0/u);
+  assert.match(runtime, /duration: 380, hold: 250/u);
+  assert.match(runtime, /duration: 340, hold: 210/u);
+  assert.match(runtime, /duration: 380, hold: 0/u);
   assert.match(runtime, /easing: "cubic-bezier\(\.2, \.72, \.2, 1\)"/u);
   assert.match(runtime, /duration: 380/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="spread"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-one"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-two"\]/u);
   assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-three"\]/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck\[data-shuffle-step="mix-four"\]/u);
 });
 
 test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distribution", () => {
@@ -237,11 +240,12 @@ test("No Thanks! deck shuffle deliberately outlasts the simultaneous chip distri
     runtime,
     /Promise\.all\(\[\s*animateGameStartDeck\(setupBoard, effect\),\s*animateGameStartChips\(setupBoard, view, effect\),\s*\]\)/u,
   );
-  assert.match(runtime, /duration: 360, hold: 220, className: "spread"/u);
-  assert.match(runtime, /duration: 320, hold: 180, className: "mix-one"/u);
-  assert.match(runtime, /duration: 320, hold: 180, className: "mix-two"/u);
-  assert.match(runtime, /duration: 320, hold: 180, className: "mix-three"/u);
-  assert.match(runtime, /duration: 360, hold: 0, className: "gather"/u);
+  assert.match(runtime, /duration: 380, hold: 250, className: "spread"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-one"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-two"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-three"/u);
+  assert.match(runtime, /duration: 340, hold: 210, className: "mix-four"/u);
+  assert.match(runtime, /duration: 380, hold: 0, className: "gather"/u);
   assert.match(runtime, /const delay = index \* 38/u);
 });
 
@@ -301,6 +305,25 @@ test("No Thanks! page does not render a literal newline escape between scripts",
   assert.doesNotMatch(page, /<\/script>\\\\n\s*<script/u);
 });
 
+
+test("No Thanks! host termination cancels any active deal animation before ending", () => {
+  assert.match(runtime, /let activeDealPresentation = null/u);
+  assert.match(runtime, /function cancelActiveDealPresentation\(\)/u);
+  assert.match(runtime, /presentation\.animations\.forEach/u);
+  assert.match(runtime, /animation\.cancel\(\)/u);
+  assert.match(runtime, /text: "게임 종료"[\s\S]*?cancelActiveDealPresentation\(\)[\s\S]*?await onConfirm\(\)/u);
+  assert.match(runtime, /view\.endReason === "HOST_TERMINATED"[\s\S]*?cancelActiveDealPresentation\(\)/u);
+  assert.match(runtime, /await animateDealFlight\(dealingCard, deckTopCard, effect\)/u);
+});
+
+test("No Thanks! opening starts the first deal immediately after shuffle completion", () => {
+  assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
+  assert.doesNotMatch(runtime, /waitForPresentation\(dealPause\)/u);
+  assert.match(
+    runtime,
+    /Promise\.all\(\[[\s\S]*?animateGameStartDeck\(setupBoard, effect\)[\s\S]*?animateGameStartChips\(setupBoard, view, effect\)[\s\S]*?\]\)[\s\S]*?await runDealPresentation\(effect\)/u,
+  );
+});
 
 test("No Thanks! in-progress host termination requires confirmation", () => {
   assert.match(runtime, /진행 중인 게임을 종료할까요/u);
