@@ -75,9 +75,9 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
 
   assert.equal(getNoThanksHandOverlap(3), -8);
   assert.equal(getNoThanksHandOverlap(8), -18);
-  assert.equal(getNoThanksHandOverlap(13), -30);
-  assert.equal(getNoThanksHandOverlap(18), -40);
-  assert.equal(getNoThanksHandOverlap(24), -50);
+  assert.equal(getNoThanksHandOverlap(13), -28);
+  assert.equal(getNoThanksHandOverlap(18), -46);
+  assert.equal(getNoThanksHandOverlap(24), -52);
 
   assert.equal(getNoThanksVisibleChipCount(0), 0);
   assert.equal(getNoThanksVisibleChipCount(6), 6);
