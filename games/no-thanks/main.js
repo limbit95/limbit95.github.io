@@ -1732,9 +1732,23 @@ function revealGameStartChips(effect) {
   centerChips?.classList.add("is-game-start-revealed");
 
   const chips = app.querySelector(".no-thanks-my-panel__chips.is-awaiting-start-chips");
-  chips?.classList.remove("is-awaiting-start-chips");
-  commitViewerChipLanding();
-  chips?.classList.add("is-start-chip-landed");
+  const finalCount = Math.max(0, Number(chips?.dataset.finalCount) || 0);
+  const value = chips?.querySelector(".no-thanks-my-panel__value");
+  const cluster = chips?.querySelector(".no-thanks-chip-cluster");
+
+  if (value) value.textContent = String(finalCount);
+  if (cluster) {
+    cluster.classList.remove("is-awaiting-start-stack");
+    [...cluster.querySelectorAll(".no-thanks-chip")].forEach((chip) => {
+      chip.classList.add("is-start-chip-arrived");
+    });
+    cluster.setAttribute("aria-label", "내 보유 칩 " + String(finalCount) + "개");
+  }
+  if (chips) {
+    chips.dataset.visibleCount = String(finalCount);
+    chips.classList.remove("is-awaiting-start-chips");
+    chips.classList.add("is-start-chip-landed");
+  }
 
   window.setTimeout(() => {
     sourceBank?.remove();
@@ -1782,6 +1796,7 @@ async function animateGameStartDeck(board, effect) {
   stack.classList.add("is-start-shuffle-source-hidden");
 
   const cards = [...overlay.querySelectorAll("span")];
+  const baseTransforms = cards.map((card) => getComputedStyle(card).transform);
   const spreadScale = Math.max(.62, Math.min(1.12, stackRect.width / 82));
   const scatterPoints = [
     [-122, -54, -24],
@@ -1797,118 +1812,101 @@ async function animateGameStartDeck(board, effect) {
     [-102, 58, 18],
     [-132, 2, -12],
   ];
+  const shuffleOrderOne = [5, 10, 2, 8, 0, 7, 11, 3, 9, 1, 6, 4];
+  const shuffleOrderTwo = [8, 3, 11, 1, 7, 4, 0, 10, 5, 9, 2, 6];
 
-  const liftAnimation = overlay.animate([
+  const transformForPoint = (pointIndex, scale = 1) => {
+    const [x, y, rotation] = scatterPoints[pointIndex % scatterPoints.length];
+    return `translate3d(${x * spreadScale * scale}px, ${y * spreadScale * scale}px, 0) rotateZ(${rotation}deg) scale(1.045)`;
+  };
+
+  const runSnapStep = async (transforms, {
+    duration = 150,
+    hold = 120,
+    className = null,
+  } = {}) => {
+    if (className) overlay.dataset.shuffleStep = className;
+    const animations = cards.map((card, index) => {
+      const from = getComputedStyle(card).transform;
+      const to = transforms[index];
+      const animation = card.animate([
+        { transform: from, opacity: 1 },
+        { transform: to, opacity: 1 },
+      ], {
+        duration,
+        easing: "cubic-bezier(.18, .92, .2, 1)",
+        fill: "forwards",
+      });
+      return animation.finished.catch(() => {}).then(() => {
+        card.style.transform = to;
+        animation.cancel();
+      });
+    });
+    await Promise.all(animations);
+    if (hold > 0) await waitForPresentation(hold);
+  };
+
+  overlay.dataset.shuffleStep = "lift";
+  const lift = overlay.animate([
     {
       transform: "translate3d(0, 0, 0) scale(1)",
       filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
-      offset: 0,
     },
     {
-      transform: "translate3d(0, -10px, 0) scale(1.1)",
+      transform: "translate3d(0, -8px, 0) scale(1.08)",
       filter: "drop-shadow(0 24px 32px rgba(8, 29, 34, .4))",
-      offset: .3,
-    },
-    {
-      transform: "translate3d(0, -6px, 0) scale(1.08)",
-      filter: "drop-shadow(0 22px 28px rgba(8, 29, 34, .36))",
-      offset: .72,
-    },
-    {
-      transform: "translate3d(0, 0, 0) scale(1)",
-      filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .18))",
-      offset: 1,
     },
   ], {
-    duration: 1520,
-    easing: "cubic-bezier(.16, .78, .2, 1)",
-    fill: "both",
+    duration: 130,
+    easing: "cubic-bezier(.18, .92, .2, 1)",
+    fill: "forwards",
   });
+  await lift.finished.catch(() => {});
+  lift.cancel();
 
-  const cardAnimations = cards.map((card, index) => {
-    const baseTransform = getComputedStyle(card).transform;
-    const [rawX, rawY, rotation] = scatterPoints[index % scatterPoints.length];
-    const x = rawX * spreadScale;
-    const y = rawY * spreadScale;
-    const [mixRawX, mixRawY, mixRotation] = scatterPoints[
-      (index * 5 + 3) % scatterPoints.length
-    ];
-    const [crossRawX, crossRawY, crossRotation] = scatterPoints[
-      (index * 7 + 8) % scatterPoints.length
-    ];
-    const mixX = mixRawX * spreadScale * .82;
-    const mixY = mixRawY * spreadScale * .78;
-    const crossX = crossRawX * spreadScale * .5;
-    const crossY = crossRawY * spreadScale * .46;
-
-    card.style.zIndex = String(70 + index);
-    return card.animate([
-      {
-        transform: baseTransform,
-        opacity: 1,
-        offset: 0,
-      },
-      {
-        transform: `translate3d(${x * .32}px, ${y * .22}px, 0) rotateZ(${rotation * .35}deg) scale(1.02)`,
-        opacity: 1,
-        offset: .18,
-      },
-      {
-        transform: `translate3d(${x}px, ${y}px, 0) rotateZ(${rotation}deg) scale(1.06)`,
-        opacity: 1,
-        offset: .43,
-      },
-      {
-        transform: `translate3d(${mixX}px, ${mixY}px, 0) rotateZ(${mixRotation * -.78}deg) scale(.99)`,
-        opacity: 1,
-        offset: .62,
-      },
-      {
-        transform: `translate3d(${crossX}px, ${crossY}px, 0) rotateZ(${crossRotation * .55}deg) scale(1.025)`,
-        opacity: 1,
-        offset: .78,
-      },
-      {
-        transform: `translate3d(${x * .16}px, ${y * .12}px, 0) rotateZ(${rotation * .16}deg) scale(1.01)`,
-        opacity: 1,
-        offset: .9,
-      },
-      {
-        transform: baseTransform,
-        opacity: 1,
-        offset: 1,
-      },
-    ], {
-      duration: 1540,
-      delay: index * 24,
-      easing: "cubic-bezier(.16, .78, .2, 1)",
-      fill: "both",
-    });
-  });
-
-  await Promise.all([
-    liftAnimation.finished.catch(() => {}),
-    ...cardAnimations.map((animation) => animation.finished.catch(() => {})),
-  ]);
-
+  await runSnapStep(
+    cards.map((_, index) => transformForPoint(index)),
+    { duration: 160, hold: 170, className: "spread" },
+  );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
-    app.querySelector(".no-thanks-draw-deck__stack.is-start-shuffle-source-hidden")
-      ?.classList.remove("is-start-shuffle-source-hidden");
+    stack.classList.remove("is-start-shuffle-source-hidden");
     return;
   }
 
-  cardAnimations.forEach((animation) => animation.cancel());
-  liftAnimation.cancel();
+  await runSnapStep(
+    cards.map((_, index) => transformForPoint(shuffleOrderOne[index], .92)),
+    { duration: 135, hold: 145, className: "mix-one" },
+  );
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    overlay.remove();
+    stack.classList.remove("is-start-shuffle-source-hidden");
+    return;
+  }
+
+  await runSnapStep(
+    cards.map((_, index) => transformForPoint(shuffleOrderTwo[index], .72)),
+    { duration: 135, hold: 145, className: "mix-two" },
+  );
+  if (!isCurrentBoardPresentationEffect(effect)) {
+    overlay.remove();
+    stack.classList.remove("is-start-shuffle-source-hidden");
+    return;
+  }
+
+  await runSnapStep(
+    cards.map((_, index) => baseTransforms[index]),
+    { duration: 175, hold: 0, className: "gather" },
+  );
 
   const settle = overlay.animate([
     {
-      transform: "translate3d(0, -5px, 0) scale(1.08)",
+      transform: "translate3d(0, -8px, 0) scale(1.08)",
       opacity: 1,
-      filter: "drop-shadow(0 20px 28px rgba(8, 29, 34, .34))",
+      filter: "drop-shadow(0 22px 30px rgba(8, 29, 34, .38))",
     },
     {
-      transform: "translate3d(0, 5px, 0) scale(.965)",
+      transform: "translate3d(0, 4px, 0) scale(.97)",
       opacity: 1,
       filter: "drop-shadow(0 8px 12px rgba(8, 29, 34, .2))",
       offset: .5,
@@ -1920,8 +1918,8 @@ async function animateGameStartDeck(board, effect) {
       offset: 1,
     },
   ], {
-    duration: 330,
-    easing: "cubic-bezier(.18, .82, .22, 1)",
+    duration: 260,
+    easing: "cubic-bezier(.18, .86, .22, 1)",
     fill: "forwards",
   });
 
@@ -1985,6 +1983,10 @@ async function animateGameStartChips(board, view, effect) {
     }))
     .filter(({ target }) => target?.isConnected);
 
+  const viewerLandingChips = [
+    ...viewerTarget.querySelectorAll(".no-thanks-chip[data-start-landing-index]"),
+  ];
+  const viewerLandingRects = viewerLandingChips.map((chip) => chip.getBoundingClientRect());
   const viewerCenterX = viewerTargetRect.left + (viewerTargetRect.width / 2);
   const viewerCenterY = viewerTargetRect.top + (viewerTargetRect.height / 2);
   const opponentRects = opponentTargets.map(({ playerId, target }) => ({
@@ -2009,13 +2011,20 @@ async function animateGameStartChips(board, view, effect) {
       ? opponentRects[opponentIndex % opponentRects.length]
       : null;
 
+    const viewerLandingRect = toViewer
+      ? viewerLandingRects[index % Math.max(1, viewerLandingRects.length)]
+      : null;
     const targetX = toViewer
-      ? viewerCenterX + (((index % 5) - 2) * 9)
+      ? (viewerLandingRect
+        ? viewerLandingRect.left + (viewerLandingRect.width / 2)
+        : viewerCenterX)
       : (opponent
         ? opponent.rect.left + (opponent.rect.width / 2)
         : viewerCenterX);
     const targetY = toViewer
-      ? viewerCenterY + ((Math.floor(index / 5) - 1) * 5)
+      ? (viewerLandingRect
+        ? viewerLandingRect.top + (viewerLandingRect.height / 2)
+        : viewerCenterY)
       : (opponent
         ? opponent.rect.top + (opponent.rect.height / 2)
         : viewerCenterY);
@@ -2036,6 +2045,7 @@ async function animateGameStartChips(board, view, effect) {
       targetY,
       toViewer,
       opponent,
+      viewerLandingChip: toViewer ? viewerLandingChips[index] ?? null : null,
       index,
     };
   });
@@ -2049,6 +2059,7 @@ async function animateGameStartChips(board, view, effect) {
     targetY,
     toViewer,
     opponent,
+    viewerLandingChip,
     index,
   }) => {
     const dx = targetX - startX;
@@ -2095,6 +2106,16 @@ async function animateGameStartChips(board, view, effect) {
     });
 
     return animation.finished.catch(() => {}).then(() => {
+      if (toViewer && viewerLandingChip?.isConnected) {
+        viewerLandingChip.classList.add("is-start-chip-arrived");
+        const value = app.querySelector(
+          ".no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-my-panel__value",
+        );
+        if (value) {
+          value.textContent = String(Math.min(index + 1, viewerChipCount));
+        }
+      }
+
       if (!toViewer && opponent?.target?.isConnected) {
         opponent.target.classList.add("is-start-chip-received");
         window.setTimeout(() => {
@@ -2546,6 +2567,9 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
     : (holdingIncomingChips
       ? Math.max(0, Number(effects.takePreviousViewerCounters) || 0)
       : finalCounters);
+  const renderedChipCount = waitingForStartChips
+    ? finalCounters
+    : displayCounters;
   const visibleCardCount = holdingIncomingCard ? previousCards.length : cards.length;
   const statusLines = waiting
     ? (view.isHost
@@ -2583,10 +2607,19 @@ function createMyPanel(view, state, panelActions = [], effects = null) {
           className: "no-thanks-my-panel__value",
           text: String(displayCounters),
         }),
-        createChipCluster(displayCounters, {
-          label: "내 보유 칩 " + String(displayCounters) + "개",
-          emptyText: "칩 없음",
-        }),
+        (() => {
+          const cluster = createChipCluster(renderedChipCount, {
+            label: "내 보유 칩 " + String(renderedChipCount) + "개",
+            emptyText: "칩 없음",
+          });
+          if (waitingForStartChips) {
+            cluster.classList.add("is-awaiting-start-stack");
+            [...cluster.querySelectorAll(".no-thanks-chip")].forEach((chip, index) => {
+              chip.dataset.startLandingIndex = String(index);
+            });
+          }
+          return cluster;
+        })(),
       ]),
     el("div", { className: "no-thanks-my-panel__cards" }, [
       el("div", { className: "no-thanks-my-panel__cards-head" }, [
