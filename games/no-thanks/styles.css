@@ -5664,3 +5664,76 @@ body::after {
     min-height: 72px;
   }
 }
+
+
+/* Opening position lock: waiting and playing use identical absolute slot centers. */
+.no-thanks-round-table__objects,
+.no-thanks-round-table__objects--waiting {
+  position: relative;
+  width: min(84%, 680px);
+  height: clamp(132px, 15vw, 184px);
+  display: block;
+}
+
+.no-thanks-round-table__slot {
+  position: absolute;
+  top: 50%;
+  width: 30%;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+}
+
+.no-thanks-round-table__slot.is-deck {
+  left: 16%;
+}
+
+.no-thanks-round-table__slot.is-center {
+  left: 50%;
+}
+
+.no-thanks-round-table__slot.is-chips {
+  left: 84%;
+}
+
+.no-thanks-round-table__slot > * {
+  max-width: 100%;
+}
+
+.no-thanks-start-chip-bank__pile.is-distributing {
+  isolation: isolate;
+}
+
+.no-thanks-start-chip-bank .no-thanks-chip[data-distributed="true"] {
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+@media (max-width: 1100px) {
+  .no-thanks-round-table__objects,
+  .no-thanks-round-table__objects--waiting {
+    width: 84%;
+    height: 150px;
+  }
+
+  .no-thanks-round-table__slot {
+    width: 31%;
+  }
+}
+
+@media (max-width: 760px) {
+  .no-thanks-round-table__objects,
+  .no-thanks-round-table__objects--waiting {
+    width: 86%;
+    height: 118px;
+  }
+
+  .no-thanks-round-table__slot.is-deck {
+    left: 17%;
+  }
+
+  .no-thanks-round-table__slot.is-chips {
+    left: 83%;
+  }
+}
