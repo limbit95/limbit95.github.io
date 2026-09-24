@@ -1834,7 +1834,7 @@ async function animateGameStartDeck(board, effect) {
         { transform: to, opacity: 1 },
       ], {
         duration,
-        easing: "cubic-bezier(.18, .92, .2, 1)",
+        easing: "cubic-bezier(.2, .72, .2, 1)",
         fill: "forwards",
       });
       return animation.finished.catch(() => {}).then(() => {
@@ -1857,8 +1857,8 @@ async function animateGameStartDeck(board, effect) {
       filter: "drop-shadow(0 24px 32px rgba(8, 29, 34, .4))",
     },
   ], {
-    duration: 130,
-    easing: "cubic-bezier(.18, .92, .2, 1)",
+    duration: 180,
+    easing: "cubic-bezier(.2, .72, .2, 1)",
     fill: "forwards",
   });
   await lift.finished.catch(() => {});
@@ -1866,7 +1866,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(index)),
-    { duration: 160, hold: 170, className: "spread" },
+    { duration: 360, hold: 220, className: "spread" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1876,7 +1876,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderOne[index], .92)),
-    { duration: 135, hold: 145, className: "mix-one" },
+    { duration: 320, hold: 180, className: "mix-one" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1886,7 +1886,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => transformForPoint(shuffleOrderTwo[index], .72)),
-    { duration: 135, hold: 145, className: "mix-two" },
+    { duration: 320, hold: 180, className: "mix-two" },
   );
   if (!isCurrentBoardPresentationEffect(effect)) {
     overlay.remove();
@@ -1896,7 +1896,7 @@ async function animateGameStartDeck(board, effect) {
 
   await runSnapStep(
     cards.map((_, index) => baseTransforms[index]),
-    { duration: 175, hold: 0, className: "gather" },
+    { duration: 360, hold: 0, className: "gather" },
   );
 
   const settle = overlay.animate([
@@ -1918,8 +1918,8 @@ async function animateGameStartDeck(board, effect) {
       offset: 1,
     },
   ], {
-    duration: 260,
-    easing: "cubic-bezier(.18, .86, .22, 1)",
+    duration: 380,
+    easing: "cubic-bezier(.2, .74, .2, 1)",
     fill: "forwards",
   });
 
