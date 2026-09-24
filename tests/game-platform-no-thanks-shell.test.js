@@ -177,7 +177,9 @@ test("No Thanks! game start moves directly from the second message into setup an
   assert.match(runtime, /GAME_START_MESSAGE_HOLD_MS = 2500/u);
   assert.doesNotMatch(runtime, /GAME_START_SETUP_PAUSE_MS/u);
   assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
-  assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
+  assert.match(runtime, /el\("span", \{ text: "가장 적은 점수를 낸" \}\)/u);
+  assert.match(runtime, /el\("span", \{ text: "플레이어가 승리합니다\." \}\)/u);
+  assert.match(styles, /\.no-thanks-game-start-message__title > span[\s\S]*?display:\s*block/u);
   assert.match(runtime, /곧 게임이 시작됩니다\./u);
   assert.match(
     runtime,
@@ -362,14 +364,20 @@ test("No Thanks! deal presentation keeps the source deck until the flight depart
   );
 });
 
-test("No Thanks! personal hand targets the sorted run-aware slot for normal and final takes", () => {
+test("No Thanks! personal hand targets the sorted run-aware slot and slides existing cards aside", () => {
   assert.match(runtime, /function createPersonalHandCards\(cards,/u);
   assert.match(runtime, /const orderedCards = \[\.\.\.cards\]\.sort\(\(left, right\) => left - right\)/u);
+  assert.match(runtime, /const runMargin = getNoThanksHandRunMargin\(orderedCards\.length\)/u);
   assert.match(runtime, /const startsNewRun = index > 0 && card !== orderedCards\[index - 1\] \+ 1/u);
   assert.match(runtime, /incomingCardValue != null && Number\(card\) === Number\(incomingCardValue\)/u);
+  assert.match(runtime, /function captureViewerHandRects\(\)/u);
+  assert.match(runtime, /previousHandRects: captureViewerHandRects\(\)/u);
+  assert.match(runtime, /function animateExistingHandReorder\(presentation\)/u);
+  assert.match(runtime, /duration:\s*420/u);
+  assert.match(runtime, /translate3d\(\$\{dx\.toFixed\(2\)\}px, \$\{dy\.toFixed\(2\)\}px, 0\)/u);
   assert.match(
     runtime,
-    /createPersonalHandCards\(cards, \{\s*incomingCardValue: holdingIncomingCard \? effects\.takeCardValue : null/u,
+    /animateTakeCardToHand\(presentation, effect\),[\s\S]*?animateExistingHandReorder\(presentation\)/u,
   );
   assert.match(
     runtime,
@@ -377,12 +385,17 @@ test("No Thanks! personal hand targets the sorted run-aware slot for normal and 
   );
 });
 
-test("No Thanks! backgrounding settles an active deal instead of replaying it on restore", () => {
+test("No Thanks! deal presentation is acknowledged once across focus and visibility changes", () => {
+  assert.match(runtime, /DEAL_PRESENTATION_STORAGE_KEY/u);
+  assert.match(runtime, /function readLastSettledDealKey\(\)/u);
+  assert.match(runtime, /window\.sessionStorage\?\.getItem\(DEAL_PRESENTATION_STORAGE_KEY\)/u);
+  assert.match(runtime, /window\.sessionStorage\?\.setItem\(DEAL_PRESENTATION_STORAGE_KEY, key\)/u);
+  assert.match(runtime, /if \(effect\?\.dealKey\) rememberSettledDealKey\(effect\.dealKey\)/u);
+  assert.match(runtime, /const focusLost = document\.hidden[\s\S]*?document\.hasFocus/u);
+  assert.match(runtime, /settleDealPresentationWithoutMotion\(effect\)/u);
+  assert.match(runtime, /window\.addEventListener\("blur", cancelDealPresentationOnFocusLoss\)/u);
   assert.match(runtime, /document\.addEventListener\("visibilitychange"/u);
-  assert.match(runtime, /if \(!document\.hidden \|\| boardPresentationEffect\?\.gameStart\) return;/u);
-  assert.match(runtime, /cancelActiveDealPresentation\(\)/u);
-  assert.match(runtime, /commitDrawDeckDeparture\(boardPresentationEffect\)/u);
-  assert.match(runtime, /completeBoardPresentationEffect\(boardPresentationEffect\)/u);
+  assert.match(runtime, /if \(document\.hidden\) cancelDealPresentationOnFocusLoss\(\)/u);
 });
 
 test("No Thanks! opening starts the first deal immediately after shuffle completion", () => {
