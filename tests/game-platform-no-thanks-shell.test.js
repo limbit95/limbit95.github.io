@@ -164,48 +164,55 @@ test("No Thanks! winner celebration uses one persistent dialog instance until th
   assert.doesNotMatch(runtime, /function disposeLobbyController\(\) \{[^}]*acknowledgedWinnerCelebrationKey = null/u);
 });
 
-test("No Thanks! game start stages two messages before table setup and the first deal", () => {
+test("No Thanks! game start moves directly from the second message into setup and the first deal", () => {
   assert.match(runtime, /previous\.status === "waiting"/u);
   assert.match(runtime, /current\.status === "playing"/u);
   assert.match(runtime, /gameStart: true/u);
   assert.match(runtime, /startDeckReady: false/u);
   assert.match(runtime, /startChipsReady: false/u);
   assert.match(runtime, /GAME_START_MESSAGE_HOLD_MS = 2500/u);
-  assert.match(runtime, /GAME_START_SETUP_PAUSE_MS = 1000/u);
+  assert.doesNotMatch(runtime, /GAME_START_SETUP_PAUSE_MS/u);
   assert.match(runtime, /GAME_START_DEAL_PAUSE_MS = 950/u);
   assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
   assert.match(runtime, /곧 게임이 시작됩니다\./u);
   assert.match(
     runtime,
-    /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?await waitForPresentation\(setupPause\)[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await waitForPresentation\(dealPause\)[\s\S]*?await runDealPresentation\(effect\)/u,
+    /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?message\?\.remove\(\)[\s\S]*?const setupBoard = app\.querySelector[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await waitForPresentation\(dealPause\)[\s\S]*?await runDealPresentation\(effect\)/u,
   );
   assert.match(runtime, /locked: gameStarting/u);
-  assert.match(runtime, /const setupBoard = app\.querySelector\("\.no-thanks-game-board"\)/u);
   assert.match(runtime, /const liveBoard = board\?\.isConnected/u);
   assert.match(styles, /\.no-thanks-game-start-message/u);
-  assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-shuffling/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
   assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-tidied/u);
 });
 
-test("No Thanks! waiting table previews a deck and abundant chip bank around two-line setup copy", () => {
+test("No Thanks! waiting table keeps gameplay object positions with compact copy and a double chip pile", () => {
   assert.match(runtime, /function createWaitingTableDeck\(\)/u);
   assert.match(runtime, /function createGameStartChipBank/u);
-  assert.match(runtime, /chipCount = waiting \? 40 : 36/u);
-  assert.match(runtime, /준비를 마친 플레이어가 자리를 채우면/u);
-  assert.match(runtime, /이 테이블에서 바로 게임이 시작됩니다\./u);
-  assert.match(runtime, /no-thanks-round-table__waiting-layout/u);
-  assert.match(styles, /\.no-thanks-round-table__waiting-layout/u);
-  assert.match(styles, /\.no-thanks-round-table__waiting-copy[\s\S]*display:\s*grid/u);
-  assert.match(styles, /\.no-thanks-start-chip-bank__pile/u);
+  assert.match(runtime, /const backCluster = createChipCluster\(16/u);
+  assert.match(runtime, /const frontCluster = createChipCluster\(16/u);
+  assert.match(runtime, /게임 시작용 칩 더미 32개/u);
+  assert.match(runtime, /게임 준비 중/u);
+  assert.match(runtime, /모두 준비되면/u);
+  assert.match(runtime, /바로 시작합니다\./u);
+  assert.match(runtime, /no-thanks-round-table__objects no-thanks-round-table__objects--waiting/u);
+  assert.match(styles, /\.no-thanks-round-table__objects--waiting/u);
+  assert.match(styles, /\.no-thanks-round-table__waiting-card/u);
+  assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-back/u);
+  assert.match(styles, /\.no-thanks-start-chip-bank__cluster\.is-front/u);
 });
 
-test("No Thanks! opening deck shuffles the already visible stack and survives board rerenders", () => {
+test("No Thanks! opening deck uses a strong fixed overlay riffle then settles back in place", () => {
   assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
   assert.match(runtime, /const liveBoard = board\?\.isConnected[\s\S]*?app\.querySelector\("\.no-thanks-game-board"\)/u);
-  assert.match(runtime, /stack\.classList\.add\("is-start-shuffling"\)/u);
-  assert.match(runtime, /stack\.classList\.add\("is-start-tidied"\)/u);
+  assert.match(runtime, /const overlay = stack\.cloneNode\(true\)/u);
+  assert.match(runtime, /overlay\.classList\.add\("no-thanks-game-start-shuffle-deck"\)/u);
+  assert.match(runtime, /spread = 50 \+ \(\(index % 4\) \* 10\)/u);
+  assert.match(runtime, /duration: 1240/u);
+  assert.match(runtime, /currentStack\?\.classList\.add\("is-start-tidied"\)/u);
   assert.doesNotMatch(runtime, /startPending: gameStarting && effects\.startDeckReady !== true/u);
-  assert.match(styles, /\.no-thanks-game-board\.is-game-starting \.no-thanks-draw-deck[\s\S]*opacity:\s*1/u);
+  assert.match(styles, /\.no-thanks-game-start-shuffle-deck/u);
+  assert.match(styles, /@keyframes no-thanks-start-deck-impact/u);
 });
 
 test("No Thanks! opening chips fall from the table bank into only the viewer personal chip panel", () => {
@@ -216,6 +223,7 @@ test("No Thanks! opening chips fall from the table bank into only the viewer per
     runtime,
     /\.no-thanks-my-panel__chips\.is-awaiting-start-chips \.no-thanks-chip-cluster/u,
   );
+  assert.match(runtime, /querySelectorAll\("\.no-thanks-chip"\)/u);
   assert.match(runtime, /Array\.from\(\{ length: initialCount \}/u);
   assert.match(runtime, /delay: index \* 52/u);
   assert.match(runtime, /revealGameStartChips\(effect\)/u);
