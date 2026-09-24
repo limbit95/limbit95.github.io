@@ -12,7 +12,7 @@
 - Lifecycle stage: DESIGN_CLOSEOUT
 - Current UI phase / scope: room/gameplay/result/rules presentation 수동 리뷰 및 closeout 완료
 - Active branch: `main`
-- Last updated: 2026-09-23
+- Last updated: 2026-09-24
 - Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
 - Active overrides:
   - NT-UI-001 — muted blue game-local environmental background
@@ -22,6 +22,7 @@
   - NT-UI-005 — quiet in-room reconnect presentation
   - NT-UI-006 — centered FINAL WINNER result card
   - NT-UI-007 — tabletop Rules Guide
+  - NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
 - Main design baseline: PR #378 + PR #381, latest merge commit `c43f96f984b90049b59b163bffd16c9a5fb5cf04`
 - Next design work: 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-closeout follow-up으로 유지합니다.
 
@@ -168,6 +169,24 @@
 - Baseline relation: `UI_DESIGN.md`의 game-local modal 방향을 구체화하고 기존 generic rules presentation을 대체합니다.
 - Functional boundary: 규칙 사실은 `GAME_SPEC.md`/authoritative gameplay를 따르며 DB/RPC/game state를 변경하지 않습니다.
 
+### NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
+
+- Status: ACTIVE
+- Applies to: entry / waiting lobby / gameplay / result-rematch audio presentation
+- Source: 2026-09-24 user soundtrack selection
+- Context / trigger: No Thanks!의 카드·칩 심리전 분위기에 맞는 로비/플레이 전용 BGM을 확정했습니다.
+- Decision:
+  - lobby 계열 화면에는 Kevin MacLeod의 `Hard Boiled` (ISRC `USUAN1700076`)를 사용합니다.
+  - 실제 `PLAYING` phase에는 Kevin MacLeod의 `Covert Affair` (ISRC `USUAN1100795`)를 사용합니다.
+  - GAME_OVER / rematch 준비를 포함해 `PLAYING`이 아닌 상태는 lobby track으로 복귀합니다.
+  - 기존 shared Game BGM controller/player를 재사용해 재생/일시정지, 볼륨, 출처/라이선스 UI와 브라우저 autoplay 대응을 유지합니다.
+  - 두 곡의 Incompetech CC BY 4.0 attribution metadata를 shared BGM catalog에 등록합니다.
+- Rationale: 대기 화면은 느긋한 재즈 카드룸 분위기를 유지하고, 실제 플레이에서는 더 은근한 긴장감을 주면서도 기존 Game Platform 오디오 UX를 그대로 유지합니다.
+- Implementation status: IMPLEMENTED
+- Validation: `tests/game-platform-no-thanks-bgm.test.js`에서 track metadata, lobby ↔ gameplay 전환, page wiring을 회귀 검증합니다.
+- Baseline relation: `UI_DESIGN.md`의 sound 방향을 실제 사용자 확정 soundtrack으로 구체화한 post-closeout override.
+- Functional boundary: gameplay state / RPC / DB authority / 카드·칩 규칙 변경 없음.
+
 ## Superseded / Rejected
 
 - 기존 generic text-list 중심 rules modal은 NT-UI-007에 의해 superseded.
@@ -187,6 +206,7 @@
 - 2026-09-23 — PR #381 main 병합 완료. merge commit: `c43f96f984b90049b59b163bffd16c9a5fb5cf04`.
 - 2026-09-23 — Tabletop Rules Guide에서 검증한 game-local rules presentation 원칙이 Can’t Stop 실험을 거쳐 Game Platform 공통 UI 규칙으로 승격됨.
 - 2026-09-23 — 기능 체크포인트와 함께 디자인 closeout을 재검토해 NT-UI-001~007이 현재 main의 active design baseline임을 확인.
+- 2026-09-24 — user-selected No Thanks! soundtrack을 NT-UI-008로 확정하고 shared BGM 패턴으로 구현.
 
 ## Open Follow-up
 
