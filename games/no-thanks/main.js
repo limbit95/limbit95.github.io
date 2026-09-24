@@ -2139,6 +2139,7 @@ async function animateGameStartChips(board, view, effect) {
     const arc = 42 + ((index % 5) * 7);
     const spin = 420 + ((index % 4) * 90);
     const delay = index * 38;
+    const duration = 650 + ((index % 3) * 45);
 
     window.setTimeout(() => {
       if (sourceChip?.isConnected) {
@@ -2148,6 +2149,12 @@ async function animateGameStartChips(board, view, effect) {
     }, delay);
 
     if (typeof chip.animate !== "function") return Promise.resolve();
+
+    if (!toViewer && opponent?.target?.isConnected) {
+      window.setTimeout(() => {
+        opponent.target?.classList.add("is-start-chip-received");
+      }, delay + Math.round(duration * .9));
+    }
 
     const animation = chip.animate([
       {
@@ -2166,12 +2173,17 @@ async function animateGameStartChips(board, view, effect) {
         offset: .66,
       },
       {
-        transform: `translate3d(${dx}px, ${dy}px, 0) scale(${toViewer ? ".88" : ".2"}) rotate(${spin}deg)`,
+        transform: `translate3d(${dx * .94}px, ${dy * .94}px, 0) scale(${toViewer ? ".9" : ".54"}) rotate(${spin * .94}deg)`,
+        opacity: 1,
+        offset: .94,
+      },
+      {
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(${toViewer ? ".88" : ".16"}) rotate(${spin}deg)`,
         opacity: toViewer ? 1 : 0,
         offset: 1,
       },
     ], {
-      duration: 650 + ((index % 3) * 45),
+      duration,
       delay,
       easing: "cubic-bezier(.17, .76, .22, 1)",
       fill: "forwards",
@@ -2191,10 +2203,9 @@ async function animateGameStartChips(board, view, effect) {
       }
 
       if (!toViewer && opponent?.target?.isConnected) {
-        opponent.target.classList.add("is-start-chip-received");
         window.setTimeout(() => {
           opponent.target?.classList.remove("is-start-chip-received");
-        }, 260);
+        }, 180);
       }
     });
   }));
