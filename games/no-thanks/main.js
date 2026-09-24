@@ -1830,9 +1830,16 @@ async function animateGameStartDeck(board, effect) {
     const [rawX, rawY, rotation] = scatterPoints[index % scatterPoints.length];
     const x = rawX * spreadScale;
     const y = rawY * spreadScale;
-    const driftX = x * .86 + (((index % 3) - 1) * 14 * spreadScale);
-    const driftY = y * .82 + (((index % 4) - 1.5) * 9 * spreadScale);
-    const driftRotation = rotation * -.42 + ((index % 2 === 0 ? -1 : 1) * 5);
+    const [mixRawX, mixRawY, mixRotation] = scatterPoints[
+      (index * 5 + 3) % scatterPoints.length
+    ];
+    const [crossRawX, crossRawY, crossRotation] = scatterPoints[
+      (index * 7 + 8) % scatterPoints.length
+    ];
+    const mixX = mixRawX * spreadScale * .82;
+    const mixY = mixRawY * spreadScale * .78;
+    const crossX = crossRawX * spreadScale * .5;
+    const crossY = crossRawY * spreadScale * .46;
 
     card.style.zIndex = String(70 + index);
     return card.animate([
@@ -1844,22 +1851,27 @@ async function animateGameStartDeck(board, effect) {
       {
         transform: `translate3d(${x * .32}px, ${y * .22}px, 0) rotateZ(${rotation * .35}deg) scale(1.02)`,
         opacity: 1,
-        offset: .2,
+        offset: .18,
       },
       {
         transform: `translate3d(${x}px, ${y}px, 0) rotateZ(${rotation}deg) scale(1.06)`,
         opacity: 1,
-        offset: .48,
+        offset: .43,
       },
       {
-        transform: `translate3d(${driftX}px, ${driftY}px, 0) rotateZ(${driftRotation}deg) scale(1.02)`,
+        transform: `translate3d(${mixX}px, ${mixY}px, 0) rotateZ(${mixRotation * -.78}deg) scale(.99)`,
         opacity: 1,
-        offset: .65,
+        offset: .62,
       },
       {
-        transform: `translate3d(${x * .28}px, ${y * .2}px, 0) rotateZ(${rotation * .22}deg) scale(1.015)`,
+        transform: `translate3d(${crossX}px, ${crossY}px, 0) rotateZ(${crossRotation * .55}deg) scale(1.025)`,
         opacity: 1,
-        offset: .84,
+        offset: .78,
+      },
+      {
+        transform: `translate3d(${x * .16}px, ${y * .12}px, 0) rotateZ(${rotation * .16}deg) scale(1.01)`,
+        opacity: 1,
+        offset: .9,
       },
       {
         transform: baseTransform,
@@ -1867,8 +1879,8 @@ async function animateGameStartDeck(board, effect) {
         offset: 1,
       },
     ], {
-      duration: 1380,
-      delay: index * 26,
+      duration: 1540,
+      delay: index * 24,
       easing: "cubic-bezier(.16, .78, .2, 1)",
       fill: "both",
     });
@@ -1942,19 +1954,19 @@ async function animateGameStartChips(board, view, effect) {
       ) ?? []
     )].reverse(),
   ];
-  const target = app.querySelector(
+  const viewerTarget = app.querySelector(
     ".no-thanks-my-panel__chips.is-awaiting-start-chips .no-thanks-chip-cluster",
   );
   const sourceRect = sourcePile?.getBoundingClientRect?.();
-  const targetRect = target?.getBoundingClientRect?.();
+  const viewerTargetRect = viewerTarget?.getBoundingClientRect?.();
 
   if (
     !sourceRect
-    || !targetRect
+    || !viewerTargetRect
     || sourceRect.width <= 0
     || sourceRect.height <= 0
-    || targetRect.width <= 0
-    || targetRect.height <= 0
+    || viewerTargetRect.width <= 0
+    || viewerTargetRect.height <= 0
     || prefersReducedMotion()
   ) {
     revealGameStartChips(effect);
@@ -1962,10 +1974,28 @@ async function animateGameStartChips(board, view, effect) {
   }
 
   const initialCount = calculateInitialCounters(view.playerCount);
-  const targetCenterX = targetRect.left + (targetRect.width / 2);
-  const targetCenterY = targetRect.top + (targetRect.height / 2);
-  const flights = Array.from({ length: initialCount }, (_, index) => {
-    const sourceChip = sourceChips[index % Math.max(1, sourceChips.length)];
+  const viewerChipCount = Math.min(initialCount, sourceChips.length);
+  const opponentPlayers = view.players.filter(
+    (player) => player.id !== view.currentUserId,
+  );
+  const opponentTargets = opponentPlayers
+    .map((player) => ({
+      playerId: player.id,
+      target: findBoardSeatAvatar(player.id),
+    }))
+    .filter(({ target }) => target?.isConnected);
+
+  const viewerCenterX = viewerTargetRect.left + (viewerTargetRect.width / 2);
+  const viewerCenterY = viewerTargetRect.top + (viewerTargetRect.height / 2);
+  const opponentRects = opponentTargets.map(({ playerId, target }) => ({
+    playerId,
+    target,
+    rect: target.getBoundingClientRect(),
+  }));
+
+  sourcePile?.classList.add("is-distributing");
+
+  const flights = sourceChips.map((sourceChip, index) => {
     const chipRect = sourceChip?.getBoundingClientRect?.() ?? sourceRect;
     const chip = document.createElement("span");
     chip.className = "no-thanks-game-start-chip-flight";
@@ -1973,6 +2003,23 @@ async function animateGameStartChips(board, view, effect) {
 
     const startX = chipRect.left + (chipRect.width / 2);
     const startY = chipRect.top + (chipRect.height / 2);
+    const toViewer = index < viewerChipCount;
+    const opponentIndex = Math.max(0, index - viewerChipCount);
+    const opponent = opponentRects.length > 0
+      ? opponentRects[opponentIndex % opponentRects.length]
+      : null;
+
+    const targetX = toViewer
+      ? viewerCenterX + (((index % 5) - 2) * 9)
+      : (opponent
+        ? opponent.rect.left + (opponent.rect.width / 2)
+        : viewerCenterX);
+    const targetY = toViewer
+      ? viewerCenterY + ((Math.floor(index / 5) - 1) * 5)
+      : (opponent
+        ? opponent.rect.top + (opponent.rect.height / 2)
+        : viewerCenterY);
+
     Object.assign(chip.style, {
       left: (startX - 14).toFixed(2) + "px",
       top: (startY - 14).toFixed(2) + "px",
@@ -1985,63 +2032,76 @@ async function animateGameStartChips(board, view, effect) {
       sourceChip,
       startX,
       startY,
+      targetX,
+      targetY,
+      toViewer,
+      opponent,
       index,
     };
   });
-
-  sourcePile?.classList.add("is-distributing");
 
   await Promise.all(flights.map(({
     chip,
     sourceChip,
     startX,
     startY,
+    targetX,
+    targetY,
+    toViewer,
+    opponent,
     index,
   }) => {
-    const column = (index % 5) - 2;
-    const row = Math.floor(index / 5);
-    const destinationX = targetCenterX + (column * 9) - startX;
-    const destinationY = targetCenterY + ((row - 1) * 5) - startY;
-    const arc = 42 + ((index % 4) * 8);
-    const spin = 420 + ((index % 3) * 95);
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    const arc = 42 + ((index % 5) * 7);
+    const spin = 420 + ((index % 4) * 90);
+    const delay = index * 38;
 
     window.setTimeout(() => {
       if (sourceChip?.isConnected) {
         sourceChip.classList.add("is-leaving");
         sourceChip.setAttribute("data-distributed", "true");
       }
-    }, index * 52);
+    }, delay);
 
     if (typeof chip.animate !== "function") return Promise.resolve();
 
     const animation = chip.animate([
       {
-        transform: "translate3d(0, 0, 0) scale(.88) rotate(0deg)",
-        opacity: .82,
+        transform: "translate3d(0, 0, 0) scale(.9) rotate(0deg)",
+        opacity: .9,
         offset: 0,
       },
       {
-        transform: `translate3d(${destinationX * .14}px, ${(destinationY * .08) - arc}px, 0) scale(1.04) rotate(${spin * .18}deg)`,
+        transform: `translate3d(${dx * .16}px, ${(dy * .08) - arc}px, 0) scale(1.04) rotate(${spin * .18}deg)`,
         opacity: 1,
-        offset: .18,
+        offset: .2,
       },
       {
-        transform: `translate3d(${destinationX * .62}px, ${(destinationY * .52) - (arc * .7)}px, 0) scale(.96) rotate(${spin * .7}deg)`,
+        transform: `translate3d(${dx * .62}px, ${(dy * .54) - (arc * .66)}px, 0) scale(.9) rotate(${spin * .7}deg)`,
         opacity: 1,
         offset: .66,
       },
       {
-        transform: `translate3d(${destinationX}px, ${destinationY}px, 0) scale(.92) rotate(${spin}deg)`,
-        opacity: 1,
+        transform: `translate3d(${dx}px, ${dy}px, 0) scale(${toViewer ? ".88" : ".2"}) rotate(${spin}deg)`,
+        opacity: toViewer ? 1 : 0,
         offset: 1,
       },
     ], {
-      duration: 690 + ((index % 3) * 45),
-      delay: index * 52,
+      duration: 650 + ((index % 3) * 45),
+      delay,
       easing: "cubic-bezier(.17, .76, .22, 1)",
       fill: "forwards",
     });
-    return animation.finished.catch(() => {});
+
+    return animation.finished.catch(() => {}).then(() => {
+      if (!toViewer && opponent?.target?.isConnected) {
+        opponent.target.classList.add("is-start-chip-received");
+        window.setTimeout(() => {
+          opponent.target?.classList.remove("is-start-chip-received");
+        }, 260);
+      }
+    });
   }));
 
   if (!isCurrentBoardPresentationEffect(effect)) {
