@@ -172,12 +172,12 @@ test("No Thanks! game start moves directly from the second message into setup an
   assert.match(runtime, /startChipsReady: false/u);
   assert.match(runtime, /GAME_START_MESSAGE_HOLD_MS = 2500/u);
   assert.doesNotMatch(runtime, /GAME_START_SETUP_PAUSE_MS/u);
-  assert.match(runtime, /GAME_START_DEAL_PAUSE_MS = 950/u);
+  assert.doesNotMatch(runtime, /GAME_START_DEAL_PAUSE_MS/u);
   assert.match(runtime, /가장 적은 점수를 낸 플레이어가 승리합니다!/u);
   assert.match(runtime, /곧 게임이 시작됩니다\./u);
   assert.match(
     runtime,
-    /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?message\?\.remove\(\)[\s\S]*?const setupBoard = app\.querySelector[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await waitForPresentation\(dealPause\)[\s\S]*?await runDealPresentation\(effect\)/u,
+    /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?message\?\.remove\(\)[\s\S]*?const setupBoard = app\.querySelector[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await runDealPresentation\(effect\)/u,
   );
   assert.match(runtime, /locked: gameStarting/u);
   assert.match(runtime, /const liveBoard = board\?\.isConnected/u);
