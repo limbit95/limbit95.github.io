@@ -22,6 +22,10 @@ import { createNoThanksRoomLobbyAdapter } from "./roomLobby.js";
 import { createNoThanksGameplayAdapter } from "./gameplay.js";
 import { createNoThanksPresenceAdapter } from "./presence.js";
 import {
+  NO_THANKS_BGM_MODE,
+  createNoThanksBgmSession,
+} from "./bgm.js";
+import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
@@ -31,6 +35,9 @@ import {
 } from "./boardLayout.js";
 
 const app = document.getElementById("app");
+const noThanksBgm = createNoThanksBgmSession();
+
+void noThanksBgm.start();
 const DEFAULT_BOARD_AVATAR_URL = "../../assets/images/default-avatar.svg";
 
 const accessGate = createGameAccessGate({
@@ -2338,6 +2345,12 @@ function renderLobby(access, state) {
     }
   }
 
+  void noThanksBgm.setMode(
+    view?.gamePhase === "PLAYING"
+      ? NO_THANKS_BGM_MODE.PLAYING
+      : NO_THANKS_BGM_MODE.LOBBY,
+  );
+
   if (view?.gamePhase === "GAME_OVER" && pendingTakePresentation) {
     clearPendingTakePresentation();
   }
@@ -2509,6 +2522,7 @@ async function renderAccess(access, epoch = bootEpoch) {
     return;
   }
 
+  void noThanksBgm.setMode(NO_THANKS_BGM_MODE.LOBBY);
   disposeLobbyController();
 
   if (access.reason === GAME_ACCESS_REASON.APPROVAL_REQUIRED) {
@@ -2570,7 +2584,8 @@ async function boot() {
   }
 }
 
-window.addEventListener("pagehide", () => {
+window.addEventListener("pagehide", (event) => {
+  if (!event.persisted) noThanksBgm.destroy();
   unsubscribeAccess?.();
   unsubscribeAccess = null;
   disposeLobbyController();
