@@ -261,7 +261,8 @@
 - Context / trigger: 개인 hand는 카드 수가 늘어날수록 더 타이트하게 겹쳐도 hover/focus로 값을 확인할 수 있고, 새 카드를 오름차순 위치에 바로 넣을 때 기존 카드가 순간적으로 자리만 바꾸면 실제 카드 사이에 공간을 만드는 감각이 약했습니다.
 - Decision:
   - gameplay hand overlap을 이전보다 전 구간에서 더 타이트하게 조정합니다. 일부 corner number가 다른 카드에 가려질 수 있음을 허용하되 기존 hover/focus 확인 UX를 유지합니다.
-  - 연속 숫자 run의 시작 간격도 gameplay 전용 compact margin을 사용해 결과 화면보다 촘촘하게 유지하면서 run 경계는 약하게 구분합니다.
+  - 같은 연속 숫자 run 내부는 이전보다 더 깊게 겹치고, 새 run이 시작되는 지점은 일반 overlap보다 약 26px 더 넓게 벌려 연속 묶음 경계를 한눈에 구분할 수 있게 합니다.
+  - 이 run 경계 간격은 gameplay 개인 패널에만 적용하며 FINAL TABLE의 measured result-rack 계산은 그대로 유지합니다.
   - TAKE 성공 시 새 카드는 처음부터 최종 오름차순 slot을 landing target으로 사용합니다.
   - 기존 보유 카드는 authoritative rerender 전 좌표와 최종 정렬 좌표의 차이를 기준으로 약 420ms FLIP-style slide를 적용해 새 카드가 들어올 공간을 부드럽게 만듭니다.
   - 마지막 카드 TAKE도 동일한 정렬/slide 원칙을 사용합니다.
