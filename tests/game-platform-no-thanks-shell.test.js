@@ -180,22 +180,32 @@ test("No Thanks! game start stages two messages before table setup and the first
     /await waitForPresentation\(messageHold\)[\s\S]*?swapGameStartMessage[\s\S]*?await waitForPresentation\(messageHold\)[\s\S]*?await waitForPresentation\(setupPause\)[\s\S]*?animateGameStartDeck[\s\S]*?animateGameStartChips[\s\S]*?await waitForPresentation\(dealPause\)[\s\S]*?await runDealPresentation\(effect\)/u,
   );
   assert.match(runtime, /locked: gameStarting/u);
-  assert.match(runtime, /startPending: gameStarting && effects\.startDeckReady !== true/u);
+  assert.match(runtime, /const setupBoard = app\.querySelector\("\.no-thanks-game-board"\)/u);
+  assert.match(runtime, /const liveBoard = board\?\.isConnected/u);
   assert.match(styles, /\.no-thanks-game-start-message/u);
-  assert.match(styles, /\.no-thanks-game-start-deck-flight/u);
-  assert.match(styles, /\.no-thanks-draw-deck\.is-game-start-pending/u);
+  assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-shuffling/u);
+  assert.match(styles, /\.no-thanks-draw-deck__stack\.is-start-tidied/u);
 });
 
 test("No Thanks! waiting table previews a deck and abundant chip bank around two-line setup copy", () => {
   assert.match(runtime, /function createWaitingTableDeck\(\)/u);
   assert.match(runtime, /function createGameStartChipBank/u);
-  assert.match(runtime, /chipCount = waiting \? 20 : 18/u);
+  assert.match(runtime, /chipCount = waiting \? 40 : 36/u);
   assert.match(runtime, /준비를 마친 플레이어가 자리를 채우면/u);
   assert.match(runtime, /이 테이블에서 바로 게임이 시작됩니다\./u);
   assert.match(runtime, /no-thanks-round-table__waiting-layout/u);
   assert.match(styles, /\.no-thanks-round-table__waiting-layout/u);
   assert.match(styles, /\.no-thanks-round-table__waiting-copy[\s\S]*display:\s*grid/u);
   assert.match(styles, /\.no-thanks-start-chip-bank__pile/u);
+});
+
+test("No Thanks! opening deck shuffles the already visible stack and survives board rerenders", () => {
+  assert.match(runtime, /function animateGameStartDeck\(board, effect\)/u);
+  assert.match(runtime, /const liveBoard = board\?\.isConnected[\s\S]*?app\.querySelector\("\.no-thanks-game-board"\)/u);
+  assert.match(runtime, /stack\.classList\.add\("is-start-shuffling"\)/u);
+  assert.match(runtime, /stack\.classList\.add\("is-start-tidied"\)/u);
+  assert.doesNotMatch(runtime, /startPending: gameStarting && effects\.startDeckReady !== true/u);
+  assert.match(styles, /\.no-thanks-game-board\.is-game-starting \.no-thanks-draw-deck[\s\S]*opacity:\s*1/u);
 });
 
 test("No Thanks! opening chips fall from the table bank into only the viewer personal chip panel", () => {
