@@ -6,6 +6,7 @@ import {
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
   getNoThanksHandOverlap,
+  getNoThanksHandRunMargin,
   getNoThanksResultHandMargins,
   getNoThanksResultHandOverlap,
   getNoThanksVisibleChipCount,
@@ -75,11 +76,17 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksCardTone(19), "yellow");
   assert.equal(getNoThanksCardTone(35), "pink");
 
-  assert.equal(getNoThanksHandOverlap(3), -8);
-  assert.equal(getNoThanksHandOverlap(8), -18);
-  assert.equal(getNoThanksHandOverlap(13), -28);
-  assert.equal(getNoThanksHandOverlap(18), -46);
-  assert.equal(getNoThanksHandOverlap(24), -52);
+  assert.equal(getNoThanksHandOverlap(3), -26);
+  assert.equal(getNoThanksHandOverlap(8), -38);
+  assert.equal(getNoThanksHandOverlap(13), -48);
+  assert.equal(getNoThanksHandOverlap(18), -62);
+  assert.equal(getNoThanksHandOverlap(24), -66);
+
+  assert.equal(getNoThanksHandRunMargin(3), -18);
+  assert.equal(getNoThanksHandRunMargin(8), -30);
+  assert.equal(getNoThanksHandRunMargin(13), -40);
+  assert.equal(getNoThanksHandRunMargin(18), -54);
+  assert.equal(getNoThanksHandRunMargin(24), -58);
 
   assert.equal(getNoThanksResultHandOverlap(4), -2);
   assert.equal(getNoThanksResultHandOverlap(8), -7);
