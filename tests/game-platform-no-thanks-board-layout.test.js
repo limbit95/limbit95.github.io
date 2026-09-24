@@ -5,6 +5,7 @@ import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
+  getNoThanksHandMargins,
   getNoThanksHandOverlap,
   getNoThanksHandRunMargin,
   getNoThanksResultHandMargins,
@@ -76,17 +77,47 @@ test("No Thanks! hand presentation keeps card colors and overlap bounded", () =>
   assert.equal(getNoThanksCardTone(19), "yellow");
   assert.equal(getNoThanksCardTone(35), "pink");
 
-  assert.equal(getNoThanksHandOverlap(3), -34);
-  assert.equal(getNoThanksHandOverlap(8), -46);
-  assert.equal(getNoThanksHandOverlap(13), -56);
-  assert.equal(getNoThanksHandOverlap(18), -70);
+  assert.equal(getNoThanksHandOverlap(3), 0);
+  assert.equal(getNoThanksHandOverlap(5), -4);
+  assert.equal(getNoThanksHandOverlap(8), -16);
+  assert.equal(getNoThanksHandOverlap(13), -36);
+  assert.equal(getNoThanksHandOverlap(18), -56);
   assert.equal(getNoThanksHandOverlap(24), -74);
 
-  assert.equal(getNoThanksHandRunMargin(3), -8);
-  assert.equal(getNoThanksHandRunMargin(8), -20);
-  assert.equal(getNoThanksHandRunMargin(13), -30);
-  assert.equal(getNoThanksHandRunMargin(18), -44);
+  assert.equal(getNoThanksHandRunMargin(3), 14);
+  assert.equal(getNoThanksHandRunMargin(5), 14);
+  assert.equal(getNoThanksHandRunMargin(8), 10);
+  assert.equal(getNoThanksHandRunMargin(13), -10);
+  assert.equal(getNoThanksHandRunMargin(18), -30);
   assert.equal(getNoThanksHandRunMargin(24), -48);
+
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 720,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: 0, runMargin: 14 },
+    "roomy hand should stay fully spread with visible run gaps",
+  );
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 710,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: -4, runMargin: 14 },
+    "hand should begin with the lightest overlap only after natural width no longer fits",
+  );
+  assert.deepEqual(
+    getNoThanksHandMargins(8, {
+      availableWidth: 620,
+      cardWidth: 86,
+      runStartCount: 2,
+    }),
+    { overlap: -20, runMargin: 6 },
+    "overlap should tighten in small steps while preserving extra space between runs",
+  );
 
   assert.equal(getNoThanksResultHandOverlap(4), -2);
   assert.equal(getNoThanksResultHandOverlap(8), -7);
