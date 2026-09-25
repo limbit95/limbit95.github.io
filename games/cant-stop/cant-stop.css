@@ -5477,3 +5477,483 @@ body {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* Post-release summit celebration: game-local alpine victory presentation. */
+.cant-stop-board__mountain--victory {
+  box-shadow:
+    0 0 0 2px rgba(232, 199, 104, .28),
+    0 24px 52px rgba(57, 82, 68, .2),
+    inset 0 0 0 1px rgba(255,255,255,.3);
+  animation: cant-stop-victory-board-glow 5200ms ease both;
+}
+
+.cant-stop-column--victory {
+  z-index: 3;
+  animation: cant-stop-victory-column-pulse 1050ms ease-in-out 3;
+}
+
+.cant-stop-victory-event {
+  --cant-stop-victory-player: #f0c95b;
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+  color: #f7fbfb;
+  animation: cant-stop-victory-event-life 5200ms ease both;
+}
+
+.cant-stop-victory-event--player-0 {
+  --cant-stop-victory-player: #1e90ff;
+}
+
+.cant-stop-victory-event--player-1 {
+  --cant-stop-victory-player: #ff4d6d;
+}
+
+.cant-stop-victory-event--player-2 {
+  --cant-stop-victory-player: #2ed573;
+}
+
+.cant-stop-victory-event--player-3 {
+  --cant-stop-victory-player: #9b59ff;
+}
+
+.cant-stop-victory-event__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 229, 153, .23), transparent 28%),
+    linear-gradient(180deg, rgba(10, 38, 48, .08), rgba(10, 38, 48, .38));
+  opacity: 0;
+  animation: cant-stop-victory-veil 5200ms ease both;
+}
+
+.cant-stop-victory-event__flare {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  z-index: -2;
+  width: min(74%, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(
+      from -8deg,
+      rgba(244, 210, 113, .22) 0deg 5deg,
+      transparent 5deg 18deg
+    );
+  filter: blur(.2px);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.28) rotate(-8deg);
+  animation: cant-stop-victory-flare 2600ms cubic-bezier(.18,.76,.24,1) both;
+}
+
+.cant-stop-victory-event__flare::after {
+  position: absolute;
+  inset: 25%;
+  border: 2px solid rgba(246, 219, 137, .72);
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 12px rgba(244, 209, 106, .08),
+    0 0 38px rgba(244, 209, 106, .42);
+  content: "";
+}
+
+.cant-stop-victory-event__particles {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.cant-stop-victory-event__particle {
+  position: absolute;
+  top: -7%;
+  width: 8px;
+  height: 13px;
+  border-radius: 60% 40% 60% 40%;
+  opacity: 0;
+  transform: translate3d(0, -18px, 0) rotate(0deg);
+  animation-name: cant-stop-victory-particle-fall;
+  animation-timing-function: cubic-bezier(.18,.64,.28,1);
+  animation-fill-mode: both;
+  animation-iteration-count: 2;
+}
+
+.cant-stop-victory-event__particle.is-snow {
+  background: rgba(247, 252, 253, .94);
+  box-shadow: 0 0 8px rgba(255,255,255,.66);
+}
+
+.cant-stop-victory-event__particle.is-gold {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: #f0c95b;
+  box-shadow: 0 0 8px rgba(240,201,91,.58);
+}
+
+.cant-stop-victory-event__card {
+  width: min(78%, 460px);
+  padding: 1.2rem 1.35rem 1.25rem;
+  display: grid;
+  justify-items: center;
+  gap: .38rem;
+  border: 2px solid rgba(238, 205, 111, .82);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% -18%, rgba(244, 211, 116, .18), transparent 40%),
+    linear-gradient(160deg, rgba(24, 63, 75, .97), rgba(12, 42, 52, .98));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    inset 0 -4px 0 color-mix(in srgb, var(--cant-stop-victory-player) 72%, #173f4d),
+    0 0 0 5px rgba(255,255,255,.16),
+    0 26px 64px rgba(5, 27, 35, .34),
+    0 0 34px rgba(240, 201, 91, .18);
+  text-align: center;
+  opacity: 0;
+  transform: translate3d(0, 88px, 0) scale(.72);
+  animation: cant-stop-victory-card 5200ms cubic-bezier(.18,.78,.22,1) both;
+}
+
+.cant-stop-victory-event__crest {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  margin-top: -3rem;
+  display: grid;
+  place-items: end center;
+  border: 3px solid #efd06f;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(255,255,255,.18), transparent 27%),
+    linear-gradient(180deg, #4d92a3, #173f4d);
+  box-shadow:
+    0 0 0 5px rgba(255,255,255,.82),
+    0 0 0 8px color-mix(in srgb, var(--cant-stop-victory-player) 55%, #f0c95b),
+    0 8px 22px rgba(4, 29, 37, .32);
+  animation: cant-stop-victory-crest 1150ms 180ms cubic-bezier(.16,.82,.2,1.15) both;
+}
+
+.cant-stop-victory-event__mountain {
+  width: 56px;
+  height: 48px;
+  background:
+    linear-gradient(145deg, #f7fbfb 0 46%, #c7e0e5 47% 66%, #86bbc6 67%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 4px 5px rgba(4, 31, 40, .26));
+}
+
+.cant-stop-victory-event__mountain::after {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 29px;
+  height: 20px;
+  background: rgba(255,255,255,.96);
+  clip-path: polygon(50% 0, 78% 54%, 62% 45%, 100% 100%, 0 100%, 35% 47%, 46% 55%);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.cant-stop-victory-event__flag {
+  position: absolute;
+  left: 48px;
+  top: 12px;
+  width: 3px;
+  height: 31px;
+  border-radius: 999px;
+  background: #f7e5a8;
+  transform-origin: bottom center;
+  animation: cant-stop-victory-flag-rise 900ms 460ms cubic-bezier(.17,.82,.2,1.18) both;
+}
+
+.cant-stop-victory-event__flag::after {
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 21px;
+  height: 13px;
+  background: var(--cant-stop-victory-player);
+  clip-path: polygon(0 0, 100% 16%, 78% 100%, 0 82%);
+  box-shadow: 0 3px 6px rgba(5, 25, 31, .2);
+  content: "";
+}
+
+.cant-stop-victory-event__eyebrow {
+  margin: .38rem 0 0;
+  color: #efd06f;
+  font-size: .68rem;
+  font-weight: 950;
+  letter-spacing: .12em;
+}
+
+.cant-stop-victory-event__title {
+  margin-top: .05rem;
+  color: #fff;
+  font-size: clamp(1.45rem, 2.8vw, 2.05rem);
+  font-weight: 950;
+  line-height: 1.15;
+  letter-spacing: -.03em;
+  text-shadow: 0 3px 12px rgba(5, 27, 35, .24);
+}
+
+.cant-stop-victory-event__message {
+  color: rgba(233, 246, 247, .76);
+  font-size: clamp(.82rem, 1.4vw, .96rem);
+  font-weight: 700;
+}
+
+.cant-stop-victory-event__summits {
+  margin-top: .5rem;
+  display: flex;
+  justify-content: center;
+  gap: .5rem;
+}
+
+.cant-stop-victory-event__summit {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  grid-template-columns: auto auto;
+  place-content: center;
+  align-items: center;
+  gap: .2rem;
+  border: 2px solid rgba(255,255,255,.86);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f2d476, #c99938);
+  color: #4c3811;
+  box-shadow:
+    0 0 0 2px rgba(240,201,91,.18),
+    0 5px 12px rgba(5, 27, 35, .22);
+  opacity: 0;
+  transform: translateY(18px) scale(.72);
+  animation: cant-stop-victory-summit-pop 720ms cubic-bezier(.16,.82,.2,1.18) both;
+}
+
+.cant-stop-victory-event__summit:nth-child(1) {
+  animation-delay: 620ms;
+}
+
+.cant-stop-victory-event__summit:nth-child(2) {
+  animation-delay: 760ms;
+}
+
+.cant-stop-victory-event__summit:nth-child(3) {
+  animation-delay: 900ms;
+}
+
+.cant-stop-victory-event__summit i {
+  font-style: normal;
+  font-size: .72rem;
+}
+
+.cant-stop-victory-event__summit b {
+  font-size: .92rem;
+  font-weight: 950;
+}
+
+@keyframes cant-stop-victory-event-life {
+  0%,
+  100% {
+    visibility: hidden;
+  }
+  1%,
+  98% {
+    visibility: visible;
+  }
+}
+
+@keyframes cant-stop-victory-veil {
+  0% {
+    opacity: 0;
+  }
+  12%,
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes cant-stop-victory-flare {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(.28) rotate(-8deg);
+  }
+  28% {
+    opacity: .86;
+  }
+  68% {
+    opacity: .54;
+    transform: translate(-50%, -50%) scale(1.05) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.24) rotate(16deg);
+  }
+}
+
+@keyframes cant-stop-victory-card {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 88px, 0) scale(.72);
+  }
+  14% {
+    opacity: 1;
+    transform: translate3d(0, -9px, 0) scale(1.035);
+  }
+  22%,
+  78% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  92% {
+    opacity: 1;
+    transform: translate3d(0, -4px, 0) scale(1.01);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) scale(.98);
+  }
+}
+
+@keyframes cant-stop-victory-crest {
+  0% {
+    opacity: 0;
+    transform: translateY(34px) scale(.5) rotate(-6deg);
+  }
+  66% {
+    opacity: 1;
+    transform: translateY(-5px) scale(1.08) rotate(2deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes cant-stop-victory-flag-rise {
+  0% {
+    opacity: 0;
+    transform: scaleY(.15) rotate(-12deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scaleY(1.08) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1) rotate(0deg);
+  }
+}
+
+@keyframes cant-stop-victory-summit-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(.72);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cant-stop-victory-particle-fall {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) rotate(0deg);
+  }
+  14% {
+    opacity: .95;
+  }
+  78% {
+    opacity: .82;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(38px, 960px, 0) rotate(340deg);
+  }
+}
+
+@keyframes cant-stop-victory-column-pulse {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+  50% {
+    filter: brightness(1.2) saturate(1.12);
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes cant-stop-victory-board-glow {
+  0%,
+  100% {
+    filter: none;
+  }
+  18%,
+  72% {
+    filter: saturate(1.04) brightness(1.025);
+  }
+}
+
+@media (max-width: 720px) {
+  .cant-stop-victory-event__card {
+    width: min(76%, 420px);
+    padding: 1.05rem 1.1rem 1.1rem;
+  }
+
+  .cant-stop-victory-event__crest {
+    width: 74px;
+    height: 74px;
+  }
+
+  .cant-stop-victory-event__summit {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cant-stop-board__mountain--victory,
+  .cant-stop-column--victory,
+  .cant-stop-victory-event,
+  .cant-stop-victory-event__veil,
+  .cant-stop-victory-event__card,
+  .cant-stop-victory-event__crest,
+  .cant-stop-victory-event__flag,
+  .cant-stop-victory-event__summit {
+    animation: none !important;
+  }
+
+  .cant-stop-victory-event {
+    visibility: visible;
+  }
+
+  .cant-stop-victory-event__veil,
+  .cant-stop-victory-event__card,
+  .cant-stop-victory-event__crest,
+  .cant-stop-victory-event__flag,
+  .cant-stop-victory-event__summit {
+    opacity: 1;
+    transform: none;
+  }
+
+  .cant-stop-victory-event__flare,
+  .cant-stop-victory-event__particles {
+    display: none;
+  }
+}
