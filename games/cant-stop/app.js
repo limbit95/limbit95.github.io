@@ -65,6 +65,10 @@ let actionNoticeTimer = null;
 let lastActionNoticeKey = null;
 let presentationCoordinator = null;
 let lastBustSoundVersion = null;
+let victoryCelebrationTimer = null;
+let victoryCelebrationVersion = null;
+let lastGameplayRoomId = null;
+let lastGameplayPhase = null;
 let bootEpoch = 0;
 
 installCantStopAudioUnlock();
@@ -75,6 +79,7 @@ const CANT_STOP_PLAYER_COLORS = Object.freeze([
   "#2ed573",
   "#9b59ff",
 ]);
+const CANT_STOP_VICTORY_CELEBRATION_MS = 5200;
 
 const CANT_STOP_DEFAULT_AVATAR_URL = "../../assets/images/default-avatar.svg";
 const cantStopAvatarCache = new Map();
@@ -788,6 +793,124 @@ function showPairingPlanPreview(columns, view, state) {
   }
 }
 
+function resetVictoryCelebration() {
+  if (victoryCelebrationTimer != null) {
+    clearTimeout(victoryCelebrationTimer);
+    victoryCelebrationTimer = null;
+  }
+  victoryCelebrationVersion = null;
+  lastGameplayRoomId = null;
+  lastGameplayPhase = null;
+}
+
+function syncVictoryCelebration(view, state) {
+  const roomId = String(state.snapshot?.room?.id ?? "");
+  const version = Number(view.version);
+  const winnerClaims = view.winnerId
+    ? view.columns.filter((column) => column.claimedById === view.winnerId)
+    : [];
+  const isCompletedWin = view.isGameOver
+    && view.winnerId
+    && !view.isManuallyEnded
+    && !view.isPlayerLeftEnded
+    && winnerClaims.length >= 3;
+  const enteredGameOver = roomId !== ""
+    && roomId === lastGameplayRoomId
+    && lastGameplayPhase != null
+    && lastGameplayPhase !== "GAME_OVER"
+    && view.phase === "GAME_OVER";
+
+  if (enteredGameOver && isCompletedWin && Number.isFinite(version)) {
+    if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+    victoryCelebrationVersion = version;
+    victoryCelebrationTimer = setTimeout(() => {
+      victoryCelebrationTimer = null;
+      if (victoryCelebrationVersion !== version) return;
+      victoryCelebrationVersion = null;
+      const current = presentationCoordinator?.current()
+        ?? lobbyController?.current?.();
+      if (current) renderApprovedRuntime(current);
+    }, CANT_STOP_VICTORY_CELEBRATION_MS);
+  }
+
+  if (view.phase !== "GAME_OVER" && victoryCelebrationVersion != null) {
+    if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+    victoryCelebrationTimer = null;
+    victoryCelebrationVersion = null;
+  }
+
+  lastGameplayRoomId = roomId;
+  lastGameplayPhase = view.phase;
+
+  return isCompletedWin
+    && Number.isFinite(version)
+    && victoryCelebrationVersion === version;
+}
+
+function createVictoryCelebration(view) {
+  const winnerClaims = view.columns
+    .filter((column) => column.claimedById === view.winnerId)
+    .slice(0, 3);
+  const winnerIndex = winnerClaims.find((column) => Number.isInteger(column.claimedByIndex))
+    ?.claimedByIndex ?? 0;
+  const particles = Array.from({ length: 16 }, (_, index) => {
+    const left = 5 + ((index * 17) % 90);
+    const delay = (index % 6) * 85;
+    const duration = 1500 + ((index % 4) * 210);
+    return el("i", {
+      className: [
+        "cant-stop-victory-event__particle",
+        index % 3 === 0 ? "is-gold" : "is-snow",
+      ].join(" "),
+      style: {
+        left: `${left}%`,
+        animationDelay: `${delay}ms`,
+        animationDuration: `${duration}ms`,
+      },
+      "aria-hidden": "true",
+    });
+  });
+
+  return el("div", {
+    className: `cant-stop-victory-event cant-stop-victory-event--player-${winnerIndex % CANT_STOP_PLAYER_COLORS.length}`,
+    role: "status",
+    "aria-live": "assertive",
+    "aria-label": `${view.winnerName}님이 세 개의 정상을 완주해 승리했습니다.`,
+  }, [
+    el("div", { className: "cant-stop-victory-event__veil", "aria-hidden": "true" }),
+    el("div", { className: "cant-stop-victory-event__flare", "aria-hidden": "true" }),
+    el("div", { className: "cant-stop-victory-event__particles", "aria-hidden": "true" }, particles),
+    el("div", { className: "cant-stop-victory-event__card" }, [
+      el("div", { className: "cant-stop-victory-event__crest", "aria-hidden": "true" }, [
+        el("span", { className: "cant-stop-victory-event__mountain" }),
+        el("span", { className: "cant-stop-victory-event__flag" }),
+      ]),
+      el("p", {
+        className: "cant-stop-victory-event__eyebrow",
+        text: "SUMMIT ACHIEVED · EXPEDITION COMPLETE",
+      }),
+      el("strong", {
+        className: "cant-stop-victory-event__title",
+        text: `${view.winnerName}님, 세 정상 정복!`,
+      }),
+      el("span", {
+        className: "cant-stop-victory-event__message",
+        text: "세 개의 경로를 완주해 원정을 마쳤어요.",
+      }),
+      el("div", {
+        className: "cant-stop-victory-event__summits",
+        "aria-label": "완주한 세 경로",
+      }, winnerClaims.map((column) => el("span", {
+        className: "cant-stop-victory-event__summit",
+        title: `${column.number}번 열 완주`,
+      }, [
+        el("i", { text: "⚑", "aria-hidden": "true" }),
+        el("b", { text: String(column.number) }),
+      ]))),
+    ]),
+  ]);
+}
+
 function createPairingDiceGroup(group) {
   if (!group) return null;
   return el("div", {
@@ -1083,6 +1206,7 @@ function createDiceStage(view, state) {
 
 function createBoard(view, state, {
   waiting = false,
+  victoryCelebration = false,
 } = {}) {
   const heading = waiting
     ? {
@@ -1116,6 +1240,9 @@ function createBoard(view, state, {
       className: [
         "cant-stop-column",
         column.claimedById ? "cant-stop-column--claimed" : "",
+        victoryCelebration && column.claimedById === view.winnerId
+          ? "cant-stop-column--victory"
+          : "",
         Number.isInteger(column.claimedByIndex)
           ? `cant-stop-column--player-${column.claimedByIndex % CANT_STOP_PLAYER_COLORS.length}`
           : "",
@@ -1226,6 +1353,7 @@ function createBoard(view, state, {
       className: [
         "cant-stop-board__mountain",
         busting ? "cant-stop-board__mountain--bust" : "",
+        victoryCelebration ? "cant-stop-board__mountain--victory" : "",
       ].filter(Boolean).join(" "),
     }, [
       busting
@@ -1254,6 +1382,7 @@ function createBoard(view, state, {
         ])
         : null,
       tracks,
+      victoryCelebration ? createVictoryCelebration(view) : null,
     ]),
   ]);
 }
@@ -1706,6 +1835,10 @@ function patchGameShell(nextShell) {
 function renderApprovedRuntime(state) {
   if (!root) return;
 
+  if (state.view !== CANT_STOP_LOBBY_VIEW.PLAYING) {
+    resetVictoryCelebration();
+  }
+
   void cantStopBgm.setMode(
     state.view === CANT_STOP_LOBBY_VIEW.PLAYING
       ? CANT_STOP_BGM_MODE.PLAYING
@@ -1763,8 +1896,9 @@ function renderApprovedRuntime(state) {
 
     if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING) {
       const gameplay = createCantStopGameplayViewModel(state.snapshot, auth.user?.id);
+      const victoryCelebration = syncVictoryCelebration(gameplay, state);
       players = decorateCantStopPlayers(view.players, gameplay);
-      main = createBoard(gameplay, state);
+      main = createBoard(gameplay, state, { victoryCelebration });
       sidebar = createGameplaySidebar(gameplay, state);
       actions = null;
     } else {
@@ -1836,6 +1970,7 @@ function renderApprovedRuntime(state) {
 }
 
 function disposeLobby() {
+  resetVictoryCelebration();
   presentationCoordinator?.dispose();
   presentationCoordinator = null;
   lobbyController?.dispose();
