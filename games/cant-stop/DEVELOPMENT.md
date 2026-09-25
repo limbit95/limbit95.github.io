@@ -8,11 +8,11 @@
 - Phase: Phase 4
 - Status: RELEASED
 - Active branch: main
-- Last checkpoint: 2026-09-23
+- Last checkpoint: 2026-09-26
 
 ## Release Baseline
 
-- v1 source of truth는 `main`이며 Can’t Stop 관련 개발/임시 브랜치는 release closeout 과정에서 정리했다.
+- v1 source of truth는 `main`이며 2026-09-26 post-release multiplayer feedback 보강까지 PR #400으로 main에 반영됐다. 현재 기준 merge commit은 `3cf189708f88d4634cd7878476ea4e6fdb0e75f9`이다.
 - Game Registry는 `platform: "shared"`, `online=true`, `invite=true`, `local=false`, `presence=false` 상태다.
 - 사이트 게임 목록에서 Can’t Stop을 정식 노출하고 `./games/cant-stop/` 경로로 진입한다.
 - 운영 Supabase에는 v1에 필요한 room/gameplay/invite/manual-end/profile-nickname/active-leave/2-player leave migration이 적용되어 있다.
@@ -20,6 +20,10 @@
 
 ## Completed
 
+- 2026-09-26 post-release multiplayer feedback checkpoint: 다른 플레이어의 authoritative dice result도 동일한 rolling presentation cycle을 거쳐 보이도록 동기화했고, Realtime invalidation에서 `PUSH_OR_STOP → continue → roll → bust`가 중간 snapshot 없이 합쳐져 도착하는 경우에도 모든 클라이언트가 같은 bust presentation을 재생하도록 보강했다. 정상 stop 및 player leave와는 구분하며 bust 결과에는 실제 미끄러진 플레이어 이름을 표시한다.
+- 2026-09-26 gameplay ownership/result feedback checkpoint: pairing plan hover/focus의 보드 이동 preview, player-color HUD/말 badge, permanent progress 1/2/3인 분할 색상, claimed column의 소유자 색상 표현을 반영했다. 이 항목들의 시각적 세부 결정은 `UI_DECISIONS.md` CS-UI-003이 책임진다.
+- 2026-09-26 GAME_OVER result checkpoint: 세 번째 column claim으로 실제 승리가 확정되는 순간 승자 본인을 포함한 방의 모든 플레이어에게 summit victory presentation을 재생한다. 이미 종료된 방으로 reconnect한 경우, host manual end, `PLAYER_LEFT` 종료에는 재생하지 않으며 authoritative winner/claim state나 rematch lifecycle은 변경하지 않는다.
+- 위 post-release 변경은 PR #400으로 main에 병합 완료했다. core rules, DB/RPC, Supabase migration, Registry capability, shared Game Shell 계약은 변경하지 않았다.
 - 2026-09-23 BGM polish: page entry/entry/waiting/rematch waiting에는 `Frozen Star`, authoritative `PLAYING` 상태에는 `Mountain Emperor`를 적용했다. 기존 공통 BGM Player와 저장 volume/pause 정책을 재사용하고 dice/blizzard Web Audio SFX는 분리 유지했다.
 - 2026-09-22 Game Platform UI 규칙 도입에 맞춰 현재 v1의 Visual Identity, page/lobby/gameplay/result-rematch presentation 기준을 `UI_DESIGN.md`에 소급 문서화했다. runtime 동작은 변경하지 않았다.
 - 최신 Game Platform 규칙과 shared 계약을 확인했다.
@@ -101,17 +105,17 @@
 
 ## Current Work
 
-- v1 release baseline 위에서 상태별 BGM maintenance PR을 검증 중이다. core rules / DB / RPC / Registry capability는 변경하지 않는다.
-- Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출, 최종 인수인계 문서 정리까지 완료했다.
-- Can’t Stop 자체는 유지보수 단계로 전환했다. 현재 진행 중인 필수 기능 작업은 없다.
+- Can’t Stop v1 기능 개발, 규칙 감사, 운영 DB 반영, Game Registry 활성화, 게임 목록 노출과 2026-09-26 post-release multiplayer feedback 보강까지 main에 반영 완료했다.
+- Can’t Stop 자체는 유지보수 단계다. 현재 진행 중인 필수 기능 작업이나 기능 blocker는 없다.
+- 이번 checkpoint의 기능 기준점은 PR #400 merge 이후 main이며, 후속 기능 수정은 종료된 작업 브랜치를 재사용하지 않고 최신 main에서 새 브랜치로 시작한다.
 - Can’t Stop에서 얻은 첫 platform-native 실전 피드백은 Game Platform 규칙/거버넌스에 환류하며, 이후 게임에서 공통성이 다시 검증될 때 shared 계약을 확장한다.
 
 ## Next Work
 
-- 실제 플레이에서 `Frozen Star` → `Mountain Emperor` 전환 체감과 BGM/SFX 상대 음량을 관찰하고 필요할 때 game-local polish로 조정한다.
-- 실제 사용자 플레이에서 발견되는 UX/안정성 문제는 v1.1 이후 유지보수 작업으로 분리한다.
+- 필수 기능 후속 작업은 없다. 새 기능/버그가 발견될 때 최신 main에서 별도 maintenance 브랜치로 진행한다.
 - 2~4인 다중 브라우저 exploratory playtest는 자동 회귀 검증과 별개인 post-release 관찰 항목으로 계속 수행할 수 있다.
-- 특히 remote bust audio는 브라우저 autoplay 정책 때문에 사용자 상호작용 전에는 소리가 제한될 수 있으므로 실사용에서 확인한다.
+- 실제 플레이에서 `Frozen Star` → `Mountain Emperor` 전환 체감과 BGM/SFX 상대 음량, remote bust audio의 브라우저 autoplay 제약을 관찰하고 필요할 때 game-local polish로 조정한다.
+- summit victory presentation의 motion 강도·card 크기·완주 column token 가독성은 기능 blocker가 아니라 `UI_DECISIONS.md`의 디자인 follow-up으로 유지한다.
 - core rules / server-authoritative contract / production migrations는 v1 release baseline으로 유지한다.
 
 ## Decisions
@@ -149,6 +153,9 @@
 
 ## Validation
 
+- 2026-09-26 PR #400 `feat: refine Can't Stop shared gameplay feedback` main 병합 완료. merge commit: `3cf189708f88d4634cd7878476ea4e6fdb0e75f9`.
+- PR #400 최종 head `aada948809dab290cbd4fc71266a637cae3f82df` 기준 Game Platform governance run #598 SUCCESS: JavaScript syntax, shared-module link check, `npm run test:game-platform`, Governance Guard 모두 통과했다.
+- multiplayer feedback 회귀에는 remote continue-and-roll bust 복원, 정상 stop의 bust 오인 방지, active-player leave의 bust 오인 방지, bust actor 이름 표시, winner 포함 all-client victory-event 조건을 포함한다.
 - 상태별 BGM catalog / controller track switching / Can’t Stop mode mapping 자동 회귀 테스트를 추가했다. 최종 CI 결과는 이 PR 검증 후 갱신한다.
 - PR #327 최종 기능 브랜치: Game Platform Governance / Site static checks / Game DB integration SUCCESS 후 main 병합 완료.
 - 규칙 감사: JS rules engine + 운영 Supabase legal pairing/stop 계산 + 정식 기본 규칙을 대조했고 core gameplay 차이 없음.
