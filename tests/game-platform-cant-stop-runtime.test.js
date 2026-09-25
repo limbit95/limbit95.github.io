@@ -362,7 +362,8 @@ test("Can't Stop completed-win GAME_OVER triggers an alpine summit celebration w
   assert.match(app, /winnerClaims\.length >= 3/u);
   assert.match(app, /!view\.isManuallyEnded/u);
   assert.match(app, /!view\.isPlayerLeftEnded/u);
-  assert.match(app, /lastGameplayPhase !== "GAME_OVER"/u);
+  assert.match(app, /victoryArmedRoomId === roomId/u);
+  assert.match(app, /lastCelebratedVictoryKey !== victoryKey/u);
   assert.match(app, /function createVictoryCelebration\(view\)/u);
   assert.match(app, /SUMMIT ACHIEVED · EXPEDITION COMPLETE/u);
   assert.match(app, /세 정상 정복!/u);
@@ -563,15 +564,17 @@ test("Can't Stop gameplay phase cards stay concise while waiting board shows rea
 });
 
 
-test("Can't Stop bust notice uses centered three-line result copy", () => {
+test("Can't Stop bust notice identifies the player who slipped for every viewer", () => {
   const app = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "app.js"),
     "utf8",
   );
 
-  assert.match(app, /눈길에 미끄러졌어요\./u);
-  assert.match(app, /이번 턴의 임시 진척이 사라지고/u);
-  assert.match(app, /다음 플레이어에게 턴이 넘어갑니다\./u);
+  assert.match(app, /function bustPlayerName\(view, state\)/u);
+  assert.match(app, /state\.effect\?\.playerId/u);
+  assert.match(app, /님이 미끄러졌어요!/u);
+  assert.match(app, /님의 이번 턴 임시 진척이 모두 사라졌어요\./u);
+  assert.match(app, /등반에 실패해 다음 플레이어에게 턴이 넘어갑니다\./u);
   assert.match(app, /cant-stop-bust-notice__message/u);
 });
 
