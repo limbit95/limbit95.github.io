@@ -18,24 +18,29 @@ test("No Thanks! rules identify zero chips as the player's own chip supply", () 
   );
 });
 
-test("No Thanks! opening setup uses one coordinated sound timeline", () => {
+test("No Thanks! opening setup uses one coordinated tactile sound timeline", () => {
   assert.match(runtime, /playNoThanksOpeningSound\(\);[\s\S]*?Promise\.all\(\[/u);
   assert.match(sfx, /share one coordinated timeline/u);
   assert.match(sfx, /scheduleCardShuffleBeat/u);
-  assert.match(sfx, /scheduleCoinHit/u);
+  assert.match(sfx, /scheduleChipStackHit/u);
 });
 
-test("No Thanks! take sound combines card movement with collected chips", () => {
+test("No Thanks! take sound uses a card slide followed by stacked chip impacts", () => {
   assert.equal(
     runtime.match(/playNoThanksTakeSound\(\{ chipCount: presentation\.chipCount \}\);/gu)?.length,
     2,
   );
-  assert.match(sfx, /const audibleChipCount = Math\.min\(7, safeChipCount\)/u);
+  assert.match(sfx, /function scheduleCardSlide/u);
+  assert.match(sfx, /cardstock sliding across a tabletop/u);
+  assert.match(sfx, /const audibleChipCount = Math\.min\(8, safeChipCount\)/u);
+  assert.match(sfx, /const landingAt = startAt \+ 0\.39/u);
+  assert.doesNotMatch(sfx, /startFrequency: 760/u);
 });
 
-test("No Thanks! refusal chip sound waits for the authoritative chip transition", () => {
+test("No Thanks! refusal chip sound lands with the authoritative chip animation", () => {
   assert.match(
     runtime,
-    /effect\?\.chipFromPlayerId[\s\S]*?effect\.soundPlayed !== true[\s\S]*?playNoThanksChipSound\(\)[\s\S]*?effect\.soundPlayed = true/u,
+    /chipFlight\.addEventListener\("animationend"[\s\S]*?effect\?\.soundPlayed !== true[\s\S]*?playNoThanksChipSound\(\)[\s\S]*?effect\.soundPlayed = true/u,
   );
+  assert.match(sfx, /plastic chip[\s\S]*?"착"/u);
 });
