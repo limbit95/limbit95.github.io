@@ -288,6 +288,7 @@ test("Can't Stop gameplay view maps authoritative progress, runners, claims, dic
   const column3 = view.columns.find((column) => column.number === 3);
   assert.equal(column3.claimedById, "bob");
   assert.equal(column3.claimedByName, "Bob");
+  assert.equal(column3.claimedByIndex, 1);
 
   const column7 = view.columns.find((column) => column.number === 7);
   assert.deepEqual(
@@ -345,6 +346,39 @@ test("Can't Stop gameplay view exposes push/stop and game-over states from serve
   assert.equal(finished.canStop, false);
 });
 
+
+test("Can't Stop completed-win GAME_OVER triggers an alpine summit celebration without changing result authority", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /CANT_STOP_VICTORY_CELEBRATION_MS = 5200/u);
+  assert.match(app, /function syncVictoryCelebration\(view, state\)/u);
+  assert.match(app, /winnerClaims\.length >= 3/u);
+  assert.match(app, /!view\.isManuallyEnded/u);
+  assert.match(app, /!view\.isPlayerLeftEnded/u);
+  assert.match(app, /victoryArmedRoomId === roomId/u);
+  assert.match(app, /lastCelebratedVictoryKey !== victoryKey/u);
+  assert.match(app, /function createVictoryCelebration\(view\)/u);
+  assert.match(app, /SUMMIT ACHIEVED · EXPEDITION COMPLETE/u);
+  assert.match(app, /세 정상 정복!/u);
+  assert.match(app, /cant-stop-column--victory/u);
+  assert.match(app, /createBoard\(gameplay, state, \{ victoryCelebration \}\)/u);
+
+  assert.match(css, /\.cant-stop-victory-event \{/u);
+  assert.match(css, /\.cant-stop-victory-event__card/u);
+  assert.match(css, /\.cant-stop-victory-event__crest/u);
+  assert.match(css, /\.cant-stop-victory-event__summit/u);
+  assert.match(css, /@keyframes cant-stop-victory-card/u);
+  assert.match(css, /@keyframes cant-stop-victory-particle-fall/u);
+  assert.match(css, /\.cant-stop-column--victory/u);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*cant-stop-victory-event/u);
+});
 
 test("Can't Stop gameplay view distinguishes host manual termination from a claimed-column win", () => {
   const view = createCantStopGameplayViewModel({
@@ -436,6 +470,57 @@ test("Can't Stop gameplay roster exposes completed-column progress and high-cont
   assert.match(app, /#9b59ff/u);
 });
 
+test("Can't Stop route choices preview board movement and progress ownership stays visually explicit", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /showPairingPlanPreview\(columns, view, state\)/u);
+  assert.match(app, /onMouseEnter:/u);
+  assert.match(app, /onFocus:/u);
+  assert.match(app, /activePlayerColorIndex/u);
+  assert.match(app, /cant-stop-marker--player-\$\{previewPlayerIndex\}/u);
+  assert.match(app, /permanentProgressFill/u);
+  assert.match(app, /cant-stop-progress-fill/u);
+  assert.match(app, /style: \{ background: progressFill \}/u);
+  assert.match(app, /cant-stop-column--player-\$\{column\.claimedByIndex/u);
+  assert.match(app, /님이 미끄러졌어요!/u);
+
+  assert.match(css, /\.cant-stop-progress-fill/u);
+  assert.match(css, /\.cant-stop-column--claimed\.cant-stop-column--player-0/u);
+  assert.match(css, /\.cant-stop-marker--preview[\s\S]*border: 2px dashed currentColor/u);
+  assert.match(css, /@keyframes cant-stop-runner-hard-slip/u);
+  assert.match(css, /\.cant-stop-route__summit[\s\S]*#fff8df/u);
+});
+
+test("Can't Stop gameplay player HUD renders an explicit piece-color badge with game-local card layout", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /decorateCantStopGameplayPlayerCards/u);
+  assert.match(app, /cant-stop-player-color-badge/u);
+  assert.match(app, /style: \{ background: color \}/u);
+  assert.match(app, /cant-stop-player-card--player-\$\{colorIndex\}/u);
+
+  assert.match(css, /\.cant-stop-shell--playing \.game-platform-player \{/u);
+  assert.match(css, /grid-template-columns: 48px minmax\(0, 1fr\) auto 10px/u);
+  assert.match(css, /\.cant-stop-player-color-badge__piece/u);
+  assert.match(css, /\.cant-stop-player-card--player-0/u);
+  assert.equal(css.includes("--cant-stop-progress-fill"), false);
+  assert.equal(css.includes("--cant-stop-claim-color"), false);
+});
+
 test("Can't Stop dice uses explicit pip faces instead of font-dependent dice glyphs", () => {
   const app = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "app.js"),
@@ -479,15 +564,17 @@ test("Can't Stop gameplay phase cards stay concise while waiting board shows rea
 });
 
 
-test("Can't Stop bust notice uses centered three-line result copy", () => {
+test("Can't Stop bust notice identifies the player who slipped for every viewer", () => {
   const app = readFileSync(
     path.join(repositoryRoot, "games", "cant-stop", "app.js"),
     "utf8",
   );
 
-  assert.match(app, /눈길에 미끄러졌어요\./u);
-  assert.match(app, /이번 턴의 임시 진척이 사라지고/u);
-  assert.match(app, /다음 플레이어에게 턴이 넘어갑니다\./u);
+  assert.match(app, /function bustPlayerName\(view, state\)/u);
+  assert.match(app, /state\.effect\?\.playerId/u);
+  assert.match(app, /님이 미끄러졌어요!/u);
+  assert.match(app, /님의 이번 턴 임시 진척이 모두 사라졌어요\./u);
+  assert.match(app, /등반에 실패해 다음 플레이어에게 턴이 넘어갑니다\./u);
   assert.match(app, /cant-stop-bust-notice__message/u);
 });
 

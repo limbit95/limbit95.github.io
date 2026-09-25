@@ -627,6 +627,127 @@ test("Can't Stop lobby controller marks a roll-only TURN_ROLL player change as b
 });
 
 
+test("Can't Stop realtime derives bust feedback for every client when continue-and-roll invalidations coalesce", async () => {
+  const active = snapshot({
+    version: 72,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "PUSH_OR_STOP",
+    activePlayerId: "bob",
+    runners: { 6: 3, 8: 2 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const states = [];
+  const controller = createController(adapter, states, fakeGameplayAdapter());
+
+  await controller.initialize();
+
+  const remoteBust = snapshot({
+    version: 74,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  remoteBust.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "alice",
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+  };
+  adapter.setSnapshot(remoteBust);
+  adapter.invalidate();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().effect?.type, "bust");
+  assert.equal(controller.current().effect?.playerId, "bob");
+  assert.equal(controller.current().effect?.version, 74);
+});
+
+test("Can't Stop realtime does not confuse a normal stop transition with a bust", async () => {
+  const active = snapshot({
+    version: 75,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "PUSH_OR_STOP",
+    activePlayerId: "bob",
+    runners: { 5: 2, 9: 2 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const controller = createController(adapter, [], fakeGameplayAdapter());
+
+  await controller.initialize();
+
+  const stopped = snapshot({
+    version: 76,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  stopped.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "alice",
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+    playerProgress: { bob: { 5: 2, 9: 2 } },
+  };
+  adapter.setSnapshot(stopped);
+  adapter.invalidate();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().effect, null);
+});
+
+test("Can't Stop realtime does not show bust feedback when the active player actually left", async () => {
+  const active = snapshot({
+    version: 77,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  active.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "bob",
+    runners: { 7: 3 },
+  };
+
+  const adapter = fakeAdapter({ activeSnapshot: active });
+  const controller = createController(adapter, [], fakeGameplayAdapter());
+
+  await controller.initialize();
+
+  const afterLeave = snapshot({
+    version: 78,
+    status: "playing",
+    canStart: true,
+    ready: true,
+  });
+  afterLeave.players = afterLeave.players.filter((player) => player.userId !== "bob");
+  afterLeave.room.playerCount = 1;
+  afterLeave.game = {
+    phase: "TURN_ROLL",
+    activePlayerId: "alice",
+    runners: {},
+    latestDice: null,
+    legalPairings: [],
+  };
+  adapter.setSnapshot(afterLeave);
+  adapter.invalidate();
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(controller.current().effect, null);
+});
+
+
 test("Can't Stop continueAndRoll performs authoritative continue then roll in one UI action", async () => {
   const active = snapshot({
     version: 80,

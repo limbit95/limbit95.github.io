@@ -65,6 +65,10 @@ let actionNoticeTimer = null;
 let lastActionNoticeKey = null;
 let presentationCoordinator = null;
 let lastBustSoundVersion = null;
+let victoryCelebrationTimer = null;
+let victoryCelebrationVersion = null;
+let victoryArmedRoomId = null;
+let lastCelebratedVictoryKey = null;
 let bootEpoch = 0;
 
 installCantStopAudioUnlock();
@@ -75,6 +79,7 @@ const CANT_STOP_PLAYER_COLORS = Object.freeze([
   "#2ed573",
   "#9b59ff",
 ]);
+const CANT_STOP_VICTORY_CELEBRATION_MS = 5200;
 
 const CANT_STOP_DEFAULT_AVATAR_URL = "../../assets/images/default-avatar.svg";
 const cantStopAvatarCache = new Map();
@@ -652,6 +657,279 @@ function pairingPlanLabel(columns) {
     : `${columns[0]}열 이동`;
 }
 
+function permanentProgressFill(markers) {
+  const colors = markers.map((marker) =>
+    CANT_STOP_PLAYER_COLORS[marker.playerIndex % CANT_STOP_PLAYER_COLORS.length]);
+  if (!colors.length) return null;
+  if (colors.length === 1) return colors[0];
+
+  const segment = 100 / colors.length;
+  return `conic-gradient(from -90deg, ${colors.map((color, index) => {
+    const start = (segment * index).toFixed(3);
+    const end = (segment * (index + 1)).toFixed(3);
+    return `${color} ${start}% ${end}%`;
+  }).join(", ")})`;
+}
+
+function activePlayerColorIndex(view, state) {
+  const snapshotPlayers = Array.isArray(state.snapshot?.players)
+    ? state.snapshot.players
+    : [];
+  const rosterIndex = snapshotPlayers.findIndex((player) =>
+    String(player?.userId ?? player?.id ?? "") === String(view.activePlayerId));
+  if (rosterIndex < 0) return 0;
+
+  const player = snapshotPlayers[rosterIndex];
+  const seat = Number.isInteger(player?.seat) && player.seat >= 0
+    ? player.seat
+    : rosterIndex;
+  return seat % CANT_STOP_PLAYER_COLORS.length;
+}
+
+function decorateCantStopGameplayPlayerCards(shell, players, currentUserId) {
+  if (!shell?.classList.contains("cant-stop-shell--playing")) return;
+
+  const playerById = new Map(players.map((player, index) => {
+    const seat = Number.isInteger(player.seat) && player.seat >= 0
+      ? player.seat
+      : index;
+    return [String(player.id), {
+      player,
+      colorIndex: seat % CANT_STOP_PLAYER_COLORS.length,
+    }];
+  }));
+
+  shell.querySelectorAll(".game-platform-player").forEach((card) => {
+    const entry = playerById.get(String(card.dataset.playerId ?? ""));
+    if (!entry) return;
+
+    const { player, colorIndex } = entry;
+    const color = CANT_STOP_PLAYER_COLORS[colorIndex];
+    card.classList.add(`cant-stop-player-card--player-${colorIndex}`);
+
+    const pieceBadge = el("span", {
+      className: "cant-stop-player-color-badge",
+      "aria-label": `${player.displayName} 말 색상`,
+    }, [
+      el("span", {
+        className: "cant-stop-player-color-badge__piece",
+        style: { background: color },
+        "aria-hidden": "true",
+      }),
+      el("span", {
+        className: "cant-stop-player-color-badge__text",
+        text: String(player.id) === String(currentUserId) ? "내 말" : "말",
+      }),
+    ]);
+
+    const presence = card.querySelector(".game-platform-player__presence");
+    if (presence) presence.before(pieceBadge);
+    else card.append(pieceBadge);
+  });
+}
+
+function clearPairingPlanPreview() {
+  root?.querySelectorAll(".cant-stop-marker--preview").forEach((marker) => marker.remove());
+  root?.querySelectorAll(".cant-stop-column--previewed").forEach((column) => {
+    column.classList.remove("cant-stop-column--previewed");
+  });
+  root?.querySelectorAll(
+    ".cant-stop-column__cell--preview-path, .cant-stop-column__cell--preview-destination",
+  ).forEach((cell) => {
+    cell.classList.remove(
+      "cant-stop-column__cell--preview-path",
+      "cant-stop-column__cell--preview-destination",
+    );
+  });
+}
+
+function showPairingPlanPreview(columns, view, state) {
+  clearPairingPlanPreview();
+  if (!view.canChoosePairing) return;
+
+  const previewPlayerIndex = activePlayerColorIndex(view, state);
+  const moveCounts = new Map();
+  for (const columnNumber of columns) {
+    moveCounts.set(columnNumber, (moveCounts.get(columnNumber) ?? 0) + 1);
+  }
+
+  for (const [columnNumber, steps] of moveCounts) {
+    const column = view.columns.find((candidate) => candidate.number === columnNumber);
+    if (!column) continue;
+
+    const columnElement = root?.querySelector(
+      `.cant-stop-column[data-column="${columnNumber}"]`,
+    );
+    if (!columnElement) continue;
+
+    columnElement.classList.add("cant-stop-column--previewed");
+
+    const permanentPosition = column.permanentMarkers.find(
+      (marker) => marker.playerId === view.activePlayerId,
+    )?.position ?? 0;
+    const startPosition = column.runner?.position ?? permanentPosition;
+    const targetPosition = Math.min(column.height, startPosition + steps);
+
+    for (let position = startPosition + 1; position <= targetPosition; position += 1) {
+      const cell = columnElement.querySelector(
+        `.cant-stop-column__cell[data-position="${position}"]`,
+      );
+      if (!cell) continue;
+
+      const destination = position === targetPosition;
+      cell.classList.add("cant-stop-column__cell--preview-path");
+      if (destination) cell.classList.add("cant-stop-column__cell--preview-destination");
+      cell.append(el("span", {
+        className: [
+          "cant-stop-marker",
+          "cant-stop-marker--preview",
+          `cant-stop-marker--player-${previewPlayerIndex}`,
+          destination ? "cant-stop-marker--preview-destination" : "",
+        ].filter(Boolean).join(" "),
+        dataset: { previewStep: String(position - startPosition) },
+        "aria-hidden": "true",
+      }));
+    }
+  }
+}
+
+function resetVictoryCelebration() {
+  if (victoryCelebrationTimer != null) {
+    clearTimeout(victoryCelebrationTimer);
+    victoryCelebrationTimer = null;
+  }
+  victoryCelebrationVersion = null;
+  victoryArmedRoomId = null;
+  lastCelebratedVictoryKey = null;
+}
+
+function syncVictoryCelebration(view, state) {
+  const roomId = String(state.snapshot?.room?.id ?? "");
+  const version = Number(view.version);
+  const winnerClaims = view.winnerId
+    ? view.columns.filter((column) => column.claimedById === view.winnerId)
+    : [];
+  const isCompletedWin = view.isGameOver
+    && view.winnerId
+    && !view.isManuallyEnded
+    && !view.isPlayerLeftEnded
+    && winnerClaims.length >= 3;
+
+  if (roomId && view.phase !== "GAME_OVER") {
+    victoryArmedRoomId = roomId;
+    lastCelebratedVictoryKey = null;
+    if (victoryCelebrationVersion != null) {
+      if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+      victoryCelebrationTimer = null;
+      victoryCelebrationVersion = null;
+    }
+  }
+
+  const victoryKey = roomId && Number.isFinite(version)
+    ? `${roomId}:${version}`
+    : null;
+  const shouldStart = isCompletedWin
+    && victoryKey
+    && victoryArmedRoomId === roomId
+    && lastCelebratedVictoryKey !== victoryKey;
+
+  if (shouldStart) {
+    if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+    lastCelebratedVictoryKey = victoryKey;
+    victoryCelebrationVersion = version;
+    victoryCelebrationTimer = setTimeout(() => {
+      victoryCelebrationTimer = null;
+      if (victoryCelebrationVersion !== version) return;
+      victoryCelebrationVersion = null;
+      const current = presentationCoordinator?.current()
+        ?? lobbyController?.current?.();
+      if (current) renderApprovedRuntime(current);
+    }, CANT_STOP_VICTORY_CELEBRATION_MS);
+  }
+
+  return isCompletedWin
+    && Number.isFinite(version)
+    && victoryCelebrationVersion === version;
+}
+
+function bustPlayerName(view, state) {
+  const playerId = String(state.effect?.playerId ?? "");
+  const player = Array.isArray(state.snapshot?.players)
+    ? state.snapshot.players.find((candidate) =>
+      String(candidate?.userId ?? candidate?.id ?? "") === playerId)
+    : null;
+  return String(
+    player?.displayName
+      ?? player?.nickname
+      ?? view.activePlayerName
+      ?? "플레이어",
+  );
+}
+
+function createVictoryCelebration(view) {
+  const winnerClaims = view.columns
+    .filter((column) => column.claimedById === view.winnerId)
+    .slice(0, 3);
+  const winnerIndex = winnerClaims.find((column) => Number.isInteger(column.claimedByIndex))
+    ?.claimedByIndex ?? 0;
+  const particles = Array.from({ length: 16 }, (_, index) => {
+    const left = 5 + ((index * 17) % 90);
+    const delay = (index % 6) * 85;
+    const duration = 1500 + ((index % 4) * 210);
+    return el("i", {
+      className: [
+        "cant-stop-victory-event__particle",
+        index % 3 === 0 ? "is-gold" : "is-snow",
+      ].join(" "),
+      style: {
+        left: `${left}%`,
+        animationDelay: `${delay}ms`,
+        animationDuration: `${duration}ms`,
+      },
+      "aria-hidden": "true",
+    });
+  });
+
+  return el("div", {
+    className: `cant-stop-victory-event cant-stop-victory-event--player-${winnerIndex % CANT_STOP_PLAYER_COLORS.length}`,
+    role: "status",
+    "aria-live": "assertive",
+    "aria-label": `${view.winnerName}님이 세 개의 정상을 완주해 승리했습니다.`,
+  }, [
+    el("div", { className: "cant-stop-victory-event__veil", "aria-hidden": "true" }),
+    el("div", { className: "cant-stop-victory-event__flare", "aria-hidden": "true" }),
+    el("div", { className: "cant-stop-victory-event__particles", "aria-hidden": "true" }, particles),
+    el("div", { className: "cant-stop-victory-event__card" }, [
+      el("div", { className: "cant-stop-victory-event__crest", "aria-hidden": "true" }, [
+        el("span", { className: "cant-stop-victory-event__mountain" }),
+        el("span", { className: "cant-stop-victory-event__flag" }),
+      ]),
+      el("p", {
+        className: "cant-stop-victory-event__eyebrow",
+        text: "SUMMIT ACHIEVED · EXPEDITION COMPLETE",
+      }),
+      el("strong", {
+        className: "cant-stop-victory-event__title",
+        text: `${view.winnerName}님, 세 정상 정복!`,
+      }),
+      el("span", {
+        className: "cant-stop-victory-event__message",
+        text: "세 개의 경로를 완주해 원정을 마쳤어요.",
+      }),
+      el("div", {
+        className: "cant-stop-victory-event__summits",
+        "aria-label": "완주한 세 경로",
+      }, winnerClaims.map((column) => el("span", {
+        className: "cant-stop-victory-event__summit",
+        title: `${column.number}번 열 완주`,
+      }, [
+        el("i", { text: "⚑", "aria-hidden": "true" }),
+        el("b", { text: String(column.number) }),
+      ]))),
+    ]),
+  ]);
+}
+
 function createPairingDiceGroup(group) {
   if (!group) return null;
   return el("div", {
@@ -702,7 +980,12 @@ function createPairingRouteCard(pairing, view, state) {
         className: "cant-stop-route__plan",
         type: "button",
         disabled: state.busy || !view.canChoosePairing,
+        onMouseEnter: () => showPairingPlanPreview(columns, view, state),
+        onMouseLeave: clearPairingPlanPreview,
+        onFocus: () => showPairingPlanPreview(columns, view, state),
+        onBlur: clearPairingPlanPreview,
         onClick: async () => {
+          clearPairingPlanPreview();
           try {
             await lobbyController.choosePairing({
               sums: [...pairing.sums],
@@ -942,6 +1225,7 @@ function createDiceStage(view, state) {
 
 function createBoard(view, state, {
   waiting = false,
+  victoryCelebration = false,
 } = {}) {
   const heading = waiting
     ? {
@@ -975,6 +1259,12 @@ function createBoard(view, state, {
       className: [
         "cant-stop-column",
         column.claimedById ? "cant-stop-column--claimed" : "",
+        victoryCelebration && column.claimedById === view.winnerId
+          ? "cant-stop-column--victory"
+          : "",
+        Number.isInteger(column.claimedByIndex)
+          ? `cant-stop-column--player-${column.claimedByIndex % CANT_STOP_PLAYER_COLORS.length}`
+          : "",
       ].filter(Boolean).join(" "),
       dataset: { column: String(column.number) },
       "aria-label": column.claimedByName
@@ -999,11 +1289,30 @@ function createBoard(view, state, {
           const runner = column.runner?.position === position
             ? column.runner
             : null;
+          const progressFill = permanent.length > 0 && permanent.length < 4
+            ? permanentProgressFill(permanent)
+            : null;
+          const progressFillLayer = progressFill
+            ? el("span", {
+              className: `cant-stop-progress-fill cant-stop-progress-fill--${permanent.length}`,
+              style: { background: progressFill },
+              "aria-hidden": "true",
+            })
+            : null;
           return el("span", {
-            className: "cant-stop-column__cell",
-            dataset: { position: String(position) },
-            "aria-label": `${column.number} 열 ${position}칸`,
+            className: [
+              "cant-stop-column__cell",
+              progressFill ? `cant-stop-column__cell--progress-${permanent.length}` : "",
+            ].filter(Boolean).join(" "),
+            dataset: {
+              position: String(position),
+              permanentCount: String(permanent.length),
+            },
+            "aria-label": permanent.length
+              ? `${column.number} 열 ${position}칸, ${permanent.map((marker) => marker.displayName).join(", ")} 진척`
+              : `${column.number} 열 ${position}칸`,
           }, [
+            progressFillLayer,
             ...permanent.map((marker) => el("span", {
               className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
               title: `${marker.displayName} 영구 진척`,
@@ -1063,6 +1372,7 @@ function createBoard(view, state, {
       className: [
         "cant-stop-board__mountain",
         busting ? "cant-stop-board__mountain--bust" : "",
+        victoryCelebration ? "cant-stop-board__mountain--victory" : "",
       ].filter(Boolean).join(" "),
     }, [
       busting
@@ -1082,15 +1392,17 @@ function createBoard(view, state, {
           role: "status",
           "aria-live": "polite",
         }, [
-          el("strong", { text: "등반 실패" }),
+          el("strong", { text: `${bustPlayerName(view, state)}님이 미끄러졌어요!` }),
           el("div", { className: "cant-stop-bust-notice__message" }, [
-            el("span", { text: "눈길에 미끄러졌어요." }),
-            el("span", { text: "이번 턴의 임시 진척이 사라지고" }),
-            el("span", { text: "다음 플레이어에게 턴이 넘어갑니다." }),
+            el("span", {
+              text: `${bustPlayerName(view, state)}님의 이번 턴 임시 진척이 모두 사라졌어요.`,
+            }),
+            el("span", { text: "등반에 실패해 다음 플레이어에게 턴이 넘어갑니다." }),
           ]),
         ])
         : null,
       tracks,
+      victoryCelebration ? createVictoryCelebration(view) : null,
     ]),
   ]);
 }
@@ -1543,6 +1855,10 @@ function patchGameShell(nextShell) {
 function renderApprovedRuntime(state) {
   if (!root) return;
 
+  if (state.view !== CANT_STOP_LOBBY_VIEW.PLAYING) {
+    resetVictoryCelebration();
+  }
+
   void cantStopBgm.setMode(
     state.view === CANT_STOP_LOBBY_VIEW.PLAYING
       ? CANT_STOP_BGM_MODE.PLAYING
@@ -1600,8 +1916,9 @@ function renderApprovedRuntime(state) {
 
     if (state.view === CANT_STOP_LOBBY_VIEW.PLAYING) {
       const gameplay = createCantStopGameplayViewModel(state.snapshot, auth.user?.id);
+      const victoryCelebration = syncVictoryCelebration(gameplay, state);
       players = decorateCantStopPlayers(view.players, gameplay);
-      main = createBoard(gameplay, state);
+      main = createBoard(gameplay, state, { victoryCelebration });
       sidebar = createGameplaySidebar(gameplay, state);
       actions = null;
     } else {
@@ -1657,6 +1974,12 @@ function renderApprovedRuntime(state) {
     }
   }
 
+  decorateCantStopGameplayPlayerCards(
+    shell,
+    players,
+    auth.user?.id ?? fallbackPlayer.id,
+  );
+
   const suppressConnectionCard = state.view !== CANT_STOP_LOBBY_VIEW.ENTRY
     || state.connection === "connected";
   if (suppressConnectionCard) {
@@ -1667,6 +1990,7 @@ function renderApprovedRuntime(state) {
 }
 
 function disposeLobby() {
+  resetVictoryCelebration();
   presentationCoordinator?.dispose();
   presentationCoordinator = null;
   lobbyController?.dispose();

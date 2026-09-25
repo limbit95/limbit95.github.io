@@ -103,6 +103,39 @@ test("Can't Stop presentation keeps the rolling snapshot mounted until a full di
   assert.equal(presented[1].busy, false);
 });
 
+test("Can't Stop presentation stages the same dice roll cycle for a remote player snapshot", () => {
+  const clock = fakeClock();
+  const presented = [];
+  const coordinator = createCantStopPresentationCoordinator({
+    onPresent: (next) => presented.push(next),
+    now: clock.now,
+    schedule: clock.schedule,
+    cancel: clock.cancel,
+  });
+
+  coordinator.receive(state({
+    version: 14,
+    phase: "TURN_ROLL",
+    activePlayerId: "bob",
+  }));
+  coordinator.receive(state({
+    version: 15,
+    phase: "PAIRING_SELECTION",
+    activePlayerId: "bob",
+  }));
+
+  assert.equal(presented.length, 2);
+  assert.equal(presented[1].snapshot.version, 14);
+  assert.equal(presented[1].busyAction, "rollDice");
+
+  clock.advance(CANT_STOP_PRESENTATION_TIMINGS.rollCycleMs - 1);
+  assert.equal(presented.at(-1).snapshot.version, 14);
+
+  clock.advance(1);
+  assert.equal(presented.at(-1).snapshot.version, 15);
+  assert.equal(presented.at(-1).busyAction, null);
+});
+
 test("Can't Stop presentation completes the dice cycle, then plays bust on the previous board before applying the next turn", () => {
   const clock = fakeClock();
   const presented = [];
@@ -157,6 +190,11 @@ test("Can't Stop presentation stages a remote bust on the currently displayed bo
     effect: { type: "bust", playerId: "alice", version: 31 },
   }));
 
+  assert.equal(presented.at(-1).snapshot.version, 30);
+  assert.equal(presented.at(-1).busyAction, "rollDice");
+  assert.equal(presented.at(-1).effect, null);
+
+  clock.advance(CANT_STOP_PRESENTATION_TIMINGS.rollCycleMs);
   assert.equal(presented.at(-1).snapshot.version, 30);
   assert.equal(presented.at(-1).effect.type, "bust");
 
