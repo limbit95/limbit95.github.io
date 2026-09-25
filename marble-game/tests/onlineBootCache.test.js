@@ -20,6 +20,7 @@ const diagnosticsSource = readFileSync(new URL("../js/renderer/threeClassicProto
 
 test("online Marble boot entry bypasses stale Pages module caches", () => {
   assert.match(indexHtml, /data-marble-build="20260923-r3"/);
+  assert.match(indexHtml, /auction-ui\.css\?v=20260925-r1/);
   assert.match(indexHtml, /marbleBootstrap\.js\?v=20260923-r3/);
   assert.match(indexHtml, /money-presentation\.css\?v=20260917-r1/);
   assert.match(indexHtml, /toll-loss-layout-polish\.css\?v=20260917-r1/);
