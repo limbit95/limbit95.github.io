@@ -347,6 +347,38 @@ test("Can't Stop gameplay view exposes push/stop and game-over states from serve
 });
 
 
+test("Can't Stop completed-win GAME_OVER triggers an alpine summit celebration without changing result authority", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /CANT_STOP_VICTORY_CELEBRATION_MS = 5200/u);
+  assert.match(app, /function syncVictoryCelebration\(view, state\)/u);
+  assert.match(app, /winnerClaims\.length >= 3/u);
+  assert.match(app, /!view\.isManuallyEnded/u);
+  assert.match(app, /!view\.isPlayerLeftEnded/u);
+  assert.match(app, /lastGameplayPhase !== "GAME_OVER"/u);
+  assert.match(app, /function createVictoryCelebration\(view\)/u);
+  assert.match(app, /SUMMIT ACHIEVED · EXPEDITION COMPLETE/u);
+  assert.match(app, /세 정상 정복!/u);
+  assert.match(app, /cant-stop-column--victory/u);
+  assert.match(app, /createBoard\(gameplay, state, \{ victoryCelebration \}\)/u);
+
+  assert.match(css, /\.cant-stop-victory-event \{/u);
+  assert.match(css, /\.cant-stop-victory-event__card/u);
+  assert.match(css, /\.cant-stop-victory-event__crest/u);
+  assert.match(css, /\.cant-stop-victory-event__summit/u);
+  assert.match(css, /@keyframes cant-stop-victory-card/u);
+  assert.match(css, /@keyframes cant-stop-victory-particle-fall/u);
+  assert.match(css, /\.cant-stop-column--victory/u);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*cant-stop-victory-event/u);
+});
+
 test("Can't Stop gameplay view distinguishes host manual termination from a claimed-column win", () => {
   const view = createCantStopGameplayViewModel({
     version: 31,
