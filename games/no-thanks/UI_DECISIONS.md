@@ -22,7 +22,7 @@
   - NT-UI-005 — quiet in-room reconnect presentation
   - NT-UI-006 — centered FINAL WINNER result card
   - NT-UI-007 — tabletop Rules Guide
-  - NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
+  - NT-UI-008 — Covert Affair / Hard Boiled soundtrack split
   - NT-UI-009 — staged tabletop game-start sequence
   - NT-UI-010 — authoritative transfer continuity at take/end boundaries
   - NT-UI-011 — maximum-hand responsive overlap
@@ -173,19 +173,19 @@
 - Baseline relation: `UI_DESIGN.md`의 game-local modal 방향을 구체화하고 기존 generic rules presentation을 대체합니다.
 - Functional boundary: 규칙 사실은 `GAME_SPEC.md`/authoritative gameplay를 따르며 DB/RPC/game state를 변경하지 않습니다.
 
-### NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
+### NT-UI-008 — Covert Affair / Hard Boiled soundtrack split
 
 - Status: ACTIVE
 - Applies to: entry / waiting lobby / gameplay / result-rematch audio presentation
 - Source: 2026-09-24 user soundtrack selection
 - Context / trigger: No Thanks!의 카드·칩 심리전 분위기에 맞는 로비/플레이 전용 BGM을 확정했습니다.
 - Decision:
-  - lobby 계열 화면에는 Kevin MacLeod의 `Hard Boiled` (ISRC `USUAN1700076`)를 사용합니다.
-  - 실제 `PLAYING` phase에는 Kevin MacLeod의 `Covert Affair` (ISRC `USUAN1100795`)를 사용합니다.
+  - lobby 계열 화면에는 Kevin MacLeod의 `Covert Affair` (ISRC `USUAN1100795`)를 사용합니다.
+  - 실제 `PLAYING` phase에는 Kevin MacLeod의 `Hard Boiled` (ISRC `USUAN1700076`)를 사용합니다.
   - GAME_OVER / rematch 준비를 포함해 `PLAYING`이 아닌 상태는 lobby track으로 복귀합니다.
   - 기존 shared Game BGM controller/player를 재사용해 재생/일시정지, 볼륨, 출처/라이선스 UI와 브라우저 autoplay 대응을 유지합니다.
   - 두 곡의 Incompetech CC BY 4.0 attribution metadata를 shared BGM catalog에 등록합니다.
-- Rationale: 대기 화면은 느긋한 재즈 카드룸 분위기를 유지하고, 실제 플레이에서는 더 은근한 긴장감을 주면서도 기존 Game Platform 오디오 UX를 그대로 유지합니다.
+- Rationale: 실제 사용감을 기준으로 두 트랙의 역할을 교체해 로비에는 `Covert Affair`, 플레이에는 `Hard Boiled`를 배치하면서 기존 Game Platform 오디오 UX는 그대로 유지합니다.
 - Implementation status: IMPLEMENTED
 - Validation: `tests/game-platform-no-thanks-bgm.test.js`에서 track metadata, lobby ↔ gameplay 전환, page wiring을 회귀 검증합니다.
 - Baseline relation: `UI_DESIGN.md`의 sound 방향을 실제 사용자 확정 soundtrack으로 구체화한 post-closeout override.
