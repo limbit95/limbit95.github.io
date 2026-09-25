@@ -447,19 +447,45 @@ test("Can't Stop route choices preview board movement and progress ownership sta
     "utf8",
   );
 
-  assert.match(app, /showPairingPlanPreview\(columns, view\)/u);
+  assert.match(app, /showPairingPlanPreview\(columns, view, state\)/u);
   assert.match(app, /onMouseEnter:/u);
   assert.match(app, /onFocus:/u);
+  assert.match(app, /activePlayerColorIndex/u);
+  assert.match(app, /cant-stop-marker--player-\$\{previewPlayerIndex\}/u);
   assert.match(app, /permanentProgressFill/u);
-  assert.match(app, /--cant-stop-claim-color/u);
+  assert.match(app, /cant-stop-progress-fill/u);
+  assert.match(app, /style: \{ background: progressFill \}/u);
+  assert.match(app, /cant-stop-column--player-\$\{column\.claimedByIndex/u);
   assert.match(app, /미끄러짐! 등반 실패/u);
 
-  assert.match(css, /\.cant-stop-marker--preview/u);
-  assert.match(css, /\.cant-stop-column__cell--progress-3::after/u);
-  assert.match(css, /var\(--cant-stop-claim-color\)/u);
-  assert.match(css, /game-platform-player\[data-has-accent="true"\]::before/u);
+  assert.match(css, /\.cant-stop-progress-fill/u);
+  assert.match(css, /\.cant-stop-column--claimed\.cant-stop-column--player-0/u);
+  assert.match(css, /\.cant-stop-marker--preview[\s\S]*border: 2px dashed currentColor/u);
   assert.match(css, /@keyframes cant-stop-runner-hard-slip/u);
   assert.match(css, /\.cant-stop-route__summit[\s\S]*#fff8df/u);
+});
+
+test("Can't Stop gameplay player HUD renders an explicit piece-color badge with game-local card layout", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /decorateCantStopGameplayPlayerCards/u);
+  assert.match(app, /cant-stop-player-color-badge/u);
+  assert.match(app, /style: \{ background: color \}/u);
+  assert.match(app, /cant-stop-player-card--player-\$\{colorIndex\}/u);
+
+  assert.match(css, /\.cant-stop-shell--playing \.game-platform-player \{/u);
+  assert.match(css, /grid-template-columns: 48px minmax\(0, 1fr\) auto 10px/u);
+  assert.match(css, /\.cant-stop-player-color-badge__piece/u);
+  assert.match(css, /\.cant-stop-player-card--player-0/u);
+  assert.equal(css.includes("--cant-stop-progress-fill"), false);
+  assert.equal(css.includes("--cant-stop-claim-color"), false);
 });
 
 test("Can't Stop dice uses explicit pip faces instead of font-dependent dice glyphs", () => {
