@@ -288,6 +288,7 @@ test("Can't Stop gameplay view maps authoritative progress, runners, claims, dic
   const column3 = view.columns.find((column) => column.number === 3);
   assert.equal(column3.claimedById, "bob");
   assert.equal(column3.claimedByName, "Bob");
+  assert.equal(column3.claimedByIndex, 1);
 
   const column7 = view.columns.find((column) => column.number === 7);
   assert.deepEqual(
@@ -434,6 +435,31 @@ test("Can't Stop gameplay roster exposes completed-column progress and high-cont
   assert.match(app, /#ff4d6d/u);
   assert.match(app, /#2ed573/u);
   assert.match(app, /#9b59ff/u);
+});
+
+test("Can't Stop route choices preview board movement and progress ownership stays visually explicit", () => {
+  const app = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "app.js"),
+    "utf8",
+  );
+  const css = readFileSync(
+    path.join(repositoryRoot, "games", "cant-stop", "cant-stop.css"),
+    "utf8",
+  );
+
+  assert.match(app, /showPairingPlanPreview\(columns, view\)/u);
+  assert.match(app, /onMouseEnter:/u);
+  assert.match(app, /onFocus:/u);
+  assert.match(app, /permanentProgressFill/u);
+  assert.match(app, /--cant-stop-claim-color/u);
+  assert.match(app, /미끄러짐! 등반 실패/u);
+
+  assert.match(css, /\.cant-stop-marker--preview/u);
+  assert.match(css, /\.cant-stop-column__cell--progress-3::after/u);
+  assert.match(css, /var\(--cant-stop-claim-color\)/u);
+  assert.match(css, /game-platform-player\[data-has-accent="true"\]::before/u);
+  assert.match(css, /@keyframes cant-stop-runner-hard-slip/u);
+  assert.match(css, /\.cant-stop-route__summit[\s\S]*#fff8df/u);
 });
 
 test("Can't Stop dice uses explicit pip faces instead of font-dependent dice glyphs", () => {
