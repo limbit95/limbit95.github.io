@@ -132,7 +132,7 @@ test("Auction notices are portaled and positioned immediately above the active A
     assert.match(source, /noticeLayer = "global"/);
   }
   assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
-  assert.match(auctionCssSource, /bottom: var\(--auction-notice-bottom/);
+  assert.match(auctionCssSource, /bottom: calc\(var\(--auction-notice-bottom/);
   assert.match(auctionCssSource, /z-index: 1250/);
   assert.doesNotMatch(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
 });
