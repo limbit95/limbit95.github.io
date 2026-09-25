@@ -2703,20 +2703,20 @@ function syncBoardAnimationGeometry(view) {
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
       chipFlight.addEventListener("animationend", () => {
-        if (effect?.soundPlayed !== true) {
-          playNoThanksChipSound();
-          if (effect) effect.soundPlayed = true;
-        }
         window.setTimeout(() => {
           if (board.isConnected) commitCenterChipLanding(board);
           chipFlight.remove();
         }, 100);
       }, { once: true });
+      if (effect?.soundPlayed !== true) {
+        playNoThanksChipSound({ travelMs: 620 });
+        if (effect) effect.soundPlayed = true;
+      }
       chipFlight.classList.add("is-motion-ready");
       if (effect) effect.started = true;
     } else if (effect?.chipFromPlayerId && prefersReducedMotion()) {
       if (effect.soundPlayed !== true) {
-        playNoThanksChipSound();
+        playNoThanksChipSound({ travelMs: 0 });
         effect.soundPlayed = true;
       }
       commitCenterChipLanding(board);
