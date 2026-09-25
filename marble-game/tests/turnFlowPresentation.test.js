@@ -113,11 +113,11 @@ test("Auction bid feedback is centered, notices clear the panel edge, and select
   );
   assert.match(
     auctionCssSource,
-    /auctionProfileChainSpin 2\.8s linear forwards/,
+    /auctionProfileChainSpin 7\.2s linear forwards/,
   );
   assert.match(
     auctionCssSource,
-    /12% \{[\s\S]*0\.5[\s\S]*28% \{[\s\S]*0\.76[\s\S]*68% \{[\s\S]*0\.965[\s\S]*84% \{[\s\S]*0\.99/,
+    /8% \\{[\\s\\S]*0\\.3[\\s\\S]*18% \\{[\\s\\S]*0\\.55[\\s\\S]*58% \\{[\\s\\S]*0\\.925[\\s\\S]*88% \\{[\\s\\S]*0\\.994/,
   );
 });
 
