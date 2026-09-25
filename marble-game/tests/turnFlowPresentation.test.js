@@ -117,7 +117,7 @@ test("Auction bid feedback is centered, notices clear the panel edge, and select
   );
   assert.match(
     auctionCssSource,
-    /8% \\{[\\s\\S]*0\\.3[\\s\\S]*18% \\{[\\s\\S]*0\\.55[\\s\\S]*58% \\{[\\s\\S]*0\\.925[\\s\\S]*88% \\{[\\s\\S]*0\\.994/,
+    /8% \{[\s\S]*0\.3[\s\S]*18% \{[\s\S]*0\.55[\s\S]*58% \{[\s\S]*0\.925[\s\S]*88% \{[\s\S]*0\.994/,
   );
 });
 
