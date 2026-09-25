@@ -10,12 +10,13 @@
 
 - Status: IN_PROGRESS
 - Lifecycle stage: DEVELOPER_MANUAL_DESIGN_REVIEW
-- Current UI phase / scope: post-release gameplay feedback, player-color ownership cues, summit victory celebration
-- Active branch: `feature/cant-stop-shared-feedback-ux`
+- Current UI phase / scope: CS-UI-003 post-release gameplay feedback가 main에 반영된 상태이며 summit victory celebration의 최종 수동 리뷰만 follow-up으로 남아 있음
+- Active branch: main
 - Last updated: 2026-09-26
 - Adoption baseline: `UI_DESIGN.md` (v1 release state)
 - Active overrides: CS-UI-001, CS-UI-002, CS-UI-003
-- Next design work: summit victory celebration 실제 브라우저 수동 리뷰 및 필요한 detail polish.
+- Last checkpoint: PR #400 merge commit `3cf189708f88d4634cd7878476ea4e6fdb0e75f9`
+- Next design work: summit victory celebration 실제 브라우저 motion 강도, 중앙 card 크기, 3개 summit token 가독성을 수동 리뷰하고 필요할 때 detail polish.
 
 ## Decision Log
 
@@ -99,7 +100,7 @@
 - Rationale: Can’t Stop의 핵심 감정 곡선은 위험을 감수한 등반과 정상 정복이므로, 성공/실패/소유권을 모두 같은 board language로 읽게 해야 합니다. 특히 GAME_OVER는 일반 서비스형 결과 modal보다 지금까지 쌓아 온 설산 원정 공간 안에서 “세 정상 정복”으로 마무리될 때 game-local identity와 성취감이 가장 잘 연결됩니다.
 - Affected surfaces: presentation coordinator 소비 UI, route plan interaction, board marker/cell, player roster, claimed column, bust motion, GAME_OVER board overlay, responsive/reduced-motion presentation
 - Implementation status: IMPLEMENTED
-- Validation: player-color HUD/progress/preview 방향은 2026-09-26 사용자 실제 화면 리뷰에서 “마음에 들어” 승인. 이후 multiplayer QA에서 remote continue-and-roll bust가 actor 화면에만 남는 문제와 winner 본인의 summit celebration 누락 가능성을 확인해 all-client event derivation/arming을 보강했습니다. summit celebration의 최종 motion 체감 수동 리뷰는 남아 있습니다.
+- Validation: player-color HUD/progress/preview 방향은 2026-09-26 사용자 실제 화면 리뷰에서 “마음에 들어” 승인. 이후 multiplayer QA에서 remote continue-and-roll bust가 actor 화면에만 남는 문제와 winner 본인의 summit celebration 누락 가능성을 확인해 all-client event derivation/arming을 보강했습니다. 최종 구현은 PR #400으로 main에 병합됐고 Game Platform governance run #598을 통과했습니다. summit celebration의 최종 motion 체감 수동 리뷰는 남아 있습니다.
 - Baseline relation: `UI_DESIGN.md`의 Motion / Interaction 및 Result / Rematch Presentation과 CS-UI-002의 alpine expedition 언어를 유지하면서, 멀티플레이 관전성과 victory climax를 구체화합니다.
 - Related functional boundary: `GAME_SPEC.md`의 server-authoritative dice, runner/progress, claim, 3-column win, GAME_OVER/rematch lifecycle은 변경하지 않습니다.
 
@@ -117,6 +118,10 @@
 - 2026-09-23 — Game Platform governance run #493: JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard 모두 success.
 - 2026-09-23 — CS-UI-002 full alpine expedition redesign: Entry/Lobby/Gameplay/GAME_OVER 실제 화면 수동 리뷰 승인.
 - 2026-09-23 — Game Platform governance run #494: JavaScript syntax, shared module link, `npm run test:game-platform`, Governance Guard 모두 success.
+- 2026-09-26 — CS-UI-003 gameplay ownership/feedback 구현 중 player-color HUD, permanent progress split, route preview 방향을 사용자 실제 화면 리뷰에서 승인.
+- 2026-09-26 — multiplayer QA에서 bust presentation을 모든 플레이어에게 동기화하고 실제 미끄러진 플레이어 이름을 표시하도록 보강. victory event도 승자 본인을 포함한 모든 플레이어에게 재생되도록 arming 조건을 보강.
+- 2026-09-26 — PR #400 main 병합 완료, merge commit `3cf189708f88d4634cd7878476ea4e6fdb0e75f9`. 최종 head 기준 Game Platform governance run #598 success.
+- 2026-09-26 — 디자인 체크포인트: CS-UI-003의 확정 component/interaction/motion 결정은 main에 보존됐으며, summit victory celebration의 최종 브라우저 체감 확인만 Open Follow-up으로 유지.
 
 ## Open Follow-up
 
