@@ -652,6 +652,83 @@ function pairingPlanLabel(columns) {
     : `${columns[0]}열 이동`;
 }
 
+function permanentProgressFill(markers) {
+  const colors = markers.map((marker) =>
+    CANT_STOP_PLAYER_COLORS[marker.playerIndex % CANT_STOP_PLAYER_COLORS.length]);
+  if (!colors.length) return null;
+  if (colors.length === 1) return colors[0];
+
+  const segment = 100 / colors.length;
+  return `conic-gradient(from -90deg, ${colors.map((color, index) => {
+    const start = (segment * index).toFixed(3);
+    const end = (segment * (index + 1)).toFixed(3);
+    return `${color} ${start}% ${end}%`;
+  }).join(", ")})`;
+}
+
+function clearPairingPlanPreview() {
+  root?.querySelectorAll(".cant-stop-marker--preview").forEach((marker) => marker.remove());
+  root?.querySelectorAll(".cant-stop-column--previewed").forEach((column) => {
+    column.classList.remove("cant-stop-column--previewed");
+  });
+  root?.querySelectorAll(
+    ".cant-stop-column__cell--preview-path, .cant-stop-column__cell--preview-destination",
+  ).forEach((cell) => {
+    cell.classList.remove(
+      "cant-stop-column__cell--preview-path",
+      "cant-stop-column__cell--preview-destination",
+    );
+  });
+}
+
+function showPairingPlanPreview(columns, view) {
+  clearPairingPlanPreview();
+  if (!view.canChoosePairing) return;
+
+  const moveCounts = new Map();
+  for (const columnNumber of columns) {
+    moveCounts.set(columnNumber, (moveCounts.get(columnNumber) ?? 0) + 1);
+  }
+
+  for (const [columnNumber, steps] of moveCounts) {
+    const column = view.columns.find((candidate) => candidate.number === columnNumber);
+    if (!column) continue;
+
+    const columnElement = root?.querySelector(
+      `.cant-stop-column[data-column="${columnNumber}"]`,
+    );
+    if (!columnElement) continue;
+
+    columnElement.classList.add("cant-stop-column--previewed");
+
+    const permanentPosition = column.permanentMarkers.find(
+      (marker) => marker.playerId === view.activePlayerId,
+    )?.position ?? 0;
+    const startPosition = column.runner?.position ?? permanentPosition;
+    const targetPosition = Math.min(column.height, startPosition + steps);
+
+    for (let position = startPosition + 1; position <= targetPosition; position += 1) {
+      const cell = columnElement.querySelector(
+        `.cant-stop-column__cell[data-position="${position}"]`,
+      );
+      if (!cell) continue;
+
+      const destination = position === targetPosition;
+      cell.classList.add("cant-stop-column__cell--preview-path");
+      if (destination) cell.classList.add("cant-stop-column__cell--preview-destination");
+      cell.append(el("span", {
+        className: [
+          "cant-stop-marker",
+          "cant-stop-marker--preview",
+          destination ? "cant-stop-marker--preview-destination" : "",
+        ].filter(Boolean).join(" "),
+        dataset: { previewStep: String(position - startPosition) },
+        "aria-hidden": "true",
+      }));
+    }
+  }
+}
+
 function createPairingDiceGroup(group) {
   if (!group) return null;
   return el("div", {
@@ -702,7 +779,12 @@ function createPairingRouteCard(pairing, view, state) {
         className: "cant-stop-route__plan",
         type: "button",
         disabled: state.busy || !view.canChoosePairing,
+        onMouseEnter: () => showPairingPlanPreview(columns, view),
+        onMouseLeave: clearPairingPlanPreview,
+        onFocus: () => showPairingPlanPreview(columns, view),
+        onBlur: clearPairingPlanPreview,
         onClick: async () => {
+          clearPairingPlanPreview();
           try {
             await lobbyController.choosePairing({
               sums: [...pairing.sums],
@@ -977,6 +1059,12 @@ function createBoard(view, state, {
         column.claimedById ? "cant-stop-column--claimed" : "",
       ].filter(Boolean).join(" "),
       dataset: { column: String(column.number) },
+      style: Number.isInteger(column.claimedByIndex)
+        ? {
+          "--cant-stop-claim-color":
+            CANT_STOP_PLAYER_COLORS[column.claimedByIndex % CANT_STOP_PLAYER_COLORS.length],
+        }
+        : null,
       "aria-label": column.claimedByName
         ? `${column.number} 열 ${column.claimedByName} 완주`
         : `${column.number} 열 ${column.height}칸`,
@@ -999,10 +1087,24 @@ function createBoard(view, state, {
           const runner = column.runner?.position === position
             ? column.runner
             : null;
+          const progressFill = permanent.length > 0 && permanent.length < 4
+            ? permanentProgressFill(permanent)
+            : null;
           return el("span", {
-            className: "cant-stop-column__cell",
-            dataset: { position: String(position) },
-            "aria-label": `${column.number} 열 ${position}칸`,
+            className: [
+              "cant-stop-column__cell",
+              progressFill ? `cant-stop-column__cell--progress-${permanent.length}` : "",
+            ].filter(Boolean).join(" "),
+            dataset: {
+              position: String(position),
+              permanentCount: String(permanent.length),
+            },
+            style: progressFill
+              ? { "--cant-stop-progress-fill": progressFill }
+              : null,
+            "aria-label": permanent.length
+              ? `${column.number} 열 ${position}칸, ${permanent.map((marker) => marker.displayName).join(", ")} 진척`
+              : `${column.number} 열 ${position}칸`,
           }, [
             ...permanent.map((marker) => el("span", {
               className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
@@ -1082,7 +1184,7 @@ function createBoard(view, state, {
           role: "status",
           "aria-live": "polite",
         }, [
-          el("strong", { text: "등반 실패" }),
+          el("strong", { text: "미끄러짐! 등반 실패" }),
           el("div", { className: "cant-stop-bust-notice__message" }, [
             el("span", { text: "눈길에 미끄러졌어요." }),
             el("span", { text: "이번 턴의 임시 진척이 사라지고" }),
