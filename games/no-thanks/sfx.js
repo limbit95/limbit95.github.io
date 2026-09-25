@@ -90,7 +90,7 @@ function scheduleCardSlide(context, at) {
   scheduleFilteredNoise(context, {
     at,
     durationMs: 285,
-    peakGain: 0.042,
+    peakGain: 0.084,
     filterType: "bandpass",
     startFrequency: 2100,
     endFrequency: 780,
@@ -99,7 +99,7 @@ function scheduleCardSlide(context, at) {
   scheduleFilteredNoise(context, {
     at: at + 0.245,
     durationMs: 78,
-    peakGain: 0.022,
+    peakGain: 0.044,
     filterType: "bandpass",
     startFrequency: 1350,
     endFrequency: 620,
@@ -203,14 +203,42 @@ function scheduleTakeSound(context, chipCount) {
   for (let index = 0; index < audibleChipCount; index += 1) {
     scheduleChipStackHit(context, landingAt + (index * 0.05), {
       pitch: 0.94 + ((index % 3) * 0.05),
-      weight: 0.72 + ((index % 2) * 0.08),
+      weight: 1.44 + ((index % 2) * 0.16),
     });
   }
 }
 
-function scheduleChipSound(context) {
+function scheduleChipSound(context, travelMs = 620) {
   const startAt = Number(context.currentTime) + 0.01;
-  scheduleChipStackHit(context, startAt, { pitch: 0.98, weight: 0.62 });
+  const safeTravelMs = Math.max(0, Number(travelMs) || 0);
+
+  if (safeTravelMs > 0) {
+    // A dry sliding texture follows the chip's flight, then the stack impact
+    // lands just before the 620ms refuse animation completes: "스윽 → 착".
+    scheduleFilteredNoise(context, {
+      at: startAt,
+      durationMs: Math.max(120, safeTravelMs - 90),
+      peakGain: 0.03,
+      filterType: "bandpass",
+      startFrequency: 1650,
+      endFrequency: 610,
+      q: 0.7,
+    });
+    scheduleFilteredNoise(context, {
+      at: startAt + 0.07,
+      durationMs: Math.max(90, safeTravelMs - 180),
+      peakGain: 0.017,
+      filterType: "bandpass",
+      startFrequency: 980,
+      endFrequency: 430,
+      q: 0.82,
+    });
+  }
+
+  const landingAt = startAt + (safeTravelMs > 0
+    ? Math.max(0, safeTravelMs - 30) / 1000
+    : 0);
+  scheduleChipStackHit(context, landingAt, { pitch: 0.98, weight: 1.05 });
 }
 
 function playWithContext(context, schedule) {
@@ -272,9 +300,12 @@ export function playNoThanksTakeSound({
   );
 }
 
-export function playNoThanksChipSound({ context = null } = {}) {
+export function playNoThanksChipSound({
+  context = null,
+  travelMs = 620,
+} = {}) {
   return playWithContext(
     context ?? getSharedAudioContext(),
-    scheduleChipSound,
+    (audioContext) => scheduleChipSound(audioContext, travelMs),
   );
 }
