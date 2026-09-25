@@ -489,7 +489,7 @@ test("Can't Stop route choices preview board movement and progress ownership sta
   assert.match(app, /cant-stop-progress-fill/u);
   assert.match(app, /style: \{ background: progressFill \}/u);
   assert.match(app, /cant-stop-column--player-\$\{column\.claimedByIndex/u);
-  assert.match(app, /미끄러짐! 등반 실패/u);
+  assert.match(app, /님이 미끄러졌어요!/u);
 
   assert.match(css, /\.cant-stop-progress-fill/u);
   assert.match(css, /\.cant-stop-column--claimed\.cant-stop-column--player-0/u);
