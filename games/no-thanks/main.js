@@ -2691,10 +2691,6 @@ function syncBoardAnimationGeometry(view) {
 
     const chipFlight = board.querySelector(".no-thanks-chip-flight");
     const chipTarget = board.querySelector(".no-thanks-center-chips__visual");
-    if (effect?.chipFromPlayerId && effect.soundPlayed !== true) {
-      playNoThanksChipSound();
-      effect.soundPlayed = true;
-    }
     if (chipFlight && chipTarget) {
       const flightRect = chipFlight.getBoundingClientRect();
       const targetRect = chipTarget.getBoundingClientRect();
@@ -2707,6 +2703,10 @@ function syncBoardAnimationGeometry(view) {
       chipFlight.style.setProperty("--no-thanks-chip-end-x", dx.toFixed(2) + "px");
       chipFlight.style.setProperty("--no-thanks-chip-end-y", dy.toFixed(2) + "px");
       chipFlight.addEventListener("animationend", () => {
+        if (effect?.soundPlayed !== true) {
+          playNoThanksChipSound();
+          if (effect) effect.soundPlayed = true;
+        }
         window.setTimeout(() => {
           if (board.isConnected) commitCenterChipLanding(board);
           chipFlight.remove();
@@ -2715,6 +2715,10 @@ function syncBoardAnimationGeometry(view) {
       chipFlight.classList.add("is-motion-ready");
       if (effect) effect.started = true;
     } else if (effect?.chipFromPlayerId && prefersReducedMotion()) {
+      if (effect.soundPlayed !== true) {
+        playNoThanksChipSound();
+        effect.soundPlayed = true;
+      }
       commitCenterChipLanding(board);
       effect.started = true;
     }
