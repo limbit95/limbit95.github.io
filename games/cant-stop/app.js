@@ -67,8 +67,8 @@ let presentationCoordinator = null;
 let lastBustSoundVersion = null;
 let victoryCelebrationTimer = null;
 let victoryCelebrationVersion = null;
-let lastGameplayRoomId = null;
-let lastGameplayPhase = null;
+let victoryArmedRoomId = null;
+let lastCelebratedVictoryKey = null;
 let bootEpoch = 0;
 
 installCantStopAudioUnlock();
@@ -799,8 +799,8 @@ function resetVictoryCelebration() {
     victoryCelebrationTimer = null;
   }
   victoryCelebrationVersion = null;
-  lastGameplayRoomId = null;
-  lastGameplayPhase = null;
+  victoryArmedRoomId = null;
+  lastCelebratedVictoryKey = null;
 }
 
 function syncVictoryCelebration(view, state) {
@@ -814,14 +814,28 @@ function syncVictoryCelebration(view, state) {
     && !view.isManuallyEnded
     && !view.isPlayerLeftEnded
     && winnerClaims.length >= 3;
-  const enteredGameOver = roomId !== ""
-    && roomId === lastGameplayRoomId
-    && lastGameplayPhase != null
-    && lastGameplayPhase !== "GAME_OVER"
-    && view.phase === "GAME_OVER";
 
-  if (enteredGameOver && isCompletedWin && Number.isFinite(version)) {
+  if (roomId && view.phase !== "GAME_OVER") {
+    victoryArmedRoomId = roomId;
+    lastCelebratedVictoryKey = null;
+    if (victoryCelebrationVersion != null) {
+      if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+      victoryCelebrationTimer = null;
+      victoryCelebrationVersion = null;
+    }
+  }
+
+  const victoryKey = roomId && Number.isFinite(version)
+    ? `${roomId}:${version}`
+    : null;
+  const shouldStart = isCompletedWin
+    && victoryKey
+    && victoryArmedRoomId === roomId
+    && lastCelebratedVictoryKey !== victoryKey;
+
+  if (shouldStart) {
     if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
+    lastCelebratedVictoryKey = victoryKey;
     victoryCelebrationVersion = version;
     victoryCelebrationTimer = setTimeout(() => {
       victoryCelebrationTimer = null;
@@ -833,18 +847,23 @@ function syncVictoryCelebration(view, state) {
     }, CANT_STOP_VICTORY_CELEBRATION_MS);
   }
 
-  if (view.phase !== "GAME_OVER" && victoryCelebrationVersion != null) {
-    if (victoryCelebrationTimer != null) clearTimeout(victoryCelebrationTimer);
-    victoryCelebrationTimer = null;
-    victoryCelebrationVersion = null;
-  }
-
-  lastGameplayRoomId = roomId;
-  lastGameplayPhase = view.phase;
-
   return isCompletedWin
     && Number.isFinite(version)
     && victoryCelebrationVersion === version;
+}
+
+function bustPlayerName(view, state) {
+  const playerId = String(state.effect?.playerId ?? "");
+  const player = Array.isArray(state.snapshot?.players)
+    ? state.snapshot.players.find((candidate) =>
+      String(candidate?.userId ?? candidate?.id ?? "") === playerId)
+    : null;
+  return String(
+    player?.displayName
+      ?? player?.nickname
+      ?? view.activePlayerName
+      ?? "플레이어",
+  );
 }
 
 function createVictoryCelebration(view) {
@@ -1373,11 +1392,12 @@ function createBoard(view, state, {
           role: "status",
           "aria-live": "polite",
         }, [
-          el("strong", { text: "미끄러짐! 등반 실패" }),
+          el("strong", { text: `${bustPlayerName(view, state)}님이 미끄러졌어요!` }),
           el("div", { className: "cant-stop-bust-notice__message" }, [
-            el("span", { text: "눈길에 미끄러졌어요." }),
-            el("span", { text: "이번 턴의 임시 진척이 사라지고" }),
-            el("span", { text: "다음 플레이어에게 턴이 넘어갑니다." }),
+            el("span", {
+              text: `${bustPlayerName(view, state)}님의 이번 턴 임시 진척이 모두 사라졌어요.`,
+            }),
+            el("span", { text: "등반에 실패해 다음 플레이어에게 턴이 넘어갑니다." }),
           ]),
         ])
         : null,
