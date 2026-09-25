@@ -102,6 +102,25 @@ test("Auction resolution notice appears concurrently with its follow-up animatio
   }
 });
 
+test("Auction bid feedback is centered, notices clear the panel edge, and selector motion decelerates", () => {
+  assert.match(
+    auctionCssSource,
+    /\.auction-action-panel__bid-event \{[\s\S]*top: 50%;[\s\S]*left: 50%;[\s\S]*transform: translate\(-50%, -50%\) scale\(0\.86\)/,
+  );
+  assert.match(
+    auctionCssSource,
+    /bottom: calc\(var\(--auction-notice-bottom, calc\(50vh \+ 270px\)\) \+ 8px\)/,
+  );
+  assert.match(
+    auctionCssSource,
+    /auctionProfileChainSpin 2\.8s linear forwards/,
+  );
+  assert.match(
+    auctionCssSource,
+    /12% \{[\s\S]*0\.5[\s\S]*28% \{[\s\S]*0\.76[\s\S]*68% \{[\s\S]*0\.965[\s\S]*84% \{[\s\S]*0\.99/,
+  );
+});
+
 test("Auction notices are portaled and positioned immediately above the active Auction panel", () => {
   for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
     assert.match(source, /auctionOverlayActive/);
