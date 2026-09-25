@@ -13,6 +13,31 @@ function isBustEffect(state) {
   return state?.effect?.type === "bust";
 }
 
+function isRemoteRollTransition(previousState, nextState) {
+  const previousVersion = snapshotVersion(previousState);
+  const nextVersion = snapshotVersion(nextState);
+  if (
+    previousVersion == null
+    || nextVersion == null
+    || nextVersion <= previousVersion
+    || previousState?.view !== "playing"
+    || nextState?.view !== "playing"
+  ) {
+    return false;
+  }
+
+  const previousRoomId = previousState?.snapshot?.room?.id;
+  const nextRoomId = nextState?.snapshot?.room?.id;
+  if (!previousRoomId || previousRoomId !== nextRoomId) return false;
+
+  const previousPhase = previousState?.snapshot?.game?.phase;
+  const nextPhase = nextState?.snapshot?.game?.phase;
+  const canHaveRolled = previousPhase === "TURN_ROLL" || previousPhase === "PUSH_OR_STOP";
+  const hasRollResult = nextPhase === "PAIRING_SELECTION" || isBustEffect(nextState);
+
+  return canHaveRolled && hasRollResult;
+}
+
 export function createCantStopPresentationCoordinator({
   onPresent,
   now = () => Date.now(),
@@ -125,6 +150,21 @@ export function createCantStopPresentationCoordinator({
     rollTimer = schedule(releaseQueuedRoll, nextRollBoundaryDelay());
   }
 
+  function startRemoteRoll(finalState) {
+    if (!presentedState?.snapshot) return false;
+
+    rollBaseState = presentedState;
+    rollStartedAt = now();
+    present({
+      ...rollBaseState,
+      busy: true,
+      busyAction: "rollDice",
+      effect: null,
+    });
+    queueRollResult(finalState);
+    return true;
+  }
+
   function receive(state) {
     if (disposed) return;
 
@@ -159,6 +199,10 @@ export function createCantStopPresentationCoordinator({
 
     if (rollBaseState) {
       queueRollResult(state);
+      return;
+    }
+
+    if (isRemoteRollTransition(presentedState, state) && startRemoteRoll(state)) {
       return;
     }
 
