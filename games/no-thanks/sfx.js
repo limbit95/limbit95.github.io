@@ -45,48 +45,112 @@ function scheduleTone(context, {
   oscillator.stop(endAt + 0.02);
 }
 
-function scheduleCardShuffleBeat(context, at, emphasis = 1) {
-  scheduleTone(context, {
+function scheduleFilteredNoise(context, {
+  at,
+  durationMs,
+  peakGain,
+  filterType = "bandpass",
+  startFrequency,
+  endFrequency,
+  q = 0.8,
+}) {
+  const frameCount = Math.max(1, Math.round(context.sampleRate * (durationMs / 1000)));
+  const buffer = context.createBuffer(1, frameCount, context.sampleRate);
+  const samples = buffer.getChannelData(0);
+
+  for (let index = 0; index < samples.length; index += 1) {
+    samples[index] = (Math.random() * 2) - 1;
+  }
+
+  const source = context.createBufferSource();
+  const filter = context.createBiquadFilter();
+  const gain = context.createGain();
+  const endAt = at + (durationMs / 1000);
+
+  source.buffer = buffer;
+  filter.type = filterType;
+  filter.frequency.setValueAtTime(startFrequency, at);
+  filter.frequency.exponentialRampToValueAtTime(endFrequency, endAt);
+  filter.Q.setValueAtTime(q, at);
+
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(peakGain, at + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(context.destination);
+  source.start(at);
+  source.stop(endAt + 0.02);
+}
+
+function scheduleCardSlide(context, at) {
+  // Broad filtered noise reads as cardstock sliding across a tabletop,
+  // avoiding the pitched "boing" character of an oscillator-only cue.
+  scheduleFilteredNoise(context, {
     at,
-    type: "triangle",
-    startFrequency: 1260,
-    endFrequency: 420,
-    peakGain: 0.018 * emphasis,
-    attackMs: 2,
-    releaseMs: 105,
+    durationMs: 285,
+    peakGain: 0.042,
+    filterType: "bandpass",
+    startFrequency: 2100,
+    endFrequency: 780,
+    q: 0.72,
   });
-  scheduleTone(context, {
-    at: at + 0.018,
-    type: "sine",
-    startFrequency: 260,
-    endFrequency: 150,
-    peakGain: 0.014 * emphasis,
-    attackMs: 3,
-    releaseMs: 130,
+  scheduleFilteredNoise(context, {
+    at: at + 0.245,
+    durationMs: 78,
+    peakGain: 0.022,
+    filterType: "bandpass",
+    startFrequency: 1350,
+    endFrequency: 620,
+    q: 0.9,
   });
 }
 
-function scheduleCoinHit(context, at, {
-  bright = 1,
-  gain = 1,
-} = {}) {
-  scheduleTone(context, {
+function scheduleCardShuffleBeat(context, at, emphasis = 1) {
+  scheduleFilteredNoise(context, {
     at,
-    type: "triangle",
-    startFrequency: 1720 * bright,
-    endFrequency: 820 * bright,
-    peakGain: 0.034 * gain,
-    attackMs: 2,
-    releaseMs: 82,
+    durationMs: 105,
+    peakGain: 0.024 * emphasis,
+    filterType: "bandpass",
+    startFrequency: 2350,
+    endFrequency: 980,
+    q: 0.78,
+  });
+  scheduleFilteredNoise(context, {
+    at: at + 0.045,
+    durationMs: 78,
+    peakGain: 0.016 * emphasis,
+    filterType: "bandpass",
+    startFrequency: 1550,
+    endFrequency: 720,
+    q: 0.9,
+  });
+}
+
+function scheduleChipStackHit(context, at, {
+  weight = 1,
+  pitch = 1,
+} = {}) {
+  // Short dry impact + tiny high-frequency edge gives a plastic chip
+  // landing on a stack: "착", not a metallic coin jingle.
+  scheduleFilteredNoise(context, {
+    at,
+    durationMs: 42,
+    peakGain: 0.021 * weight,
+    filterType: "bandpass",
+    startFrequency: 2200 * pitch,
+    endFrequency: 1050 * pitch,
+    q: 1.05,
   });
   scheduleTone(context, {
-    at: at + 0.01,
-    type: "sine",
-    startFrequency: 440,
-    endFrequency: 250,
-    peakGain: 0.012 * gain,
-    attackMs: 3,
-    releaseMs: 118,
+    at: at + 0.004,
+    type: "triangle",
+    startFrequency: 520 * pitch,
+    endFrequency: 235 * pitch,
+    peakGain: 0.021 * weight,
+    attackMs: 1,
+    releaseMs: 54,
   });
 }
 
@@ -107,14 +171,14 @@ function scheduleOpeningSound(context) {
   });
 
   [
-    { delayMs: 120, bright: 0.92, gain: 0.8 },
-    { delayMs: 315, bright: 1.02, gain: 0.88 },
-    { delayMs: 535, bright: 0.96, gain: 0.82 },
-    { delayMs: 780, bright: 1.08, gain: 0.9 },
-    { delayMs: 1060, bright: 1, gain: 0.82 },
-    { delayMs: 1390, bright: 1.12, gain: 0.78 },
-  ].forEach(({ delayMs, bright, gain }) => {
-    scheduleCoinHit(context, startAt + (delayMs / 1000), { bright, gain });
+    { delayMs: 620, pitch: 0.94, weight: 0.72 },
+    { delayMs: 760, pitch: 1.02, weight: 0.78 },
+    { delayMs: 900, pitch: 0.98, weight: 0.74 },
+    { delayMs: 1040, pitch: 1.06, weight: 0.8 },
+    { delayMs: 1180, pitch: 1, weight: 0.74 },
+    { delayMs: 1320, pitch: 1.08, weight: 0.7 },
+  ].forEach(({ delayMs, pitch, weight }) => {
+    scheduleChipStackHit(context, startAt + (delayMs / 1000), { pitch, weight });
   });
 
   scheduleTone(context, {
@@ -131,38 +195,22 @@ function scheduleOpeningSound(context) {
 function scheduleTakeSound(context, chipCount) {
   const startAt = Number(context.currentTime) + 0.01;
 
-  scheduleTone(context, {
-    at: startAt,
-    type: "triangle",
-    startFrequency: 760,
-    endFrequency: 210,
-    peakGain: 0.034,
-    attackMs: 3,
-    releaseMs: 240,
-  });
-  scheduleTone(context, {
-    at: startAt + 0.34,
-    type: "sine",
-    startFrequency: 290,
-    endFrequency: 170,
-    peakGain: 0.028,
-    attackMs: 4,
-    releaseMs: 190,
-  });
+  scheduleCardSlide(context, startAt);
 
   const safeChipCount = Math.max(0, Math.floor(Number(chipCount) || 0));
-  const audibleChipCount = Math.min(7, safeChipCount);
+  const audibleChipCount = Math.min(8, safeChipCount);
+  const landingAt = startAt + 0.39;
   for (let index = 0; index < audibleChipCount; index += 1) {
-    scheduleCoinHit(context, startAt + 0.075 + (index * 0.052), {
-      bright: 0.92 + ((index % 3) * 0.08),
-      gain: 0.72,
+    scheduleChipStackHit(context, landingAt + (index * 0.05), {
+      pitch: 0.94 + ((index % 3) * 0.05),
+      weight: 0.72 + ((index % 2) * 0.08),
     });
   }
 }
 
 function scheduleChipSound(context) {
   const startAt = Number(context.currentTime) + 0.01;
-  scheduleCoinHit(context, startAt, { bright: 0.96, gain: 0.52 });
+  scheduleChipStackHit(context, startAt, { pitch: 0.98, weight: 0.62 });
 }
 
 function playWithContext(context, schedule) {
