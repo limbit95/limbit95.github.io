@@ -33,14 +33,24 @@ test("No Thanks! take sound uses a card slide followed by stacked chip impacts",
   assert.match(sfx, /function scheduleCardSlide/u);
   assert.match(sfx, /cardstock sliding across a tabletop/u);
   assert.match(sfx, /const audibleChipCount = Math\.min\(8, safeChipCount\)/u);
+  assert.match(sfx, /peakGain: 0\.084/u);
+  assert.match(sfx, /peakGain: 0\.044/u);
   assert.match(sfx, /const landingAt = startAt \+ 0\.39/u);
+  assert.match(sfx, /weight: 1\.44 \+ \(\(index % 2\) \* 0\.16\)/u);
   assert.doesNotMatch(sfx, /startFrequency: 760/u);
 });
 
-test("No Thanks! refusal chip sound lands with the authoritative chip animation", () => {
+test("No Thanks! refusal chip sound follows the authoritative chip flight and landing", () => {
   assert.match(
     runtime,
-    /chipFlight\.addEventListener\("animationend"[\s\S]*?effect\?\.soundPlayed !== true[\s\S]*?playNoThanksChipSound\(\)[\s\S]*?effect\.soundPlayed = true/u,
+    /playNoThanksChipSound\(\{ travelMs: 620 \}\)[\s\S]*?chipFlight\.classList\.add\("is-motion-ready"\)/u,
   );
-  assert.match(sfx, /plastic chip[\s\S]*?"착"/u);
+  assert.match(
+    runtime,
+    /prefersReducedMotion\(\)[\s\S]*?playNoThanksChipSound\(\{ travelMs: 0 \}\)/u,
+  );
+  assert.match(sfx, /"스윽 → 착"/u);
+  assert.match(sfx, /durationMs: Math\.max\(120, safeTravelMs - 90\)/u);
+  assert.match(sfx, /Math\.max\(0, safeTravelMs - 30\) \/ 1000/u);
+  assert.match(sfx, /scheduleChipStackHit\(context, landingAt/u);
 });
