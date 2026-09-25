@@ -733,7 +733,7 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
 }
 
 .auction-selector__track[data-spinning="true"] {
-  animation: auctionProfileChainSpin 2.8s linear forwards;
+  animation: auctionProfileChainSpin 7.2s linear forwards;
 }
 
 .auction-selector__profile {
@@ -820,20 +820,32 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
   0% {
     transform: translateX(0);
   }
-  12% {
-    transform: translateX(calc(var(--selector-target-x) * 0.5));
+  8% {
+    transform: translateX(calc(var(--selector-target-x) * 0.3));
   }
-  28% {
-    transform: translateX(calc(var(--selector-target-x) * 0.76));
+  18% {
+    transform: translateX(calc(var(--selector-target-x) * 0.55));
   }
-  48% {
-    transform: translateX(calc(var(--selector-target-x) * 0.9));
+  30% {
+    transform: translateX(calc(var(--selector-target-x) * 0.73));
   }
-  68% {
+  44% {
+    transform: translateX(calc(var(--selector-target-x) * 0.85));
+  }
+  58% {
+    transform: translateX(calc(var(--selector-target-x) * 0.925));
+  }
+  70% {
     transform: translateX(calc(var(--selector-target-x) * 0.965));
   }
-  84% {
-    transform: translateX(calc(var(--selector-target-x) * 0.99));
+  80% {
+    transform: translateX(calc(var(--selector-target-x) * 0.985));
+  }
+  88% {
+    transform: translateX(calc(var(--selector-target-x) * 0.994));
+  }
+  94% {
+    transform: translateX(calc(var(--selector-target-x) * 0.998));
   }
   100% {
     transform: translateX(var(--selector-target-x));
