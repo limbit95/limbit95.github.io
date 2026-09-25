@@ -26,6 +26,12 @@ import {
   createNoThanksBgmSession,
 } from "./bgm.js";
 import {
+  playNoThanksChipSound,
+  playNoThanksOpeningSound,
+  playNoThanksTakeSound,
+  prepareNoThanksSound,
+} from "./sfx.js";
+import {
   getBoardSeatCoordinates,
   getNoThanksCardTone,
   getNoThanksDeckVisualCount,
@@ -41,6 +47,12 @@ const app = document.getElementById("app");
 const noThanksBgm = createNoThanksBgmSession();
 
 void noThanksBgm.start();
+
+const prepareNoThanksAudio = () => {
+  prepareNoThanksSound();
+};
+window.addEventListener("pointerdown", prepareNoThanksAudio, { passive: true, once: true });
+window.addEventListener("keydown", prepareNoThanksAudio, { once: true });
 const DEFAULT_BOARD_AVATAR_URL = "../../assets/images/default-avatar.svg";
 
 const accessGate = createGameAccessGate({
@@ -238,7 +250,7 @@ function createRulesDialog() {
         ]),
         el("p", {
           className: "no-thanks-rules__choice-note",
-          text: "칩이 0개라면 거절할 수 없습니다. 카드를 가져온 플레이어가 다음 공개 카드에서도 계속 선택합니다.",
+          text: "플레이어 본인이 보유한 칩이 0개라면 거절할 수 없습니다. 중앙 카드 위에 쌓인 칩 수와는 관계없습니다. 카드를 가져온 플레이어가 다음 공개 카드에서도 계속 선택합니다.",
         }),
       ])),
       ruleCard(3, "연속 숫자는 한 묶음", el("div", { className: "no-thanks-rules__score-demo" }, [
@@ -1800,6 +1812,7 @@ async function animatePendingTakeToSeat(effect) {
     return;
   }
 
+  playNoThanksTakeSound({ chipCount: presentation.chipCount });
   await Promise.all([
     animateTakeCardToSeat(presentation),
     animateTakeChipsToSeat(presentation),
@@ -2444,6 +2457,7 @@ async function runGameStartPresentation(effect, view) {
     revealGameStartDeck(effect);
     revealGameStartChips(effect);
   } else {
+    playNoThanksOpeningSound();
     await Promise.all([
       animateGameStartDeck(setupBoard, effect),
       animateGameStartChips(setupBoard, view, effect),
@@ -2531,6 +2545,7 @@ async function animatePendingTakePresentation(effect) {
     return;
   }
 
+  playNoThanksTakeSound({ chipCount: presentation.chipCount });
   await Promise.all([
     animateTakeCardToHand(presentation, effect),
     animateTakeChipsToPanel(presentation, effect),
@@ -2676,6 +2691,10 @@ function syncBoardAnimationGeometry(view) {
 
     const chipFlight = board.querySelector(".no-thanks-chip-flight");
     const chipTarget = board.querySelector(".no-thanks-center-chips__visual");
+    if (effect?.chipFromPlayerId && effect.soundPlayed !== true) {
+      playNoThanksChipSound();
+      effect.soundPlayed = true;
+    }
     if (chipFlight && chipTarget) {
       const flightRect = chipFlight.getBoundingClientRect();
       const targetRect = chipTarget.getBoundingClientRect();
