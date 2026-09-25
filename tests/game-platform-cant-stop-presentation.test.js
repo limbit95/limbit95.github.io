@@ -191,6 +191,11 @@ test("Can't Stop presentation stages a remote bust on the currently displayed bo
   }));
 
   assert.equal(presented.at(-1).snapshot.version, 30);
+  assert.equal(presented.at(-1).busyAction, "rollDice");
+  assert.equal(presented.at(-1).effect, null);
+
+  clock.advance(CANT_STOP_PRESENTATION_TIMINGS.rollCycleMs);
+  assert.equal(presented.at(-1).snapshot.version, 30);
   assert.equal(presented.at(-1).effect.type, "bust");
 
   clock.advance(CANT_STOP_PRESENTATION_TIMINGS.bustMs);
