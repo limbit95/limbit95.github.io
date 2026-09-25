@@ -666,6 +666,63 @@ function permanentProgressFill(markers) {
   }).join(", ")})`;
 }
 
+function activePlayerColorIndex(view, state) {
+  const snapshotPlayers = Array.isArray(state.snapshot?.players)
+    ? state.snapshot.players
+    : [];
+  const rosterIndex = snapshotPlayers.findIndex((player) =>
+    String(player?.userId ?? player?.id ?? "") === String(view.activePlayerId));
+  if (rosterIndex < 0) return 0;
+
+  const player = snapshotPlayers[rosterIndex];
+  const seat = Number.isInteger(player?.seat) && player.seat >= 0
+    ? player.seat
+    : rosterIndex;
+  return seat % CANT_STOP_PLAYER_COLORS.length;
+}
+
+function decorateCantStopGameplayPlayerCards(shell, players, currentUserId) {
+  if (!shell?.classList.contains("cant-stop-shell--playing")) return;
+
+  const playerById = new Map(players.map((player, index) => {
+    const seat = Number.isInteger(player.seat) && player.seat >= 0
+      ? player.seat
+      : index;
+    return [String(player.id), {
+      player,
+      colorIndex: seat % CANT_STOP_PLAYER_COLORS.length,
+    }];
+  }));
+
+  shell.querySelectorAll(".game-platform-player").forEach((card) => {
+    const entry = playerById.get(String(card.dataset.playerId ?? ""));
+    if (!entry) return;
+
+    const { player, colorIndex } = entry;
+    const color = CANT_STOP_PLAYER_COLORS[colorIndex];
+    card.classList.add(`cant-stop-player-card--player-${colorIndex}`);
+
+    const pieceBadge = el("span", {
+      className: "cant-stop-player-color-badge",
+      "aria-label": `${player.displayName} 말 색상`,
+    }, [
+      el("span", {
+        className: "cant-stop-player-color-badge__piece",
+        style: { background: color },
+        "aria-hidden": "true",
+      }),
+      el("span", {
+        className: "cant-stop-player-color-badge__text",
+        text: String(player.id) === String(currentUserId) ? "내 말" : "말",
+      }),
+    ]);
+
+    const presence = card.querySelector(".game-platform-player__presence");
+    if (presence) presence.before(pieceBadge);
+    else card.append(pieceBadge);
+  });
+}
+
 function clearPairingPlanPreview() {
   root?.querySelectorAll(".cant-stop-marker--preview").forEach((marker) => marker.remove());
   root?.querySelectorAll(".cant-stop-column--previewed").forEach((column) => {
@@ -681,10 +738,11 @@ function clearPairingPlanPreview() {
   });
 }
 
-function showPairingPlanPreview(columns, view) {
+function showPairingPlanPreview(columns, view, state) {
   clearPairingPlanPreview();
   if (!view.canChoosePairing) return;
 
+  const previewPlayerIndex = activePlayerColorIndex(view, state);
   const moveCounts = new Map();
   for (const columnNumber of columns) {
     moveCounts.set(columnNumber, (moveCounts.get(columnNumber) ?? 0) + 1);
@@ -720,6 +778,7 @@ function showPairingPlanPreview(columns, view) {
         className: [
           "cant-stop-marker",
           "cant-stop-marker--preview",
+          `cant-stop-marker--player-${previewPlayerIndex}`,
           destination ? "cant-stop-marker--preview-destination" : "",
         ].filter(Boolean).join(" "),
         dataset: { previewStep: String(position - startPosition) },
@@ -779,9 +838,9 @@ function createPairingRouteCard(pairing, view, state) {
         className: "cant-stop-route__plan",
         type: "button",
         disabled: state.busy || !view.canChoosePairing,
-        onMouseEnter: () => showPairingPlanPreview(columns, view),
+        onMouseEnter: () => showPairingPlanPreview(columns, view, state),
         onMouseLeave: clearPairingPlanPreview,
-        onFocus: () => showPairingPlanPreview(columns, view),
+        onFocus: () => showPairingPlanPreview(columns, view, state),
         onBlur: clearPairingPlanPreview,
         onClick: async () => {
           clearPairingPlanPreview();
@@ -1057,14 +1116,11 @@ function createBoard(view, state, {
       className: [
         "cant-stop-column",
         column.claimedById ? "cant-stop-column--claimed" : "",
+        Number.isInteger(column.claimedByIndex)
+          ? `cant-stop-column--player-${column.claimedByIndex % CANT_STOP_PLAYER_COLORS.length}`
+          : "",
       ].filter(Boolean).join(" "),
       dataset: { column: String(column.number) },
-      style: Number.isInteger(column.claimedByIndex)
-        ? {
-          "--cant-stop-claim-color":
-            CANT_STOP_PLAYER_COLORS[column.claimedByIndex % CANT_STOP_PLAYER_COLORS.length],
-        }
-        : null,
       "aria-label": column.claimedByName
         ? `${column.number} 열 ${column.claimedByName} 완주`
         : `${column.number} 열 ${column.height}칸`,
@@ -1090,6 +1146,13 @@ function createBoard(view, state, {
           const progressFill = permanent.length > 0 && permanent.length < 4
             ? permanentProgressFill(permanent)
             : null;
+          const progressFillLayer = progressFill
+            ? el("span", {
+              className: `cant-stop-progress-fill cant-stop-progress-fill--${permanent.length}`,
+              style: { background: progressFill },
+              "aria-hidden": "true",
+            })
+            : null;
           return el("span", {
             className: [
               "cant-stop-column__cell",
@@ -1099,13 +1162,11 @@ function createBoard(view, state, {
               position: String(position),
               permanentCount: String(permanent.length),
             },
-            style: progressFill
-              ? { "--cant-stop-progress-fill": progressFill }
-              : null,
             "aria-label": permanent.length
               ? `${column.number} 열 ${position}칸, ${permanent.map((marker) => marker.displayName).join(", ")} 진척`
               : `${column.number} 열 ${position}칸`,
           }, [
+            progressFillLayer,
             ...permanent.map((marker) => el("span", {
               className: `cant-stop-marker cant-stop-marker--permanent cant-stop-marker--player-${marker.playerIndex % 4}`,
               title: `${marker.displayName} 영구 진척`,
@@ -1758,6 +1819,12 @@ function renderApprovedRuntime(state) {
       shell.classList.add("cant-stop-shell--rolling");
     }
   }
+
+  decorateCantStopGameplayPlayerCards(
+    shell,
+    players,
+    auth.user?.id ?? fallbackPlayer.id,
+  );
 
   const suppressConnectionCard = state.view !== CANT_STOP_LOBBY_VIEW.ENTRY
     || state.connection === "connected";
