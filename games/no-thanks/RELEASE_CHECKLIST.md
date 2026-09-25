@@ -16,6 +16,8 @@
 - [x] 7개 독립 인증 세션 full refuse cycle / private counter 격리 통합 검증
 - [x] start RPC가 3~35 전체 33장을 정확히 한 번씩 포함하면서 canonical ascending order와 다른 randomized draw order를 저장하는 회귀 검증
 - [x] 마지막 카드 TAKE source-card 중복 제거 / 수동 종료 시 active deal cancel / 최대 24장 result-rack responsive fit 계약 검증
+- [x] PR #396 첫 action / sorted TAKE landing / adaptive hand spacing / focus·visibility deal replay 회귀 검증 및 Game Platform governance #573 통과
+- [x] PR #397 Rules Guide 0칩 문구 / lobby↔gameplay BGM / card·chip tactile SFX 회귀 검증 및 Game Platform governance #580 통과
 
 ## Rematch / post-game
 
@@ -29,6 +31,7 @@
 
 아래 항목은 자동 DB 통합 테스트가 대체하지 않습니다.
 
+- [x] 2026-09-25까지 실제 멀티플레이 환경에서 반복 플레이 테스트 수행 (사용자 확인). 아래 세부 reconnect / 7-client / mobile / offline 시나리오는 각각 확인된 경우에만 별도 완료 처리합니다.
 - [ ] 데스크톱 3개 실제 브라우저/프로필에서 방 생성 → 참가 → 준비 → 시작 → 자연 종료
 - [ ] 실제 7개 클라이언트에서 roster와 현재 차례 표시 확인
 - [ ] 현재 차례 플레이어 브라우저 종료 → 다른 클라이언트에서 `재접속 대기` 확인 → 재접속 후 같은 turn 복원
@@ -40,9 +43,10 @@
 
 ## Design closeout gate
 
-- [x] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision(NT-UI-001~011)을 함께 확인
-- [x] 수동 디자인 리뷰에서 확정된 game-start / transfer-continuity / maximum-hand 수정이 코드에만 남지 않도록 `UI_DECISIONS.md`에 NT-UI-009~011로 기록
-- [x] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분 — Phase E 공개 획득 카드 popover/추가 polish는 post-closeout follow-up
+- [x] `UI_DESIGN.md` adoption baseline과 `UI_DECISIONS.md`의 최신 non-superseded decision(NT-UI-001~013)을 함께 확인
+- [x] 수동 디자인 리뷰에서 확정된 game-start / transfer-continuity / dense-hand / sorted insertion / tactile audio 수정이 코드에만 남지 않도록 `UI_DECISIONS.md`에 NT-UI-009~013으로 기록
+- [x] PR #396 gameplay hand/motion/focus polish와 PR #397 BGM/SFX polish를 main 병합 상태에서 디자인 baseline으로 재확인
+- [x] 남은 UI 항목을 release blocker와 post-release follow-up으로 구분 — Phase E 공개 획득 카드 popover/추가 polish는 post-release follow-up
 - [x] `UI_DECISIONS.md / Current Design Track`을 `FINAL / DESIGN_CLOSEOUT`으로 기록
 
 ## Production database gates
@@ -81,4 +85,6 @@ Advisor에서 No Thanks! 관련으로 남는 항목 중 `no_thanks_room_actions 
 
 ## Release rule
 
-자동 테스트가 통과해도 manual browser gate와 production DB gate가 남아 있으면 No Thanks!를 출시 완료로 간주하지 않습니다.
+- 기능 구현 checkpoint baseline은 PR #397 merge commit `616626f53f5fb8554fff8df2e86cc50a22e8aefa`입니다. 이 시점 이후 별도 core development phase는 계획하지 않습니다.
+- 디자인 checkpoint baseline은 `UI_DESIGN.md + UI_DECISIONS.md NT-UI-001~013`이며 `FINAL / DESIGN_CLOSEOUT` 상태입니다.
+- 자동 테스트와 반복 멀티플레이 플레이가 완료되어도 위에서 아직 체크되지 않은 manual browser gate와 production DB gate가 남아 있으면 No Thanks!를 출시 완료로 간주하지 않습니다.
