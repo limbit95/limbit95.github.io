@@ -148,6 +148,7 @@ export function createCantStopGameplayViewModel(snapshot, currentUserId) {
       runner,
       claimedById,
       claimedByName: claimedBy?.displayName ?? null,
+      claimedByIndex: claimedBy?.index ?? null,
     });
   });
 
