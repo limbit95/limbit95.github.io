@@ -1,5 +1,12 @@
 # Signal Room UI Design
 
+## Related Documents
+
+- Functional game design and architecture boundary: `GAME_SPEC.md`
+- Development handoff and current implementation status: `DEVELOPMENT.md`
+- Post-baseline UI overrides and validation history: `UI_DECISIONS.md`
+
+
 ## Design Research
 
 - Target edition / visual baseline: original Cheongpa Game Platform prototype; no external edition.
