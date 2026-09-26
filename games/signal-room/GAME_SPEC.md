@@ -1,5 +1,12 @@
 # Signal Room Game Spec
 
+## Related Documents
+
+- Development handoff and current implementation status: `DEVELOPMENT.md`
+- Initial UI / presentation baseline: `UI_DESIGN.md`
+- Post-baseline UI decisions and validation history: `UI_DECISIONS.md`
+
+
 > Status: experimental platform-native prototype
 
 ## Game Overview
