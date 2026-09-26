@@ -33,6 +33,14 @@ jobs:
       - name: Rebuild content-hashed community assets
         run: npm run build:assets
 
+      - name: Upload rebuilt community assets for release update
+        uses: actions/upload-artifact@v4
+        with:
+          name: rebuilt-community-assets
+          path: |
+            index.html
+            assets/build
+
       - name: Guard committed hashed assets are current
         if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
         shell: bash
