@@ -1,5 +1,12 @@
 # Signal Room Development
 
+## Related Documents
+
+- Functional design and prototype boundaries: `GAME_SPEC.md`
+- Initial UI / presentation baseline: `UI_DESIGN.md`
+- Post-baseline UI decisions and validation history: `UI_DECISIONS.md`
+
+
 ## Current Status
 
 - Phase: Phase 1 — local top-down prototype
