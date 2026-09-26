@@ -8,26 +8,27 @@ import { getRegisteredGame } from "../games/shared/index.js";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("No Thanks! registry entry stays shared but inactive until release", () => {
+test("No Thanks! registry entry declares released shared capabilities", () => {
   const noThanks = getRegisteredGame("no-thanks");
 
   assert.equal(noThanks?.platform, "shared");
   assert.equal(noThanks?.href, "./games/no-thanks/");
   assert.equal(noThanks?.buttonText, "No Thanks! 시작");
   assert.deepEqual(noThanks?.capabilities, {
-    online: false,
+    online: true,
     local: false,
     invite: false,
-    presence: false,
+    presence: true,
   });
 });
 
-
-test("No Thanks! stays off the public games page before release activation", () => {
+test("main games page exposes No Thanks! as a playable card", () => {
   const gamesPage = readFileSync(
     path.join(repositoryRoot, "js", "pages", "games.js"),
     "utf8",
   );
 
-  assert.doesNotMatch(gamesPage, /href: "\.\/games\/no-thanks\/"/u);
+  assert.match(gamesPage, /title: "No Thanks!"/u);
+  assert.match(gamesPage, /href: "\\.\/games\/no-thanks\/"?/u);
+  assert.match(gamesPage, /buttonText: "No Thanks! 시작"/u);
 });
