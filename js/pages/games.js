@@ -79,6 +79,13 @@ const GAMES = [
     href: "./games/cant-stop/",
     buttonText: "Can’t Stop 시작",
   },
+  {
+    icon: "⚡",
+    title: "Signal Room",
+    description: "4명의 러너가 신호 패드를 동기화하고 스캐너를 피해 함께 탈출하는 탑다운 협동 프로토타입이에요.",
+    href: "./games/signal-room/",
+    buttonText: "Signal Room 실험",
+  },
 ];
 
 export function renderGames() {
