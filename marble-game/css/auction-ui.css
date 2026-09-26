@@ -350,9 +350,9 @@
 .auction-action-panel__bid-event {
   position: absolute;
   z-index: 4;
-  top: 58%;
-  right: 18px;
-  left: auto;
+  top: 50%;
+  right: auto;
+  left: 50%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -368,7 +368,7 @@
     rgba(17, 27, 39, 0.97);
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5), 0 0 34px rgba(243, 194, 83, 0.12);
   pointer-events: none;
-  transform: translateY(-50%) scale(0.86);
+  transform: translate(-50%, -50%) scale(0.86);
   opacity: 0;
 }
 
@@ -479,41 +479,41 @@
 @keyframes auctionBidEvent {
   0% {
     opacity: 0;
-    transform: translateY(-42%) scale(0.82);
+    transform: translate(-50%, -42%) scale(0.82);
   }
   12% {
     opacity: 1;
-    transform: translateY(-50%) scale(1.04);
+    transform: translate(-50%, -50%) scale(1.04);
   }
   86% {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-58%) scale(0.96);
+    transform: translate(-50%, -58%) scale(0.96);
   }
 }
 
 @keyframes auctionSurgeBidEvent {
   0% {
     opacity: 0;
-    transform: translateY(-42%) scale(0.76);
+    transform: translate(-50%, -42%) scale(0.76);
   }
   14% {
     opacity: 1;
-    transform: translateY(-50%) scale(1.1);
+    transform: translate(-50%, -50%) scale(1.1);
   }
   28% {
-    transform: translateY(-50%) scale(0.98);
+    transform: translate(-50%, -50%) scale(0.98);
   }
   86% {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-58%) scale(0.96);
+    transform: translate(-50%, -58%) scale(0.96);
   }
 }
 
@@ -541,7 +541,7 @@
 
   .auction-action-panel__bid-event[data-active="true"] {
     opacity: 1;
-    transform: translateY(-50%) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -559,7 +559,7 @@ body[data-play-mode="window"] .important-notice[data-notice-layer="global"] {
 body[data-auction-overlay-active="true"] .important-notice[data-notice-layer="global"],
 body[data-play-mode="window"][data-auction-overlay-active="true"] .important-notice[data-notice-layer="global"] {
   top: auto;
-  bottom: var(--auction-notice-bottom, calc(50vh + 270px));
+  bottom: calc(var(--auction-notice-bottom, calc(50vh + 270px)) + 8px);
   z-index: 1250;
   max-width: min(680px, calc(100vw - 28px));
   transform: translateX(-50%);
@@ -733,7 +733,7 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
 }
 
 .auction-selector__track[data-spinning="true"] {
-  animation: auctionProfileChainSpin 2.8s cubic-bezier(0.08, 0.82, 0.12, 1) forwards;
+  animation: auctionProfileChainSpin 7.2s linear forwards;
 }
 
 .auction-selector__profile {
@@ -820,17 +820,32 @@ body[data-play-mode="window"][data-auction-overlay-active="true"] .important-not
   0% {
     transform: translateX(0);
   }
+  8% {
+    transform: translateX(calc(var(--selector-target-x) * 0.3));
+  }
   18% {
-    transform: translateX(calc(var(--selector-target-x) * 0.38));
+    transform: translateX(calc(var(--selector-target-x) * 0.55));
   }
-  48% {
-    transform: translateX(calc(var(--selector-target-x) * 0.72));
+  30% {
+    transform: translateX(calc(var(--selector-target-x) * 0.73));
   }
-  76% {
-    transform: translateX(calc(var(--selector-target-x) * 0.92));
+  44% {
+    transform: translateX(calc(var(--selector-target-x) * 0.85));
   }
-  92% {
+  58% {
+    transform: translateX(calc(var(--selector-target-x) * 0.925));
+  }
+  70% {
+    transform: translateX(calc(var(--selector-target-x) * 0.965));
+  }
+  80% {
     transform: translateX(calc(var(--selector-target-x) * 0.985));
+  }
+  88% {
+    transform: translateX(calc(var(--selector-target-x) * 0.994));
+  }
+  94% {
+    transform: translateX(calc(var(--selector-target-x) * 0.998));
   }
   100% {
     transform: translateX(var(--selector-target-x));
