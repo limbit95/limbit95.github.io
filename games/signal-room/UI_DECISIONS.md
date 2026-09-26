@@ -1,5 +1,12 @@
 # Signal Room UI Decisions
 
+## Related Documents
+
+- Functional game design and architecture boundary: `GAME_SPEC.md`
+- Development handoff and current implementation status: `DEVELOPMENT.md`
+- Initial UI / presentation baseline: `UI_DESIGN.md`
+
+
 ## Current Design Track
 
 - Status: ACTIVE
