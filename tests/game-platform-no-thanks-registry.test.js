@@ -29,6 +29,6 @@ test("main games page exposes No Thanks! as a playable card", () => {
   );
 
   assert.match(gamesPage, /title: "No Thanks!"/u);
-  assert.match(gamesPage, /href: "\\.\/games\/no-thanks\/"?/u);
+  assert.match(gamesPage, /href: "\.\/games\/no-thanks\/"?/u);
   assert.match(gamesPage, /buttonText: "No Thanks! 시작"/u);
 });
