@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#07101c">
+    <meta name="description" content="청파 같이 4인 탑다운 협동 프로토타입 Signal Room">
+    <title>Signal Room | 청파 같이</title>
+    <link rel="icon" href="../../assets/images/logo.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../../css/reset.css">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="signal-shell" data-mode="solo">
+      <header class="signal-topbar">
+        <a class="signal-back" href="../../#/games" aria-label="게임 목록으로 돌아가기">← GAMES</a>
+        <div class="signal-brand">
+          <span class="signal-brand__eyebrow">CHEONGPA LAB / PROTOTYPE 01</span>
+          <h1>SIGNAL ROOM</h1>
+        </div>
+        <div class="signal-actions" aria-label="게임 메뉴">
+          <button id="soundToggle" type="button" aria-pressed="true">SOUND ON</button>
+          <button id="rulesButton" type="button">RULES</button>
+          <button id="restartButton" type="button">RESTART</button>
+          <button id="endButton" type="button">END</button>
+        </div>
+      </header>
+
+      <section class="signal-hud" aria-live="polite">
+        <div class="hud-card hud-card--mission">
+          <span class="hud-label">MISSION</span>
+          <strong id="missionText">SYNC ALL 4 SIGNALS</strong>
+        </div>
+        <div class="hud-card">
+          <span class="hud-label">SYNC</span>
+          <div class="sync-meter" aria-hidden="true"><span id="syncFill"></span></div>
+          <strong id="syncText">0%</strong>
+        </div>
+        <div class="hud-card">
+          <span class="hud-label">TIME</span>
+          <strong id="timerText">00:00.0</strong>
+        </div>
+        <div class="hud-card">
+          <span class="hud-label">HITS</span>
+          <strong id="hitText">0</strong>
+        </div>
+      </section>
+
+      <section class="signal-stage-wrap">
+        <div class="signal-stage-frame">
+          <canvas id="gameCanvas" width="1280" height="720" aria-label="Signal Room 게임 화면"></canvas>
+          <div id="phaseBanner" class="phase-banner" hidden></div>
+          <div class="scanline" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <section class="signal-player-strip" aria-label="플레이어 상태">
+        <button class="player-chip is-active" data-player-select="0" type="button"><i style="--c:#53e8ff"></i><span>P1 CYAN</span><kbd>1</kbd></button>
+        <button class="player-chip" data-player-select="1" type="button"><i style="--c:#9b7bff"></i><span>P2 VIOLET</span><kbd>2</kbd></button>
+        <button class="player-chip" data-player-select="2" type="button"><i style="--c:#ffc85a"></i><span>P3 AMBER</span><kbd>3</kbd></button>
+        <button class="player-chip" data-player-select="3" type="button"><i style="--c:#ff748f"></i><span>P4 CORAL</span><kbd>4</kbd></button>
+        <span id="modePill" class="mode-pill">SOLO TEST</span>
+      </section>
+
+      <section class="touch-panel" aria-label="모바일 조작">
+        <button data-touch="up" type="button" aria-label="위로 이동">▲</button>
+        <button data-touch="left" type="button" aria-label="왼쪽 이동">◀</button>
+        <button data-touch="down" type="button" aria-label="아래로 이동">▼</button>
+        <button data-touch="right" type="button" aria-label="오른쪽 이동">▶</button>
+      </section>
+    </main>
+
+    <div id="entryOverlay" class="overlay is-visible" role="dialog" aria-modal="true" aria-labelledby="entryTitle">
+      <div class="overlay-card overlay-card--entry">
+        <span class="overlay-kicker">CO-OP SIGNAL TEST</span>
+        <h2 id="entryTitle">네 명이 따로 움직여<br><em>하나의 신호</em>를 완성하세요.</h2>
+        <p>각 플레이어가 자신의 색상 패드에 올라가 2.2초간 동시에 신호를 유지하면 코어가 열립니다. 그 다음 네 명 모두 상단의 추출 구역으로 이동하면 클리어입니다.</p>
+        <div class="player-legend" aria-label="플레이어 색상">
+          <span><i style="--c:#53e8ff"></i>P1</span><span><i style="--c:#9b7bff"></i>P2</span><span><i style="--c:#ffc85a"></i>P3</span><span><i style="--c:#ff748f"></i>P4</span>
+        </div>
+        <div class="mode-grid">
+          <button id="startSolo" class="mode-card mode-card--primary" type="button">
+            <span class="mode-card__tag">추천 · 1인 검토용</span>
+            <strong>SOLO TEST</strong>
+            <small>1~4로 플레이어를 바꾸고 WASD / 방향키로 한 명씩 조작</small>
+          </button>
+          <button id="startLocal" class="mode-card" type="button">
+            <span class="mode-card__tag">실제 4인 로컬</span>
+            <strong>4P LOCAL</strong>
+            <small>P1 WASD · P2 방향키 · P3 IJKL · P4 TFGH</small>
+          </button>
+        </div>
+        <button id="entryRules" class="text-button" type="button">상세 규칙 보기</button>
+      </div>
+    </div>
+
+    <div id="rulesOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="rulesTitle" hidden>
+      <div class="overlay-card overlay-card--rules">
+        <button class="overlay-close" data-close-rules type="button" aria-label="규칙 닫기">×</button>
+        <span class="overlay-kicker">FIELD MANUAL</span>
+        <h2 id="rulesTitle">게임 규칙</h2>
+        <div class="rules-grid">
+          <article><b>01</b><h3>각자 자기 신호 찾기</h3><p>플레이어 색과 같은 원형 패드 위에 올라가세요. 다른 색 플레이어는 그 패드를 활성화할 수 없습니다.</p></article>
+          <article><b>02</b><h3>동시에 2.2초 유지</h3><p>네 패드가 모두 활성화된 동안 중앙 코어가 충전됩니다. 누군가 벗어나면 충전이 빠르게 떨어집니다.</p></article>
+          <article><b>03</b><h3>스캐너 피하기</h3><p>움직이는 레이저 스캐너에 닿으면 해당 플레이어가 시작 지점으로 복귀하고 HIT가 1 증가합니다.</p></article>
+          <article><b>04</b><h3>전원 추출</h3><p>코어가 열린 뒤 상단 추출 구역에 네 명 모두 모이면 클리어입니다. 경쟁 점수는 없고 팀 기록만 남습니다.</p></article>
+        </div>
+        <div class="control-table">
+          <div><strong>SOLO TEST</strong><span>1~4 선택 · WASD 또는 방향키 이동</span></div>
+          <div><strong>4P LOCAL</strong><span>P1 WASD · P2 방향키 · P3 IJKL · P4 TFGH</span></div>
+        </div>
+        <button class="primary-button" data-close-rules type="button">확인</button>
+      </div>
+    </div>
+
+    <div id="resultOverlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+      <div class="overlay-card overlay-card--result">
+        <span class="result-badge">SIGNAL LINKED</span>
+        <h2 id="resultTitle">MISSION CLEAR</h2>
+        <p>네 개의 채널이 하나의 신호로 연결되었습니다.</p>
+        <div class="result-stats"><div><span>TIME</span><strong id="resultTime">00:00.0</strong></div><div><span>HITS</span><strong id="resultHits">0</strong></div></div>
+        <div class="result-actions"><button id="replayButton" class="primary-button" type="button">다시 플레이</button><button id="resultExit" class="secondary-button" type="button">시작 화면</button></div>
+      </div>
+    </div>
+
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
