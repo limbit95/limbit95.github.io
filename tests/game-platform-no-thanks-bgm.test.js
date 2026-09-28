@@ -21,13 +21,13 @@ test("No Thanks! maps lobby and gameplay to the selected BGM tracks", () => {
   const lobbyTrack = getNoThanksBgmTrack(NO_THANKS_BGM_MODE.LOBBY);
   const playingTrack = getNoThanksBgmTrack(NO_THANKS_BGM_MODE.PLAYING);
 
-  assert.equal(lobbyTrack?.title, "Hard Boiled");
-  assert.equal(lobbyTrack?.isrc, "USUAN1700076");
+  assert.equal(lobbyTrack?.title, "Covert Affair");
+  assert.equal(lobbyTrack?.isrc, "USUAN1100795");
   assert.equal(lobbyTrack?.license, "CC BY 4.0");
   assert.match(lobbyTrack?.sourceUrl ?? "", /incompetech\.com/u);
 
-  assert.equal(playingTrack?.title, "Covert Affair");
-  assert.equal(playingTrack?.isrc, "USUAN1100795");
+  assert.equal(playingTrack?.title, "Hard Boiled");
+  assert.equal(playingTrack?.isrc, "USUAN1700076");
   assert.equal(playingTrack?.license, "CC BY 4.0");
   assert.match(playingTrack?.sourceUrl ?? "", /incompetech\.com/u);
 });
@@ -71,18 +71,18 @@ test("No Thanks! BGM session switches between lobby and gameplay music", async (
   });
 
   await session.start();
-  assert.equal(session.getController()?.track?.title, "Hard Boiled");
-
-  await session.setMode(NO_THANKS_BGM_MODE.PLAYING);
   assert.equal(session.getController()?.track?.title, "Covert Affair");
 
-  await session.setMode(NO_THANKS_BGM_MODE.LOBBY);
+  await session.setMode(NO_THANKS_BGM_MODE.PLAYING);
   assert.equal(session.getController()?.track?.title, "Hard Boiled");
 
+  await session.setMode(NO_THANKS_BGM_MODE.LOBBY);
+  assert.equal(session.getController()?.track?.title, "Covert Affair");
+
   assert.deepEqual(calls.slice(0, 3), [
-    ["start", "Hard Boiled", true],
-    ["switch", "Covert Affair", true],
+    ["start", "Covert Affair", true],
     ["switch", "Hard Boiled", true],
+    ["switch", "Covert Affair", true],
   ]);
 
   session.destroy();

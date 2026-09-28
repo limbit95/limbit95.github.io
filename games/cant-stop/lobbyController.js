@@ -111,20 +111,36 @@ export function createCantStopLobbyController({
   function deriveSnapshotEffect(previous, next) {
     const previousGame = previous?.game;
     const nextGame = next?.game;
+    const previousVersion = Number(previous?.version);
+    const nextVersion = Number(next?.version);
+    const previousActivePlayerId = String(previousGame?.activePlayerId ?? "");
+    const nextActivePlayerId = String(nextGame?.activePlayerId ?? "");
+    const previousPlayerStillPresent = Array.isArray(next?.players)
+      && next.players.some((player) =>
+        String(player?.userId ?? player?.id ?? "") === previousActivePlayerId);
+    const changedPlayer = previousActivePlayerId
+      && nextActivePlayerId
+      && previousActivePlayerId !== nextActivePlayerId;
+    const versionDelta = nextVersion - previousVersion;
+    const directRollBust = previousGame?.phase === "TURN_ROLL"
+      && nextGame?.phase === "TURN_ROLL";
+    const coalescedContinueBust = previousGame?.phase === "PUSH_OR_STOP"
+      && nextGame?.phase === "TURN_ROLL"
+      && versionDelta >= 2;
+
     if (
       previous?.room?.status === "playing"
       && next?.room?.status === "playing"
-      && previousGame?.phase === "TURN_ROLL"
-      && nextGame?.phase === "TURN_ROLL"
-      && previousGame?.activePlayerId
-      && nextGame?.activePlayerId
-      && previousGame.activePlayerId !== nextGame.activePlayerId
-      && Number(next?.version) > Number(previous?.version)
+      && changedPlayer
+      && previousPlayerStillPresent
+      && Number.isFinite(versionDelta)
+      && versionDelta > 0
+      && (directRollBust || coalescedContinueBust)
     ) {
       return Object.freeze({
         type: "bust",
-        playerId: String(previousGame.activePlayerId),
-        version: Number(next.version),
+        playerId: previousActivePlayerId,
+        version: nextVersion,
       });
     }
     return null;

@@ -8,8 +8,8 @@ export const NO_THANKS_BGM_MODE = Object.freeze({
 });
 
 const TRACK_KEY_BY_MODE = Object.freeze({
-  [NO_THANKS_BGM_MODE.LOBBY]: "no-thanks-lobby",
-  [NO_THANKS_BGM_MODE.PLAYING]: "no-thanks-playing",
+  [NO_THANKS_BGM_MODE.LOBBY]: "no-thanks-playing",
+  [NO_THANKS_BGM_MODE.PLAYING]: "no-thanks-lobby",
 });
 
 function normalizeMode(value) {

@@ -8,10 +8,10 @@
 
 ## Current Design Track
 
-- Status: IN_REVIEW
-- Lifecycle stage: DEVELOPER_MANUAL_DESIGN_REVIEW
-- Current UI phase / scope: room/gameplay/result/rules closeout + 2026-09-25 gameplay hand/motion/focus post-closeout polish
-- Active branch: `fix/no-thanks-turn-and-card-flow-20260924`
+- Status: FINAL
+- Lifecycle stage: DESIGN_CLOSEOUT
+- Current UI phase / scope: 첫 공개 버전 room/gameplay/result/rules/motion/audio presentation closeout 완료
+- Active branch: `main` (이 checkpoint PR 병합 후 design baseline)
 - Last updated: 2026-09-25
 - Adoption baseline: `UI_DESIGN.md` (UI_DECISIONS 체계 도입 전 작업 상태 포함)
 - Active overrides:
@@ -22,13 +22,14 @@
   - NT-UI-005 — quiet in-room reconnect presentation
   - NT-UI-006 — centered FINAL WINNER result card
   - NT-UI-007 — tabletop Rules Guide
-  - NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
+  - NT-UI-008 — Covert Affair / Hard Boiled soundtrack split
   - NT-UI-009 — staged tabletop game-start sequence
   - NT-UI-010 — authoritative transfer continuity at take/end boundaries
   - NT-UI-011 — maximum-hand responsive overlap
   - NT-UI-012 — tighter gameplay hand and ordered insertion slide
-- Main design baseline: PR #394 merge commit `91d9ca42b6340888f6c9680bda2dcce604da6ed3` (prior active decisions + PR #393 BGM + #389/#390/#391 integration)
-- Next design work: 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-closeout follow-up으로 유지합니다.
+  - NT-UI-013 — tactile card/chip audio feedback
+- Main design baseline: PR #397 merge commit `616626f53f5fb8554fff8df2e86cc50a22e8aefa` (NT-UI-001~013 포함)
+- Next design work: 첫 공개 전 필수 디자인 작업 없음. Phase E 후보인 다른 플레이어 공개 획득 카드 popover와 추가 polish는 release blocker가 아닌 post-release follow-up으로 유지합니다.
 
 ## Decision Log
 
@@ -173,19 +174,19 @@
 - Baseline relation: `UI_DESIGN.md`의 game-local modal 방향을 구체화하고 기존 generic rules presentation을 대체합니다.
 - Functional boundary: 규칙 사실은 `GAME_SPEC.md`/authoritative gameplay를 따르며 DB/RPC/game state를 변경하지 않습니다.
 
-### NT-UI-008 — Hard Boiled / Covert Affair soundtrack split
+### NT-UI-008 — Covert Affair / Hard Boiled soundtrack split
 
 - Status: ACTIVE
 - Applies to: entry / waiting lobby / gameplay / result-rematch audio presentation
 - Source: 2026-09-24 user soundtrack selection
 - Context / trigger: No Thanks!의 카드·칩 심리전 분위기에 맞는 로비/플레이 전용 BGM을 확정했습니다.
 - Decision:
-  - lobby 계열 화면에는 Kevin MacLeod의 `Hard Boiled` (ISRC `USUAN1700076`)를 사용합니다.
-  - 실제 `PLAYING` phase에는 Kevin MacLeod의 `Covert Affair` (ISRC `USUAN1100795`)를 사용합니다.
+  - lobby 계열 화면에는 Kevin MacLeod의 `Covert Affair` (ISRC `USUAN1100795`)를 사용합니다.
+  - 실제 `PLAYING` phase에는 Kevin MacLeod의 `Hard Boiled` (ISRC `USUAN1700076`)를 사용합니다.
   - GAME_OVER / rematch 준비를 포함해 `PLAYING`이 아닌 상태는 lobby track으로 복귀합니다.
   - 기존 shared Game BGM controller/player를 재사용해 재생/일시정지, 볼륨, 출처/라이선스 UI와 브라우저 autoplay 대응을 유지합니다.
   - 두 곡의 Incompetech CC BY 4.0 attribution metadata를 shared BGM catalog에 등록합니다.
-- Rationale: 대기 화면은 느긋한 재즈 카드룸 분위기를 유지하고, 실제 플레이에서는 더 은근한 긴장감을 주면서도 기존 Game Platform 오디오 UX를 그대로 유지합니다.
+- Rationale: 실제 사용감을 기준으로 두 트랙의 역할을 교체해 로비에는 `Covert Affair`, 플레이에는 `Hard Boiled`를 배치하면서 기존 Game Platform 오디오 UX는 그대로 유지합니다.
 - Implementation status: IMPLEMENTED
 - Validation: `tests/game-platform-no-thanks-bgm.test.js`에서 track metadata, lobby ↔ gameplay 전환, page wiring을 회귀 검증합니다.
 - Baseline relation: `UI_DESIGN.md`의 sound 방향을 실제 사용자 확정 soundtrack으로 구체화한 post-closeout override.
@@ -275,6 +276,26 @@
 - Baseline relation: NT-UI-011의 dense-hand 원칙을 유지하되 gameplay hand의 구체 밀도와 TAKE insertion motion을 후속 override합니다. FINAL TABLE의 measured result-rack 계산은 변경하지 않습니다.
 - Functional boundary: 카드 보유 순서/점수/RPC authority는 변경하지 않고 presentation geometry와 motion만 조정합니다.
 
+### NT-UI-013 — Tactile card/chip audio feedback
+
+- Status: ACTIVE
+- Applies to: game-start setup, TAKE_CARD transfer, REFUSE_CARD chip transfer
+- Source: 2026-09-25 iterative user audio review
+- Context / trigger: 초기 효과음은 pitched oscillator 중심이라 카드 이동이 전자음처럼 들리고 칩도 실제 tabletop token보다 금속성 cue에 가까웠습니다. 사용자는 카드가 실제로 미끄러지고 칩이 실제 더미에 쌓이는 물성감을 원했습니다.
+- Decision:
+  - 카드 이동은 음높이가 두드러지는 `뿅` 계열 cue 대신 filtered-noise 기반의 짧은 cardstock slide `스윽/스륵` 질감으로 표현합니다.
+  - 중앙 칩을 가져올 때는 금속 동전의 `짤랑` 대신 플라스틱 칩이 더미에 닿는 짧고 건조한 `착` impact를 chip count에 맞춰 연속 재생합니다. 과도한 소음 방지를 위해 audible stack hit는 최대 8회로 제한합니다.
+  - TAKE의 card slide와 collected-chip stack cue는 사용자 manual review 후 opening setup SFX에는 영향을 주지 않고 **TAKE 동작에서만 기존 대비 약 2배** gain으로 강화합니다.
+  - REFUSE_CARD는 authoritative chip flight가 시작할 때 `스윽` 이동 질감을 시작하고 약 620ms flight가 끝나기 직전 `착` stack impact가 들리도록 맞춥니다.
+  - `prefers-reduced-motion`에서 flight가 생략되면 이동음 없이 landing `착`만 재생하여 실제 시각 흐름과 사운드 원인/결과를 맞춥니다.
+  - game-start deck shuffle과 초기 chip distribution은 서로 독립적인 효과음을 동시에 쌓지 않고 하나의 coordinated timeline으로 스케줄해 competing audio bed를 만들지 않습니다.
+  - SFX는 game-local Web Audio로 구현하며 실패하거나 브라우저 정책에 의해 재생되지 않아도 gameplay state/action은 중단하지 않습니다.
+- Rationale: No Thanks!의 핵심 상호작용을 전자 UI cue가 아니라 실제 카드와 칩을 만지는 tabletop feedback으로 읽히게 하고, 시각 animation의 출발/도착과 소리의 원인/결과를 일치시킵니다.
+- Implementation status: IMPLEMENTED
+- Validation: PR #397의 `tests/game-platform-no-thanks-audio-feedback.test.js`로 card slide, stacked-chip cue, REFUSE flight/landing timing을 회귀 검증했고 Game Platform governance #580 전체 성공 후 main 병합 완료.
+- Baseline relation: NT-UI-008의 soundtrack/BGM 결정을 보완하는 game-action SFX layer이며 NT-UI-009/010의 physical transfer motion에 audio feedback을 연결합니다.
+- Functional boundary: sound는 presentation only이며 gameplay legality, RPC, DB state, turn timing authority를 변경하지 않습니다.
+
 ## Superseded / Rejected
 
 - 기존 generic text-list 중심 rules modal은 NT-UI-007에 의해 superseded.
@@ -299,7 +320,9 @@
 - 2026-09-24 — dense hand overflow 수정과 PR #389 measured result-rack 계산을 통합해 NT-UI-011로 확정.
 - 2026-09-24 — 통합 PR #394를 최신 main 대비 `behind 0 / mergeable` 상태와 Governance/Site/DB 통과를 확인한 뒤 main에 병합. merge commit: `91d9ca42b6340888f6c9680bda2dcce604da6ed3`.
 - 2026-09-24 — post-#394 디자인 체크포인트에서 NT-UI-001~011을 현재 active design baseline으로 재확인.
-- 2026-09-25 — PR #396 follow-up manual review에서 gameplay hand density와 sorted insertion slide를 NT-UI-012로 확정하고, opening goal copy의 명시적 2줄 배치와 focus/visibility deal replay 방지를 함께 구현.
+- 2026-09-25 — PR #396 follow-up manual review에서 gameplay hand density와 sorted insertion slide를 NT-UI-012로 확정하고, opening goal copy의 명시적 2줄 배치와 focus/visibility deal replay 방지를 함께 구현. PR #396 merge commit: `2666267f673e2035ceb678ab950cc889ee188c09`.
+- 2026-09-25 — PR #397에서 lobby/gameplay BGM 역할을 `Covert Affair / Hard Boiled`로 확정하고, card slide / collected-chip stack / refuse `스윽 → 착` SFX를 사용자 반복 검토로 조정해 NT-UI-013으로 기록. Game Platform governance #580 통과 후 merge commit `616626f53f5fb8554fff8df2e86cc50a22e8aefa`로 main 병합.
+- 2026-09-25 — 첫 공개 버전 디자인 체크포인트에서 NT-UI-001~013을 현재 active design baseline으로 재확인하고 Current Design Track을 `FINAL / DESIGN_CLOSEOUT`으로 전환. 이후 Phase E 후보는 post-release follow-up으로 분리.
 
 ## Open Follow-up
 

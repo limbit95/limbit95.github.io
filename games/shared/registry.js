@@ -99,7 +99,7 @@ export const GAME_REGISTRY = Object.freeze([
     description: "카드를 거절하려면 칩을 내고, 가져오면 쌓인 칩을 받으며 가장 낮은 점수를 겨루는 카드 게임이에요.",
     href: "./games/no-thanks/",
     buttonText: "No Thanks! 시작",
-    capabilities: {},
+    capabilities: { online: true, presence: true },
     platform: "shared",
   }),
 ]);
