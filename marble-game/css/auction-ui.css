@@ -392,8 +392,20 @@
   animation: auctionSurgeBidEvent 2.2s cubic-bezier(0.18, 0.9, 0.24, 1) both;
 }
 
+.auction-action-panel__bid-event[data-surge="true"] .auction-action-panel__bid-player {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 .auction-action-panel__bid-event[data-surge="true"] .auction-action-panel__bid-player::before {
-  content: "큰 폭의 입찰 · ";
+  content: none;
+}
+
+.auction-action-panel__bid-event[data-surge="true"] .auction-action-panel__bid-player::after {
+  display: block;
+  margin-top: 3px;
+  content: "큰 폭의 입찰";
   color: #ffe29a;
   font-size: 0.72em;
   font-weight: 1000;
