@@ -119,6 +119,12 @@ test("Auction bid feedback is centered, notices clear the panel edge, and select
     auctionCssSource,
     /8% \{[\s\S]*0\.3[\s\S]*18% \{[\s\S]*0\.55[\s\S]*58% \{[\s\S]*0\.925[\s\S]*88% \{[\s\S]*0\.994/,
   );
+  assert.match(auctionIntroUiSource, /CHAIN_REPEAT_COUNT = 18/);
+  assert.doesNotMatch(auctionCssSource, /content: "큰 폭의 입찰 · "/);
+  assert.match(
+    auctionCssSource,
+    /data-surge="true"\] \.auction-action-panel__bid-player::after \{[\s\S]*display: block;[\s\S]*content: "큰 폭의 입찰"/,
+  );
 });
 
 test("Auction notices are portaled and positioned immediately above the active Auction panel", () => {
