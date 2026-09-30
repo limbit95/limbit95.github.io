@@ -12,7 +12,7 @@
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - integration 최초 생성 기준 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - vNext integration: `feature/game-platform-vnext-integration`
-- 확인한 integration HEAD: `394ae9aada9b99d9fb049fa0a3278f50133f3290`
+- 이 사후 감사 정정 작업 분기 시 확인한 integration HEAD: `394ae9aada9b99d9fb049fa0a3278f50133f3290`
 - integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - STEP 0 사후 기록 반영: **PR #406 / merge commit `394ae9aada9b99d9fb049fa0a3278f50133f3290`**
 - 기준 SHA 이후 변경 감사: `c6b1e31... → STEP 0 착수 main` 사이에는 실행 계획 개정 1.2 파일 1개 추가만 있었고 기존 플랫폼 규칙, `games/shared/`, Registry, Guard, 테스트, 출시 상태 변경은 없었음.
@@ -26,16 +26,17 @@
 - active STEP branch: **없음 — STEP 0 작업 브랜치는 완료 이력이며 STEP 1 브랜치는 아직 생성하지 않음**
 - 완료된 STEP 0 branch: `docs/game-platform-vnext-phase0-bootstrap`
 - STEP 0 branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
-- active record-correction branch: `docs/game-platform-vnext-phase0-audit-correction`
-- active record-correction PR: **#407 — OPEN / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 검토 대기**
+- 완료된 record-correction branch: `docs/game-platform-vnext-phase0-audit-correction`
+- record-correction PR: **#407 — base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 조건부 병합 승인 있음**
+- PR #407 실제 integration 반영 여부와 merge SHA: **이 파일에 자기 merge 결과를 소급 기록하지 않고 Git PR/merge 상태와 integration의 CP-0005 존재 여부로 확인**
 - STEP PR: **#404** — MERGED / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
 - STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
 - STEP PR integration 반영: **완료 — merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
 - 최신 checkpoint: `checkpoints/CP-0005-step-0-record-audit-correction.md`
 - STEP 0 사용자 검토: **통과**
-- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 검토 대기**
-- 다음 첫 작업: **이 기록 정합화 PR을 검토·승인해 integration에 반영한다. 그 전에는 STEP 1을 시작하지 않는다.**
+- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 병합 승인 조건 충족 여부 최종 검토**
+- 다음 첫 작업: **PR #407의 실제 integration 반영을 Git에서 확인한다. 반영이 확인되면 사용자의 STEP 1 시작 지시를 기다리며, STEP 1은 아직 시작하지 않는다.**
 
 ## 22개 검토 지점
 
