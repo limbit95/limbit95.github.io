@@ -12,7 +12,7 @@
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - integration 최초 생성 기준 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - vNext integration: `feature/game-platform-vnext-integration`
-- 이 사후 감사 정정 작업 분기 시 확인한 integration HEAD: `394ae9aada9b99d9fb049fa0a3278f50133f3290`
+- STEP 1 착수 시 확인한 integration HEAD: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
 - integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - STEP 0 사후 기록 반영: **PR #406 / merge commit `394ae9aada9b99d9fb049fa0a3278f50133f3290`**
 - 기준 SHA 이후 변경 감사: `c6b1e31... → STEP 0 착수 main` 사이에는 실행 계획 개정 1.2 파일 1개 추가만 있었고 기존 플랫폼 규칙, `games/shared/`, Registry, Guard, 테스트, 출시 상태 변경은 없었음.
@@ -20,30 +20,26 @@
 
 ## 현재 상태
 
-- 현재 단계 경계: **STEP 0 완료 / STEP 1 시작 대기**
+- 현재 STEP: **STEP 1 — AS-IS 감사와 기존 규칙 조항별 계승표**
 - STEP 0 상태: **COMPLETED**
-- STEP 1 상태: **NOT_STARTED**
-- active STEP branch: **없음 — STEP 0 작업 브랜치는 완료 이력이며 STEP 1 브랜치는 아직 생성하지 않음**
-- 완료된 STEP 0 branch: `docs/game-platform-vnext-phase0-bootstrap`
-- STEP 0 branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
-- 완료된 record-correction branch: `docs/game-platform-vnext-phase0-audit-correction`
-- record-correction PR: **#407 — base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 조건부 병합 승인 있음**
-- PR #407 실제 integration 반영 여부와 merge SHA: **이 파일에 자기 merge 결과를 소급 기록하지 않고 Git PR/merge 상태와 integration의 CP-0005 존재 여부로 확인**
-- STEP PR: **#404** — MERGED / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
-- STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
-- STEP PR integration 반영: **완료 — merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
+- STEP 0 기록 정합화: PR #407 MERGED / `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`, CP-0005 integration 반영 확인
+- STEP 1 상태: **IN_PROGRESS**
+- active STEP branch: `docs/game-platform-vnext-phase1-audit`
+- STEP branch 분기 integration SHA: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
+- STEP PR: 아직 생성하지 않음 / 예정 base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
+- STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
+- STEP 1 사용자 검토 / integration merge 승인 / 실제 병합: **미수행 / 없음 / 미수행**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0005-step-0-record-audit-correction.md`
-- STEP 0 사용자 검토: **통과**
-- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 최종 재검토 통과 및 사용자 병합 승인 있음**
-- 다음 첫 작업: **PR #407의 실제 integration 반영을 Git에서 확인한다. 반영이 확인되면 사용자의 STEP 1 시작 지시를 기다리며, STEP 1은 아직 시작하지 않는다.**
+- 최신 checkpoint: `checkpoints/CP-0006-step-1-start.md`
+- 다음 첫 작업: **현재 규칙의 authoritative 문서 연결을 추적하고, 원문 조항과 실제 소비 코드의 증거를 고정한다.**
+- 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
 
 ## 22개 검토 지점
 
 | 단계 | 상태 |
 |---|---|
 | 0 | COMPLETED |
-| 1 | NOT_STARTED |
+| 1 | IN_PROGRESS |
 | 2 | NOT_STARTED |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
