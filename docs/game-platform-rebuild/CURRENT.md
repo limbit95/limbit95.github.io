@@ -12,8 +12,8 @@
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - integration 최초 생성 기준 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - vNext integration: `feature/game-platform-vnext-integration`
-- 확인한 integration HEAD: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
-- integration에 반영된 마지막 승인 STEP: **없음 — STEP 0 미병합**
+- 확인한 integration HEAD: `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`
+- integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - 기준 SHA 이후 변경 감사: `c6b1e31... → STEP 0 착수 main` 사이에는 실행 계획 개정 1.2 파일 1개 추가만 있었고 기존 플랫폼 규칙, `games/shared/`, Registry, Guard, 테스트, 출시 상태 변경은 없었음.
 - 개정 1.3 정합화 시점의 main과 integration: **identical**. 이후 각 STEP에서 반복 main 동기화를 기본 절차로 두지 않음.
 
@@ -23,13 +23,13 @@
 - 상태: **COMPLETED**
 - active STEP branch: `docs/game-platform-vnext-phase0-bootstrap`
 - STEP branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
-- STEP PR: **#404** — OPEN / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
+- STEP PR: **#404** — MERGED / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
 - STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
-- STEP PR integration 반영: **병합 실행 직전 — PR #404 실제 merged 상태/merge SHA를 병합 후 확인**
+- STEP PR integration 반영: **완료 — merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0003-step-0-approved.md`
+- 최신 checkpoint: `checkpoints/CP-0004-step-0-postmerge.md`
 - 사용자 검토: **통과 — 추가 결함 없음**
-- 다음 첫 작업: **승인된 PR #404를 integration에 병합하고 실제 merged 상태/merge SHA를 확인한다. 병합 확인 후에도 STEP 1은 별도 지시 전까지 시작하지 않는다.**
+- 다음 첫 작업: **사용자의 STEP 1 시작 지시를 기다린다. STEP 1은 아직 시작하지 않는다.**
 
 ## 22개 검토 지점
 
@@ -73,10 +73,19 @@
 - integration 최초 생성: PASS — 실제 최신 main `69a7fcb...`에서 `feature/game-platform-vnext-integration` 생성
 - STEP 0 착수 main / integration 최초 생성 main: PASS — 동일 SHA `69a7fcb...`, 두 의미는 기록상 구분
 - main ↔ integration 최초 상태: PASS — identical
-- PR #404 base/head: PASS — integration ← `docs/game-platform-vnext-phase0-bootstrap`, OPEN / 미병합
+- PR #404 base/head: PASS — integration ← `docs/game-platform-vnext-phase0-bootstrap`, MERGED / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`
 - 루트 실행 계획 교체: PASS — 첨부 개정 1.3과 Git blob SHA `e12ef038913eb6d605709b782f1b73f18e0d1253` 일치
 - PR diff 범위: PASS — 계획/기록/AGENTS/루트 진입 안내 10개 경로만 변경, 게임 코드·DB/RPC·Registry·Guard·runtime 변경 없음
 - 기존 CP-0001 보존: PASS — 개정 1.2 당시 사실 기록으로 수정하지 않음
 - 전체 테스트: NOT_RUN — 문서/브랜치 운영 정합화이며 코드·아키텍처 계약 변경 없음
 - 새 채팅 관점 기록 탐색 재현: PASS — AGENTS/루트 계획 → 기록 README → integration/CURRENT → STEP branch·PR → CP-0002/DECISIONS 순서로 현재 단계·통합 기준선·승인 상태·다음 행동 복원
 - 원격 보존: PASS — CP-0002 생성 commit `070ca2e53135dbe73a85c35df34b631050963115` 후 작업 브랜치에서 계획/CURRENT/CP-0001/CP-0002/DECISIONS read-back 확인
+
+## STEP 0 사후 병합 정합화
+
+- PR #404 실제 병합: PASS — 2026-09-30T17:54:59+09:00
+- 병합 대상: `feature/game-platform-vnext-integration`
+- merge commit: `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`
+- 병합 후 integration에서 개정 1.3 계획/CURRENT/CP-0003 조회: PASS
+- `main` 반영: 미수행 — 별도 승인 게이트 유지
+- STEP 1: NOT_STARTED
