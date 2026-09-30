@@ -365,4 +365,6 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 
 게임 플랫폼 vNext 재구축 작업의 단일 실행 계획은 [`game_platform_vnext_final_execution_plan.md`](./game_platform_vnext_final_execution_plan.md), 현재 진행/재개 기록의 진입점은 [`docs/game-platform-rebuild/README.md`](./docs/game-platform-rebuild/README.md)입니다.
 
-새 채팅에서 재개할 때는 루트 `AGENTS.md`의 **Game Platform vNext 재구축 작업 재개** 항목과 위 기록 진입점을 먼저 확인합니다. 이 링크는 재구축 작업의 인수인계 경로만 추가하며 기존 Game Platform 규칙의 권위나 게임 구현 상태를 변경하지 않습니다.
+개정 1.3부터 승인된 STEP 결과는 `feature/game-platform-vnext-integration`에 누적하고, 각 STEP은 별도 작업 브랜치와 integration base PR로 검토합니다. STEP PR의 integration 병합과 최종 integration → main 반영은 서로 다른 승인 게이트입니다.
+
+새 채팅에서 재개할 때는 루트 `AGENTS.md`의 **Game Platform vNext 재구축 작업 재개** 항목과 위 기록 진입점을 먼저 확인합니다. STEP 0이 integration에 아직 병합되지 않은 동안에는 현재 작업 브랜치 `docs/game-platform-vnext-phase0-bootstrap`과 PR #404도 함께 확인합니다. 이 안내는 vNext 재구축 작업에 한정되며 기존 Game Platform 규칙의 권위나 게임 구현 상태, 저장소 전체의 일반 브랜치 정책을 변경하지 않습니다.
