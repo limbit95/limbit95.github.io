@@ -12,24 +12,31 @@
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - integration 최초 생성 기준 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - vNext integration: `feature/game-platform-vnext-integration`
-- 확인한 integration HEAD: `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`
+- 이 사후 감사 정정 작업 분기 시 확인한 integration HEAD: `394ae9aada9b99d9fb049fa0a3278f50133f3290`
 - integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
+- STEP 0 사후 기록 반영: **PR #406 / merge commit `394ae9aada9b99d9fb049fa0a3278f50133f3290`**
 - 기준 SHA 이후 변경 감사: `c6b1e31... → STEP 0 착수 main` 사이에는 실행 계획 개정 1.2 파일 1개 추가만 있었고 기존 플랫폼 규칙, `games/shared/`, Registry, Guard, 테스트, 출시 상태 변경은 없었음.
 - 개정 1.3 정합화 시점의 main과 integration: **identical**. 이후 각 STEP에서 반복 main 동기화를 기본 절차로 두지 않음.
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 0 — 기준선 고정과 진행 기록 체계 구축 / 개정 1.3 정합화**
-- 상태: **COMPLETED**
-- active STEP branch: `docs/game-platform-vnext-phase0-bootstrap`
-- STEP branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
+- 현재 단계 경계: **STEP 0 완료 / STEP 1 시작 대기**
+- STEP 0 상태: **COMPLETED**
+- STEP 1 상태: **NOT_STARTED**
+- active STEP branch: **없음 — STEP 0 작업 브랜치는 완료 이력이며 STEP 1 브랜치는 아직 생성하지 않음**
+- 완료된 STEP 0 branch: `docs/game-platform-vnext-phase0-bootstrap`
+- STEP 0 branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
+- 완료된 record-correction branch: `docs/game-platform-vnext-phase0-audit-correction`
+- record-correction PR: **#407 — base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 조건부 병합 승인 있음**
+- PR #407 실제 integration 반영 여부와 merge SHA: **이 파일에 자기 merge 결과를 소급 기록하지 않고 Git PR/merge 상태와 integration의 CP-0005 존재 여부로 확인**
 - STEP PR: **#404** — MERGED / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
 - STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
 - STEP PR integration 반영: **완료 — merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0004-step-0-postmerge.md`
-- 사용자 검토: **통과 — 추가 결함 없음**
-- 다음 첫 작업: **사용자의 STEP 1 시작 지시를 기다린다. STEP 1은 아직 시작하지 않는다.**
+- 최신 checkpoint: `checkpoints/CP-0005-step-0-record-audit-correction.md`
+- STEP 0 사용자 검토: **통과**
+- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 최종 재검토 통과 및 사용자 병합 승인 있음**
+- 다음 첫 작업: **PR #407의 실제 integration 반영을 Git에서 확인한다. 반영이 확인되면 사용자의 STEP 1 시작 지시를 기다리며, STEP 1은 아직 시작하지 않는다.**
 
 ## 22개 검토 지점
 
@@ -78,7 +85,7 @@
 - PR diff 범위: PASS — 계획/기록/AGENTS/루트 진입 안내 10개 경로만 변경, 게임 코드·DB/RPC·Registry·Guard·runtime 변경 없음
 - 기존 CP-0001 보존: PASS — 개정 1.2 당시 사실 기록으로 수정하지 않음
 - 전체 테스트: NOT_RUN — 문서/브랜치 운영 정합화이며 코드·아키텍처 계약 변경 없음
-- 새 채팅 관점 기록 탐색 재현: PASS — AGENTS/루트 계획 → 기록 README → integration/CURRENT → STEP branch·PR → CP-0002/DECISIONS 순서로 현재 단계·통합 기준선·승인 상태·다음 행동 복원
+- 새 채팅 관점 기록 탐색 재현: PASS — AGENTS/루트 계획 → 기록 README → integration/CURRENT → 최신 checkpoint/DECISIONS 순서로 STEP 0 완료·STEP 1 미착수·통합 기준선·승인 상태·다음 행동 복원
 - 원격 보존: PASS — CP-0002 생성 commit `070ca2e53135dbe73a85c35df34b631050963115` 후 작업 브랜치에서 계획/CURRENT/CP-0001/CP-0002/DECISIONS read-back 확인
 
 ## STEP 0 사후 병합 정합화
@@ -89,3 +96,13 @@
 - 병합 후 integration에서 개정 1.3 계획/CURRENT/CP-0003 조회: PASS
 - `main` 반영: 미수행 — 별도 승인 게이트 유지
 - STEP 1: NOT_STARTED
+
+## STEP 0 사후 감사 정정
+
+- 감사 판정: **경미한 수정 후 STEP 1 진입 가능**
+- 아키텍처/실행 계획 1.3/Governance 훼손: **확인되지 않음**
+- D-0004의 미병합 상태 문구: 결정 채택 당시 상태로 정정하고 현재 상태는 CURRENT/checkpoint에서 추적
+- PR #406: 사용자 명시적 병합 승인 후 integration에 MERGED / merge commit `394ae9aada9b99d9fb049fa0a3278f50133f3290`
+- CP-0001의 “open PR 없음”: 저장소 전체가 아니라 당시 동일 `game-platform-vnext` 작업 계보의 open PR 없음으로 범위를 정정 기록
+- 과거 CP-0001~0004는 당시 기록 보존 원칙에 따라 수정하지 않음
+- STEP 1 시작 조건: **이 정정 기록이 integration에 반영되고 사용자 별도 시작 지시가 있을 것**

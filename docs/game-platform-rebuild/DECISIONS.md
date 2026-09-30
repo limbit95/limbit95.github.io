@@ -30,7 +30,7 @@
 - 결정: vNext 재구축은 `feature/game-platform-vnext-integration`에 사용자 승인된 STEP 결과를 순서대로 누적한다. 각 STEP은 별도 작업 브랜치와 integration base PR을 유지하며, STEP PR의 integration 병합과 최종 integration → main 반영은 별도 승인으로 구분한다.
 - 범위: 이번 `game-platform-vnext` 재구축 작업에 한정한다. 저장소 전체의 신규 기능 개발 금지나 일반 브랜치 Governance로 확대하지 않는다.
 - 기준선: integration 최초 생성 기준 main은 `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`.
-- STEP 0 적용: 기존 `docs/game-platform-vnext-phase0-bootstrap`과 PR #404를 유지하고 PR base를 integration으로 변경한다. STEP 0은 아직 integration에 병합되지 않았다.
+- STEP 0 적용 당시: 기존 `docs/game-platform-vnext-phase0-bootstrap`과 PR #404를 유지하고 PR base를 integration으로 변경했다. 개정 1.3 채택 당시 STEP 0은 미병합 상태였으며, 이후의 실제 진행·승인·병합 상태는 `CURRENT.md`와 checkpoint에서 추적한다.
 
 ## STEP 0 메모
 
