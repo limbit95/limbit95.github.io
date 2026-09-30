@@ -60,9 +60,10 @@
 ## STEP 0 검증 요약
 
 - 최신 main과 계획 기준 SHA compare: 확인
-- open PR: 없음
+- 착수 시 open PR: 없음; STEP 0 PR #404 생성
 - 기존 `game-platform-vnext` 브랜치: 없음
 - 변경 범위: 문서/기록/재개 안내만
 - 게임 코드/DB/RPC/runtime/아키텍처 계약 수정: 없음
 - 전체 테스트: 미실행 — 문서 전용 bootstrap이므로 `AGENTS.md` 규칙에 따라 불필요한 전체 테스트를 실행하지 않음
-- 원격 보존: GitHub 작업 브랜치와 PR #404에 보존됨. checkpoint 원격 조회는 최종 검증에서 확인
+- 새 채팅 관점 기록 탐색 재현: PASS — AGENTS → 계획 → 기록 README → CURRENT → CP-0001 → DECISIONS 순서로 현재 STEP/브랜치/PR/다음 행동 복원
+- 원격 보존: PASS — 작업 브랜치와 PR #404에서 CURRENT/checkpoint read-back 확인
