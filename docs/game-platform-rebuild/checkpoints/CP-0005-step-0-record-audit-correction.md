@@ -9,8 +9,10 @@
 - 계획 blob SHA: `e12ef038913eb6d605709b782f1b73f18e0d1253`
 - 기록 branch: `docs/game-platform-vnext-phase0-audit-correction`
 - 기록 branch 분기 기준 integration HEAD: `394ae9aada9b99d9fb049fa0a3278f50133f3290`
-- checkpoint 저장 직전 작업 HEAD: `73b19411366057dd77892e6e44fd53a8a015ec85`
-- 기록 PR: **생성 전 — 이 checkpoint 저장 후 integration 대상 PR을 생성하고 번호를 후속 commit으로 기록**
+- 최초 checkpoint 저장 직전 작업 HEAD: `73b19411366057dd77892e6e44fd53a8a015ec85`
+- CP-0005 최초 생성 commit: `2459097b1e910c91ea489667e12ad179a42f304f`
+- PR 메타데이터 연결 직전 작업 HEAD: `8a3bf1bae2d1f2f8fbf9fab885c07ddb37e5e912`
+- 기록 PR: **#407 — OPEN / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 검토 대기**
 - STEP 1: **NOT_STARTED**
 
 ## 사후 감사 결론
@@ -117,7 +119,7 @@ STEP 0 착수 판단에서 실제로 중요했던 범위는:
 
 ## 다음 첫 작업
 
-이 기록 정합화 PR을 사용자에게 제출해 검토받는다.
+기록 정합화 PR #407을 사용자에게 제출해 검토받는다.
 
 **사용자의 명시적 승인으로 이 PR이 integration에 반영되기 전에는 STEP 1을 시작하지 않는다.**
 
