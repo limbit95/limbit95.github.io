@@ -13,7 +13,7 @@
 - 계획의 이전 대조 기준 main: `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - active branch: `docs/game-platform-vnext-phase0-bootstrap`
-- checkpoint 저장 직전 작업 HEAD: `d2ca8b9bb3cac44be06a8020a32827a55930e5d6`
+- checkpoint 저장 직전 작업 HEAD: `a3c36dab79139c092b21aeea0c95b8b6daf6a30a`
 - PR: **#404**
 - PR base/head: `main` ← `docs/game-platform-vnext-phase0-bootstrap`
 - merge 상태: **미병합 / 사용자 승인 대기**
@@ -80,8 +80,8 @@
 | 착수 시 동일 root-slug branch 확인 | PASS — 없음 |
 | 변경 범위 확인 | PASS — 문서/기록/재개 안내만 |
 | 전체 테스트 | NOT_RUN — 문서 전용 bootstrap이며 코드/계약 변경 없음 |
-| 새 채팅 관점 기록 탐색 재현 | PENDING — checkpoint 원격 생성 후 read-back으로 확인 |
-| 원격 보존 | PENDING — checkpoint 생성 후 branch/PR에서 read-back 확인 |
+| 새 채팅 관점 기록 탐색 재현 | PASS — AGENTS → 계획 → 기록 README → CURRENT → CP-0001 → DECISIONS 순서로 현재 STEP/브랜치/PR/다음 행동을 복원 |
+| 원격 보존 | PASS — 작업 브랜치와 PR #404에서 CURRENT/checkpoint read-back 확인 |
 
 ## 기존 게임 영향도
 
