@@ -18,7 +18,7 @@
 재검토 결과:
 
 - PR #404는 OPEN / mergeable이며 base/head가 개정 1.3 운영과 일치한다.
-- 실제 변경 경로는 9개이며 CURRENT의 “9개 경로” 기록과 일치한다.
+- 승인 checkpoint 추가 전 변경 경로는 9개였고, 이 CP-0003 추가로 최종 PR 변경 경로는 10개다. CURRENT도 10개로 정합화했다.
 - 루트 계획은 첨부 개정 1.3과 blob SHA `e12ef038913eb6d605709b782f1b73f18e0d1253`로 일치한다.
 - `main`과 integration 최초 기준은 동일 SHA `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`이다.
 - CP-0001은 개정 1.2 당시 사실 기록으로 보존되고 CP-0002가 개정 1.3 정합화를 연결한다.
