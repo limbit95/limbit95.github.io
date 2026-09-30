@@ -32,7 +32,7 @@ const auctionStartSql = readFileSync(
   "utf8",
 );
 const auctionStarterSql = readFileSync(
-  new URL("../../supabase/marble/20260923002500_marble_auction_starter_selector_sync.sql", import.meta.url),
+  new URL("../../supabase/marble/20260925191500_marble_auction_selector_pacing.sql", import.meta.url),
   "utf8",
 );
 const introSource = readFileSync(new URL("../js/auctionIntroUi.js", import.meta.url), "utf8");
@@ -160,7 +160,7 @@ test("Auction vote UI uses shared modal language and viewport portal", () => {
   assert.match(uiSource, /playAuctionBidSound\(\)/);
   assert.match(uiSource, /prepareAuctionBidSound/);
   assert.match(uiSource, /createAuctionIntroPresenter/);
-  assert.match(uiSource, /auctionIntroUi\.js\?v=20260923-r2/);
+  assert.match(uiSource, /auctionIntroUi\.js\?v=20260928-r1/);
   assert.match(uiSource, /auctionBidSound\.js\?v=20260922-r4/);
   assert.match(uiSource, /bidEventPlayer\.textContent = playerName\(player\)/);
   assert.match(uiSource, /bidEventAmount\.textContent = money\(event\.amount\)/);
@@ -215,8 +215,8 @@ test("server starter selection gives the random result the actual starting turn"
   assert.match(auctionStarterSql, /'highestBidderId', null/);
   assert.match(auctionStarterSql, /'turnPlayerId', v_starter/);
   assert.match(auctionStarterSql, /'selectorStopsAt', v_selector_stops_at/);
-  assert.match(auctionStarterSql, /interval '4\.8 seconds'/);
-  assert.match(auctionStarterSql, /interval '5\.6 seconds'/);
+  assert.match(auctionStarterSql, /interval '9\.2 seconds'/);
+  assert.match(auctionStarterSql, /interval '10\.4 seconds'/);
   assert.doesNotMatch(auctionStarterSql, /openingBidderPlayerId/);
   assert.doesNotMatch(auctionStarterSql, /winnerNoticeAt/);
 });
