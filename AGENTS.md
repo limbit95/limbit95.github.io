@@ -119,3 +119,14 @@ npm run test:marble
 - 남아 있는 주의사항 또는 후속 작업
 
 모든 변경사항을 작업 브랜치에 commit하고 Pull Request를 생성합니다. `main` 병합은 사용자의 명시적 승인이 있을 때만 진행합니다.
+
+## Game Platform vNext 재구축 작업 재개
+
+`game-platform-vnext` 재구축 작업은 루트 `game_platform_vnext_final_execution_plan.md`와 `docs/game-platform-rebuild/README.md`를 진입점으로 사용합니다.
+
+- `작업 진행 기록하자`: 현재 재구축 작업을 완료 처리하지 않고 checkpoint/CURRENT에 저장하고 원격 보존을 확인합니다.
+- `다시 이어서 시작하자` / `이어서 시작하자` / `이어서 진행하자`: 루트 계획 → 기록 README → CURRENT → 최신 checkpoint/DECISIONS/artifacts 순으로 읽고 실제 `game-platform-vnext` 브랜치·열린 PR·commit 계보를 대조합니다.
+- `main`의 기록만으로 마지막 상태를 확정하지 않으며, 유효한 진행 중 브랜치가 있으면 채팅방이 바뀌어도 그 브랜치를 이어갑니다.
+- 검토/승인 대기 상태를 승인으로 확대하지 않고, 사용자의 명시적 승인 없이 다음 STEP이나 PR merge를 진행하지 않습니다.
+
+상세 기록 규칙과 단계별 통과 기준은 루트 실행 계획 및 `docs/game-platform-rebuild/`를 따릅니다.
