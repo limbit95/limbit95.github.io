@@ -4,7 +4,7 @@
 - 이전 checkpoint: `CP-0004-step-0-postmerge`
 - 작성 시각: `2026-09-30T22:57:18+09:00` — CP-0005 최초 생성 commit 시각
 - 단계: **STEP 0 — 사후 감사 기록 정합화**
-- 단계 상태: **COMPLETED / 기록 정정 병합 조건부 승인**
+- 단계 상태: **COMPLETED / 기록 정정 병합 승인됨**
 - 계획: `/game_platform_vnext_final_execution_plan.md` 개정 1.3
 - 계획 blob SHA: `e12ef038913eb6d605709b782f1b73f18e0d1253`
 - 기록 branch: `docs/game-platform-vnext-phase0-audit-correction`
@@ -13,7 +13,7 @@
 - CP-0005 최초 생성 commit: `2459097b1e910c91ea489667e12ad179a42f304f`
 - PR 메타데이터 연결 직전 작업 HEAD: `8a3bf1bae2d1f2f8fbf9fab885c07ddb37e5e912`
 - 기록 PR: **#407 — base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction`**
-- PR #407 사용자 승인 근거: **2026-10-01 사용자 지시 “검토하고 이상 없으면 병합하자” — 최종 재검토에서 이상이 없을 경우 integration 병합 승인**
+- PR #407 사용자 승인 근거: **2026-10-01 사용자 지시 “검토하고 이상 없으면 병합하자” — 최종 재검토에서 시간 기록 오류를 수정한 뒤 추가 문제 없음이 확인되어 integration 병합 조건 충족**
 - PR #407 실제 merge 상태/merge SHA: **이 checkpoint는 자기 전달 PR의 merge 결과를 다시 기록하지 않으며 Git PR/merge 상태와 integration의 CP-0005 존재 여부로 확인**
 - STEP 1: **NOT_STARTED**
 
