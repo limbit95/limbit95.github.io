@@ -122,11 +122,14 @@ npm run test:marble
 
 ## Game Platform vNext 재구축 작업 재개
 
-`game-platform-vnext` 재구축 작업은 루트 `game_platform_vnext_final_execution_plan.md`와 `docs/game-platform-rebuild/README.md`를 진입점으로 사용합니다.
+`game-platform-vnext` 재구축 작업은 루트 `game_platform_vnext_final_execution_plan.md`와 `docs/game-platform-rebuild/README.md`를 진입점으로 사용합니다. 이 재구축에 한해 루트 계획 개정 1.3의 integration 운영이 일반적인 “최신 main에서 시작” 규칙보다 구체적인 작업 기준입니다.
 
+- 정식 저장소 기준은 `main`, vNext 누적 통합 기준은 `feature/game-platform-vnext-integration`입니다.
+- 각 신규 STEP은 최신 승인 integration에서 별도 STEP 브랜치를 만들고, STEP PR의 base를 integration으로 둡니다. 작업·기록을 integration에서 직접 누적 개발하지 않습니다.
 - `작업 진행 기록하자`: 현재 재구축 작업을 완료 처리하지 않고 checkpoint/CURRENT에 저장하고 원격 보존을 확인합니다.
-- `다시 이어서 시작하자` / `이어서 시작하자` / `이어서 진행하자`: 루트 계획 → 기록 README → CURRENT → 최신 checkpoint/DECISIONS/artifacts 순으로 읽고 실제 `game-platform-vnext` 브랜치·열린 PR·commit 계보를 대조합니다.
-- `main`의 기록만으로 마지막 상태를 확정하지 않으며, 유효한 진행 중 브랜치가 있으면 채팅방이 바뀌어도 그 브랜치를 이어갑니다.
-- 검토/승인 대기 상태를 승인으로 확대하지 않고, 사용자의 명시적 승인 없이 다음 STEP이나 PR merge를 진행하지 않습니다.
+- `다시 이어서 시작하자` / `이어서 시작하자` / `이어서 진행하자`: 루트 계획 → 기록 README → integration/CURRENT → 현재 STEP 브랜치·PR → 최신 checkpoint/DECISIONS/artifacts 순으로 실제 Git 상태를 대조합니다. STEP 0이 integration에 미병합된 동안에는 `docs/game-platform-vnext-phase0-bootstrap`과 PR #404를 확인합니다.
+- 채팅방 변경만으로 새 브랜치를 만들지 않고 유효한 미완료 STEP 브랜치를 이어갑니다. 통상 재개 시 main과 integration을 매번 비교·동기화하지 않으며, 실제 main 별도 변경이 확인된 경우에만 영향도를 검토합니다.
+- STEP PR의 integration 병합과 integration → main 반영은 별도의 승인 게이트입니다. 검토/승인 대기 상태를 승인으로 확대하지 않고 사용자의 명시적 승인 없이 어느 쪽도 merge하거나 다음 STEP을 시작하지 않습니다.
+- 이 integration 운영은 vNext 재구축에 한정되며 저장소 전체의 신규 기능 개발 금지나 일반 작업 Governance로 확대하지 않습니다.
 
-상세 기록 규칙과 단계별 통과 기준은 루트 실행 계획 및 `docs/game-platform-rebuild/`를 따릅니다.
+상세 기록 규칙과 단계별 통과 기준은 루트 실행 계획 개정 1.3 및 `docs/game-platform-rebuild/`를 따릅니다.
