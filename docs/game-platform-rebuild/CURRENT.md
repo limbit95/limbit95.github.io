@@ -20,22 +20,22 @@
 ## 현재 상태
 
 - 현재 STEP: **STEP 0 — 기준선 고정과 진행 기록 체계 구축 / 개정 1.3 정합화**
-- 상태: **REVIEW_PENDING**
+- 상태: **COMPLETED**
 - active STEP branch: `docs/game-platform-vnext-phase0-bootstrap`
 - STEP branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - STEP PR: **#404** — OPEN / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
-- STEP PR integration merge 승인: **없음**
-- STEP PR integration 반영: **미수행**
+- STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
+- STEP PR integration 반영: **병합 실행 직전 — PR #404 실제 merged 상태/merge SHA를 병합 후 확인**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0002-step-0-reconcile.md`
-- 사용자 검토: 대기
-- 다음 첫 작업: **사용자가 PR #404의 STEP 0 개정 1.3 정합화 결과를 검토한다. 명시적 승인 전에는 integration에 merge하지 않고 STEP 1을 시작하지 않는다.**
+- 최신 checkpoint: `checkpoints/CP-0003-step-0-approved.md`
+- 사용자 검토: **통과 — 추가 결함 없음**
+- 다음 첫 작업: **승인된 PR #404를 integration에 병합하고 실제 merged 상태/merge SHA를 확인한다. 병합 확인 후에도 STEP 1은 별도 지시 전까지 시작하지 않는다.**
 
 ## 22개 검토 지점
 
 | 단계 | 상태 |
 |---|---|
-| 0 | REVIEW_PENDING |
+| 0 | COMPLETED |
 | 1 | NOT_STARTED |
 | 2 | NOT_STARTED |
 | 3 | NOT_STARTED |
