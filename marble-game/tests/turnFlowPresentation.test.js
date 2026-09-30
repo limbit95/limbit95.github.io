@@ -102,6 +102,31 @@ test("Auction resolution notice appears concurrently with its follow-up animatio
   }
 });
 
+test("Auction bid feedback is centered, notices clear the panel edge, and selector motion decelerates", () => {
+  assert.match(
+    auctionCssSource,
+    /\.auction-action-panel__bid-event \{[\s\S]*top: 50%;[\s\S]*left: 50%;[\s\S]*transform: translate\(-50%, -50%\) scale\(0\.86\)/,
+  );
+  assert.match(
+    auctionCssSource,
+    /bottom: calc\(var\(--auction-notice-bottom, calc\(50vh \+ 270px\)\) \+ 8px\)/,
+  );
+  assert.match(
+    auctionCssSource,
+    /auctionProfileChainSpin 7\.2s linear forwards/,
+  );
+  assert.match(
+    auctionCssSource,
+    /8% \{[\s\S]*0\.3[\s\S]*18% \{[\s\S]*0\.55[\s\S]*58% \{[\s\S]*0\.925[\s\S]*88% \{[\s\S]*0\.994/,
+  );
+  assert.match(auctionIntroUiSource, /CHAIN_REPEAT_COUNT = 18/);
+  assert.doesNotMatch(auctionCssSource, /content: "큰 폭의 입찰 · "/);
+  assert.match(
+    auctionCssSource,
+    /data-surge="true"\] \.auction-action-panel__bid-player::after \{[\s\S]*display: block;[\s\S]*content: "큰 폭의 입찰"/,
+  );
+});
+
 test("Auction notices are portaled and positioned immediately above the active Auction panel", () => {
   for (const source of [onlineAuctionUiSource, localAuctionUiSource]) {
     assert.match(source, /auctionOverlayActive/);
@@ -113,7 +138,7 @@ test("Auction notices are portaled and positioned immediately above the active A
     assert.match(source, /noticeLayer = "global"/);
   }
   assert.match(auctionCssSource, /data-auction-overlay-active="true"/);
-  assert.match(auctionCssSource, /bottom: var\(--auction-notice-bottom/);
+  assert.match(auctionCssSource, /bottom: calc\(var\(--auction-notice-bottom/);
   assert.match(auctionCssSource, /z-index: 1250/);
   assert.doesNotMatch(auctionCssSource, /top: max\(18px, env\(safe-area-inset-top\)\)/);
 });

@@ -1,6 +1,6 @@
 import { playAuctionStartSound } from "./auctionBidSound.js?v=20260922-r4";
 
-const CHAIN_REPEAT_COUNT = 6;
+const CHAIN_REPEAT_COUNT = 18;
 const AVATAR_SIGNED_URL_TTL_SECONDS = 600;
 let profileApiPromise = null;
 
