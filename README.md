@@ -360,3 +360,9 @@ Function은 전달된 수신자를 신뢰하지 않고 service role로 notificat
 작업 후 변경 내용을 먼저 검토하고 승인된 경우에만 `main`에 반영합니다.
 
 청파 같이 본 사이트 정리 중에는 게임 활동 관련 소스를 건드리지 않습니다.
+
+## Game Platform vNext 재구축 작업
+
+게임 플랫폼 vNext 재구축 작업의 단일 실행 계획은 [`game_platform_vnext_final_execution_plan.md`](./game_platform_vnext_final_execution_plan.md), 현재 진행/재개 기록의 진입점은 [`docs/game-platform-rebuild/README.md`](./docs/game-platform-rebuild/README.md)입니다.
+
+새 채팅에서 재개할 때는 루트 `AGENTS.md`의 **Game Platform vNext 재구축 작업 재개** 항목과 위 기록 진입점을 먼저 확인합니다. 이 링크는 재구축 작업의 인수인계 경로만 추가하며 기존 Game Platform 규칙의 권위나 게임 구현 상태를 변경하지 않습니다.
