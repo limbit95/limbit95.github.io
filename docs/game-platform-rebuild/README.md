@@ -1,6 +1,6 @@
 # Game Platform vNext 재구축 진행 기록
 
-이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.2에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
+이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.3에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
 게임별 `DEVELOPMENT.md` / `UI_DECISIONS.md` checkpoint와 별개이며, 이 디렉토리의 기록은 기존 게임의 기능·디자인 상태를 대신하지 않는다.
 
@@ -16,7 +16,7 @@
 6. 필요 시 `DECISIONS.md`
 7. 현재 단계가 연결한 `artifacts/` 산출물과 관련 source/test
 
-`main`의 기록만으로 마지막 상태를 확정하지 않는다. `game-platform-vnext` root-slug를 공유하는 진행 중 브랜치와 열린 PR이 있으면 active branch, checkpoint ID, commit 계보와 PR 상태를 대조한다.
+정식 저장소 기준은 `main`, vNext 누적 통합 기준은 `feature/game-platform-vnext-integration`이다. 재개 시 **integration의 CURRENT/마지막 반영 승인 STEP → 현재 STEP 브랜치·PR → 최신 checkpoint** 순서로 실제 Git 상태를 대조한다. STEP 0이 아직 integration에 병합되지 않은 초기 상태라면 `docs/game-platform-vnext-phase0-bootstrap`과 PR #404의 기록을 사용한다. `main`의 기록이나 최근 수정 시각만으로 마지막 vNext 상태를 확정하지 않는다.
 
 ## 사용자 명령
 
@@ -39,11 +39,16 @@
 
 ## 브랜치 탐색 기준
 
+- 정식 저장소 기준: `main`
+- vNext 누적 통합 기준: `feature/game-platform-vnext-integration`
 - 작업 root-slug: `game-platform-vnext`
-- 단계별 브랜치 예: `docs/game-platform-vnext-phase0-bootstrap`
+- STEP별 작업 브랜치는 최신 승인 integration에서 분기하고 PR base를 integration으로 둔다.
+- 현재 STEP 0은 integration 생성 전에 시작했으므로 기존 `docs/game-platform-vnext-phase0-bootstrap` 계보를 유지하고 PR #404의 base만 integration으로 정합화했다.
 - 채팅방 변경만으로 새 브랜치를 만들지 않는다.
-- 유효한 미완료 작업 브랜치가 있으면 그 브랜치를 이어간다.
-- `main` 직접 commit/push 또는 사용자 승인 없는 PR merge는 금지한다.
+- 유효한 미완료 STEP 브랜치가 있으면 그 브랜치를 이어간다.
+- 작업·기록을 `main`이나 integration에 직접 commit/push하지 않는다.
+- STEP PR의 integration 병합과 integration → main 반영은 서로 다른 승인 게이트이며 어느 쪽도 사용자 명시적 승인 없이 merge하지 않는다.
+- 이번 integration 운영은 vNext 재구축에 한정하며 저장소 전체의 다른 작업 Governance로 확대하지 않는다.
 
 ## 기록 파일
 
