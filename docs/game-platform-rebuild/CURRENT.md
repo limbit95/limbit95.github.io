@@ -75,7 +75,7 @@
 - main ↔ integration 최초 상태: PASS — identical
 - PR #404 base/head: PASS — integration ← `docs/game-platform-vnext-phase0-bootstrap`, OPEN / 미병합
 - 루트 실행 계획 교체: PASS — 첨부 개정 1.3과 Git blob SHA `e12ef038913eb6d605709b782f1b73f18e0d1253` 일치
-- PR diff 범위: PASS — 계획/기록/AGENTS/루트 진입 안내 8개 경로만 변경, 게임 코드·DB/RPC·Registry·Guard·runtime 변경 없음
+- PR diff 범위: PASS — 계획/기록/AGENTS/루트 진입 안내 9개 경로만 변경, 게임 코드·DB/RPC·Registry·Guard·runtime 변경 없음
 - 기존 CP-0001 보존: PASS — 개정 1.2 당시 사실 기록으로 수정하지 않음
 - 전체 테스트: NOT_RUN — 문서/브랜치 운영 정합화이며 코드·아키텍처 계약 변경 없음
 - 새 채팅 관점 기록 탐색 재현: PASS — AGENTS/루트 계획 → 기록 README → integration/CURRENT → STEP branch·PR → CP-0002/DECISIONS 순서로 현재 단계·통합 기준선·승인 상태·다음 행동 복원
