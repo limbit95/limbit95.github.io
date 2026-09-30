@@ -35,7 +35,7 @@
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
 - 최신 checkpoint: `checkpoints/CP-0005-step-0-record-audit-correction.md`
 - STEP 0 사용자 검토: **통과**
-- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 병합 승인 조건 충족 여부 최종 검토**
+- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 최종 재검토 통과 및 사용자 병합 승인 있음**
 - 다음 첫 작업: **PR #407의 실제 integration 반영을 Git에서 확인한다. 반영이 확인되면 사용자의 STEP 1 시작 지시를 기다리며, STEP 1은 아직 시작하지 않는다.**
 
 ## 22개 검토 지점
