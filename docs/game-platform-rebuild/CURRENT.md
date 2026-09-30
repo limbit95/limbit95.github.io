@@ -78,5 +78,5 @@
 - PR diff 범위: PASS — 계획/기록/AGENTS/루트 진입 안내 8개 경로만 변경, 게임 코드·DB/RPC·Registry·Guard·runtime 변경 없음
 - 기존 CP-0001 보존: PASS — 개정 1.2 당시 사실 기록으로 수정하지 않음
 - 전체 테스트: NOT_RUN — 문서/브랜치 운영 정합화이며 코드·아키텍처 계약 변경 없음
-- 새 채팅 관점 기록 탐색 재현: **CP-0002 원격 생성 후 최종 read-back에서 확인**
-- 원격 보존: **CP-0002 원격 생성 후 최종 read-back에서 확인**
+- 새 채팅 관점 기록 탐색 재현: PASS — AGENTS/루트 계획 → 기록 README → integration/CURRENT → STEP branch·PR → CP-0002/DECISIONS 순서로 현재 단계·통합 기준선·승인 상태·다음 행동 복원
+- 원격 보존: PASS — CP-0002 생성 commit `070ca2e53135dbe73a85c35df34b631050963115` 후 작업 브랜치에서 계획/CURRENT/CP-0001/CP-0002/DECISIONS read-back 확인
