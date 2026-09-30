@@ -17,8 +17,8 @@
 - 현재 STEP: **STEP 0 — 기준선 고정과 진행 기록 체계 구축**
 - 상태: **REVIEW_PENDING**
 - active branch: `docs/game-platform-vnext-phase0-bootstrap`
-- PR: **PENDING**
-- 최신 checkpoint: `CP-0001-step-0` (생성 예정/동일 브랜치)
+- PR: **#404** — OPEN / 사용자 검토 대기
+- 최신 checkpoint: `checkpoints/CP-0001-step-0.md`
 - 사용자 검토: 대기
 - main merge: 미승인 / 미수행
 - 다음 첫 작업: **STEP 0 산출물과 PR을 사용자가 검토한다. STEP 1은 시작하지 않는다.**
@@ -65,4 +65,4 @@
 - 변경 범위: 문서/기록/재개 안내만
 - 게임 코드/DB/RPC/runtime/아키텍처 계약 수정: 없음
 - 전체 테스트: 미실행 — 문서 전용 bootstrap이므로 `AGENTS.md` 규칙에 따라 불필요한 전체 테스트를 실행하지 않음
-- 원격 보존: 작업 브랜치에 commit되는 변경으로 확인 예정
+- 원격 보존: GitHub 작업 브랜치와 PR #404에 보존됨. checkpoint 원격 조회는 최종 검증에서 확인
