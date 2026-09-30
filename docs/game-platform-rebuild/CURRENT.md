@@ -27,13 +27,14 @@
 - 완료된 STEP 0 branch: `docs/game-platform-vnext-phase0-bootstrap`
 - STEP 0 branch의 integration 기준 SHA: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - active record-correction branch: `docs/game-platform-vnext-phase0-audit-correction`
+- active record-correction PR: **#407 — OPEN / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-audit-correction` / 사용자 검토 대기**
 - STEP PR: **#404** — MERGED / base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase0-bootstrap`
 - STEP PR integration merge 승인: **승인됨 — 2026-09-30 사용자 검토 후 병합 지시**
 - STEP PR integration 반영: **완료 — merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
 - 최신 checkpoint: `checkpoints/CP-0005-step-0-record-audit-correction.md`
 - STEP 0 사용자 검토: **통과**
-- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 중**
+- STEP 0 사후 감사: **아키텍처/Governance 훼손 없음, 기록 정합화 Minor 3건 보완 완료 / PR #407 검토 대기**
 - 다음 첫 작업: **이 기록 정합화 PR을 검토·승인해 integration에 반영한다. 그 전에는 STEP 1을 시작하지 않는다.**
 
 ## 22개 검토 지점
