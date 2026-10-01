@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / Work Sol 근거 준비**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 3번 Astra 핵심 판단 진행**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **IN_PROGRESS — 근거 준비만; Astra 핵심 판단·정식 matrix 미수행**
+- STEP 3: **IN_PROGRESS — 근거 준비·보조 조사 전달 완료; Astra 핵심 판단 진행 중**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0020-step-3-preparation-submitted.md`
+- 최신 checkpoint: `checkpoints/CP-0021-step-3-judgment-start.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 사용자가 조사 입력·요청문을 일반 채팅 Sol5.6에 전달(활용 시). Work Sol 준비·원격 제출 완료 후 정지. 보조 조사 활용 시 사용자가 결과를 Work에 전달한 뒤 Astra 판단을 별도 지시한다.
+- 다음 첫 작업: 가이드 3번의 11개 사례·6개 시나리오 핵심 판단을 이어간다. 판단 초안의 완료/미완료 구분과 최신 checkpoint를 먼저 확인한다. 가이드 4번 정식 반영·검증, 5번 사후 감사는 미착수.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -210,3 +210,10 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 준비 commit Governance Guard PASS. 해당 SHA workflow runs0/check-runs0: NOT_TRIGGERED, CI PASS 아님.
 - [CP0020](checkpoints/CP-0020-step-3-preparation-submitted.md)에 제출 상태·검증·다음 사용자 행동을 기록. 이 제출 기록 자체의 원격 SHA와 최종 PR HEAD/CI는 저장 뒤 최종 read-back으로 확인한다.
 - STEP3 IN_PROGRESS. Astra 핵심 판단/정식 matrix/사후 감사/결과 승인은 미수행. integration/main merge 없음. 다음 단계 자동 시작 없음.
+
+## STEP 3 핵심 판단 착수
+
+- 사용자 2026-10-01T18:37:11+09:00 지시로 가이드 3번 시작. 보조 보고서 수신/형식 확인을 핵심 판단 완료로 간주하지 않는다.
+- [조사 원본](artifacts/step-3-auxiliary-research-report.md)을 그대로 보존했다. 외부 원문 확인 주장은 Astra가 결론에 필요한 부분을 선택 검증한다.
+- 실제 시작 기준 PR410 head `d0dadc35d574ef8e084458342009d10a529c4ae6`, integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`; OPEN/Draft/미병합 확인.
+- 위 과거 절의 조사/판단 미착수는 해당 시점 이력이다. 현재는 가이드 3번 진행 중이며 STEP3 전체 완료나 승인 상태가 아니다.
