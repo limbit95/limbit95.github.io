@@ -6,7 +6,7 @@
 
 ## 비교 범위와 원문 보존
 
-- 최초4번 반영은6파일(CURRENT+새산출물4+CP0024). 이후 제출기록은4파일(CURRENT/분담/검증/CP0025). 4번 전체 union9파일이며 PR410 전체diff와 구분한다.
+- 최초4번 반영은6파일(CURRENT+새산출물4+CP0024). 이후 제출기록은4파일(CURRENT/분담/검증/CP0025), 최종read-back 정정은3파일(CURRENT/검증/CP0026). 4번 전체 union10파일(최종정정기록CP0026포함)이며 PR410 전체diff와 구분한다.
 - 판단§1~7 본문은 각정식산출물에서 byte 동일성 검증. §8의 3번 완료이력은 원문 보존하고 현재4번상태는 새기록으로 연결했다.
 - E약칭→S3-E, IMPL약칭→IMPL- 형식을 trace에서 해석하며 기존판단 텍스트를 수정하지 않았다.
 - 기존 코드·규칙·계획·STEP1/2·과거checkpoint·DECISIONS·판단원문·보조보고서 unchanged. 새 산출물은검토초안/조건부/보류를 유지하며 새ArchitectureDecision을 채택하지 않았다.
@@ -22,7 +22,7 @@
 | 저장소근거24개 | PASS | 고정SHA·blob·줄범위·실제원문불변. 외부본문재조사 아님 |
 | 로컬상대링크·표열·22개상태·diff공백 | PASS | 최종기록포함 재실행, 수치는 최종결과보고 |
 | 조사원본 SHA256 | PASS | 464b78d36fe47a14a414f94448c579c5c848811d24bf9204149b5fd1cee0cc16 |
-| 계획blob/기존자산·변경범위 | PASS | 계획e12ef… 및 허용9파일외 변경0 |
+| 계획blob/기존자산·변경범위 | PASS | 계획e12ef… 및 허용10파일외 변경0 |
 | Governance Guard | PASS | 최초반영원격dddd42c…에서 실제실행; 최종기록HEAD도 저장후재실행 |
 | 원격CI | NOT_TRIGGERED(초기반영) | dddd42c… workflow0/check0, 최종HEAD 별도조회 |
 | runtime/unit/build/DB/browser/production | NOT_RUN | 코드/실행계약불변 문서단계. 안전성 실행지원 증명 아님 |
@@ -58,12 +58,12 @@ assert refs==[f'S3-E{i:02}' for i in range(1,25)],refs
 # All pre-existing source/rule/plan/STEP1/2/history files remain byte-identical to the input commit.
 changes=git('diff','--name-only',initial).splitlines();allowed={'docs/game-platform-rebuild/CURRENT.md','docs/game-platform-rebuild/artifacts/step-3-work-allocation.md'}
 allowed |= {'docs/game-platform-rebuild/artifacts/'+n for n in ('step-3-stress-matrix.md','step-3-transition-scenarios.md','step-3-risks-and-followup.md','step-3-source-trace.md','step-3-validation.md')}
-allowed |= {'docs/game-platform-rebuild/checkpoints/'+n for n in ('CP-0024-step-3-formal-reflection-start.md','CP-0025-step-3-formal-submitted.md')}
+allowed |= {'docs/game-platform-rebuild/checkpoints/'+n for n in ('CP-0024-step-3-formal-reflection-start.md','CP-0025-step-3-formal-submitted.md','CP-0026-step-3-final-readback.md')}
 assert set(changes)<=allowed,changes
 untracked=git('ls-files','--others','--exclude-standard').splitlines();assert set(untracked)<=allowed,untracked
 assert hashlib.sha256((a/'step-3-auxiliary-research-report.md').read_bytes()).hexdigest()=='464b78d36fe47a14a414f94448c579c5c848811d24bf9204149b5fd1cee0cc16'
 assert git('hash-object','game_platform_vnext_final_execution_plan.md').strip()=='e12ef038913eb6d605709b782f1b73f18e0d1253'
-paths=[a/n for n in set(names.values())]+[a/'step-3-source-trace.md',a/'step-3-work-allocation.md',r/'docs/game-platform-rebuild/CURRENT.md']+list((r/'docs/game-platform-rebuild/checkpoints').glob('CP-002[45]*.md'))+([a/'step-3-validation.md'] if (a/'step-3-validation.md').exists() else [])
+paths=[a/n for n in set(names.values())]+[a/'step-3-source-trace.md',a/'step-3-work-allocation.md',r/'docs/game-platform-rebuild/CURRENT.md']+list((r/'docs/game-platform-rebuild/checkpoints').glob('CP-002[456]*.md'))+([a/'step-3-validation.md'] if (a/'step-3-validation.md').exists() else [])
 link_count=0;table_count=0
 for p in paths:
  t=p.read_text();width=None;infence=False
@@ -81,16 +81,25 @@ for p in paths:
   assert (p.parent/target).exists(),(p.name,target);link_count+=1
 current=(r/'docs/game-platform-rebuild/CURRENT.md').read_text();rows=re.findall(r'^\| (\d+[A-D]?\d?) \| (NOT_STARTED|IN_PROGRESS|REVIEW_PENDING|COMPLETED) \|',current,re.M)
 assert len(rows)==22;assert dict(rows)['3'] in ('IN_PROGRESS','REVIEW_PENDING');assert all(v=='NOT_STARTED' for k,v in rows if k not in ('0','1','2','3'))
-subprocess.run(['git','diff','--check'],check=True)
+subprocess.run(['git','diff','--check',initial],check=True)
 print(json.dumps({'section_bodies_preserved':7,'case_rows':33,'cases':11,'scenarios':6,'risks':7,'external_source_rows':7,'source_refs_blob_lines':24,'relative_links':link_count,'tables':table_count,'status_rows':22,'result':'PASS'},ensure_ascii=False))
+
 ```
 
 commit된 최종HEAD에서 다음도 실행한다.
 
 ```bash
-git diff --check 177533f97bddf67c95379cfa34dc58f2ccdf9e1c HEAD
+git diff --check 41d78ef37f88cd7ea179c805fd9bf1141541284b HEAD
 node scripts/check-game-platform-governance.mjs --base 177533f97bddf67c95379cfa34dc58f2ccdf9e1c --head HEAD
 git status --short --branch
 ```
 
 원격branch ref/PR410 head·base·Draft/미병합·최종commit tree와 로컬tree를 대조한다. 최종CI는 해당SHA의check-runs/actions runs로조회한다. 자신의SHA를 문서에미리적지 않고 CP0025를포함한Git commit/PR설명/최종보고에서확인한다.
+
+## 최종 전체diff 공백 검사 정정
+
+- `git diff --check integration HEAD`의 엄격검사: **FAIL(원본보고서12곳 trailing whitespace)**. 전체diff 공백PASS로 확대하지 않는다.
+- 12곳은 보존된 외부보고서의 Markdown 강제줄바꿈용 정확히2개공백이다. 본문원본보존을 위해 수정하지 않았다. SHA256불변.
+- 이번4번 범위 `git diff --check 41d78ef… HEAD`: PASS. 원본보고서를 제외한 integration전체diff 검사도PASS.
+- 제외재현: `git diff --check 177533f97bddf67c95379cfa34dc58f2ccdf9e1c HEAD -- . ':(exclude)docs/game-platform-rebuild/artifacts/step-3-auxiliary-research-report.md'`.
+- 최초반영/제출원격SHA dddd42c…/c949883…는 중간이력. [CP0026](../checkpoints/CP-0026-step-3-final-readback.md)이 최종정정과감사경로를연결한다. 최종PR설명에실제감사SHA명시.
