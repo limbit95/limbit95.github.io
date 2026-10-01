@@ -26,11 +26,11 @@
 - STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
 - STEP 2: **REVIEW_PENDING — Astra 초안 문서 반영·검증 완료, 사후 감사·사용자 검토 대기**
 - active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
-- STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
+- STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Ready for review / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
 - STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
 - STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0014-step-2-review-pending.md`
+- 최신 checkpoint: `checkpoints/CP-0015-step-2-submission.md`
 - 다음 첫 작업: allocation 5번의 Astra 사후 감사. 장르 인덱스/선택표/GAME_SPEC 근거/검증을 읽고 제안·미결정·계승 누락을 검토한다. 사용자 결과 승인·merge 승인 전에는 병합하지 않는다.
 - STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
@@ -167,3 +167,10 @@
 - 저장 직전 HEAD: `792d73befe676cfdc8f8c1f7b7a58a984841cc01`. 이번 저장 후 SHA는 Git/PR read-back으로 확인한다.
 - PR #409는 제출 시 메타데이터를 갱신하고 검토 가능 상태로 전환한다. 현재 Draft 표기는 전환 전 조회 결과이며 실제 상태는 Git/PR에서 확인한다.
 - STEP 2 REVIEW_PENDING, STEP 3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. integration/main 미반영.
+
+## STEP 2 제출 read-back
+
+- 산출물 원격 commit: `882d8556a8e66b59c3b8f0f46f815fffb7869783`. 원격 branch ref·fetch와 로컬 tree 일치 확인.
+- PR #409 OPEN / Ready for review / 미병합, 제목·설명 갱신 완료. PR head 반영은 최종 Git/PR read-back에서 별도로 대조한다.
+- 위 산출물 commit의 workflow runs0/check-runs0: NOT_TRIGGERED. CI PASS 아님.
+- 최신 제출 기록 자신의 SHA는 저장 후 Git에서 확인한다. STEP2 REVIEW_PENDING, 다음은 Astra 사후 감사.
