@@ -24,14 +24,14 @@
 - STEP 0 / STEP 1: **COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
 - STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
-- STEP 2: **REVIEW_PENDING — Astra 초안 문서 반영·검증 완료, 사후 감사·사용자 검토 대기**
+- STEP 2: **REVIEW_PENDING — 사후 감사 Minor 2건 문서 보완, 집중 재검토·사용자 검토 대기**
 - active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
 - STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Ready for review / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
 - STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
 - STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0015-step-2-submission.md`
-- 다음 첫 작업: allocation 5번의 Astra 사후 감사. 장르 인덱스/선택표/GAME_SPEC 근거/검증을 읽고 제안·미결정·계승 누락을 검토한다. 사용자 결과 승인·merge 승인 전에는 병합하지 않는다.
+- 최신 checkpoint: `checkpoints/CP-0016-step-2-post-audit-fix.md`
+- 다음 첫 작업: AUDIT-S2-001/002 보완의 집중 재검토. 초기 hostless·재대결 hostless·정책 미정의 조건 분리와 검증 비교 SHA/파일 수를 확인한 뒤 사용자 결과 검토를 받는다. 사용자 결과 승인·merge 승인 전에는 병합하지 않는다.
 - STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
 ## 22개 검토 지점
@@ -179,3 +179,11 @@
 - 위 최종 기록 head의 workflow/check-runs0/0도 NOT_TRIGGERED. 원격 산출물 보존과 PR 메타데이터/ready 갱신은 확인했으며 PR head 조회 불일치를 숨기지 않는다.
 
 - 후속 재조회에서 PR #409 API head=`d61283c9db7bbc3ce795d32b6ccb7e739e89f4b3`과 원격 STEP branch가 일치함을 확인했다. 위 제출 당시 조회 불일치는 해소됐으며 승인 blocker로 남기지 않는다. 이 확인 기록 자체의 최신 SHA는 Git/PR에서 조회한다.
+
+## STEP 2 사후 감사 문서 보완
+
+- 감사 판정: 경미한 보완 후 승인 검토 가능 — Critical0 / Major0 / Minor2.
+- AUDIT-S2-001: 기존 Astra 초안의 hostless 적용 조건을 보완. 초기 시작만 hostless이고 재대결은 기존 의무 충족 / 재대결에서도 host 불성립 / 정책 미정을 구분했다. 다른 의무·계약·구현 증거 확인은 별도이며 기존 규칙 변경은 없다.
+- AUDIT-S2-002: 최초 검증7개, 감사 당시 제출8개/PR전체12개, 이번 보완 포함9개/PR전체13개의 비교 기준을 검증 기록에서 구분했다.
+- 저장 직전 STEP HEAD: `78467ef4ecd54df4dfa352824abbbe3b79dd01f7`. 상세 보완·검증·제출 후 확인 방식: [CP0016](checkpoints/CP-0016-step-2-post-audit-fix.md), [STEP2 검증](artifacts/step-2-validation.md).
+- STEP2 REVIEW_PENDING, STEP3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. 새로운 Architecture Decision 없음; DECISIONS와 과거 checkpoint 불변.
