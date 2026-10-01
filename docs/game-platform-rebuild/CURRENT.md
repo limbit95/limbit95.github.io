@@ -20,17 +20,17 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 3번 Astra 핵심 판단 완료 / 가이드 4번 대기**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 4번 Work Sol 정식 반영·검증 진행**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **IN_PROGRESS — 가이드 3번 핵심 판단 완료; 4번 정식 반영·검증 대기**
+- STEP 3: **IN_PROGRESS — 3번 완료; 4번 산출물 반영·검증 진행**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0023-step-3-judgment-complete.md`
+- 최신 checkpoint: `checkpoints/CP-0024-step-3-formal-reflection-start.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
 - 다음 첫 작업: 사용자 지시 후 가이드 4번 Work Sol 정식 산출물 반영·검증. [Astra 판단 전체](artifacts/step-3-astra-judgment.md)를 입력으로 사용한다. 가이드 5번 사후 감사는 미착수.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
@@ -229,3 +229,9 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - [핵심 판단](artifacts/step-3-astra-judgment.md): 11사례7축·독립matrix,6시나리오,리스크7,외부공식출처7개 선택확인·미확인 구분.
 - 판단: 새로운 필수 Core 전제 미발견, STEP2 즉시 회귀 불필요. 비DB 현행 규칙 적용·hostless 재대결의 변경검토는 유지. 지원 완료/Target/API 승인 아님.
 - [CP0023](checkpoints/CP-0023-step-3-judgment-complete.md)에 완료/미완료·저장검증·재개 경로 기록. STEP3 전체 IN_PROGRESS, 가이드4/5 미수행.
+
+## STEP3 가이드4 착수·반영 단위
+
+- 사용자 2026-10-02T06:23:04+09:00 지시. 실제integration177533f…/PR410 head41d78ef… OPEN/Draft/미병합과 계획1.3을 대조했다.
+- Astra§1~7을 정식matrix/시나리오/리스크후속에 원문 그대로 반영하고 source trace24개 위치를 연결했다.
+- 첫검증: 본문7절동일·사례11/시나리오6/리스크7·근거blob줄24·표/링크·원본불변 PASS. 최종검증·제출은 아직 진행 중.
