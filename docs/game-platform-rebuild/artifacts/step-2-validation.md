@@ -79,3 +79,5 @@ git diff --name-only 792d73befe676cfdc8f8c1f7b7a58a984841cc01 HEAD
 - PR API head는 착수792d73...을 계속 반환했다. **최신 STEP branch와 PR API head SHA 불일치 확인 필요**. PR 최신 diff 반영을 PASS라고 선언하지 않는다. 감사자는 d07a6760a50b1e9f6e6944055b62c7c654bc2053의 산출물 또는 최신 STEP branch를 사용하고 실제 PR 상태를 재확인한다.
 - 882d8556... / d07a6760... workflow runs0/check-runs0: NOT_TRIGGERED.
 - integration2636d47... 불변, main/integration에 이번 결과 병합 없음.
+
+- 후속 최종 재조회: PR head d61283c9db7bbc3ce795d32b6ccb7e739e89f4b3 = 원격 STEP branch. 위 일시적 PR head 불일치 해소 확인. 해당 head도 workflow/check-runs0/0, NOT_TRIGGERED. 이 사실 기록 자신의 최신 commit은 Git/PR에서 조회한다.
