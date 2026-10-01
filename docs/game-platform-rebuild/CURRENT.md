@@ -13,7 +13,7 @@
 - integration 최초 생성 기준 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
 - vNext integration: `feature/game-platform-vnext-integration`
 - STEP 1 착수 시 확인한 integration HEAD: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
-- integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
+- 승인 기록 저장 직전 integration에 반영된 마지막 승인 STEP: **STEP 0 — PR #404 / merge commit `df43b4a60518ace86f6c5db4344bea81b0d0d4f7`**
 - STEP 0 사후 기록 반영: **PR #406 / merge commit `394ae9aada9b99d9fb049fa0a3278f50133f3290`**
 - 기준 SHA 이후 변경 감사: `c6b1e31... → STEP 0 착수 main` 사이에는 실행 계획 개정 1.2 파일 1개 추가만 있었고 기존 플랫폼 규칙, `games/shared/`, Registry, Guard, 테스트, 출시 상태 변경은 없었음.
 - 개정 1.3 정합화 시점의 main과 integration: **identical**. 이후 각 STEP에서 반복 main 동기화를 기본 절차로 두지 않음.
@@ -23,15 +23,16 @@
 - 현재 STEP: **STEP 1 — AS-IS 감사와 기존 규칙 조항별 계승표**
 - STEP 0 상태: **COMPLETED**
 - STEP 0 기록 정합화: PR #407 MERGED / `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`, CP-0005 integration 반영 확인
-- STEP 1 상태: **REVIEW_PENDING**
+- STEP 1 상태: **COMPLETED — 사용자 결과 승인됨**
 - active STEP branch: `docs/game-platform-vnext-phase1-audit`
 - STEP branch 분기 integration SHA: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
 - STEP PR: [#408](https://github.com/limbit95/limbit95.github.io/pull/408) **OPEN / merged=false**; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
 - STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
-- STEP 1 사용자 검토 / integration merge 승인 / 실제 병합: **미수행 / 없음 / 미수행**
+- STEP 1 사용자 검토 / integration merge 승인: **통과 / 승인됨 — 2026-10-01 12:38:05 Asia/Seoul 사용자 지시**
+- PR #408 실제 병합/merge SHA: 이 파일은 병합 직전 저장된다. 최신 Git/PR에서 확인하며, 미병합이면 승인된 병합만 수행한다.
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0010-step-1-audit-correction.md`
-- 다음 첫 작업: **사용자가 PR #408의 AUDIT-S1-001 보완·검증·계승 정보 보존을 재검토한다. STEP 1 최종 승인과 integration 병합 승인은 별도다.**
+- 최신 checkpoint: `checkpoints/CP-0011-step-1-approved.md`
+- 다음 첫 작업: **PR #408의 실제 integration 병합과 CP-0011/산출물 반영을 Git에서 확인하고 정지한다. STEP 2 시작 금지; 별도 사용자 지시 대기.**
 - 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
 
 ## 22개 검토 지점
@@ -39,7 +40,7 @@
 | 단계 | 상태 |
 |---|---|
 | 0 | COMPLETED |
-| 1 | REVIEW_PENDING |
+| 1 | COMPLETED |
 | 2 | NOT_STARTED |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
@@ -138,3 +139,11 @@
 - 기존 AS-IS F01~F03(Critical 0/Major 2/Minor 1)은 불변이며 이번 산출물 오류와 별도 집계한다.
 - 보완 저장 직전 HEAD: `8e02d0dba5c3d3e9d48f7bb62afab54acf6158af`. 실제 저장 후 commit SHA·원격 보존·CI 상태는 Git/PR read-back과 결과 보고로 확인한다.
 - STEP 1 REVIEW_PENDING, STEP 2 이후 NOT_STARTED. 사용자 최종 승인·integration merge 승인 없음, integration/main 병합 미수행.
+
+
+## STEP 1 사용자 승인 — 2026-10-01T03:39:32+00:00
+
+- STEP 1 결과 승인 및 PR #408 → integration 병합이 명시적으로 승인됐다. STEP 2는 시작하지 말라는 사용자 지시가 있다.
+- 최신 [CP-0011](checkpoints/CP-0011-step-1-approved.md)이 승인과 병합 사실 조회 경로를 기록한다. 위 과거 절의 REVIEW_PENDING/미승인은 당시 사실이며 현재 결과 승인 상태를 대신하지 않는다.
+- 이 파일의 저장 직전 integration은 STEP 0까지만 반영됐다. #408 실제 merged 상태와 CP-0011 존재가 확인되면 integration에 반영된 마지막 승인 STEP은 STEP 1이며 현재 작업 브랜치는 종료 이력이다. 실제 merge SHA·최신 integration HEAD는 Git/PR에서 조회한다.
+- STEP 2 및 이후 NOT_STARTED, STEP 2 시작 승인 없음. integration→main 미승인·미수행.
