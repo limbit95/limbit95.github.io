@@ -1,8 +1,8 @@
 # STEP 3 — 작업 분담과 진행 체크
 
 - 기준: 계획 1.3 STEP 3 / integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`.
-- STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`. 현재는 **가이드 3번 Astra 핵심 판단 완료 / 가이드 4번 대기 / STEP 3 IN_PROGRESS**.
-- 결과 승인·integration merge 승인·main 반영 승인 없음. Astra 판단 완료; 4번 정식 반영·검증과 5번 사후 감사 미수행.
+- STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`. 현재는 **가이드 4번 제출 / 가이드 5번 사후 감사 대기 / STEP 3 REVIEW_PENDING**.
+- 결과 승인·integration merge 승인·main 반영 승인 없음. Astra 판단과 4번 정식 반영·검증 완료; 5번 사후 감사 미수행.
 
 ## 진행 체크
 
@@ -15,7 +15,7 @@
 - [x] integration base Draft PR410 제출·준비 HEAD read-back
 - [x] 사용자 보조 조사 활용/전달 — 원본 step-3-auxiliary-research-report.md
 - [x] Work Astra 핵심 판단 — step-3-astra-judgment.md, 가이드 3번 완료
-- [ ] Work Sol 정식 산출물 반영·검증·제출
+- [x] Work Sol 정식 산출물 반영·검증·제출 — CP0025와 최종PR read-back으로 확인
 - [ ] Work Astra 사후 감사·필요 보완 재검토
 - [ ] 사용자 결과 승인·integration 병합 승인
 
@@ -35,10 +35,12 @@
 
 ## 다음 첫 행동
 
-가이드 **4번 Work Sol 정식 산출물 반영·검증**을 사용자 지시 후 진행한다. [Astra 판단 전체](step-3-astra-judgment.md)가 직접 입력이다. 11사례/6시나리오/리스크/외부 선택확인과 미확인·보류 조건을 보존한다. 3번 기록의 저장검증은 4번 완료나 5번 사후 감사가 아니다. 번호는 Game_Platform_vNext_STEP3_work_guide.md의 1~7을 따른다.
+사용자 지시 후 가이드 **5번 Work Astra 사후 감사**를 진행한다. 최종 원격STEP HEAD와 PR410 diff를 입력으로 [matrix](step-3-stress-matrix.md), [시나리오](step-3-transition-scenarios.md), [리스크/후속](step-3-risks-and-followup.md), [trace](step-3-source-trace.md), [검증](step-3-validation.md)을 원본Astra/계획/기존규칙과 대조한다. 감사 기준SHA는 최종PR body/read-back과 CP0025를 포함한Git commit으로 확인한다. 가이드4의 검증은 가이드5 감사결과가 아니다.
 
 현재 브랜치/PR을 계속 사용한다. 채팅방·모델 변경만으로 새 브랜치를 만들지 않는다. runtime·API·계약·물리 경로는 선결정하지 않는다. [근거 brief](step-3-evidence-brief.md) · [검증](step-3-preparation-validation.md)
 
 준비 제출 사실은 [CP0020](../checkpoints/CP-0020-step-3-preparation-submitted.md)에 기록한다. 제출 기록 자체의 최신 HEAD는 실제 Git/PR에서 재확인한다.
 
 3번 완료·재개 기록: [CP0023](../checkpoints/CP-0023-step-3-judgment-complete.md). 과거 준비 제출/미착수 문구는 당시 이력이다.
+
+4번 제출 기록: [CP0025](../checkpoints/CP-0025-step-3-formal-submitted.md). 이전 3번/준비 상태는 당시 이력이다.
