@@ -30,8 +30,8 @@
 - STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
 - STEP 1 사용자 검토 / integration merge 승인 / 실제 병합: **미수행 / 없음 / 미수행**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0006-step-1-start.md`
-- 다음 첫 작업: **현재 규칙의 authoritative 문서 연결을 추적하고, 원문 조항과 실제 소비 코드의 증거를 고정한다.**
+- 최신 checkpoint: `checkpoints/CP-0007-step-1-resume.md`
+- 다음 첫 작업: **CP-0007의 재개 확인을 기준으로 남은 코드/검증 경계를 대조하고 AS-IS 감사·조항별 계승표를 작성한다.**
 - 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
 
 ## 22개 검토 지점
@@ -102,3 +102,9 @@
 - CP-0001의 “open PR 없음”: 저장소 전체가 아니라 당시 동일 `game-platform-vnext` 작업 계보의 open PR 없음으로 범위를 정정 기록
 - 과거 CP-0001~0004는 당시 기록 보존 원칙에 따라 수정하지 않음
 - STEP 1 시작 조건: **이 정정 기록이 integration에 반영되고 사용자 별도 시작 지시가 있을 것**
+
+## STEP 1 재개 확인
+
+- CP-0007에서 로컬/원격 HEAD `467e6b8351c1236d4a9eb6fed71de534594f1e27` 일치와 깨끗한 작업 트리를 확인했다.
+- 착수 기록 두 파일만 반영됨. AS-IS/조항표/최종 검증/PR은 미완료이며 코드 테스트는 아직 미실행이다.
+- 아래/위 STEP 0 절의 STEP 1 미착수 표기는 당시 종료 이력이다. 현재 STEP 상태는 상단과 22개 검토 지점 표를 따른다.
