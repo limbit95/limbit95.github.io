@@ -24,14 +24,14 @@
 - STEP 0 / STEP 1: **COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
 - STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
-- STEP 2: **IN_PROGRESS — 착수·근거 준비 완료, 정식 산출물 미완료**
+- STEP 2: **REVIEW_PENDING — Astra 초안 문서 반영·검증 완료, 사후 감사·사용자 검토 대기**
 - active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
 - STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
 - STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
 - STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0013-step-2-handoff.md`
-- 다음 첫 작업: [작업 분담](artifacts/step-2-work-allocation.md)의 Astra 판단 요청에 [근거 요약](artifacts/step-2-evidence-brief.md)을 전달한다. 외부 보조 조사는 필요할 때만 수행한다.
+- 최신 checkpoint: `checkpoints/CP-0014-step-2-review-pending.md`
+- 다음 첫 작업: allocation 5번의 Astra 사후 감사. 장르 인덱스/선택표/GAME_SPEC 근거/검증을 읽고 제안·미결정·계승 누락을 검토한다. 사용자 결과 승인·merge 승인 전에는 병합하지 않는다.
 - STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
 ## 22개 검토 지점
@@ -40,7 +40,7 @@
 |---|---|
 | 0 | COMPLETED |
 | 1 | COMPLETED |
-| 2 | IN_PROGRESS |
+| 2 | REVIEW_PENDING |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
@@ -155,3 +155,15 @@
 
 - 착수 원격 보존: `5d8f94a4448caeb5e232e4e3d19131d0169cd013`, tree `24b8be3b55c05c3a10185b0ddf6dd35a31387a58`. Draft PR #409 생성 확인. 최신 기록 저장 후 SHA는 Git에서 조회한다.
 - 착수 제출 head `5d8f94a...`의 PR workflow runs 0 / check-runs 0: NOT_TRIGGERED. PASS로 집계하지 않는다.
+
+## STEP 2 정식 산출물 작성과 검토 대기
+
+- 직접 입력: 이 채팅 Astra STEP 2 판단 결과 전체. Sol 5.6 메모는 참고 입력으로 별도 원본 보존. 계획1.3·기존 유효 규칙이 우선한다.
+- [장르 인덱스](artifacts/step-2-genre-rule-index.md): 묶음·논리적 소유자·조건·49개 조항별 제안·S2-R01~04.
+- [구현 선택표](artifacts/step-2-implementation-selection.md): 7축·단일/복수·단계 변경·Capability·시간 분리·호환/충돌·지원 상태 구분.
+- [GAME_SPEC 근거](artifacts/step-2-game-spec-selection-rationale.md): 기록 제안과 예시. 실제 템플릿 불변.
+- [검증](artifacts/step-2-validation.md), [참고 조사 원본](artifacts/step-2-auxiliary-research-memo.md).
+- 기존 분류·강도·조건·예외와 F01~F03을 보존한다. 논리적 분류 제안은 아직 채택된 Architecture Decision이 아니므로 DECISIONS 불변.
+- 저장 직전 HEAD: `792d73befe676cfdc8f8c1f7b7a58a984841cc01`. 이번 저장 후 SHA는 Git/PR read-back으로 확인한다.
+- PR #409는 제출 시 메타데이터를 갱신하고 검토 가능 상태로 전환한다. 현재 Draft 표기는 전환 전 조회 결과이며 실제 상태는 Git/PR에서 확인한다.
+- STEP 2 REVIEW_PENDING, STEP 3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. integration/main 미반영.
