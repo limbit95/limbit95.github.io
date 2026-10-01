@@ -30,7 +30,7 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0021-step-3-judgment-start.md`
+- 최신 checkpoint: `checkpoints/CP-0022-step-3-judgment-resume.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
 - 다음 첫 작업: 가이드 3번의 11개 사례·6개 시나리오 핵심 판단을 이어간다. 판단 초안의 완료/미완료 구분과 최신 checkpoint를 먼저 확인한다. 가이드 4번 정식 반영·검증, 5번 사후 감사는 미착수.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
@@ -217,3 +217,9 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - [조사 원본](artifacts/step-3-auxiliary-research-report.md)을 그대로 보존했다. 외부 원문 확인 주장은 Astra가 결론에 필요한 부분을 선택 검증한다.
 - 실제 시작 기준 PR410 head `d0dadc35d574ef8e084458342009d10a529c4ae6`, integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`; OPEN/Draft/미병합 확인.
 - 위 과거 절의 조사/판단 미착수는 해당 시점 이력이다. 현재는 가이드 3번 진행 중이며 STEP3 전체 완료나 승인 상태가 아니다.
+
+## STEP 3 가이드 3번 중간 재개
+
+- 2026-10-01T20:55:06+09:00 재개 지시. 실제 PR410 OPEN/Draft/미병합, head `8f507f4828f1394b88babd7a9d6bfd0344ec21c8`.
+- [판단 중간본](artifacts/step-3-astra-judgment.md)의 분석단위A를 복구했다. 이전 원격에는 착수기록/조사원본까지 있었고 판단 중간본은 로컬 미추적 파일이었다. 이번 checkpoint에 함께 보존한다.
+- 핵심판단은 미완료로 유지하며 11사례/6시나리오/회귀 판정을 이어간다.
