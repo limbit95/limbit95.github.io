@@ -11,8 +11,8 @@
 - [x] 11개 사례·6개 시나리오 요구/근거/미확인 준비
 - [x] 일반 채팅 Sol5.6 전달 자료·요청문 준비
 - [x] 준비 산출물·착수 기록의 로컬 trace/링크/범위/상태 검증
-- [ ] candidate commit Governance·원격 보존 — 결과는 검증 기록/최신 checkpoint
-- [ ] integration base Draft PR 제출·read-back — 실제 PR 번호는 CURRENT/최신 checkpoint
+- [x] 준비 commit Governance·원격 보존 — c0bea6ab518557c1d487a2361d51aae334c829cf
+- [x] integration base Draft PR410 제출·준비 HEAD read-back
 - [ ] 사용자 보조 조사 활용/전달
 - [ ] Work Astra 핵심 판단
 - [ ] Work Sol 정식 산출물 반영·검증·제출
@@ -37,3 +37,5 @@
 사용자가 [조사 입력](step-3-auxiliary-research-input.md)과 [요청문](step-3-auxiliary-research-request.md), 필요 시 기존 STEP 2 조사 메모를 일반 채팅 Sol5.6에 전달한다. 보고서를 Work 방에 전달한 뒤 Astra 판단을 별도 지시한다. 보조 조사를 생략하려면 그 선택과 미확인 근거를 남기고 Astra 판단을 별도 지시한다. 이번 준비 작업에서 자동으로 어느 경로도 실행하지 않는다.
 
 현재 브랜치/PR을 계속 사용한다. 채팅방·모델 변경만으로 새 브랜치를 만들지 않는다. runtime·API·계약·물리 경로는 선결정하지 않는다. [근거 brief](step-3-evidence-brief.md) · [검증](step-3-preparation-validation.md)
+
+준비 제출 사실은 [CP0020](../checkpoints/CP-0020-step-3-preparation-submitted.md)에 기록한다. 제출 기록 자체의 최신 HEAD는 실제 Git/PR에서 재확인한다.

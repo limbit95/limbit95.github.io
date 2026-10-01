@@ -26,13 +26,13 @@
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
 - STEP 3: **IN_PROGRESS — 근거 준비만; Astra 핵심 판단·정식 matrix 미수행**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
-- STEP PR: 준비 제출 전 미생성. Draft 제출 후 실제 번호/base/head는 후속 기록에서 확인한다.
+- STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0019-step-3-preparation.md`
+- 최신 checkpoint: `checkpoints/CP-0020-step-3-preparation-submitted.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 준비 자료의 원격 제출 확인 후 사용자에게 조사 입력·요청문을 전달하고 정지. 보조 조사 활용 시 사용자가 결과를 Work에 전달한 뒤 Astra 판단을 별도 지시한다.
+- 다음 첫 작업: 사용자가 조사 입력·요청문을 일반 채팅 Sol5.6에 전달(활용 시). Work Sol 준비·원격 제출 완료 후 정지. 보조 조사 활용 시 사용자가 결과를 Work에 전달한 뒤 Astra 판단을 별도 지시한다.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -202,3 +202,11 @@
 ## STEP 3 근거 준비 착수·제출 경계
 
 PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 CP0017 반영을 확인하고 사용자 허용 범위만 시작했다. [CP0018](checkpoints/CP-0018-step-3-start.md)은 착수 사실, [CP0019](checkpoints/CP-0019-step-3-preparation.md)는 준비 결과·검증·다음 행동을 기록한다. source 읽기·사례 가정·미확인 질문을 분리했으며 정식 matrix/지원/Core 판정·외부 신규 조사·STEP4 계약 설계는 미수행이다. 원격 제출 SHA/PR/CI는 read-back 후 새 기록으로 연결한다.
+
+## STEP 3 근거 준비 원격 제출
+
+- 원격 준비 commit `c0bea6ab518557c1d487a2361d51aae334c829cf`, tree `a09f2ff0940816507d211e03f48b0c271ed78c52`. 로컬/원격 tree 일치와 깨끗한 작업 트리 확인.
+- PR410 OPEN/Draft/merged=false, 실제 base/head/준비 SHA 일치. 초기 diff8개는 [검증](artifacts/step-3-preparation-validation.md)의 준비 범위와 일치.
+- 준비 commit Governance Guard PASS. 해당 SHA workflow runs0/check-runs0: NOT_TRIGGERED, CI PASS 아님.
+- [CP0020](checkpoints/CP-0020-step-3-preparation-submitted.md)에 제출 상태·검증·다음 사용자 행동을 기록. 이 제출 기록 자체의 원격 SHA와 최종 PR HEAD/CI는 저장 뒤 최종 read-back으로 확인한다.
+- STEP3 IN_PROGRESS. Astra 핵심 판단/정식 matrix/사후 감사/결과 승인은 미수행. integration/main merge 없음. 다음 단계 자동 시작 없음.
