@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 4번 제출 / 가이드 5번 Astra 사후 감사 대기**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 4번 제출 / 가이드 5번 Work Astra 사후 감사 진행 중**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **REVIEW_PENDING — 정식 산출물 제출; Astra 사후 감사·사용자 승인 대기**
+- STEP 3: **REVIEW_PENDING — 정식 산출물 제출; Astra 사후 감사 진행 중·사용자 승인 대기**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0026-step-3-final-readback.md`
+- 최신 checkpoint: `checkpoints/CP-0027-step-3-post-audit-start.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 사용자 지시 후 가이드 5번 Work Astra 사후 감사. 실제 최종 STEP HEAD/PR diff와 [matrix](artifacts/step-3-stress-matrix.md), [시나리오](artifacts/step-3-transition-scenarios.md), [리스크/후속](artifacts/step-3-risks-and-followup.md), [trace](artifacts/step-3-source-trace.md), [검증](artifacts/step-3-validation.md)을 대조한다.
+- 다음 첫 작업: 고정 감사 SHA `79a03bca8ecba10eee4473156168aae5fa7faeb3`의 10개 감사 항목을 마무리하고, 감사 보고서·진행 기록만 기존 PR #410에 보존한다. 가이드 6번 보완은 별도 지시 전 미수행.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -248,3 +248,11 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 정식제출기록 c949883543fe4c8485acfd1734198dbd68069c9e의 PR410 head/base 일치·Draft/미병합·diff21파일일치·CI0/0 확인.
 - 전체integration diff 엄격공백검사는 보존된조사원본의 Markdown2공백12곳으로FAIL. 이번4번diff는PASS, 원본제외전체도PASS. 원본은불변유지.
 - [CP0026](checkpoints/CP-0026-step-3-final-readback.md)에정정. 최종검증/PR설명에서전체PASS로과장하지않는다. 감사SHA는최종기록포함HEAD조회.
+
+## STEP 3 가이드 5번 사후 감사 착수
+
+- 기록 시각: 2026-10-02T07:09:54+09:00; 사용자 요청 범위는 Work Astra 사후 감사와 필요한 기록·원격 보존이다.
+- 실제 integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`, PR409 MERGED, PR410 OPEN/Draft/merged=false를 Git/API로 재확인했다.
+- 감사 대상과 착수 직전 HEAD: `79a03bca8ecba10eee4473156168aae5fa7faeb3`. PR head와 일치하며, 이후 감사 기록 commit은 제출 산출물의 감사 대상으로 확대하지 않는다.
+- [CP0027](checkpoints/CP-0027-step-3-post-audit-start.md): 상태 복원·검증 재현 완료, 의미 감사 진행 중. 이전 감사 대기 문구는 당시 이력이다.
+- STEP 3 REVIEW_PENDING, 가이드 6·7 미수행. 사용자 결과 승인·integration/main 병합 승인 없음.
