@@ -14,7 +14,7 @@
 | games Markdown 전수 | PASS — 실제 14개 모두 원문 집합에 포함 | HISTORY/게임별 기록을 새 플랫폼 의무로 승격하지 않음 |
 | 기존 원본 불변 | PASS — 계획, AGENTS/진입 문서, 기존 규칙/게임/코드, DECISIONS, CP-0001~0005 그대로 | STEP 1 시작/재개 기록 CP-0006/0007도 이후 덮어쓰지 않음 |
 | 현행 contract/governance unit tests | PASS — 45 tests, 45 pass, 0 fail/skip | 아래 세 파일만 실행. 전체 게임 회귀 성공/실제 DB 검증이라는 뜻 아님 |
-| 현행 Governance Guard | PASS — source 기준과 작업 HEAD 비교 | 기존 경로/계약 검증. 새 계승표의 의미적 완전성을 Guard가 검사하는 것은 아님 |
+| 현행 Governance Guard | PASS — source 기준과 제출 HEAD `77ddb87` 비교 | 기존 경로/계약 검증. 새 계승표의 의미적 완전성을 Guard가 검사하는 것은 아님 |
 | F01 메모리 재현 | OBSERVED — version 3→2 및 dispose 후 callback 1회 | 결함 존재를 관찰한 재현이며 게임 정상 동작 PASS가 아님. 코드/테스트 파일 수정 없음 |
 
 실행 명령(저장소 루트):
@@ -30,6 +30,7 @@ git diff --check 132ec1576e316d0238c9ca6e07d0d3ab91950ec8
 ## 변경 범위·단계 검증
 
 - STEP 1의 최초 commit `467e6b8351c1236d4a9eb6fed71de534594f1e27`의 부모는 승인 integration `132ec157…`이다. 재개 시 같은 STEP 브랜치를 이어갔다.
+- 제출 commit에서 `git diff --check`와 아래 원문 trace 절차 재실행 PASS, 저장소 상대 산출물 링크 단절 0을 확인했다.
 - 변경 허용 경로는 `docs/game-platform-rebuild/CURRENT.md`, STEP 1 신규 checkpoint, `artifacts/step-1-*.md`뿐이다. 기존 checkpoint의 수정·삭제는 없다.
 - 22개 검토 지점 중 STEP 1만 `NOT_STARTED → IN_PROGRESS → REVIEW_PENDING`으로 이동한다. STEP 0 COMPLETED와 나머지 NOT_STARTED는 유지한다.
 - 2,104개 규칙·필드 단위 = 계승 검토 K 1,198 + 기존 소비자 한정 L 906. 나머지 1,128개는 문맥/이력/예시/범위 밖/작업 제어다. 본문 원문을 삭제하거나 의무 강도를 바꾸지 않았다.
@@ -37,7 +38,7 @@ git diff --check 132ec1576e316d0238c9ca6e07d0d3ab91950ec8
 
 ## CI 확인 및 미실행
 
-PR 생성 후 실제 head의 workflow/check 상태를 확인하여 이 절과 최신 checkpoint에 기록한다. 생성 전에 실행 성공을 기록하지 않는다.
+PR [#408](https://github.com/limbit95/limbit95.github.io/pull/408) 생성 후 제출 head `77ddb87f9ade947a763bffca0b108d80baa558f5`에서 PR workflow runs **0**, check-runs **0**을 실제 조회했다. **NOT_TRIGGERED**이며 PASS가 아니다. 조회 시각: `2026-10-01T00:45:31+00:00`. 이후 같은 PR의 기록 commit도 문서 범위를 유지한다. 최종 원격 HEAD는 최신 checkpoint를 포함한 Git commit과 PR head로 확인한다.
 
 - `game-platform-governance.yml`은 PR의 `games/**`, 최상위 `docs/game-platform-*.md` 등의 경로에 반응한다. 중첩된 이번 재구축 기록/산출물은 해당 경로와 다르다.
 - `site-static-checks.yml`은 `**/*.md` 변경만 있는 PR을 제외한다. `game-db-integration.yml`도 SQL/DB test 경로를 수정하지 않아 대상이 아니다.
