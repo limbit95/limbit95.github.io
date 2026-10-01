@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 4번 제출 / 가이드 5번 Work Astra 사후 감사 진행 중**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 5번 Work Astra 사후 감사 완료 / 사용자 결과 검토 대기**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **REVIEW_PENDING — 정식 산출물 제출; Astra 사후 감사 진행 중·사용자 승인 대기**
+- STEP 3: **REVIEW_PENDING — 정식 산출물·사후 감사 제출; 사용자 결과 승인 대기**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0027-step-3-post-audit-start.md`
+- 최신 checkpoint: `checkpoints/CP-0028-step-3-post-audit-complete.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 고정 감사 SHA `79a03bca8ecba10eee4473156168aae5fa7faeb3`의 10개 감사 항목을 마무리하고, 감사 보고서·진행 기록만 기존 PR #410에 보존한다. 가이드 6번 보완은 별도 지시 전 미수행.
+- 다음 첫 작업: 사용자가 [사후 감사](artifacts/step-3-post-audit.md)와 정식 산출물을 검토한다(가이드 7번). 신규 finding 0건으로 현재 가이드 6번 보완 요구는 없으며 보완 작업은 수행하지 않았다. 결과 승인·병합은 별도 명시적 지시를 기다린다.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -256,3 +256,11 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 감사 대상과 착수 직전 HEAD: `79a03bca8ecba10eee4473156168aae5fa7faeb3`. PR head와 일치하며, 이후 감사 기록 commit은 제출 산출물의 감사 대상으로 확대하지 않는다.
 - [CP0027](checkpoints/CP-0027-step-3-post-audit-start.md): 상태 복원·검증 재현 완료, 의미 감사 진행 중. 이전 감사 대기 문구는 당시 이력이다.
 - STEP 3 REVIEW_PENDING, 가이드 6·7 미수행. 사용자 결과 승인·integration/main 병합 승인 없음.
+
+## STEP 3 가이드 5번 사후 감사 제출
+
+- 기록 시각: 2026-10-02T07:16:07+09:00; 고정 감사 대상 `79a03bca8ecba10eee4473156168aae5fa7faeb3`.
+- [Astra 사후 감사](artifacts/step-3-post-audit.md): 요청 10항목 적합, 신규 finding Critical 0 / Major 0 / Minor 0, **승인 검토 가능**. STEP 2 즉시 회귀 불필요; 회귀 재검토 조건과 비DB/hostless 의무·기존 리스크는 유지한다.
+- 감사 착수 기록 원격 보존 SHA `0213c899b4ede706d7586ecc56016dd22a3bcb4d`. 이번 감사 제출은 보고서·CURRENT·분담·새 checkpoint만 변경하며 정식 산출물과 원본은 불변이다.
+- [CP0028](checkpoints/CP-0028-step-3-post-audit-complete.md)에 검증·제출 범위·재개 지점 기록. 최종 저장 SHA와 PR head는 commit 후 read-back/PR 설명에서 확인한다.
+- STEP 3 REVIEW_PENDING 유지. 가이드 6번 보완 미수행(현재 finding 없음), 가이드 7번 사용자 승인 미수행. integration/main 병합·STEP 4A·production 없음. 이전 절의 감사 진행 중/대기는 당시 이력이다.
