@@ -23,15 +23,15 @@
 - 현재 STEP: **STEP 1 — AS-IS 감사와 기존 규칙 조항별 계승표**
 - STEP 0 상태: **COMPLETED**
 - STEP 0 기록 정합화: PR #407 MERGED / `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`, CP-0005 integration 반영 확인
-- STEP 1 상태: **IN_PROGRESS**
+- STEP 1 상태: **REVIEW_PENDING**
 - active STEP branch: `docs/game-platform-vnext-phase1-audit`
 - STEP branch 분기 integration SHA: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
-- STEP PR: 아직 생성하지 않음 / 예정 base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
+- STEP PR: 산출물 제출 준비 완료, 아직 생성하지 않음 / 예정 base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
 - STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
 - STEP 1 사용자 검토 / integration merge 승인 / 실제 병합: **미수행 / 없음 / 미수행**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0007-step-1-resume.md`
-- 다음 첫 작업: **CP-0007의 재개 확인을 기준으로 남은 코드/검증 경계를 대조하고 AS-IS 감사·조항별 계승표를 작성한다.**
+- 최신 checkpoint: `checkpoints/CP-0008-step-1-audit-ready.md`
+- 다음 첫 작업: **산출물을 원격 STEP 브랜치에 보존하고 integration 대상 STEP 1 PR을 제출한 뒤 실제 PR 번호/상태를 기록한다.**
 - 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
 
 ## 22개 검토 지점
@@ -39,7 +39,7 @@
 | 단계 | 상태 |
 |---|---|
 | 0 | COMPLETED |
-| 1 | IN_PROGRESS |
+| 1 | REVIEW_PENDING |
 | 2 | NOT_STARTED |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
@@ -106,5 +106,19 @@
 ## STEP 1 재개 확인
 
 - CP-0007에서 로컬/원격 HEAD `467e6b8351c1236d4a9eb6fed71de534594f1e27` 일치와 깨끗한 작업 트리를 확인했다.
-- 착수 기록 두 파일만 반영됨. AS-IS/조항표/최종 검증/PR은 미완료이며 코드 테스트는 아직 미실행이다.
+- CP-0007 당시 착수 기록 두 파일만 반영돼 있었고, AS-IS/조항표/최종 검증/PR은 미완료, 코드 테스트는 미실행이었다. 이후 진행은 아래 제출 준비 기록으로 연결한다.
 - 아래/위 STEP 0 절의 STEP 1 미착수 표기는 당시 종료 이력이다. 현재 STEP 상태는 상단과 22개 검토 지점 표를 따른다.
+
+
+## STEP 1 제출 준비
+
+- 기록 시각: **2026-10-01T00:39:05+00:00**
+- checkpoint 저장 직전 STEP HEAD: `4f7c1697648a7993d85cdc89b0188b1cb7daaddf` (자신의 commit SHA가 아님)
+- integration 재확인: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8` — 마지막 승인 반영 STEP 0 유지
+- 산출물: [AS-IS](artifacts/step-1-as-is-audit.md), [전수 계승표 인덱스](artifacts/step-1-clause-succession-table.md), [source inventory](artifacts/step-1-source-inventory.md), [검증/재현](artifacts/step-1-validation.md)
+- 원문 표: [공통·Governance·DB](artifacts/step-1-clauses-platform.md), [UI·템플릿](artifacts/step-1-clauses-design.md), [기존 게임](artifacts/step-1-clauses-games.md), [사이트·이력](artifacts/step-1-clauses-site-history.md)
+- 감사 완료 범위: 26문서(게임 Markdown 14개 전부), 원문 3,232단위, 규칙·필드 2,104개(K 1,198 / L 906). 코드 증거 57파일은 산출물의 명시된 범위에서 읽음.
+- findings: Critical 0 / Major 2 / Minor 1; 실행 위험 5, 암묵적 후보 8. 기존 코드/문서 수정으로 해결하지 않음.
+- 검증: 본문 trace/ID/강도/원본 불변 PASS, 기존 contract/governance 45 PASS, Guard PASS. F01 두 메모리 재현 OBSERVED. 전체 게임/DB/browser/production 검증 NOT_RUN(문서 단계).
+- 미완료: 실제 PR 제출/원격 최종 대조, 사용자 범위·분류·누락·finding 검토. 새 책임 문서/계약/모델은 이후 설계 STEP의 미결정이다.
+- 새 Architecture Decision 없음. DECISIONS와 실행 계획 개정 1.3 불변. STEP 2 NOT_STARTED, integration/main 병합 승인 없음.
