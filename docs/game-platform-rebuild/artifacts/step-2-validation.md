@@ -71,3 +71,11 @@ git diff --name-only 792d73befe676cfdc8f8c1f7b7a58a984841cc01 HEAD
 - 참고 조사 원본 SHA256: `301907cceb8ee5f98388a95ed5652292397eac3791facae9ea296b8e15aa45f7`.
 - 실제 검사 집계: ID별 trace49 / 기존 brief56 / 상대 링크61 / 22개 상태표 일치. 계획 blob `e12ef038913eb6d605709b782f1b73f18e0d1253` 보존.
 - 조사 사본의 원본 첫 줄 Markdown hard-break 공백2개를 정리했다. 첨부 자체는 변경하지 않았으며 출처·본문·사실/추론/미확인 내용은 보존했다. 공백 정리 전 원본 hash는 위 SHA256이다.
+
+## 원격 제출 실제 조회
+
+- 산출물882d8556... 및 제출 기록d07a6760...을 원격 STEP branch ref·fetch와 로컬 tree로 대조했다.
+- PR #409 OPEN / draft=false / merged=false, base integration, head STEP branch. 제목·설명·ready 변경 확인.
+- PR API head는 착수792d73...을 계속 반환했다. **최신 STEP branch와 PR API head SHA 불일치 확인 필요**. PR 최신 diff 반영을 PASS라고 선언하지 않는다. 감사자는 d07a6760a50b1e9f6e6944055b62c7c654bc2053의 산출물 또는 최신 STEP branch를 사용하고 실제 PR 상태를 재확인한다.
+- 882d8556... / d07a6760... workflow runs0/check-runs0: NOT_TRIGGERED.
+- integration2636d47... 불변, main/integration에 이번 결과 병합 없음.

@@ -174,3 +174,6 @@
 - PR #409 OPEN / Ready for review / 미병합, 제목·설명 갱신 완료. PR head 반영은 최종 Git/PR read-back에서 별도로 대조한다.
 - 위 산출물 commit의 workflow runs0/check-runs0: NOT_TRIGGERED. CI PASS 아님.
 - 최신 제출 기록 자신의 SHA는 저장 후 Git에서 확인한다. STEP2 REVIEW_PENDING, 다음은 Astra 사후 감사.
+
+- 제출 최종 조회 주의: 원격 STEP branch ref/fetch는 `d07a6760a50b1e9f6e6944055b62c7c654bc2053`으로 확인됐지만 PR #409 API head는 여전히 착수 HEAD `792d73befe676cfdc8f8c1f7b7a58a984841cc01`을 반환했다. PR head 일치 검증은 **확인 필요**이며 PASS가 아니다. 이후 Git/PR에서 다시 대조한다. 사후 감사는 최신 branch 또는 위 고정 commit의 정식 산출물로 수행하고 이전 PR diff만으로 판단하지 않는다.
+- 위 최종 기록 head의 workflow/check-runs0/0도 NOT_TRIGGERED. 원격 산출물 보존과 PR 메타데이터/ready 갱신은 확인했으며 PR head 조회 불일치를 숨기지 않는다.
