@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 3번 Astra 핵심 판단 진행**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 3번 Astra 핵심 판단 완료 / 가이드 4번 대기**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **IN_PROGRESS — 근거 준비·보조 조사 전달 완료; Astra 핵심 판단 진행 중**
+- STEP 3: **IN_PROGRESS — 가이드 3번 핵심 판단 완료; 4번 정식 반영·검증 대기**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0022-step-3-judgment-resume.md`
+- 최신 checkpoint: `checkpoints/CP-0023-step-3-judgment-complete.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 가이드 3번의 11개 사례·6개 시나리오 핵심 판단을 이어간다. 판단 초안의 완료/미완료 구분과 최신 checkpoint를 먼저 확인한다. 가이드 4번 정식 반영·검증, 5번 사후 감사는 미착수.
+- 다음 첫 작업: 사용자 지시 후 가이드 4번 Work Sol 정식 산출물 반영·검증. [Astra 판단 전체](artifacts/step-3-astra-judgment.md)를 입력으로 사용한다. 가이드 5번 사후 감사는 미착수.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -223,3 +223,9 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 2026-10-01T20:55:06+09:00 재개 지시. 실제 PR410 OPEN/Draft/미병합, head `8f507f4828f1394b88babd7a9d6bfd0344ec21c8`.
 - [판단 중간본](artifacts/step-3-astra-judgment.md)의 분석단위A를 복구했다. 이전 원격에는 착수기록/조사원본까지 있었고 판단 중간본은 로컬 미추적 파일이었다. 이번 checkpoint에 함께 보존한다.
 - 핵심판단은 미완료로 유지하며 11사례/6시나리오/회귀 판정을 이어간다.
+
+## STEP 3 가이드 3번 판단 완료
+
+- [핵심 판단](artifacts/step-3-astra-judgment.md): 11사례7축·독립matrix,6시나리오,리스크7,외부공식출처7개 선택확인·미확인 구분.
+- 판단: 새로운 필수 Core 전제 미발견, STEP2 즉시 회귀 불필요. 비DB 현행 규칙 적용·hostless 재대결의 변경검토는 유지. 지원 완료/Target/API 승인 아님.
+- [CP0023](checkpoints/CP-0023-step-3-judgment-complete.md)에 완료/미완료·저장검증·재개 경로 기록. STEP3 전체 IN_PROGRESS, 가이드4/5 미수행.

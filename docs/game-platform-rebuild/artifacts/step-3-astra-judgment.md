@@ -1,7 +1,7 @@
 # STEP 3 — Work Astra 핵심 판단
 
 - 작성: 2026-10-01. 사용자 18:37:11 KST 착수·20:55:06 KST 재개 지시. `Game_Platform_vNext_STEP3_work_guide.md` §4 **3번**의 판단 기록이다.
-- 상태: **작성 중 / 사례 판단 완료, 시나리오·최종 판정 작성 중**. 가이드 4번 정식 산출물 반영·검증 및 5번 최종 SHA 사후 감사는 미수행이다.
+- 상태: **가이드 3번 핵심 판단 완료 / 가이드 4번 인계 가능**. STEP 3 전체는 IN_PROGRESS이며 결과 승인·사후 감사 완료가 아니다. 가이드 4번 정식 산출물 반영·검증 및 5번 최종 SHA 사후 감사는 미수행이다.
 - 기준 integration: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`; 최초 판단 착수 HEAD: `d0dadc35d574ef8e084458342009d10a529c4ae6`; 재개 중 분석 단위 A 보존 commit: `b1d3417ce6979879cddff0dba3b52d7659e93274`.
 - branch: `docs/game-platform-vnext-phase3-stress-preparation`; PR #410 OPEN/Draft, base integration, 미병합(상태 복원 담당 read-back). 실제 최종 저장 SHA는 checkpoint/Git에서 조회한다.
 - 실행 계획 개정 1.3 / blob `e12ef038913eb6d605709b782f1b73f18e0d1253`. 입력 우선순위: 실행 계획 → 현재 유효 규칙·STEP 1 조항 → 승인된 STEP 2 초안 → 외부 참고.
@@ -92,3 +92,140 @@ Room·match·round·viewer·인증·연결의 수명이 다를 수 있다는 문
 3. **현재 보류 대상:** C03b rollback 채택/품질, C05 온라인 판정, C06 온라인 이동, C07 엔진 지원, C09c 규칙 변경·C09d 정책, C10 관전 정책, C11 장기 운영. 다른 행도 미정 요소가 있으므로 표의 계약 표현 가능성을 지원 보장으로 읽지 않는다.
 4. Invite/Presence는 모든 사례에서 별도 확인했다. `미정`은 현행 capability boolean을 임의로 켜도 된다는 뜻이 아니다. 기존 Invite의 room 연결이 맞지 않으면 token 본체 복제보다 얇은 연결/호환 조건을 5A에서 검토한다.
 5. renderer FPS / simulation / physics / network / 입력 시간 / audio는 독립 기록한다. 일부 값이 같은 구성은 가능하지만 각 시간의 목적·일시정지·재개 의미를 기록한다. 모든 사례에 숫자 tick이나 event-based=0Hz를 강제하지 않는다.
+
+## 5. 여섯 전환·실패 시나리오의 핵심 판단
+
+아래 성공 조건은 계획의 안전성을 각 사고 실험에 적용한 **후속 계약 검토 요구**다. 새 API·필드·알고리즘 확정이나 이번 실행 테스트 결과가 아니다. 모든 시나리오는 N이며, 기존 F01 재현만 H로 참조한다.
+
+### S3-T01 — 같은 방의 새 경기 뒤 이전 응답
+
+- **추적:** room R/경기 A에서 action·snapshot 요청 발행 → 재대결 준비/새 경기 B 수용 → A에서 발행한 성공 응답·snapshot·오류·연출 완료 도착. 같은 room ID, 같거나 낮거나 큰 version 각각을 사고 실험 입력으로 둔다. 버전 리셋/룸 전체 단조 증가는 서로 다른 모델 조건이다.
+- **위험:** room 일치만 검사하면 이전 경기 결과가 B의 상태/오류/연출을 오염시킨다. 비교 범위가 다른 version 숫자만으로 최신성을 판단할 수 없다. 반대로 version이 room 전체에서 단조 증가하고 모든 유입 경로가 같은 acceptance 규칙을 사용한다면 일부 stale snapshot은 기존 순서 정보로 식별할 수 있다. 반드시 별도 match ID/epoch 필드가 필요하다고 선결정하지 않는다.
+- **판단 요구:** 현재 실행·참여·경기 맥락에 적용 가능한 데이터인지와 그 맥락 안에서 최신인지 둘 다 설명해야 한다. 이전 경기 데이터를 B의 gameplay로 채택하지 않는다. 늦은 오류·busy 해제·결과 연출도 동일하게 대상 맥락을 확인한다. A에서 발행했어도 실제로 B의 현재 authorized snapshot을 반환하는 재조회는 근거가 있으면 채택할 수 있으므로 발행 시각만으로 일괄 폐기하지 않는다.
+- **근거/현 상태:** E05의 같은 room 재대결 의무, E06/08/09/10/12. coordinator는 자체 load version만 관리하고 동등 version을 허용한다. Can’t Stop action은 직접 apply한다. No Thanks!의 tracking은 same-room 경기/view 경계를 자동 증명하지 않는다. F01/IMPL001·004·005와 일치하며 **현재 전 경로 안전 보장 불충분**이다.
+- **후속:** 4A에서 수명/채택 설명, 4B에서 version/sequence 범위, 5A에서 기존 모듈 연결, 6에서 재대결 포함 추적. 이후 검증은 action/refresh/error의 도착 순서와 경기 전환 전후 양방향을 포함해야 한다. 기존 게임 수정은 별도 범위다.
+
+### S3-T02 — 다른 방의 콜백
+
+- **추적:** A의 initial/refresh/action/leave 요청 대기 → 이탈/실행 dispose → B 진입 → A의 snapshot·null·실패·leave 성공·finally 완료. A→B→A 재진입도 포함한다.
+- **위험:** A의 늦은 null 또는 leave 완료가 현재 B tracking을 정리하거나 UI를 빈 방으로 바꿀 수 있다. room ID만 비교하면 A 재진입 때 이전 A 수명이 다시 유효한 것처럼 보일 수 있다. unsubscribe/stop은 이미 시작된 promise의 완료를 자동 취소하지 않는다.
+- **판단 요구:** 취소 요청 성공 여부와 관계없이 현재 화면에 적용할 맥락이 끝났다면 최신 상태/오류/연결 표시/후속 작업을 변경하지 않아야 한다. A 소유 자원의 정리는 허용되지만 B 자원 정리로 번지면 안 된다. 서버의 A leave commit은 유효할 수 있으므로 client 무시를 서버 동작 rollback과 동일시하지 않는다.
+- **근거/현 상태:** E06/07의 await 이후 callback, E09 leave 이후 stopTracking/apply(null), E10/11의 generation/room/disposed 보호 일부. source상 경로 차이가 확인되며 F01 기존 재현을 참조한다. 이번에는 B UI 오염을 새로 실행 재현하지 않았다. **일부 controller 방어를 공통 보장으로 승격 불가**.
+- **후속:** 4A 수명 종료/오류/정리 범위, 4B 요청/응답/구독 채택, 5A adapter 소비자 경계. 후속 검증에는 성공뿐 아니라 error/null/finally, 반복 dispose, A 재진입, leave 뒤 B 자원 유지가 필요하다.
+
+### S3-T03 — 관전 전환 뒤 private 정보
+
+- **추적:** 참가자 V1이 private view 요청 → 같은 room/경기에서 관전자 V2 전환 승인 → V1 응답/구독/캐시 완료 → V2 렌더. 반대 전환, 역할 A→B, 로그인 사용자 변경도 같은 종류의 검토 대상이다.
+- **위험:** room·경기·version이 같거나 증가해도 viewer 권한은 달라질 수 있다. UI 숨김은 서버의 정보 제공 권한 집행을 대신하지 않는다. 새 요청의 권한 검증만으로 이미 대기 중인 callback/cache 사용이 정리되지는 않는다.
+- **판단 요구:** 서버는 모델이 정한 권한 시점에 허용된 정보만 제공하고, 클라이언트는 현재 view의 권한/수명에 맞지 않는 이전 데이터를 표시·병합·재사용하지 않아야 한다. 참가자로 다시 바뀔 때도 예전 private cache를 자동 복구하지 말고 현재 권한의 근거를 확인한다. 구독 해제·cache/오류 로그·실행 맥락 검토가 함께 필요하다.
+- **보안 한계:** 과거에 적법하게 전달된 비밀을 악의적인 클라이언트에서 회수할 수 있다고 약속하지 않는다. 이미 발송된 데이터와 철회 이후 새로 제공하는 데이터의 경계를 4B에서 정의한다. ‘client generation 검사만 있으면 서버 보안 완료’라고 판정하지 않는다.
+- **근거/현 상태:** E15/16은 private 격리/재대결 초기화 의무, E10/11은 tracking 일부만 증명한다. X06의 수신자 지정은 전송 범위의 외부 예시일 뿐 전환 폐기 보장이 아니다. **현행 viewer 전환 계약·실행 증거 불충분**, 기술적 불가능 판정은 아니다.
+- **후속:** 4A view/인증 맥락 수명, 4B 서버 필터·권한 검사 시점·전송/캐시 경계, 5C 관전 규칙. 후속 검증에서 같은 room·동등 version의 private 응답과 양방향 전환을 포함한다.
+
+### S3-T04 — 재접속 시 이벤트 유실
+
+- **추적:** 연결 단절 → authoritative state S0→S1 및 이벤트 e 발생 → 재연결/권한 재확인 → 현재 상태 획득 → live 갱신 재개. 재접속 중 권한 철회/room 종료, snapshot 로딩 중 추가 갱신도 포함한다.
+- **판단:** 연결 복구, 현재 상태 재구성, 과거 이벤트 재생은 별개다. 현행 DB 모델은 invalidation을 놓쳐도 최신 snapshot으로 게임 상태를 복원하는 의미를 가진다. 제품이 과거 e 자체(기록·연출·감사)를 요구하지 않는다면 모든 이벤트를 재생할 의무를 새로 만들지 않는다. e가 현재 상태로부터 복원되지 않는 필수 사실이면 별도 보존/재생/소비 증거가 필요하다.
+- **실패 기준:** refresh가 호출됐다는 이유만으로 복원 완료로 표시; 구독 재개와 초기 상태 사이 공백으로 갱신 누락; 같은 사건 재생으로 보상 중복; 권한 철회 후 오래된 캐시로 성공 표시; 사라진 세션을 유효한 것처럼 복구.
+- **근거/현 상태:** E13은 online/pageshow/visible→refresh 요청 및 listener 정리, E14는 그 계약 테스트 존재, E15/16은 DB 현재 상태 복원 의무. 순서 보장/replay 구현 증거는 없다. X05/07은 event cache와 rejoin 조건이 별도라는 공식 사례다. **현재 DB 복원 의미는 표현 가능, stream·history 복원은 추가 계약 검토 필요**.
+- **후속:** 4B 모델별 복구 목표·initial/live 연결·중복 처리·복구 불가 응답, 4A 재접속 수명, 5A Reconnect/Resume 재사용. 실제 관찰은 ‘복귀 트리거 발생’과 ‘두 클라이언트의 허용된 최신 상태 수렴’을 별도로 기록한다.
+
+### S3-T05 — rollback 중 결과 중복
+
+- **추적:** 예측 frame에서 승리/점수/효과 발생 → 과거 상태 복원 → 동일 입력 재실행 → 다른 최종 결과로 보정 또는 같은 결과 확정 → 소비 재시도/재접속.
+- **판단:** simulation 상태 안의 임시 점수, 관람자에게 보여줄 연출, 공식 경기 결과, 외부 통계/보상 소비를 구분해야 한다. 계획 §2는 예측 결과의 확정 통계/보상 소비를 금지한다. 권위자가 확정한 결과와 정정의 의미를 정한 뒤 소비가 중복되지 않도록 해야 한다. 결과 없는 게임에 이 기능을 필수화하지 않는다.
+- **실패 기준:** 재실행 횟수만큼 사운드/연출 또는 영구 보상 증가; 예측 승리를 취소할 수 없는 공식 결과로 제출; 공식 정정 때 기존 집계를 남긴 채 새 결과를 추가; retry 중복 방지 하나를 모든 종류의 재실행 보장으로 표시.
+- **근거/현 상태:** X03은 재실행 및 sound/effect 지연을 설명한다. 영구 보상 방법까지 제공하지 않으므로 그 부분은 계획의 안전성에 따른 판단이다. E16의 `client_action_id`는 동일 RPC의 authoritative state 중복 변경 방지이며, frame 재실행이나 별도 Result 소비를 자동 보호한다는 근거는 없다. **현행 계약만으로 전체 표현 불충분, 선택 모델/결과 경계 추가 검토**.
+- **후속:** 4B 예측/확정/보정 의미, 5B Result 식별·확정·정정·소비와 Presentation/Sound, 6 최소 계약/보류 분리. DB 테이블·이벤트 버스·exactly-once transport 또는 공통 보상 서비스는 확정하지 않는다. 외부 소비 재시도를 포함한 검증은 후속 구현 범위가 정해진 뒤 수행한다.
+
+### S3-T06 — 출시 활성화 중복
+
+- **추적:** 소스 반영 → 기능 구현·운영 검증 → 승인된 activation → handoff에 pending 상태 잔존 → 다음 작업자가 activation/공개 표시/공지를 재처리. 재활성화가 새 공개 사건인지 단순 복구인지도 정책 질문이다.
+- **판단:** 소스 merge, 기능 완료, production activation, 공개 사건, 사이트 표시/공지 소비는 서로 다른 사실이다. 같은 boolean을 다시 true로 설정하는 행위는 자체로 멱등일 수 있으므로 현재 코드에 중복 공지가 발생한다고 단정하지 않는다. 미래 공개 사건 소비가 있다면 같은 사건 재처리와 새 사건을 구분할 근거가 필요하다.
+- **실패 기준:** 오래된 handoff만 믿고 이미 완료된 activation을 신규 출시로 기록; 기능 파일 존재만으로 capability 활성화; 같은 공개 사건의 NEW/공지 중복; UI 목록/Registry flag를 권한 통제로 오인; 사용자 승인 없이 production 변경.
+- **근거/현 상태:** E17의 activation/검증/보안 경계, E18 Registry boolean, E19 별도 사이트 카드 목록, E20/STEP1 F02 handoff 불일치. 이들은 실제 publication dedup 서비스가 있다는 근거가 아니다. **현행 출시 구분은 표현 가능, 공개 사건 소비/중복 경계는 5B 검토·구현 보류**.
+- **후속:** 5B Publication/Site Integration에서 사건 의미·재처리·정정 경계, 5A/6에서 연결·기록 소유자. F02의 기존 게임 DEVELOPMENT 정정은 별도 maintenance로 유지한다. 공지 자동화·추가 릴리스 서비스·production 활성화는 이번 범위가 아니다.
+
+## 6. Core·규칙 리스크와 STEP 2 회귀 판정
+
+### 리스크 인덱스
+
+새 발견을 곧바로 기존 게임 버그 finding으로 등록하지 않는다. 아래는 설계 검토 위험이며 STEP1 F01~F03의 ID/심각도/상태를 변경하지 않는다.
+
+| ID | 위험·관련 사례 | 지금 판단 | 후속 닫힘 조건 |
+|---|---|---|---|
+| S3-R01 | room/version 하나로 모든 수명·순서 설명 — T01~03, C08~10 | 현재 코드의 일부 방어로 보편 안전성 선언 불가. 계획의 공통 수명+선택 모델 범위에서 다룰 수 있어 Core 개념 확대 근거 없음 | 4A/4B에서 성공·오류·null·정리까지 채택 의미 설명; 모델마다 식별 방법을 근거로 선택 |
+| S3-R02 | 비DB/stream 요구를 현행 DB 의무 면제로 해석 — C02~04/06/09/11 | 규칙의 현 적용 범위와 미래 동등 안전성 전환을 분리. 미승인 예외 불가 | 4B/5C/6에서 적용 범위/계승/권한·복구 검증을 명시, 실제 규칙 전환은7A/7B 게이트 |
+| S3-R03 | hostless를 모두 금지하거나 모두 승인 — C09 | S2-R03 세 조건 유지. solo와 multiplayer 분리; 초기 자동 시작 의무와 adapter 호환 구분 | 4B/5C/6에서 정책 충돌 범위 결정. 원 적용 대상 재대결 강도/조건은7A2에서 보존 |
+| S3-R04 | 하나의 tick/엔진/Core로 모든 장르 설명 — C02~07/11 | STEP2는 이미 하위 항목을 분리하므로 현재 회귀 아님. audio·physics·network를 Core 필수로 넣으면 회귀 후보 | 4B 모델별 시간 의미, 5C 장르 품질, 6에서 room 없는 실행까지 코드 없는 추적 |
+| S3-R05 | retry·rollback·replay·publication 중복을 하나의 보장으로 합침 — T04~06 | 사건 종류와 확정/소비 수명 다름. 공통 원칙만으로 한 서비스 채택 불가 | 4B 입력/복원, 5B Result·Publication·Sound 경계와 최소 계약/보류 표 |
+| S3-R06 | 교차 특성마다 독립 장르/Core/공유 기능 신설 — C07~11 | 비대칭·관전·hostless·3D·장기성은 기반 장르와 교차. 공통 문서 복제·선제 모델/Profile 금지 | 5A 반복/의미 근거, 5C 독립 요구 조사, 6 실제 묶음·파일·버전 결정 |
+| S3-R07 | 문서 표현 또는 외부 제품 사례를 구현 지원으로 승격 — 전체 | 모든 행의 N과 보류를 유지. 현행 C/H도 미래 모델 지원을 증명하지 않음 | 가이드4에 증거 수준 유지, 가이드5 최종 SHA 감사; 이후7D/Probe에서 실제 실행 증거 |
+
+### 회귀 조건을 직접 대입한 최종 판단
+
+| 계획의 회귀 조건 | 이번 검토 결과 | 이유 |
+|---|---|---|
+| 보드게임 전제의 불필요한 강제 | **현재 STEP2 선택표에서 발견 안 됨** | C05 solo audio, C07 비물리3D, C09 room/host 없는 run, C11 상시 연결/상시 tick 없는 장기 상태를 기존7축으로 기술 가능. Room/DB/DOM 의무를 선택표가 새로 보편화하지 않음 |
+| 새로운 필수 Core 전제 | **발견 안 됨** | T01~03은 계획에 이미 있는 실행 수명/오류/정리와 선택 모델의 채택 의미, T04는 복원, T05/06은 선택 기능·사이트 경계에서 검토 가능. match/viewer/clock을 모든 게임의 Core 필수 필드로 만들 근거 없음 |
+| 7축으로 필수 요구를 표현 불가 | **발견 안 됨** | viewer 변화④⑤, 장기 상태③⑤, audio②⑥, 확정/정정⑦⑤, 역할별 입력②④에 명시. Publication은 게임 실행 축 추가 대신 계획의 사이트 연결 검토 대상 |
+| 기존 규칙 충돌을 숨겨야만 사례 표현 가능 | **숨길 필요 없음 / 알려진 검토 항목 유지** | hostless rematch와 비DB 현행 계약 적용은 규칙 상태를 변경 검토/미확인으로 기록. STEP2 초안은 이미 지원과 규칙 적용을 분리하며 해당 문제를 미결정으로 남김 |
+
+**최종: STEP 2 즉시 회귀 불필요. 가이드 3번 판단을 정식 반영 대상으로 전달할 수 있다.** 이는 STEP3 전체 승인, STEP4 착수 허가, Target 동결 또는 구현 지원 승인이 아니다. 이후 설계가 모든 게임에 room/host/단일 tick/전역 currentRoom을 요구하거나 선택표의 축 분리로 설명할 수 없는 새 필수 전제를 발견하면 STEP2 회귀를 재개한다. 단순히 새 선택 모델이 필요하다는 사실은 계획이 예상한 확장이지 그 자체로 회귀 조건이 아니다.
+
+### 후속 책임과 미결정
+
+| 단계 | 이번 판단에서 넘기는 입력 | 그 단계가 결정할 사항 / 이번에 미확정 |
+|---|---|---|
+| 가이드4 Work Sol | 본문 전체, 11사례 두7축표+독립matrix, T01~06, R01~07, §7 확인범위 | 정식 산출물 형태·trace/링크/범위/Governance 검증·기록·원격 제출. 의미/보류 상태를 임의 확정하지 않음 |
+| 가이드5 Work Astra | 최종 제출 SHA·diff·검증 | 누락·의무 약화·과장·후속 선결정 사후 감사. 본 문서는 이 감사가 아님 |
+| STEP4A | T01~03, C09/11 수명 차이 | 논리 책임·의존·채택/거부·dispose/오류/정리. 식별 API/필드·전역 상태 미확정 |
+| STEP4B | C02~04/06의 실시간, C05 시간, C08/10 view, C11 지속성, T04/05 | 모델별 권위·ordering·중복·복원·private·성능·사이트 보안, transport/권위 실행 위치/운영비·검증. DB 의무 전환 범위 포함 |
+| STEP5A | E04~19의 현행 adapter/Coordinator/Reconnect/Registry/Invite/Presence/Shell/BGM | 그대로 연결/얇은Adapter/새구현/local/보류 판정. 본체 복제 및 기존 소비자 이동 금지 |
+| STEP5B | T05/06, ⑦ 결과와 소비, 리듬/연출 요구 | Result·Publication·Sound의 최소 계약/향후 확장/구현 보류. 엔진·이벤트 버스·자동 공지 서비스 미확정 |
+| STEP5C | §3의 장르 묶음과 정책 위험 | 보드 계승과 첫 비보드/두번째Probe의 독립 규칙 설계. 물리 파일 수·경로 미확정 |
+| STEP6 | 위 미결정·회귀 조건·기존 F01~03/R/IMPL·S2-R01~04 | 모순 해소·계약 버전·Guard/탐색·문서 권위·Slice·Target 동결. 기존 게임 무변경/무이관 조건 확인 |
+| STEP7 이후 | 승인된 Target과 필요한 최소 Probe 범위 | 단계별 실제 문서·Core·모델·테스트. 이번 11개 사례 전부 구현 약속 아님 |
+
+## 7. Sol 5.6 조사 활용과 선택 원문 확인
+
+보존 보고서 R01~R17/A01~A18의 ‘확인 완료’는 원 작성자의 기록이다. 이전 분석 단위 A에도 선택 확인 메모가 있었으나 링크별 확인 범위가 없었으므로, 이번 판단에 필요한 주장만 아래와 같이 **2026-10-01 재개 세션에서 직접 확인**했다. 재사용 출처 전체를 재검증했다고 표시하지 않는다. 외부 자료는 제품의 사례이며 프로젝트 규칙을 대체하지 않는다.
+
+| 이번 ID / 보고서 연결 | 원문·판본·확인 위치 | 이번 확인 사실과 사용 한계 |
+|---|---|---|
+| X01 / R02·A02·A16 | [Nakama Authoritative Multiplayer](https://heroiclabs.com/docs/nakama/concepts/multiplayer/authoritative/), 웹 버전 미표기; 서두와 gameplay modes의 active/passive turn-based | 서버 검증, passive의 수시간~수주 진행·저장 후 loop 종료 사례. 상시 tick/연결 필수 가정에 반례. 프로젝트 장기 상태 구현 증거 아님 |
+| X02 / R01·A01~03·A17 | [Nakama Client Relayed Multiplayer](https://heroiclabs.com/docs/nakama/concepts/multiplayer/relayed/), 웹 버전 미표기; 서두의 forwarding/host 설명 | 서버 전달과 내용 검증은 별개. 이 제품의 relay는 client-host 중재. 현행 서버 검증 의무를 relay로 대체해도 된다는 결론 아님 |
+| X03 / R06·A04·A10 | [GGPO Developer Guide](https://github.com/pond3r/ggpo/blob/master/doc/DeveloperGuide.md), master(고정 commit 미확인); Using State and Inputs, save/load, Separate Updating Game State from Rendering | 결정적 재실행·저장/복원 조건과 rollback 중 sound/effect 지연 설명 확인. 영구 보상·통계 commit 계약은 이 자료로 확인하지 않음 |
+| X04 / R08·A14 일부 | [Web Audio API 1.1](https://www.w3.org/TR/webaudio-1.1/), W3C Working Draft 2026-09-22; §1.1.1 currentTime | audio stream 시간 좌표가 다른 시스템 clock과 동기화되지 않을 수 있음. 표준 초안이며 모든 브라우저/기기의 지연 보정 구현 지원을 뜻하지 않음 |
+| X05 / R15·A08 | [Photon PUN2 Cached Events](https://doc.photonengine.com/pun/current/gameplay/cached-events), PUN2; Cached Events·Ordered Delivery | late joiner의 과거 이벤트 수신에는 별도 cache 의미가 필요. 유지보수 중 제품의 개념 사례로만 사용; 프로젝트 제품 추천/도입 아님 |
+| X06 / R03·A12 | [Nakama Lua Match Runtime API](https://heroiclabs.com/docs/nakama/server-framework/lua-runtime/function-reference/match-runtime/), 웹 버전 미표기; broadcast_message | initial state와 특정 presences 수신자 집합 지정 가능. 이것만으로 client stale private response 폐기까지 검증되지 않음 |
+| X07 / R14·A07 | [Photon Realtime5 Analyzing Disconnects](https://doc.photonengine.com/realtime/v5/troubleshooting/analyzing-disconnects), Realtime5; Quick Rejoin | rejoin은 PlayerTTL 등 조건에 의존하고 재연결 뒤에도 room/player 부재로 실패 가능. 프로젝트 retry/복구 정책 수치로 전용하지 않음 |
+
+### 확인하지 않은 범위와 판단에 반영한 방법
+
+- **Unity R13 원 URL은 열기 실패**. 이 세션에서는 Unity 2.0.0의 상세 visibility 동작을 독립 검증 완료로 표시하지 않는다. private 정보의 서버 제공/클라이언트 표시 구분은 현행 E15/16 및 X06으로 판단했다.
+- R04/05 Apple의 구체 timeout, R07 Unreal 5.8 판본/세부 correction 구현, R09 High Resolution Time 문서 날짜, R10~12 Unity 고정/네트워크 주기, R16 Fusion, R17 RTS 연구 수치는 이번 핵심 결론의 근거로 사용하지 않았다. 원보고서 참고로 보존하며 오류라고 단정하지 않는다.
+- A14 전체를 이번에 검증했다고 하지 않는다. X04의 audio 좌표 부분만 직접 확인했고, 시간 항목의 분리 원칙은 이미 승인된 STEP2·계획에 근거한다.
+- A11의 결과/보상 경계는 외부 미확인 상태를 유지한다. 본 판단 T05는 계획의 예측 결과 소비 금지와 후속5B 책임을 적용한 추론이다. A13의 정확한 lifetime key/API도 미확정이다.
+- A18은 외부 제품으로 판단할 수 없다. 현재 development §6/§10B와 S2-R03의 조건으로 C09를 판정했다.
+- 기술 추천·성능 수치·운영비·보안 구현의 전수 확인은 하지 않았다. 프로젝트 채택은 후속4B/6 범위다.
+
+### Q01~Q06 판단 연결
+
+| 조사 질문 | 채택한 판단 / 남긴 경계 |
+|---|---|
+| Q01 권위/전달/예측/rollback/보정 | ⑤의 별도 하위 항목 유지. X01~03은 구분의 사례이며 최종 모델·client 권위 승인 아님 |
+| Q02 reconnect/state/replay | T04의 세 의미 분리. 현재 DB snapshot 복원과 history 요구를 구분; X05/07 |
+| Q03 rollback 중복 | T05의 simulation·연출·공식결과·소비 분리. X03은 연출까지만 직접 뒷받침 |
+| Q04 역할·관전/private | C08/10·T03. 서버 필터와 현재 view 채택 모두 검토; X06과 내부계약 근거 |
+| Q05 시간축 | C05 포함 모든 사례에 시간 목적별 기록. 단일 Core tick 추가 불필요; X04 선택확인 |
+| Q06 hostless/장기 | C09 조건 세분·C11. X01은 상시 loop 필수 가정 반례이며 프로젝트 정책은 내부 원문으로 판단 |
+
+## 8. 완료·검증 범위와 다음 재개 지점
+
+- **가이드3 판단 완료:** 11개 사례 전7축·Invite/Presence, 적용 장르/신규 문서, 규칙·계약·구현 증거 독립 matrix, Core 필요성, 6개 전환·실패 시나리오, 조사 선택확인·한계, STEP2 회귀 최종 판단, 후속 책임.
+- **판단 검토에 사용한 저장소 읽기:** 계획§1~3/STEP2~7, AGENTS/기록/CP0021·중간 보존 상태, STEP2 세 산출물, STEP1 F/R/IMPL, brief E01~20, 현행 development §5/6/10B·DB 계약 도입/복원/중복/동시성, coordinator/reconnect, 두 controller 관련 경로, Registry/사이트 목록, 기존 contract test 선택 구간. 전수 SQL·전체 UI·production 감사는 아님.
+- **실행 검증:** 새 runtime/DB/browser/build/test 실행은 **NOT_RUN**. 코드 변경 없는 핵심 판단 단계이며 사고 실험을 테스트 PASS로 집계하지 않는다. 기존 테스트 존재 C/H 및 F01 과거 재현 H를 이번 실행 결과로 바꾸지 않는다.
+- **저장 검증:** 파일·ID·링크·diff 등 보존을 위한 정합성 확인 결과는 이번 저장 checkpoint를 따른다. 그 확인은 가이드4의 정식 반영·검증 완료나 가이드5 사후 감사가 아니다.
+- **상태:** STEP3 IN_PROGRESS. 가이드4 정식 반영/검증·가이드5 감사·가이드6 필요 보완·가이드7 사용자 결과/병합 승인은 남아 있다. STEP4A 이후 착수·integration/main merge 미수행.
+- **재개 첫 작업:** 실제 branch/PR·최신 checkpoint를 확인하고 이 판단 파일 전체를 가이드4의 입력으로 사용한다. 최종 제출용 정식 matrix/시나리오/검증 문서로 반영할 때 조건·보류·증거 수준·F01~03 의미를 보존한다. 판단을 다시 처음부터 조사할 필요는 없으며 변경된 기준선/새 증거가 있으면 해당 부분만 재검토한다.
