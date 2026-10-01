@@ -26,11 +26,11 @@
 - STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
 - STEP 2: **IN_PROGRESS — 착수·근거 준비 완료, 정식 산출물 미완료**
 - active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
-- STEP PR: 착수 Draft PR 제출 예정. 같은 head / base `feature/game-platform-vnext-integration`의 실제 PR은 Git/PR에서 조회
+- STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
 - STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
 - STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0012-step-2-start.md`
+- 최신 checkpoint: `checkpoints/CP-0013-step-2-handoff.md`
 - 다음 첫 작업: [작업 분담](artifacts/step-2-work-allocation.md)의 Astra 판단 요청에 [근거 요약](artifacts/step-2-evidence-brief.md)을 전달한다. 외부 보조 조사는 필요할 때만 수행한다.
 - STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
@@ -152,3 +152,6 @@
 - PR #408 merged=true와 실제 integration HEAD를 대조해 병합 후 기준선을 복원했다. 과거 절의 미승인·미착수는 당시 기록이며 현재 상태와 22개 표가 최신이다.
 - 모델별 분담과 선택 조항 근거만 준비했다. 정식 STEP 2 산출물·Astra 판단·사용자 검토는 미완료다.
 - 로컬 검증: 선택 조항56행(보드 조건49+경계7)의 원문·ID·강도·분류 완전 일치/중복ID 없음, 링크와 22개 상태표, diff 공백 및 Governance Guard PASS. 변경은 착수 문서4파일이며 기존 계획·STEP 1 표·과거 checkpoint·게임 코드 변경 없음. 전체 게임/DB/브라우저 테스트는 기존 구현·계약 변경 없는 문서 준비 단계여서 재실행하지 않는다. 원격 CI 미실행은 PASS로 표시하지 않는다.
+
+- 착수 원격 보존: `5d8f94a4448caeb5e232e4e3d19131d0169cd013`, tree `24b8be3b55c05c3a10185b0ddf6dd35a31387a58`. Draft PR #409 생성 확인. 최신 기록 저장 후 SHA는 Git에서 조회한다.
+- 착수 제출 head `5d8f94a...`의 PR workflow runs 0 / check-runs 0: NOT_TRIGGERED. PASS로 집계하지 않는다.
