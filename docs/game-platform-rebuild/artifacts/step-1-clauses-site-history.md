@@ -67,55 +67,55 @@
 
 | ID · source 줄 | 원문 | 강도 근거 | 성격 / 분류 | 현 책임·소비 증거 | 중복 / 충돌·불명확 | 계승 / 후속 STEP | 기존 게임 회귀 | 신규 게임 적용/미결정 |
 |---|---|---|---|---|---|---|---|---|
-| LEGACY-BGM-026 · L54–54 | The Game은 같은 document 안에서 대기/설정과 실제 gameplay의 BGM을 구분한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-027 · L56–56 | - Page entry / mode / local setup / online entry / online waiting / rematch waiting: **Constance — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-028 · L57–57 · 부모 LEGACY-BGM-027 |   - ISRC: USUAN1100850 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-029 · L58–58 · 부모 LEGACY-BGM-027 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-030 · L59–59 · 부모 LEGACY-BGM-027 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-031 · L60–60 | - Local/online gameplay 시작 이후 / result presentation: **Invariance — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-032 · L61–61 · 부모 LEGACY-BGM-031 |   - ISRC: USUAN1100847 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-033 · L62–62 · 부모 LEGACY-BGM-031 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-034 · L63–63 · 부모 LEGACY-BGM-031 |   - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`) | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-035 · L64–64 · 부모 LEGACY-BGM-031 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-036 · L65–65 | - 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-037 · L66–66 | - `the-game:lobby-entered` presentation event는 mode/setup/online waiting/rematch waiting 진입을 알리고 Constance로 복귀시킨다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-038 · L67–67 | - 기존 `the-game:game-started` presentation event는 local/online gameplay 시작을 알리고 Invariance로 전환시킨다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-039 · L68–68 | - BGM event는 게임 상태를 변경하지 않으며, 사용자 pause와 저장 volume은 track 전환보다 우선한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-040 · L70–70 | Player의 출처 영역은 현재 재생 중인 곡의 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지와 CC BY 4.0 라이선스를 표시한다. Invariance에는 기존 YouTube reference도 함께 유지한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-041 · L72–72 | 현재 두 곡 모두 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다. | 표현:검증 | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-026 · L54–54 | The Game은 같은 document 안에서 대기/설정과 실제 gameplay의 BGM을 구분한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-027 · L56–56 | - Page entry / mode / local setup / online entry / online waiting / rematch waiting: **Constance — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-028 · L57–57 · 부모 LEGACY-BGM-027 |   - ISRC: USUAN1100850 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-029 · L58–58 · 부모 LEGACY-BGM-027 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-030 · L59–59 · 부모 LEGACY-BGM-027 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-031 · L60–60 | - Local/online gameplay 시작 이후 / result presentation: **Invariance — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-032 · L61–61 · 부모 LEGACY-BGM-031 |   - ISRC: USUAN1100847 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-033 · L62–62 · 부모 LEGACY-BGM-031 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-034 · L63–63 · 부모 LEGACY-BGM-031 |   - Reference video: Kevin MacLeod: Invariance (`CpPQeDIA2S0`) | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-035 · L64–64 · 부모 LEGACY-BGM-031 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-036 · L65–65 | - 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-037 · L66–66 | - `the-game:lobby-entered` presentation event는 mode/setup/online waiting/rematch waiting 진입을 알리고 Constance로 복귀시킨다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-038 · L67–67 | - 기존 `the-game:game-started` presentation event는 local/online gameplay 시작을 알리고 Invariance로 전환시킨다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-039 · L68–68 | - BGM event는 게임 상태를 변경하지 않으며, 사용자 pause와 저장 volume은 track 전환보다 우선한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-040 · L70–70 | Player의 출처 영역은 현재 재생 중인 곡의 곡명, 아티스트, ISRC, 공식 Incompetech 곡 페이지와 CC BY 4.0 라이선스를 표시한다. Invariance에는 기존 YouTube reference도 함께 유지한다. Attribution의 기준은 YouTube 설명이나 MP3 파일명이 아니라 공식 Incompetech 곡 정보다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-041 · L72–72 | 현재 두 곡 모두 Incompetech의 공식 MP3 URL을 직접 사용한다. 향후 저장소에 self-host할 경우에도 공식 배포본 또는 출처가 검증된 사본을 사용하고, attribution metadata는 그대로 유지한 채 `src`만 로컬 asset으로 전환한다. | 표현:검증 | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
 
 ### 6. Liar Game
 
 | ID · source 줄 | 원문 | 강도 근거 | 성격 / 분류 | 현 책임·소비 증거 | 중복 / 충돌·불명확 | 계승 / 후속 STEP | 기존 게임 회귀 | 신규 게임 적용/미결정 |
 |---|---|---|---|---|---|---|---|---|
-| LEGACY-BGM-042 · L76–76 | - Track: Deadly Roulette | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-043 · L77–77 | - Artist: Kevin MacLeod | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-044 · L78–78 | - ISRC: USUAN1600033 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-045 · L79–79 | - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-046 · L80–80 | - Reference video: Kevin MacLeod: Deadly Roulette (`Hnbv_KNxVo8`) | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-047 · L81–81 | - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-048 · L82–82 | - Default slider volume: 0.35 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-049 · L83–83 | - Default output volume: 0.35 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-050 · L84–84 | - Loop: enabled | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-051 · L86–86 | Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/player를 mount하고 즉시 재생을 시도한다. autoplay가 차단되면 기존 공통 interaction fallback을 사용하며 게임 인증, 방 생성/참가, Realtime 상태와는 독립적으로 동작한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-042 · L76–76 | - Track: Deadly Roulette | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-043 · L77–77 | - Artist: Kevin MacLeod | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-044 · L78–78 | - ISRC: USUAN1600033 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-045 · L79–79 | - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-046 · L80–80 | - Reference video: Kevin MacLeod: Deadly Roulette (`Hnbv_KNxVo8`) | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-047 · L81–81 | - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-048 · L82–82 | - Default slider volume: 0.35 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-049 · L83–83 | - Default output volume: 0.35 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-050 · L84–84 | - Loop: enabled | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-051 · L86–86 | Liar Game document가 로드되면 The Game과 같은 공통 BGM controller/player를 mount하고 즉시 재생을 시도한다. autoplay가 차단되면 기존 공통 interaction fallback을 사용하며 게임 인증, 방 생성/참가, Realtime 상태와는 독립적으로 동작한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
 
 ### 7. Can’t Stop
 
 | ID · source 줄 | 원문 | 강도 근거 | 성격 / 분류 | 현 책임·소비 증거 | 중복 / 충돌·불명확 | 계승 / 후속 STEP | 기존 게임 회귀 | 신규 게임 적용/미결정 |
 |---|---|---|---|---|---|---|---|---|
-| LEGACY-BGM-052 · L90–90 | Can’t Stop은 하나의 게임 안에서 상태에 따라 BGM을 전환하는 첫 사례다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-053 · L92–92 | - Page entry / entry / waiting / rematch waiting: **Frozen Star — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-054 · L93–93 · 부모 LEGACY-BGM-053 |   - ISRC: USUAN1100356 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-055 · L94–94 · 부모 LEGACY-BGM-053 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-056 · L95–95 · 부모 LEGACY-BGM-053 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-057 · L96–96 | - Authoritative room status `playing` / gameplay / GAME_OVER presentation: **Mountain Emperor — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-058 · L97–97 · 부모 LEGACY-BGM-057 |   - ISRC: USUAN1700012 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-059 · L98–98 · 부모 LEGACY-BGM-057 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-060 · L99–99 · 부모 LEGACY-BGM-057 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-061 · L100–100 | - 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-062 · L101–101 | - 기존 dice/blizzard Web Audio SFX는 BGM과 분리된 game-local 효과음으로 유지한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-063 · L102–102 | - BGM 전환은 authoritative snapshot을 변경하지 않고 `CANT_STOP_LOBBY_VIEW`를 읽는 presentation-only 동작이다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
-| LEGACY-BGM-064 · L103–103 | - 사용자가 Player에서 pause한 상태라면 lobby/gameplay 전환이 음악을 자동으로 다시 재생하지 않는다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-DOC | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-052 · L90–90 | Can’t Stop은 하나의 게임 안에서 상태에 따라 BGM을 전환하는 첫 사례다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-053 · L92–92 | - Page entry / entry / waiting / rematch waiting: **Frozen Star — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-054 · L93–93 · 부모 LEGACY-BGM-053 |   - ISRC: USUAN1100356 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-055 · L94–94 · 부모 LEGACY-BGM-053 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-056 · L95–95 · 부모 LEGACY-BGM-053 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-057 · L96–96 | - Authoritative room status `playing` / gameplay / GAME_OVER presentation: **Mountain Emperor — Kevin MacLeod** | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-058 · L97–97 · 부모 LEGACY-BGM-057 |   - ISRC: USUAN1700012 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-059 · L98–98 · 부모 LEGACY-BGM-057 |   - Official source: Incompetech | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-060 · L99–99 · 부모 LEGACY-BGM-057 |   - License: CC BY 4.0 | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-061 · L100–100 | - 두 track 모두 기본 slider 0.70 / 기본 Audio output 0.60을 사용한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-062 · L101–101 | - 기존 dice/blizzard Web Audio SFX는 BGM과 분리된 game-local 효과음으로 유지한다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-063 · L102–102 | - BGM 전환은 authoritative snapshot을 변경하지 않고 `CANT_STOP_LOBBY_VIEW`를 읽는 presentation-only 동작이다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
+| LEGACY-BGM-064 · L103–103 | - 사용자가 Player에서 pause한 상태라면 lobby/gameplay 전환이 음악을 자동으로 다시 재생하지 않는다. | 서술형(수치화 안 함) | LOCAL_RULE / L | E-BGM | 발견 없음(새 소유 위치 미정) | L / 기존 보존/6 영향확인 | 변경 없음; 기존 범위 보존 | 개별 사례; 공통 승격 안 함 |
 
 ### 8. 경계
 

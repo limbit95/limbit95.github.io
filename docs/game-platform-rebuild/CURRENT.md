@@ -30,8 +30,8 @@
 - STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
 - STEP 1 사용자 검토 / integration merge 승인 / 실제 병합: **미수행 / 없음 / 미수행**
 - integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0009-step-1-review-pending.md`
-- 다음 첫 작업: **사용자가 PR #408의 감사 범위·조항 분류·누락 여부·finding 근거를 검토한다. 수정 요청은 같은 STEP 브랜치에서 처리한다.**
+- 최신 checkpoint: `checkpoints/CP-0010-step-1-audit-correction.md`
+- 다음 첫 작업: **사용자가 PR #408의 AUDIT-S1-001 보완·검증·계승 정보 보존을 재검토한다. STEP 1 최종 승인과 integration 병합 승인은 별도다.**
 - 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
 
 ## 22개 검토 지점
@@ -128,3 +128,13 @@
 - CI: 제출 head에서 PR workflow runs 0 / check-runs 0, **NOT_TRIGGERED**. 문서 경로 제외와 일치하며 PASS로 기록하지 않음.
 - 최신 기록 commit 자체의 SHA는 Git에서 CP-0009를 포함하는 commit으로 찾는다. PR 제출 head와 기록 저장 후 HEAD를 혼동하지 않는다.
 - 이 기록은 #408과 같은 STEP 브랜치에 누적한다. 사용자 검토·명시적 integration merge 승인 전에는 병합하지 않고, STEP 2 시작도 별도 지시와 실제 integration 반영 확인이 필요하다.
+
+
+## STEP 1 사후 감사 보완 — 2026-10-01T02:33:59+00:00
+
+- 요청 범위: 사후 감사 보고서 §4 P1-1/P1-2의 문서 보완·검증·기록·원격 제출.
+- AUDIT-S1-001 Minor: LEGACY-BGM-026~064 총 39행의 E-DOC→E-BGM 근거 연결 보완 완료, 사용자 재검토 대기.
+- ID·원문·강도·조건·분류·계승 정보와 나머지 BGM 42행 불변; 3,232단위/2,104규칙·필드/K1,198/L906 유지. 검증은 [validation](artifacts/step-1-validation.md), 사실 기록은 [CP-0010](checkpoints/CP-0010-step-1-audit-correction.md).
+- 기존 AS-IS F01~F03(Critical 0/Major 2/Minor 1)은 불변이며 이번 산출물 오류와 별도 집계한다.
+- 보완 저장 직전 HEAD: `8e02d0dba5c3d3e9d48f7bb62afab54acf6158af`. 실제 저장 후 commit SHA·원격 보존·CI 상태는 Git/PR read-back과 결과 보고로 확인한다.
+- STEP 1 REVIEW_PENDING, STEP 2 이후 NOT_STARTED. 사용자 최종 승인·integration merge 승인 없음, integration/main 병합 미수행.

@@ -149,3 +149,17 @@ game_docs = {str(p) for p in (root / 'games').rglob('*.md')}
 assert len(game_docs) == 14 and game_docs <= set(sources)
 print('PASS: 26 sources / 3232 source units / 14 games Markdown files; no trace gaps')
 ```
+
+## AUDIT-S1-001 보완 검증 — 2026-10-01T02:33:59+00:00
+
+- 범위: P1-1/P1-2, STEP 1 감사 산출물·CURRENT·신규 CP-0010만. 보완 저장 직전 HEAD `8e02d0dba5c3d3e9d48f7bb62afab54acf6158af`, source/integration `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`.
+- `step-1-clauses-site-history.md`의 LEGACY-BGM-026~064 **39행**은 근거 열 E-DOC→E-BGM만 정정했다. 나머지 BGM 42행과 모든 ID·원문·SHA·줄·부모·강도·분류·조건·계승 표식은 비교 결과 불변이다.
+- 소비 근거: 기존 인덱스 E-BGM, `the-game/js/bgm.js` import/track mapping 및 lobby/game-started event, `liar-game/js/bgm.js` mount, `games/cant-stop/bgm.js` mapping과 `app.js:1862–1865`의 view 기반 전환을 읽어 대조했다. 공통 계약 승격이나 코드 수정은 없다.
+- 기계 검증 PASS: 정확히 39개 근거 cell만 변경 / 나머지 BGM 42행 불변 / 3,232단위·2,104규칙/필드·K1,198·L906 유지 / 저장된 Python trace 재실행(26 sources·3,232 units·14 games Markdown, 단절 0).
+- 허용 변경 4경로·문서 링크·diff 공백 PASS. Governance Guard는 보완 저장 직전 HEAD 및 실제 보완 commit 검사 PASS다. 최종 제출 commit의 재검사 결과도 최종 보고로 확인한다. 명령은 `node scripts/check-game-platform-governance.mjs --base 132ec1576e316d0238c9ca6e07d0d3ab91950ec8 --head <보완 commit SHA>`다.
+- 검증 시도 정정: `--head c3ced078d4995bb47c54b7f34ce3755cdfd1e6ec`(tree SHA)은 Guard의 triple-dot diff가 commit을 요구하여 실행 실패했다. tree를 commit처럼 전달하지 않으며, 실제 보완 commit으로 재실행한다. 기계 PASS는 의미적 완전성 보증이 아니며, 이번 의미 대조는 위 BGM 근거 연결 범위다.
+- CI 조회: 저장 직전 PR head `8e02d0dba5c3d3e9d48f7bb62afab54acf6158af`의 workflow runs 0 / check-runs 0, **NOT_TRIGGERED**. 보완 저장 후 실제 PR head도 다시 조회해 최종 보고한다. CI 성공으로 표기하지 않는다.
+- 전체 게임/unit 45개/build/DB/browser/production 및 F01 재현은 재실행하지 않았다. 근거 연결·기록만 변경해 기존 게임 실행 계약이 불변이며 이번 보완의 검증 대상이 아니기 때문이다. 기존 실행 기록을 소급 변경하지 않는다.
+- 기존 AS-IS findings F01/F02 Major, F03 Minor는 그대로다. 사후 감사 AUDIT-S1-001 Minor의 연결 오류 보완 완료와 별도 집계하며 사용자 최종 검토·STEP 승인·merge는 아직 없다.
+
+- 원격 제출 방식: CLI push는 GitHub Username 인증 정보가 없어 실패했다. 쓰기 권한이 확인된 GitHub 연결의 Git object/ref API로 같은 STEP 브랜치에 제출하며, local/remote tree·blob 일치와 PR head를 read-back한다. 미반영 상태를 완료로 보고하지 않는다.
