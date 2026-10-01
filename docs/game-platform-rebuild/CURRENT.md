@@ -24,14 +24,14 @@
 - STEP 0 / STEP 1: **COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
 - STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
-- STEP 2: **REVIEW_PENDING — 사후 감사 Minor 2건 문서 보완, 집중 재검토·사용자 검토 대기**
+- STEP 2: **COMPLETED — 집중 재검토 통과, 사용자 결과 승인 및 PR #409 integration 병합 지시**
 - active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
 - STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Ready for review / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
 - STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
-- STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
+- STEP 2 결과 승인 / integration merge 승인: 승인됨 / 승인됨 — 2026-10-01T16:33:44+09:00 사용자 명시적 지시
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0016-step-2-post-audit-fix.md`
-- 다음 첫 작업: AUDIT-S2-001/002 보완의 집중 재검토. 초기 hostless·재대결 hostless·정책 미정의 조건 분리와 검증 비교 SHA/파일 수를 확인한 뒤 사용자 결과 검토를 받는다. 사용자 결과 승인·merge 승인 전에는 병합하지 않는다.
+- 최신 checkpoint: `checkpoints/CP-0017-step-2-approved.md`
+- 다음 첫 작업: 승인된 PR #409의 실제 integration 병합과 이 승인 기록 반영을 확인하고 정지한다. 기록 저장 시 PR은 OPEN이며 병합 직전 상태다. 병합 후에는 아래 복원 규칙으로 실제 Git 상태를 대조한다. STEP 3 시작 승인 없음.
 - STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
 ## 22개 검토 지점
@@ -40,7 +40,7 @@
 |---|---|
 | 0 | COMPLETED |
 | 1 | COMPLETED |
-| 2 | REVIEW_PENDING |
+| 2 | COMPLETED |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
@@ -187,3 +187,12 @@
 - AUDIT-S2-002: 최초 검증7개, 감사 당시 제출8개/PR전체12개, 이번 보완 포함9개/PR전체13개의 비교 기준을 검증 기록에서 구분했다.
 - 저장 직전 STEP HEAD: `78467ef4ecd54df4dfa352824abbbe3b79dd01f7`. 상세 보완·검증·제출 후 확인 방식: [CP0016](checkpoints/CP-0016-step-2-post-audit-fix.md), [STEP2 검증](artifacts/step-2-validation.md).
 - STEP2 REVIEW_PENDING, STEP3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. 새로운 Architecture Decision 없음; DECISIONS와 과거 checkpoint 불변.
+
+## STEP 2 사용자 승인 및 병합 복원
+
+- 사용자 지시: 2026-10-01T16:33:44+09:00, “STEP 2 결과를 승인하고 PR #409를 integration에 병합해줘. STEP 3는 시작하지 마.”
+- 승인 대상: `101a1240b2d4a1411fe41dc1ce94983aa9b0d7ae`의 STEP2 산출물. 집중 재검토에서 AUDIT-S2-001/002 모두 해소, 추가 보완 불필요. 새 API/최종 모델/구현 지원을 승인한 것으로 확대하지 않는다.
+- 위 사후 감사 절의 검토 대기/미승인은 당시 사실이다. 현재 사용자 결과 승인과 PR409의 integration 병합 승인으로 대체됐다.
+- 승인 기록 저장 직전 integration은 STEP1까지 반영됐다. PR409의 실제 병합과 [CP0017](checkpoints/CP-0017-step-2-approved.md)/STEP2 산출물이 integration에 반영된 사실을 확인하면 마지막 반영 승인 STEP은 STEP2이며 active STEP branch는 없음(phase2 브랜치는 종료 이력)이다.
+- 현재 STEP branch가 가리키는 승인 기록 commit의 integration 포함 여부는 Git 조상 관계로도 확인한다. 실제 merge SHA/최신 integration HEAD는 Git 또는 PR에서 조회하며 병합 직전 기록 값을 최신 상태보다 우선하지 않는다.
+- STEP3 이후 NOT_STARTED, 시작 승인 없음. integration→main 승인/반영 없음. 승인 기록 외 산출물·기존 규칙·코드·DECISIONS·과거 checkpoint 불변.
