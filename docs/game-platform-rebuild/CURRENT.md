@@ -20,19 +20,21 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 2 — 장르 규칙 분류와 구현 특성 선택표**
-- STEP 0 / STEP 1: **COMPLETED / COMPLETED**
-- integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
-- STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
-- STEP 2: **COMPLETED — 집중 재검토 통과, 사용자 결과 승인 및 PR #409 integration 병합 지시**
-- active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
-- STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Ready for review / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
-- STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
-- STEP 2 결과 승인 / integration merge 승인: 승인됨 / 승인됨 — 2026-10-01T16:33:44+09:00 사용자 명시적 지시
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / Work Sol 근거 준비**
+- STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
+- integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
+- STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
+- STEP 3: **IN_PROGRESS — 근거 준비만; Astra 핵심 판단·정식 matrix 미수행**
+- active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
+- STEP PR: 준비 제출 전 미생성. Draft 제출 후 실제 번호/base/head는 후속 기록에서 확인한다.
+- STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
+- STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0017-step-2-approved.md`
-- 다음 첫 작업: 승인된 PR #409의 실제 integration 병합과 이 승인 기록 반영을 확인하고 정지한다. 기록 저장 시 PR은 OPEN이며 병합 직전 상태다. 병합 후에는 아래 복원 규칙으로 실제 Git 상태를 대조한다. STEP 3 시작 승인 없음.
-- STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
+- 최신 checkpoint: `checkpoints/CP-0019-step-3-preparation.md`
+- 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
+- 다음 첫 작업: 준비 자료의 원격 제출 확인 후 사용자에게 조사 입력·요청문을 전달하고 정지. 보조 조사 활용 시 사용자가 결과를 Work에 전달한 뒤 Astra 판단을 별도 지시한다.
+- STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
+- 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
 ## 22개 검토 지점
 
@@ -41,7 +43,7 @@
 | 0 | COMPLETED |
 | 1 | COMPLETED |
 | 2 | COMPLETED |
-| 3 | NOT_STARTED |
+| 3 | IN_PROGRESS |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
 | 5A | NOT_STARTED |
@@ -196,3 +198,7 @@
 - 승인 기록 저장 직전 integration은 STEP1까지 반영됐다. PR409의 실제 병합과 [CP0017](checkpoints/CP-0017-step-2-approved.md)/STEP2 산출물이 integration에 반영된 사실을 확인하면 마지막 반영 승인 STEP은 STEP2이며 active STEP branch는 없음(phase2 브랜치는 종료 이력)이다.
 - 현재 STEP branch가 가리키는 승인 기록 commit의 integration 포함 여부는 Git 조상 관계로도 확인한다. 실제 merge SHA/최신 integration HEAD는 Git 또는 PR에서 조회하며 병합 직전 기록 값을 최신 상태보다 우선하지 않는다.
 - STEP3 이후 NOT_STARTED, 시작 승인 없음. integration→main 승인/반영 없음. 승인 기록 외 산출물·기존 규칙·코드·DECISIONS·과거 checkpoint 불변.
+
+## STEP 3 근거 준비 착수·제출 경계
+
+PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 CP0017 반영을 확인하고 사용자 허용 범위만 시작했다. [CP0018](checkpoints/CP-0018-step-3-start.md)은 착수 사실, [CP0019](checkpoints/CP-0019-step-3-preparation.md)는 준비 결과·검증·다음 행동을 기록한다. source 읽기·사례 가정·미확인 질문을 분리했으며 정식 matrix/지원/Core 판정·외부 신규 조사·STEP4 계약 설계는 미수행이다. 원격 제출 SHA/PR/CI는 read-back 후 새 기록으로 연결한다.
