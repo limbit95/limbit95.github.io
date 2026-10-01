@@ -20,20 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 1 — AS-IS 감사와 기존 규칙 조항별 계승표**
-- STEP 0 상태: **COMPLETED**
-- STEP 0 기록 정합화: PR #407 MERGED / `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`, CP-0005 integration 반영 확인
-- STEP 1 상태: **COMPLETED — 사용자 결과 승인됨**
-- active STEP branch: `docs/game-platform-vnext-phase1-audit`
-- STEP branch 분기 integration SHA: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
-- STEP PR: [#408](https://github.com/limbit95/limbit95.github.io/pull/408) **OPEN / merged=false**; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
-- STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
-- STEP 1 사용자 검토 / integration merge 승인: **통과 / 승인됨 — 2026-10-01 12:38:05 Asia/Seoul 사용자 지시**
-- PR #408 실제 병합/merge SHA: 이 파일은 병합 직전 저장된다. 최신 Git/PR에서 확인하며, 미병합이면 승인된 병합만 수행한다.
-- integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0011-step-1-approved.md`
-- 다음 첫 작업: **PR #408의 실제 integration 병합과 CP-0011/산출물 반영을 Git에서 확인하고 정지한다. STEP 2 시작 금지; 별도 사용자 지시 대기.**
-- 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
+- 현재 STEP: **STEP 2 — 장르 규칙 분류와 구현 특성 선택표**
+- STEP 0 / STEP 1: **COMPLETED / COMPLETED**
+- integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
+- STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
+- STEP 2: **IN_PROGRESS — 착수·근거 준비 완료, 정식 산출물 미완료**
+- active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
+- STEP PR: 착수 Draft PR 제출 예정. 같은 head / base `feature/game-platform-vnext-integration`의 실제 PR은 Git/PR에서 조회
+- STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
+- STEP 2 결과 승인 / integration merge 승인: 없음 / 없음
+- integration → main 승인/반영: 없음 / 미수행
+- 최신 checkpoint: `checkpoints/CP-0012-step-2-start.md`
+- 다음 첫 작업: [작업 분담](artifacts/step-2-work-allocation.md)의 Astra 판단 요청에 [근거 요약](artifacts/step-2-evidence-brief.md)을 전달한다. 외부 보조 조사는 필요할 때만 수행한다.
+- STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
 ## 22개 검토 지점
 
@@ -41,7 +40,7 @@
 |---|---|
 | 0 | COMPLETED |
 | 1 | COMPLETED |
-| 2 | NOT_STARTED |
+| 2 | IN_PROGRESS |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
@@ -147,3 +146,9 @@
 - 최신 [CP-0011](checkpoints/CP-0011-step-1-approved.md)이 승인과 병합 사실 조회 경로를 기록한다. 위 과거 절의 REVIEW_PENDING/미승인은 당시 사실이며 현재 결과 승인 상태를 대신하지 않는다.
 - 이 파일의 저장 직전 integration은 STEP 0까지만 반영됐다. #408 실제 merged 상태와 CP-0011 존재가 확인되면 integration에 반영된 마지막 승인 STEP은 STEP 1이며 현재 작업 브랜치는 종료 이력이다. 실제 merge SHA·최신 integration HEAD는 Git/PR에서 조회한다.
 - STEP 2 및 이후 NOT_STARTED, STEP 2 시작 승인 없음. integration→main 미승인·미수행.
+
+## STEP 2 착수
+
+- PR #408 merged=true와 실제 integration HEAD를 대조해 병합 후 기준선을 복원했다. 과거 절의 미승인·미착수는 당시 기록이며 현재 상태와 22개 표가 최신이다.
+- 모델별 분담과 선택 조항 근거만 준비했다. 정식 STEP 2 산출물·Astra 판단·사용자 검토는 미완료다.
+- 로컬 검증: 선택 조항56행(보드 조건49+경계7)의 원문·ID·강도·분류 완전 일치/중복ID 없음, 링크와 22개 상태표, diff 공백 및 Governance Guard PASS. 변경은 착수 문서4파일이며 기존 계획·STEP 1 표·과거 checkpoint·게임 코드 변경 없음. 전체 게임/DB/브라우저 테스트는 기존 구현·계약 변경 없는 문서 준비 단계여서 재실행하지 않는다. 원격 CI 미실행은 PASS로 표시하지 않는다.
