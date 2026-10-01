@@ -20,20 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 1 — AS-IS 감사와 기존 규칙 조항별 계승표**
-- STEP 0 상태: **COMPLETED**
-- STEP 0 기록 정합화: PR #407 MERGED / `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`, CP-0005 integration 반영 확인
-- STEP 1 상태: **COMPLETED — 사용자 결과 승인됨**
-- active STEP branch: `docs/game-platform-vnext-phase1-audit`
-- STEP branch 분기 integration SHA: `132ec1576e316d0238c9ca6e07d0d3ab91950ec8`
-- STEP PR: [#408](https://github.com/limbit95/limbit95.github.io/pull/408) **OPEN / merged=false**; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase1-audit`
-- STEP 1 시작 승인: **있음 — 2026-10-01 사용자 요청, AS-IS 감사와 조항별 계승표 작성·PR 제출까지**
-- STEP 1 사용자 검토 / integration merge 승인: **통과 / 승인됨 — 2026-10-01 12:38:05 Asia/Seoul 사용자 지시**
-- PR #408 실제 병합/merge SHA: 이 파일은 병합 직전 저장된다. 최신 Git/PR에서 확인하며, 미병합이면 승인된 병합만 수행한다.
-- integration → main 승인/PR/반영: **없음 / 없음 / 미수행**
-- 최신 checkpoint: `checkpoints/CP-0011-step-1-approved.md`
-- 다음 첫 작업: **PR #408의 실제 integration 병합과 CP-0011/산출물 반영을 Git에서 확인하고 정지한다. STEP 2 시작 금지; 별도 사용자 지시 대기.**
-- 허용 범위: 감사 산출물과 CURRENT/새 checkpoint. 기존 규칙·코드·계획·DECISIONS는 변경하지 않는다.
+- 현재 STEP: **STEP 2 — 장르 규칙 분류와 구현 특성 선택표**
+- STEP 0 / STEP 1: **COMPLETED / COMPLETED**
+- integration 마지막 승인 반영 STEP: **STEP 1 — PR #408 MERGED / merge SHA `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`**
+- STEP 2 착수 integration HEAD / 분기 SHA: `2636d47d4a47e09c9ba4729ee5a16bc1cc7216ad`
+- STEP 2: **COMPLETED — 집중 재검토 통과, 사용자 결과 승인 및 PR #409 integration 병합 지시**
+- active STEP branch: `docs/game-platform-vnext-phase2-taxonomy`
+- STEP PR: [#409](https://github.com/limbit95/limbit95.github.io/pull/409) OPEN / Ready for review / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase2-taxonomy`
+- STEP 2 시작 승인: 있음 — 사용자 모델별 작업 분류·착수 지시
+- STEP 2 결과 승인 / integration merge 승인: 승인됨 / 승인됨 — 2026-10-01T16:33:44+09:00 사용자 명시적 지시
+- integration → main 승인/반영: 없음 / 미수행
+- 최신 checkpoint: `checkpoints/CP-0017-step-2-approved.md`
+- 다음 첫 작업: 승인된 PR #409의 실제 integration 병합과 이 승인 기록 반영을 확인하고 정지한다. 기록 저장 시 PR은 OPEN이며 병합 직전 상태다. 병합 후에는 아래 복원 규칙으로 실제 Git 상태를 대조한다. STEP 3 시작 승인 없음.
+- STEP 3 및 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP 1 산출물·DECISIONS·과거 checkpoint 보존.
 
 ## 22개 검토 지점
 
@@ -41,7 +40,7 @@
 |---|---|
 | 0 | COMPLETED |
 | 1 | COMPLETED |
-| 2 | NOT_STARTED |
+| 2 | COMPLETED |
 | 3 | NOT_STARTED |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
@@ -147,3 +146,53 @@
 - 최신 [CP-0011](checkpoints/CP-0011-step-1-approved.md)이 승인과 병합 사실 조회 경로를 기록한다. 위 과거 절의 REVIEW_PENDING/미승인은 당시 사실이며 현재 결과 승인 상태를 대신하지 않는다.
 - 이 파일의 저장 직전 integration은 STEP 0까지만 반영됐다. #408 실제 merged 상태와 CP-0011 존재가 확인되면 integration에 반영된 마지막 승인 STEP은 STEP 1이며 현재 작업 브랜치는 종료 이력이다. 실제 merge SHA·최신 integration HEAD는 Git/PR에서 조회한다.
 - STEP 2 및 이후 NOT_STARTED, STEP 2 시작 승인 없음. integration→main 미승인·미수행.
+
+## STEP 2 착수
+
+- PR #408 merged=true와 실제 integration HEAD를 대조해 병합 후 기준선을 복원했다. 과거 절의 미승인·미착수는 당시 기록이며 현재 상태와 22개 표가 최신이다.
+- 모델별 분담과 선택 조항 근거만 준비했다. 정식 STEP 2 산출물·Astra 판단·사용자 검토는 미완료다.
+- 로컬 검증: 선택 조항56행(보드 조건49+경계7)의 원문·ID·강도·분류 완전 일치/중복ID 없음, 링크와 22개 상태표, diff 공백 및 Governance Guard PASS. 변경은 착수 문서4파일이며 기존 계획·STEP 1 표·과거 checkpoint·게임 코드 변경 없음. 전체 게임/DB/브라우저 테스트는 기존 구현·계약 변경 없는 문서 준비 단계여서 재실행하지 않는다. 원격 CI 미실행은 PASS로 표시하지 않는다.
+
+- 착수 원격 보존: `5d8f94a4448caeb5e232e4e3d19131d0169cd013`, tree `24b8be3b55c05c3a10185b0ddf6dd35a31387a58`. Draft PR #409 생성 확인. 최신 기록 저장 후 SHA는 Git에서 조회한다.
+- 착수 제출 head `5d8f94a...`의 PR workflow runs 0 / check-runs 0: NOT_TRIGGERED. PASS로 집계하지 않는다.
+
+## STEP 2 정식 산출물 작성과 검토 대기
+
+- 직접 입력: 이 채팅 Astra STEP 2 판단 결과 전체. Sol 5.6 메모는 참고 입력으로 별도 원본 보존. 계획1.3·기존 유효 규칙이 우선한다.
+- [장르 인덱스](artifacts/step-2-genre-rule-index.md): 묶음·논리적 소유자·조건·49개 조항별 제안·S2-R01~04.
+- [구현 선택표](artifacts/step-2-implementation-selection.md): 7축·단일/복수·단계 변경·Capability·시간 분리·호환/충돌·지원 상태 구분.
+- [GAME_SPEC 근거](artifacts/step-2-game-spec-selection-rationale.md): 기록 제안과 예시. 실제 템플릿 불변.
+- [검증](artifacts/step-2-validation.md), [참고 조사 원본](artifacts/step-2-auxiliary-research-memo.md).
+- 기존 분류·강도·조건·예외와 F01~F03을 보존한다. 논리적 분류 제안은 아직 채택된 Architecture Decision이 아니므로 DECISIONS 불변.
+- 저장 직전 HEAD: `792d73befe676cfdc8f8c1f7b7a58a984841cc01`. 이번 저장 후 SHA는 Git/PR read-back으로 확인한다.
+- PR #409는 제출 시 메타데이터를 갱신하고 검토 가능 상태로 전환한다. 현재 Draft 표기는 전환 전 조회 결과이며 실제 상태는 Git/PR에서 확인한다.
+- STEP 2 REVIEW_PENDING, STEP 3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. integration/main 미반영.
+
+## STEP 2 제출 read-back
+
+- 산출물 원격 commit: `882d8556a8e66b59c3b8f0f46f815fffb7869783`. 원격 branch ref·fetch와 로컬 tree 일치 확인.
+- PR #409 OPEN / Ready for review / 미병합, 제목·설명 갱신 완료. PR head 반영은 최종 Git/PR read-back에서 별도로 대조한다.
+- 위 산출물 commit의 workflow runs0/check-runs0: NOT_TRIGGERED. CI PASS 아님.
+- 최신 제출 기록 자신의 SHA는 저장 후 Git에서 확인한다. STEP2 REVIEW_PENDING, 다음은 Astra 사후 감사.
+
+- 제출 최종 조회 주의: 원격 STEP branch ref/fetch는 `d07a6760a50b1e9f6e6944055b62c7c654bc2053`으로 확인됐지만 PR #409 API head는 여전히 착수 HEAD `792d73befe676cfdc8f8c1f7b7a58a984841cc01`을 반환했다. PR head 일치 검증은 **확인 필요**이며 PASS가 아니다. 이후 Git/PR에서 다시 대조한다. 사후 감사는 최신 branch 또는 위 고정 commit의 정식 산출물로 수행하고 이전 PR diff만으로 판단하지 않는다.
+- 위 최종 기록 head의 workflow/check-runs0/0도 NOT_TRIGGERED. 원격 산출물 보존과 PR 메타데이터/ready 갱신은 확인했으며 PR head 조회 불일치를 숨기지 않는다.
+
+- 후속 재조회에서 PR #409 API head=`d61283c9db7bbc3ce795d32b6ccb7e739e89f4b3`과 원격 STEP branch가 일치함을 확인했다. 위 제출 당시 조회 불일치는 해소됐으며 승인 blocker로 남기지 않는다. 이 확인 기록 자체의 최신 SHA는 Git/PR에서 조회한다.
+
+## STEP 2 사후 감사 문서 보완
+
+- 감사 판정: 경미한 보완 후 승인 검토 가능 — Critical0 / Major0 / Minor2.
+- AUDIT-S2-001: 기존 Astra 초안의 hostless 적용 조건을 보완. 초기 시작만 hostless이고 재대결은 기존 의무 충족 / 재대결에서도 host 불성립 / 정책 미정을 구분했다. 다른 의무·계약·구현 증거 확인은 별도이며 기존 규칙 변경은 없다.
+- AUDIT-S2-002: 최초 검증7개, 감사 당시 제출8개/PR전체12개, 이번 보완 포함9개/PR전체13개의 비교 기준을 검증 기록에서 구분했다.
+- 저장 직전 STEP HEAD: `78467ef4ecd54df4dfa352824abbbe3b79dd01f7`. 상세 보완·검증·제출 후 확인 방식: [CP0016](checkpoints/CP-0016-step-2-post-audit-fix.md), [STEP2 검증](artifacts/step-2-validation.md).
+- STEP2 REVIEW_PENDING, STEP3 이후 NOT_STARTED. 사용자 결과 승인/merge 승인 없음. 새로운 Architecture Decision 없음; DECISIONS와 과거 checkpoint 불변.
+
+## STEP 2 사용자 승인 및 병합 복원
+
+- 사용자 지시: 2026-10-01T16:33:44+09:00, “STEP 2 결과를 승인하고 PR #409를 integration에 병합해줘. STEP 3는 시작하지 마.”
+- 승인 대상: `101a1240b2d4a1411fe41dc1ce94983aa9b0d7ae`의 STEP2 산출물. 집중 재검토에서 AUDIT-S2-001/002 모두 해소, 추가 보완 불필요. 새 API/최종 모델/구현 지원을 승인한 것으로 확대하지 않는다.
+- 위 사후 감사 절의 검토 대기/미승인은 당시 사실이다. 현재 사용자 결과 승인과 PR409의 integration 병합 승인으로 대체됐다.
+- 승인 기록 저장 직전 integration은 STEP1까지 반영됐다. PR409의 실제 병합과 [CP0017](checkpoints/CP-0017-step-2-approved.md)/STEP2 산출물이 integration에 반영된 사실을 확인하면 마지막 반영 승인 STEP은 STEP2이며 active STEP branch는 없음(phase2 브랜치는 종료 이력)이다.
+- 현재 STEP branch가 가리키는 승인 기록 commit의 integration 포함 여부는 Git 조상 관계로도 확인한다. 실제 merge SHA/최신 integration HEAD는 Git 또는 PR에서 조회하며 병합 직전 기록 값을 최신 상태보다 우선하지 않는다.
+- STEP3 이후 NOT_STARTED, 시작 승인 없음. integration→main 승인/반영 없음. 승인 기록 외 산출물·기존 규칙·코드·DECISIONS·과거 checkpoint 불변.
