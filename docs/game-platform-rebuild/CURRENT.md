@@ -20,15 +20,15 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4B — IN_PROGRESS / Work Sol 근거 준비 완료·제출 확인 중**
+- 현재 STEP: **STEP 4B — IN_PROGRESS / Work Sol 근거 준비 완료·제출 후 정지**
 - STEP0/1/2/3/4A: **COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP4A — PR #411 MERGED / merge SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
 - integration: `feature/game-platform-vnext-integration`; 실제 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
 - active STEP branch: `docs/game-platform-vnext-phase4b-evidence-preparation`; 최신 승인 integration에서 별도 분기
-- STEP PR: 아직 생성 전. 준비 제출 시 integration base Draft로 생성한다.
-- 최신 checkpoint: `checkpoints/CP-0043-step-4b-start.md`
+- STEP PR: [#412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase4b-evidence-preparation`
+- 최신 checkpoint: `checkpoints/CP-0044-step-4b-evidence-prepared.md`
 - 사용자 허용: “가이드 2번 요청문대로 근거 준비만 진행해줘”. STEP4B 가이드 §2의 준비만 수행
-- 다음 첫 작업: Draft PR/최종 원격 제출 확인 후 정지. 다음에는 일반 Sol5.6 조사 원본 수신·출처 검토 후 Astra3A→3B→3C 요청
+- 다음 첫 작업: 일반 Sol5.6에 조사 input/request를 함께 전달. 일반 Sol5.6 조사 원본 수신·출처 검토 후 Astra3A→3B→3C 요청
 - Astra 3A/3B/3C·정식 반영·감사: NOT_STARTED. STEP5A 이후 NOT_STARTED
 - integration 병합·main 반영·runtime/RPC/DB/서비스 구현: 허용 범위 밖, 미수행
 - CP0042와 과거 CURRENT 상세의 OPEN/Draft·마지막 STEP3 표기는 병합 전 이력이다. 실제 PR411 merged 상태, merge parents와 동일 tree로 STEP4A 반영을 복원했다. 종료 phase4a 브랜치는 재사용하지 않는다.

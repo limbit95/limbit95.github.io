@@ -1,10 +1,10 @@
 # STEP 4B — 작업 분담과 정지 경계
 
-작업 계보: `game-platform-vnext`. 기준 `3aeae1dfcce7788f88e706dcd49d283b91b67e82`, branch `docs/game-platform-vnext-phase4b-evidence-preparation`. 사용자 가이드 §2 요청에 따른 실제 Work Sol/Codex 근거 준비이며 역할 명칭으로 별도 모델 실행을 증명하지 않는다.
+작업 계보: `game-platform-vnext`. [PR412](https://github.com/limbit95/limbit95.github.io/pull/412), 기준 `3aeae1dfcce7788f88e706dcd49d283b91b67e82`, branch `docs/game-platform-vnext-phase4b-evidence-preparation`. 사용자 가이드 §2 요청에 따른 실제 Work Sol/Codex 근거 준비이며 역할 명칭으로 별도 모델 실행을 증명하지 않는다.
 
 | 순서 | 담당/상태 | 수행/미완료 |
 |---|---|---|
-| 1 | Work Sol/Codex PREPARATION_COMPLETE | 원격 복원·근거44개/미확인·조사 packet·문서/Governance 검증 완료; 원격 제출 확인 중 |
+| 1 | Work Sol/Codex PREPARATION_COMPLETE | 원격 복원·근거44개/미확인·조사 packet·문서/Governance 검증 완료; Draft PR412 원격 본체 제출/read-back 확인; 최종 기록 제출 |
 | 2 | 일반 Sol5.6 NOT_STARTED | 부족한 Q01~04에 한정한 input/request 작성 완료; 조사 실행·결과 수신 전 |
 | 3A | Work Astra NOT_STARTED | authority·시간/순서·중복·initial/live·복구 판단 |
 | 3B | Work Astra NOT_STARTED | private·권한·사이트 정책 및 검사 시점 판단 |
@@ -16,3 +16,5 @@
 조사 수신은 3A~C 완료가 아니다. 결과 원본·출처·범위·미확인을 검토하고 필요한 원문을 선택 확인한다. 후속 API 동결(6), 기존 모듈 재사용(5A), Result/Publication/Sound 상세(5B), 장르 UX(5C)는 이번 준비에서 결정하지 않는다.
 
 다음 첫 행동: 준비 제출 확인 뒤 정지. 일반 Sol5.6에 input/request를 함께 전달하여 조사 원본을 수신하고, 출처 검토 후 Astra3A→3B→3C를 요청한다. backend/transport/모델 선택·규칙 면제·물리 구현·병합 없음.
+
+[최신 CP0044](../checkpoints/CP-0044-step-4b-evidence-prepared.md). 준비 본체 SHA `9ecf5a4aa0c531f3652ac8f8e67afb7bb7e9cb37`; 최종 기록 포함 SHA는 PR본문/제출 응답에 기록한다. 조사/판단/정식반영/감사는 미수행이며 준비 제출 후 정지한다.

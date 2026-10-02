@@ -18,3 +18,11 @@
 - 문서8개: 상대링크/표/공백·CURRENT22상태 검사 오류0. source44개/고정파일36개 blob·줄 확인, Governance입력22개 원격 기준 동일.
 - Governance RepositoryState/DocumentPolicy/이번 PR8경로 분류 오류0. shared 게임2개·DBtest 파일3개와 정책입력을 전체 inventory에 대조했다.
 - 변경8경로는 CURRENT 수정1 + 신규준비문서6 + CP0043 추가1. 보호 파일 수정/삭제 없음.
+
+## 실제 원격 본체 확인과 최종 기록
+
+- PR412 OPEN/Draft, integration base/head 및 준비 SHA `9ecf5a4aa0c531f3652ac8f8e67afb7bb7e9cb37` 확인. tree `57600638a100640fbf312ac81b2b04d819567a96`, 원격8파일 exact read-back 일치·허용8경로 외 변경0/삭제0·전체933entries.
+- 준비 SHA workflows0/check-runs0 **NOT_TRIGGERED**. integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82` 불변.
+- 최종 기록은 CP0044 추가와 CURRENT/분담/본검증 갱신이다. 최종 누적9경로에 대해 문서/Governance 검사를 다시 실행한다. 최종 원격 SHA/tree/9파일 read-back·CI 결과는 commit 생성 후 PR본문에 보존한다.
+
+- 최종 로컬 기록9문서: 링크128/표8·CURRENT22상태·공백 오류0, trace44/36파일 및 Governance입력22동일. RepositoryState/DocumentPolicy/누적9경로 분류 오류0. 전체checkout/CLI와 CI를 대체하는 결과는 아니다.
