@@ -16,6 +16,14 @@
 - 판단/원본·선택 원문 검토·보호된 로컬 source는 시작 remote tree blob과 일치한다. 전체 원격 tree 보존은 제출 후 확인한다.
 - 정식 gate 대조: 책임6주체·규칙연결7행·금지의존6항목, 수명8범위·채택5조건·완료6경로·정리7항목, T01~03×6행·공존4사례·후속7행 보존. 사고 실험/계약 의미를 실행 PASS로 승격하지 않았다.
 
+### 최종 제출 기록 포함 검사
+
+- 변경10문서: 원문9절 exact·source33 blob/줄·선택조항10·상대링크139/표11·상태22·CURRENT 과거 상세 이력·엄격 공백 검사 오류0. STEP4A REVIEW_PENDING, 후속 NOT_STARTED 유지. 문서 내 Python 재현 코드도 실제 실행하여 9절/원본/33source 검사를 통과했다.
+- Governance 순수 함수 검사: RepositoryState/DocumentPolicy 오류0, 이번10경로·PR누적25경로 변경분 분류 오류0. 두 게임/3개 DB테스트 파일목록·12정책문서 등22고정파일 입력을 사용했다.
+- PR 누적25문서의 엄격 끝 공백 검사 오류0. 전체 저장소/과거 STEP3 공백 FAIL 해소 판정이 아니다.
+- 반영 commit `eac8ca872ed3fb88211219cc11f45c1853c827a8`·tree `48213aa254214a0065c96829a7ff87691e39d303`: 원격9파일 exact·허용9경로/삭제0/기존 blob·mode/type 불변·PR head/base/Draft/미병합 확인. 해당 SHA workflows0/check-runs0 NOT_TRIGGERED.
+- 최종 제출 기록 commit은 원격 저장 후 전체 tree/10파일 read-back·최종PR head·integration 불변·CI를 다시 조회한다. 자기 SHA를 미리 확정하지 않으며 실제 최종 SHA/read-back 결과는 PR 설명·사용자 제출 보고에 남긴다.
+
 ## 3. Governance 검증의 정확한 범위
 
 고정 입력 SHA에서 Guard source·Registry·정책/게임 문서22개를 받아 blob을 대조한다. truncated=false 전체 tree로 게임 디렉토리2개, 게임별 파일 목록, DB 테스트 파일 목록을 구성한다. 이 입력으로 기존 Guard의 아래 세 순수 검사 함수를 실행한다.

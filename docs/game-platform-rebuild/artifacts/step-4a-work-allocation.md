@@ -1,6 +1,6 @@
 # STEP 4A — 작업 분담·진행·재개
 
-상태: **STEP4A IN_PROGRESS / 가이드4 정식 반영 진행**. 이번 사용자의 다음 단계 지시를 순서4에 적용한다. 통과 게이트는 계획1.3이며 새 승인 게이트를 만들지 않는다.
+상태: **STEP4A REVIEW_PENDING / 가이드4 정식 제출 완료**. 이번 사용자의 다음 단계 지시를 순서4에 적용한다. 통과 게이트는 계획1.3이며 새 승인 게이트를 만들지 않는다.
 
 | 순서 | 담당 | 상태·산출물/다음 행동 |
 |---|---|---|
@@ -8,8 +8,8 @@
 | 2 | 일반 Sol5.6 | 원본 수신·보존 완료. 출처/범위/미확인 검토와 선택 원문 확인 후 판단에 사용 |
 | 3A | Work Astra | 완료. 책임·의존·규칙→계약·공존 판단. 정식 owner/금지 의존 판단은 여기서 |
 | 3B | Work Astra | 완료. 관계/수명·맥락 식별·T01~03·성공/error/null/finally/정리;3A와 충돌 확인 |
-| 4 | Work Sol | IN_PROGRESS. 원문9절 정식 반영/trace·1차검증 완료; 최종 제출 진행. Astra 판단 전체 반영·trace·범위/검증·기록·최종 원격SHA |
-| 5 | Work Astra | NOT_STARTED. 최종 SHA 감사: 의무 약화/Core확대/보드전제/지원과장/후속선결정 |
+| 4 | Work Sol | 완료. 판단9절 전체 정식 반영·trace·검증·기록·기존PR 원격 제출; 최종 SHA는 PR/Git read-back |
+| 5 | Work Astra | NOT_STARTED / 다음 별도 지시. 최종 SHA 감사: 의무 약화/Core확대/보드전제/지원과장/후속선결정 |
 | 6 | Work Sol→Astra | finding 있을 때만 보완·집중 재감사; 미수행 |
 | 7 | 사용자 | 결과 승인·integration merge 승인 미수행; main 별도 |
 
@@ -24,8 +24,11 @@
 - [x] [착수](../checkpoints/CP-0030-step-4a-start.md)·[준비](../checkpoints/CP-0031-step-4a-preparation.md)·[검증](step-4a-preparation-validation.md)
 - [x] 보조 조사 원본 수신·보존(조사 작성자의 실행환경은 미확인)
 - [x] 가이드3: 출처/미확인 검토 → 3A 책임·의존 → 3B 수명·전환 판단
-- [ ] 가이드4 정식 반영·사후 감사·사용자 STEP 승인
+- [x] 가이드4 정식 반영·검증·기록·원격 제출
+- [ ] 가이드5 사후 감사·사용자 STEP 승인
 
 ## 다음 첫 행동
 
-[CP0037](../checkpoints/CP-0037-step-4a-formal-reflection.md): 반영·1차검증 완료. 고정 head `36ca5e0f7b4c37efedde8ba4b4ad0b55a2b3c3cd`의 판단 전체·조건·제한·미확인을 정식 문서에 반영한다. 누락/trace/링크/diff/Governance 검증과 원격 제출 뒤 가이드5 감사 전에 멈춘다. STEP4B·merge·main·production은 진행하지 않는다.
+이번 가이드4 제출 뒤 멈춘다. [CP0038](../checkpoints/CP-0038-step-4a-formal-submitted.md), 정식 [책임](step-4a-responsibility-boundaries.md)/[수명](step-4a-lifetime-contract.md)/[후속](step-4a-risks-and-followup.md)/[trace](step-4a-contract-source-trace.md)/[검증](step-4a-validation.md)을 원격 보존했다. 이후 사용자 별도 지시로 Work Astra가 최종 PR411 HEAD를 다시 조회·고정하고 가이드5 사후 감사를 수행한다. 반영 commit `eac8ca872ed3fb88211219cc11f45c1853c827a8` 이후 제출 기록까지 포함한 HEAD가 감사 대상이다.
+
+최종 SHA는 PR411 설명/Git에서 확인한다. 결과 승인·integration 병합 승인은 가이드7이며 아직 없다. STEP4B·merge·main·production 미수행. 새 모델/API/물리 경로·구현 지원 확정 없음.
