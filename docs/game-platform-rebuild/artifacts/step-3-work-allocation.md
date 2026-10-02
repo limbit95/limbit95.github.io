@@ -1,8 +1,8 @@
 # STEP 3 — 작업 분담과 진행 체크
 
 - 기준: 계획 1.3 STEP 3 / integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`.
-- STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`. 현재는 **가이드 5번 사후 감사 완료 / 사용자 결과 검토 대기 / STEP 3 REVIEW_PENDING**.
-- 결과 승인·integration merge 승인·main 반영 승인 없음. Astra 판단·4번 정식 반영·검증·5번 사후 감사 완료. 신규 finding 0건이며 사용자 결과 승인 대기.
+- STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`. 현재는 **가이드 7번 사용자 승인 완료 / STEP 3 COMPLETED / 실제 integration 병합 확인**.
+- STEP3 결과·PR410 integration 병합 승인 있음(2026-10-02T11:32:23+09:00). main 반영 승인 없음. 3~5번 완료, 신규 finding0, 6번 미수행.
 
 ## 진행 체크
 
@@ -18,7 +18,7 @@
 - [x] Work Sol 정식 산출물 반영·검증·제출 — CP0025와 최종PR read-back으로 확인
 - [x] Work Astra 사후 감사 — 고정 SHA `79a03bca8ecba10eee4473156168aae5fa7faeb3`, 신규 finding 0건
 - [ ] 가이드 6번 보완·집중 재검토 — 현재 보완 요구 없음, 미수행
-- [ ] 사용자 결과 승인·integration 병합 승인
+- [x] 사용자 결과 승인·integration 병합 승인 — CP0029; 실제 병합은 Git/PR 대조
 
 ## 모델별 순서
 
@@ -36,7 +36,7 @@
 
 ## 다음 첫 행동
 
-사용자가 [사후 감사](step-3-post-audit.md)와 정식 산출물을 검토한다(**가이드 7번**). 감사 판정은 승인 검토 가능이며 사용자 승인 자체가 아니다. 가이드 6번은 필요 시 finding 보완 단계이고 현재 신규 finding 0건으로 수행하지 않았다. 결과 승인·integration 병합 승인은 각각 명시적 지시를 기다린다. 본 요청의 실행은 가이드 5번 제출에서 멈춘다.
+사용자 결과·PR410 integration 병합 승인을 [CP0029](../checkpoints/CP-0029-step-3-approved.md)에 기록했다. 승인 기록을 포함한 PR410 병합과 실제 integration 반영을 확인한 뒤 멈춘다. STEP4A 시작과 integration→main 반영은 별도 지시다. 6번은 신규 finding0으로 미수행이다.
 
 감사 대상은 `79a03bca8ecba10eee4473156168aae5fa7faeb3`에 고정한다. 이후 감사/진행 기록 commit과 구분하며, 정식 산출물 변경이 생기면 해당 diff부터 다시 감사한다. [CP0028](../checkpoints/CP-0028-step-3-post-audit-complete.md)에 제출 검증·원격 확인 경로를 기록한다.
 
@@ -49,3 +49,5 @@
 4번 제출 기록: [CP0025](../checkpoints/CP-0025-step-3-formal-submitted.md). 이전 3번/준비 상태는 당시 이력이다.
 
 5번 완료 기록: [CP0028](../checkpoints/CP-0028-step-3-post-audit-complete.md). Critical 0 / Major 0 / Minor 0; 기존 리스크·미확인·회귀 조건은 해소하지 않는다.
+
+7번 사용자 승인 기록: [CP0029](../checkpoints/CP-0029-step-3-approved.md). 이전 미승인·검토 대기 문구는 당시 이력이다.

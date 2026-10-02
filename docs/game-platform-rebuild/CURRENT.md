@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 가이드 5번 Work Astra 사후 감사 완료 / 사용자 결과 검토 대기**
+- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 사용자 결과 승인 완료 / PR #410 integration 병합 승인**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **REVIEW_PENDING — 정식 산출물·사후 감사 제출; 사용자 결과 승인 대기**
+- STEP 3: **COMPLETED — 정식 산출물·사후 감사 결과 사용자 승인; integration 병합은 실제 Git/PR 확인**
 - active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
-- STEP 3 결과 승인 / integration merge 승인: 없음 / 없음
+- STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0028-step-3-post-audit-complete.md`
+- 최신 checkpoint: `checkpoints/CP-0029-step-3-approved.md`
 - 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 사용자가 [사후 감사](artifacts/step-3-post-audit.md)와 정식 산출물을 검토한다(가이드 7번). 신규 finding 0건으로 현재 가이드 6번 보완 요구는 없으며 보완 작업은 수행하지 않았다. 결과 승인·병합은 별도 명시적 지시를 기다린다.
+- 다음 첫 작업: 승인 기록을 포함한 PR #410의 integration 병합·원격 반영을 확인하고 멈춘다. STEP 4A는 별도 시작 지시를 기다린다.
 - STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -43,7 +43,7 @@
 | 0 | COMPLETED |
 | 1 | COMPLETED |
 | 2 | COMPLETED |
-| 3 | REVIEW_PENDING |
+| 3 | COMPLETED |
 | 4A | NOT_STARTED |
 | 4B | NOT_STARTED |
 | 5A | NOT_STARTED |
@@ -264,3 +264,12 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 감사 착수 기록 원격 보존 SHA `0213c899b4ede706d7586ecc56016dd22a3bcb4d`. 이번 감사 제출은 보고서·CURRENT·분담·새 checkpoint만 변경하며 정식 산출물과 원본은 불변이다.
 - [CP0028](checkpoints/CP-0028-step-3-post-audit-complete.md)에 검증·제출 범위·재개 지점 기록. 최종 저장 SHA와 PR head는 commit 후 read-back/PR 설명에서 확인한다.
 - STEP 3 REVIEW_PENDING 유지. 가이드 6번 보완 미수행(현재 finding 없음), 가이드 7번 사용자 승인 미수행. integration/main 병합·STEP 4A·production 없음. 이전 절의 감사 진행 중/대기는 당시 이력이다.
+
+## STEP 3 사용자 승인과 병합 복원
+
+- 승인 시각: 2026-10-02T11:32:23+09:00. 직전 안내의 STEP 3 결과 승인·PR410 integration 병합·STEP4A 미착수 범위에 사용자 “승인할게”.
+- 결과 승인 대상: 정식 산출물 감사 SHA `79a03bca8ecba10eee4473156168aae5fa7faeb3`와 사후 감사·기록 제출 HEAD `80242b8485e7dde09f61d907b4d9a8ed20b1aae8`. 감사 이후 diff는 CURRENT/분담/감사 보고서/CP0027·CP0028 다섯 경로뿐이며 제출 산출물은 불변임을 실제 원격·Git으로 재확인했다.
+- [CP0029](checkpoints/CP-0029-step-3-approved.md)에 승인·검증·병합 확인 경로를 기록한다. STEP3 COMPLETED, 신규 API/최종 모델/구현 지원·Target 동결을 승인한 것으로 확대하지 않는다.
+- 이 승인 기록 저장 직전 PR410은 OPEN/Draft/merged=false, integration은 STEP2까지 반영된 `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`다. 상단 PR/active branch/마지막 반영 STEP 표기는 병합 직전 사실이며 현재 원격 상태를 대신하지 않는다.
+- PR410 실제 merged=true, 승인 기록 commit이 integration 조상이며 그 산출물 tree 반영이 확인되면 마지막 승인 반영 STEP은 STEP3, phase3 브랜치는 종료 이력, active STEP branch는 없음이다. 실제 merge SHA/최신 integration HEAD는 PR/Git에서 조회한다.
+- STEP4A 이후 NOT_STARTED·시작 지시 없음. integration→main 승인/반영 없음. 가이드6 보완은 신규 finding0으로 미수행; 가이드7 사용자 결과/병합 승인 완료.
