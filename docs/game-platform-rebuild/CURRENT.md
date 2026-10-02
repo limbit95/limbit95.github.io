@@ -30,9 +30,9 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0033-step-4a-judgment-start.md`
+- 최신 checkpoint: `checkpoints/CP-0034-step-4a-responsibility-judgment.md`
 - 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 다음 첫 작업: 조사 출처·범위·미확인 검토 후 3A 책임·의존 → 3B 수명·전환 순서로 판단
+- 다음 첫 작업: 3A 완료 판단을 이어 3B 수명·비동기 전환·T01~03·충돌/회귀 판단
 - STEP4A IN_PROGRESS(가이드3 진행); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -290,3 +290,7 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 ## STEP 4A 가이드3 착수 — 2026-10-02
 
 사용자 2026-10-02T13:18:12+09:00 지시로 조사 원본을 보존하고 3A→3B 핵심 판단만 진행한다. 실제 integration `ad7655a051f0dbb13444eec6f469f6f98f9794f4`, PR411 OPEN/Draft/merged=false·head `f8bcce80c2942a5c7f8d73a2c3fd41b326729d86`, CP0032를 대조했다. 기존 STEPbranch를 이어가며 새 branch/PR을 만들지 않는다. [CP0033](checkpoints/CP-0033-step-4a-judgment-start.md), [조사 원본](artifacts/step-4a-auxiliary-research-report.md). 원본 수신은 판단 완료가 아니다. 위 조사 미수신/판단 미착수 표기는 당시 이력이다. 가이드4 정식 반영·4B·병합은 미허용/미수행이다.
+
+## STEP 4A 3A 중간 저장
+
+[CP0034](checkpoints/CP-0034-step-4a-responsibility-judgment.md): 조사 출처 검토와 [3A 판단](artifacts/step-4a-astra-judgment.md) 완료. 3B 미완료로 이어간다. 원본·착수 commit `e67fc53042f4783ba3e8872df048d9715405b8d7`.

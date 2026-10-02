@@ -6,8 +6,8 @@
 |---|---|---|
 | 1 | Work Sol6.1/Codex | 완료: 실제 승인 baseline 복원·전용 branch·착수/준비 기록·근거33위치/10조항·질문·선택 조사 packet·검증·Draft PR 제출 |
 | 2 | 일반 Sol5.6 | 원본 수신·보존 완료. 출처/범위/미확인 검토와 선택 원문 확인 후 판단에 사용 |
-| 3A | Work Astra | IN_PROGRESS. 책임·의존·규칙→계약·공존 판단. 정식 owner/금지 의존 판단은 여기서 |
-| 3B | Work Astra | NOT_STARTED. 관계/수명·맥락 식별·T01~03·성공/error/null/finally/정리;3A와 충돌 확인 |
+| 3A | Work Astra | 완료. 책임·의존·규칙→계약·공존 판단. 정식 owner/금지 의존 판단은 여기서 |
+| 3B | Work Astra | IN_PROGRESS. 관계/수명·맥락 식별·T01~03·성공/error/null/finally/정리;3A와 충돌 확인 |
 | 4 | Work Sol | NOT_STARTED. Astra 판단 전체 반영·trace·범위/검증·기록·최종 원격SHA |
 | 5 | Work Astra | NOT_STARTED. 최종 SHA 감사: 의무 약화/Core확대/보드전제/지원과장/후속선결정 |
 | 6 | Work Sol→Astra | finding 있을 때만 보완·집중 재감사; 미수행 |
@@ -27,4 +27,4 @@
 
 ## 다음 첫 행동
 
-[CP0033](../checkpoints/CP-0033-step-4a-judgment-start.md)에서 재개. 출처 검토 후 3A→3B 순서로 판단하고 결과·기록만 원격 보존한다. 가이드4 정식 반영·STEP4B·merge·main·production은 진행하지 않는다.
+[CP0034](../checkpoints/CP-0034-step-4a-responsibility-judgment.md)에서 재개. 3A 완료 후 3B를 판단하고 결과·기록만 원격 보존한다. 가이드4 정식 반영·STEP4B·merge·main·production은 진행하지 않는다.
