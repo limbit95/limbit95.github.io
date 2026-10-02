@@ -20,7 +20,7 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4A — 가이드3 Work Astra 핵심 판단 완료 / STEP 전체 IN_PROGRESS**
+- 현재 STEP: **STEP 4A — 가이드4 정식 산출물 반영·검증 진행 / STEP 전체 IN_PROGRESS**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
@@ -30,10 +30,10 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0035-step-4a-judgment-complete.md`
+- 최신 checkpoint: `checkpoints/CP-0036-step-4a-formal-start.md`
 - 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 다음 첫 작업: 제출 뒤 정지. 이후 사용자 지시가 있을 때 가이드4 정식 산출물 반영
-- STEP4A IN_PROGRESS(가이드3만 완료); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
+- 다음 첫 작업: 고정 Astra 판단 전체를 정식 책임·수명·후속 산출물에 반영하고 누락/trace/링크/diff/Governance 검증
+- STEP4A IN_PROGRESS(가이드4 진행); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
 ## 22개 검토 지점
@@ -300,3 +300,7 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 [판단](artifacts/step-4a-astra-judgment.md) §1~9에 출처 검토→3A 책임/의존/규칙 연결→3B 수명/채택/정리·T01~03·공존·회귀/후속을 기록했다. [원문 검토](artifacts/step-4a-research-verification.md), [검증](artifacts/step-4a-judgment-validation.md), [CP0035](checkpoints/CP-0035-step-4a-judgment-complete.md). 새 필수 Core 전제 미발견·STEP2 즉시 회귀 불필요, 현행 비DB 적용/hostless 재대결 변경 검토 및 기존 리스크 유지. 3A 중간 저장 commit `cc7265290cb7ef43b12a10ff99ccd737b2de06b2`.
 
 STEP4A 전체 IN_PROGRESS. 가이드4 정식 반영·STEP4B·최종 감사·결과 승인·병합·main·production 미수행. 이번 판단·기록 원격 제출 후 정지한다. 과거 진행 중 표기는 당시 이력이다. 최종 제출 SHA는 이 기록 commit 후 PR411/Git에서 확인한다.
+
+## STEP 4A 가이드4 착수 — 2026-10-02T14:34:06+09:00
+
+사용자 “다음 단계 진행하자”를 첨부 가이드의 다음 순서4 정식 반영·검증·기록·원격 제출 범위로 적용한다. 실제 integration `ad7655a051f0dbb13444eec6f469f6f98f9794f4`, PR410 MERGED, PR411 OPEN/Draft/merged=false·head `36ca5e0f7b4c37efedde8ba4b4ad0b55a2b3c3cd`, CURRENT/CP0035와 판단 원문을 재조회했다. 기존 STEPbranch를 이어가며 [CP0036](checkpoints/CP-0036-step-4a-formal-start.md)에 기록한다. 판단/조사 원본·승인STEP1~3·기존코드/규칙/계획/과거checkpoint/DECISIONS는 보존한다. 가이드5 감사·STEP4B·병합은 이번 범위가 아니다. 위 정식 반영 미수행/정지 표기는 당시 이력이다.
