@@ -20,20 +20,20 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 3 — 미래 게임 Stress Test 1차 / 사용자 결과 승인 완료 / PR #410 integration 병합 승인**
+- 현재 STEP: **STEP 4A — Work Sol 근거 준비 완료 / 정식 계약 미작성 / STEP 전체 IN_PROGRESS**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
-- integration 마지막 승인 반영 STEP: **STEP 2 — PR #409 MERGED / merge SHA `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`**
+- integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
 - STEP 3: **COMPLETED — 정식 산출물·사후 감사 결과 사용자 승인; integration 병합은 실제 Git/PR 확인**
-- active STEP branch: `docs/game-platform-vnext-phase3-stress-preparation`
-- STEP PR: [#410](https://github.com/limbit95/limbit95.github.io/pull/410) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase3-stress-preparation`
+- active STEP branch: `docs/game-platform-vnext-phase4a-evidence-preparation`
+- STEP PR: STEP4A Draft PR 제출 준비; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase4a-evidence-preparation`. 실제 번호·원격 제출은 최신 checkpoint에서 확인
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0029-step-3-approved.md`
-- 산출물: [분담](artifacts/step-3-work-allocation.md), [근거](artifacts/step-3-evidence-brief.md), [조사 입력](artifacts/step-3-auxiliary-research-input.md), [조사 요청](artifacts/step-3-auxiliary-research-request.md), [검증](artifacts/step-3-preparation-validation.md)
-- 다음 첫 작업: 승인 기록을 포함한 PR #410의 integration 병합·원격 반영을 확인하고 멈춘다. STEP 4A는 별도 시작 지시를 기다린다.
-- STEP 4A 이후 NOT_STARTED. 기존 코드·규칙·계획·STEP1/2 산출물·DECISIONS·과거 checkpoint 보존.
+- 최신 checkpoint: `checkpoints/CP-0031-step-4a-preparation.md`
+- 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
+- 다음 첫 작업: STEP4A 준비를 원격/Draft PR에 보존·read-back 후 정지. 이후 선택 조사 원본 전달 또는 생략 이유를 기록하는 별도 지시를 기다린다
+- STEP4A IN_PROGRESS(1번 준비만); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
 ## 22개 검토 지점
@@ -44,7 +44,7 @@
 | 1 | COMPLETED |
 | 2 | COMPLETED |
 | 3 | COMPLETED |
-| 4A | NOT_STARTED |
+| 4A | IN_PROGRESS |
 | 4B | NOT_STARTED |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
@@ -273,3 +273,12 @@ PR409 실제 병합·integration `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`와 C
 - 이 승인 기록 저장 직전 PR410은 OPEN/Draft/merged=false, integration은 STEP2까지 반영된 `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`다. 상단 PR/active branch/마지막 반영 STEP 표기는 병합 직전 사실이며 현재 원격 상태를 대신하지 않는다.
 - PR410 실제 merged=true, 승인 기록 commit이 integration 조상이며 그 산출물 tree 반영이 확인되면 마지막 승인 반영 STEP은 STEP3, phase3 브랜치는 종료 이력, active STEP branch는 없음이다. 실제 merge SHA/최신 integration HEAD는 PR/Git에서 조회한다.
 - STEP4A 이후 NOT_STARTED·시작 지시 없음. integration→main 승인/반영 없음. 가이드6 보완은 신규 finding0으로 미수행; 가이드7 사용자 결과/병합 승인 완료.
+
+## STEP 4A Work Sol 근거 준비 — 2026-10-02 KST
+
+- 사용자 첨부 가이드 §2/1번만 허용. 실제 integration ad7655a051f0dbb13444eec6f469f6f98f9794f4·PR410 MERGED·최종head의 조상 포함/동일tree를 확인했다. 과거 STEP3 OPEN/반영STEP2·4A미착수 표기는 당시 이력이다.
+- 승인 integration에서 phase4a-evidence-preparation 생성. 유효 STEP4A branch/PR 없음 확인 후 생성했고 phase3은 종료 이력이다.
+- [근거](artifacts/step-4a-evidence-brief.md)·[trace](artifacts/step-4a-source-trace.md)·[분담](artifacts/step-4a-work-allocation.md)·[조사입력](artifacts/step-4a-auxiliary-research-input.md)·[요청](artifacts/step-4a-auxiliary-research-request.md)·[검증](artifacts/step-4a-preparation-validation.md). 착수 [CP0030](checkpoints/CP-0030-step-4a-start.md), 준비 [CP0031](checkpoints/CP-0031-step-4a-preparation.md).
+- 33고정 source 위치·10선택 원문 조항·T01~03와수명/공존 요구만 준비. 기존 F01~03/R/U/IMPL 정의 유지. 정식 책임/수명 계약·새API/필드/모델/경로·runtime 없음.
+- 선택 보조 조사Q01~03 미수행/원본 미수신. 활용 시 원본 전달·보존 전에 Astra핵심 판단 진행 금지; 생략 시 별도 지시에 이유/잔여미확인 기록. 자료 수신은 핵심 판단 완료가 아니다.
+- STEP4A IN_PROGRESS;1번만 완료. Astra3A/3B·정식반영·감사·STEP결과승인/merge 미수행. integration→main/production 없음. 원격제출 기록은 CP0032로 연결하고 준비 제출 뒤 정지한다.
