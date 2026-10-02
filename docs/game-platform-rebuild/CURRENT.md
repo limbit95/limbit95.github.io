@@ -30,9 +30,9 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0036-step-4a-formal-start.md`
+- 최신 checkpoint: `checkpoints/CP-0037-step-4a-formal-reflection.md`
 - 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 다음 첫 작업: 고정 Astra 판단 전체를 정식 책임·수명·후속 산출물에 반영하고 누락/trace/링크/diff/Governance 검증
+- 다음 첫 작업: 정식 반영·중간 기록 원격 보존 후 최종 검증/제출 기록·HEAD 대조
 - STEP4A IN_PROGRESS(가이드4 진행); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
@@ -304,3 +304,7 @@ STEP4A 전체 IN_PROGRESS. 가이드4 정식 반영·STEP4B·최종 감사·결�
 ## STEP 4A 가이드4 착수 — 2026-10-02T14:34:06+09:00
 
 사용자 “다음 단계 진행하자”를 첨부 가이드의 다음 순서4 정식 반영·검증·기록·원격 제출 범위로 적용한다. 실제 integration `ad7655a051f0dbb13444eec6f469f6f98f9794f4`, PR410 MERGED, PR411 OPEN/Draft/merged=false·head `36ca5e0f7b4c37efedde8ba4b4ad0b55a2b3c3cd`, CURRENT/CP0035와 판단 원문을 재조회했다. 기존 STEPbranch를 이어가며 [CP0036](checkpoints/CP-0036-step-4a-formal-start.md)에 기록한다. 판단/조사 원본·승인STEP1~3·기존코드/규칙/계획/과거checkpoint/DECISIONS는 보존한다. 가이드5 감사·STEP4B·병합은 이번 범위가 아니다. 위 정식 반영 미수행/정지 표기는 당시 이력이다.
+
+## STEP 4A 정식 반영 단위
+
+[CP0037](checkpoints/CP-0037-step-4a-formal-reflection.md): 판단§1~9를 [책임](artifacts/step-4a-responsibility-boundaries.md)/[수명](artifacts/step-4a-lifetime-contract.md)/[후속](artifacts/step-4a-risks-and-followup.md)에 본문 그대로 반영하고 [정식trace](artifacts/step-4a-contract-source-trace.md)·[검증](artifacts/step-4a-validation.md)으로 연결했다. 1차검증 오류0이며 최종 제출/read-back은 진행 중이다. 착수 commit `c91a76e7d46ab53f9c6e5b761472e8aec895e6ea`. 기존 판단/조사·source 불변.

@@ -8,7 +8,7 @@
 | 2 | 일반 Sol5.6 | 원본 수신·보존 완료. 출처/범위/미확인 검토와 선택 원문 확인 후 판단에 사용 |
 | 3A | Work Astra | 완료. 책임·의존·규칙→계약·공존 판단. 정식 owner/금지 의존 판단은 여기서 |
 | 3B | Work Astra | 완료. 관계/수명·맥락 식별·T01~03·성공/error/null/finally/정리;3A와 충돌 확인 |
-| 4 | Work Sol | IN_PROGRESS. Astra 판단 전체 반영·trace·범위/검증·기록·최종 원격SHA |
+| 4 | Work Sol | IN_PROGRESS. 원문9절 정식 반영/trace·1차검증 완료; 최종 제출 진행. Astra 판단 전체 반영·trace·범위/검증·기록·최종 원격SHA |
 | 5 | Work Astra | NOT_STARTED. 최종 SHA 감사: 의무 약화/Core확대/보드전제/지원과장/후속선결정 |
 | 6 | Work Sol→Astra | finding 있을 때만 보완·집중 재감사; 미수행 |
 | 7 | 사용자 | 결과 승인·integration merge 승인 미수행; main 별도 |
@@ -28,4 +28,4 @@
 
 ## 다음 첫 행동
 
-[CP0036](../checkpoints/CP-0036-step-4a-formal-start.md): 고정 head `36ca5e0f7b4c37efedde8ba4b4ad0b55a2b3c3cd`의 판단 전체·조건·제한·미확인을 정식 문서에 반영한다. 누락/trace/링크/diff/Governance 검증과 원격 제출 뒤 가이드5 감사 전에 멈춘다. STEP4B·merge·main·production은 진행하지 않는다.
+[CP0037](../checkpoints/CP-0037-step-4a-formal-reflection.md): 반영·1차검증 완료. 고정 head `36ca5e0f7b4c37efedde8ba4b4ad0b55a2b3c3cd`의 판단 전체·조건·제한·미확인을 정식 문서에 반영한다. 누락/trace/링크/diff/Governance 검증과 원격 제출 뒤 가이드5 감사 전에 멈춘다. STEP4B·merge·main·production은 진행하지 않는다.
