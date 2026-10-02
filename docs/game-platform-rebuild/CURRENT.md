@@ -20,7 +20,7 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4A — 가이드5 Work Astra 사후 감사 진행 / STEP 전체 REVIEW_PENDING**
+- 현재 STEP: **STEP 4A — 가이드5 Work Astra 사후 감사 완료 / 사용자 승인 대기**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
@@ -30,11 +30,12 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0039-step-4a-post-audit-start.md`
+- 최신 checkpoint: `checkpoints/CP-0040-step-4a-post-audit-complete.md`
 - 정식 산출물: [책임/의존](artifacts/step-4a-responsibility-boundaries.md), [수명/전환](artifacts/step-4a-lifetime-contract.md), [충돌/후속](artifacts/step-4a-risks-and-followup.md), [정식trace](artifacts/step-4a-contract-source-trace.md), [정식검증](artifacts/step-4a-validation.md)
 - 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 다음 첫 작업: 고정 감사 SHA 2d1827ed45491720e9baaf55b5c36fd12f785efe의 의미·근거·의무/범위 감사 후 기록 제출
-- STEP4A REVIEW_PENDING(가이드4 제출 완료); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
+- 사후 감사: [보고서](artifacts/step-4a-post-audit.md), 승인 검토 가능; 신규 Critical 0 / Major 0 / Minor 0
+- 다음 첫 작업: 사용자 STEP4A 결과·PR411 integration 병합 승인 여부 검토. 승인·병합·STEP4B를 자동 진행하지 않음
+- STEP4A REVIEW_PENDING(가이드4 제출·가이드5 감사 완료); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
 ## 22개 검토 지점
@@ -319,3 +320,12 @@ STEP4A REVIEW_PENDING / 가이드4 완료. 가이드5 최종 제출 SHA 사후 �
 ## STEP 4A 가이드5 사후 감사 착수
 
 사용자 2026-10-02T16:45:27+09:00 “이어서 작업하자”를 다음 가이드5에 적용한다. 실제 integration `ad7655a051f0dbb13444eec6f469f6f98f9794f4`·PR410 MERGED·PR411 OPEN/Draft/merged=false·최종 head `2d1827ed45491720e9baaf55b5c36fd12f785efe`와 CP0038을 다시 조회했다. 이 최종 제출 SHA를 고정 감사 대상으로 삼는다. 이후 감사 기록 commit은 정식 산출물의 감사 대상으로 확대하지 않는다. [CP0039](checkpoints/CP-0039-step-4a-post-audit-start.md): 검증 재현 완료·의미 감사 진행 중. STEP4A REVIEW_PENDING이며 보완/승인/병합은 미수행이다.
+
+## STEP 4A 가이드5 사후 감사 완료
+
+- 고정 감사 대상: `2d1827ed45491720e9baaf55b5c36fd12f785efe`, tree `dab0a0cc2cdf344175c5bca4d312e528124a800a`. 감사 기록 추가 후 HEAD와 구분한다.
+- 감사 착수 보존: `c6405e4bf58617017ca78c59e4dc8a7fdd5cbea3`. [CP0040](checkpoints/CP-0040-step-4a-post-audit-complete.md)과 [사후 감사](artifacts/step-4a-post-audit.md)에 의미·근거·반례·한계를 기록했다.
+- 판정: 승인 검토 가능, 신규 Critical/Major/Minor 각각0. 새 필수 Core 전제·규칙 면제·지원 과장·후속 선결정 발견 없음. 기존 리스크와 후속 미결정은 유지한다.
+- 고정 입력 검증: 정식9절/source33/선택조항10, 변경10문서 링크139/표11/상태22; 감사 대상 누적25문서 링크181/표33, Governance 입력22 및 경로 분류 오류0. 원문·코드·규칙·계획·승인STEP1~3·DECISIONS·과거checkpoint 보존.
+- 전체 checkout/Guard CLI·runtime/unit/build/DB/browser/production NOT_RUN, 감사 대상 CI runs0/checks0 NOT_TRIGGERED. 문서 적합성을 구현 지원으로 승격하지 않는다.
+- 가이드5 완료, 신규 finding0으로 가이드6 보완 불필요/미수행. 가이드7 사용자 승인 대기, STEP4A REVIEW_PENDING; STEP4B 이후 NOT_STARTED. 제출 후 멈춤.
