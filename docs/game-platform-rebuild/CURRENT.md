@@ -20,7 +20,7 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4A — 가이드5 Work Astra 독립 사후 감사 완료 / 사용자 승인 대기**
+- 현재 STEP: **STEP 4A — COMPLETED / 정식 산출물·독립 감사 사용자 승인**
 - STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
 - integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
 - STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
@@ -30,12 +30,13 @@
 - STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
 - STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
 - integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0041-step-4a-independent-audit.md`
+- 최신 checkpoint: `checkpoints/CP-0042-step-4a-approved.md`
 - 정식 산출물: [책임/의존](artifacts/step-4a-responsibility-boundaries.md), [수명/전환](artifacts/step-4a-lifetime-contract.md), [충돌/후속](artifacts/step-4a-risks-and-followup.md), [정식trace](artifacts/step-4a-contract-source-trace.md), [정식검증](artifacts/step-4a-validation.md)
 - 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
 - 최신 사후 감사: [독립 보고서](artifacts/step-4a-independent-post-audit.md), 승인 검토 가능; 신규 Critical 0 / Major 0 / Minor 0. 이전 감사는 이력으로 보존
-- 다음 첫 작업: 사용자 STEP4A 결과·PR411 integration 병합 승인 여부 검토. 승인·병합·STEP4B를 자동 진행하지 않음
-- STEP4A REVIEW_PENDING(가이드4 제출·가이드5 감사 완료); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
+- STEP4A 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T17:51:24+09:00 사용자 명시 승인
+- 다음 첫 작업: 승인 기록을 포함해 PR411 integration 병합·실제 원격 확인 후 정지. STEP4B/main 시작 지시 없음
+- STEP4A COMPLETED(정식 결과·독립 감사 사용자 승인); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
 - 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
 
 ## 22개 검토 지점
@@ -46,7 +47,7 @@
 | 1 | COMPLETED |
 | 2 | COMPLETED |
 | 3 | COMPLETED |
-| 4A | REVIEW_PENDING |
+| 4A | COMPLETED |
 | 4B | NOT_STARTED |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
@@ -337,3 +338,12 @@ STEP4A REVIEW_PENDING / 가이드4 완료. 가이드5 최종 제출 SHA 사후 �
 - 이전 보고서와 CP0039~40의 완료 표기는 당시 검토 이력이며 이번 사용자 요청의 완료를 대신하지 않는다. 이번 가이드5 독립 검토를 최신 판정으로 사용한다. 과거 모델 실행 이력을 새로 인증하지 않는다.
 - 원격 고정 입력과 원본 보존·문서/Governance 검사 확인. 실행 검증은 NOT_RUN, 감사 대상 CI NOT_TRIGGERED. 기존 리스크/후속 미결정 유지.
 - 가이드6 보완 불필요/미수행, 가이드7 사용자 결과·integration 병합 승인 대기. STEP4A REVIEW_PENDING과 후속 NOT_STARTED 유지; 제출 뒤 정지.
+
+## STEP4A 결과·integration 병합 승인 — 2026-10-02T17:51
+
+- 사용자: “STEP 4A 정식 산출물과 독립 감사 결과를 승인할게. PR #411을 integration에 병합하고, 완료 기록을 원격에 보존한 뒤 멈춰줘. STEP 4B와 main 반영은 진행하지 마.”
+- 승인 제출본 `85b016d1a8b8e4cceb688a12e926ebd13d935379`, 고정 감사 대상 `2d1827ed45491720e9baaf55b5c36fd12f785efe`. [CP0042](checkpoints/CP-0042-step-4a-approved.md)에 승인 범위·병합 복원 기준을 기록한다.
+- STEP4A COMPLETED. 정식 책임/수명 초안과 독립 감사 결과를 승인하며 기존 리스크·후속 미결정·무이관·지원 증거 경계를 유지한다. API/Target 동결/실행 지원 승인이 아니다.
+- 이 파일은 병합 전에 저장한다. 상단 PR OPEN/Draft/active branch·마지막 반영 STEP3는 저장 직전 상태다. 실제 PR411 merged/merge SHA·integration tree·최종 제출 HEAD의 조상 관계를 확인하면 마지막 승인 반영 STEP4A이며 phase4a branch는 종료 이력, active STEP branch는 없음으로 복원한다.
+- 원격 승인 기록 보존·PR ready 전환·expected head 지정 merge commit·실제 read-back 뒤 정지한다. 병합 후 실제 SHA/검증 결과는 PR 설명에도 보존한다. main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변 확인.
+- STEP4B 이후 NOT_STARTED, 시작 승인 없음. integration→main 미승인/미수행; production 변경 없음.
