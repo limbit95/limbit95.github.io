@@ -4,8 +4,8 @@
 
 | 순서 | 담당/상태 | 수행/미완료 |
 |---|---|---|
-| 1 | Work Sol/Codex IN_PROGRESS | 원격 복원 완료; source/미확인/조사 전달·검증·Draft PR 준비 중 |
-| 2 | 일반 Sol5.6 NOT_STARTED | 부족한 Q01~04에 한정한 input/request 작성 예정; 조사 실행·결과 수신 전 |
+| 1 | Work Sol/Codex PREPARATION_COMPLETE | 원격 복원·근거44개/미확인·조사 packet·문서/Governance 검증 완료; 원격 제출 확인 중 |
+| 2 | 일반 Sol5.6 NOT_STARTED | 부족한 Q01~04에 한정한 input/request 작성 완료; 조사 실행·결과 수신 전 |
 | 3A | Work Astra NOT_STARTED | authority·시간/순서·중복·initial/live·복구 판단 |
 | 3B | Work Astra NOT_STARTED | private·권한·사이트 정책 및 검사 시점 판단 |
 | 3C | Work Astra NOT_STARTED | 실행 위치·transport·운영/비용 선택 또는 보류 판단 |
@@ -15,4 +15,4 @@
 
 조사 수신은 3A~C 완료가 아니다. 결과 원본·출처·범위·미확인을 검토하고 필요한 원문을 선택 확인한다. 후속 API 동결(6), 기존 모듈 재사용(5A), Result/Publication/Sound 상세(5B), 장르 UX(5C)는 이번 준비에서 결정하지 않는다.
 
-다음 첫 행동: 근거 준비를 완료하여 제출하고 정지. backend/transport/모델 선택·규칙 면제·물리 구현·병합 없음.
+다음 첫 행동: 준비 제출 확인 뒤 정지. 일반 Sol5.6에 input/request를 함께 전달하여 조사 원본을 수신하고, 출처 검토 후 Astra3A→3B→3C를 요청한다. backend/transport/모델 선택·규칙 면제·물리 구현·병합 없음.
