@@ -20,24 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4A — COMPLETED / 정식 산출물·독립 감사 사용자 승인**
-- STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
-- integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
-- STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **COMPLETED — 정식 산출물·사후 감사 결과 사용자 승인; integration 병합은 실제 Git/PR 확인**
-- active STEP branch: `docs/game-platform-vnext-phase4a-evidence-preparation`
-- STEP PR: [#411](https://github.com/limbit95/limbit95.github.io/pull/411) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase4a-evidence-preparation`
-- STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
-- STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
-- integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0042-step-4a-approved.md`
-- 정식 산출물: [책임/의존](artifacts/step-4a-responsibility-boundaries.md), [수명/전환](artifacts/step-4a-lifetime-contract.md), [충돌/후속](artifacts/step-4a-risks-and-followup.md), [정식trace](artifacts/step-4a-contract-source-trace.md), [정식검증](artifacts/step-4a-validation.md)
-- 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 최신 사후 감사: [독립 보고서](artifacts/step-4a-independent-post-audit.md), 승인 검토 가능; 신규 Critical 0 / Major 0 / Minor 0. 이전 감사는 이력으로 보존
-- STEP4A 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T17:51:24+09:00 사용자 명시 승인
-- 다음 첫 작업: 승인 기록을 포함해 PR411 integration 병합·실제 원격 확인 후 정지. STEP4B/main 시작 지시 없음
-- STEP4A COMPLETED(정식 결과·독립 감사 사용자 승인); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
-- 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
+- 현재 STEP: **STEP 4B — IN_PROGRESS / Work Sol 근거 준비 착수**
+- STEP0/1/2/3/4A: **COMPLETED**
+- integration 마지막 승인 반영 STEP: **STEP4A — PR #411 MERGED / merge SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
+- integration: `feature/game-platform-vnext-integration`; 실제 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
+- active STEP branch: `docs/game-platform-vnext-phase4b-evidence-preparation`; 최신 승인 integration에서 별도 분기
+- STEP PR: 아직 생성 전. 준비 제출 시 integration base Draft로 생성한다.
+- 최신 checkpoint: `checkpoints/CP-0043-step-4b-start.md`
+- 사용자 허용: “가이드 2번 요청문대로 근거 준비만 진행해줘”. STEP4B 가이드 §2의 준비만 수행
+- 다음 첫 작업: 고정 source/승인 요구/미확인 분리, 제한된 Sol5.6 조사 packet·준비 검증·Draft PR 제출 뒤 정지
+- Astra 3A/3B/3C·정식 반영·감사: NOT_STARTED. STEP5A 이후 NOT_STARTED
+- integration 병합·main 반영·runtime/RPC/DB/서비스 구현: 허용 범위 밖, 미수행
+- CP0042와 과거 CURRENT 상세의 OPEN/Draft·마지막 STEP3 표기는 병합 전 이력이다. 실제 PR411 merged 상태, merge parents와 동일 tree로 STEP4A 반영을 복원했다. 종료 phase4a 브랜치는 재사용하지 않는다.
+- STEP4A 정식 산출물/독립 감사 및 기존 조사 원본·코드·규칙·계획·DECISIONS·과거 checkpoint 보존
 
 ## 22개 검토 지점
 
@@ -48,7 +43,7 @@
 | 2 | COMPLETED |
 | 3 | COMPLETED |
 | 4A | COMPLETED |
-| 4B | NOT_STARTED |
+| 4B | IN_PROGRESS |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
 | 5C | NOT_STARTED |
