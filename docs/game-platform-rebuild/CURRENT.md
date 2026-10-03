@@ -20,19 +20,20 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4B — IN_PROGRESS / Work Sol 근거 준비 완료·제출 후 정지**
+- 현재 STEP: **STEP 4B — IN_PROGRESS / 가이드 순서3 핵심 판단 제출·정지**
 - STEP0/1/2/3/4A: **COMPLETED**
-- integration 마지막 승인 반영 STEP: **STEP4A — PR #411 MERGED / merge SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
-- integration: `feature/game-platform-vnext-integration`; 실제 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
-- active STEP branch: `docs/game-platform-vnext-phase4b-evidence-preparation`; 최신 승인 integration에서 별도 분기
-- STEP PR: [#412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase4b-evidence-preparation`
-- 최신 checkpoint: `checkpoints/CP-0044-step-4b-evidence-prepared.md`
-- 사용자 허용: “가이드 2번 요청문대로 근거 준비만 진행해줘”. STEP4B 가이드 §2의 준비만 수행
-- 다음 첫 작업: 일반 Sol5.6에 조사 input/request를 함께 전달. 일반 Sol5.6 조사 원본 수신·출처 검토 후 Astra3A→3B→3C 요청
-- Astra 3A/3B/3C·정식 반영·감사: NOT_STARTED. STEP5A 이후 NOT_STARTED
-- integration 병합·main 반영·runtime/RPC/DB/서비스 구현: 허용 범위 밖, 미수행
-- CP0042와 과거 CURRENT 상세의 OPEN/Draft·마지막 STEP3 표기는 병합 전 이력이다. 실제 PR411 merged 상태, merge parents와 동일 tree로 STEP4A 반영을 복원했다. 종료 phase4a 브랜치는 재사용하지 않는다.
-- STEP4A 정식 산출물/독립 감사 및 기존 조사 원본·코드·규칙·계획·DECISIONS·과거 checkpoint 보존
+- integration 마지막 승인 반영: **STEP4A — PR #411 MERGED / SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
+- integration: `feature/game-platform-vnext-integration`; 실제 복원 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
+- active STEP branch: `docs/game-platform-vnext-phase4b-evidence-preparation`; [PR #412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration`
+- 이번 작업 입력 HEAD: `ce3426803cc7ac53da3ba38ac908778ae4423b30`; 최종 제출 SHA·원격 확인은 PR본문에 기록
+- 최신 checkpoint: [CP0046](checkpoints/CP-0046-step-4b-judgment-submitted.md); 원본 수신/검토는 별도 [CP0045](checkpoints/CP-0045-step-4b-research-received.md)
+- 사용자 허용: 첨부 원본 보존·출처 검토·필요 공식 원문 확인 뒤 3A → 3B → 3C 판단 전체와 기록 원격 제출까지
+- 완료: [핵심 판단 J01~13](artifacts/step-4b-astra-judgment.md), [출처 검토](artifacts/step-4b-research-verification.md), [trace](artifacts/step-4b-judgment-source-trace.md), [검증](artifacts/step-4b-judgment-validation.md)
+- 미해소: G01~06 품질 수치·handoff·권한철회·durability·공급자/배포/비용·규칙 충돌. 구현 전 닫힘 조건 명시; 실제 지원 검증 미수행
+- 가이드4 정식 산출물 반영·가이드5 독립 감사·사용자 결과 승인 미완료. STEP5A 이후 NOT_STARTED
+- 다음 첫 작업: 제출 검토 후 사용자 범위 지정 대기. 조사 수신을 판단 완료로 대신하지 않았으며 판단 제출을 STEP4B 전체 완료로 취급하지 않음
+- 정식 산출물 반영·runtime/RPC/DB/서비스 구현·STEP5A·integration 병합·main 반영 미수행
+- STEP4A 승인 산출물/독립 감사·기존 조사 원본·코드·규칙·계획·DECISIONS·과거 checkpoint 보존. 아래 과거 상세는 당시 이력
 
 ## 22개 검토 지점
 
