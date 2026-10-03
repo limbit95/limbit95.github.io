@@ -20,20 +20,20 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4B — IN_PROGRESS / 가이드 순서3 핵심 판단 제출·정지**
+- 현재 STEP: **STEP4B IN_PROGRESS / 가이드4 FORMAL_SUBMITTED_AUDIT_PENDING / 제출·정지**
 - STEP0/1/2/3/4A: **COMPLETED**
-- integration 마지막 승인 반영: **STEP4A — PR #411 MERGED / SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
-- integration: `feature/game-platform-vnext-integration`; 실제 복원 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
-- active STEP branch: `docs/game-platform-vnext-phase4b-evidence-preparation`; [PR #412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration`
-- 이번 작업 입력 HEAD: `ce3426803cc7ac53da3ba38ac908778ae4423b30`; 최종 제출 SHA·원격 확인은 PR본문에 기록
-- 최신 checkpoint: [CP0046](checkpoints/CP-0046-step-4b-judgment-submitted.md); 원본 수신/검토는 별도 [CP0045](checkpoints/CP-0045-step-4b-research-received.md)
-- 사용자 허용: 첨부 원본 보존·출처 검토·필요 공식 원문 확인 뒤 3A → 3B → 3C 판단 전체와 기록 원격 제출까지
-- 완료: [핵심 판단 J01~13](artifacts/step-4b-astra-judgment.md), [출처 검토](artifacts/step-4b-research-verification.md), [trace](artifacts/step-4b-judgment-source-trace.md), [검증](artifacts/step-4b-judgment-validation.md)
-- 미해소: G01~06 품질 수치·handoff·권한철회·durability·공급자/배포/비용·규칙 충돌. 구현 전 닫힘 조건 명시; 실제 지원 검증 미수행
-- 가이드4 정식 산출물 반영·가이드5 독립 감사·사용자 결과 승인 미완료. STEP5A 이후 NOT_STARTED
-- 다음 첫 작업: 제출 검토 후 사용자 범위 지정 대기. 조사 수신을 판단 완료로 대신하지 않았으며 판단 제출을 STEP4B 전체 완료로 취급하지 않음
-- 정식 산출물 반영·runtime/RPC/DB/서비스 구현·STEP5A·integration 병합·main 반영 미수행
-- STEP4A 승인 산출물/독립 감사·기존 조사 원본·코드·규칙·계획·DECISIONS·과거 checkpoint 보존. 아래 과거 상세는 당시 이력
+- integration 마지막 승인 반영: **STEP4A — PR411 MERGED / SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`**
+- integration `feature/game-platform-vnext-integration`, 실제 복원 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
+- 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; [PR412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN/Draft/merged=false, base integration
+- 고정 핵심 판단 입력 SHA `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`; 정식 최종 제출 SHA/원격 확인은 PR본문에 기록
+- 최신 checkpoint [CP0048](checkpoints/CP-0048-step-4b-formal-submitted.md), 반영 과정 [CP0047](checkpoints/CP-0047-step-4b-formal-reflection.md). 이전 CP0045/46은 원본 수신/핵심 판단 이력
+- 사용자 허용: 가이드4 판단 전체·선택/보류 사유·G01~06 구현 전 해소 조건의 정식 반영, 검증/진행 기록 원격 제출까지
+- 정식 산출물: [모델 품질](artifacts/step-4b-runtime-sync-contract.md), [권한/사이트](artifacts/step-4b-security-site-contract.md), [실행/운영](artifacts/step-4b-execution-operations-decisions.md), [미결정/후속](artifacts/step-4b-risks-and-followup.md), [반영 trace](artifacts/step-4b-contract-source-trace.md), [검증](artifacts/step-4b-validation.md)
+- 완료: 가이드1 준비·2 원본 수신/검토·3A→3B→3C 판단·4 정식 문서 반영. G01~06 OPEN이며 보류를 확정/실제 지원 PASS로 바꾸지 않음
+- 미완료: 가이드5 사후 감사·G01~06 해소·실제 지원 검증·사용자 결과 승인. STEP5A 이후 NOT_STARTED
+- 다음 첫 행동: 사용자 별도 지시 후 **정식 최종 제출 SHA** 고정 가이드5 Work Astra 사후 감사. 조사 수신/판단 제출/정식 반영/감사/전체 완료를 구별
+- 제출 후 정지. 사후 감사·runtime/RPC/DB/서비스 구현·STEP5A·integration 병합·main 반영 미수행
+- 기존 조사/판단 원본·선택검토·승인STEP1~4A·코드·규칙·계획·DECISIONS·과거checkpoint 불변. 아래 상세는 당시 이력
 
 ## 22개 검토 지점
 
