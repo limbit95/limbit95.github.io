@@ -32,3 +32,7 @@ Q01~07 전부 UNANSWERED, 추천안 미채택, G01~06 OPEN. 다음은 사용자 
 [사용자 결정](step-4b-user-decisions.md)을 `244fc33a3b58765821a15aa831ecd0ed1f7b645f`로 먼저 보존했다. [후속 판단](step-4b-followup-judgment.md)은 G01/G06 → G02 → G03 → G04 → G05 순서로 제출한다. [공식 근거·비용](step-4b-followup-sources-cost.md), [검증](step-4b-followup-validation.md), [CP0052](../checkpoints/CP-0052-step-4b-followup-judgment.md). 위 UNANSWERED는 CP0050 당시 이력이다.
 
 G01/G02/G04/G05 PARTIAL/OPEN, G03 OPEN/BLOCKING, G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 전체 STEP4B/구현 HOLD. 담당 명칭은 역할 구분이며 이번 별도 모델/독립 감사 실행 증명이 아니다. 정식반영·구현·STEP5A·병합·main 없이 제출 뒤 정지.
+
+## G03 후속 판단 — 2026-10-04
+
+[권한 경계 판단](step-4b-authorization-boundary-judgment.md)·[근거](step-4b-authorization-boundary-evidence.md)·[검증](step-4b-authorization-boundary-validation.md)·[CP0053](../checkpoints/CP-0053-step-4b-authorization-boundary.md). 입력 ffd536e 고정. G03 두 안 비교→G02/G04 정합화→G01/G05 증거를 제출했다. 한국 중심·Probe1 최소 종료 기록 사용자 선택 추가. A 참조안/저빈도 우선, B 조건부 HOLD; G03 OPEN/BLOCKING과 전체 완료 HOLD 유지. 정식반영·구현·STEP5A·병합·main 없이 정지. 이전 제출/감사는 당시 이력이다.
