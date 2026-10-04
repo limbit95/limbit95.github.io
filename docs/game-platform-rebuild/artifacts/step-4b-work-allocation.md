@@ -26,3 +26,9 @@
 [요구 검토](step-4b-requirements-review.md)·[결정 질문](step-4b-decision-questions.md)·[CP0050](../checkpoints/CP-0050-step-4b-decision-questions.md). 사용자 추가 요청에 따라 G01/G06의 확정 요구와 미정 선택지를 구별한 질문 준비만 완료했다. 가이드3/4/5 과거 제출 상태와 감사 결론은 보존한다.
 
 Q01~07 전부 UNANSWERED, 추천안 미채택, G01~06 OPEN. 다음은 사용자 답변 후 후속 설계 범위 지정이다. 이번 질문 제출 뒤 정지하며 구현·STEP5A·병합·main 미수행이다.
+
+## 사용자 결정과 후속 설계 판단 — 2026-10-04
+
+[사용자 결정](step-4b-user-decisions.md)을 `244fc33a3b58765821a15aa831ecd0ed1f7b645f`로 먼저 보존했다. [후속 판단](step-4b-followup-judgment.md)은 G01/G06 → G02 → G03 → G04 → G05 순서로 제출한다. [공식 근거·비용](step-4b-followup-sources-cost.md), [검증](step-4b-followup-validation.md), [CP0052](../checkpoints/CP-0052-step-4b-followup-judgment.md). 위 UNANSWERED는 CP0050 당시 이력이다.
+
+G01/G02/G04/G05 PARTIAL/OPEN, G03 OPEN/BLOCKING, G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 전체 STEP4B/구현 HOLD. 담당 명칭은 역할 구분이며 이번 별도 모델/독립 감사 실행 증명이 아니다. 정식반영·구현·STEP5A·병합·main 없이 제출 뒤 정지.

@@ -20,12 +20,14 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / USER_DECISIONS_RECORDED / 후속 판단 진행 중**
+- 현재 STEP: **STEP4B IN_PROGRESS / FOLLOWUP_JUDGMENT_SUBMITTED / 제출 후 정지**
 - STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 STEP4A/PR411, HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`.
 - 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 시작 HEAD `9ff96e8515e8a43d3945ef1fae62777f9282bed4`; 최신 [CP0051](checkpoints/CP-0051-step-4b-user-decisions.md).
+- 이번 시작 HEAD `9ff96e8515e8a43d3945ef1fae62777f9282bed4`; 최신 [CP0052](checkpoints/CP-0052-step-4b-followup-judgment.md).
 - [사용자 결정](artifacts/step-4b-user-decisions.md): 2D 협동·준비/방장 재대결·local solo; 총접속100/판8/세금 포함 추가비 월30,000원은 설계 목표. PC 우선·모바일 후속 검토, 직접 운영 가능, 월 부하/지역 미정.
-- G01~06 OPEN. 결정 선보존 후 G01/G06 → G02 → G03 → G04 → G05 판단. 질문 수신은 해소/지원 완료 아님.
+- 사용자 결정 선보존 SHA `244fc33a3b58765821a15aa831ecd0ed1f7b645f`. [후속 판단](artifacts/step-4b-followup-judgment.md)·[공식 근거/비용](artifacts/step-4b-followup-sources-cost.md)·[검증](artifacts/step-4b-followup-validation.md).
+- G01/G02/G04/G05 PARTIAL/OPEN, G03 OPEN/BLOCKING. G06 두 Probe의 적용 판단만 SCOPED_DESIGN_RESOLVED; 실제 지원 미검증. STEP4B 전체 완료/구현 HOLD.
+- 다음은 G03 권한 철회/bridge 설계 선택 및 품질·영속 결과·제품/SDK/region/실견적 미해소 항목 검토. 정식반영은 별도 요청 필요.
 - 고정 정식/감사 대상 `d2819c02db31f8b4f426d99b8a26c02e622ac46f`와 CP0049 문서 PASS/전체 HOLD는 이력 보존.
 - 정식6문서·기존 조사/판단/감사·규칙/코드/계획·DECISIONS·과거 checkpoint 불변. 아래 과거 표기는 당시 이력.
 - 정식 반영·구현·STEP5A·병합·main 미수행. STEP5A 이후 NOT_STARTED. 후속 판단 원격 제출 뒤 정지.
