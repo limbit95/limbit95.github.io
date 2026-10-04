@@ -20,18 +20,15 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G01·G06 REQUIREMENTS_QUESTIONS_SUBMITTED / 답변 대기·정지**
-- STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 반영 STEP4A/PR411 merge SHA `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
-- integration `feature/game-platform-vnext-integration`, 실제 복원 HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`
-- 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; [PR412](https://github.com/limbit95/limbit95.github.io/pull/412) OPEN/Draft/merged=false, base integration
-- 이번 시작 HEAD `905f424217a515aa92b0feee4a74d5ced51bcf45`; 최신 checkpoint [CP0050](checkpoints/CP-0050-step-4b-decision-questions.md). 최종 제출 SHA/원격 확인은 PR본문
-- 고정 정식 제출/감사 대상 SHA `d2819c02db31f8b4f426d99b8a26c02e622ac46f`, 감사 이력 CP0049: 문서 정합성 PASS/새finding0·전체 완료 HOLD. 이번 제출은 새 감사나 계약 보완 완료 아님
-- 사용자 허용: 확정 요구/사용자 결정 구분, G01/G06 우선 검토, 선택지/추천 이유/질문 원격 제출만
-- 신규 산출물: [요구 검토](artifacts/step-4b-requirements-review.md)·[결정 질문Q01~07](artifacts/step-4b-decision-questions.md)·[검증](artifacts/step-4b-decision-preparation-validation.md)
-- 이미 정한 Probe1/2 유형·기존 보드게임 의무·최소Core/동등안전성 유지. 목표동접/예산/성능 수치 미확정; 2클라이언트 최소증거를 CCU로 전이하지 않음
-- 모든 질문 UNANSWERED, 추천안 미채택, G01~06 OPEN. 우선 Q01/Q05/Q06 경험/규칙범위, 이후 Q02~04 규모/환경/운영, Q07 복구/보존
-- 다음 첫 행동: 사용자 답변 수신 후 요구/상충 확인과 후속 설계 범위 지정. 이번에 구현·STEP5A·병합·main 미수행. STEP5A 이후 NOT_STARTED
-- 정식6문서·기존 판단/조사/감사 원본·승인STEP1~4A·규칙·코드·계획·DECISIONS·과거checkpoint 불변. 아래 상세는 당시 이력
+- 현재 STEP: **STEP4B IN_PROGRESS / USER_DECISIONS_RECORDED / 후속 판단 진행 중**
+- STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 STEP4A/PR411, HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`.
+- 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
+- 이번 시작 HEAD `9ff96e8515e8a43d3945ef1fae62777f9282bed4`; 최신 [CP0051](checkpoints/CP-0051-step-4b-user-decisions.md).
+- [사용자 결정](artifacts/step-4b-user-decisions.md): 2D 협동·준비/방장 재대결·local solo; 총접속100/판8/세금 포함 추가비 월30,000원은 설계 목표. PC 우선·모바일 후속 검토, 직접 운영 가능, 월 부하/지역 미정.
+- G01~06 OPEN. 결정 선보존 후 G01/G06 → G02 → G03 → G04 → G05 판단. 질문 수신은 해소/지원 완료 아님.
+- 고정 정식/감사 대상 `d2819c02db31f8b4f426d99b8a26c02e622ac46f`와 CP0049 문서 PASS/전체 HOLD는 이력 보존.
+- 정식6문서·기존 조사/판단/감사·규칙/코드/계획·DECISIONS·과거 checkpoint 불변. 아래 과거 표기는 당시 이력.
+- 정식 반영·구현·STEP5A·병합·main 미수행. STEP5A 이후 NOT_STARTED. 후속 판단 원격 제출 뒤 정지.
 
 ## 22개 검토 지점
 
