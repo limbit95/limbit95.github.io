@@ -36,3 +36,9 @@ G01/G02/G04/G05 PARTIAL/OPEN, G03 OPEN/BLOCKING, G06 두 Probe 적용만 SCOPED_
 ## G03 후속 판단 — 2026-10-04
 
 [권한 경계 판단](step-4b-authorization-boundary-judgment.md)·[근거](step-4b-authorization-boundary-evidence.md)·[검증](step-4b-authorization-boundary-validation.md)·[CP0053](../checkpoints/CP-0053-step-4b-authorization-boundary.md). 입력 ffd536e 고정. G03 두 안 비교→G02/G04 정합화→G01/G05 증거를 제출했다. 한국 중심·Probe1 최소 종료 기록 사용자 선택 추가. A 참조안/저빈도 우선, B 조건부 HOLD; G03 OPEN/BLOCKING과 전체 완료 HOLD 유지. 정식반영·구현·STEP5A·병합·main 없이 정지. 이전 제출/감사는 당시 이력이다.
+
+## 구현 전 조건·사용자 결정 구체화 — 2026-10-04
+
+[조건·질문](step-4b-preimplementation-conditions.md)·[근거/비용](step-4b-preimplementation-evidence.md)·[검증](step-4b-preimplementation-validation.md)·[CP0054](../checkpoints/CP-0054-step-4b-preimplementation-conditions.md). 고정 입력1218136/CP0053. 사이트 소스153파일 확인과 A의 writer/보호연산 조건, G02/G04 상태 전이, G01 수치 후보, G05 제품·지역·가격, Q01~06을 제출한다.
+
+G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 해소 유지. 추천 미채택/실행NOT_RUN/전체완료HOLD. 다음은 사용자 정책·자료 확인 후 Sol 근거 수집→Astra 핵심 판단 역할로 이어가되 별도 요청 범위에서 수행한다. 정식반영·구현·STEP5A·병합·main 미수행. 이번 역할 표기는 별도 모델 실행 인증이 아니다.
