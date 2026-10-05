@@ -80,3 +80,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 �
 | 구현·시험 담당 | NOT_STARTED/HOLD | 별도 허용 단계에서 명세/고정버전·실제경합/부하/모바일/복구/삭제/비용 증거 확보 |
 
 위 과거 상태는 당시 이력으로 보존. 역할명은 성격이며 별도 모델/독립 감사 실행 인증 아님. G03 OPEN/BLOCKING·G01/02/04/05 PARTIAL/OPEN·G06 두Probe 적용 판단만 해소, STEP4B IN_PROGRESS/구현 HOLD. 이번 제출 뒤 정지하며 정식반영·구현·실제시험·STEP5A·병합·main 없음.
+
+## CP0059 지원 근거 기반 핵심 판단 — 2026-10-06
+
+입력 CP0059 `8af1029ab1aefeda1081b86e8d83faa2509a13d9`, 시작HEAD일치. [CP0060](../checkpoints/CP-0060-step-4b-support-design-judgment.md)·[판단](step-4b-support-design-judgment.md)·[명세보완](step-4b-support-specification-amendments.md)·[근거/비용](step-4b-support-design-evidence.md)·[검증](step-4b-support-design-validation.md).
+
+| 담당 성격 | 상태 | 다음 책임 |
+|---|---|---|
+| Astra 구조 판단 | SUPPORT_DESIGN_JUDGMENT_SUBMITTED | A/DB저빈도유지·독립R/외부C/P한계·T/B보완·archive/주기조건부추천 제출뒤정지 |
+| Sol 증거 확보 | NEXT_NOT_STARTED | 실제writer/actor·exactSDK/Auth/CLI·공식최종경계지원·meter/운영시간/단말·사본inventory/consistent cut. 문의전송미허용 |
+| 사용자 운영 정보 | INFORMATION_PENDING | 구체대응요일/시간·공백대응,가능한비밀없는meter/청구·지원단말. 확정정책재질문없음 |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도허용단계에서관측점/고정버전·T01~14/B01~07실행증거. STEP6전runtime선행구현금지 |
+
+과거분담은당시이력보존. 역할명은작업성격이며별도모델/독립감사인증아님. G03 OPEN/BLOCKING·G01/02/04/05 PARTIAL/OPEN·G06두Probe적용판단만해소. STEP4B IN_PROGRESS/구현HOLD. 정식반영·구현·실제시험·STEP5A·병합·main없이제출뒤정지.

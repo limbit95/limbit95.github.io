@@ -20,16 +20,17 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / SUPPORT_SPECIFICATION_PREPARED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / SUPPORT_DESIGN_JUDGMENT_SUBMITTED / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 고정 입력/시작 HEAD CP0058 `882bc485d1b45cf40b9eb4dbc18a724de01440dc`, 추가 변경 없이 일치. 최신 [CP0059](checkpoints/CP-0059-step-4b-support-specification.md).
-- [사용자 보존·복구 결정](artifacts/step-4b-retention-recovery-user-decisions.md)과 [추가 결정](artifacts/step-4b-additional-user-decisions.md) 유지. 최초 권위 종결+30일 삭제/탈퇴 본인 식별 연결 제거·최근7일 복구점(30일우선)·daily외부/RPO24h·발견후24h 수동복구 목표. 대응요일/시간 UNKNOWN,24/7 지원 아님.
-- [이번 지원 근거](artifacts/step-4b-support-readonly-evidence.md)·[운영 metadata](artifacts/step-4b-operational-metadata-snapshot.json): 연결 대상/Free서울/PG17.6·선택 함수/trigger/GRANT/RLS/FK 확인. 회원/Auth 행·비밀정보 조회 없음. metadata SELECT는 C/P/R 행동·성능·복구 지원 증거 아님.
-- [시험 T01~14](artifacts/step-4b-verification-specification.md)·[복원/삭제 B01~07·비용](artifacts/step-4b-recovery-deletion-cost-specification.md)·[검증](artifacts/step-4b-support-specification-validation.md) 준비. 공식 최신 근거/가격과 가정/실측/미확인 구분,월quota·기존소비·실제SDK patch UNKNOWN.
-- CP0057 A 안전성 기준·DB 저빈도 우선 유지,핵심설계 재선택 없음. 총접속100명/판8명·p95반응250ms/정상망재연결5초·모바일필수·세금포함추가월비30,000원 유지. 권한불명 보호입력/정보즉시차단→판pause→최초장애60초내복구실패중단, 인가유예 아님.
-- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. 전체 완료·구현 HOLD. 행동/경합/부하/모바일/backup/restore 시험 NOT_RUN,게이트 해소 없음.
-- 다음 Astra: 공식 지원 공백·C/P/R 순서/egress fence·복원현재권한/삭제방식·RPO일정/비용 조건 핵심 판단. 이후 구현/실제시험은 별도 허용 단계;STEP6전 공통runtime 금지 유지.
-- 과거 판단/감사/CP0058까지·정식6문서·코드/SQL/규칙/계획/DECISIONS 보존. 이번8경로만 제출 후 정지. 정식반영·구현·실제시험·STEP5A·병합·main 없음.
+- 이번 고정 입력/시작 HEAD CP0059 `8af1029ab1aefeda1081b86e8d83faa2509a13d9`, 추가변경0. 최신 [CP0060](checkpoints/CP-0060-step-4b-support-design-judgment.md).
+- [후속 판단](artifacts/step-4b-support-design-judgment.md) J60-01~08·[시험/복원/삭제 보완](artifacts/step-4b-support-specification-amendments.md)·[공식근거/비용](artifacts/step-4b-support-design-evidence.md)·[검증](artifacts/step-4b-support-design-validation.md) 제출. 과거CP0059근거/명세/metadata는당시이력으로보존.
+- A안안전성·DB저빈도우선유지. managed Auth/직접SQL R과외부C/P를연결할지원근거미완,사전allow/TTL/cache만의구조는충족안으로배제. 실제adapter/egress/backup방식채택HOLD.
+- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)·[보존/복구 결정](artifacts/step-4b-retention-recovery-user-decisions.md) 유지. 총접속100/판8·세금포함월추가30,000원·p95반응250ms/정상망회복재연결5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초내복구실패abort,정각중단우선판단.
+- 본인참가/필요운영자만열람·최초종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 구체운영요일/시간UNKNOWN,24/7지원아님. usage/기존무료소비/실청구UNKNOWN.
+- CP0059운영metadata는2026-10-05관찰(Free서울/PG17.6·SELECT10/함수12). 이번재조회없음. 공식자료2026-10-06재확인. metadata/문서CI로성능·권한경합·복구지원완료선언없음.
+- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제 시험 NOT_RUN,게이트해소없음.
+- 다음Sol: 실제writer/actor·고정SDK/Auth/CLI manifest·최종C/P와모든R지원계약·quota/운영시간/단말·사본inventory/consistent cut자료. 공식지원답변이필요한질문은초안으로두며전송없음. 후속구현/시험은별도허용단계,STEP6전공통runtime금지유지.
+- 이번7경로만변경,정식6문서·과거판단/감사/CP0059까지·코드/SQL/규칙/계획/DECISIONS보존. 원격제출뒤정지. 정식반영·구현·실제시험·STEP5A·병합·main 없음.
 
 ## 22개 검토 지점
 
