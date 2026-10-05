@@ -20,16 +20,16 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / EVIDENCE_PREPARED_FOR_ASTRA / 전체 완료·구현 HOLD**
-- STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 STEP4A/PR411, HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`.
-- 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 고정 입력 `c51d74f06caa2e8d76b2ba206e9446e749864126` / CP0054. [CP0055](checkpoints/CP-0055-step-4b-additional-decisions.md) 결정 선보존 SHA `2e0f4dd092f6d96c9e0e7051660d4538d8f7fce4`; 최신 [CP0056](checkpoints/CP-0056-step-4b-free-seoul-evidence.md).
-- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md): 본인/필요 운영자 열람·30일 삭제, daily 외부 backup/RPO24h 목표, p95 250ms/reconnect5초, 권한 불명 즉시 차단/pause60초 후 중단, 모바일 기본 필수, Free 서울, 오픈 전 usage UNKNOWN.
-- [G03 공식 지원·미확인](artifacts/step-4b-free-seoul-authorization-evidence.md), [부하·비용·backup 비교](artifacts/step-4b-free-seoul-cost-backup-evidence.md), [제출 검증](artifacts/step-4b-free-seoul-evidence-validation.md)을 준비했다. 지원 사실·설계 판단·실행 증거를 구분한다.
-- 기존 총접속100명/판8명/세금 포함 추가월비30,000원·두 Probe 방향·직접 운영 가능 유지. actual quota/평균 부하/실결제/backup 용량은 UNKNOWN이며 0으로 가정하지 않는다.
-- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 규칙 적용 판단만 SCOPED_DESIGN_RESOLVED. 전체 게이트 해소 없음.
-- 실DB/Auth/외부C·P/partition/성능/모바일/backup restore 검증 NOT_RUN. p99·tick·queue·RTO·backup 보존·탈퇴 세부는 미정. 핵심 설계 선택은 Astra 후속 판단이다.
-- 정식6문서·이전 판단/감사·과거CP·코드/규칙/계획/DECISIONS 보존. 이번 원격 제출 뒤 정지. 정식반영·구현·STEP5A·병합·main 반영 없음.
+- 현재 STEP: **STEP4B IN_PROGRESS / FOLLOWUP_DESIGN_JUDGMENT_SUBMITTED / 전체 완료·구현 HOLD**
+- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
+- 고정 입력/시작 HEAD `0faf2f48b52b4dcaaa0e616a79c34b89ced7583c` / CP0056. 추가 변경 없이 일치. 최신 [CP0057](checkpoints/CP-0057-step-4b-free-seoul-design-judgment.md).
+- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)의 30일 삭제·daily 외부/RPO24h 목표·p95 250ms/reconnect5초·인가불명 즉시 차단/pause60초 중단·모바일 기본 필수·Free서울·usage UNKNOWN을 유지한다. 선보존 SHA `2e0f4dd092f6d96c9e0e7051660d4538d8f7fce4`.
+- [핵심 후속 판단](artifacts/step-4b-free-seoul-design-judgment.md), [공식 근거/계산/반례](artifacts/step-4b-free-seoul-design-evidence.md), [검증](artifacts/step-4b-free-seoul-design-validation.md)을 제출한다. A 안전성 기준·DB 저빈도 우선 유지. 외부 C/P·managed Auth R 경계가 미증명이라 현재 모든 목표를 충족하는 배포 조합 확정 불가.
+- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. 실행 증거로 해소한 게이트 없음. 실DB/Auth/권한 경합/부하/모바일/backup restore NOT_RUN.
+- 총접속100명/판8명/세금 포함 추가월비30,000원·안전성 의무 유지. 서울2GB VM+Free+외부 bucket은 조건부 검증 후보이며 제품 채택 아님. 사용량·quota·실결제 UNKNOWN.
+- 남은 사용자 선택 UQ1 삭제 기산·탈퇴 식별 연결, UQ2 복구시간/대응 운영, UQ3 복구점 이력. UQ4 예산 충돌 대응은 실견적 후 조건부 질문. 추천 미채택이며 p99/tick/queue 수치도 자동 채택하지 않음.
+- 다음 Sol: 실제 writer/권한/SDK·공식 지원 경계·quota·backup 범위와 시험 명세의 읽기 전용 근거 준비. 실제 구현/시험은 별도 허용 범위에서 수행; STEP6 전 공통 runtime 구현 금지 유지.
+- 정식6문서·과거 판단/감사·CP0056까지·코드/규칙/계획/DECISIONS 보존. 이번 판단·진행 기록 원격 제출 뒤 정지. 정식반영·구현·STEP5A·병합·main 반영 없음.
 
 ## 22개 검토 지점
 

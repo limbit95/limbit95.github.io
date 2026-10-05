@@ -54,3 +54,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 �
 | 후속 구현/시험 담당 | NOT_STARTED/HOLD | 별도 허용 범위에서 실 적용 SQL·SDK·경합·부하·모바일·restore 증거 확보. 이번 작업에서는 실행하지 않음 |
 
 사용자 목표 채택과 실제 지원 완료를 분리한다. G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 해소 유지. 이 역할 표기는 Astra 모델/독립 감사 실행 인증이 아니다. 정식반영·구현·STEP5A·병합·main 미수행.
+
+## Free 서울 핵심 설계 후속 판단 — 2026-10-05
+
+입력 CP0056 / `0faf2f48b52b4dcaaa0e616a79c34b89ced7583c` 고정, 시작 PR HEAD 일치. [후속 판단](step-4b-free-seoul-design-judgment.md)·[근거/계산](step-4b-free-seoul-design-evidence.md)·[검증](step-4b-free-seoul-design-validation.md)·[CP0057](../checkpoints/CP-0057-step-4b-free-seoul-design-judgment.md).
+
+| 담당 성격 | 상태 | 다음 책임 |
+|---|---|---|
+| Astra 구조 판단 | FOLLOWUP_DESIGN_JUDGMENT_SUBMITTED | A 기준 유지, 외부 C/P·managed Auth 미증명에 따른 HOLD, pause/기록/복원/삭제와 품질·비용 조건 정합화 |
+| 사용자 정책 | DECISION_PENDING | UQ1 기산/탈퇴 연결·UQ2 복구운영·UQ3 복구점 이력. 추천 미채택, UQ4는 실견적 후 |
+| Sol 근거 준비 | NEXT_NOT_STARTED | 운영 writer/GRANT·SDK 버전·지원 경계·quota/backup 범위 및 시험/복원/삭제 명세. 읽기 전용 범위 |
+| 구현·실행 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서만 수행. 공통 runtime 선행 구현 금지 |
+
+역할 명칭은 작업 성격이며 별도 모델/독립 감사 실행 인증이 아니다. G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 해소 유지. 전체 STEP4B IN_PROGRESS/구현 HOLD. 이번 판단 제출 후 정지하며 정식반영·구현·STEP5A·병합·main 없음.
