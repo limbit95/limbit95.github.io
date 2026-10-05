@@ -67,3 +67,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 �
 | 구현·실행 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서만 수행. 공통 runtime 선행 구현 금지 |
 
 역할 명칭은 작업 성격이며 별도 모델/독립 감사 실행 인증이 아니다. G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 해소 유지. 전체 STEP4B IN_PROGRESS/구현 HOLD. 이번 판단 제출 후 정지하며 정식반영·구현·STEP5A·병합·main 없음.
+
+## G03 읽기 전용 근거·시험/복원/삭제 명세 — 2026-10-05
+
+고정 입력 CP0058 `882bc485d1b45cf40b9eb4dbc18a724de01440dc`, 시작 PR HEAD 일치. [CP0059](../checkpoints/CP-0059-step-4b-support-specification.md)·[근거](step-4b-support-readonly-evidence.md)·[시험](step-4b-verification-specification.md)·[복원/삭제/비용](step-4b-recovery-deletion-cost-specification.md)·[검증](step-4b-support-specification-validation.md).
+
+| 담당 성격 | 현재 상태 | 다음 책임 |
+|---|---|---|
+| Sol 근거·명세 | SUPPORT_SPECIFICATION_PREPARED | 연결metadata 읽기 및 공식 지원/미확인·T01~14/B01~07 준비 제출 후 정지. 행동·복구 시험 미실행 |
+| Astra 핵심 판단 | FOLLOWUP_NOT_STARTED | 외부C/P/R·egress fence·복원 현재권한·삭제/7일복구점·RPO 일정/품질/비용 조건 판단. 기술 선택을 사용자에게 전가하지 않음 |
+| 사용자 운영 정보 | INFORMATION_PENDING | 대응 요일/시간,가능한 비밀없는quota/청구/기존소비,지원 단말 목록. UQ1~3 CP0058채택 유지 |
+| 구현·시험 담당 | NOT_STARTED/HOLD | 별도 허용 단계에서 명세/고정버전·실제경합/부하/모바일/복구/삭제/비용 증거 확보 |
+
+위 과거 상태는 당시 이력으로 보존. 역할명은 성격이며 별도 모델/독립 감사 실행 인증 아님. G03 OPEN/BLOCKING·G01/02/04/05 PARTIAL/OPEN·G06 두Probe 적용 판단만 해소, STEP4B IN_PROGRESS/구현 HOLD. 이번 제출 뒤 정지하며 정식반영·구현·실제시험·STEP5A·병합·main 없음.
