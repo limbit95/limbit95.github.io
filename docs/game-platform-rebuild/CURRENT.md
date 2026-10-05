@@ -20,16 +20,16 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / ADDITIONAL_DECISIONS_PRESERVED / 근거 준비 진행 중**
+- 현재 STEP: **STEP4B IN_PROGRESS / EVIDENCE_PREPARED_FOR_ASTRA / 전체 완료·구현 HOLD**
 - STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 STEP4A/PR411, HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`.
 - 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 고정 입력/시작 HEAD `c51d74f06caa2e8d76b2ba206e9446e749864126`, CP0054. 최신 [CP0055](checkpoints/CP-0055-step-4b-additional-decisions.md).
-- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)을 먼저 원격보존. 30일삭제·daily외부backup/RPO24h목표·p95 250ms/reconnect5초·권한불명즉시차단/pause60초후중단·모바일기본필수·Free서울·오픈전usageUNKNOWN.
-- 기존100명/판8명/세금포함 추가월비30,000원·두Probe방향·직접운영 가능 유지. 사용자확인환경과실Dashboard확인·목표와지원검증은구별.
-- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe규칙적용판단만 SCOPED_DESIGN_RESOLVED. STEP4B전체완료/구현HOLD.
-- p99·tick·queue·RTO·backup보존·탈퇴세부는미정. CP0054추천미채택표기는당시이력이며현재채택범위는추가결정원본이기준.
-- 다음은공식지원범위·미확인·Free서울예상부하별비용/제약·backup후보근거준비. 핵심선택은Astra후속판단.
-- 정식6문서·이전판단/감사·과거CP·코드/규칙/계획/DECISIONS보존. 정식반영·구현·STEP5A·병합·main없음.
+- 고정 입력 `c51d74f06caa2e8d76b2ba206e9446e749864126` / CP0054. [CP0055](checkpoints/CP-0055-step-4b-additional-decisions.md) 결정 선보존 SHA `2e0f4dd092f6d96c9e0e7051660d4538d8f7fce4`; 최신 [CP0056](checkpoints/CP-0056-step-4b-free-seoul-evidence.md).
+- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md): 본인/필요 운영자 열람·30일 삭제, daily 외부 backup/RPO24h 목표, p95 250ms/reconnect5초, 권한 불명 즉시 차단/pause60초 후 중단, 모바일 기본 필수, Free 서울, 오픈 전 usage UNKNOWN.
+- [G03 공식 지원·미확인](artifacts/step-4b-free-seoul-authorization-evidence.md), [부하·비용·backup 비교](artifacts/step-4b-free-seoul-cost-backup-evidence.md), [제출 검증](artifacts/step-4b-free-seoul-evidence-validation.md)을 준비했다. 지원 사실·설계 판단·실행 증거를 구분한다.
+- 기존 총접속100명/판8명/세금 포함 추가월비30,000원·두 Probe 방향·직접 운영 가능 유지. actual quota/평균 부하/실결제/backup 용량은 UNKNOWN이며 0으로 가정하지 않는다.
+- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 규칙 적용 판단만 SCOPED_DESIGN_RESOLVED. 전체 게이트 해소 없음.
+- 실DB/Auth/외부C·P/partition/성능/모바일/backup restore 검증 NOT_RUN. p99·tick·queue·RTO·backup 보존·탈퇴 세부는 미정. 핵심 설계 선택은 Astra 후속 판단이다.
+- 정식6문서·이전 판단/감사·과거CP·코드/규칙/계획/DECISIONS 보존. 이번 원격 제출 뒤 정지. 정식반영·구현·STEP5A·병합·main 반영 없음.
 
 ## 22개 검토 지점
 
@@ -339,3 +339,4 @@ STEP4A REVIEW_PENDING / 가이드4 완료. 가이드5 최종 제출 SHA 사후 �
 - 이 파일은 병합 전에 저장한다. 상단 PR OPEN/Draft/active branch·마지막 반영 STEP3는 저장 직전 상태다. 실제 PR411 merged/merge SHA·integration tree·최종 제출 HEAD의 조상 관계를 확인하면 마지막 승인 반영 STEP4A이며 phase4a branch는 종료 이력, active STEP branch는 없음으로 복원한다.
 - 원격 승인 기록 보존·PR ready 전환·expected head 지정 merge commit·실제 read-back 뒤 정지한다. 병합 후 실제 SHA/검증 결과는 PR 설명에도 보존한다. main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변 확인.
 - STEP4B 이후 NOT_STARTED, 시작 승인 없음. integration→main 미승인/미수행; production 변경 없음.
+

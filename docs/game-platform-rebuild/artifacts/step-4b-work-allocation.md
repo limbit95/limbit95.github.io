@@ -42,3 +42,15 @@ G01/G02/G04/G05 PARTIAL/OPEN, G03 OPEN/BLOCKING, G06 두 Probe 적용만 SCOPED_
 [조건·질문](step-4b-preimplementation-conditions.md)·[근거/비용](step-4b-preimplementation-evidence.md)·[검증](step-4b-preimplementation-validation.md)·[CP0054](../checkpoints/CP-0054-step-4b-preimplementation-conditions.md). 고정 입력1218136/CP0053. 사이트 소스153파일 확인과 A의 writer/보호연산 조건, G02/G04 상태 전이, G01 수치 후보, G05 제품·지역·가격, Q01~06을 제출한다.
 
 G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 해소 유지. 추천 미채택/실행NOT_RUN/전체완료HOLD. 다음은 사용자 정책·자료 확인 후 Sol 근거 수집→Astra 핵심 판단 역할로 이어가되 별도 요청 범위에서 수행한다. 정식반영·구현·STEP5A·병합·main 미수행. 이번 역할 표기는 별도 모델 실행 인증이 아니다.
+
+## 추가 결정 선보존·Sol 근거 준비 — 2026-10-05
+
+고정 입력 CP0054 / `c51d74f06caa2e8d76b2ba206e9446e749864126`. [추가 결정](step-4b-additional-user-decisions.md)·[CP0055](../checkpoints/CP-0055-step-4b-additional-decisions.md)을 `2e0f4dd092f6d96c9e0e7051660d4538d8f7fce4`로 먼저 원격 보존하고 exact read-back했다.
+
+| 담당 | 상태 | 다음 책임 |
+|---|---|---|
+| Work Sol | EVIDENCE_PREPARED_FOR_ASTRA | [G03 지원/미확인](step-4b-free-seoul-authorization-evidence.md)·[Free 서울 비용/backup](step-4b-free-seoul-cost-backup-evidence.md)·[검증](step-4b-free-seoul-evidence-validation.md)·[CP0056](../checkpoints/CP-0056-step-4b-free-seoul-evidence.md) 원격 제출 후 정지 |
+| Work Astra | FOLLOWUP_NOT_STARTED | 최종 제출 SHA 고정 후 외부 C/P·Auth 철회 경계, pause/terminal/restore 정합성, Free/비용/backup 조합 핵심 판단 |
+| 후속 구현/시험 담당 | NOT_STARTED/HOLD | 별도 허용 범위에서 실 적용 SQL·SDK·경합·부하·모바일·restore 증거 확보. 이번 작업에서는 실행하지 않음 |
+
+사용자 목표 채택과 실제 지원 완료를 분리한다. G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 해소 유지. 이 역할 표기는 Astra 모델/독립 감사 실행 인증이 아니다. 정식반영·구현·STEP5A·병합·main 미수행.
