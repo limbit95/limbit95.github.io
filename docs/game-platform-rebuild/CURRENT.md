@@ -20,22 +20,16 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / PREIMPLEMENTATION_CONDITIONS_SUBMITTED / 제출 후 정지**
+- 현재 STEP: **STEP4B IN_PROGRESS / ADDITIONAL_DECISIONS_PRESERVED / 근거 준비 진행 중**
 - STEP0/1/2/3/4A COMPLETED. integration 마지막 승인 STEP4A/PR411, HEAD `3aeae1dfcce7788f88e706dcd49d283b91b67e82`.
 - 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 고정 입력/시작 HEAD `12181366b39a2d5da083701cd7bf056046566e9f`; 최신 [CP0054](checkpoints/CP-0054-step-4b-preimplementation-conditions.md).
-- [구현 전 조건·결정 질문](artifacts/step-4b-preimplementation-conditions.md)·[원문/가격/계산](artifacts/step-4b-preimplementation-evidence.md)·[검증](artifacts/step-4b-preimplementation-validation.md).
-- 사용자 결정 유지: 이동·상호작용2D협동/준비·방장 재대결, Probe2 local solo/no-server-record. 총접속100명·판8명·세금포함 추가비 월30,000원은 설계 목표.
-- CP0053 추가 결정 유지: 한국 중심 PC 검증, Probe1 최소 종료 기록(판·참가자·완료/중단), 랭킹/보상 없음. 직접 운영 가능은 상시 대응 보장이 아님.
-- A 안전성 참조/DB 저빈도 우선, B 조건부 HOLD. 외부 C/P·관리형 Auth writer의 직렬화 증거가 없어 **G03 OPEN/BLOCKING** 유지.
-- G01/G02/G04/G05 PARTIAL/OPEN. G06 두 Probe 규칙 적용 판단만 SCOPED_DESIGN_RESOLVED, 실제 지원 미검증. STEP4B 전체 완료/구현 HOLD.
-- 사이트 소스153파일 정적 확인, 철회R01~10·보호연산·복구 상태·실행증거E01~12를 구체화. 전수 운영 권한 감사/실행 검증은 아님.
-- 사용자 질문 Q01 기록열람·보존, Q02 DB재해·수동복구, Q03 품질수치, Q04 권한확인 장애 시 pause, Q05 모바일 범위, Q06 현재plan/region/usage. 모든 새 추천·수치 미채택.
-- Seoul Lightsail2GB 등 제품·지역·가격 후보를 비교했으나 DB gate/egress·월부하 미확인으로 3만원 충족 보류. 기존 요구 축소 없음.
-- 다음 첫 작업: Q01~06 결정/자료 확인 및 G03 외부C/P·Auth 지원 근거 후속 범위 지정. 정식반영은 별도 요청 필요.
-- 고정 정식/감사 대상 `d2819c02db31f8b4f426d99b8a26c02e622ac46f`와 CP0049 문서PASS/전체HOLD는 이력 보존.
-- 정식6문서·기존 판단/조사/감사·사용자결정·CP0053까지 이력·코드/규칙/계획/DECISIONS 불변. 역할명은 작업분류이며 별도모델/독립감사 실행 인증 아님.
-- 정식 산출물 반영·구현·STEP5A·병합·main 반영 없이 제출 뒤 정지. 최종SHA와 원격검증은 PR본문/최종응답에 기록.
+- 고정 입력/시작 HEAD `c51d74f06caa2e8d76b2ba206e9446e749864126`, CP0054. 최신 [CP0055](checkpoints/CP-0055-step-4b-additional-decisions.md).
+- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)을 먼저 원격보존. 30일삭제·daily외부backup/RPO24h목표·p95 250ms/reconnect5초·권한불명즉시차단/pause60초후중단·모바일기본필수·Free서울·오픈전usageUNKNOWN.
+- 기존100명/판8명/세금포함 추가월비30,000원·두Probe방향·직접운영 가능 유지. 사용자확인환경과실Dashboard확인·목표와지원검증은구별.
+- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe규칙적용판단만 SCOPED_DESIGN_RESOLVED. STEP4B전체완료/구현HOLD.
+- p99·tick·queue·RTO·backup보존·탈퇴세부는미정. CP0054추천미채택표기는당시이력이며현재채택범위는추가결정원본이기준.
+- 다음은공식지원범위·미확인·Free서울예상부하별비용/제약·backup후보근거준비. 핵심선택은Astra후속판단.
+- 정식6문서·이전판단/감사·과거CP·코드/규칙/계획/DECISIONS보존. 정식반영·구현·STEP5A·병합·main없음.
 
 ## 22개 검토 지점
 
