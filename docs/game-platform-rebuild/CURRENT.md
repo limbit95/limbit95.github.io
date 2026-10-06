@@ -20,9 +20,9 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G03_NO_INQUIRY_ALTERNATIVE_SUBMITTED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / G03_COMPATIBILITY_BOUNDARY_SUBMITTED / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 입력/시작 HEAD CP0064 `5d2424405410696db4afd44d439d9a5210f04f80`, 추가 변경0. 최신 [CP0065](checkpoints/CP-0065-step-4b-g03-no-inquiry-alternative.md). [문의 없는 대안](artifacts/step-4b-g03-no-inquiry-alternative.md)·[검증](artifacts/step-4b-g03-no-inquiry-validation.md): 통제된 권한·철회 집행/DB 권위/단일 최종 송신 방향 추천, 운영 채택 HOLD. managed R 제외·별도 게임 토큰만의 해결 금지. 모든 writer/expiry/egress·기존 게임 무변경·비용/운영 증거 부족. 문의 우선 작업 순서 대체, 이전 질문/판정은 이력 보존.
+- 이번 입력/시작 HEAD CP0065 `7cb224c36d934be90e3c237d0bed2d105b9fa181`, 추가 변경0. 최신 [CP0066](checkpoints/CP-0066-step-4b-g03-compatibility-boundary.md). [호환 경계](artifacts/step-4b-g03-compatibility-boundary.md)·[검증](artifacts/step-4b-g03-compatibility-validation.md): 선택22파일 정적 확인. 공통 browser adapter만의 G03 해결 배제; 별도 client/RPC/Realtime/Auth UID·FK/OTP 영향 확인. 기존 Auth/게임 보존 격리 방향 추천 유지, 모든 R와 최종 C/P의 구체 primitive 미확보로 운영 채택 HOLD. 전수 감사/운영 적용/행동 호환 인증 아님.
 - [후속판단](artifacts/step-4b-operations-design-judgment.md) J62-01~05·[근거/비용](artifacts/step-4b-operations-design-evidence.md)·[T/B보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md). A안/DB저빈도·분리archive방향유지,모든R와최종C/P/oldowner egress지원계약HOLD. 사전DBallow→독립외부apply/send재채택없음.
 - 총접속100/판8·세금포함월추가30,000원·원격참여자권위화면p95반응250ms/정상망회복재연결각5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초전검증회복실패abort,정각중단우선유지.
 - 본인참가/필요운영자만열람·최초권위종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 현재원천rollback/이중write실패/allcopies삭제지원HOLD.

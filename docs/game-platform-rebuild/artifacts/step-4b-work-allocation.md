@@ -161,3 +161,15 @@ G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계 T/B 실행. 이번 변경/송신/백업 작업 없음 |
 
 G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. 새 제품/구조/정책 채택 없음, DECISIONS 보존. 정식 반영·구현·실제 시험·권한 변경·문의 전송·job/dump/복원·STEP5A·병합·main 없이 제출/확인 뒤 정지한다.
+
+## CP0065 추천 방향의 기존 코드 호환 경계 — 2026-10-06
+
+[CP0066](../checkpoints/CP-0066-step-4b-g03-compatibility-boundary.md)·[경계 검토](step-4b-g03-compatibility-boundary.md)·[검증](step-4b-g03-compatibility-validation.md). 선택22파일 정적 확인: 공통 adapter만의 해결 배제, 별도 client/Auth UID·FK/OTP/RPC/Realtime 영향 특정. 운영 채택 HOLD.
+
+| 담당 | 현재 상태 / 다음 작업 |
+|---|---|
+| 구조 담당 | 호환 경계 검토 제출. 다음은 구체적인 모든 R/최종 C/P 권위 primitive가 제시될 때의 기술 검토. 같은 검색·요약 cycle 반복 금지 |
+| 변경 영향 담당 | 후보 특정 후 전체 소비자/DB/Auth 계약 대응. 이번 선택 조회를 전수 감사로 확대하지 않음 |
+| 구현·시험 담당 | NOT_STARTED/HOLD. 별도 허용 단계에서만 실행, STEP6 전 runtime 금지 |
+
+기존 사이트/게임 보존 방향 유지, 제품/Auth 교체 채택 없음. 사용자 추가 비밀/usage 자료 요청 없음. 게이트/목표 유지, 행동 시험 NOT_RUN. 정식 반영·구현·문의·시험·권한 변경·job/dump/복원·STEP5A·병합·main 없이 원격 제출 확인 후 정지.
