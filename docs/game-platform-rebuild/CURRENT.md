@@ -20,9 +20,9 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G03_ADOPTION_JUDGMENT_SUBMITTED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / G03_NO_INQUIRY_ALTERNATIVE_SUBMITTED / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 고정 입력/시작 HEAD CP0063 `404606f773c826e4de4c4dd05fb04c5347557638`, 추가 변경 0. 최신 [CP0064](checkpoints/CP-0064-step-4b-g03-adoption-judgment.md). [G03 채택 판정](artifacts/step-4b-g03-adoption-judgment.md)·[검증](artifacts/step-4b-g03-adoption-validation.md): 최상위 B(필수 지원 사실 미확보로 채택 HOLD), 사전 allow→독립 외부 C/P는 좁은 배제 C. 안전성 A안 유지이며 과거 B안 전환 아님. CP0063 근거 수집 종료 유지. 새 조사/운영 metadata 조회/문의 전송 0.
+- 이번 입력/시작 HEAD CP0064 `5d2424405410696db4afd44d439d9a5210f04f80`, 추가 변경0. 최신 [CP0065](checkpoints/CP-0065-step-4b-g03-no-inquiry-alternative.md). [문의 없는 대안](artifacts/step-4b-g03-no-inquiry-alternative.md)·[검증](artifacts/step-4b-g03-no-inquiry-validation.md): 통제된 권한·철회 집행/DB 권위/단일 최종 송신 방향 추천, 운영 채택 HOLD. managed R 제외·별도 게임 토큰만의 해결 금지. 모든 writer/expiry/egress·기존 게임 무변경·비용/운영 증거 부족. 문의 우선 작업 순서 대체, 이전 질문/판정은 이력 보존.
 - [후속판단](artifacts/step-4b-operations-design-judgment.md) J62-01~05·[근거/비용](artifacts/step-4b-operations-design-evidence.md)·[T/B보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md). A안/DB저빈도·분리archive방향유지,모든R와최종C/P/oldowner egress지원계약HOLD. 사전DBallow→독립외부apply/send재채택없음.
 - 총접속100/판8·세금포함월추가30,000원·원격참여자권위화면p95반응250ms/정상망회복재연결각5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초전검증회복실패abort,정각중단우선유지.
 - 본인참가/필요운영자만열람·최초권위종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 현재원천rollback/이중write실패/allcopies삭제지원HOLD.
@@ -30,7 +30,7 @@
 - CP0061 [운영/단말/usage관측](artifacts/step-4b-operations-device-usage-evidence.md)·[지원준비](artifacts/step-4b-support-followup-preparation.md)·[fingerprint](artifacts/step-4b-operational-fingerprint-refresh.json) 보존. 조직현재기간usage는관측,미래부하/기존사이트소비/실청구UNKNOWN. 선택12함수MD5/ACL일치는전수감사/안전성보증아님.
 - Windows10/11 Chrome/Edge,iPhone 사용자제공iOS18.7.8 Safari기본시험조합유지. exactbuild/모델/접근·망/표본미확인. 다른단말지원제외아님. T12/T13 manifest연결,실제시험NOT_RUN.
 - G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제시험NOT_RUN,실행증거없는게이트해소없음.
-- 다음 첫 작업: 사용자 검토로 CP0064 Q64-1/2 실제 지원 문의 전송 여부 결정(허용 추천, 이번 미전송). 답변 후 Astra가 P1의 지원 계약을 구체 구조에 대입하거나 명시적 불가 시 P2 재설계 경로를 판단. 미답변은 HOLD, 반복 Sol 자료 준비 없음. 구현/실제 시험은 별도 허용 단계, STEP6 전 공통 runtime 금지 유지.
+- 이번 대안 수용 심사는 운영 채택 HOLD로 종료. 구체 배치/실제 Auth·사이트 변경 범위가 제시된 경우에만 네 조건으로 채택 재검토. 같은 Sol 조사/대안 판정 문서 자동 반복 없음, 문의/답변 대기 필수 선행 없음. 현 구성 고정 시 G03 미해소. 이번 “진행”은 운영 Auth 교체/제품 구매/기존 게임 이관 승인 아님. 구현/시험은 별도 허용 단계이며 STEP6 전 공통 runtime 금지 유지.
 - 이번 5경로만 변경. 과거판단/감사/명세/checkpoint/metadata·정식6문서·코드/SQL·규칙/계획/AGENTS/DECISIONS보존. CP0061의D0005브라우저결정유지,이번신규정책/제품/알고리즘채택없음. 정식반영·구현·실제시험·job/dump/복원·STEP5A·병합·main없이원격제출/내용일치확인뒤정지.
 
 ## 22개 검토 지점

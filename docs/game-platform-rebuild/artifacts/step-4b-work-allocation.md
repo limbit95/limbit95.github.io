@@ -147,3 +147,17 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서 모든 R/final C/P·old owner·만료·복원 증명. 이번 실행 없음 |
 
 G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. DECISIONS 변경/새 제품·알고리즘 채택 없음. 정식 반영·구현·실제 시험·권한 변경·문의 전송·job/dump/복원·STEP5A·병합·main 없이 원격 제출/확인 뒤 정지한다.
+
+## CP0064 후속 — 문의 없는 대안 판단 (2026-10-06)
+
+[CP0065](../checkpoints/CP-0065-step-4b-g03-no-inquiry-alternative.md)·[대안](step-4b-g03-no-inquiry-alternative.md)·[검증](step-4b-g03-no-inquiry-validation.md). 입력 CP0064 `5d2424405410696db4afd44d439d9a5210f04f80`, 시작HEAD 일치. CP0064의 문의 우선 분담은 당시 이력이며 현 추천 순서에서 대체한다.
+
+| 담당 성격 | 상태 | 책임/재개 조건 |
+|---|---|---|
+| 설계 판단 | NO_INQUIRY_ALTERNATIVE_SUBMITTED / ADOPTION_HOLD | 통제된 권한·철회 집행/DB/최종 송신 방향 구체화. 이번 수용 심사 종료 |
+| 채택 재검토 | CONCRETE_CONFIGURATION_REQUIRED | 실제 Auth·사이트 변경 범위와 egress/expiry 배치가 제시될 때 네 조건으로 수용/배제. 같은 판단 문서 반복 금지 |
+| Sol 자료 수집/공급자 문의 | NOT_NEXT / COLLECTION_CLOSED | 반복 fingerprint/일반 조사/문의 대기 선행 없음 |
+| 사용자 구조 변경 결정 | NOT_YET_REVIEWABLE | 실제 변경/기존 게임 무변경/예산·운영 증거 전 Auth 교체 승인 요청으로 떠넘기지 않음 |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계 T/B 실행. 이번 변경/송신/백업 작업 없음 |
+
+G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. 새 제품/구조/정책 채택 없음, DECISIONS 보존. 정식 반영·구현·실제 시험·권한 변경·문의 전송·job/dump/복원·STEP5A·병합·main 없이 제출/확인 뒤 정지한다.
