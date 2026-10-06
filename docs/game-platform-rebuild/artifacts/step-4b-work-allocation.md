@@ -120,3 +120,16 @@ G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe만SCOPED_DESIGN_RESOL
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도허용단계에서T01~14/B01~07·관측점설치·실제경합/부하/삭제/복구. 이번job/dump/복원없음 |
 
 G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체완료·구현HOLD. 역할명은성격이며별도모델/독립감사실행인증아님. 정식반영·구현·STEP5A·병합·main없이원격제출뒤정지.
+
+## CP0062 기반 G03 집중 지원 근거 — 2026-10-06
+
+[CP0063](../checkpoints/CP-0063-step-4b-g03-focused-support.md)·[집중 근거](step-4b-g03-focused-support-evidence.md)·[검증](step-4b-g03-focused-support-validation.md). 고정 입력 CP0062 `89a0a013a1e6324b205a37abee1d450a1ce78179`, 시작 HEAD 일치. 과거 분담은 당시 이력으로 보존한다.
+
+| 담당 성격 | 상태 | 다음 책임 |
+|---|---|---|
+| Sol 집중 근거 | COLLECTION_CLOSED | Q1~Q3 확인 수준·M63-01~05 제출. 반복 metadata/범위 확장 없음, 문의 초안 미전송 |
+| Astra 핵심 판단 | NEXT | 현재 G03 후보 채택 가능/HOLD 또는 목표 유지 구조 대안 판단. 필요한 지원 답변을 정확히 특정하고 같은 자료 준비 반복 금지 |
+| 공급자/운영 자료 | ANSWER_OR_MATERIAL_PENDING | M63-01/02 지원 계약/버전, M63-03 writer 통제 자료. 문의 전송은 이번 범위 밖 |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서 M63-04/05 관측점·R 이후 불허 C/P 0·old owner 저장/송신 독립 증명 |
+
+G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. DECISIONS 변경/신규 채택 없음. 정식 반영·구현·실제 시험·권한 변경·job/dump/복원·STEP5A·병합·main 없이 제출/확인 뒤 정지한다.
