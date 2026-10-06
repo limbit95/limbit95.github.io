@@ -173,3 +173,15 @@ G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 
 | 구현·시험 담당 | NOT_STARTED/HOLD. 별도 허용 단계에서만 실행, STEP6 전 runtime 금지 |
 
 기존 사이트/게임 보존 방향 유지, 제품/Auth 교체 채택 없음. 사용자 추가 비밀/usage 자료 요청 없음. 게이트/목표 유지, 행동 시험 NOT_RUN. 정식 반영·구현·문의·시험·권한 변경·job/dump/복원·STEP5A·병합·main 없이 원격 제출 확인 후 정지.
+
+## G03 현실적인 기준 변경안 — 2026-10-07
+
+[CP0067](../checkpoints/CP-0067-step-4b-g03-practical-scope-proposal.md)·[제안](step-4b-g03-practical-scope-proposal.md)·[검증](step-4b-g03-practical-scope-validation.md). 설계/출시 검증 분리와 외부 철회 최대5초/transport 인계 경계 후보를 추천. 실제 보장 완화로 사용자 선택 전 미채택.
+
+| 담당 | 다음 작업 |
+|---|---|
+| 사용자 | 두 보장 범위 선택. 구현/병합 승인이 아님 |
+| 설계 담당 | 선택 후 전체 R/DB C/transport P/불명·만료/owner/복원/시험 경계를 한 번 보완·감사. 같은 근거 조사 반복 없음 |
+| 구현·시험 담당 | 별도 허용 단계에서 실행 증명. 지금 NOT_STARTED/HOLD |
+
+기존 요구/게이트 상태 유지. DECISIONS/정식 산출물·계획/코드 보존, 원격 제출 뒤 정지.

@@ -20,9 +20,9 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G03_COMPATIBILITY_BOUNDARY_SUBMITTED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / G03_PRACTICAL_SCOPE_PROPOSED / 사용자 선택 대기 / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 입력/시작 HEAD CP0065 `7cb224c36d934be90e3c237d0bed2d105b9fa181`, 추가 변경0. 최신 [CP0066](checkpoints/CP-0066-step-4b-g03-compatibility-boundary.md). [호환 경계](artifacts/step-4b-g03-compatibility-boundary.md)·[검증](artifacts/step-4b-g03-compatibility-validation.md): 선택22파일 정적 확인. 공통 browser adapter만의 G03 해결 배제; 별도 client/RPC/Realtime/Auth UID·FK/OTP 영향 확인. 기존 Auth/게임 보존 격리 방향 추천 유지, 모든 R와 최종 C/P의 구체 primitive 미확보로 운영 채택 HOLD. 전수 감사/운영 적용/행동 호환 인증 아님.
+- 이번 입력/시작 HEAD CP0066 `d6c1cdc0bf493213173fc3344af1534b1ff38d76`, 추가변경0. 최신 [CP0067](checkpoints/CP-0067-step-4b-g03-practical-scope-proposal.md). [현실적인 기준 변경안](artifacts/step-4b-g03-practical-scope-proposal.md)·[검증](artifacts/step-4b-g03-practical-scope-validation.md): 설계/출시 검증 분리, 외부 Auth 철회 최대5초+transport 인계 경계 추천 후보. 실질적 보장 완화/미채택. 기존 A안·즉시 철회 의무는 승인 전 유지. 다른 목표 완화 없음. CP0066의 선택 소스/호환 경계와 과거 판단 보존. 사용자 선택 후 단일 설계 보완, 반복 조사 없음.
 - [후속판단](artifacts/step-4b-operations-design-judgment.md) J62-01~05·[근거/비용](artifacts/step-4b-operations-design-evidence.md)·[T/B보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md). A안/DB저빈도·분리archive방향유지,모든R와최종C/P/oldowner egress지원계약HOLD. 사전DBallow→독립외부apply/send재채택없음.
 - 총접속100/판8·세금포함월추가30,000원·원격참여자권위화면p95반응250ms/정상망회복재연결각5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초전검증회복실패abort,정각중단우선유지.
 - 본인참가/필요운영자만열람·최초권위종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 현재원천rollback/이중write실패/allcopies삭제지원HOLD.
