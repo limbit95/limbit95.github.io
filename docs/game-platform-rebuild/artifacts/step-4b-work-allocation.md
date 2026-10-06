@@ -93,3 +93,17 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 �
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도허용단계에서관측점/고정버전·T01~14/B01~07실행증거. STEP6전runtime선행구현금지 |
 
 과거분담은당시이력보존. 역할명은작업성격이며별도모델/독립감사인증아님. G03 OPEN/BLOCKING·G01/02/04/05 PARTIAL/OPEN·G06두Probe적용판단만해소. STEP4B IN_PROGRESS/구현HOLD. 정식반영·구현·실제시험·STEP5A·병합·main없이제출뒤정지.
+
+## CP0060 후속 Sol 운영·지원 자료 — 2026-10-06
+
+[CP0061](../checkpoints/CP-0061-step-4b-operations-evidence.md)·[사용자 운영/단말/usage](step-4b-operations-device-usage-evidence.md)·[지원 후속 자료](step-4b-support-followup-preparation.md)·[검증](step-4b-operations-evidence-validation.md). 입력 CP0060 c1f1c41 고정. 과거 분담/판단은 당시 이력 보존.
+
+| 담당 | 상태 | 다음 작업 |
+|---|---|---|
+| Sol 근거 준비 | OPERATIONS_EVIDENCE_PREPARED | 운영시간·브라우저채택·조직usage/disk관측·SELECT1/12 fingerprint·공식지원/비용 조건 제출 |
+| Sol 부족 지원 자료 | PARTIAL/HOLD | exactSDK/Auth/CLI·모든writer·최종C/P지원계약·사본inventory 확보,문의전송 없음 |
+| Astra 핵심 판단 | FOLLOWUP_PENDING | 평일공백20h/RTO4h예산과RPO여유·finalC/P/R·삭제rollback·제품총비용 구조 판단 |
+| 사용자 정보 | PARTIAL_RECEIVED | 공휴일/부재대체대응·iPhone모델/시험기접근·필요시project별meter |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 범위에서T01~14/B01~07,이번실행없음 |
+
+G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe만SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/구현HOLD. 역할명은성격이며별도모델/독립감사인증아님. 제출뒤정지,정식반영·구현·실제시험·STEP5A·병합·main없음.

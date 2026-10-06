@@ -35,3 +35,11 @@
 ## STEP 0 메모
 
 사전 검토에서 확인한 STEP 9B 실행 주의사항은 **새 아키텍처 결정이 아니므로 이 결정 목록에 별도 decision으로 추가하지 않는다.** 해당 내용은 `CURRENT.md`와 STEP 0 checkpoint에서 실행 계획 1.3의 기존 규칙을 적용할 때의 해석상 경계로 보존한다.
+
+## D-0005 — STEP4B 기본 시험 브라우저 조합
+
+- 상태: **USER_ADOPTED_TEST_SCOPE / EXECUTION_NOT_RUN**
+- 출처: 2026-10-06 사용자 Windows10/11·개인 iPhone iOS18.7.8 제공 및 “추천대로 해줘”.
+- 채택: Windows10·11 Chrome/Edge, iPhone Safari를 기본 시험 대상으로 준비한다.
+- 한계: exact OS/browser build·iPhone 모델·각 PC 접근/사양은 미확인. 다른 단말 지원 제외 정책,표본 수/시간·p99/tick/queue 기준 승인으로 확대하지 않는다.
+- [CP0061 사용자/관측](artifacts/step-4b-operations-device-usage-evidence.md),[후속 준비](artifacts/step-4b-support-followup-preparation.md). 운영 대응시간은 가용성 정보이며24/7 지원 약속이 아니다. G03/전체 구현 HOLD와 확정 안전성·품질·비용 목표 유지.

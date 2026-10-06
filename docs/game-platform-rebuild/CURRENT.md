@@ -20,17 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / SUPPORT_DESIGN_JUDGMENT_SUBMITTED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / OPERATIONS_EVIDENCE_PREPARED / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 고정 입력/시작 HEAD CP0059 `8af1029ab1aefeda1081b86e8d83faa2509a13d9`, 추가변경0. 최신 [CP0060](checkpoints/CP-0060-step-4b-support-design-judgment.md).
+- 이번 고정 입력/시작 HEAD CP0060 `c1f1c41d3f3cb7de160f529ad7e6c50215e93d22`, 추가변경0. 최신 [CP0061](checkpoints/CP-0061-step-4b-operations-evidence.md).
 - [후속 판단](artifacts/step-4b-support-design-judgment.md) J60-01~08·[시험/복원/삭제 보완](artifacts/step-4b-support-specification-amendments.md)·[공식근거/비용](artifacts/step-4b-support-design-evidence.md)·[검증](artifacts/step-4b-support-design-validation.md) 제출. 과거CP0059근거/명세/metadata는당시이력으로보존.
 - A안안전성·DB저빈도우선유지. managed Auth/직접SQL R과외부C/P를연결할지원근거미완,사전allow/TTL/cache만의구조는충족안으로배제. 실제adapter/egress/backup방식채택HOLD.
 - [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)·[보존/복구 결정](artifacts/step-4b-retention-recovery-user-decisions.md) 유지. 총접속100/판8·세금포함월추가30,000원·p95반응250ms/정상망회복재연결5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초내복구실패abort,정각중단우선판단.
-- 본인참가/필요운영자만열람·최초종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 구체운영요일/시간UNKNOWN,24/7지원아님. usage/기존무료소비/실청구UNKNOWN.
-- CP0059운영metadata는2026-10-05관찰(Free서울/PG17.6·SELECT10/함수12). 이번재조회없음. 공식자료2026-10-06재확인. metadata/문서CI로성능·권한경합·복구지원완료선언없음.
+- 본인참가/필요운영자만열람·최초종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 운영시간 평일20~24/주말시간제약없이가능(Asia/Seoul),24/7지원아님. 부재/공휴일/대체담당UNKNOWN. 현재기간 조직usage관측KNOWN,미래소비/실청구/프로젝트귀속UNKNOWN.
+- CP0059운영metadata는2026-10-05관찰(Free서울/PG17.6·SELECT10/함수12). CP0061 선택함수12 fingerprint/ACL SELECT1 재조회 일치,전수writer감사/환경원자snapshot아님. 공식자료2026-10-06재확인. metadata/문서CI로성능·권한경합·복구지원완료선언없음.
 - G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제 시험 NOT_RUN,게이트해소없음.
 - 다음Sol: 실제writer/actor·고정SDK/Auth/CLI manifest·최종C/P와모든R지원계약·quota/운영시간/단말·사본inventory/consistent cut자료. 공식지원답변이필요한질문은초안으로두며전송없음. 후속구현/시험은별도허용단계,STEP6전공통runtime금지유지.
-- 이번7경로만변경,정식6문서·과거판단/감사/CP0059까지·코드/SQL/규칙/계획/DECISIONS보존. 원격제출뒤정지. 정식반영·구현·실제시험·STEP5A·병합·main 없음.
+- 이번8경로만변경,정식6문서·과거판단/감사/CP0059까지·코드/SQL/규칙/계획/DECISIONS보존. 원격제출뒤정지. 정식반영·구현·실제시험·STEP5A·병합·main 없음.
+
+- [운영/단말/사용량 관측](artifacts/step-4b-operations-device-usage-evidence.md)·[Sol 지원/비용/복구 후속자료](artifacts/step-4b-support-followup-preparation.md)·[선택함수 fingerprint](artifacts/step-4b-operational-fingerprint-refresh.json)·[검증](artifacts/step-4b-operations-evidence-validation.md). Windows10/11 Chrome/Edge,iPhone 사용자iOS18.7.8 Safari 채택,실제시험NOT_RUN. G03지원/rollback/RPO/RTO구조Astra후속판단HOLD.
 
 ## 22개 검토 지점
 
@@ -340,4 +342,3 @@ STEP4A REVIEW_PENDING / 가이드4 완료. 가이드5 최종 제출 SHA 사후 �
 - 이 파일은 병합 전에 저장한다. 상단 PR OPEN/Draft/active branch·마지막 반영 STEP3는 저장 직전 상태다. 실제 PR411 merged/merge SHA·integration tree·최종 제출 HEAD의 조상 관계를 확인하면 마지막 승인 반영 STEP4A이며 phase4a branch는 종료 이력, active STEP branch는 없음으로 복원한다.
 - 원격 승인 기록 보존·PR ready 전환·expected head 지정 merge commit·실제 read-back 뒤 정지한다. 병합 후 실제 SHA/검증 결과는 PR 설명에도 보존한다. main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변 확인.
 - STEP4B 이후 NOT_STARTED, 시작 승인 없음. integration→main 미승인/미수행; production 변경 없음.
-
