@@ -107,3 +107,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 범위 판단만 �
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 범위에서T01~14/B01~07,이번실행없음 |
 
 G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe만SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/구현HOLD. 역할명은성격이며별도모델/독립감사인증아님. 제출뒤정지,정식반영·구현·실제시험·STEP5A·병합·main없음.
+
+## CP0061 운영 근거 기반 후속 판단 — 2026-10-06
+
+고정 입력 CP0061 `b564d71b88e8317116cae8111a7c52b0b1206858`, 시작 PR HEAD 일치. [CP0062](../checkpoints/CP-0062-step-4b-operations-design-judgment.md)·[판단](step-4b-operations-design-judgment.md)·[근거/비용](step-4b-operations-design-evidence.md)·[T/B보완](step-4b-operations-specification-amendments.md)·[검증](step-4b-operations-design-validation.md). 과거 분담은 당시 이력이다.
+
+| 담당 성격 | 현재 상태 | 다음 책임 |
+|---|---|---|
+| Astra 후속 판단 | OPERATIONS_DESIGN_JUDGMENT_SUBMITTED | A/저빈도DB·분리archive유지,최종C/P/R·20h공백/RTO·RPO/삭제원천·비용/manifest조건제출뒤정지 |
+| Sol 자료 준비 | NEXT_NOT_STARTED | 모든R/finalC/P지원수용표·exact버전/전수writer·사본/현재원천/운영calendar·제품quote/계량·단말자료. 반복fingerprint만으로진척대체금지,문의전송없음 |
+| 사용자 추가 정보 | PARTIAL_RECEIVED | 공휴일/부재/주말인지·자정연장/대체가능성,시험기접근/iPhone모델/exactbuild,가능할때project별meter/견적. 알고리즘선택전가없음 |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도허용단계에서T01~14/B01~07·관측점설치·실제경합/부하/삭제/복구. 이번job/dump/복원없음 |
+
+G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체완료·구현HOLD. 역할명은성격이며별도모델/독립감사실행인증아님. 정식반영·구현·STEP5A·병합·main없이원격제출뒤정지.

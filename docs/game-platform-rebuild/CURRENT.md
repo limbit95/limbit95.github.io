@@ -20,19 +20,18 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / OPERATIONS_EVIDENCE_PREPARED / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / OPERATIONS_DESIGN_JUDGMENT_SUBMITTED / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 고정 입력/시작 HEAD CP0060 `c1f1c41d3f3cb7de160f529ad7e6c50215e93d22`, 추가변경0. 최신 [CP0061](checkpoints/CP-0061-step-4b-operations-evidence.md).
-- [후속 판단](artifacts/step-4b-support-design-judgment.md) J60-01~08·[시험/복원/삭제 보완](artifacts/step-4b-support-specification-amendments.md)·[공식근거/비용](artifacts/step-4b-support-design-evidence.md)·[검증](artifacts/step-4b-support-design-validation.md) 제출. 과거CP0059근거/명세/metadata는당시이력으로보존.
-- A안안전성·DB저빈도우선유지. managed Auth/직접SQL R과외부C/P를연결할지원근거미완,사전allow/TTL/cache만의구조는충족안으로배제. 실제adapter/egress/backup방식채택HOLD.
-- [추가 사용자 결정](artifacts/step-4b-additional-user-decisions.md)·[보존/복구 결정](artifacts/step-4b-retention-recovery-user-decisions.md) 유지. 총접속100/판8·세금포함월추가30,000원·p95반응250ms/정상망회복재연결5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초내복구실패abort,정각중단우선판단.
-- 본인참가/필요운영자만열람·최초종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 운영시간 평일20~24/주말시간제약없이가능(Asia/Seoul),24/7지원아님. 부재/공휴일/대체담당UNKNOWN. 현재기간 조직usage관측KNOWN,미래소비/실청구/프로젝트귀속UNKNOWN.
-- CP0059운영metadata는2026-10-05관찰(Free서울/PG17.6·SELECT10/함수12). CP0061 선택함수12 fingerprint/ACL SELECT1 재조회 일치,전수writer감사/환경원자snapshot아님. 공식자료2026-10-06재확인. metadata/문서CI로성능·권한경합·복구지원완료선언없음.
-- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제 시험 NOT_RUN,게이트해소없음.
-- 다음Sol: 실제writer/actor·고정SDK/Auth/CLI manifest·최종C/P와모든R지원계약·quota/운영시간/단말·사본inventory/consistent cut자료. 공식지원답변이필요한질문은초안으로두며전송없음. 후속구현/시험은별도허용단계,STEP6전공통runtime금지유지.
-- 이번8경로만변경,정식6문서·과거판단/감사/CP0059까지·코드/SQL/규칙/계획/DECISIONS보존. 원격제출뒤정지. 정식반영·구현·실제시험·STEP5A·병합·main 없음.
-
-- [운영/단말/사용량 관측](artifacts/step-4b-operations-device-usage-evidence.md)·[Sol 지원/비용/복구 후속자료](artifacts/step-4b-support-followup-preparation.md)·[선택함수 fingerprint](artifacts/step-4b-operational-fingerprint-refresh.json)·[검증](artifacts/step-4b-operations-evidence-validation.md). Windows10/11 Chrome/Edge,iPhone 사용자iOS18.7.8 Safari 채택,실제시험NOT_RUN. G03지원/rollback/RPO/RTO구조Astra후속판단HOLD.
+- 이번 고정 입력/시작 HEAD CP0061 `b564d71b88e8317116cae8111a7c52b0b1206858`, 추가변경0. 최신 [CP0062](checkpoints/CP-0062-step-4b-operations-design-judgment.md).
+- [후속판단](artifacts/step-4b-operations-design-judgment.md) J62-01~05·[근거/비용](artifacts/step-4b-operations-design-evidence.md)·[T/B보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md). A안/DB저빈도·분리archive방향유지,모든R와최종C/P/oldowner egress지원계약HOLD. 사전DBallow→독립외부apply/send재채택없음.
+- 총접속100/판8·세금포함월추가30,000원·원격참여자권위화면p95반응250ms/정상망회복재연결각5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초전검증회복실패abort,정각중단우선유지.
+- 본인참가/필요운영자만열람·최초권위종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 현재원천rollback/이중write실패/allcopies삭제지원HOLD.
+- 운영시간 KST평일20~24/주말“풀”,24/7보장아님. 최대20h대기·약4h전체복구예산은조건부계산;공휴일/부재/대체담당/자정연장미확인.12hcut+20h사람retry는RPO조건충돌.자동retry/독립감시/추가cut·증분은미채택후보.
+- CP0061 [운영/단말/usage관측](artifacts/step-4b-operations-device-usage-evidence.md)·[지원준비](artifacts/step-4b-support-followup-preparation.md)·[fingerprint](artifacts/step-4b-operational-fingerprint-refresh.json) 보존. 조직현재기간usage는관측,미래부하/기존사이트소비/실청구UNKNOWN. 선택12함수MD5/ACL일치는전수감사/안전성보증아님.
+- Windows10/11 Chrome/Edge,iPhone 사용자제공iOS18.7.8 Safari기본시험조합유지. exactbuild/모델/접근·망/표본미확인. 다른단말지원제외아님. T12/T13 manifest연결,실제시험NOT_RUN.
+- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제시험NOT_RUN,실행증거없는게이트해소없음.
+- 다음Sol: 모든R/finalC/P지원수용표·exactSDK/Auth/CLI/caller/writer·사본/현재원천/운영calendar·계량/견적/단말자료. 문의는초안만,전송없음. 구현/실제시험은별도허용단계,STEP6전공통runtime금지유지.
+- 이번7경로만변경. 과거판단/감사/명세/checkpoint/metadata·정식6문서·코드/SQL·규칙/계획/AGENTS/DECISIONS보존. CP0061의D0005브라우저결정유지,이번신규정책/제품/알고리즘채택없음. 정식반영·구현·실제시험·job/dump/복원·STEP5A·병합·main없이원격제출/내용일치확인뒤정지.
 
 ## 22개 검토 지점
 
