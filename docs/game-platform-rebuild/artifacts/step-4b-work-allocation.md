@@ -197,3 +197,16 @@ G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 
 | 구현·시험 담당 | 허용 단계에서5초 상한/transport/경합/성능/복구 증명. 현재 NOT_RUN/HOLD |
 
 다른 목표 유지. 정식 문서/계획/코드 변경 없이 결정/진행 기록 제출 뒤 정지.
+
+## CP0068 기준 단일 G03 설계 보완 — CP0069
+
+[설계 보완](step-4b-g03-practical-design-review.md)·[검증](step-4b-g03-practical-design-validation.md)·[CP0069](../checkpoints/CP-0069-step-4b-g03-practical-design-review.md). 고정 입력 CP0068 `f05043d8cb950eeda13a3decb10684669c04b887`. 기존 Auth/게임 보존·DB C·통제 P 구조를 조건부 추천. 정책 추가 채택은 없고 DECISIONS 보존.
+
+| 담당 | 현재/다음 작업 |
+|---|---|
+| 설계 판단 | 이번 보완 종료. C/P/R·freshness·실패·중복/owner/복원 논리 정리, 전체 승인은 S1/S2 설계 조건 잔존 |
+| 다음 Sol | **S1/S2 실행 경계 바인딩 명세 한 작업**: 실제 predicate/최소권한/모든 사이트 writer와 deadline 집행 DB finalizer/transport/P/old gate 수단 대응표. 일반 조사·문의 반복 없음. 미확보 행은 명시하여 종료 |
+| 정식 반영 담당 | 별도 허용 후 D0006/D0007/CP0069를 정식 계약·trace·risks·validation/계획1.3에 정합화. 이번 변경 없음 |
+| 구현·시험 담당 | 허용 단계에서 수정 T01~14 적용. 현재 NOT_RUN/HOLD. 미구현만으로 설계 HOLD하지 않지만 S1/S2를 시험으로 떠넘기지 않음 |
+
+G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 사용자 추가 정책 선택 없음. 제출 확인 뒤 정지.
