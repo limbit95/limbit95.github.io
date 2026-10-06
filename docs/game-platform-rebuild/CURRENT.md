@@ -20,18 +20,18 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G03_PRACTICAL_SCOPE_PROPOSED / 사용자 선택 대기 / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / G03_PRACTICAL_SCOPE_USER_ADOPTED / 설계 보완 대기 / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base `feature/game-platform-vnext-integration`.
-- 이번 입력/시작 HEAD CP0066 `d6c1cdc0bf493213173fc3344af1534b1ff38d76`, 추가변경0. 최신 [CP0067](checkpoints/CP-0067-step-4b-g03-practical-scope-proposal.md). [현실적인 기준 변경안](artifacts/step-4b-g03-practical-scope-proposal.md)·[검증](artifacts/step-4b-g03-practical-scope-validation.md): 설계/출시 검증 분리, 외부 Auth 철회 최대5초+transport 인계 경계 추천 후보. 실질적 보장 완화/미채택. 기존 A안·즉시 철회 의무는 승인 전 유지. 다른 목표 완화 없음. CP0066의 선택 소스/호환 경계와 과거 판단 보존. 사용자 선택 후 단일 설계 보완, 반복 조사 없음.
-- [후속판단](artifacts/step-4b-operations-design-judgment.md) J62-01~05·[근거/비용](artifacts/step-4b-operations-design-evidence.md)·[T/B보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md). A안/DB저빈도·분리archive방향유지,모든R와최종C/P/oldowner egress지원계약HOLD. 사전DBallow→독립외부apply/send재채택없음.
+- 이번 입력/시작 HEAD CP0067 `d9227be38a05c9ebe1097d397a2ac30d090a4b98`, 추가변경0. 최신 [CP0068](checkpoints/CP-0068-step-4b-g03-practical-scope-adopted.md). 2026-10-07 사용자 “응 그러자”로 [D0006/D0007](DECISIONS.md) 채택: 설계/오픈 전 검증 분리, 외부 철회 실제R부터 최대5초 차단·최종 transport 인계 이후 회수 미보장. 제한된 잔여 접근 위험 수용. 실제5초 달성/제품 지원/게이트해소 아님. [CP0067 제안](artifacts/step-4b-g03-practical-scope-proposal.md)은 당시 이력 보존. 다른 목표 완화 없음. 다음은 새 기준으로 단일 설계 보완/감사, 반복 조사 없음.
+- CP0062까지 [후속판단](artifacts/step-4b-operations-design-judgment.md)·[근거](artifacts/step-4b-operations-design-evidence.md)·[보완](artifacts/step-4b-operations-specification-amendments.md)·[검증](artifacts/step-4b-operations-design-validation.md)은 당시 이력이다. 이전 A안의 외부 R 무지연/actual-egress 보장은 D0007 범위에서 대체. DB저빈도·분리archive·현재권한/중복/owner/복원 보호 유지, 새 기준 설계 및 실행 검증 미완료.
 - 총접속100/판8·세금포함월추가30,000원·원격참여자권위화면p95반응250ms/정상망회복재연결각5초·모바일5기능필수. 권한불명즉시보호입력/정보차단→판pause→최초장애60초전검증회복실패abort,정각중단우선유지.
 - 본인참가/필요운영자만열람·최초권위종결+30일삭제·탈퇴본인식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/30일삭제우선. 현재원천rollback/이중write실패/allcopies삭제지원HOLD.
 - 운영시간 KST평일20~24/주말“풀”,24/7보장아님. 최대20h대기·약4h전체복구예산은조건부계산;공휴일/부재/대체담당/자정연장미확인.12hcut+20h사람retry는RPO조건충돌.자동retry/독립감시/추가cut·증분은미채택후보.
 - CP0061 [운영/단말/usage관측](artifacts/step-4b-operations-device-usage-evidence.md)·[지원준비](artifacts/step-4b-support-followup-preparation.md)·[fingerprint](artifacts/step-4b-operational-fingerprint-refresh.json) 보존. 조직현재기간usage는관측,미래부하/기존사이트소비/실청구UNKNOWN. 선택12함수MD5/ACL일치는전수감사/안전성보증아님.
 - Windows10/11 Chrome/Edge,iPhone 사용자제공iOS18.7.8 Safari기본시험조합유지. exactbuild/모델/접근·망/표본미확인. 다른단말지원제외아님. T12/T13 manifest연결,실제시험NOT_RUN.
 - G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_DESIGN_RESOLVED. 행동/경합/부하/모바일/backup/restore/삭제시험NOT_RUN,실행증거없는게이트해소없음.
-- 이번 대안 수용 심사는 운영 채택 HOLD로 종료. 구체 배치/실제 Auth·사이트 변경 범위가 제시된 경우에만 네 조건으로 채택 재검토. 같은 Sol 조사/대안 판정 문서 자동 반복 없음, 문의/답변 대기 필수 선행 없음. 현 구성 고정 시 G03 미해소. 이번 “진행”은 운영 Auth 교체/제품 구매/기존 게임 이관 승인 아님. 구현/시험은 별도 허용 단계이며 STEP6 전 공통 runtime 금지 유지.
-- 이번 5경로만 변경. 과거판단/감사/명세/checkpoint/metadata·정식6문서·코드/SQL·규칙/계획/AGENTS/DECISIONS보존. CP0061의D0005브라우저결정유지,이번신규정책/제품/알고리즘채택없음. 정식반영·구현·실제시험·job/dump/복원·STEP5A·병합·main없이원격제출/내용일치확인뒤정지.
+- G03의 두 정책 결정은 완료, DESIGN_AMENDMENT_PENDING / EXECUTION_NOT_RUN. 구체 구조·5초 신선도 상한·최종 transport 인계/만료/owner를 단일 보완/감사에서 판정. 문의 우선/동일 조사 반복 없음. Auth 교체/제품 구매/기존 게임 이관 승인 없음. STEP6 전 공통 runtime 금지 유지.
+- 이번4경로만 변경. D0006/D0007 append 외 과거 결정/판단/감사/명세/checkpoint/정식 문서·코드/SQL·규칙/계획/AGENTS 보존. 정식반영·구현·실제시험·job/dump/복원·STEP5A·병합·main없이 원격제출/내용일치확인뒤정지.
 
 ## 22개 검토 지점
 

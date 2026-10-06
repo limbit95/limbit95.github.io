@@ -185,3 +185,15 @@ G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 
 | 구현·시험 담당 | 별도 허용 단계에서 실행 증명. 지금 NOT_STARTED/HOLD |
 
 기존 요구/게이트 상태 유지. DECISIONS/정식 산출물·계획/코드 보존, 원격 제출 뒤 정지.
+
+## CP0067 두 변경안 사용자 채택 — 2026-10-07
+
+[CP0068](../checkpoints/CP-0068-step-4b-g03-practical-scope-adopted.md)·[D0006/D0007](../DECISIONS.md). 설계/출시 검증 분리와 외부 철회 최대5초/transport 인계 경계 채택. CP0067 USER_DECISION_PENDING은 당시 이력. 정책 선택 대기는 해소, G03 전체는 OPEN/BLOCKING.
+
+| 담당 | 다음 작업 |
+|---|---|
+| 설계 담당 | 새 기준으로 단일 보완/감사. 전체R·C/P·신선도/known expiry·old owner·복원·설계/오픈 blocker 정합화. 반복 조사 없음 |
+| 사용자 | 이번 두 결정 완료. 다음 제출 결과 검토, 구현/병합 승인 아님 |
+| 구현·시험 담당 | 허용 단계에서5초 상한/transport/경합/성능/복구 증명. 현재 NOT_RUN/HOLD |
+
+다른 목표 유지. 정식 문서/계획/코드 변경 없이 결정/진행 기록 제출 뒤 정지.
