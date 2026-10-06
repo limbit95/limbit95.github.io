@@ -133,3 +133,17 @@ G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06두Probe적용판단만SCOPED_
 | 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서 M63-04/05 관측점·R 이후 불허 C/P 0·old owner 저장/송신 독립 증명 |
 
 G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. DECISIONS 변경/신규 채택 없음. 정식 반영·구현·실제 시험·권한 변경·job/dump/복원·STEP5A·병합·main 없이 제출/확인 뒤 정지한다.
+
+## CP0063 기반 G03 채택 가능성 판정 — 2026-10-06
+
+[CP0064](../checkpoints/CP-0064-step-4b-g03-adoption-judgment.md)·[판정](step-4b-g03-adoption-judgment.md)·[검증](step-4b-g03-adoption-validation.md). 고정 입력 CP0063 `404606f773c826e4de4c4dd05fb04c5347557638`, 시작 HEAD 일치. 과거 분담은 당시 이력이다.
+
+| 담당 성격 | 상태 | 다음 책임 |
+|---|---|---|
+| Astra 설계 판단 | G03_ADOPTION_JUDGMENT_SUBMITTED | 최상위 B/HOLD, P0 배제, P1/P2 조건과 답변별 분기 제출 뒤 정지 |
+| 사용자 | REVIEW_PENDING | Q64-1/2 문의 전송 여부 한 가지 검토. 전송 허용 추천, 결제/구조 변경 승인으로 확대하지 않음 |
+| 지원 응답 수용 | EXTERNAL_DEPENDENCY_PENDING | 전송 허용 및 답변 수령 후 Astra가 계약을 수용/배제. 미답변/불충분은 HOLD |
+| Sol 자료 수집 | COLLECTION_CLOSED | 같은 조사/fingerprint/명세 준비 반복 없음 |
+| 구현·실제 시험 | NOT_STARTED/HOLD | 별도 허용 단계에서 모든 R/final C/P·old owner·만료·복원 증명. 이번 실행 없음 |
+
+G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS / 전체 완료·구현 HOLD. DECISIONS 변경/새 제품·알고리즘 채택 없음. 정식 반영·구현·실제 시험·권한 변경·문의 전송·job/dump/복원·STEP5A·병합·main 없이 원격 제출/확인 뒤 정지한다.
