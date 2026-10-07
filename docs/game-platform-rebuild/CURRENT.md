@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / G03_CURRENT_CANDIDATE_CONFLICT / 정책 범위 결정 대기 / 전체 완료·구현 HOLD**.
-- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base 유지.
-- 고정 입력/시작 HEAD CP0070 `a89363cee72960e8fdbf08b8b2636f4358b207ab`, 추가변경0. 최신 [CP0071](checkpoints/CP-0071-step-4b-binding-adoption-judgment.md)·[판단](artifacts/step-4b-binding-adoption-judgment.md)·[검증](artifacts/step-4b-binding-adoption-validation.md).
-- 최상위 **C**: primary 검사→PG commit/Node/native send 후보는 마지막 검사 후 정지를 포함하는 최대5초 상한과 충돌. 모든 구조 불가능/공급자 명시적 비지원 아님. S1 최소권한/session predicate/writer/cascade·gate 격리 설계 잔여는 별도.
-- 기존 process pause 의무와 CP0069/70의 whole-host/backend 등 확대 가정을 구분. 확대 가정 제거만으로 after-check sender 정지 반례가 해소되지 않음.
-- **다음 담당/작업 하나: 사용자 — 명시된 운영 장애 범위로5초 보장을 변경할지 결정.** 추천은 미채택; 최종 검사 후 장시간 정지 때 late C/P 가능성을 명시한 실질 정책 변경. 일반 partition/이벤트 유실을 일괄 예외화하거나 percentile로 바꾸지 않음. 동일 Sol 조사·공급자 문의 재개 없음.
-- [D0006/D0007](DECISIONS.md) 보존. 설계 승인/오픈 검증 분리, 실제 외부R부터 최대5초 C/P 차단, P는 최종 취소 불가 transport 인계. 인계 후 전달 회수 미보장. 최초 무권한 유예/known expiry 추가5초 없음. 확인 실패 인지 즉시차단/pause/최초60초 abort, 정각abort 우선·retry/재시작 초기화 금지. 정책 후보를 현재 기준으로 적용하지 않음.
-- DB 권위 처리·통제된 송신 gate·기존 Auth/게임 보존 방향 유지. 제품/주기/Auth 교체 채택 없음. 정책 승인 시에도 S1/배치 조건과 기존 다른 게이트 설계 잔여 해결·정식 계약/계획 정합화가 필요하며 자동 완료 아님.
-- 총접속100/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/장애60초 별개.
+- 현재 STEP: **STEP4B IN_PROGRESS / OPERATING_SCOPE_POLICY_ADOPTED / Astra 통합 설계 판단 대기 / 전체 완료·구현 HOLD**.
+- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합/base 유지.
+- 고정 입력/시작 HEAD CP0071 `ef4676cedccbe23205f687fe958d82cf3ad24f00`, 추가변경0. 최신 [CP0072](checkpoints/CP-0072-step-4b-operating-scope-adopted.md)·[사용자 결정/후속 범위](artifacts/step-4b-operating-scope-user-decision.md)·[검증](artifacts/step-4b-operating-scope-decision-validation.md).
+- 사용자 선택1 채택을 [D0008](DECISIONS.md)에 추가. 외부 실제R부터 C/P 최대5초를 명시된 운영 장애 범위에 적용. 최종 검사 이후 runtime/DB/host 장시간 정지까지 예외 없는 차단을 보장하지 않으며 already-checked late C/P 위험 수용. 재개 시 새 작업 폐쇄/현재 권한 재검증, 진행 중 작업 회수 미보장.
+- 같은 정지 한계가 known expiry/인지 실패/60초 집행에 미치는 영향 명시. 의도적 만료 유예/실패 인지 후 추가 허가/처음부터 무권한 허가 발급 금지. 정상실행·일반 지연/partition/이벤트 유실은 실패 차단 대상 유지. 사후 예외 확대·percentile 전환 없음. 정확한 기술 범위/검증 조건은 Astra 잔여, 새 수치/제품/알고리즘/주기/Auth 교체 채택 아님.
+- D0007의 예외 없는 상한/after-check 정지 late C/P 불허 해석 부분 대체. D0001~07 원문·과거 CP0071 C 판정은 당시 이력 보존. D0006 단계 분리와 D0007 transport P/P 이후 전달 범위·내부 DB 순서·기본 권한/중복/owner/복원 보호 유지.
+- **다음 담당 Astra, 작업 하나: S1/session·최소권한·writer/cascade·DB/gate·old owner·운영 범위와 다른 게이트의 설계 잔여/실행 의무 및 정식 계약/계획 반영 범위 통합 판단.** 같은 Sol 조사/문의 재개 없음. 이번 기록 제출 뒤 자동 진행 없음.
+- 정책 채택≠후보 설계 승인/G03 해소/STEP4B 완료/구현·오픈 승인. 구조적 공백은 시험으로 대체 불가, NOT_RUN만으로 설계 자동HOLD 아님. 기존 Auth/게임 보존·무이관 방향 유지.
+- 100명/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/장애60초 구분, 최초deadline retry/재시작 초기화 금지.
 - 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. RPO는 권한 부활 허용 아님.
-- Free서울·KST평일20~24/주말“풀”(24/7보장아님)·Windows10/11 Chrome/Edge/iPhone 사용자제공iOS18.7.8 Safari 유지. 미래 workload/기존소비/실청구 UNKNOWN. 비용/운영/단말/backup 재작성 없음.
-- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 행동/경합/성능/복구/삭제 NOT_RUN. 구조적 공백과 실행 의무 구분, NOT_RUN만으로 설계 자동HOLD 아님.
-- 신규3/수정2 총5경로. 판단/검증/CP0071 추가·CURRENT/분담 갱신. 과거 문서/DECISIONS/정식 산출물/루트 계획/코드/SQL 보존. 정식 반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 제출 확인 뒤 정지.
+- Free서울·KST평일20~24/주말“풀”(24/7보장아님)·Windows10/11 Chrome/Edge/iPhone 사용자제공iOS18.7.8 Safari 유지. 미래workload/기존소비/실청구 UNKNOWN, 0가정 없음. 비용/운영/단말/backup 재작성 없음.
+- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 행동/경합/성능/복구/삭제 NOT_RUN. 전체 완료·구현 HOLD.
+- 신규3/수정3 총6경로. 결정/검증/CP0072 추가·DECISIONS append/CURRENT/분담 갱신. 과거/정식 산출물/루트계획/코드/SQL 보존. 정식반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
 
 ## 22개 검토 지점
 

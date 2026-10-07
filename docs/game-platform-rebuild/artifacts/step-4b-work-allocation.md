@@ -235,3 +235,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe만 SCOPED_DESIGN_
 | 구현/시험 담당 | NOT_STARTED/HOLD | 별도 허용 이후 실행 의무/오픈 blocker 검증. 구조적 공백을 시험으로 대신하지 않음 |
 
 동일 Sol 자료 조사·문의 cycle을 재지정하지 않는다. G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 행동 NOT_RUN. 과거/정식/계획/코드 보존, 원격 제출 확인 뒤 정지.
+
+## CP0071 사용자 선택1 채택·후속 범위 정리 — 2026-10-07
+
+고정 입력 `ef4676cedccbe23205f687fe958d82cf3ad24f00`. [결정/후속 범위](step-4b-operating-scope-user-decision.md)·[검증](step-4b-operating-scope-decision-validation.md)·[CP0072](../checkpoints/CP-0072-step-4b-operating-scope-adopted.md)·[D0008](../DECISIONS.md).
+
+| 담당 | 상태 | 한 가지 작업/경계 |
+|---|---|---|
+| 사용자 | POLICY_ADOPTED | 운영 장애 범위의5초 기준과 최종 검사 후 장시간 정지 잔여 위험 명시 채택. 후보/제품/오픈 승인 아님 |
+| Sol/Codex | DECISION_RECORD_SUBMITTED | D0008 부분 대체 기록·Astra 후속 통합 범위 정리. 추가 조사/핵심 구조 재선택 없음 |
+| Astra | NEXT_NOT_STARTED | S1·전체 writer/cascade·DB/gate/old owner·운영 범위·기존 다른 게이트 설계 잔여/실행 의무·정식 계약/계획 정합화 범위를 한 번 판단 |
+| 후속 구현/시험 | NOT_STARTED/HOLD | 별도 허용 이후 실행·오픈 blocker 검증. 구조 부재를 시험으로 대신하지 않음 |
+
+기존 분담의 미채택/사용자 결정 대기 표기는 당시 이력이다. 정확한 기술 장애 범위/검증 조건은 아직 미확정. 동일 Sol 자료 조사/공급자 문의 기본 경로 없음. G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD, 행동 NOT_RUN. 정식/계획/코드 미변경·원격 제출 확인 뒤 정지.
