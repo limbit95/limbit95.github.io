@@ -248,3 +248,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe만 SCOPED_DESIGN_
 | 후속 구현/시험 | NOT_STARTED/HOLD | 별도 허용 이후 실행·오픈 blocker 검증. 구조 부재를 시험으로 대신하지 않음 |
 
 기존 분담의 미채택/사용자 결정 대기 표기는 당시 이력이다. 정확한 기술 장애 범위/검증 조건은 아직 미확정. 동일 Sol 자료 조사/공급자 문의 기본 경로 없음. G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD, 행동 NOT_RUN. 정식/계획/코드 미변경·원격 제출 확인 뒤 정지.
+
+## D0008 적용 통합 설계 판단 — CP0073
+
+입력 CP0072 `2a48b3d1d3c5ffe7a64675051181b2efa6c86c81`. [판단](step-4b-integrated-design-judgment.md)·[검증](step-4b-integrated-design-validation.md)·[CP0073](../checkpoints/CP-0073-step-4b-integrated-design-judgment.md).
+
+| 담당 | 상태 | 작업 |
+|---|---|---|
+| Astra 판단 역할 | INTEGRATED_JUDGMENT_SUBMITTED | D0008 아래 조건부 채택 가능, DB+단일 native TLS gate 후보·S-A~C/E01~04 구분. 별도 모델 실행 인증 아님 |
+| Sol/Codex | NEXT_NOT_STARTED | 한 작업: 정식 계약/계획 정합화. 판단 §8의 대상별 규칙·대체관계·S-A~C/NOT_RUN을 반영, 새로운 핵심 선택/재조사 없음 |
+| 설계 조건 책임 | S-A/S-B/S-C OPEN | 실제 지원/명세/제품 조건 확보 전 설계 전체 승인 금지. 정식 반영만으로 닫지 않음 |
+| 구현/QA/운영 | NOT_STARTED/HOLD | 별도 허용 이후 E01~04 실행, 오픈 blocker 증명. 구조 부재를 시험으로 대신하지 않음 |
+
+G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 새 사용자 정책 질문0/DECISIONS 보존. 같은 Sol 조사/문의/새 포괄감사를 기본 단계로 추가하지 않음. 이번 정식반영·구현·시험·병합 없이 제출 확인 뒤 정지.

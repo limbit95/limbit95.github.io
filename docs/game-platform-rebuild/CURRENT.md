@@ -20,19 +20,20 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / OPERATING_SCOPE_POLICY_ADOPTED / Astra 통합 설계 판단 대기 / 전체 완료·구현 HOLD**.
+- 현재 STEP: **STEP4B IN_PROGRESS / INTEGRATED_DESIGN_CONDITIONAL / S-A~S-C 설계 승인 전 잔여 / 전체 완료·구현 HOLD**.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합/base 유지.
-- 고정 입력/시작 HEAD CP0071 `ef4676cedccbe23205f687fe958d82cf3ad24f00`, 추가변경0. 최신 [CP0072](checkpoints/CP-0072-step-4b-operating-scope-adopted.md)·[사용자 결정/후속 범위](artifacts/step-4b-operating-scope-user-decision.md)·[검증](artifacts/step-4b-operating-scope-decision-validation.md).
-- 사용자 선택1 채택을 [D0008](DECISIONS.md)에 추가. 외부 실제R부터 C/P 최대5초를 명시된 운영 장애 범위에 적용. 최종 검사 이후 runtime/DB/host 장시간 정지까지 예외 없는 차단을 보장하지 않으며 already-checked late C/P 위험 수용. 재개 시 새 작업 폐쇄/현재 권한 재검증, 진행 중 작업 회수 미보장.
-- 같은 정지 한계가 known expiry/인지 실패/60초 집행에 미치는 영향 명시. 의도적 만료 유예/실패 인지 후 추가 허가/처음부터 무권한 허가 발급 금지. 정상실행·일반 지연/partition/이벤트 유실은 실패 차단 대상 유지. 사후 예외 확대·percentile 전환 없음. 정확한 기술 범위/검증 조건은 Astra 잔여, 새 수치/제품/알고리즘/주기/Auth 교체 채택 아님.
-- D0007의 예외 없는 상한/after-check 정지 late C/P 불허 해석 부분 대체. D0001~07 원문·과거 CP0071 C 판정은 당시 이력 보존. D0006 단계 분리와 D0007 transport P/P 이후 전달 범위·내부 DB 순서·기본 권한/중복/owner/복원 보호 유지.
-- **다음 담당 Astra, 작업 하나: S1/session·최소권한·writer/cascade·DB/gate·old owner·운영 범위와 다른 게이트의 설계 잔여/실행 의무 및 정식 계약/계획 반영 범위 통합 판단.** 같은 Sol 조사/문의 재개 없음. 이번 기록 제출 뒤 자동 진행 없음.
-- 정책 채택≠후보 설계 승인/G03 해소/STEP4B 완료/구현·오픈 승인. 구조적 공백은 시험으로 대체 불가, NOT_RUN만으로 설계 자동HOLD 아님. 기존 Auth/게임 보존·무이관 방향 유지.
-- 100명/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/장애60초 구분, 최초deadline retry/재시작 초기화 금지.
-- 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. RPO는 권한 부활 허용 아님.
-- Free서울·KST평일20~24/주말“풀”(24/7보장아님)·Windows10/11 Chrome/Edge/iPhone 사용자제공iOS18.7.8 Safari 유지. 미래workload/기존소비/실청구 UNKNOWN, 0가정 없음. 비용/운영/단말/backup 재작성 없음.
-- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 행동/경합/성능/복구/삭제 NOT_RUN. 전체 완료·구현 HOLD.
-- 신규3/수정3 총6경로. 결정/검증/CP0072 추가·DECISIONS append/CURRENT/분담 갱신. 과거/정식 산출물/루트계획/코드/SQL 보존. 정식반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
+- 고정 입력/시작 HEAD CP0072 `2a48b3d1d3c5ffe7a64675051181b2efa6c86c81`, 추가변경0. 최신 [CP0073](checkpoints/CP-0073-step-4b-integrated-design-judgment.md)·[통합 판단](artifacts/step-4b-integrated-design-judgment.md)·[검증](artifacts/step-4b-integrated-design-validation.md).
+- 최상위 **조건부 채택 가능**: 기존 Auth/게임 보존·primary DB 실제commit C·단일 통제 송신 gate. TLS memory BIO/ciphertext queue→native nonblocking send를 구체 추천 후보로 연결. 완성 제품/운영 적용/5초 실행 보장 아님. Node write 반환만으로 최종P 판정 금지.
+- [D0006~08](DECISIONS.md) 유지. 기본 지연/partition/이벤트 유실은 검증 범위, 실제 after-check runtime/DB/host 정지의 해당 in-progress C/P만 수용한 한계. 증거 없는 정지 추정·일반 지연 사후 예외화 금지. CP0071 C 판정은 당시 이력 보존.
+- 설계 승인 전 잔여: S-A 실제 session/만료/삭제 predicate·최소권한 grantor/RLS·전체 writer/cascade, S-B 최초terminal/현재권한·삭제 복원독립원천과 publish/allcopies삭제/backup수단, S-C 제품·총비용/운영 배치. 이 구조적 공백을 나중 시험으로 대체하지 않음.
+- 구현/오픈 의무 E01~04: exact manifest/시간예산·권한경합/owner/queue·RPO/RTO/삭제·100명/품질/비용. 행동 NOT_RUN만으로 설계 자동HOLD 아님. 일반 DB commit 지연 등 기본 범위의 상한 초과는 FAIL, 불명 trace는 INCONCLUSIVE.
+- **다음 담당 Sol/Codex, 한 작업은 통합 판단의 정식 계약·계획 정합화.** runtime/sync·security/site·trace·risks·validation·execution/operations J10~13·T/B amendment·계획STEP4B 범위를 특정. S-A~C 미해결이면 중간본이며 완료 처리 불가. 같은 조사/문의/포괄감사 cycle 기본 지정 없음.
+- 사용자 추가 정책 질문/새 제품·주기·Auth 교체 채택 없음, DECISIONS 보존. 기존게임 무이관. old owner 저장 fencing과 old gate 실제 종료/격리 확인 분리, 확인 불가 takeover는 닫힘.
+- 100명/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/최초장애60초 별개·retry/재시작deadline 초기화 금지.
+- 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴unlink·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. 복원시 현재권한·삭제 검증 실패는 폐쇄 유지, RPO는 권한 부활 허용 아님.
+- Free서울·기존 KST운영시간(24/7아님)·Windows10/11 Chrome/Edge/iPhone Safari 유지. 미래workload/기존소비/실청구 UNKNOWN. 비용/단말/backup 명세 재작성 없음.
+- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 설계/실행/오픈 상태 분리, 전체 완료·구현 HOLD.
+- 신규3/수정2 총5경로. 과거/DECISIONS/정식/계획/코드/SQL 보존. 이번 정식반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
 
 ## 22개 검토 지점
 
