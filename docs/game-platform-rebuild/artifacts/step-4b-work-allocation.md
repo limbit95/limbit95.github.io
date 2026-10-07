@@ -222,3 +222,16 @@ G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe만 SCOPED_DESIGN_
 | 구현·시험 | 별도 허용 단계에서 manifest/실제 R/C/P/owner 관측 증명. 현재 NOT_STARTED/HOLD. 미확보 설계 수단을 시험으로 대신하지 않음 |
 
 기술/제품/정책 채택 없음, DECISIONS 보존. G03 OPEN/BLOCKING·다른 게이트 유지. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 정식 반영·구현·시험·권한 변경·문의·job/dump/복원·STEP5A·병합·main 없이 제출 확인 뒤 정지.
+
+## CP0070 후보 채택 판정 — 2026-10-07
+
+입력 `a89363cee72960e8fdbf08b8b2636f4358b207ab` 고정. [판단](step-4b-binding-adoption-judgment.md)·[검증](step-4b-binding-adoption-validation.md)·[CP0071](../checkpoints/CP-0071-step-4b-binding-adoption-judgment.md).
+
+| 담당 | 상태 | 작업 |
+|---|---|---|
+| Astra 판단 역할 | JUDGMENT_SUBMITTED | 최상위 C: 현재 구체 후보의 after-check 정지/5초 충돌, S1 잔여와 확대된 장애 가정 구분. 별도 모델 실행 인증 아님 |
+| 사용자 | POLICY_DECISION_PENDING | 다음 작업 하나: 명시한 운영 장애 범위의5초 보장으로 변경할지 결정. 추천 미채택/DECISIONS 보존 |
+| 후속 설계/반영 담당 | NOT_STARTED | 승인된 정책 아래 S1·gate 배치/기존 게이트 설계 잔여와 정식 계약·계획 정합화 범위를 묶음. 이번 자동 진행 없음 |
+| 구현/시험 담당 | NOT_STARTED/HOLD | 별도 허용 이후 실행 의무/오픈 blocker 검증. 구조적 공백을 시험으로 대신하지 않음 |
+
+동일 Sol 자료 조사·문의 cycle을 재지정하지 않는다. G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 행동 NOT_RUN. 과거/정식/계획/코드 보존, 원격 제출 확인 뒤 정지.

@@ -20,19 +20,19 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / S1_S2_BINDING_SPECIFIED / S1 조건부·S2 최종 deadline 바인딩 미확보 / 전체 완료·구현 HOLD**.
-- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base integration 유지.
-- 고정 입력/시작 HEAD CP0069 `a4bd815b3b0c4c93893a82fa659cabdb4f93f0aa`, 추가변경0. 최신 [CP0070](checkpoints/CP-0070-step-4b-s1-s2-binding-specification.md)·[바인딩 명세](artifacts/step-4b-s1-s2-binding-specification.md)·[검증](artifacts/step-4b-s1-s2-binding-validation.md). [CP0069 설계 보완](artifacts/step-4b-g03-practical-design-review.md)은 당시 이력으로 보존.
-- [D0006/D0007](DECISIONS.md) 유지: 설계 승인/오픈 전 실행 검증 분리, 외부 실제R부터 최대5초 C/P 차단, P는 최종 취소 불가 transport 인계. 인계 후 전달 회수 미보장. 이전 A안의 외부 무지연/actual-egress 요구는 이 범위에서 대체. 최초 무권한5초 허용 아님.
-- 추천: 기존 Auth/게임 보존, vNext DB 권위 commit C + 서버 통제 송신 gate P. 신선도는 검증 시작 기준, snapshot/duplicate/retry도 새 P 인가, 저장/송신 owner fencing 분리, 복원은 폐쇄·새 incarnation·현재 권한/삭제 검증. 제품/주기/Auth 교체 채택 없음.
-- 설계 잔여 S1: 실제 session/current 권한 predicate·최소권한·전체 사이트 writer/직접 SQL fence 연결. S2: 마지막 확인 후 정지까지 다루는 DB finalizer/transport deadline·handoff/old gate 집행 수단. 단순 polling→send/no-await/timer로5초 보장하지 않음. 실행 NOT_RUN만으로 HOLD한 것이 아니라 이 바인딩이 설계 단계에서 부족함.
-- S1: JWT/회원/운영 권한 수단 연결, session 최소권한/만료 설정/사이트 writer·Auth cascade 연결은 조건부·미확인. S2: DB authority/owner 저장 및 gate queue 기능 연결 가능, PG timeout/Node write/native nonblocking send에서 absolute C/P deadline 집행은 미확보. 단순 pre-check→commit/send 조합은 정지 반례와 충돌. 모든 대안 불가능/공급자 명시적 비지원 판정 아님.
-- Sol 바인딩 작업 종료. **다음 담당 Astra, 작업 하나는 이 표에 대한 후보 채택/배제 판단**. 새 구체 수단 없이 동일 Sol 조사 재개/미확보 행을 나중 시험으로 넘기는 승인 없음. 운영 metadata0/실사용자조회0, 추가 사용자 정책 질문 없음, DECISIONS 보존.
-- 총접속100/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 인지한 권한실패 즉시차단/pause/최초60초전검증복구실패abort, 정각abort 우선. 외부철회5초/재연결5초/장애60초는 별개.
-- 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. current 원천rollback/이중write/allcopies삭제 지원은 기존 G04 잔여. RPO는 권한 부활 허용 아님.
-- Free서울·KST평일20~24/주말“풀”(24/7보장아님)·Windows10/11 Chrome/Edge/iPhone 사용자제공iOS18.7.8 Safari 유지. 미래 workload/기존소비/실청구 UNKNOWN. 비용/운영/단말/백업 재작성 없음.
-- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 실행/경합/성능/복구/삭제 NOT_RUN. 세부 설계 완료와 게이트 전체 해소를 구분.
-- 이번 신규3/수정2 총5경로. 바인딩/검증/CP0070 추가와 CURRENT/분담만 갱신. 정식 STEP4B 계약/trace/risks/validation·계획1.3의 D0006/D0007 정합화는 후속 별도 범위. 과거 문서/DECISIONS/정식 산출물/루트 계획/코드/SQL 보존. 정식 반영·구현·시험·권한 변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 제출 확인 뒤 정지.
+- 현재 STEP: **STEP4B IN_PROGRESS / G03_CURRENT_CANDIDATE_CONFLICT / 정책 범위 결정 대기 / 전체 완료·구현 HOLD**.
+- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. 기존 branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합, base 유지.
+- 고정 입력/시작 HEAD CP0070 `a89363cee72960e8fdbf08b8b2636f4358b207ab`, 추가변경0. 최신 [CP0071](checkpoints/CP-0071-step-4b-binding-adoption-judgment.md)·[판단](artifacts/step-4b-binding-adoption-judgment.md)·[검증](artifacts/step-4b-binding-adoption-validation.md).
+- 최상위 **C**: primary 검사→PG commit/Node/native send 후보는 마지막 검사 후 정지를 포함하는 최대5초 상한과 충돌. 모든 구조 불가능/공급자 명시적 비지원 아님. S1 최소권한/session predicate/writer/cascade·gate 격리 설계 잔여는 별도.
+- 기존 process pause 의무와 CP0069/70의 whole-host/backend 등 확대 가정을 구분. 확대 가정 제거만으로 after-check sender 정지 반례가 해소되지 않음.
+- **다음 담당/작업 하나: 사용자 — 명시된 운영 장애 범위로5초 보장을 변경할지 결정.** 추천은 미채택; 최종 검사 후 장시간 정지 때 late C/P 가능성을 명시한 실질 정책 변경. 일반 partition/이벤트 유실을 일괄 예외화하거나 percentile로 바꾸지 않음. 동일 Sol 조사·공급자 문의 재개 없음.
+- [D0006/D0007](DECISIONS.md) 보존. 설계 승인/오픈 검증 분리, 실제 외부R부터 최대5초 C/P 차단, P는 최종 취소 불가 transport 인계. 인계 후 전달 회수 미보장. 최초 무권한 유예/known expiry 추가5초 없음. 확인 실패 인지 즉시차단/pause/최초60초 abort, 정각abort 우선·retry/재시작 초기화 금지. 정책 후보를 현재 기준으로 적용하지 않음.
+- DB 권위 처리·통제된 송신 gate·기존 Auth/게임 보존 방향 유지. 제품/주기/Auth 교체 채택 없음. 정책 승인 시에도 S1/배치 조건과 기존 다른 게이트 설계 잔여 해결·정식 계약/계획 정합화가 필요하며 자동 완료 아님.
+- 총접속100/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/장애60초 별개.
+- 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴식별연결제거·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. RPO는 권한 부활 허용 아님.
+- Free서울·KST평일20~24/주말“풀”(24/7보장아님)·Windows10/11 Chrome/Edge/iPhone 사용자제공iOS18.7.8 Safari 유지. 미래 workload/기존소비/실청구 UNKNOWN. 비용/운영/단말/backup 재작성 없음.
+- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 행동/경합/성능/복구/삭제 NOT_RUN. 구조적 공백과 실행 의무 구분, NOT_RUN만으로 설계 자동HOLD 아님.
+- 신규3/수정2 총5경로. 판단/검증/CP0071 추가·CURRENT/분담 갱신. 과거 문서/DECISIONS/정식 산출물/루트 계획/코드/SQL 보존. 정식 반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 제출 확인 뒤 정지.
 
 ## 22개 검토 지점
 
