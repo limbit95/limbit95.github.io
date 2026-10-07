@@ -1,5 +1,13 @@
 # STEP 4B — 실행 위치·transport·운영 선택과 보류
 
+## CP0075 현재 적용 — 설계 종료와 실행 의무
+
+J10/11의 제품·배치·품질·비용·보존·운영 선택은 CP0074 그대로다. D0010은 같은 transaction의 늦은 C만 수용하며, 새 A와 P의5초 차단·known expiry·실패 즉시 차단·최초60초·기존 owner/중복/삭제 보호를 유지한다.
+
+J12의 현재 상태는 [결정/설계 종료 확인](step-4b-z1-decision-and-design-closeout.md) §4의 설계/실행/오픈 표를 따른다. G01~04 설계 산출물 완료, G05 조건부 조합 명세 완료, G06 두 Probe 범위만 해소. Z1은 설계상 해소하며 실행 검증·실청구·실제 지원은 NOT_RUN/UNKNOWN이다. 전체 STEP은 계획§4.2 사용자 결과 검토 때문에 REVIEW_PENDING이다.
+
+J13/T01~03은 실제 R→A 차단과 동일 transaction A→C 지연을 구분한다. T04~10은 새 P·retry·owner·중단 보호를 유지한다. T11~14/B01~07은 기존 기준을 유지한다. 정확한 현재 delta는 위 문서§3이다. 계정/비용·성능·복구·삭제 오픈 blocker를 문서 완료로 해소하지 않는다. 다음 작업은 사용자 결과 검토·승인 하나다. 이하 CP0074의 Z1 HOLD/사용자 정책 결정 대기는 당시 이력이다.
+
 ## CP0074 현재 적용 — J10~13 선택과 종료 조건
 
 [구체 설계](step-4b-design-finalization.md) §4~7 및 [가격/지원 근거](step-4b-design-finalization-evidence.md)를 적용한다. 아래의 수치/제품 미정 표는 가이드3 당시 이력이다.

@@ -1,5 +1,11 @@
 # STEP 4B — 가이드4 정식 반영 검증
 
+## CP0075 현재 적용 검증
+
+[CP0075 검증](step-4b-z1-closeout-validation.md)과 [결정/설계 종료 확인](step-4b-z1-decision-and-design-closeout.md)을 현재 범위로 적용한다. D0010·A/C/P 구분·정식6문서·계획1.5·기록 및14경로의 내용/범위/원격 일치를 검증한다. CP0074와 아래 과거 PASS/HOLD/줄번호는 당시 이력이다.
+
+설계 산출물 완료/STEP4B REVIEW_PENDING, Z1 SCOPED_DESIGN_RESOLVED. 사용자 결과 검토·병합 승인은 별도다. 행동 시험 NOT_RUN이며 문서/정적 검사로 실행·오픈을 승인하지 않는다. 이번 새 가격/metadata/공급자 조사와 운영 변경은 없다.
+
 ## CP0074 현재 정식 검증 범위
 
 [새 검증 기록](step-4b-design-finalization-validation.md)과 [구체 설계](step-4b-design-finalization.md)를 적용한다. 아래 PASS/NOT_RUN/당시 원문 줄번호는 가이드4 이력이며 CP0074의 행동 시험 결과가 아니다.

@@ -2,6 +2,8 @@
 
 이 파일은 `game_platform_vnext_final_execution_plan.md` 개정 1.3의 목표를 새로 정의하는 문서가 아니다. 재구축 과정에서 채택·대체·폐기된 결정을 누적 추적한다.
 
+현재 적용 보완: D0006~09 원문 상태는 채택 당시 이력이다. CP0075/D0010이 Z1의 실제 C 시간 보장과 설계 잔여 상태만 부분 대체하며 계획1.5·CURRENT에서 현재 결과 검토 상태를 확인한다.
+
 ## D-0001 — 하나의 통합 게임 플랫폼
 
 - 상태: **ADOPTED_FROM_PLAN**
@@ -82,3 +84,13 @@
 - 부분 대체: CP0073의 S-A~C 미선택 수단을 위 설계로 구체화. 과거 판단·CP는 그대로 보존. D0006~08의 사용자 보장 범위는 변경하지 않는다.
 - 한계: Z1 일반 DB 실제commit deadline은 미해결. §7의 보장 변경 추천은 **PROPOSED_NOT_ADOPTED**다. 제품 선택은 구매/배포/추가 요금 승인 또는 실제 성능/복구 보증이 아니다.
 - 계획: 개정1.4는 STEP4B 및 연결 설계/실행 게이트만 정합화한다. 22단계·무이관·STEP6 전 구현 금지·별도 병합 승인 유지. 현재 rulebook/code/SQL/운영 권한 변경 없음.
+
+## D-0010 — Z1 동일 transaction의 늦은 commit 수용
+
+- 상태: **USER_ADOPTED_POLICY / FORMAL_REFLECTED / EXECUTION_NOT_RUN**.
+- 출처: 2026-10-07 18:32 KST 사용자 “오키 추천안으로 가자” 및 CP0074 고정 입력 `abf44a4c0269cf69173ea5881d8697c948fab8db`에 대한 명시적 반영 지시. [결정/설계 종료 확인](artifacts/step-4b-z1-decision-and-design-closeout.md)·[CP0075](checkpoints/CP-0075-step-4b-z1-adopted-design-closeout.md).
+- 결정: 외부 R 후5초 안에 새 보호 행동의 최종 인가·착수 A를 차단한다. 같은 DB finalizer에서 현재 검사를 통과해 저장 처리에 착수한 동일 transaction은 일반 저장 지연으로 실제 C가 늦게 완료될 수 있음을 수용한다. ingress allow/BEGIN/queue는 A가 아니며 무기한 사전 permit·별도 transaction/retry에 예외를 상속하지 않는다.
+- 부분 대체: D0007/08의 C 실제 완료5초 상한 중 위 in-progress 일반 저장 지연, CP0074/D0009의 Z1 미해결·미채택 상태. 실제 보장 변경이며 D0008 정지 설명과 동일하지 않다. C 관측점은 실제 commit 그대로다.
+- 유지: 새 P5초/최종 transport·recipient/view/payload 검사, 초기 무권한 금지, 실패 인지 즉시 차단/pause·최초60초/정각abort/retry초기화금지, owner/중복/현재 권한/삭제 보호. known expiry 전 A를 지난 동일 transaction의 늦은 C만 수용하며 만료 유예·만료 뒤 새 A는 금지한다.
+- 결과: Z1 설계상 해소, 설계 산출물 완료. 단계는 계획§4.2 사용자 결과 검토 때문에 REVIEW_PENDING이다. 이 정책 승인을 전체 결과/병합/STEP5A/구현/실행/오픈 승인으로 확대하지 않는다.
+- 계획: 개정1.5에 위 대체와 상태 구분만 반영. CP0074 제품/알고리즘/비용·보존·운영 조건과22단계/기존게임 무이관 유지. 과거 결정 원문은 보존한다.

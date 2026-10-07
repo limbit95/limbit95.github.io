@@ -1,5 +1,18 @@
 # STEP 4B — 정식 계약 반영 trace
 
+## CP0075 현재 대체 관계
+
+입력 CP0074 `abf44a4c0269cf69173ea5881d8697c948fab8db`. [D0010 및 종료 확인](step-4b-z1-decision-and-design-closeout.md)의 승인 범위만 반영한다. 아래 CP0074 trace 및 최초 source hash는 당시 이력으로 보존한다.
+
+| 입력 | 반영 위치 | 변경/유지 |
+|---|---|---|
+| 사용자 Z1 승인·D0010·종료 확인§2 | runtime J01/02·security J07 | 최종 인가·착수 A와 실제 commit C 구분, 동일 transaction 늦은 C 수용 |
+| 종료 확인§2/3 | runtime/security·execution J13 | P5초/새 retry/owner/known expiry/인지 실패/60초 유지, T01~10 oracle 보완 |
+| CP0074§2/4/5·B5 | security·execution J10/11 | S-A~C·보존/복구/비용 조합 재선택 없음, T11~14/B01~07 유지 |
+| 종료 확인§4/5·계획§4.2 | execution J12·risks·validation·계획1.5·CURRENT | 설계 산출물 완료/REVIEW_PENDING, 실행/오픈 미승인 |
+
+과거 Z1 미채택/HOLD 표기는 D0010 반영 범위에서 대체된다. [검증](step-4b-z1-closeout-validation.md)은 행동 시험이 아니다.
+
 ## CP0074 현재 적용 trace
 
 입력 CP0073 `e3aa3feaf945e472d73360d7f580f583b01ce648`과 D0006~08을 기준으로 사용자 허용한 정식 반영을 수행한다. 아래 원본5블록 hash/줄번호는 최초 반영 이력이며 새 절을 삽입했다고 그 hash를 다시 계산해 대체하지 않는다. 과거 입력 원문을 새 판단으로 덮어쓰지 않는다.

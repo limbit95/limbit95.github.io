@@ -1,5 +1,15 @@
 # STEP 4B — 모델별 Runtime·Sync 품질 계약
 
+## CP0075 현재 적용 — D0010과 A/C 구분
+
+[결정/설계 종료 확인](step-4b-z1-decision-and-design-closeout.md) §2/3을 적용한다. 이하 CP0074의 Z1 미해결/HOLD 표기는 당시 이력이며, D0010이 실제 C 완료5초 상한을 제한적으로 대체한다.
+
+최종 인가·착수 A는 anchor/owner/command 잠금 후 현재 predicate를 통과하고 같은 DB finalizer/transaction의 고정 저장 처리를 시작하는 지점이다. BEGIN/ingress allow/enqueue가 아니다. A 전 대기 뒤에는 fresh 재검사하며 무기한 사전 permit을 허용하지 않는다. 명시된 운영 범위에서 R+5초 이후 새 A는 금지한다. 기한 내 A를 지난 동일 transaction은 일반 I/O 지연으로 늦게 C에 도달할 수 있다. 실제 C는 계속 DB commit이며 A 시각으로 대체하지 않는다.
+
+known expiry 전 A를 지난 동일 transaction의 늦은 C만 수용한다. 새 retry/별도 transaction·command는 새 A를 요구한다. owner anchor는 C/rollback까지 유지하고 교체 경로와 직렬화한다. 늦은 C 뒤 ACK/duplicate/snapshot도 새 P 인가를 받으며 P5초/최종 transport 경계·60초 중단·terminal 뒤 재개 금지는 그대로다. T01~03의 A/C 구분과 T04~10의 예외 전파 금지 oracle는 위 연결 문서§3을 따른다.
+
+Z1 설계상 해소, 설계 산출물 완료/STEP4B REVIEW_PENDING. 실행·오픈은 NOT_RUN/미승인이다.
+
 ## CP0074 현재 적용 — J01~06 보완
 
 [구체 설계](step-4b-design-finalization.md) §3/4/6/7을 이 계약의 적용 명세로 연결한다. 아래 가이드3/4 원문은 당시 이력이다. 기존 게임/다른 선택 모델은 변경하지 않으며, 이번 선택은 vNext의 저빈도 DB 권위 후보에 한정한다.

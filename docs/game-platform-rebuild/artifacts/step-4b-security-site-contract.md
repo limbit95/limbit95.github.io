@@ -1,5 +1,13 @@
 # STEP 4B — private·권한·사이트 연결 계약
 
+## CP0075 현재 적용 — D0010의 제한된 대체
+
+[결정/설계 종료 확인](step-4b-z1-decision-and-design-closeout.md) §2가 현재 J07의 A/C 경계다. 외부 R+5초 차단은 새 최종 인가·착수 A와 새 정보 제공 P에 적용한다. 이미 적법하게 A를 지난 동일 DB transaction의 늦은 C만 수용한다. 실제 commit 관측점은 그대로 유지한다.
+
+처음부터 무권한인 요청·known expiry 뒤 새 A·실패 인지 후 추가 허가는 금지다. A 이전 만료/철회/대기와 A 이후 일반 저장 지연을 구분하고, 새 retry/별도 transaction은 재검증한다. P는 recipient/session/view/payload마다 새로 허가하며 늦은 C 예외를 상속하지 않는다. private predicate/전용 EXECUTE·전체 writer/직접 SQL·Auth cascade·owner·복원 current 경계는 CP0074대로다.
+
+D0010은 보장 범위의 실제 변경이다. D0008 정지 예외와 혼동하지 않는다. G03의 Z1은 SCOPED_DESIGN_RESOLVED, 설계 산출물 완료/결과 검토 대기이며 권한 실행 지원·오픈 완료는 아니다. 이하 CP0074의 OPEN/BLOCKING·Z1 미해결 표현은 당시 상태다.
+
 ## CP0074 현재 적용 — J07~09 보완
 
 [구체 설계](step-4b-design-finalization.md) §2/3/4의 predicate·ACL·writer·restore 규칙을 이 계약의 실행 명세로 삼는다. 아래 가이드3/4 원문 중 모든 외부 R의 무지연/actual-egress 해석은 D0007/08 범위에서 대체되며 과거 본문은 이력으로 보존한다.

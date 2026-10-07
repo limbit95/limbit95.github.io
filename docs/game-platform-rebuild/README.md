@@ -1,6 +1,8 @@
 # Game Platform vNext 재구축 진행 기록
 
-이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.4(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
+이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
+
+STEP4B의 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0075](checkpoints/CP-0075-step-4b-z1-adopted-design-closeout.md)다. 설계 산출물 완료/결과 검토 대기와 실행 검증·오픈·병합 승인을 구분한다.
 
 게임별 `DEVELOPMENT.md` / `UI_DECISIONS.md` checkpoint와 별개이며, 이 디렉토리의 기록은 기존 게임의 기능·디자인 상태를 대신하지 않는다.
 

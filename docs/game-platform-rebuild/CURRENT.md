@@ -5,8 +5,8 @@
 ## 기준
 
 - 실행 계획: `/game_platform_vnext_final_execution_plan.md`
-- 계획 개정: **1.4**
-- 계획 blob SHA: `8218b23ff4dd6c4df4f6d93db5dc8a32b9a7096c`
+- 계획 개정: **1.5**
+- 계획 blob SHA: `da353e2e64daef6b1b0b7267c21997bfd7cda4ed`
 - 작업 root-slug: `game-platform-vnext`
 - 계획의 이전 대조 기준 main: `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
@@ -20,15 +20,15 @@
 
 ## 현재 상태
 
-- STEP4B **IN_PROGRESS / DESIGN_FINALIZATION_HOLD**. 이번 입력 CP0073 `e3aa3feaf945e472d73360d7f580f583b01ce648`, 시작HEAD 일치/추가변경0.
-- 최신 [CP0074](checkpoints/CP-0074-step-4b-design-finalization.md)·[구체 설계](artifacts/step-4b-design-finalization.md)·[근거](artifacts/step-4b-design-finalization-evidence.md)·[검증](artifacts/step-4b-design-finalization-validation.md).
-- S-A의 predicate/최소 callable 권한/전체writer guard·S-B의 DynamoDB 분리archive/current/삭제generation·S-C의 Free서울/Lightsail2GB/외부저장/독립감시 조합을 선택하고 정식6문서·계획1.4에 반영했다. 제품 구매·운영 적용 아님.
-- 설계 종료 전 **Z1 일반 PG 최종검사→실제commit 기한**이 남는다. 구조 공백을 실행 시험으로 넘기지 않는다. [D0009](DECISIONS.md)는 기술 선택 기록이며 D0006~08 사용자 정책은 불변.
-- 다음 작업 하나: 구체 설계§7의 Z1 보장 범위에 대한 사용자 판단. 추천 변경은 PROPOSED_NOT_ADOPTED. 동일 Sol조사/문의/새감사 자동 재개 없음. CP0073의 다음Sol정합화 안내는 당시 이력이며 이번 사용자 확장 범위로 대체됐다.
-- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용만 SCOPED_DESIGN_RESOLVED. 설계/실행/오픈 분리, 행동시험 NOT_RUN, STEP5A 이후 NOT_STARTED.
+- STEP4B **REVIEW_PENDING / DESIGN_SPEC_COMPLETE**. 이번 고정 입력 CP0074 `abf44a4c0269cf69173ea5881d8697c948fab8db`, 시작HEAD 일치/추가변경0.
+- 최신 [CP0075](checkpoints/CP-0075-step-4b-z1-adopted-design-closeout.md)·[결정/설계 종료 확인](artifacts/step-4b-z1-decision-and-design-closeout.md)·[검증](artifacts/step-4b-z1-closeout-validation.md). CP0074 판단/근거는 당시 이력으로 보존한다.
+- [D0010](DECISIONS.md): 최종 인가·착수 A를 지난 동일 DB transaction의 일반 저장 지연 C를 사용자 승인으로 수용했다. 실제 C 관측 유지, 새 A/P·retry·owner·expiry·인지 실패/60초 보호 유지. 정식6문서·계획1.5에 반영했다.
+- Z1 **SCOPED_DESIGN_RESOLVED**, 기존 선택 구조의 필수 설계 잔여 없음. S-A~C·B5는 CP0074 그대로이며 실제 지원/제품 구매/운영 적용을 뜻하지 않는다.
+- 다음 담당 사용자, 작업 하나는 STEP4B 설계 산출물 결과 검토·승인. 계획§4.2가 요구하는 기존 절차이며 Z1 정책 재질문·새 포괄감사/반복 조사 추가 없음. 결과 승인/병합/STEP5A/main은 별도다.
+- G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 전체 결과 검토 대기이며 실행 NOT_RUN/오픈 blocker 유지. STEP5A 이후 NOT_STARTED.
 - 100명/판8·세금포함월추가3만원·원격p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·daily외부/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지. 미래부하/실청구 UNKNOWN, 기존소비0 가정 없음.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합/base 유지.
-- 새metadata SELECT2개는 역할/ACL/column 관측일 뿐 전수writer/원자snapshot/운영적용 증거가 아니다. 실사용자·비밀 조회/권한변경 없음. 코드/SQL·실제시험·job/dump/복원·STEP5A·병합·main 변경 없이 원격 확인 뒤 정지.
+- 이번 새 metadata/가격/지원 조사0, 실사용자/비밀 조회·권한변경0. CP0074의 SELECT2개는 과거 제한 관측이며 전수 writer/원자 snapshot/운영 적용 증거가 아니다. 코드/SQL·실제시험·구매·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
 
 ## 22개 검토 지점
 
@@ -39,7 +39,7 @@
 | 2 | COMPLETED |
 | 3 | COMPLETED |
 | 4A | COMPLETED |
-| 4B | IN_PROGRESS |
+| 4B | REVIEW_PENDING |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
 | 5C | NOT_STARTED |
