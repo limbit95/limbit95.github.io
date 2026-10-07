@@ -1,5 +1,30 @@
 # STEP 4B — 실행 위치·transport·운영 선택과 보류
 
+## CP0074 현재 적용 — J10~13 선택과 종료 조건
+
+[구체 설계](step-4b-design-finalization.md) §4~7 및 [가격/지원 근거](step-4b-design-finalization-evidence.md)를 적용한다. 아래의 수치/제품 미정 표는 가이드3 당시 이력이다.
+
+J10 선택: Supabase Free 서울 + Lightsail Linux IPv4 2GB 서울 + 단일 Linux/OpenSSL memory BIO 송신 gate + DynamoDB Standard provisioned 서울의 분리 archive/current 원천. EventBridge Scheduler→Lambda가 cut/검증/retry/독립 감시, SNS가 경보를 담당한다. 구매/배포/무료 계정 잔여 확인은 미수행이다. 제품명이 실제 권한/성능/복구 지원 증거는 아니다.
+
+J11 기준: 총접속100명·판8명, 원격 참여자의 권위 화면까지 p95 250ms, 정상망 회복 후 각 재연결5초, 모바일 이동/상호작용/준비/종료/재접속, 세금 포함 월추가30,000원. p99/tick/queue/표본은 추가 승인 기준으로 만들지 않는다. 본인 참가/필요 운영자 열람·최초종결+30일삭제·탈퇴unlink·daily외부/RPO24h·발견후24h·최근7일복구점/삭제우선·기존 운영시간을 유지한다.
+
+비용은 DB gate/gameplay/Realtime/backup반출/archive/검증·복원/감시·운영을 분리한다. VM$12와 별도 비용의 원화 합계가3만원 안이어야 하며, 환율1400/1500/1600·세금10%는 가정이다. DynamoDB 무료 잔여·기존 사이트/계정 소비·실청구는 UNKNOWN, uncached/cached 무료 한도 합산 금지다. 한도 때문에 정상 목표 부하를 제한해야 하면 목표 충족이 아니다.
+
+J12 상태:
+
+| 게이트 | 설계 | 실행/오픈 |
+|---|---|---|
+| G01 | 기준·배치 연결, G03/G04 의존 | 품질/100명/모바일 NOT_RUN |
+| G02 | snapshot/reconnect/owner/60초·B5 처리 결정 | 경합/복구 NOT_RUN |
+| G03 | S-A/송신 수단 선택, Z1 실제 C deadline HOLD | 권한/철회 NOT_RUN |
+| G04 | archive/삭제/restore 수단·동시저장불능 closed 선택 | 삭제/복원/RPO/RTO NOT_RUN |
+| G05 | 제품·비용 성립 조건 선택 | 계정 견적/총비용/운영 측정 미완료 |
+| G06 | 두 Probe만 SCOPED_DESIGN_RESOLVED | 범용 지원/실행 승인 없음 |
+
+J13은 구체 설계§6의 T01~14/B01~07 delta를 적용한다. 실제R·PGcommit C·transport P·clock 오차/전체 trace를 관측한다. FAIL/INCONCLUSIVE/ACCEPTED_LIMITATION은 구분하며 마지막 것을 PASS로 집계하지 않는다. 정식 문서 검사나 CI는 행동 증거가 아니다. STEP4B IN_PROGRESS, Z1이 해소되기 전 설계 종료 불가. 다음은 Z1의 실제 보장 범위에 대한 사용자 결정이며 같은 조사 cycle을 기본 지정하지 않는다.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 - 상태: **정식 STEP4B 제출 산출물 / 사후 감사 대기 / STEP4B IN_PROGRESS**. 가이드4 반영이며 사용자 승인·현행 CURRENT rulebook 변경·Target 동결·구현 지원 완료가 아니다.
 - 고정 입력: [Astra 판단 원문](https://github.com/limbit95/limbit95.github.io/blob/ddfa7a5e226fe0c5f62779a19b708ca0802899ce/docs/game-platform-rebuild/artifacts/step-4b-astra-judgment.md), commit `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`.
 - Work Sol은 아래 판단 본문 전체를 그대로 옮겼다. 선택·보류·사유·조건·미확인·후속 책임을 축약하거나 새로운 선택으로 바꾸지 않았다. J번호는 판단 절, B번호는 [저장소 근거](step-4b-source-trace.md), V번호는 [기존 선택 원문 검토](step-4b-research-verification.md)다.

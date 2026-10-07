@@ -1,5 +1,19 @@
 # STEP 4B — private·권한·사이트 연결 계약
 
+## CP0074 현재 적용 — J07~09 보완
+
+[구체 설계](step-4b-design-finalization.md) §2/3/4의 predicate·ACL·writer·restore 규칙을 이 계약의 실행 명세로 삼는다. 아래 가이드3/4 원문 중 모든 외부 R의 무지연/actual-egress 해석은 D0007/08 범위에서 대체되며 과거 본문은 이력으로 보존한다.
+
+- J07: 검증 JWT와 primary auth.users/session 현재 조건, 승인/필요 permission, 참가/recipient/view, owner/incarnation/open gate를 AND로 검사한다. known expiry에5초를 더하지 않고 실패 인지 후 새 허가를 내지 않는다. 외부R5초는 normal 장애 범위의 목표이고 percentile이 아니다.
+- J08: recipient별 projection·payload와 send byte range를 연결한다. 저장 duplicate 응답·snapshot·private error도 새 P 검사 대상이다. Realtime cache/JWT refresh/event만으로 철회를 처리하지 않는다. gameplay/private에 Realtime를 선택하지 않으며 통제 gate를 사용한다.
+- J09: runtime DB caller에는 비노출 고정 함수 EXECUTE만 부여하는 설계를 선택한다. Auth RLS 관측 때문에 postgres-owned SECURITY DEFINER를 제한 capability로 사용하되 runtime에 postgres/service_role 자격증명·membership·raw Auth SELECT·DDL을 주지 않는다. owner가 최소권한이라는 주장은 금지한다. 고정 search_path/SQL/호출자·검증 subject 경계, PUBLIC 실행 제거를 필수로 둔다.
+- 일반 site DML과 직접 SQL은 보호 table/column guard 및 operation ticket을 통과한다. controller close/drain ACK→현재 actor/target 재검사→내부R commit→외부 current 확인 후 개방이다. Auth cascade는 실제 trusted session_user와 root Auth 삭제 관계가 모두 성립하는 별도 외부R 경로다. GUC/trigger depth만으로 우회하지 않는다.
+- 복원은 외부 current 원천·새 incarnation·fresh sid·현재 권한 일치 후에만 개방한다. 과거 approval/session/epoch 복원이나 재로그인만으로 현재 권한 검증을 대신하지 않는다.
+
+사이트 관리자 호출의 preflight 연결·guard 변경은 후속 구현 범위이고 기존게임 무이관/기존 Auth 의미 유지가 조건이다. source/metadata/공식 기능과 운영 적용을 구분한다. 실제 활성 만료 설정·exact SDK·배포 ACL·Auth cascade 회귀·T01~10은 NOT_RUN/오픈 blocker다. **G03 OPEN/BLOCKING: Z1 실제commit 시간 경계는 아직 미해결**이다.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 - 상태: **정식 STEP4B 제출 산출물 / 사후 감사 대기 / STEP4B IN_PROGRESS**. 가이드4 반영이며 사용자 승인·현행 CURRENT rulebook 변경·Target 동결·구현 지원 완료가 아니다.
 - 고정 입력: [Astra 판단 원문](https://github.com/limbit95/limbit95.github.io/blob/ddfa7a5e226fe0c5f62779a19b708ca0802899ce/docs/game-platform-rebuild/artifacts/step-4b-astra-judgment.md), commit `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`.
 - Work Sol은 아래 판단 본문 전체를 그대로 옮겼다. 선택·보류·사유·조건·미확인·후속 책임을 축약하거나 새로운 선택으로 바꾸지 않았다. J번호는 판단 절, B번호는 [저장소 근거](step-4b-source-trace.md), V번호는 [기존 선택 원문 검토](step-4b-research-verification.md)다.

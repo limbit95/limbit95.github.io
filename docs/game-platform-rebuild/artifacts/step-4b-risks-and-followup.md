@@ -1,5 +1,17 @@
 # STEP 4B — 미결정·충돌·후속과 제출 경계
 
+## CP0074 현재 위험과 다음 작업
+
+[구체 설계](step-4b-design-finalization.md) §7이 현재 판정이다. 아래 가이드3/4와 후속 기록은 당시 이력으로 보존한다.
+
+S-A predicate/전용EXECUTE/writer guard, S-B DynamoDB 분리 archive·삭제 generation, S-C 서버/저장/감시 조합을 구체화했다. 남은 필수 설계 조건은 Z1 일반 DB 최종검사→실제commit 기한이다. 단순 미구현이 아니므로 시험 목록만으로 닫지 않는다.
+
+D0008의 실제 after-check 실행정지 수용은 유지하며 일반 commit I/O 지연이나 기록 유실까지 확장하지 않는다. 새 보장 변경은 미채택이다. 설계 완료와 실행/오픈 승인을 분리하고 STEP4B IN_PROGRESS/HOLD를 유지한다.
+
+다음 작업 하나: 사용자에게 Z1의 이미 인가된 transaction 완료 위험를 설명하고 결정을 받는다. 기술 알고리즘 선택은 사용자에게 전가하지 않는다. 동일 Sol 조사/공급자 문의/새 포괄 감사는 기본 다음 작업이 아니다. 구현·운영변경·STEP5A·병합·main 미수행.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 - 상태: **정식 STEP4B 제출 산출물 / 사후 감사 대기 / STEP4B IN_PROGRESS**. 가이드4 반영이며 사용자 승인·현행 CURRENT rulebook 변경·Target 동결·구현 지원 완료가 아니다.
 - 고정 입력: [Astra 판단 원문](https://github.com/limbit95/limbit95.github.io/blob/ddfa7a5e226fe0c5f62779a19b708ca0802899ce/docs/game-platform-rebuild/artifacts/step-4b-astra-judgment.md), commit `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`.
 - Work Sol은 아래 판단 본문 전체를 그대로 옮겼다. 선택·보류·사유·조건·미확인·후속 책임을 축약하거나 새로운 선택으로 바꾸지 않았다. J번호는 판단 절, B번호는 [저장소 근거](step-4b-source-trace.md), V번호는 [기존 선택 원문 검토](step-4b-research-verification.md)다.

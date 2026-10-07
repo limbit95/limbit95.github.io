@@ -1,5 +1,20 @@
 # STEP 4B — 모델별 Runtime·Sync 품질 계약
 
+## CP0074 현재 적용 — J01~06 보완
+
+[구체 설계](step-4b-design-finalization.md) §3/4/6/7을 이 계약의 적용 명세로 연결한다. 아래 가이드3/4 원문은 당시 이력이다. 기존 게임/다른 선택 모델은 변경하지 않으며, 이번 선택은 vNext의 저빈도 DB 권위 후보에 한정한다.
+
+- J01: worker는 제안만 하고 PG state/revision/command/owner의 실제 commit을 C로 삼는다. client socket은 단일 Linux/OpenSSL memory BIO gate만 소유한다. 이것을 모든 장르의 필수 DB 구조로 확대하지 않는다.
+- J02: owner/incarnation·subject/session·match·view·command hash를 함께 검사한다. mutation은1회, ACK 유실 뒤 중복 응답도 새로운 P 인가를 받는다. DB 저장 fencing과 old gate 종료/격리를 별도로 증명한다.
+- J03: snapshot cut/revision과 현재 view를 연결하고 tail 유실·overflow이면 완전 재조회한다. 마지막 이벤트가 없어도 독립 reconciliation을 유지한다. normal network recovery에서 서버/DB/인가가 정상인 각 사례는5초 내 fresh LIVE를 검증한다. 장애 사례를 정상 성공으로 숨기지 않는다.
+- J04: durable start 전에 LIVE 금지, terminal의 첫 시각·ID·deadline 불변. PG 단독 crash와 DB 재해 RPO24h를 분리한다. 외부 archive 전송 완료와 권위 commit은 별개다. 양쪽 저장 불능+process loss는 구체 설계 B5의 closed/원장 대조/허위 종결 재생성 금지를 적용한다.
+- J05: success/error/null/finally/retry와 snapshot suffix에도 현재 generation/P 검사. 정지 재개 시 새 작업 폐쇄. 최초 t0+60초 정각 abort 우선, retry/restart로 초기화 금지.
+- J06: 기존11개 동등 안전성 유지. D0007/08의 외부R5초·최종transport 인계·증명된 after-check 정지 한계만 부분 대체한다. hostless 두 Probe 범위를 모든 게임 면제로 확대하지 않는다.
+
+P는 send가 수락한 byte prefix다. 취소 가능한 BIO/queue는 P 이전이고, 남은 ciphertext는 새 검사 후만 인계한다. 권한 상실 때 연결을 종료한다. 인계 후 전달은 회수 미보장이다. 일반 DB commit/WAL 지연은 정지 예외가 아니며 **Z1 실제 C deadline 공백**은 실행 시험으로 대체하지 않는다. 설계 전체/STEP4B HOLD, 행동 NOT_RUN.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 - 상태: **정식 STEP4B 제출 산출물 / 사후 감사 대기 / STEP4B IN_PROGRESS**. 가이드4 반영이며 사용자 승인·현행 CURRENT rulebook 변경·Target 동결·구현 지원 완료가 아니다.
 - 고정 입력: [Astra 판단 원문](https://github.com/limbit95/limbit95.github.io/blob/ddfa7a5e226fe0c5f62779a19b708ca0802899ce/docs/game-platform-rebuild/artifacts/step-4b-astra-judgment.md), commit `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`.
 - Work Sol은 아래 판단 본문 전체를 그대로 옮겼다. 선택·보류·사유·조건·미확인·후속 책임을 축약하거나 새로운 선택으로 바꾸지 않았다. J번호는 판단 절, B번호는 [저장소 근거](step-4b-source-trace.md), V번호는 [기존 선택 원문 검토](step-4b-research-verification.md)다.

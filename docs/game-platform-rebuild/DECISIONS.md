@@ -73,3 +73,12 @@
 - 계속 금지: 의도적 만료 유예·실패 인지 후 추가 허가·처음부터 무권한 허가 발급·일반 장애 사후 예외 확대·5초 percentile 전환. 외부철회5초/각재연결5초/장애60초 구분, 최초 장애 deadline의 retry/재시작 초기화 금지 유지.
 - 설계 잔여: 정확한 기술적 운영 경계/검증 조건은 Astra 후속 판단. 임의 수치·예외 목록·제품·주기·알고리즘·Auth 교체 채택 아님. 실제 보장 변경이지 설명 정리 아님.
 - 한계: 후보 설계 채택·G03/STEP4B 완료·정식 반영·구현·실행/오픈·STEP5A·병합 승인 아님. 구조적 공백을 시험으로 대체하지 않으며 NOT_RUN만으로 설계 전체를 자동 HOLD하지 않는다. 다른 비용/품질/단말/기록/삭제/복구/Free서울/운영 목표 불변.
+
+## D-0009 — STEP4B 구체 수단 선택과 정식 계약·계획 정합화
+
+- 상태: **DESIGN_SELECTION_RECORDED / DESIGN_BLOCKERS_REMAIN / EXECUTION_NOT_RUN**.
+- 출처: CP0073 고정 입력과2026-10-07 사용자 ‘S-A·S-B·S-C 설계 확정 및 정식 계약·루트 계획 반영’ 지시. [CP0074 판단](artifacts/step-4b-design-finalization.md).
+- 선택: 비노출 fixed SECURITY DEFINER의 전용 EXECUTE caller·보호 DML ticket/guard·단일 native TLS gate·Free서울/Lightsail2GB/DynamoDB 분리 archive 및 Scheduler/Lambda/SNS 조합. 기존 Auth/게임 보존. 최소권한 owner가 실제로 확보됐다는 주장은 대체하고 넓은 definer owner의 제한 capability 책임을 명시한다.
+- 부분 대체: CP0073의 S-A~C 미선택 수단을 위 설계로 구체화. 과거 판단·CP는 그대로 보존. D0006~08의 사용자 보장 범위는 변경하지 않는다.
+- 한계: Z1 일반 DB 실제commit deadline은 미해결. §7의 보장 변경 추천은 **PROPOSED_NOT_ADOPTED**다. 제품 선택은 구매/배포/추가 요금 승인 또는 실제 성능/복구 보증이 아니다.
+- 계획: 개정1.4는 STEP4B 및 연결 설계/실행 게이트만 정합화한다. 22단계·무이관·STEP6 전 구현 금지·별도 병합 승인 유지. 현재 rulebook/code/SQL/운영 권한 변경 없음.

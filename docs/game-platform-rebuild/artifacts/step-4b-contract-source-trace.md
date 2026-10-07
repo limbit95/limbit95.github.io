@@ -1,5 +1,23 @@
 # STEP 4B — 정식 계약 반영 trace
 
+## CP0074 현재 적용 trace
+
+입력 CP0073 `e3aa3feaf945e472d73360d7f580f583b01ce648`과 D0006~08을 기준으로 사용자 허용한 정식 반영을 수행한다. 아래 원본5블록 hash/줄번호는 최초 반영 이력이며 새 절을 삽입했다고 그 hash를 다시 계산해 대체하지 않는다. 과거 입력 원문을 새 판단으로 덮어쓰지 않는다.
+
+| 입력/판단 | 현재 정식 반영 | 대체/유지 |
+|---|---|---|
+| D0006~08·CP0073§3/4 | runtime J01~06·security J07/08·계획1.4 STEP4B | 설계/실행 분리, 외부R5초/P인계/증명된 정지 예외만 대체 |
+| CP0074 설계§2·metadata SELECT2개 | security J07~09 | noLOGIN minimum-owner 미확보를 실제 definer callable 경계로 대체; runtime 관리자 권한 금지 |
+| CP0074 설계§3 | runtime J01~05 | native TLS gate 선택·old store/send 독립·실제 C 유지; Z1 HOLD |
+| CP0074 설계§4 | runtime J04·execution J10~13 | 분리archive/current/삭제generation·복구 범위 및 B5 처리 확정 |
+| CP0074 설계§5 | execution J10~12 | 구체 SKU/감시 조합·가격 가정·예산 조건, 실측UNKNOWN |
+| CP0074 설계§6 | execution J13·validation | T01~14/B01~07 현재 delta, 원본 명세 보존/NOT_RUN |
+| CP0074 설계§7 | risks·CURRENT·계획1.4 STEP4B | 정확한 Z1과 다음 사용자 정책 판단, 완료/병합 없음 |
+
+원문 증거는 [새 근거](step-4b-design-finalization-evidence.md), 변경 검증은 [새 검증](step-4b-design-finalization-validation.md)이다. self SHA 대신 이번 checkpoint와 Git commit으로 제출을 추적한다.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 상태: 가이드4 정식 반영 검증용. 입력 commit `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, 판단 blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`. 원본 판단을 변경하지 않고 서로 겹치지 않는5블록으로 **전체 입력**을 반영했다. 아래 SHA256은 원본 블록 UTF-8/개행 포함 hash이며 source의 사실 정확성이나 구현 지원을 인증하지 않는다.
 
 ## 원문 전체 반영

@@ -1,5 +1,15 @@
 # STEP 4B — 가이드4 정식 반영 검증
 
+## CP0074 현재 정식 검증 범위
+
+[새 검증 기록](step-4b-design-finalization-validation.md)과 [구체 설계](step-4b-design-finalization.md)를 적용한다. 아래 PASS/NOT_RUN/당시 원문 줄번호는 가이드4 이력이며 CP0074의 행동 시험 결과가 아니다.
+
+검사 대상은 정식6문서의 현재 적용 절, 구체 설계/근거/검증/CP0074, DECISIONS/CURRENT/분담, 계획1.4·기록 README다. 기존 원문 블록은 보존하고 추가 적용 절로 supersedes 관계를 명시한다. 원격 입력 tree 대비 허용 경로·링크/표/공백·22단계 상태·Governance 검사와 read-back을 수행한다.
+
+실제R/commit C/send P·clock 오차를 계측하지 않았으므로 권한·5초·성능·복원·삭제는 모두 NOT_RUN이다. Z1은 필수 설계 잔여, 실행/배포 manifest와 비용 측정은 별도다. 새 lookup metadata는 SELECT2개이며 전수 writer/원자 snapshot/운영 적용 증거가 아니다. 이번 검증은 STEP4B 완료나 오픈 승인이 아니다.
+
+## 최초 정식 반영 이력 — 이하 원문 보존
+
 검증 대상은 정식 설계 문서와 진행 기록이다. 고정 입력 SHA `ddfa7a5e226fe0c5f62779a19b708ca0802899ce`, 판단 blob `bd4c5b4991921c17d74bd99ef275819e4ae046f5`. 후속 독립 사후 감사·실제 제품/보안/복구 지원 검증과 구별한다.
 
 ## 재현과 검사 범위

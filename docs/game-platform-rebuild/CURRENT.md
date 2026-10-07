@@ -5,8 +5,8 @@
 ## 기준
 
 - 실행 계획: `/game_platform_vnext_final_execution_plan.md`
-- 계획 개정: **1.3**
-- 계획 blob SHA: `e12ef038913eb6d605709b782f1b73f18e0d1253`
+- 계획 개정: **1.4**
+- 계획 blob SHA: `8218b23ff4dd6c4df4f6d93db5dc8a32b9a7096c`
 - 작업 root-slug: `game-platform-vnext`
 - 계획의 이전 대조 기준 main: `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
@@ -20,20 +20,15 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP4B IN_PROGRESS / INTEGRATED_DESIGN_CONDITIONAL / S-A~S-C 설계 승인 전 잔여 / 전체 완료·구현 HOLD**.
+- STEP4B **IN_PROGRESS / DESIGN_FINALIZATION_HOLD**. 이번 입력 CP0073 `e3aa3feaf945e472d73360d7f580f583b01ce648`, 시작HEAD 일치/추가변경0.
+- 최신 [CP0074](checkpoints/CP-0074-step-4b-design-finalization.md)·[구체 설계](artifacts/step-4b-design-finalization.md)·[근거](artifacts/step-4b-design-finalization-evidence.md)·[검증](artifacts/step-4b-design-finalization-validation.md).
+- S-A의 predicate/최소 callable 권한/전체writer guard·S-B의 DynamoDB 분리archive/current/삭제generation·S-C의 Free서울/Lightsail2GB/외부저장/독립감시 조합을 선택하고 정식6문서·계획1.4에 반영했다. 제품 구매·운영 적용 아님.
+- 설계 종료 전 **Z1 일반 PG 최종검사→실제commit 기한**이 남는다. 구조 공백을 실행 시험으로 넘기지 않는다. [D0009](DECISIONS.md)는 기술 선택 기록이며 D0006~08 사용자 정책은 불변.
+- 다음 작업 하나: 구체 설계§7의 Z1 보장 범위에 대한 사용자 판단. 추천 변경은 PROPOSED_NOT_ADOPTED. 동일 Sol조사/문의/새감사 자동 재개 없음. CP0073의 다음Sol정합화 안내는 당시 이력이며 이번 사용자 확장 범위로 대체됐다.
+- G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두Probe 적용만 SCOPED_DESIGN_RESOLVED. 설계/실행/오픈 분리, 행동시험 NOT_RUN, STEP5A 이후 NOT_STARTED.
+- 100명/판8·세금포함월추가3만원·원격p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·daily외부/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지. 미래부하/실청구 UNKNOWN, 기존소비0 가정 없음.
 - 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합/base 유지.
-- 고정 입력/시작 HEAD CP0072 `2a48b3d1d3c5ffe7a64675051181b2efa6c86c81`, 추가변경0. 최신 [CP0073](checkpoints/CP-0073-step-4b-integrated-design-judgment.md)·[통합 판단](artifacts/step-4b-integrated-design-judgment.md)·[검증](artifacts/step-4b-integrated-design-validation.md).
-- 최상위 **조건부 채택 가능**: 기존 Auth/게임 보존·primary DB 실제commit C·단일 통제 송신 gate. TLS memory BIO/ciphertext queue→native nonblocking send를 구체 추천 후보로 연결. 완성 제품/운영 적용/5초 실행 보장 아님. Node write 반환만으로 최종P 판정 금지.
-- [D0006~08](DECISIONS.md) 유지. 기본 지연/partition/이벤트 유실은 검증 범위, 실제 after-check runtime/DB/host 정지의 해당 in-progress C/P만 수용한 한계. 증거 없는 정지 추정·일반 지연 사후 예외화 금지. CP0071 C 판정은 당시 이력 보존.
-- 설계 승인 전 잔여: S-A 실제 session/만료/삭제 predicate·최소권한 grantor/RLS·전체 writer/cascade, S-B 최초terminal/현재권한·삭제 복원독립원천과 publish/allcopies삭제/backup수단, S-C 제품·총비용/운영 배치. 이 구조적 공백을 나중 시험으로 대체하지 않음.
-- 구현/오픈 의무 E01~04: exact manifest/시간예산·권한경합/owner/queue·RPO/RTO/삭제·100명/품질/비용. 행동 NOT_RUN만으로 설계 자동HOLD 아님. 일반 DB commit 지연 등 기본 범위의 상한 초과는 FAIL, 불명 trace는 INCONCLUSIVE.
-- **다음 담당 Sol/Codex, 한 작업은 통합 판단의 정식 계약·계획 정합화.** runtime/sync·security/site·trace·risks·validation·execution/operations J10~13·T/B amendment·계획STEP4B 범위를 특정. S-A~C 미해결이면 중간본이며 완료 처리 불가. 같은 조사/문의/포괄감사 cycle 기본 지정 없음.
-- 사용자 추가 정책 질문/새 제품·주기·Auth 교체 채택 없음, DECISIONS 보존. 기존게임 무이관. old owner 저장 fencing과 old gate 실제 종료/격리 확인 분리, 확인 불가 takeover는 닫힘.
-- 100명/판8·세금포함월추가30,000원·원격권위화면p95 250ms·정상망회복각재연결5초·모바일5기능 유지. 외부철회5초/재연결5초/최초장애60초 별개·retry/재시작deadline 초기화 금지.
-- 본인참가/필요운영자 열람·최초종결+30일삭제·탈퇴unlink·daily외부/RPO24h·발견후24h수동복구·최근7일복구점/삭제우선 유지. 복원시 현재권한·삭제 검증 실패는 폐쇄 유지, RPO는 권한 부활 허용 아님.
-- Free서울·기존 KST운영시간(24/7아님)·Windows10/11 Chrome/Edge/iPhone Safari 유지. 미래workload/기존소비/실청구 UNKNOWN. 비용/단말/backup 명세 재작성 없음.
-- G03 OPEN/BLOCKING,G01/G02/G04/G05 PARTIAL/OPEN,G06 두 Probe 적용만 SCOPED_DESIGN_RESOLVED. 설계/실행/오픈 상태 분리, 전체 완료·구현 HOLD.
-- 신규3/수정2 총5경로. 과거/DECISIONS/정식/계획/코드/SQL 보존. 이번 정식반영·구현·시험·권한변경·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
+- 새metadata SELECT2개는 역할/ACL/column 관측일 뿐 전수writer/원자snapshot/운영적용 증거가 아니다. 실사용자·비밀 조회/권한변경 없음. 코드/SQL·실제시험·job/dump/복원·STEP5A·병합·main 변경 없이 원격 확인 뒤 정지.
 
 ## 22개 검토 지점
 
