@@ -20,8 +20,8 @@
 
 ## 현재 상태
 
-- STEP4B **REVIEW_PENDING / DESIGN_SPEC_COMPLETE**. 이번 고정 입력 CP0074 `abf44a4c0269cf69173ea5881d8697c948fab8db`, 시작HEAD 일치/추가변경0.
-- 최신 [CP0075](checkpoints/CP-0075-step-4b-z1-adopted-design-closeout.md)·[결정/설계 종료 확인](artifacts/step-4b-z1-decision-and-design-closeout.md)·[검증](artifacts/step-4b-z1-closeout-validation.md). CP0074 판단/근거는 당시 이력으로 보존한다.
+- STEP4B **REVIEW_PENDING / DESIGN_SPEC_COMPLETE**. 이번 고정 검토 입력 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 시작HEAD 일치/추가변경0.
+- 최신 [CP0076](checkpoints/CP-0076-step-4b-final-design-review.md)·[최종 검토](artifacts/step-4b-final-design-review.md)·[검증](artifacts/step-4b-final-design-review-validation.md): **설계 결과 승인 검토 가능 / 필수 보완 불필요**, 필수 finding0. CP0075 설계 제출본을 검토했으며 검토 통과는 사용자 결과 승인/병합/오픈 승인이 아니다. 과거 CP0074~75 판단·결정·검증은 당시 이력으로 보존한다.
 - [D0010](DECISIONS.md): 최종 인가·착수 A를 지난 동일 DB transaction의 일반 저장 지연 C를 사용자 승인으로 수용했다. 실제 C 관측 유지, 새 A/P·retry·owner·expiry·인지 실패/60초 보호 유지. 정식6문서·계획1.5에 반영했다.
 - Z1 **SCOPED_DESIGN_RESOLVED**, 기존 선택 구조의 필수 설계 잔여 없음. S-A~C·B5는 CP0074 그대로이며 실제 지원/제품 구매/운영 적용을 뜻하지 않는다.
 - 다음 담당 사용자, 작업 하나는 STEP4B 설계 산출물 결과 검토·승인. 계획§4.2가 요구하는 기존 절차이며 Z1 정책 재질문·새 포괄감사/반복 조사 추가 없음. 결과 승인/병합/STEP5A/main은 별도다.
