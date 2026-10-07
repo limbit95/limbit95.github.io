@@ -210,3 +210,15 @@ G03 OPEN/BLOCKING; G01/G02/G04/G05 PARTIAL/OPEN; G06 두 Probe 적용 판단만 
 | 구현·시험 담당 | 허용 단계에서 수정 T01~14 적용. 현재 NOT_RUN/HOLD. 미구현만으로 설계 HOLD하지 않지만 S1/S2를 시험으로 떠넘기지 않음 |
 
 G03 OPEN/BLOCKING, G01/G02/G04/G05 PARTIAL/OPEN, G06 두 Probe만 SCOPED_DESIGN_RESOLVED. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 사용자 추가 정책 선택 없음. 제출 확인 뒤 정지.
+
+## CP0069 S1·S2 구체 바인딩 제출 — CP0070
+
+[명세](step-4b-s1-s2-binding-specification.md)·[검증](step-4b-s1-s2-binding-validation.md)·[CP0070](../checkpoints/CP-0070-step-4b-s1-s2-binding-specification.md). 입력 CP0069 `a4bd815b3b0c4c93893a82fa659cabdb4f93f0aa`, PR HEAD 일치/추가변경0.
+
+| 담당 | 완료/다음 범위 |
+|---|---|
+| Sol | 바인딩 표 제출 종료. S1 실제 함수/ACL·caller와 새 fence 연결 위치, S2 PG authority/timeout·Node/native handoff 수단과 정확한 공백 특정. 운영 metadata0·행동 NOT_RUN |
+| 다음 Astra | **한 번의 후보 채택/배제 판단**. 단순 pre-check→commit/send의 정지 반례·미확보 deadline primitive를 해석. 새 수단 없이 동일 Sol 자료 수집 재개 금지 |
+| 구현·시험 | 별도 허용 단계에서 manifest/실제 R/C/P/owner 관측 증명. 현재 NOT_STARTED/HOLD. 미확보 설계 수단을 시험으로 대신하지 않음 |
+
+기술/제품/정책 채택 없음, DECISIONS 보존. G03 OPEN/BLOCKING·다른 게이트 유지. STEP4B IN_PROGRESS/전체 완료·구현 HOLD. 정식 반영·구현·시험·권한 변경·문의·job/dump/복원·STEP5A·병합·main 없이 제출 확인 뒤 정지.
