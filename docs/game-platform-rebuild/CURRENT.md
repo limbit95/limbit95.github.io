@@ -24,9 +24,9 @@
 - 승인 대상 설계 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 검토 CP0076 `a4b524eadd52de6e35e315d2491e5f8516962eab`. 최신 [CP0077](checkpoints/CP-0077-step-4b-result-approved.md). 필수 보완0, 정식 설계/정책은 변경하지 않는다.
 - 계획1.5 §4.2에 따른 설계 단계 완료다. 구현·실행 검증·오픈 완료가 아니다. G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 행동 시험 NOT_RUN·실행/오픈 blocker·미래부하/실청구 UNKNOWN 유지.
 - D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
-- **integration 병합 승인 미수행 / 실제 병합 미수행 / STEP5A 진행 승인 미수행**. 다음 담당 사용자, 작업 하나는 PR412의 integration 병합 승인 여부 결정이다.
-- integration에 실제 반영된 마지막 승인 STEP은 STEP4A/PR411, 확인 base `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`, PR412 OPEN/Draft/미병합. 다음 STEP은 별도 허용 및 실제 integration 반영 확인 후 시작한다.
-- 승인 기록만 원격 보존한다. 정식 계약/계획/DECISIONS/과거 기록/코드/SQL 불변, 추가 조사·구현·시험·운영 변경·구매·문의·job/dump/복원·STEP5A·병합·main 없이 제출 확인 뒤 정지한다.
+- **PR412 integration 병합 승인 및 실제 병합 완료 / STEP5A 진행 승인 미수행**. 2026-10-08 10:08:06 KST 사용자 “승인”에 따라 병합했다. 다음 담당 사용자, 작업 하나는 STEP5A 착수 지시 여부 결정이다.
+- integration에 실제 반영된 마지막 승인 STEP은 STEP4B/PR412, merge `32429a20f76a7fde6733db384fa067fbcd7307d1`. CP0077까지 포함된 승인 head `3e105be42f4dbcdf0875486bd8f0e5d38bcd1d1a`와 merge tree 일치 확인. 기존 STEP branch는 종료 이력이다. 최신 [CP0078](checkpoints/CP-0078-step-4b-integration-merged.md). 병합 후 기록은 `docs/game-platform-vnext-phase4b-merge-record`에서 별도 PR로 제출하며 integration 직접 commit은 하지 않는다.
+- 병합 후 기록만 원격 보존한다. 정식 계약/계획/DECISIONS/과거 기록/코드/SQL 불변, 추가 조사·구현·시험·운영 변경·구매·문의·job/dump/복원·STEP5A·main 없이 제출 확인 뒤 정지한다.
 
 ## 22개 검토 지점
 
