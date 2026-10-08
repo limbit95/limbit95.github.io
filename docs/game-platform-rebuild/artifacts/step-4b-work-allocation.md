@@ -1,5 +1,11 @@
 # STEP 4B — 작업 분담과 정지 경계
 
+## CP0077 사용자 결과 승인
+
+2026-10-08 09:42:05 KST 사용자 “승인할게”를 직전 안내의 STEP4B 설계 결과 승인으로 기록한다. CP0075 설계/CP0076 검토가 승인 대상이며 [CP0077](../checkpoints/CP-0077-step-4b-result-approved.md)에 범위와 검증을 남긴다. STEP4B COMPLETED / DESIGN_RESULT_APPROVED. 구현·실행·오픈 완료나 병합 승인이 아니다.
+
+다음 담당 사용자, 작업 하나는 PR412의 integration 병합 승인 여부 결정이다. 실제 병합·STEP5A 미수행, 행동 시험 NOT_RUN 및 오픈 blocker 유지. 이하 분담은 당시 이력이다.
+
 ## CP0076 현재 담당과 결과
 
 사용자가 지정한 Astra 책임의 최종 검토로 고정 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`를 대조했다. 역할 명칭은 별도 모델 실행 인증이 아니다. [검토](step-4b-final-design-review.md)·[검증](step-4b-final-design-review-validation.md)·[CP0076](../checkpoints/CP-0076-step-4b-final-design-review.md). **설계 결과 승인 검토 가능 / 필수 보완 불필요**, 필수 finding0. DECISIONS·정식 계약·계획은 변경하지 않았다.

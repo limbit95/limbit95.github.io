@@ -20,15 +20,13 @@
 
 ## 현재 상태
 
-- STEP4B **REVIEW_PENDING / DESIGN_SPEC_COMPLETE**. 이번 고정 검토 입력 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 시작HEAD 일치/추가변경0.
-- 최신 [CP0076](checkpoints/CP-0076-step-4b-final-design-review.md)·[최종 검토](artifacts/step-4b-final-design-review.md)·[검증](artifacts/step-4b-final-design-review-validation.md): **설계 결과 승인 검토 가능 / 필수 보완 불필요**, 필수 finding0. CP0075 설계 제출본을 검토했으며 검토 통과는 사용자 결과 승인/병합/오픈 승인이 아니다. 과거 CP0074~75 판단·결정·검증은 당시 이력으로 보존한다.
-- [D0010](DECISIONS.md): 최종 인가·착수 A를 지난 동일 DB transaction의 일반 저장 지연 C를 사용자 승인으로 수용했다. 실제 C 관측 유지, 새 A/P·retry·owner·expiry·인지 실패/60초 보호 유지. 정식6문서·계획1.5에 반영했다.
-- Z1 **SCOPED_DESIGN_RESOLVED**, 기존 선택 구조의 필수 설계 잔여 없음. S-A~C·B5는 CP0074 그대로이며 실제 지원/제품 구매/운영 적용을 뜻하지 않는다.
-- 다음 담당 사용자, 작업 하나는 STEP4B 설계 산출물 결과 검토·승인. 계획§4.2가 요구하는 기존 절차이며 Z1 정책 재질문·새 포괄감사/반복 조사 추가 없음. 결과 승인/병합/STEP5A/main은 별도다.
-- G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 전체 결과 검토 대기이며 실행 NOT_RUN/오픈 blocker 유지. STEP5A 이후 NOT_STARTED.
-- 100명/판8·세금포함월추가3만원·원격p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·daily외부/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지. 미래부하/실청구 UNKNOWN, 기존소비0 가정 없음.
-- 마지막 승인 STEP4A/PR411, integration `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`; PR412 OPEN/Draft/미병합/base 유지.
-- 이번 새 metadata/가격/지원 조사0, 실사용자/비밀 조회·권한변경0. CP0074의 SELECT2개는 과거 제한 관측이며 전수 writer/원자 snapshot/운영 적용 증거가 아니다. 코드/SQL·실제시험·구매·문의·job/dump/복원·STEP5A·병합·main 없이 원격 확인 뒤 정지.
+- STEP4B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-08 09:42:05 KST 사용자 “승인할게”로 CP0075 설계 결과와 CP0076 최종 검토에 대한 결과 승인을 확인했다.
+- 승인 대상 설계 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 검토 CP0076 `a4b524eadd52de6e35e315d2491e5f8516962eab`. 최신 [CP0077](checkpoints/CP-0077-step-4b-result-approved.md). 필수 보완0, 정식 설계/정책은 변경하지 않는다.
+- 계획1.5 §4.2에 따른 설계 단계 완료다. 구현·실행 검증·오픈 완료가 아니다. G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 행동 시험 NOT_RUN·실행/오픈 blocker·미래부하/실청구 UNKNOWN 유지.
+- D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
+- **integration 병합 승인 미수행 / 실제 병합 미수행 / STEP5A 진행 승인 미수행**. 다음 담당 사용자, 작업 하나는 PR412의 integration 병합 승인 여부 결정이다.
+- integration에 실제 반영된 마지막 승인 STEP은 STEP4A/PR411, 확인 base `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`, PR412 OPEN/Draft/미병합. 다음 STEP은 별도 허용 및 실제 integration 반영 확인 후 시작한다.
+- 승인 기록만 원격 보존한다. 정식 계약/계획/DECISIONS/과거 기록/코드/SQL 불변, 추가 조사·구현·시험·운영 변경·구매·문의·job/dump/복원·STEP5A·병합·main 없이 제출 확인 뒤 정지한다.
 
 ## 22개 검토 지점
 
@@ -39,7 +37,7 @@
 | 2 | COMPLETED |
 | 3 | COMPLETED |
 | 4A | COMPLETED |
-| 4B | REVIEW_PENDING |
+| 4B | COMPLETED |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
 | 5C | NOT_STARTED |
