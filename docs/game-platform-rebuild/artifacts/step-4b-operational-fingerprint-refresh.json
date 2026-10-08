@@ -1,0 +1,128 @@
+{
+  "input_sha": "c1f1c41d3f3cb7de160f529ad7e6c50215e93d22",
+  "observed_date_kst": "2026-10-06",
+  "scope": "One catalog SELECT for selected function fingerprints/ACL only; no Auth/session/user rows; not full writer audit or behavioral evidence",
+  "query": "select current_timestamp as observed_at, current_setting('server_version') as server_version, n.nspname as schema, p.proname, pg_get_function_identity_arguments(p.oid) as arguments, p.prosecdef as security_definer, p.proacl::text as acl, md5(pg_get_functiondef(p.oid)) as definition_md5 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.prokind='f' and n.nspname in ('public','private') and p.proname in ('admin_set_member_status','admin_set_member_role','system_admin_set_permissions','admin_approve_join_request','admin_review_join_request','protect_profile_privileged_columns','is_approved_member','is_admin','is_system_admin','has_admin_permission','bootstrap_system_admin') order by n.nspname,p.proname;",
+  "rows": [
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "private",
+      "proname": "has_admin_permission",
+      "arguments": "p_permission text",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "bcaf025bad5ce30d385c8a8f5d91ece6"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "private",
+      "proname": "is_admin",
+      "arguments": "",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "3ef9e83e85e49e3aff8c0208a184c777"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "private",
+      "proname": "is_approved_member",
+      "arguments": "",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "6eff168c1244c6114e7a36323b9f3952"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "private",
+      "proname": "is_system_admin",
+      "arguments": "",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "d465ea84729bc00d900e2e02629a2caa"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "private",
+      "proname": "protect_profile_privileged_columns",
+      "arguments": "",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres}",
+      "definition_md5": "4e00494f57c92c615029f33aff90c1e2"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "admin_approve_join_request",
+      "arguments": "p_user_id uuid, p_admin_note text",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "18a323ecd45029f63a28484c496892b9"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "admin_review_join_request",
+      "arguments": "p_user_id uuid, p_decision text, p_admin_note text",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "9aaad818c93dff4fa271a9230db01a2f"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "admin_set_member_role",
+      "arguments": "p_user_id uuid, p_role text",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "e7e9f0c4041740bea88fb2e8304f3f96"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "admin_set_member_status",
+      "arguments": "p_user_id uuid, p_status text",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "6b6124e7b6639611f7006d9916d80d39"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "bootstrap_system_admin",
+      "arguments": "p_user_id uuid",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "definition_md5": "db9a7c09623410963f5e6c375bc43da6"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "is_admin",
+      "arguments": "",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "definition_md5": "1a6a265dd453123109cfc9d183cd0f4a"
+    },
+    {
+      "observed_at": "2026-10-06 02:16:51.822139+00",
+      "server_version": "17.6",
+      "schema": "public",
+      "proname": "system_admin_set_permissions",
+      "arguments": "p_user_id uuid, p_permissions text[]",
+      "security_definer": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "definition_md5": "7cc7de24e84aa9d05c4fe1f88f6ccc15"
+    }
+  ]
+}

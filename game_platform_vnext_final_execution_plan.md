@@ -1,5 +1,9 @@
 # 청파 같이 통합 게임 플랫폼 vNext — 단계별 실행 계획 확정본
 
+> **개정 1.5 · 2026-10-07**: 사용자 승인 D0010에 따라 STEP4B의 최종 인가·착수 A와 실제 commit C를 구분한다. 이미 적법하게 착수한 동일 transaction의 일반 저장 지연 C를 수용하며 새 A/P·known expiry·인지 실패/60초·owner 보호는 유지한다. CP0075에서 설계 산출물 완료/§4.2 사용자 결과 검토 대기를 구분한다. 개정1.4의 Z1 HOLD는 당시 이력이며 아래1.5 보완으로 대체한다. 22단계·STEP6 전 구현 제한·기존게임 무이관·integration/main 별도 승인 유지. 코드/운영 적용 변경 없음.
+
+> **개정 1.4 · 2026-10-07**: 사용자 허용에 따라 STEP4B의 D0006~D0008 보장 범위, 설계/실행/오픈 상태와 정식 계약 연결만 정합화했다. 22개 검토 지점·integration 운영·기존게임 무이관·STEP6 전 runtime 구현 금지는 유지한다. 아래 개정1.3 설명은 그 개정의 이력이며 현재 STEP4B에는 해당 절의1.4 보완이 우선한다. 결정은 `docs/game-platform-rebuild/DECISIONS.md` D-0009, 상태는 CURRENT/CP0074에서 추적한다. 변경은 기존 게임 코드/DB 계약에 소급 적용하지 않는다.
+
 > 개정 1.3 · 2026-09-30. 이 문서는 **하나의 게임 플랫폼 아키텍처 아래에 공통 개발 규칙과 장르별 규칙을 구성하고, 앞으로 개발할 모든 게임에 적용하기 위한 실행 지시서**다. 개정 1.2의 아키텍처·규칙 계승·22개 검토 지점·진행 기록 체계는 유지한다. 이번 개정은 **승인된 STEP 결과를 장기 integration branch에 누적하고, STEP PR과 최종 main 반영의 승인을 분리하기 위한 브랜치/PR 운영 변경**이다. 관련 기준선·기록·새 채팅 복원·진행 중 STEP 0 안내만 정합화한다. 아직 저장소의 `CURRENT` 실행 규칙이나 구현 완료 사실이 아니다. 실제 규칙 변경은 아래 단계의 개별 PR과 검토를 거쳐 반영한다.
 >
 > 기준 자료: `universal_web_game_platform_architecture_rebuild_plan(1).md`, `game_platform_architecture_review_patch_proposal.md`, `games_rules_architecture_comparison_review.md`, 저장소의 `AGENTS.md`, `games/` 하위 문서 14개 및 연결 규칙 문서 8개. 앞선 저장소 대조 기준은 `main`의 `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`이다. **이 비교 기준, STEP 0 착수 기준 main, integration 최초 생성 기준 main을 구분해 STEP 0에 기록한다.** 이후 STEP의 기준선은 §4에 따른 승인된 integration 상태다.
@@ -293,6 +297,24 @@ STEP 0의 통과 기준에는 새로운 작업자가 **integration 또는 미병
 **작업:** 턴제 `DB/RPC → invalidation → snapshot`과 실시간 입력/상태 stream을 별도 선택 모델로 정의한다. authority, ordering, idempotency/sequence, 복구, 프라이빗 view, 지연/주기/대역폭, 서버 검증 기준을 모델별로 명시한다. 청파 같이의 승인회원·닉네임·초대·공개 정책과 게임 런타임의 연결 위치를 정한다. **실시간 모델의 실제 권위 실행 위치와 transport는 구현 전에 후보·운영 비용·보안/검증 방법을 결정**한다. Supabase 사용 여부는 제품 요구와 검증에 따라 정하며, 지원하지 않는 기술을 이미 검증한 것으로 표시하지 않는다.
 
 **산출물/게이트:** 모델별 품질 계약과 선택 사유, 새 백엔드/운영 선택의 미결정·비용, 기존 DB 계약의 유지 범위. 권한과 복원에 공백이 있으면 STEP 4A/4B에서 해결한다. **여기서 멈춘다.**
+
+#### 개정1.4 STEP4B 적용 게이트
+
+[D0006~08](docs/game-platform-rebuild/DECISIONS.md)과 [CP0074 구체 설계](docs/game-platform-rebuild/artifacts/step-4b-design-finalization.md)를 정식 runtime/security/execution 계약에 반영한다. 설계 종료 조건은 구체 수단·권한/실패/복원 경계·기존 소비자 호환·시험 oracle가 연결되고 필수 설계 공백이 없는 것이다. 실행 NOT_RUN만으로 설계를 자동 HOLD하지 않으며 실제 수단 없는 조건을 나중 시험으로 대신하지 않는다.
+
+외부 Auth 실제R부터 최대5초 차단은 명시된 운영 장애 범위에 적용한다. P는 서버 통제 최종 취소 불가 transport 인계이며 이후 전달 회수는 미보장이다. 최종검사 이후 입증된 runtime/DB/host 정지의 in-progress C/P 한계는 D0008대로 수용하되 일반 지연을 예외로 만들지 않는다. 초기 무권한0·known expiry 유예 없음·인지 실패 즉시차단/pause·최초60초 정각abort/retry초기화금지 유지.
+
+G01 품질·G02 재연결·G03 권한·G04 복구/삭제·G05 총비용은 설계 판정과 구현/오픈 검증을 별도 추적한다. G06은 두 Probe 규칙 적용 범위만 해소한다. 현재 Z1 실제 PG commit 시간 경계가 필수 설계 잔여다. 동시 저장 불능은 구체 설계 B5의 closed/기록 미확정 처리이며 무손실 의무를 추가하지 않는다. 이를 해결하기 전 STEP4B는 IN_PROGRESS이며 이번 문서 반영으로 완료하지 않는다.
+
+실행 검증은 허용된 후속 구현/Probe 단계에 배치하되 T01~14/B01~07의 권한·100명/판8·원격p95 250ms·각재연결5초·모바일·삭제/RPO/RTO·세금포함 총3만원 의무는 오픈 전 충족해야 한다. 테스트가 설계 공백을 발견하면 해당 계약으로 돌아간다. STEP4B 결과 제출·사용자 검토/승인·integration 병합·다음 STEP 시작·오픈은 별도이며 이번 STEP5A/구현/병합/main 진행은 없다.
+
+#### 개정1.5 STEP4B 적용 게이트
+
+[D0010](docs/game-platform-rebuild/DECISIONS.md)과 [CP0075 결정/설계 종료 확인](docs/game-platform-rebuild/artifacts/step-4b-z1-decision-and-design-closeout.md)이 위1.4의 Z1 미해결 상태와 실제 C5초 상한을 제한적으로 대체한다. A는 같은 DB finalizer에서 잠금/현재 predicate 확인 후 해당 command의 저장 처리로 진입하는 사건이며 ingress allow/BEGIN/enqueue가 아니다. 외부 R+5초 이후 새 A 금지, known expiry 뒤 새 A 금지, 인지 실패 후 추가 허가 금지다. 이미 A를 지난 동일 transaction의 일반 저장 지연 C만 수용한다. 새 retry/별도 transaction·P에는 예외가 전파되지 않는다.
+
+C는 실제 commit 관측점으로 유지하며 P의5초/최종 transport 인계·owner/중복/복원·최초60초 보호를 유지한다. S-A~C와 B5는 CP0074대로다. 시험 oracle는 A/C/P를 분리하며 수용한 늦은 C를 ‘실제 C5초 PASS’로 기록하지 않는다. 실행 검증은 NOT_RUN이다.
+
+필수 설계 잔여 Z1 해소·정식 산출물 작성 완료를 확인하되, §4.2의 사용자 결과 검토가 남아 STEP4B는 REVIEW_PENDING이다. 이 정책 승인을 전체 결과 승인으로 확대하지 않는다. 실제 제품/계정 조건·권한/성능/삭제/복구/총비용 검증은 구현·오픈 의무다. 결과 승인·integration 병합·다음 STEP 시작·main/오픈은 별도이며 이번에는 진행하지 않는다. 새로운 포괄 감사나 반복 자료 수집을 필수 단계로 추가하지 않는다.
 
 ### STEP 5A — 기존 공통 기능 판정
 

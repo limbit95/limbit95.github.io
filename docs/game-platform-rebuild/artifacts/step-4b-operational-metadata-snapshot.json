@@ -1,0 +1,592 @@
+{
+  "input_sha": "882bc485d1b45cf40b9eb4dbc18a724de01440dc",
+  "input_tree": "1916b117d0f7684019aff9e11d8d322e51fdeeda",
+  "observed_date_kst": "2026-10-05",
+  "observation": "Metadata SELECTs; independent calls, not an atomic catalog snapshot; no user/Auth row data read; no behavioral tests.",
+  "project_ref": "zxwdculpycqvbcfdoxvu",
+  "repository_config_match": true,
+  "plan": "free",
+  "region": "ap-northeast-2",
+  "platform_db_release": "17.6.1.084",
+  "queries": {
+    "env": "select current_user as connector_role, current_setting('server_version') as server_version, pg_database_size(current_database()) as database_bytes, current_timestamp as observed_at;",
+    "functions": "select n.nspname as schema,p.proname,pg_get_function_identity_arguments(p.oid) as arguments,p.prosecdef as security_definer,p.proconfig,p.proacl::text as acl,md5(pg_get_functiondef(p.oid)) as definition_md5,pg_get_functiondef(p.oid) as definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.proname in ('admin_set_member_status','admin_set_member_role','system_admin_set_permissions','admin_approve_join_request','admin_review_join_request','protect_profile_privileged_columns','is_approved_member','is_admin','is_system_admin','has_admin_permission','bootstrap_system_admin') order by n.nspname,p.proname;",
+    "boundary": "select c.relname,c.relrowsecurity,c.relforcerowsecurity,c.relacl::text as acl from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('profiles','admin_permissions','join_requests') order by c.relname;",
+    "triggers": "select n.nspname as schema,c.relname,t.tgname,pg_get_triggerdef(t.oid) as definition from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where not t.tgisinternal and ((n.nspname='public' and c.relname in ('profiles','admin_permissions','join_requests')) or (n.nspname='auth' and c.relname in ('sessions','users'))) order by n.nspname,c.relname,t.tgname;",
+    "policies": "select schemaname,tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename in ('profiles','admin_permissions','join_requests') order by tablename,policyname;",
+    "auth_metadata": "select c.relname,c.relacl::text as acl,c.relrowsecurity,c.relforcerowsecurity,has_table_privilege(current_user,c.oid,'SELECT') as connector_can_select from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='auth' and c.relname in ('users','sessions');",
+    "writers": "select n.nspname as schema,p.proname,pg_get_function_identity_arguments(p.oid) as arguments,md5(pg_get_functiondef(p.oid)) as definition_md5,pg_get_functiondef(p.oid) as definition from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','private') and p.prokind='f' and (p.prosrc ~* '(update[[:space:]]+(public[.])?profiles|delete[[:space:]]+from[[:space:]]+(public[.])?profiles|insert[[:space:]]+into[[:space:]]+(public[.])?admin_permissions|delete[[:space:]]+from[[:space:]]+(public[.])?admin_permissions)' ) order by n.nspname,p.proname;",
+    "auth_schema": "select table_schema,table_name,column_name,data_type from information_schema.columns where table_schema='auth' and table_name='sessions' order by ordinal_position;",
+    "foreignkeys": "select n.nspname as schema,c.relname,con.conname,pg_get_constraintdef(con.oid) as definition from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace where con.contype='f' and n.nspname='public' and c.relname in ('profiles','admin_permissions','join_requests') order by c.relname,con.conname;",
+    "auth_roles": "select r as role_name,has_table_privilege(r,'auth.sessions','SELECT') as can_select_sessions,has_table_privilege(r,'auth.users','SELECT') as can_select_users from unnest(array['anon','authenticated','service_role','postgres']) r;"
+  },
+  "results": {
+    "env": [
+      {
+        "connector_role": "postgres",
+        "server_version": "17.6",
+        "database_bytes": 39636115,
+        "observed_at": "2026-10-05 14:08:11.530075+00"
+      }
+    ],
+    "functions": [
+      {
+        "schema": "private",
+        "proname": "has_admin_permission",
+        "arguments": "p_permission text",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "bcaf025bad5ce30d385c8a8f5d91ece6",
+        "definition": "CREATE OR REPLACE FUNCTION private.has_admin_permission(p_permission text)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select private.is_system_admin() or (\n    p_permission in ('members', 'community', 'games', 'content', 'operations') and exists (\n      select 1 from public.profiles p\n      join public.admin_permissions ap on ap.user_id = p.id\n      where p.id = (select auth.uid()) and p.role = 'admin' and p.status = 'approved'\n        and ap.permission = p_permission\n    )\n  );\n$function$\n"
+      },
+      {
+        "schema": "private",
+        "proname": "is_admin",
+        "arguments": "",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "3ef9e83e85e49e3aff8c0208a184c777",
+        "definition": "CREATE OR REPLACE FUNCTION private.is_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select private.is_system_admin();\n$function$\n"
+      },
+      {
+        "schema": "private",
+        "proname": "is_approved_member",
+        "arguments": "",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "6eff168c1244c6114e7a36323b9f3952",
+        "definition": "CREATE OR REPLACE FUNCTION private.is_approved_member()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\r\n    select exists (\r\n        select 1\r\n        from public.profiles as p\r\n        where p.id = (select auth.uid())\r\n          and p.status = 'approved'\r\n    );\r\n$function$\n"
+      },
+      {
+        "schema": "private",
+        "proname": "is_system_admin",
+        "arguments": "",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "d465ea84729bc00d900e2e02629a2caa",
+        "definition": "CREATE OR REPLACE FUNCTION private.is_system_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\n  select exists (\n    select 1 from public.profiles p\n    where p.id = (select auth.uid()) and p.role = 'system_admin' and p.status = 'approved'\n  );\n$function$\n"
+      },
+      {
+        "schema": "private",
+        "proname": "protect_profile_privileged_columns",
+        "arguments": "",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres}",
+        "definition_md5": "4e00494f57c92c615029f33aff90c1e2",
+        "definition": "CREATE OR REPLACE FUNCTION private.protect_profile_privileged_columns()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if auth.uid() is not null and not private.is_system_admin() then\n    if new.role is distinct from old.role\n       or new.status is distinct from old.status\n       or new.approved_at is distinct from old.approved_at\n       or new.approved_by is distinct from old.approved_by\n       or new.created_at is distinct from old.created_at\n    then\n      if not private.has_admin_permission('members')\n         or coalesce(current_setting('app.allow_member_admin_update', true), 'false') <> 'true'\n      then\n        raise exception '권한 또는 승인 상태 컬럼은 변경할 수 없습니다.' using errcode = '42501';\n      end if;\n    end if;\n  end if;\n  return new;\nend; $function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_approve_join_request",
+        "arguments": "p_user_id uuid, p_admin_note text",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "18a323ecd45029f63a28484c496892b9",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_approve_join_request(p_user_id uuid, p_admin_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_admin_id uuid := auth.uid();\n    v_request_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 가입을 승인할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    select jr.status\n    into v_request_status\n    from public.join_requests as jr\n    where jr.user_id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '가입 신청을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_request_status not in ('pending', 'held') then\n        raise exception '승인 대기 또는 보류 중인 가입 신청만 승인할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = 'approved',\n        approved_at = now(),\n        approved_by = v_admin_id\n    where id = p_user_id;\n\n    update public.join_requests\n    set status = 'approved',\n        admin_note = nullif(btrim(p_admin_note), ''),\n        reviewed_at = now(),\n        reviewed_by = v_admin_id\n    where user_id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_review_join_request",
+        "arguments": "p_user_id uuid, p_decision text, p_admin_note text",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "9aaad818c93dff4fa271a9230db01a2f",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_review_join_request(p_user_id uuid, p_decision text, p_admin_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_admin_id uuid := auth.uid();\n    v_request_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 가입 신청을 검토할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_decision is null or p_decision not in ('rejected', 'held') then\n        raise exception '처리 상태는 rejected 또는 held만 가능합니다.'\n            using errcode = '22023';\n    end if;\n\n    select jr.status\n    into v_request_status\n    from public.join_requests as jr\n    where jr.user_id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '가입 신청을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_request_status not in ('pending', 'held') then\n        raise exception '승인 대기 또는 보류 중인 가입 신청만 검토할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = case\n            when p_decision = 'rejected' then 'rejected'\n            else 'pending'\n        end,\n        approved_at = null,\n        approved_by = null\n    where id = p_user_id;\n\n    update public.join_requests\n    set status = p_decision,\n        admin_note = nullif(btrim(p_admin_note), ''),\n        reviewed_at = now(),\n        reviewed_by = v_admin_id\n    where user_id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_set_member_role",
+        "arguments": "p_user_id uuid, p_role text",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "e7e9f0c4041740bea88fb2e8304f3f96",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_set_member_role(p_user_id uuid, p_role text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_current_role text;\n    v_current_status text;\nbegin\n    if not private.has_admin_permission('permissions') then\n        raise exception '관리자만 역할을 변경할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_role is null or p_role not in ('member', 'admin') then\n        raise exception '지원하지 않는 역할입니다.'\n            using errcode = '22023';\n    end if;\n\n    -- 역할 변경과 정지 처리를 같은 잠금 키로 직렬화해 마지막 관리자 보호\n    -- 검사가 동시 요청에서도 일관되게 동작하도록 한다.\n    perform pg_catalog.pg_advisory_xact_lock(73624721);\n\n    select p.role, p.status\n    into v_current_role, v_current_status\n    from public.profiles as p\n    where p.id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '회원을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_current_role = 'system_admin' then\n        raise exception '최고 관리자 역할은 서비스 내 권한 관리 RPC로 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_current_status <> 'approved' then\n        raise exception '승인 회원에게만 관리자 역할을 부여할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set role = p_role\n    where id = p_user_id;\n\n    if v_current_role = 'admin' and p_role = 'member' then\n        delete from public.admin_permissions where user_id = p_user_id;\n    end if;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_set_member_status",
+        "arguments": "p_user_id uuid, p_status text",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "6b6124e7b6639611f7006d9916d80d39",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_set_member_status(p_user_id uuid, p_status text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_role text;\n    v_current_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 회원 상태를 변경할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_status is null or p_status not in ('approved', 'suspended') then\n        raise exception '회원 상태는 approved 또는 suspended만 가능합니다.'\n            using errcode = '22023';\n    end if;\n\n    perform pg_catalog.pg_advisory_xact_lock(73624721);\n\n    select p.role, p.status\n    into v_role, v_current_status\n    from public.profiles as p\n    where p.id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '회원을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_role = 'system_admin' then\n        raise exception '최고 관리자의 상태는 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_role = 'admin' and not private.is_system_admin() then\n        raise exception '일반 관리자는 다른 관리자의 상태를 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_current_status not in ('approved', 'suspended') then\n        raise exception '가입 승인 전 상태는 가입 신청 관리 RPC로 처리해야 합니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = p_status,\n        approved_at = case\n            when p_status = 'approved' then coalesce(approved_at, now())\n            else approved_at\n        end,\n        approved_by = case\n            when p_status = 'approved' then coalesce(approved_by, auth.uid())\n            else approved_by\n        end\n    where id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "bootstrap_system_admin",
+        "arguments": "p_user_id uuid",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "definition_md5": "db9a7c09623410963f5e6c375bc43da6",
+        "definition": "CREATE OR REPLACE FUNCTION public.bootstrap_system_admin(p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if current_user not in ('postgres','service_role') then raise exception '서버 운영자만 최고 관리자를 초기화할 수 있습니다.' using errcode='42501'; end if;\n  if exists(select 1 from public.profiles where role='system_admin') then raise exception '최고 관리자가 이미 존재합니다.' using errcode='23505'; end if;\n  update public.profiles set role='system_admin' where id=p_user_id and role='admin' and status='approved';\n  if not found then raise exception '승인된 기존 관리자 UUID를 확인하세요.' using errcode='P0002'; end if;\n  delete from public.admin_permissions where user_id=p_user_id;\nend; $function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "is_admin",
+        "arguments": "",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+        "definition_md5": "1a6a265dd453123109cfc9d183cd0f4a",
+        "definition": "CREATE OR REPLACE FUNCTION public.is_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO ''\nAS $function$\r\n  select exists (\r\n    select 1\r\n    from public.admin_users\r\n    where user_id = auth.uid()\r\n  );\r\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "system_admin_set_permissions",
+        "arguments": "p_user_id uuid, p_permissions text[]",
+        "security_definer": true,
+        "proconfig": [
+          "search_path=\"\""
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+        "definition_md5": "7cc7de24e84aa9d05c4fe1f88f6ccc15",
+        "definition": "CREATE OR REPLACE FUNCTION public.system_admin_set_permissions(p_user_id uuid, p_permissions text[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare v_permission text;\nbegin\n  if not private.is_system_admin() then raise exception '최고 관리자만 관리자 권한을 변경할 수 있습니다.' using errcode='42501'; end if;\n  if not exists(select 1 from public.profiles p where p.id=p_user_id and p.role='admin' and p.status='approved') then\n    raise exception '승인된 일반 관리자만 권한을 설정할 수 있습니다.' using errcode='23514';\n  end if;\n  if exists(select 1 from unnest(coalesce(p_permissions,'{}')) x where x not in ('members','community','games','content','operations')) then\n    raise exception '권한 관리와 시스템 관리는 위임할 수 없습니다.' using errcode='22023';\n  end if;\n  delete from public.admin_permissions where user_id=p_user_id;\n  foreach v_permission in array coalesce(p_permissions,'{}') loop\n    insert into public.admin_permissions(user_id,permission,granted_by) values(p_user_id,v_permission,auth.uid());\n  end loop;\nend; $function$\n"
+      }
+    ],
+    "boundary": [
+      {
+        "relname": "admin_permissions",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false,
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}"
+      },
+      {
+        "relname": "join_requests",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false,
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=rw/postgres}"
+      },
+      {
+        "relname": "profiles",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false,
+        "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=rw/postgres}"
+      }
+    ],
+    "triggers": [
+      {
+        "schema": "auth",
+        "relname": "users",
+        "tgname": "on_auth_user_created",
+        "definition": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION private.handle_new_auth_user()"
+      },
+      {
+        "schema": "public",
+        "relname": "join_requests",
+        "tgname": "join_requests_set_updated_at",
+        "definition": "CREATE TRIGGER join_requests_set_updated_at BEFORE UPDATE ON public.join_requests FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()"
+      },
+      {
+        "schema": "public",
+        "relname": "join_requests",
+        "tgname": "trg_notify_join_request_admins",
+        "definition": "CREATE TRIGGER trg_notify_join_request_admins AFTER INSERT ON public.join_requests FOR EACH ROW EXECUTE FUNCTION private.notify_join_request_admins()"
+      },
+      {
+        "schema": "public",
+        "relname": "profiles",
+        "tgname": "profiles_protect_privileged_columns",
+        "definition": "CREATE TRIGGER profiles_protect_privileged_columns BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.protect_profile_privileged_columns()"
+      },
+      {
+        "schema": "public",
+        "relname": "profiles",
+        "tgname": "profiles_set_updated_at",
+        "definition": "CREATE TRIGGER profiles_set_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION private.set_updated_at()"
+      }
+    ],
+    "policies": [
+      {
+        "schemaname": "public",
+        "tablename": "admin_permissions",
+        "policyname": "admin_permissions_select_self",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "((user_id = ( SELECT auth.uid() AS uid)) OR private.is_system_admin())",
+        "with_check": null
+      },
+      {
+        "schemaname": "public",
+        "tablename": "join_requests",
+        "policyname": "join_requests_member_admin_select",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "private.has_admin_permission('members'::text)",
+        "with_check": null
+      },
+      {
+        "schemaname": "public",
+        "tablename": "join_requests",
+        "policyname": "join_requests_select_policy",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "((user_id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+        "with_check": null
+      },
+      {
+        "schemaname": "public",
+        "tablename": "join_requests",
+        "policyname": "join_requests_update_policy",
+        "roles": "{authenticated}",
+        "cmd": "UPDATE",
+        "qual": "private.is_admin()",
+        "with_check": "private.is_admin()"
+      },
+      {
+        "schemaname": "public",
+        "tablename": "profiles",
+        "policyname": "profiles_member_admin_select",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "private.has_admin_permission('members'::text)",
+        "with_check": null
+      },
+      {
+        "schemaname": "public",
+        "tablename": "profiles",
+        "policyname": "profiles_select_policy",
+        "roles": "{authenticated}",
+        "cmd": "SELECT",
+        "qual": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+        "with_check": null
+      },
+      {
+        "schemaname": "public",
+        "tablename": "profiles",
+        "policyname": "profiles_update_policy",
+        "roles": "{authenticated}",
+        "cmd": "UPDATE",
+        "qual": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())",
+        "with_check": "((id = ( SELECT auth.uid() AS uid)) OR private.is_admin())"
+      }
+    ],
+    "auth_metadata": [
+      {
+        "relname": "sessions",
+        "acl": "{postgres=ar*wdDxtm/supabase_auth_admin,supabase_auth_admin=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin}",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false,
+        "connector_can_select": true
+      },
+      {
+        "relname": "users",
+        "acl": "{supabase_auth_admin=arwdDxtm/supabase_auth_admin,dashboard_user=arwdDxtm/supabase_auth_admin,postgres=ar*wdDxtm/supabase_auth_admin}",
+        "relrowsecurity": true,
+        "relforcerowsecurity": false,
+        "connector_can_select": true
+      }
+    ],
+    "writers": [
+      {
+        "schema": "public",
+        "proname": "admin_approve_join_request",
+        "arguments": "p_user_id uuid, p_admin_note text",
+        "definition_md5": "18a323ecd45029f63a28484c496892b9",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_approve_join_request(p_user_id uuid, p_admin_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_admin_id uuid := auth.uid();\n    v_request_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 가입을 승인할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    select jr.status\n    into v_request_status\n    from public.join_requests as jr\n    where jr.user_id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '가입 신청을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_request_status not in ('pending', 'held') then\n        raise exception '승인 대기 또는 보류 중인 가입 신청만 승인할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = 'approved',\n        approved_at = now(),\n        approved_by = v_admin_id\n    where id = p_user_id;\n\n    update public.join_requests\n    set status = 'approved',\n        admin_note = nullif(btrim(p_admin_note), ''),\n        reviewed_at = now(),\n        reviewed_by = v_admin_id\n    where user_id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_review_join_request",
+        "arguments": "p_user_id uuid, p_decision text, p_admin_note text",
+        "definition_md5": "9aaad818c93dff4fa271a9230db01a2f",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_review_join_request(p_user_id uuid, p_decision text, p_admin_note text DEFAULT NULL::text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_admin_id uuid := auth.uid();\n    v_request_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 가입 신청을 검토할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_decision is null or p_decision not in ('rejected', 'held') then\n        raise exception '처리 상태는 rejected 또는 held만 가능합니다.'\n            using errcode = '22023';\n    end if;\n\n    select jr.status\n    into v_request_status\n    from public.join_requests as jr\n    where jr.user_id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '가입 신청을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_request_status not in ('pending', 'held') then\n        raise exception '승인 대기 또는 보류 중인 가입 신청만 검토할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = case\n            when p_decision = 'rejected' then 'rejected'\n            else 'pending'\n        end,\n        approved_at = null,\n        approved_by = null\n    where id = p_user_id;\n\n    update public.join_requests\n    set status = p_decision,\n        admin_note = nullif(btrim(p_admin_note), ''),\n        reviewed_at = now(),\n        reviewed_by = v_admin_id\n    where user_id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_set_member_role",
+        "arguments": "p_user_id uuid, p_role text",
+        "definition_md5": "e7e9f0c4041740bea88fb2e8304f3f96",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_set_member_role(p_user_id uuid, p_role text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_current_role text;\n    v_current_status text;\nbegin\n    if not private.has_admin_permission('permissions') then\n        raise exception '관리자만 역할을 변경할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_role is null or p_role not in ('member', 'admin') then\n        raise exception '지원하지 않는 역할입니다.'\n            using errcode = '22023';\n    end if;\n\n    -- 역할 변경과 정지 처리를 같은 잠금 키로 직렬화해 마지막 관리자 보호\n    -- 검사가 동시 요청에서도 일관되게 동작하도록 한다.\n    perform pg_catalog.pg_advisory_xact_lock(73624721);\n\n    select p.role, p.status\n    into v_current_role, v_current_status\n    from public.profiles as p\n    where p.id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '회원을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_current_role = 'system_admin' then\n        raise exception '최고 관리자 역할은 서비스 내 권한 관리 RPC로 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_current_status <> 'approved' then\n        raise exception '승인 회원에게만 관리자 역할을 부여할 수 있습니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set role = p_role\n    where id = p_user_id;\n\n    if v_current_role = 'admin' and p_role = 'member' then\n        delete from public.admin_permissions where user_id = p_user_id;\n    end if;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "admin_set_member_status",
+        "arguments": "p_user_id uuid, p_status text",
+        "definition_md5": "6b6124e7b6639611f7006d9916d80d39",
+        "definition": "CREATE OR REPLACE FUNCTION public.admin_set_member_status(p_user_id uuid, p_status text)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare\n    v_role text;\n    v_current_status text;\nbegin\n    if not private.has_admin_permission('members') then\n        raise exception '관리자만 회원 상태를 변경할 수 있습니다.'\n            using errcode = '42501';\n    end if;\n\n    perform pg_catalog.set_config('app.allow_member_admin_update', 'true', true);\n\n    if p_status is null or p_status not in ('approved', 'suspended') then\n        raise exception '회원 상태는 approved 또는 suspended만 가능합니다.'\n            using errcode = '22023';\n    end if;\n\n    perform pg_catalog.pg_advisory_xact_lock(73624721);\n\n    select p.role, p.status\n    into v_role, v_current_status\n    from public.profiles as p\n    where p.id = p_user_id\n    for update;\n\n    if not found then\n        raise exception '회원을 찾을 수 없습니다.'\n            using errcode = 'P0002';\n    end if;\n\n    if v_role = 'system_admin' then\n        raise exception '최고 관리자의 상태는 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_role = 'admin' and not private.is_system_admin() then\n        raise exception '일반 관리자는 다른 관리자의 상태를 변경할 수 없습니다.'\n            using errcode = '42501';\n    end if;\n\n    if v_current_status not in ('approved', 'suspended') then\n        raise exception '가입 승인 전 상태는 가입 신청 관리 RPC로 처리해야 합니다.'\n            using errcode = '23514';\n    end if;\n\n    update public.profiles\n    set status = p_status,\n        approved_at = case\n            when p_status = 'approved' then coalesce(approved_at, now())\n            else approved_at\n        end,\n        approved_by = case\n            when p_status = 'approved' then coalesce(approved_by, auth.uid())\n            else approved_by\n        end\n    where id = p_user_id;\nend;\n$function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "bootstrap_system_admin",
+        "arguments": "p_user_id uuid",
+        "definition_md5": "db9a7c09623410963f5e6c375bc43da6",
+        "definition": "CREATE OR REPLACE FUNCTION public.bootstrap_system_admin(p_user_id uuid)\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\nbegin\n  if current_user not in ('postgres','service_role') then raise exception '서버 운영자만 최고 관리자를 초기화할 수 있습니다.' using errcode='42501'; end if;\n  if exists(select 1 from public.profiles where role='system_admin') then raise exception '최고 관리자가 이미 존재합니다.' using errcode='23505'; end if;\n  update public.profiles set role='system_admin' where id=p_user_id and role='admin' and status='approved';\n  if not found then raise exception '승인된 기존 관리자 UUID를 확인하세요.' using errcode='P0002'; end if;\n  delete from public.admin_permissions where user_id=p_user_id;\nend; $function$\n"
+      },
+      {
+        "schema": "public",
+        "proname": "system_admin_set_permissions",
+        "arguments": "p_user_id uuid, p_permissions text[]",
+        "definition_md5": "7cc7de24e84aa9d05c4fe1f88f6ccc15",
+        "definition": "CREATE OR REPLACE FUNCTION public.system_admin_set_permissions(p_user_id uuid, p_permissions text[])\n RETURNS void\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO ''\nAS $function$\ndeclare v_permission text;\nbegin\n  if not private.is_system_admin() then raise exception '최고 관리자만 관리자 권한을 변경할 수 있습니다.' using errcode='42501'; end if;\n  if not exists(select 1 from public.profiles p where p.id=p_user_id and p.role='admin' and p.status='approved') then\n    raise exception '승인된 일반 관리자만 권한을 설정할 수 있습니다.' using errcode='23514';\n  end if;\n  if exists(select 1 from unnest(coalesce(p_permissions,'{}')) x where x not in ('members','community','games','content','operations')) then\n    raise exception '권한 관리와 시스템 관리는 위임할 수 없습니다.' using errcode='22023';\n  end if;\n  delete from public.admin_permissions where user_id=p_user_id;\n  foreach v_permission in array coalesce(p_permissions,'{}') loop\n    insert into public.admin_permissions(user_id,permission,granted_by) values(p_user_id,v_permission,auth.uid());\n  end loop;\nend; $function$\n"
+      }
+    ],
+    "auth_schema": [
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "id",
+        "data_type": "uuid"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "user_id",
+        "data_type": "uuid"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "factor_id",
+        "data_type": "uuid"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "aal",
+        "data_type": "USER-DEFINED"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "not_after",
+        "data_type": "timestamp with time zone"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "refreshed_at",
+        "data_type": "timestamp without time zone"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "user_agent",
+        "data_type": "text"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "ip",
+        "data_type": "inet"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "tag",
+        "data_type": "text"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "oauth_client_id",
+        "data_type": "uuid"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "refresh_token_hmac_key",
+        "data_type": "text"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "refresh_token_counter",
+        "data_type": "bigint"
+      },
+      {
+        "table_schema": "auth",
+        "table_name": "sessions",
+        "column_name": "scopes",
+        "data_type": "text"
+      }
+    ],
+    "foreignkeys": [
+      {
+        "schema": "public",
+        "relname": "admin_permissions",
+        "conname": "admin_permissions_granted_by_fkey",
+        "definition": "FOREIGN KEY (granted_by) REFERENCES profiles(id) ON DELETE SET NULL"
+      },
+      {
+        "schema": "public",
+        "relname": "admin_permissions",
+        "conname": "admin_permissions_user_id_fkey",
+        "definition": "FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE"
+      },
+      {
+        "schema": "public",
+        "relname": "join_requests",
+        "conname": "join_requests_reviewed_by_fkey",
+        "definition": "FOREIGN KEY (reviewed_by) REFERENCES profiles(id) ON DELETE SET NULL"
+      },
+      {
+        "schema": "public",
+        "relname": "join_requests",
+        "conname": "join_requests_user_id_fkey",
+        "definition": "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      },
+      {
+        "schema": "public",
+        "relname": "profiles",
+        "conname": "profiles_approved_by_fkey",
+        "definition": "FOREIGN KEY (approved_by) REFERENCES profiles(id) ON DELETE SET NULL"
+      },
+      {
+        "schema": "public",
+        "relname": "profiles",
+        "conname": "profiles_id_fkey",
+        "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      }
+    ],
+    "auth_roles": [
+      {
+        "role_name": "anon",
+        "can_select_sessions": false,
+        "can_select_users": false
+      },
+      {
+        "role_name": "authenticated",
+        "can_select_sessions": false,
+        "can_select_users": false
+      },
+      {
+        "role_name": "service_role",
+        "can_select_sessions": false,
+        "can_select_users": false
+      },
+      {
+        "role_name": "postgres",
+        "can_select_sessions": true,
+        "can_select_users": true
+      }
+    ]
+  },
+  "migration_history_count": 155,
+  "relevant_migrations": [
+    {
+      "version": "20260825041340",
+      "name": "lock_down_notification_rpc_permissions"
+    },
+    {
+      "version": "20260825103805",
+      "name": "add_public_member_profiles_by_ids"
+    },
+    {
+      "version": "20260826073714",
+      "name": "community_p2_admin_member_pagination"
+    },
+    {
+      "version": "20260828173606",
+      "name": "the_game_settings_rpc_permissions"
+    },
+    {
+      "version": "20260906113242",
+      "name": "marble_multiplayer_rpc_permissions"
+    },
+    {
+      "version": "20260908090000",
+      "name": "add_admin_permission_system"
+    },
+    {
+      "version": "20260913115928",
+      "name": "join_request_admin_notifications"
+    },
+    {
+      "version": "20260915000018",
+      "name": "admin_event_organizer_history"
+    },
+    {
+      "version": "20260920143502",
+      "name": "cant_stop_profile_nickname"
+    },
+    {
+      "version": "20260921121000",
+      "name": "admin_dashboard_summary_read_model"
+    },
+    {
+      "version": "20260921130000",
+      "name": "admin_category_manager_candidate_search"
+    },
+    {
+      "version": "20260921134000",
+      "name": "admin_join_request_pagination"
+    },
+    {
+      "version": "20260922030317",
+      "name": "no_thanks_private_helper_permissions"
+    }
+  ],
+  "browser_sdk_reference": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "browser_sdk_exact_version": "UNKNOWN",
+  "monthly_usage_and_remaining_quota": "UNKNOWN",
+  "source_blobs": [
+    {
+      "path": "index.html",
+      "sha": "57efbfea43c473dc172feeda9f49a52ee7592b85"
+    },
+    {
+      "path": "js/auth.js",
+      "sha": "09eb6d21b2d259567c0ba1b1a0aecfbd1bcac723"
+    },
+    {
+      "path": "js/supabaseClient.js",
+      "sha": "fd7aa665e8f7ee6921f66f039fe76acee1371fa5"
+    },
+    {
+      "path": "js/api/admin.js",
+      "sha": "b7b481d11ed6bd2bb353fdbe19dec4ba7aa74f68"
+    },
+    {
+      "path": "supabase/site/baseline/09_admin_rpc.sql",
+      "sha": "d512c204304181fc482e58bd3f71a938c82cbd7c"
+    },
+    {
+      "path": "supabase/site/migrations/20260908090000_add_admin_permission_system.sql",
+      "sha": "85bfa15f9aa260f81bd42b0efc4b66ccfb3c4b71"
+    }
+  ]
+}

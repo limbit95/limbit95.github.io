@@ -5,8 +5,8 @@
 ## 기준
 
 - 실행 계획: `/game_platform_vnext_final_execution_plan.md`
-- 계획 개정: **1.3**
-- 계획 blob SHA: `e12ef038913eb6d605709b782f1b73f18e0d1253`
+- 계획 개정: **1.5**
+- 계획 blob SHA: `da353e2e64daef6b1b0b7267c21997bfd7cda4ed`
 - 작업 root-slug: `game-platform-vnext`
 - 계획의 이전 대조 기준 main: `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
@@ -20,24 +20,13 @@
 
 ## 현재 상태
 
-- 현재 STEP: **STEP 4A — COMPLETED / 정식 산출물·독립 감사 사용자 승인**
-- STEP 0 / STEP 1 / STEP 2: **COMPLETED / COMPLETED / COMPLETED**
-- integration 마지막 승인 반영 STEP: **STEP 3 — PR #410 MERGED / merge SHA `ad7655a051f0dbb13444eec6f469f6f98f9794f4`**
-- STEP 3 착수 integration HEAD / 분기 SHA: `177533f97bddf67c95379cfa34dc58f2ccdf9e1c`
-- STEP 3: **COMPLETED — 정식 산출물·사후 감사 결과 사용자 승인; integration 병합은 실제 Git/PR 확인**
-- active STEP branch: `docs/game-platform-vnext-phase4a-evidence-preparation`
-- STEP PR: [#411](https://github.com/limbit95/limbit95.github.io/pull/411) OPEN / Draft / merged=false; base `feature/game-platform-vnext-integration` / head `docs/game-platform-vnext-phase4a-evidence-preparation`
-- STEP 3 시작 허용: 있음 — 2026-10-01T17:26:10+09:00 사용자 근거 준비 범위 명시
-- STEP 3 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T11:32:23+09:00 사용자 “승인할게”, 직전 STEP 3 결과·PR410 integration 병합 안내에 대한 승인
-- integration → main 승인/반영: 없음 / 미수행
-- 최신 checkpoint: `checkpoints/CP-0042-step-4a-approved.md`
-- 정식 산출물: [책임/의존](artifacts/step-4a-responsibility-boundaries.md), [수명/전환](artifacts/step-4a-lifetime-contract.md), [충돌/후속](artifacts/step-4a-risks-and-followup.md), [정식trace](artifacts/step-4a-contract-source-trace.md), [정식검증](artifacts/step-4a-validation.md)
-- 산출물: [분담](artifacts/step-4a-work-allocation.md), [근거](artifacts/step-4a-evidence-brief.md), [trace](artifacts/step-4a-source-trace.md), [조사 입력](artifacts/step-4a-auxiliary-research-input.md), [조사 요청](artifacts/step-4a-auxiliary-research-request.md), [검증](artifacts/step-4a-preparation-validation.md)
-- 최신 사후 감사: [독립 보고서](artifacts/step-4a-independent-post-audit.md), 승인 검토 가능; 신규 Critical 0 / Major 0 / Minor 0. 이전 감사는 이력으로 보존
-- STEP4A 결과 승인 / integration merge 승인: 있음 / 있음 — 2026-10-02T17:51:24+09:00 사용자 명시 승인
-- 다음 첫 작업: 승인 기록을 포함해 PR411 integration 병합·실제 원격 확인 후 정지. STEP4B/main 시작 지시 없음
-- STEP4A COMPLETED(정식 결과·독립 감사 사용자 승인); 4B 이후 NOT_STARTED. 기존 코드·규칙·계획·승인STEP1~3·DECISIONS·과거 checkpoint 보존
-- 과거 CURRENT/CP0017의 PR409 OPEN/반영 STEP1은 병합 직전 이력이다. 실제 merged 상태·CP0017 계보에 따라 복원했다. phase2 브랜치는 종료 이력이다.
+- STEP4B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-08 09:42:05 KST 사용자 “승인할게”로 CP0075 설계 결과와 CP0076 최종 검토에 대한 결과 승인을 확인했다.
+- 승인 대상 설계 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 검토 CP0076 `a4b524eadd52de6e35e315d2491e5f8516962eab`. 최신 [CP0077](checkpoints/CP-0077-step-4b-result-approved.md). 필수 보완0, 정식 설계/정책은 변경하지 않는다.
+- 계획1.5 §4.2에 따른 설계 단계 완료다. 구현·실행 검증·오픈 완료가 아니다. G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 행동 시험 NOT_RUN·실행/오픈 blocker·미래부하/실청구 UNKNOWN 유지.
+- D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
+- **integration 병합 승인 미수행 / 실제 병합 미수행 / STEP5A 진행 승인 미수행**. 다음 담당 사용자, 작업 하나는 PR412의 integration 병합 승인 여부 결정이다.
+- integration에 실제 반영된 마지막 승인 STEP은 STEP4A/PR411, 확인 base `3aeae1dfcce7788f88e706dcd49d283b91b67e82`. branch `docs/game-platform-vnext-phase4b-evidence-preparation`, PR412 OPEN/Draft/미병합. 다음 STEP은 별도 허용 및 실제 integration 반영 확인 후 시작한다.
+- 승인 기록만 원격 보존한다. 정식 계약/계획/DECISIONS/과거 기록/코드/SQL 불변, 추가 조사·구현·시험·운영 변경·구매·문의·job/dump/복원·STEP5A·병합·main 없이 제출 확인 뒤 정지한다.
 
 ## 22개 검토 지점
 
@@ -48,7 +37,7 @@
 | 2 | COMPLETED |
 | 3 | COMPLETED |
 | 4A | COMPLETED |
-| 4B | NOT_STARTED |
+| 4B | COMPLETED |
 | 5A | NOT_STARTED |
 | 5B | NOT_STARTED |
 | 5C | NOT_STARTED |
