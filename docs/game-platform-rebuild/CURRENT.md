@@ -20,13 +20,14 @@
 
 ## 현재 상태
 
-- STEP4B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-08 09:42:05 KST 사용자 “승인할게”로 CP0075 설계 결과와 CP0076 최종 검토에 대한 결과 승인을 확인했다.
-- 승인 대상 설계 CP0075 `1c801eeb5fd75772adf7f60dc52d9a8a0c585392`, 검토 CP0076 `a4b524eadd52de6e35e315d2491e5f8516962eab`. 최신 [CP0077](checkpoints/CP-0077-step-4b-result-approved.md). 필수 보완0, 정식 설계/정책은 변경하지 않는다.
-- 계획1.5 §4.2에 따른 설계 단계 완료다. 구현·실행 검증·오픈 완료가 아니다. G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두Probe만 SCOPED_DESIGN_RESOLVED. 행동 시험 NOT_RUN·실행/오픈 blocker·미래부하/실청구 UNKNOWN 유지.
+- STEP4B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. CP0075 설계와 CP0076 검토의 결과 승인은 CP0077에 보존된다. 필수 보완0이며 승인 정책·정식 설계는 변경하지 않는다.
+- PR412 merged=true, merge `32429a20f76a7fde6733db384fa067fbcd7307d1`; PR413 merged=true, merge `aabb7646c0cdfd6466f2195579dce54689c7b81c`. 최신 승인 integration HEAD는 후자와 동일하며 추가 변경 없음. [CP0078](checkpoints/CP-0078-step-4b-integration-merged.md)의 기록 PR 대기는 당시 이력이다.
+- STEP5A **REVIEW_PENDING / APPROVED_JUDGMENT**. 사용자가 실제 Astra 핵심 판단과 정식 문서 반영·문서 검증·기록·원격 제출을 명시적으로 허용했다. 정식 결과 최종 검토·단계 완료·병합 승인은 남아 있다. integration의 기존 STEP5A NOT_STARTED 표기는 이번 제출 전 이력이다.
+- 현재 STEP branch: `docs/game-platform-vnext-phase5a-common-module-selection`; PR base: `feature/game-platform-vnext-integration`. PR 번호·최종 head는 제출 후 [CP0079](checkpoints/CP-0079-step-5a-formal-submitted.md)와 실제 Git/PR에서 대조한다. integration/main 직접 commit은 하지 않는다.
+- 필수 산출물: [선택표](artifacts/step-5a-common-module-selection.md), [중복 기준](artifacts/step-5a-duplication-prevention.md), [호환·수명·검증 owner/보류](artifacts/step-5a-compatibility-lifetime-verification.md). [고정 입력·trace](artifacts/step-5a-source-trace.md), [문서 검증·다음 전달](artifacts/step-5a-validation.md). 최신 checkpoint는 [CP0079](checkpoints/CP-0079-step-5a-formal-submitted.md).
+- G01~04 DESIGN_SPEC_COMPLETE, G05 CONDITIONAL_DESIGN_SPEC_COMPLETE, G06 두 Probe만 SCOPED_DESIGN_RESOLVED. 행동 시험 **NOT_RUN**, 구현/배포·실행/오픈 blocker 및 미래부하/실청구 **UNKNOWN** 유지. 기존 Auth·게임 무이관, STEP4A 전체 완료 경로/T01~03, CP0075/D0010 A/C/P·known expiry 뒤 새 A 금지·owner anchor·최초60초·terminal 보호 불변.
 - D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
-- **PR412 integration 병합 승인 및 실제 병합 완료 / STEP5A 진행 승인 미수행**. 2026-10-08 10:08:06 KST 사용자 “승인”에 따라 병합했다. 다음 담당 사용자, 작업 하나는 STEP5A 착수 지시 여부 결정이다.
-- integration에 실제 반영된 마지막 승인 STEP은 STEP4B/PR412, merge `32429a20f76a7fde6733db384fa067fbcd7307d1`. CP0077까지 포함된 승인 head `3e105be42f4dbcdf0875486bd8f0e5d38bcd1d1a`와 merge tree 일치 확인. 기존 STEP branch는 종료 이력이다. 최신 [CP0078](checkpoints/CP-0078-step-4b-integration-merged.md). 병합 후 기록은 `docs/game-platform-vnext-phase4b-merge-record`에서 별도 PR로 제출하며 integration 직접 commit은 하지 않는다.
-- 병합 후 기록만 원격 보존한다. 정식 계약/계획/DECISIONS/과거 기록/코드/SQL 불변, 추가 조사·구현·시험·운영 변경·구매·문의·job/dump/복원·STEP5A·main 없이 제출 확인 뒤 정지한다.
+- 다음 첫 작업 하나: **사용자의 정식 STEP5A 결과 최종 검토**. 담당 사용자, Sol/Codex는 필요 시 승인 범위의 기록을 지원한다. 별도 사후 감사·핵심 판단 반복·STEP5B 이후·구현·실제 시험·운영 변경·병합/main 반영 없이 제출 후 정지한다.
 
 ## 22개 검토 지점
 
@@ -38,7 +39,7 @@
 | 3 | COMPLETED |
 | 4A | COMPLETED |
 | 4B | COMPLETED |
-| 5A | NOT_STARTED |
+| 5A | REVIEW_PENDING |
 | 5B | NOT_STARTED |
 | 5C | NOT_STARTED |
 | 6 | NOT_STARTED |
@@ -336,3 +337,9 @@ STEP4A REVIEW_PENDING / 가이드4 완료. 가이드5 최종 제출 SHA 사후 �
 - 이 파일은 병합 전에 저장한다. 상단 PR OPEN/Draft/active branch·마지막 반영 STEP3는 저장 직전 상태다. 실제 PR411 merged/merge SHA·integration tree·최종 제출 HEAD의 조상 관계를 확인하면 마지막 승인 반영 STEP4A이며 phase4a branch는 종료 이력, active STEP branch는 없음으로 복원한다.
 - 원격 승인 기록 보존·PR ready 전환·expected head 지정 merge commit·실제 read-back 뒤 정지한다. 병합 후 실제 SHA/검증 결과는 PR 설명에도 보존한다. main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변 확인.
 - STEP4B 이후 NOT_STARTED, 시작 승인 없음. integration→main 미승인/미수행; production 변경 없음.
+
+## STEP5A 승인 판단 정식 제출 — 2026-10-08
+
+실제 Astra 원본 §4~8과 승인 요구를 정식 선택표·중복 기준·owner/보류/검증 문서로 그대로 반영한다. 세 입력은 원본 bytes를 보존한 새 파일로 연결한다. [CP0079](checkpoints/CP-0079-step-5a-formal-submitted.md)·[검증](artifacts/step-5a-validation.md)에 고정 입력/기계적 검증과 최종 원격 조회 경로를 남긴다. DECISIONS·계획·기존 STEP1~4B·과거 checkpoint·게임/shared/Auth/SQL은 변경하지 않는다. 과거 절의 미착수/미승인/병합 대기는 해당 시점 이력이다.
+
+STEP5A REVIEW_PENDING. 이번 핵심 판단 승인은 정식 결과 최종 검토·단계 완료·integration 병합/main·지원 완료 승인과 구분한다. 행동 NOT_RUN/UNKNOWN과 기존 오픈 의무 유지. 제출 후 멈춘다.
