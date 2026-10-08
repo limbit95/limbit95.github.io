@@ -26,7 +26,9 @@
 - CURRENT 22단계 표에서 5A만 REVIEW_PENDING, STEP4B COMPLETED/5B 이후 NOT_STARTED. CURRENT의 현재 요약과 신규 STEP5A 기록 외 기존 본문은 보존했다. README는 현재 진입 안내만 갱신했다.
 - 허용 경로 11개(9개 추가·2개 수정), 삭제0. 새 문서 공백/링크/표 오류0. 기존 과거 checkpoint·계획·DECISIONS·코드 불변은 원격 전체 tree 대조로 제출 시 확인한다.
 
-원격 제출/read-back은 아직 수행 전인 로컬 검증 시점이다. 저장 후 실제 원격 결과를 이 절/CP0079 및 PR 설명에 추가하고 최종 SHA를 다시 확인한다. 위 PASS는 행동/CI/지원 완료가 아니다.
+원격 제출 문서 대조도 **PASS(문서에 한정)**. 반영 commit `4d5d39b9ec9e4c49e8b8e9cee45a3539dd5913f7`, tree `fcb21883a284c85acfdbb28462de691c1a472afb`의 11파일을 exact read-back했다. 전체 tree는 허용11경로만 변경/삭제0, baseline의 보호 blob/mode/type 978개 불변이다. [PR #414](https://github.com/limbit95/limbit95.github.io/pull/414)의 base/head·OPEN/미병합을 확인했다.
+
+위 링크205/표53 수치는 최초 반영 시점 검사다. PR 위치·원격 확인 추가 후 기록3파일만 보완하며 최종 문서 연결/상태를 다시 대조한다. 최종 head는 저장 후 Git/PR과 제출 보고에서 확인한다. 원문 정식9절과 원본3개는 그대로다. 위 PASS는 행동/CI/지원 완료가 아니다.
 
 ## 3. 범위와 남은 의무
 
@@ -43,7 +45,7 @@ H1 무보완 BGM, H2 동적 Invite handler, H3 무보완 dialog의 사용 가능
 검토 후 정식 결과만 승인하려는 경우 다음 문구를 사용할 수 있다. 아래 문구는 아직 실행되지 않았으며 병합 승인을 포함하지 않는다.
 
 ```text
-STEP5A 검토 PR의 공통 모듈 선택표·중복 방지 기준·호환/수명/검증 owner 및 제한적 보류가 승인된 Astra 판단과 일치하는 정식 결과임을 승인할게.
+STEP5A PR #414의 공통 모듈 선택표·중복 방지 기준·호환/수명/검증 owner 및 제한적 보류가 승인된 Astra 판단과 일치하는 정식 결과임을 승인할게.
 
 담당 Sol/Codex. 해당 PR의 최종 head를 실제로 확인해 승인 대상 SHA를 고정하고, 승인 사실과 STEP5A 설계 단계 완료 상태만 기존 STEP branch에 기록·원격 보존해줘. 과거 checkpoint와 세 입력 원본·승인된 판단 본문을 보존하고, 새로운 판단/조사/감사를 추가하지 마.
 

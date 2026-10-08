@@ -11,3 +11,10 @@
 - 상태: **STEP4B COMPLETED / STEP5A REVIEW_PENDING / APPROVED_JUDGMENT**. 정식 결과 사용자 최종 검토와 단계 완료 판정은 남음. integration/main 미반영, 병합 미승인·미수행. 행동 **NOT_RUN**, 구현/배포·실행/오픈 의무·기존 UNKNOWN 유지. STEP5B 이후 NOT_STARTED.
 - 허용 diff: rebuild artifacts 8개 새 파일(세 원본+정식3개+trace+validation), CURRENT/README 2개 수정, 이 새 checkpoint 1개. DECISIONS 신규 변경은 불필요하여 보존. 계획·AGENTS·STEP1~4B·과거 checkpoint·runtime/게임/shared/Auth/SQL/운영 변경0, 삭제0.
 - 다음 첫 작업 하나: **사용자의 정식 STEP5A 결과 최종 검토**. 전달 문구는 validation의 다음 작업 절을 따른다. 검토가 끝나도 integration 병합·main·구현·시험·STEP5B 이후는 별도 명시 지시 없이는 진행하지 않는다. 원격 제출 확인 뒤 정지한다.
+
+## 원격 제출 확인
+
+- [PR #414](https://github.com/limbit95/limbit95.github.io/pull/414) OPEN / Ready for review / merged=false. base `feature/game-platform-vnext-integration`의 `aabb7646c0cdfd6466f2195579dce54689c7b81c`, head `docs/game-platform-vnext-phase5a-common-module-selection`.
+- 최초 반영 commit `4d5d39b9ec9e4c49e8b8e9cee45a3539dd5913f7`, tree `fcb21883a284c85acfdbb28462de691c1a472afb`. 원격11파일 exact read-back, 전체 tree 변경11경로/삭제0, baseline 보호 blob/mode/type 978개 일치 확인. baseline에서 expected head/non-force로 STEP branch만 갱신했다.
+- 이 제출 기록 보완은 CURRENT·CP0079·validation 3파일만 변경한다. 필수 정식3개·trace와 세 입력 원본은 최초 반영 blob 그대로 보존한다. 기록 저장 후 자신의 최종 SHA·PR head는 Git/PR에서 조회하여 제출 보고와 PR 설명에 남긴다.
+- integration/main ref 보존을 최종 제출 뒤 다시 대조한다. 병합·구현·행동 시험·운영 작업은 하지 않았으며 CI 실행/지원 PASS도 선언하지 않는다. 사용자 정식 결과 최종 검토를 기다리고 정지한다.
