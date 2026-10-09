@@ -15,3 +15,9 @@
 원문 절·분류·조건·표·링크·ID·SHA/blob·원본 보존·상태·허용 diff와 원격 read-back만 검사한다. 문서 검증을 행동/지원 PASS로 확대하지 않는다. 행동·DB/browser/audio/두 client·운영 시험 NOT_RUN, UNKNOWN·구현/실행/오픈 의무 유지. CI 미등록/미실행은 PASS가 아니다. 새 핵심 판단·별도 사후 감사·포괄 source/SQL 재조사 없음.
 
 다음 첫 작업 하나: **사용자의 STEP5B 정식 결과 최종 검토**. 담당 사용자. 승인/완료 기록은 그 결과 승인 뒤 Sol/Codex, 병합/main과 STEP5C 이후는 별도 게이트다. 구현·시험·운영·구매/문의/job/dump/복원·병합/main 없이 제출 후 멈춘다.
+
+## 정식 반영 제출 read-back
+
+- [PR #415](https://github.com/limbit95/limbit95.github.io/pull/415): OPEN / Ready for review / merged=false. base integration `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0` / head `docs/game-platform-vnext-phase5b-extension-boundaries`.
+- 최초 반영 commit `8b0fee3b9c9d078686597e768dc4672c5c0d8bb4`, tree `2599273c8b9cd257ec43e2b04e4b2217aad27b0b`. PR head=STEP ref 일치·변경11파일 exact read-back·허용 diff11(추가9/수정2/삭제0)·보호989 blob/mode/type 불변 확인. integration/main ref 보존. check-runs0/status context0/workflow runs0은 **NOT_TRIGGERED / 등록 검사 없음**, CI PASS 아님.
+- 이번 제출 기록 보완은 CURRENT/CP0082/validation 3파일만이다. 필수 판단·source trace·세 입력 원본은 최초 반영 blob 그대로 유지한다. 기록 자신의 최종 head/tree·원격 read-back은 저장 후 PR 설명/Git에서 확인한다. STEP5B REVIEW_PENDING, 행동 NOT_RUN/UNKNOWN 유지. 사용자 정식 결과 최종 검토를 남기며 병합/다음 단계 없이 정지한다.
