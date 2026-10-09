@@ -2,7 +2,7 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0080](checkpoints/CP-0080-step-5a-result-approved.md)다. STEP4B COMPLETED·PR412/413 integration 반영 완료. STEP5A 정식 결과는 2026-10-09 사용자 승인으로 **COMPLETED / DESIGN_RESULT_APPROVED**다. PR414 integration 병합·다음 단계는 미승인·미수행. 행동 시험 NOT_RUN·UNKNOWN·구현/실행/오픈·main 별도 게이트 유지. 정식 산출물 헤더와 과거 checkpoint의 REVIEW_PENDING은 제출 당시 이력이며 현재 승인 상태는 CURRENT/CP0080을 따른다.
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0081](checkpoints/CP-0081-step-5a-integration-merge-approved.md)다. STEP4B COMPLETED·PR412/413 integration 반영 완료. STEP5A 정식 결과는 2026-10-09 사용자 승인으로 **COMPLETED / DESIGN_RESULT_APPROVED**다. PR414 integration 병합은 2026-10-09 별도 사용자 승인 대상이며 최종 merged/merge SHA·승인 head 반영은 PR/Git으로 확인한다. 병합 확인 시 마지막 승인 반영 STEP은 STEP5A다. 다음 단계·main은 미승인·미수행. 행동 시험 NOT_RUN·UNKNOWN·구현/실행/오픈·main 별도 게이트 유지. 정식 산출물 헤더와 과거 checkpoint의 REVIEW_PENDING은 제출 당시 이력이며 현재 승인/병합 복원은 CURRENT/CP0081과 실제 PR414/Git을 따른다.
 
 STEP5A 정식 산출물: [공통 모듈 선택표](artifacts/step-5a-common-module-selection.md), [중복 방지 기준](artifacts/step-5a-duplication-prevention.md), [호환·수명·검증 owner와 보류](artifacts/step-5a-compatibility-lifetime-verification.md). [입력/source trace](artifacts/step-5a-source-trace.md)에서 세 원본과 승인 STEP1~4B를 연결하고, [문서 검증/다음 전달](artifacts/step-5a-validation.md)에서 수행·미수행·다음 첫 작업을 확인한다.
 
