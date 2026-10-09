@@ -22,13 +22,13 @@
 
 - STEP4B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. PR412/413·CP0075/76/77/78 승인/병합 보존.
 - STEP5A **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. PR414 merged=true / merge `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, 최종 head `90e89d0e4e6957c093680cfc77e054d997fcb282`, merge/승인 head tree `420f3c35ee52a58b1970ba48fed1a699c928f02c`. CP0081의 OPEN/미병합은 당시 이력. 마지막 승인 integration 반영 STEP5A.
-- STEP5B **REVIEW_PENDING / APPROVED_JUDGMENT / FORMAL_RESULT_REVIEW_PENDING**. 2026-10-10 KST 사용자 실행 요청으로 Astra §9.1 전체 판단과 정식 문서 반영·검증·원격 PR 제출 허용. 정식 결과 최종 승인/COMPLETED·integration 병합·main·후속 STEP은 남아 있다.
+- STEP5B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-10 08:41:52 KST 사용자가 정식 결과를 승인하고 승인·완료 기록만 원격 보존하도록 명시했다. 승인 대상 PR415 최종 제출 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`. 설계 단계 완료이며 구현·실행·오픈/지원 완료가 아니다. integration 병합·main·다음 단계는 미승인·미수행이다.
 - [PR #415](https://github.com/limbit95/limbit95.github.io/pull/415) OPEN / merged=false; branch `docs/game-platform-vnext-phase5b-extension-boundaries`, PR base `feature/game-platform-vnext-integration`. 착수/판단 SHA `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, 이후 추가 변경0. 실제 PR 번호·최종 head/tree·원격 read-back은 이 branch의 PR/Git과 CP0082 연결에서 조회한다. integration/main 직접 commit 없음.
-- 정식 산출물: [책임별 선택·최소 계약](artifacts/step-5b-contract-boundaries.md), [중복/Probe/확장](artifacts/step-5b-duplication-and-extension.md), [호환·수명·검증 owner/보류](artifacts/step-5b-compatibility-lifetime-verification.md), [입력/source trace](artifacts/step-5b-source-trace.md), [문서 검증·전달](artifacts/step-5b-validation.md). 최신 checkpoint [CP0082](checkpoints/CP-0082-step-5b-formal-submitted.md). 세 원본 bytes/identity 보존, Astra 핵심 재판단·별도 사후 감사 없음.
+- 정식 산출물: [책임별 선택·최소 계약](artifacts/step-5b-contract-boundaries.md), [중복/Probe/확장](artifacts/step-5b-duplication-and-extension.md), [호환·수명·검증 owner/보류](artifacts/step-5b-compatibility-lifetime-verification.md), [입력/source trace](artifacts/step-5b-source-trace.md), [문서 검증·전달](artifacts/step-5b-validation.md). 최신 checkpoint [CP0083](checkpoints/CP-0083-step-5b-result-approved.md). 세 원본 bytes/identity 보존, Astra 핵심 재판단·별도 사후 감사 없음.
 - 행동 **NOT_RUN**, 기존 **UNKNOWN**·구현/실행/오픈 의무 유지. 기존 Auth/게임 무이관·STEP4A 전체 완료/T01~03·CP0075/D0010 실제 C·A/C/P·known expiry 뒤 새 A 금지·새 P/retry fresh 인가·owner anchor·최초60초/terminal 불변. G01~04/G05/G06의 기존 설계 완료 범위와 실행 미검증 구분 유지.
 - Registry 두 번째 metadata 금지, Snapshot/Reconnect 단일 최종 채택·복구, Shell 공통 표시/game-local 연출, BGM 기존 본체+내부 최소 수명 보완/H1 무보완 직결 보류, Invite H2~4/비room 미래 미선택 유지. API/schema/file/class/Target 미동결, 선제 보상/공개/audio/Profile 엔진 없음.
 - D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
-- 다음 첫 작업 하나: **사용자의 STEP5B 정식 결과 최종 검토**. 담당 사용자. 승인 후 완료 기록은 Sol/Codex, 병합/main·STEP5C 이후는 별도 허용. 전달 문구는 [validation §4](artifacts/step-5b-validation.md#4-사용자-정식-결과-최종-검토와-다음-첫-작업).
+- 다음 첫 작업 하나: **사용자의 PR415 integration 병합 승인 여부 결정**. 담당 사용자. 이번 결과 승인·기록은 병합 승인이 아니다. 전달 조건은 [CP0083](checkpoints/CP-0083-step-5b-result-approved.md). main·STEP5C 이후는 별도 게이트이며 이번에 시작하지 않는다.
 
 ## 22개 검토 지점
 
@@ -41,7 +41,7 @@
 | 4A | COMPLETED |
 | 4B | COMPLETED |
 | 5A | COMPLETED |
-| 5B | REVIEW_PENDING |
+| 5B | COMPLETED |
 | 5C | NOT_STARTED |
 | 6 | NOT_STARTED |
 | 7A1 | NOT_STARTED |
@@ -378,3 +378,10 @@ STEP5A REVIEW_PENDING. 이번 핵심 판단 승인은 정식 결과 최종 검�
 - [PR #415](https://github.com/limbit95/limbit95.github.io/pull/415): OPEN / Ready for review / merged=false. base integration `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0` / head `docs/game-platform-vnext-phase5b-extension-boundaries`.
 - 최초 반영 commit `8b0fee3b9c9d078686597e768dc4672c5c0d8bb4`, tree `2599273c8b9cd257ec43e2b04e4b2217aad27b0b`. PR head=STEP ref 일치·변경11파일 exact read-back·허용 diff11(추가9/수정2/삭제0)·보호989 blob/mode/type 불변 확인. integration/main ref 보존. check-runs0/status context0/workflow runs0은 **NOT_TRIGGERED / 등록 검사 없음**, CI PASS 아님.
 - 이번 제출 기록 보완은 CURRENT/CP0082/validation 3파일만이다. 필수 판단·source trace·세 입력 원본은 최초 반영 blob 그대로 유지한다. 기록 자신의 최종 head/tree·원격 read-back은 저장 후 PR 설명/Git에서 확인한다. STEP5B REVIEW_PENDING, 행동 NOT_RUN/UNKNOWN 유지. 사용자 정식 결과 최종 검토를 남기며 병합/다음 단계 없이 정지한다.
+
+## STEP5B 정식 결과 사용자 승인 — 2026-10-10 08:41:52 KST
+
+- 사용자: “STEP5B 정식 결과를 승인할게. PR #415의 최종 head를 기준으로 승인·완료 기록만 원격 보존해줘. 행동 NOT_RUN·UNKNOWN을 유지하고 병합·main·다음 단계는 진행하지 마.”
+- 승인 대상 최종 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`, tree `482edbfa6f3348d6cf9a7a42ffca03a115292484`. 실제 PR415 head=STEP branch ref 일치, OPEN / merged=false. integration `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변.
+- STEP5B COMPLETED / DESIGN_RESULT_APPROVED. 승인된 J01~19·조건·보류·owner·source trace·검증·세 입력 원본·계획/DECISIONS·과거 checkpoint·기존 Auth/게임/source/SQL을 보존한다. 산출물 헤더와 CP0082의 REVIEW_PENDING/최종 검토 대기는 제출 당시 이력이며 현재 승인은 [CP0083](checkpoints/CP-0083-step-5b-result-approved.md)와 이 상단 상태를 따른다.
+- 변경은 CURRENT/README·새 CP0083 세 기록 파일만. 저장 후 최종 SHA/tree·원격 read-back은 PR415 설명/Git에서 조회한다. 행동 NOT_RUN·UNKNOWN·구현/실행/오픈 의무 유지. integration 병합·main·STEP5C 이후·실제 시험/운영 작업은 하지 않는다.
