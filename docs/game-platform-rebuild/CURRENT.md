@@ -22,13 +22,13 @@
 
 - STEP4B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. PR412/413·CP0075/76/77/78 승인/병합 보존.
 - STEP5A **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. PR414 merged=true / merge `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, 최종 head `90e89d0e4e6957c093680cfc77e054d997fcb282`, merge/승인 head tree `420f3c35ee52a58b1970ba48fed1a699c928f02c`. CP0081의 OPEN/미병합은 당시 이력. 마지막 승인 integration 반영 STEP5A.
-- STEP5B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-10 08:41:52 KST 사용자가 정식 결과를 승인하고 승인·완료 기록만 원격 보존하도록 명시했다. 승인 대상 PR415 최종 제출 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`. 설계 단계 완료이며 구현·실행·오픈/지원 완료가 아니다. integration 병합·main·다음 단계는 미승인·미수행이다.
+- STEP5B **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-10 08:41:52 KST 사용자가 정식 결과를 승인하고 승인·완료 기록만 원격 보존하도록 명시했다. 승인 대상 PR415 최종 제출 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`. 설계 단계 완료이며 구현·실행·오픈/지원 완료가 아니다. 2026-10-10 11:42:41 KST 사용자 ‘승인’으로 PR415 integration 병합·확인·기록만 허용됐다. main·STEP5C 이후는 미승인·미수행이다. 실제 merged/merge SHA·승인 최종 head 반영은 PR/Git으로 확인한다.
 - [PR #415](https://github.com/limbit95/limbit95.github.io/pull/415) OPEN / merged=false; branch `docs/game-platform-vnext-phase5b-extension-boundaries`, PR base `feature/game-platform-vnext-integration`. 착수/판단 SHA `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, 이후 추가 변경0. 실제 PR 번호·최종 head/tree·원격 read-back은 이 branch의 PR/Git과 CP0082 연결에서 조회한다. integration/main 직접 commit 없음.
-- 정식 산출물: [책임별 선택·최소 계약](artifacts/step-5b-contract-boundaries.md), [중복/Probe/확장](artifacts/step-5b-duplication-and-extension.md), [호환·수명·검증 owner/보류](artifacts/step-5b-compatibility-lifetime-verification.md), [입력/source trace](artifacts/step-5b-source-trace.md), [문서 검증·전달](artifacts/step-5b-validation.md). 최신 checkpoint [CP0083](checkpoints/CP-0083-step-5b-result-approved.md). 세 원본 bytes/identity 보존, Astra 핵심 재판단·별도 사후 감사 없음.
+- 정식 산출물: [책임별 선택·최소 계약](artifacts/step-5b-contract-boundaries.md), [중복/Probe/확장](artifacts/step-5b-duplication-and-extension.md), [호환·수명·검증 owner/보류](artifacts/step-5b-compatibility-lifetime-verification.md), [입력/source trace](artifacts/step-5b-source-trace.md), [문서 검증·전달](artifacts/step-5b-validation.md). 최신 checkpoint [CP0084](checkpoints/CP-0084-step-5b-integration-merge-approved.md). 세 원본 bytes/identity 보존, Astra 핵심 재판단·별도 사후 감사 없음.
 - 행동 **NOT_RUN**, 기존 **UNKNOWN**·구현/실행/오픈 의무 유지. 기존 Auth/게임 무이관·STEP4A 전체 완료/T01~03·CP0075/D0010 실제 C·A/C/P·known expiry 뒤 새 A 금지·새 P/retry fresh 인가·owner anchor·최초60초/terminal 불변. G01~04/G05/G06의 기존 설계 완료 범위와 실행 미검증 구분 유지.
 - Registry 두 번째 metadata 금지, Snapshot/Reconnect 단일 최종 채택·복구, Shell 공통 표시/game-local 연출, BGM 기존 본체+내부 최소 수명 보완/H1 무보완 직결 보류, Invite H2~4/비room 미래 미선택 유지. API/schema/file/class/Target 미동결, 선제 보상/공개/audio/Profile 엔진 없음.
 - D0006~10 및 CP0074 S-A~C/B5, 100명/판8·세금포함월추가3만원·p95 250ms·각재연결5초·모바일5기능·기록열람/30일삭제/탈퇴unlink·외부백업/RPO24h/발견후24h/7일복구점·Free서울·기존운영시간 유지.
-- 다음 첫 작업 하나: **사용자의 PR415 integration 병합 승인 여부 결정**. 담당 사용자. 이번 결과 승인·기록은 병합 승인이 아니다. 전달 조건은 [CP0083](checkpoints/CP-0083-step-5b-result-approved.md). main·STEP5C 이후는 별도 게이트이며 이번에 시작하지 않는다.
+- 다음 첫 작업 하나: **사용자의 STEP5C 계획 준비 착수 여부 결정**. 담당 사용자. 이번에는 PR415 integration 병합·확인·기록만 수행하며 STEP5C 계획/조사/설계 자체도 시작하지 않는다. main은 별도 게이트다.
 
 ## 22개 검토 지점
 
@@ -385,3 +385,11 @@ STEP5A REVIEW_PENDING. 이번 핵심 판단 승인은 정식 결과 최종 검�
 - 승인 대상 최종 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`, tree `482edbfa6f3348d6cf9a7a42ffca03a115292484`. 실제 PR415 head=STEP branch ref 일치, OPEN / merged=false. integration `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`, main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 불변.
 - STEP5B COMPLETED / DESIGN_RESULT_APPROVED. 승인된 J01~19·조건·보류·owner·source trace·검증·세 입력 원본·계획/DECISIONS·과거 checkpoint·기존 Auth/게임/source/SQL을 보존한다. 산출물 헤더와 CP0082의 REVIEW_PENDING/최종 검토 대기는 제출 당시 이력이며 현재 승인은 [CP0083](checkpoints/CP-0083-step-5b-result-approved.md)와 이 상단 상태를 따른다.
 - 변경은 CURRENT/README·새 CP0083 세 기록 파일만. 저장 후 최종 SHA/tree·원격 read-back은 PR415 설명/Git에서 조회한다. 행동 NOT_RUN·UNKNOWN·구현/실행/오픈 의무 유지. integration 병합·main·STEP5C 이후·실제 시험/운영 작업은 하지 않는다.
+
+## STEP5B integration 병합 승인 — 2026-10-10 11:42:41 KST
+
+직전 PR415 integration 병합 승인 여부 안내에 사용자 ‘승인’. 승인 제출 SHA `23c10191c1e4c07103f6aabde8a5c94746a3b12a`, 승인·완료 기록 head `efb98418a77cdaac00cf94d5efeded93d65f2618`, 착수 integration `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0`를 고정한다. 기록 이후 새 변경0, 승인 대상 이후는 CURRENT/README·CP0083 3기록 파일뿐이다.
+
+[CP0084](checkpoints/CP-0084-step-5b-integration-merge-approved.md)와 CURRENT/README의 병합 승인3기록 파일만 추가하고, 최종 head를 고정한 정상 merge API로 integration 병합한다. 실제 merged=true·merge parents(base/final head)·승인 최종 head tree와 merge tree 일치·integration read-back이 확인되면 상태는 STEP5B COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED, 마지막 승인 반영 STEP5B, STEP branch 종료 이력·active STEP branch 없음으로 복원한다. 저장 시점 OPEN/미병합·과거 승인 대기는 당시 이력이며 실제 merge SHA/시각·증거는 PR415 설명에 원격 보존한다. 추가 사후 기록 PR은 만들지 않는다.
+
+행동 NOT_RUN·UNKNOWN·구현/실행/오픈 의무·승인 판단/세 입력 원본·STEP4A T01~03·CP0075/D0010·H1~4 불변. STEP5C 이후 NOT_STARTED, main 미수행. 다음 첫 작업은 사용자 STEP5C 계획 준비 착수 여부 결정이며 이번에는 그 작업을 시작하지 않고 병합 확인 뒤 정지한다.
