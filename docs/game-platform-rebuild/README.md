@@ -2,9 +2,13 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0081](checkpoints/CP-0081-step-5a-integration-merge-approved.md)다. STEP4B COMPLETED·PR412/413 integration 반영 완료. STEP5A 정식 결과는 2026-10-09 사용자 승인으로 **COMPLETED / DESIGN_RESULT_APPROVED**다. PR414 integration 병합은 2026-10-09 별도 사용자 승인 대상이며 최종 merged/merge SHA·승인 head 반영은 PR/Git으로 확인한다. 병합 확인 시 마지막 승인 반영 STEP은 STEP5A다. 다음 단계·main은 미승인·미수행. 행동 시험 NOT_RUN·UNKNOWN·구현/실행/오픈·main 별도 게이트 유지. 정식 산출물 헤더와 과거 checkpoint의 REVIEW_PENDING은 제출 당시 이력이며 현재 승인/병합 복원은 CURRENT/CP0081과 실제 PR414/Git을 따른다.
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0084](checkpoints/CP-0084-step-5b-integration-merge-approved.md)다. STEP5A **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**, PR414 merge `3b917fa9c0afb1bdc022566ff2ae8c2f1be311c0` 실제 확인. [CP0081](checkpoints/CP-0081-step-5a-integration-merge-approved.md)의 미병합/검토대기는 당시 이력이다.
 
-STEP5A 정식 산출물: [공통 모듈 선택표](artifacts/step-5a-common-module-selection.md), [중복 방지 기준](artifacts/step-5a-duplication-prevention.md), [호환·수명·검증 owner와 보류](artifacts/step-5a-compatibility-lifetime-verification.md). [입력/source trace](artifacts/step-5a-source-trace.md)에서 세 원본과 승인 STEP1~4B를 연결하고, [문서 검증/다음 전달](artifacts/step-5a-validation.md)에서 수행·미수행·다음 첫 작업을 확인한다.
+STEP5B 정식 결과는 2026-10-10 08:41:52 KST 사용자 승인으로 **COMPLETED / DESIGN_RESULT_APPROVED**다. 승인 대상 PR415 최종 제출 HEAD `23c10191c1e4c07103f6aabde8a5c94746a3b12a`. 승인·완료 기록만 같은 STEP 브랜치/PR에 원격 보존한다. PR415 integration 병합은 2026-10-10 11:42:41 KST 별도 사용자 승인 대상이며 실제 최종 merged/merge SHA·승인 head 반영은 PR/Git에서 확인한다. merged/승인 head tree 반영 확인 시 STEP5B INTEGRATION_MERGED·마지막 승인 반영 STEP5B, phase5b branch는 종료 이력이다. main·STEP5C 이후는 미승인·미수행. 행동 NOT_RUN·UNKNOWN·구현/실행/오픈 의무와 main 별도 게이트 유지. 정식 산출물 헤더/CP0082의 REVIEW_PENDING은 제출 당시 이력이며 현재 승인/병합 복원은 CURRENT/CP0084와 실제 PR415/Git을 따른다.
+
+STEP5B 정식 산출물: [책임별 3분류·최소 계약](artifacts/step-5b-contract-boundaries.md), [중복/Probe/확장 기준](artifacts/step-5b-duplication-and-extension.md), [호환·수명·검증 owner/보류](artifacts/step-5b-compatibility-lifetime-verification.md), [고정 입력/source trace·세 원본](artifacts/step-5b-source-trace.md), [문서 검증·다음 전달](artifacts/step-5b-validation.md). 작업 branch `docs/game-platform-vnext-phase5b-extension-boundaries`, PR base integration; 실제 PR 번호·head/원격 증거는 해당 branch의 PR/Git에서 조회한다. 다음 첫 작업은 사용자의 STEP5C 계획 준비 착수 여부 결정이다. 이번에는 PR415 병합·확인·기록만 수행하며 다음 단계는 시작하지 않는다.
+
+승인 STEP5A 산출물은 보존한다: [선택표](artifacts/step-5a-common-module-selection.md), [중복 기준](artifacts/step-5a-duplication-prevention.md), [owner/보류](artifacts/step-5a-compatibility-lifetime-verification.md), [source trace](artifacts/step-5a-source-trace.md), [검증](artifacts/step-5a-validation.md).
 
 게임별 `DEVELOPMENT.md` / `UI_DECISIONS.md` checkpoint와 별개이며, 이 디렉토리의 기록은 기존 게임의 기능·디자인 상태를 대신하지 않는다.
 
