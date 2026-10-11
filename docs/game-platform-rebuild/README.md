@@ -2,11 +2,11 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0086](checkpoints/CP-0086-step-5c-result-approved.md)다. 마지막 승인 integration 반영은 STEP5B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**, PR415 merge `2751e9241a3debbd40506fa1b2ea7e688dfe0140` 실제 확인. CP0084/과거 OPEN·HOLD·검토대기는 당시 이력과 유효 결정·실제 Git을 함께 읽는다.
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0087](checkpoints/CP-0087-step-5c-integration-merge-approved.md)다. 마지막 승인 integration 반영은 STEP5B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**, PR415 merge `2751e9241a3debbd40506fa1b2ea7e688dfe0140` 실제 확인. CP0084/과거 OPEN·HOLD·검토대기는 당시 이력과 유효 결정·실제 Git을 함께 읽는다.
 
 STEP5C 정식 결과는 2026-10-11 21:28:08 KST 사용자 승인으로 **COMPLETED / DESIGN_RESULT_APPROVED**다. 승인 대상 PR #416 제출 head `3488b8c39bd848f14229754ad215fc1586eca986`. 승인·완료 기록만 같은 STEP5C branch/PR에 원격 보존한다. PR416 OPEN / merged=false / INTEGRATION_NOT_MERGED. CP0085·정식 산출물의 REVIEW_PENDING은 제출 당시 이력이며 승인 산출물/세 원본은 재작성하지 않는다. [보드 계승/조건](artifacts/step-5c-board-rule-succession.md), [첫 비보드 규칙](artifacts/step-5c-realtime-coop-spatial-rules.md), [둘째 Probe/연결/추가/의무](artifacts/step-5c-genre-model-connections.md), [원본/승인/trace](artifacts/step-5c-source-trace.md), [문서 검증·최종 검토](artifacts/step-5c-validation.md). 세 원본 identity/bytes 보존. branch `docs/game-platform-vnext-phase5c-genre-rule-design` / PR base integration. 실제 번호·최종 head/원격 증거는 해당 PR/Git에서 조회한다.
 
-다음 첫 작업은 **사용자의 PR #416 integration 병합 여부 결정 하나**다. 이번 승인으로 설계 단계만 완료했으며 병합·main·다음 단계는 미허용·미수행. NOT_RUN/UNKNOWN·구현/실행/오픈·STEP6/7 전수 목적지/권위전환 의무 유지. 기존게임 무이관, 현재 rulebook/Guard·계획/DECISIONS/STEP1~5B/과거 checkpoint 보존. main/STEP6 별도 게이트.
+2026-10-11 21:32:21 KST 사용자 ‘승인할게’로 PR416 integration 병합·확인·기록만 허용됐다. 이 기록은 병합 전 저장이다. PR416 merged/merge parents·승인 최종 head tree/integration ref 증거가 확인되면 STEP5C INTEGRATION_MERGED·마지막 승인 반영 STEP5C로 복원하며 과거 OPEN/미병합은 당시 이력이다. 다음 첫 작업은 **사용자의 STEP6 계획 준비 착수 여부 결정 하나**다. main·STEP6 계획/조사/동결 및 이후는 미허용·미수행. NOT_RUN/UNKNOWN·구현/실행/오픈·STEP6/7 전수 목적지/권위전환 의무 유지. 기존게임 무이관, 현재 rulebook/Guard·계획/DECISIONS/STEP1~5B/과거 checkpoint 보존. main/STEP6 별도 게이트.
 
 게임별 `DEVELOPMENT.md` / `UI_DECISIONS.md` checkpoint와 별개이며, 이 디렉토리의 기록은 기존 게임의 기능·디자인 상태를 대신하지 않는다.
 

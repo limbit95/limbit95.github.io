@@ -23,11 +23,12 @@
 - 마지막 승인 integration 반영 STEP5B **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. PR415 closed/merged=true / merge `2751e9241a3debbd40506fa1b2ea7e688dfe0140` / final head `a71097d469781dbc0c8b441dce93da6f1057506c`. STEP4B/5A 승인·완료·병합과 CP0075~84 이력 보존. CP0084의 OPEN/미병합은 당시 이력.
 - STEP5C **COMPLETED / DESIGN_RESULT_APPROVED**. 2026-10-11 21:28:08 KST 사용자가 PR #416 정식 결과 head `3488b8c39bd848f14229754ad215fc1586eca986`를 승인하고 승인·완료 기록만 원격 보존하도록 허용했다. 설계 단계 완료이며 행동 PASS·구현/실행/오픈·지원 완료가 아니다. PR416 **OPEN / merged=false / INTEGRATION_NOT_MERGED**; 병합·main·STEP6 이후는 미허용·미수행. CP0085/정식 산출물 헤더의 REVIEW_PENDING은 제출 당시 이력으로 보존한다.
 - 고정 판단/착수 integration `2751e9241a3debbd40506fa1b2ea7e688dfe0140`, 기준 뒤 변경0. 작업 branch `docs/game-platform-vnext-phase5c-genre-rule-design`, PR base `feature/game-platform-vnext-integration`. 실제 PR 번호·최종 head/tree·원격 증거는 해당 branch PR/Git에서 조회. integration/main 직접 commit 없음.
-- 정식 산출물: [보드 계승/DB·hostless](artifacts/step-5c-board-rule-succession.md), [비보드 규칙 최소6항목/R01~13](artifacts/step-5c-realtime-coop-spatial-rules.md), [둘째 Probe/연결/추가/의무](artifacts/step-5c-genre-model-connections.md), [원본/승인/source trace](artifacts/step-5c-source-trace.md), [문서 검증/전달](artifacts/step-5c-validation.md). 최신 checkpoint [CP0086](checkpoints/CP-0086-step-5c-result-approved.md). 세 원본 identity/bytes·역사 상태 보존, 핵심 재판단/별도 사후 감사 없음.
+- 정식 산출물: [보드 계승/DB·hostless](artifacts/step-5c-board-rule-succession.md), [비보드 규칙 최소6항목/R01~13](artifacts/step-5c-realtime-coop-spatial-rules.md), [둘째 Probe/연결/추가/의무](artifacts/step-5c-genre-model-connections.md), [원본/승인/source trace](artifacts/step-5c-source-trace.md), [문서 검증/전달](artifacts/step-5c-validation.md). 최신 checkpoint [CP0087](checkpoints/CP-0087-step-5c-integration-merge-approved.md). 세 원본 identity/bytes·역사 상태 보존, 핵심 재판단/별도 사후 감사 없음.
 - 행동 **NOT_RUN**, 기존 **UNKNOWN**·구현/실행/오픈 의무. 기존 Auth/게임 무이관·네문서 baseline/유효override/manual gate·STEP4A 전체완료/T01~03·CP0075/D0010 A/C/P·actual C·known expiry 뒤 새 A 금지·동일 transaction late C 제한·새 P/retry fresh인가·owner anchor·최초60초/terminal·D0006~10 보존.
 - Registry 단일metadata·Snapshot/Reconnect 단일모델최종채택/복구·Shell공통/local·BGM기존본체+내부최소수명/H1무보완직결보류·Invite전구간identity/사이트handler/dialog/H2~4·STEP5B공식결과/정정/producer-consumer/여섯중복/공개분리/Profile recipe 보존. 미래 미선택 전체blocker금지·Adapter 새엔진숨김금지.
 - STEP2 49조항/STEP5C 선택표 전수계승 완료 아님. STEP6/7 전수목적지/권위전환 의무, 실제게임/transport/renderer/tick/physics/prediction·Target/API/schema/file/class/코드경로 미선택·미동결. 기존 multiplayer 재대결 의무/DB 적용을 no-op/local/하위면제로 우회하지 않음.
-- 다음 첫 작업 하나: **사용자의 PR #416 integration 병합 여부 결정**. 담당 사용자. 이번에는 승인·완료 기록 보존 후 정지하며 병합·main·STEP6 이후를 진행하지 않는다.
+- 2026-10-11 21:32:21 KST 사용자 ‘승인할게’로 PR416 integration 병합·실제 확인·기록만 허용됐다. 이 기록은 병합 전에 저장하며 실제 PR/Git 증거 확인 시 STEP5C INTEGRATION_MERGED·마지막 승인 반영 STEP5C로 복원한다. main/STEP6 이후는 미허용·미수행.
+- 다음 첫 작업 하나: **사용자의 STEP6 계획 준비 착수 여부 결정**. 담당 사용자. 이번에는 병합·증거 보존 후 정지하며 STEP6 계획/조사/동결 자체도 시작하지 않는다.
 
 ## 22개 검토 지점
 
