@@ -20,15 +20,16 @@
 
 ## 현재 상태
 
-- 마지막 승인 integration 반영: STEP5C **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. 실제 PR416 closed/merged=true, merge `f34f4f180e14ea36847b9740dea43de2f1325e56`, final head `fe1d627f5c6fa39c1f540fcf17dfad22fdd82e18`. CP0087/이전OPEN·미병합은 당시기록이며 명시복원조건+실제Git으로해소했다.
-- STEP6 **COMPLETED / DESIGN_RESULT_APPROVED / TARGET_FROZEN**. 사용자가 PR #417의 정식 결과 head `1f52c47335d741c68126187d32ad5b87b8fbdb8d`를 승인하고 Target 설계 동결·승인·완료 기록만 같은 STEP6 branch/PR에 원격 보존하도록 명시 허용했다. 설계 단계 완료이며 실제 권위 전환·구현·행동 PASS·지원/오픈 완료가 아니다. PR417 **OPEN / merged=false / INTEGRATION_NOT_MERGED**. integration 병합·main·STEP7은 미허용·미수행. hostless multiplayer 재대결 예외는 승인하지 않았다.
-- 고정판단/착수integration `f34f4f180e14ea36847b9740dea43de2f1325e56`; 최신원격동일·추가변경0. branch `docs/game-platform-vnext-phase6-target-architecture`, PR base integration. 실제제출번호/head/tree/원격검증은 해당PR/Git설명에서조회한다. main기존SHA보존·직접commit/동기화없음.
-- 정식산출물: [Target](artifacts/step-6-target-architecture.md), [전수ID/f](artifacts/step-6-clause-destinations.md), [세요청](artifacts/step-6-request-traces.md), [Slice/검증/미확인](artifacts/step-6-slices-and-verification.md), [원본/승인/source trace](artifacts/step-6-source-trace.md), [문서검증/최종검토](artifacts/step-6-validation.md). 최신checkpoint [CP0089](checkpoints/CP-0089-step-6-design-result-approved.md). 원본3identity/bytes/hash·역사상태 보존.
+- 마지막 승인 integration 반영: STEP6 **COMPLETED / DESIGN_RESULT_APPROVED / TARGET_FROZEN / INTEGRATION_MERGED**. PR #417 closed/merged=true, merge `1a950b06ac895028330587dc53fae151b981123a`, final head `487fc8111a98d8f9966e58303b3f85cd81c8fc33`, 2026-10-13 07:29:41 KST. 실제 merge 부모·승인 tree와 integration ref로 확인했다. STEP5C 및 CP0087~89의 과거 OPEN/미병합/검토대기는 당시 이력으로 보존한다.
+- STEP6 정식 결과 승인 대상 head `1f52c47335d741c68126187d32ad5b87b8fbdb8d`, 승인·완료 기록 후 병합 승인 head `487fc8111a98d8f9966e58303b3f85cd81c8fc33`. 사용자는 2026-10-13 재개에서 해당 head의 integration 병합·증거 기록을 승인했다. 설계 동결 완료이며 실제 rulebook 권위 전환·Guard/runtime 구현·행동 PASS·지원/오픈 완료는 아니다. hostless multiplayer 재대결 예외는 승인하지 않았다. main·STEP7은 미허용·미수행.
+- 고정 판단/착수 integration `f34f4f180e14ea36847b9740dea43de2f1325e56`; 현재 승인 integration `1a950b06ac895028330587dc53fae151b981123a`. PR417 merge tree `0df7be0a2c95a9652968e4037a4847e28db41f56`는 승인 final head tree와 동일. main `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09` 그대로. 사후 기록 branch `docs/game-platform-vnext-phase6-merge-record` / PR base integration. 직접 commit 없이 기록 검토 PR에 보존하며 이 기록 PR의 실제 head/병합 상태는 해당 Git/PR로 확인한다.
+- 정식산출물: [Target](artifacts/step-6-target-architecture.md), [전수ID/f](artifacts/step-6-clause-destinations.md), [세요청](artifacts/step-6-request-traces.md), [Slice/검증/미확인](artifacts/step-6-slices-and-verification.md), [원본/승인/source trace](artifacts/step-6-source-trace.md), [문서검증/최종검토](artifacts/step-6-validation.md). 최신checkpoint [CP0090](checkpoints/CP-0090-step-6-integration-merged.md). 원본3identity/bytes/hash·역사상태 보존.
 - 3,232 K1198/L906/H562/I566·305명시부모·16행58명시분할 및f0전체참조·원조건/예외/부정/강도 보존. 한owner·기존scope 유지. 자동분류/개수나참조추적성공으로규범전환/전수의미검토완료/행동PASS를선언하지않음.
 - 제안owner/browser/server/test경로는후속적용계획이다. 이번실제생성은rebuild artifacts/CP0088뿐. 실제AGENTS/rulebook/Guard권위전환·runtime/모델/API/SQL구현없음. STEP4A전체완료/T01~03·CP0075/D0010 A/C/P/knownexpiry/lateC/actualC/freshP·retry/anchor/60초·terminal/부분대체·D0006~10 유지.
 - Registry단일metadata·단일adoption/복구·Shell/local·BGM H1/Invite H2~4·공식결과/정정/producer-consumer/여섯중복/공개분리/Profile recipe·B01~12/R01~13/안전11/DB범위/hostless조건 보존. 기존Auth/게임/API/SQL무이관·네문서baseline/override/manualgate 유지.
 - 행동 **NOT_RUN**, 운영/실행 **UNKNOWN**, 후속구현/실행/오픈의무. source/tests존재·CI미등록/미실행을PASS로표시하지않음. 구매/문의/job/dump/복원/외부재조사/새운영선택없음.
-- 다음 첫 작업 하나: **사용자의 PR #417 integration 병합 여부 결정**. 이번에는 승인·완료 기록 원격 보존 후 정지한다. 병합·main·STEP7·구현·실제 시험은 진행하지 않는다.
+- 다음 첫 작업 하나: **사용자의 STEP6 병합 기록 PR 검토·integration 반영 여부 결정**. PR417 병합은 수행했고 사후 기록 PR 병합·main·STEP7·구현·실제 시험은 진행하지 않는다.
+
 
 ## 22개 검토 지점
 
@@ -441,3 +442,26 @@ STEP5A REVIEW_PENDING. 이번 핵심 판단 승인은 정식 결과 최종 검�
 ### STEP6 제출 당시 상태 이력
 
 - STEP6 **REVIEW_PENDING / APPROVED_JUDGMENT / FORMAL_RESULT_REVIEW_PENDING**. 사용자§9.1여섯묶음조건·제한·미확인포함승인과 정식반영/문서검증/integration base 검토PR제출허용. 정식결과최종승인·Target동결완료·병합·STEP7은남아있다. hostless multiplayer재대결예외는승인하지않았다.
+
+## STEP6 integration 병합 실제 확인 — CP0090
+
+- 병합 승인: 사용자는 PR417의 head `487fc8111a98d8f9966e58303b3f85cd81c8fc33`를 integration에 병합하고 증거를 기록하는 범위를 승인했다. 실제 PR417 merged=true / merge `1a950b06ac895028330587dc53fae151b981123a` / merged_at 2026-10-12T22:29:41Z.
+- 부모 `f34f4f180e14ea36847b9740dea43de2f1325e56` + `487fc8111a98d8f9966e58303b3f85cd81c8fc33`, tree `0df7be0a2c95a9652968e4037a4847e28db41f56`; 승인된 final head와 동일 tree. integration ref는 merge SHA 그대로 확인했다. main 불변.
+- STEP6 COMPLETED/DESIGN_RESULT_APPROVED/TARGET_FROZEN/INTEGRATION_MERGED. CP0088/89 및 정식 산출물·원본의 REVIEW_PENDING/OPEN/미병합은 작성 당시 이력. 원문·정식 본문·과거 checkpoint를 재작성하지 않는다.
+- 병합 후 기록은 `docs/game-platform-vnext-phase6-merge-record`의 검토 PR로 원격 보존한다. integration에 직접 commit하지 않는다. 이 기록 PR의 병합은 별도 사용자 요청으로 남긴다.
+- 행동 NOT_RUN·UNKNOWN·후속 구현/실행/오픈/권위 전환 의무와 모든 보존 조건 유지. STEP7 이후 NOT_STARTED. 이번에는 병합 증거/현재 기록 보존 후 정지.
+
+### CP0089 당시 현재 상태 이력
+
+#### 당시 현재 상태
+
+- 마지막 승인 integration 반영: STEP5C **COMPLETED / DESIGN_RESULT_APPROVED / INTEGRATION_MERGED**. 실제 PR416 closed/merged=true, merge `f34f4f180e14ea36847b9740dea43de2f1325e56`, final head `fe1d627f5c6fa39c1f540fcf17dfad22fdd82e18`. CP0087/이전OPEN·미병합은 당시기록이며 명시복원조건+실제Git으로해소했다.
+- STEP6 **COMPLETED / DESIGN_RESULT_APPROVED / TARGET_FROZEN**. 사용자가 PR #417의 정식 결과 head `1f52c47335d741c68126187d32ad5b87b8fbdb8d`를 승인하고 Target 설계 동결·승인·완료 기록만 같은 STEP6 branch/PR에 원격 보존하도록 명시 허용했다. 설계 단계 완료이며 실제 권위 전환·구현·행동 PASS·지원/오픈 완료가 아니다. PR417 **OPEN / merged=false / INTEGRATION_NOT_MERGED**. integration 병합·main·STEP7은 미허용·미수행. hostless multiplayer 재대결 예외는 승인하지 않았다.
+- 고정판단/착수integration `f34f4f180e14ea36847b9740dea43de2f1325e56`; 최신원격동일·추가변경0. branch `docs/game-platform-vnext-phase6-target-architecture`, PR base integration. 실제제출번호/head/tree/원격검증은 해당PR/Git설명에서조회한다. main기존SHA보존·직접commit/동기화없음.
+- 정식산출물: [Target](artifacts/step-6-target-architecture.md), [전수ID/f](artifacts/step-6-clause-destinations.md), [세요청](artifacts/step-6-request-traces.md), [Slice/검증/미확인](artifacts/step-6-slices-and-verification.md), [원본/승인/source trace](artifacts/step-6-source-trace.md), [문서검증/최종검토](artifacts/step-6-validation.md). 최신checkpoint [CP0089](checkpoints/CP-0089-step-6-design-result-approved.md). 원본3identity/bytes/hash·역사상태 보존.
+- 3,232 K1198/L906/H562/I566·305명시부모·16행58명시분할 및f0전체참조·원조건/예외/부정/강도 보존. 한owner·기존scope 유지. 자동분류/개수나참조추적성공으로규범전환/전수의미검토완료/행동PASS를선언하지않음.
+- 제안owner/browser/server/test경로는후속적용계획이다. 이번실제생성은rebuild artifacts/CP0088뿐. 실제AGENTS/rulebook/Guard권위전환·runtime/모델/API/SQL구현없음. STEP4A전체완료/T01~03·CP0075/D0010 A/C/P/knownexpiry/lateC/actualC/freshP·retry/anchor/60초·terminal/부분대체·D0006~10 유지.
+- Registry단일metadata·단일adoption/복구·Shell/local·BGM H1/Invite H2~4·공식결과/정정/producer-consumer/여섯중복/공개분리/Profile recipe·B01~12/R01~13/안전11/DB범위/hostless조건 보존. 기존Auth/게임/API/SQL무이관·네문서baseline/override/manualgate 유지.
+- 행동 **NOT_RUN**, 운영/실행 **UNKNOWN**, 후속구현/실행/오픈의무. source/tests존재·CI미등록/미실행을PASS로표시하지않음. 구매/문의/job/dump/복원/외부재조사/새운영선택없음.
+- 다음 첫 작업 하나: **사용자의 PR #417 integration 병합 여부 결정**. 이번에는 승인·완료 기록 원격 보존 후 정지한다. 병합·main·STEP7·구현·실제 시험은 진행하지 않는다.
+
