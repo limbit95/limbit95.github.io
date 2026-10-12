@@ -10,6 +10,101 @@ const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
+const VNEXT_ARCHITECTURE_PATH = "docs/game-platform-architecture.md";
+const VNEXT_POLICY_DOCUMENTS = Object.freeze({
+  [VNEXT_ARCHITECTURE_PATH]: { sections: ["AR1", "AR2", "AR3", "AR4"] },
+  "docs/game-platform-common-rules.md": { revision: "GP-COMMON/1", sections: ["CO1", "CO2", "CO3", "CO4", "CO5"] },
+  "docs/game-platform-lifetime-contract.md": { revision: "GP-LIFETIME/1", sections: ["LI1", "LI2", "LI3"] },
+  "docs/game-platform-model-contracts.md": { revision: "GP-MODELS/1", sections: ["MO1", "MO2", "MO3", "MO4", "MO5", "MO6"] },
+  "docs/game-platform-capability-contracts.md": { revision: "GP-CAPABILITIES/1", sections: ["CA1", "CA2", "CA3", "CA4", "CA5", "CA6"] },
+});
+const VNEXT_ENTRY_PATHS = Object.freeze([
+  "AGENTS.md", "games/README.md", RULEBOOK_PATH, UI_RULEBOOK_PATH,
+  "docs/game-platform-governance.md", "games/GAME_SPEC_TEMPLATE.md",
+  "games/DEVELOPMENT_TEMPLATE.md", "games/UI_DESIGN_TEMPLATE.md", "games/UI_DECISIONS_TEMPLATE.md",
+]);
+
+// Internal documentation selection, not a runtime/API/wire version field.
+function vnextContractSelection(content) {
+  return typeof content === "string"
+    ? content.match(/^\s*-\s*Platform contract:\s*(GP-COMMON\/[^\s]+)\s*$/mu)?.[1] ?? null
+    : null;
+}
+
+function referencesPolicyDocument(filename, content, target) {
+  if (typeof content !== "string") return false;
+  if (content.includes(target)) return true;
+  return [...content.matchAll(/\]\(([^\s)]+)\)/gu)].some((match) => {
+    const href = match[1].split("#")[0];
+    const resolved = href.startsWith("/") ? href.slice(1) : path.posix.normalize(path.posix.join(path.posix.dirname(filename), href));
+    return resolved === target;
+  });
+}
+
+export function validateVnextDocumentAuthority({ documents = {} }) {
+  const hasVnextScope = Object.values(documents).some((content) => typeof content === "string" && /^> \*\*적용 범위:\*\* 신규 vNext \(기존 consumer 제외\)\s*$/mu.test(content));
+  if (!hasVnextScope && !Object.keys(VNEXT_POLICY_DOCUMENTS).some((filename) => documents[filename] != null)) return [];
+  const errors = [];
+  for (const [filename, contract] of Object.entries(VNEXT_POLICY_DOCUMENTS)) {
+    const content = documents[filename];
+    if (typeof content !== "string") {
+      errors.push(`vNext authority requires ${filename} in the same transition.`);
+      continue;
+    }
+    if (content.match(PLATFORM_DOCUMENT_CLASS_PATTERN)?.[1] !== "CURRENT") {
+      errors.push(`${filename} must be CURRENT for its vNext contract scope.`);
+    }
+    if (!/^> \*\*적용 범위:\*\* 신규 vNext \(기존 consumer 제외\)\s*$/mu.test(content)) {
+      errors.push(`${filename} must declare the isolated vNext consumer scope.`);
+    }
+    if (contract.revision && !content.split("\n").some((line) => line.trim() === `> **계약 식별:** ${contract.revision}`)) {
+      errors.push(`${filename} must identify approved contract ${contract.revision}.`);
+    }
+    if (filename !== VNEXT_ARCHITECTURE_PATH && !referencesPolicyDocument(filename, content, VNEXT_ARCHITECTURE_PATH)) {
+      errors.push(`${filename} must identify ${VNEXT_ARCHITECTURE_PATH} as its vNext entry.`);
+    }
+    for (const section of contract.sections) {
+      const lines = content.split("\n");
+      const start = lines.findIndex((line) => line === `## ${section}` || line.startsWith(`## ${section} `));
+      const next = start < 0 ? -1 : lines.findIndex((line, index) => index > start && line.startsWith("## "));
+      const body = start < 0 ? null : lines.slice(start + 1, next < 0 ? undefined : next).join("\n").trim();
+      if (!body || /^(TODO|TBD|미작성)$/u.test(body)) {
+        errors.push(`${filename} requires a substantive ${section} body or precise approved inheritance reference.`);
+      }
+    }
+  }
+  for (const [filename, content] of Object.entries(documents)) {
+    if (filename in VNEXT_POLICY_DOCUMENTS || typeof content !== "string") continue;
+    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename)
+      && content.match(PLATFORM_DOCUMENT_CLASS_PATTERN)?.[1] === "CURRENT"
+      && /^> \*\*적용 범위:\*\* 신규 vNext \(기존 consumer 제외\)\s*$/mu.test(content)) {
+      errors.push(`${filename} must reference its existing vNext topic-owner, not introduce competing CURRENT authority.`);
+    }
+  }
+  const architecture = documents[VNEXT_ARCHITECTURE_PATH];
+  if (typeof architecture === "string") {
+    for (const filename of Object.keys(VNEXT_POLICY_DOCUMENTS)) {
+      if (filename !== VNEXT_ARCHITECTURE_PATH && !architecture.includes(filename.split("/").at(-1))) {
+        errors.push(`vNext architecture must link the actual owner ${filename}.`);
+      }
+    }
+    for (const inherited of ["step-5c-board-rule-succession.md", "step-5c-realtime-coop-spatial-rules.md"]) {
+      if (!architecture.includes(inherited)) errors.push(`vNext genre discovery must preserve ${inherited} until its later transition.`);
+    }
+    for (const filename of VNEXT_ENTRY_PATHS) {
+      if (typeof documents[filename] !== "string" || !documents[filename].includes(VNEXT_ARCHITECTURE_PATH)) {
+        errors.push(`${filename} must identify the scoped vNext entry ${VNEXT_ARCHITECTURE_PATH}.`);
+      }
+    }
+    for (const filename of [RULEBOOK_PATH, UI_RULEBOOK_PATH]) {
+      if (typeof documents[filename] === "string" && !documents[filename].includes("> **적용 범위:** 기존 계약/consumer")) {
+        errors.push(`${filename} must retain its existing-consumer scope rather than competing for vNext authority.`);
+      }
+    }
+  }
+  return errors;
+}
+
 const FUNCTION_CHECKPOINT_COMMAND = "기능 체크포인트 기록하자";
 const DESIGN_CHECKPOINT_COMMAND = "디자인 체크포인트 기록하자";
 const RETIRED_GENERIC_CHECKPOINT_MARKER = `\`${["체크포인트", "기록하자"].join(" ")}\``;
@@ -138,7 +233,7 @@ export function validatePlatformDocumentPolicy({
       continue;
     }
 
-    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename) && filename !== RULEBOOK_PATH && !content.includes(RULEBOOK_PATH)) {
+    if (PLATFORM_DOCUMENT_PATH_PATTERN.test(filename) && filename !== RULEBOOK_PATH && !(filename in VNEXT_POLICY_DOCUMENTS) && !content.includes(RULEBOOK_PATH)) {
       errors.push(
         `Game Platform document ${filename} must identify ${RULEBOOK_PATH} as the current rulebook.`,
       );
@@ -205,6 +300,7 @@ export function validatePlatformDocumentPolicy({
     }
   }
 
+  errors.push(...validateVnextDocumentAuthority({ documents }));
   return errors;
 }
 export function validateRepositoryState({
@@ -315,6 +411,16 @@ export function validateRepositoryState({
       }
     }
 
+    const selectedVnextContract = vnextContractSelection(gameSpec);
+    if (selectedVnextContract) {
+      if (selectedVnextContract !== "GP-COMMON/1") {
+        errors.push(`games/${gameId}/GAME_SPEC.md selects unsupported vNext contract ${selectedVnextContract}.`);
+      }
+      if (documents[VNEXT_ARCHITECTURE_PATH] == null) {
+        errors.push(`vNext game ${gameId} requires the scoped architecture authority.`);
+      }
+    }
+
     const game = sharedById.get(gameId);
     if (!game) {
       const files = gameFiles[gameId];
@@ -330,6 +436,18 @@ export function validateRepositoryState({
     const expectedHrefs = new Set([`./games/${gameId}/`, `/games/${gameId}/`]);
     if (!expectedHrefs.has(game.href)) {
       errors.push(`Shared game ${gameId} must route to games/${gameId}/ via its Registry href.`);
+    }
+    if (selectedVnextContract) {
+      const selectedModel = gameSpec.match(/^\s*-\s*Selected model contract:\s*([^\n]+)$/mu)?.[1]?.trim();
+      if (!selectedModel || /^(UNSELECTED|TBD|미정)$/iu.test(selectedModel)) {
+        errors.push(`vNext runtime ${gameId} must record an actual selected model contract before runtime admission.`);
+      }
+    }
+
+    // STEP7A1 installs document authority only; model-specific oracle discovery is STEP7B.
+    // Never turn removal of the old DB requirement into support for an undeclared/non-DB model.
+    if (selectedVnextContract && game.capabilities?.online === true) {
+      errors.push(`vNext online runtime ${gameId} requires model-specific oracle/discovery support, deferred to STEP7B; a DB filename alone does not prove it.`);
     }
     if (game.capabilities?.online === true && !dbTestSet.has(`${gameId}.test.js`)) {
       errors.push(`Online shared game ${gameId} requires tests/game-db-integration/${gameId}.test.js.`);

@@ -1,5 +1,8 @@
 # Game Platform Development Rules
 
+> **적용 범위:** 기존 계약/consumer; 신규 vNext는 AR의 해당 topic-owner를 따른다.
+> 신규 vNext 상위 진입: `docs/game-platform-architecture.md` / 공통 개발 `docs/game-platform-common-rules.md`. 이 문서의 기존 규범·원문/보드 계승 경로는 보존하며 같은 신규scope의 경쟁 최상위가 아니다.
+
 > **문서 분류:** CURRENT
 
 이 문서는 청파 같이에서 **새로운 platform-native 게임을 구현하거나 수정할 때 기본적으로 따라야 하는 실행 규칙**이다.
@@ -861,3 +864,11 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 - `docs/game-platform-invite-analysis.md`: Phase 3D 당시 Invite 구조 조사와 결정 과정
 
 배경 문서와 현재 실행 규칙이 다르게 보일 경우 과거 문서를 현재 계약으로 재해석하지 않는다. 현재 규칙서와 실제 코드·테스트를 우선하고, 불일치가 의심되면 별도 문서 정합성 작업으로 다룬다.
+## STEP7A1 신규 vNext 진입 — 기존 §17의 적용 scope 보완
+
+## 신규 vNext 계약과 기존 consumer 적용 경계
+
+신규 vNext 상위 진입은 `docs/game-platform-architecture.md`, 공통 개발 규칙은 `docs/game-platform-common-rules.md`, 전체 수명은 `docs/game-platform-lifetime-contract.md`, 선택 모델은 `docs/game-platform-model-contracts.md`, 공통 기능은 `docs/game-platform-capability-contracts.md`다. 같은 topic+적용 계약/consumer scope에서 이 owner를 따른다. 기존 `docs/game-platform-development-rules.md`·`docs/game-platform-ui-rules.md`·DB 계약은 기존 consumer와 고정 원문 계승의 범위를 유지한다. 기존 게임/Auth/API/SQL/metadata/네 문서를 이관하지 않는다.
+
+보드 실제 새 본문은7A2, 실시간협동 실제 새 본문은7A3이다. 그전에는 AR4의 기존 원문/승인 artifact 경로를 계속 사용한다. 문서/권위 연결은 구현·지원/오픈 완료가 아니다. UI_DESIGN baseline·최신 유효 UI_DECISIONS override·Developer Manual Design Review / Detail Polish, `기능 체크포인트 기록하자`·`디자인 체크포인트 기록하자`를 유지한다. 새로운 의미 충돌은 topic-owner/ARCHITECTURE CHANGE 절차로 반환한다.
+

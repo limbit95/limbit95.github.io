@@ -136,3 +136,17 @@
 
 - <아직 확정하지 않은 디자인/asset/interaction 결정, 없으면 없음>
 - runtime 개발 전에 확정된 내용은 이 baseline에 반영합니다. 개발 시작 후 확정되는 변경은 이 문서를 덮어쓰지 않고 `UI_DECISIONS.md`에 남깁니다.
+
+## Applied Contract / Scope — 신규 vNext 선택 시
+
+상위 `docs/game-platform-architecture.md`, 공통 `docs/game-platform-common-rules.md`, 수명 `docs/game-platform-lifetime-contract.md`, 선택 모델 `docs/game-platform-model-contracts.md`, 기능 `docs/game-platform-capability-contracts.md`를 따른다. 기존 consumer는 원래 계약/네 문서 baseline과 유효 override를 유지한다.
+
+- Platform contract: 실제 신규 vNext 선택이면 GAME_SPEC에 `GP-COMMON/1` 한 값을 기록; 미선택과 legacy 범위를 구분.
+- Selected model contract: 실제 선택 계약ID/revision·7축·선택이유. 미정이면 UNSELECTED와 구현 전 닫을 질문을 기록.
+- Genre / capability contracts: 적용 ID/revision과 현재 유효 원문/승인 내용 경로.
+- Not applicable / unsupported / undecided: 실제 이유·조건·검증/후속 의무. 없는 Room/host/DOM/winner/score/XP를 생성하지 않음.
+- 기능현재/진행/초기디자인baseline/후속유효디자인결정 책임은 각각 GAME_SPEC/DEVELOPMENT/UI_DESIGN/UI_DECISIONS.
+- 실제 multiplayer 재대결·온라인 안전11을 N/A/no-op/local로 지우지 않음. hostless 재대결 예외는 미승인.
+- 정확히 네 문서의 bootstrap은 미등록 가능; runtime 추가 순간 Registry/선택모델 검사 적용. 미지원 oracle를 기존 DB 검사 제거로 허용하지 않음.
+
+이 추가 질문을 기존 game-local 네 문서의 새baseline으로 강제 적용하지 않는다. BO/RT 실제본문은7A2/7A3이고 AR4의 유효 계승 경로를 유지한다.
