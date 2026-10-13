@@ -400,3 +400,7 @@ Visual Identity와 game-specific presentation은 기본적으로 GAME-LOCAL에 �
 ## STEP7A2 보드 하위 규칙 연결 — 기존 적용 범위 유지
 
 신규 vNext 보드 경험의 추가 규칙은 [BO1~4](game-platform-board-rules.md)이며 상위 [AR](game-platform-architecture.md)의 공통/모델 owner를 참조한다. 기존 consumer·규범본문·고정 원문/계승과 네 문서 baseline은 유지한다. 실제 BO 발견과 최소 Guard 연결은 같은 적용 단위다. RT는7A3 후속으로 승인 artifact 발견을 유지하며 full 경로/모델 oracle/test발견은7B이다. 이 연결로 신규 온라인 미지원·기존 온라인 DB 검사·multiplayer 재대결 의무를 면제하지 않는다.
+
+## STEP7A3 실시간 협동·공간 하위 규칙 연결
+
+신규 vNext의 제한 실시간협동/공간 경험은 [RT1~6](game-platform-realtime-coop-rules.md)을 상위 [AR](game-platform-architecture.md) 아래에서 적용한다. BO 실제발견·공통/모델 단일owner·기존consumer/규범본문은 보존한다. R01~13의제품질문/조건·둘째Probe/혼합/신규추가절차는 RT6에서 정확한승인owner를참조한다. 이 연결은 게임/기술/Runtime구현·지원인증이나 online안전/재대결면제가 아니다. full발견/모델oracle는7B후속이다.

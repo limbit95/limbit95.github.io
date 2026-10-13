@@ -20,7 +20,8 @@ function vnextPolicyDocuments() {
     "docs/game-platform-ui-rules.md", "docs/game-platform-governance.md",
     "docs/game-platform-architecture.md", "docs/game-platform-common-rules.md",
     "docs/game-platform-lifetime-contract.md", "docs/game-platform-model-contracts.md",
-    "docs/game-platform-capability-contracts.md", "docs/game-platform-board-rules.md", "games/GAME_SPEC_TEMPLATE.md",
+    "docs/game-platform-capability-contracts.md", "docs/game-platform-board-rules.md",
+    "docs/game-platform-realtime-coop-rules.md", "games/GAME_SPEC_TEMPLATE.md",
     "games/DEVELOPMENT_TEMPLATE.md", "games/UI_DESIGN_TEMPLATE.md", "games/UI_DECISIONS_TEMPLATE.md",
     "docs/game-platform-strategy.md", "docs/game-platform-invite-analysis.md",
   ];
@@ -1122,6 +1123,92 @@ test("architecture must discover installed BO while preserving the RT approved a
 });
 
 test("installing board rules never admits vNext online by supplying a DB test filename", () => {
+  assert.match(validateRepositoryState(vnextGameFixture({ online: true, registered: true, dbFiles: ["scope-probe.test.js"] })).join("\n"),
+    /model-specific oracle\/discovery support, deferred to STEP7B/u);
+});
+
+const REALTIME_RULES_PATH = "docs/game-platform-realtime-coop-rules.md";
+
+test("installed RT and BO owners preserve the common bundle without forcing the realtime genre on a local game", () => {
+  const documents = vnextPolicyDocuments();
+  assert.deepEqual(validateVnextDocumentAuthority({ documents }), []);
+  assert.deepEqual(validatePlatformDocumentPolicy({ documents }), []);
+  assert.deepEqual(validateRepositoryState(vnextGameFixture({ registered: true, model: "fixture-local/1" })), []);
+});
+
+test("the realtime transition cannot link an absent owner", () => {
+  const documents = vnextPolicyDocuments();
+  delete documents[REALTIME_RULES_PATH];
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /requires docs\/game-platform-realtime-coop-rules/u);
+});
+
+test("each RT section must contain its approved body or precise inheritance", () => {
+  for (const section of ["RT1", "RT2", "RT3", "RT4", "RT5", "RT6"]) {
+    const documents = vnextPolicyDocuments();
+    const parts = documents[REALTIME_RULES_PATH].split(/^## /mu);
+    documents[REALTIME_RULES_PATH] = parts.map((part, index) => index > 0 && part.startsWith(section + " ")
+      ? section + "\n\n" : part).join("## ");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes("substantive " + section + " body"), errors);
+  }
+});
+
+test("realtime revision and consumer isolation cannot expand silently", () => {
+  const documents = vnextPolicyDocuments();
+  documents[REALTIME_RULES_PATH] = documents[REALTIME_RULES_PATH]
+    .replace("GP-GENRE-REALTIME-COOP/1", "GP-GENRE-REALTIME-COOP/2")
+    .replace("신규 vNext (기존 consumer 제외)", "모든 기존 게임");
+  const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+  assert.match(errors, /approved contract GP-GENRE-REALTIME-COOP\/1/u);
+  assert.match(errors, /isolated vNext consumer scope/u);
+});
+
+test("every R01 through R13 needs a real RT3 row", () => {
+  for (let index = 1; index <= 13; index += 1) {
+    const id = "S5C-R" + String(index).padStart(2, "0");
+    const documents = vnextPolicyDocuments();
+    documents[REALTIME_RULES_PATH] = documents[REALTIME_RULES_PATH].split("\n")
+      .filter((line) => !line.includes("**" + id + " ")).join("\n");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes("requires " + id + " content"), errors);
+  }
+});
+
+test("an R row cannot replace owner or follow-up observation with an empty field or placeholder", () => {
+  for (const field of [2, 3]) {
+    const documents = vnextPolicyDocuments();
+    documents[REALTIME_RULES_PATH] = documents[REALTIME_RULES_PATH].split("\n").map((line) => {
+      if (!line.includes("**S5C-R02 ")) return line;
+      const cells = line.split("|");
+      cells[field] = field === 2 ? " " : " TBD ";
+      return cells.join("|");
+    }).join("\n");
+    assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /requires S5C-R02 content/u);
+  }
+});
+
+test("RT must reach the common lifetime model capability governance board and DB owners", () => {
+  for (const target of ["game-platform-common-rules.md", "game-platform-lifetime-contract.md",
+    "game-platform-model-contracts.md", "game-platform-capability-contracts.md",
+    "game-platform-governance.md", "game-platform-board-rules.md", "game-platform-db-test-contract.md"]) {
+    const documents = vnextPolicyDocuments();
+    documents[REALTIME_RULES_PATH] = documents[REALTIME_RULES_PATH].split(target).join("removed-owner.md");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes("realtime owner must reference docs/" + target), errors);
+  }
+});
+
+test("all four templates must reach the actual RT owner", () => {
+  for (const name of ["GAME_SPEC", "DEVELOPMENT", "UI_DESIGN", "UI_DECISIONS"]) {
+    const documents = vnextPolicyDocuments();
+    const filename = "games/" + name + "_TEMPLATE.md";
+    documents[filename] = documents[filename].split(REALTIME_RULES_PATH).join("missing-rt.md");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes(filename + " must connect the actual vNext realtime owner"), errors);
+  }
+});
+
+test("RT installation cannot admit vNext online with a DB filename instead of its model oracle", () => {
   assert.match(validateRepositoryState(vnextGameFixture({ online: true, registered: true, dbFiles: ["scope-probe.test.js"] })).join("\n"),
     /model-specific oracle\/discovery support, deferred to STEP7B/u);
 });

@@ -827,7 +827,7 @@ Visual Identity와 game-specific presentation은 기본적으로 GAME-LOCAL에 �
 | GP-MODELS/1 | [MO](game-platform-model-contracts.md) MO1~6 | 실제 선택 모델·미지원 구분 |
 | GP-CAPABILITIES/1 | [CA](game-platform-capability-contracts.md) CA1~6 | 선택된 기능의 책임/조건 |
 | GP-GENRE-BOARD/1 | [BO1~4](game-platform-board-rules.md) 실제 하위 본문 | 신규 vNext 보드 경험; 기존 consumer 제외 |
-| GP-GENRE-REALTIME-COOP/1 | RT1~6, 실제 본문7A3 | 현재는 AR4의 승인 내용 경로 |
+| GP-GENRE-REALTIME-COOP/1 | [RT1~6](game-platform-realtime-coop-rules.md) 실제 하위 본문 | 신규 vNext의 제한 실시간협동/공간 경험; 기존 consumer 제외 |
 
 GAME_SPEC에 적용 계약ID/revision·실제 선택모델 계약·장르·Capability·비적용/미지원/미정·선택이유·검증 링크를 기록한다. 구체 모델 식별자는 실제 정의될 때 부여한다. 기존 게임 비교기준 legacy@f34f4f1은 문서 지칭이며 Registry나 기존 게임에 필드를 강제하지 않는다. Invite VERSION=1·legacy SQL v1.0.0·실행계획1.5를 플랫폼 전체 계약 버전으로 쓰지 않는다.
 
@@ -964,7 +964,7 @@ Legacy 변경이 필요해 보이면 현재 신규 게임 PR에 섞지 않고 �
 
 보드의 실제 하위 owner: [BO1~4](game-platform-board-rules.md), 문서 계약 `GP-GENRE-BOARD/1`. 신규 보드 경험은 CO→BO→네 문서→MO/CA→검증으로 연결한다. 고정 원문/승인 계승의 발견 경로는 [기존 development](game-platform-development-rules.md), [기존 UI](game-platform-ui-rules.md), [승인 B01~12/조건](game-platform-rebuild/artifacts/step-5c-board-rule-succession.md)에 보존한다. 기존 consumer는 원래 scope를 유지한다.
 
-실시간 협동의 현재 승인 내용: [R01~13/최소6항목](game-platform-rebuild/artifacts/step-5c-realtime-coop-spatial-rules.md), [장르/모델 연결](game-platform-rebuild/artifacts/step-5c-genre-model-connections.md). 새 docs/game-platform-realtime-coop-rules.md는7A3 후속 경로다. 게임/엔진/제품지원은 미선택이며 승인 내용의 발견과 구현 가능/지원 완료를 구분한다.
+실시간 협동·공간 경험의 실제 하위 owner는 [RT1~6](game-platform-realtime-coop-rules.md), 문서 계약 GP-GENRE-REALTIME-COOP/1이다. [고정 R01~13/최소6항목](game-platform-rebuild/artifacts/step-5c-realtime-coop-spatial-rules.md), [장르/모델 연결](game-platform-rebuild/artifacts/step-5c-genre-model-connections.md)의 승인 조건·trace는 보존한다. 단지2D/online으로 RT를 강제하지 않으며 게임/엔진/실제지원은 미선택·미검증이다.
 
 [CO](game-platform-common-rules.md), [LI](game-platform-lifetime-contract.md), [MO](game-platform-model-contracts.md), [CA](game-platform-capability-contracts.md), [기존 Governance](game-platform-governance.md)를 따른다. 혼합장르는 phase/행동/역할별로 적용하며 같은 상태를 둘이 다른 권위/순서/종료로 정의하면 단순합집합/더엄격한쪽으로 해결하지 않고 해당 경계만 Architecture Change로 반환한다.
 
