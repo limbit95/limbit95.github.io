@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 import {
-  MODEL_ORACLE_OBLIGATIONS, resolveRepositoryReference, sourceModuleEdges,
+  MODEL_ORACLE_OBLIGATIONS, isBrowserAsset, resolveRepositoryReference, sourceModuleEdges,
   validateModelOracleConfiguration, validateModelOracleSelection, validateVnextBoundaries,
 } from "../scripts/check-game-platform-vnext-boundaries.mjs";
 import { platformGameIdFromPath, validatePullRequestChanges } from "../scripts/check-game-platform-governance.mjs";
@@ -29,6 +31,57 @@ test("literal static/re-export/dynamic module edges ignore comments and decode e
 test("path normalization closes encoded traversal/query/hash aliases", () => {
   assert.equal(resolveRepositoryReference("games/shared/vnext/core/x.js", "../../../../%73ervices/game-platform-vnext/gate.mjs?q#x"),
     "services/game-platform-vnext/gate.mjs");
+});
+
+test("relative browser references clamp traversal at the origin root", () => {
+  for (const reference of [
+    "../../services/game-platform-vnext/gate.mjs",
+    "../../../%73ervices/game-platform-vnext/gate.mjs?q#x",
+    "..\\..\\services\\game-platform-vnext\\gate.mjs",
+  ]) {
+    assert.equal(resolveRepositoryReference("js/app.js", reference), "services/game-platform-vnext/gate.mjs");
+    assert.match(validateVnextBoundaries({ files: { "js/app.js": "import " + JSON.stringify(reference.replaceAll("\\", "/")) + ";" } }).join("\n"),
+      /boundary violation/u);
+  }
+  assert.equal(resolveRepositoryReference("js/pages/app.js", "../shared.js?q#x"), "js/shared.js");
+  assert.equal(resolveRepositoryReference("js/app.js", "./bridge.js"), "js/bridge.js");
+  assert.deepEqual(validateVnextBoundaries({ files: { "js/app.js": "import '../games/shared/index.js';" } }), []);
+});
+
+test("HTML inline executable modules and classic dynamic imports cannot reach server code", () => {
+  for (const body of [
+    '<script type="module">import "/services/game-platform-vnext/gate.mjs";</script>',
+    '<script TYPE=module>export * from "/services/game-platform-vnext/gate.mjs";</script>',
+    '<script>import("/services/game-platform-vnext/gate.mjs");</script>',
+    '<script type="text/javascript">import("/services/game-platform-vnext/" + "gate.mjs");</script>',
+  ]) assert.match(validateVnextBoundaries({ files: { "invite.html": body } }).join("\n"), /boundary violation/u);
+});
+
+test("quoted CSS imports are checked in stylesheets and inline HTML styles", () => {
+  for (const body of [
+    '@import "/services/game-platform-vnext/theme.css";',
+    "@IMPORT '/services/game-platform-vnext/theme.css' screen;",
+    '@import url("/services/game-platform-vnext/theme.css");',
+  ]) {
+    assert.match(validateVnextBoundaries({ files: { "css/page.css": body } }).join("\n"), /boundary violation/u);
+    assert.match(validateVnextBoundaries({ files: { "invite.html": "<style>" + body + "</style>" } }).join("\n"), /boundary violation/u);
+  }
+});
+
+test("comments, inert scripts and ignored external-script bodies do not create inline edges", () => {
+  assert.deepEqual(validateVnextBoundaries({ files: {
+    "invite.html": [
+      '<!-- <script type="module">import "/services/game-platform-vnext/gate.mjs";</script> -->',
+      '<script type="application/json">{"example":"import /services/game-platform-vnext/gate.mjs"}</script>',
+      '<script type="text/plain">import "/services/game-platform-vnext/gate.mjs";</script>',
+      '<script src="/js/app.js">import "/services/game-platform-vnext/gate.mjs";</script>',
+      '<script type="module">// import "/services/game-platform-vnext/gate.mjs";\nimport "/games/shared/index.js";</script>',
+      '<p>Example: @import "/services/game-platform-vnext/theme.css";</p>',
+      '<style>/* @import "/services/game-platform-vnext/theme.css"; */ @import "/css/page.css";</style>',
+    ].join("\n"),
+    "css/page.css": '/* @import "/services/game-platform-vnext/theme.css"; */ @import "/css/base.css";'
+      + 'a::before { content: "@import \'/services/game-platform-vnext/example.css\';"; }',
+  } }), []);
 });
 
 test("browser static, dynamic, re-export and resource edges cannot reach server implementation", () => {
@@ -179,4 +232,18 @@ test("existing workflow discovers server-only and boundary/config changes withou
     assert.ok(workflow.includes(`- "${wanted}"`), wanted);
   }
   assert.ok(workflow.includes('run: node scripts/check-game-platform-vnext-boundaries.mjs'));
+});
+
+test("every tracked and supported browser asset change triggers the existing boundary workflow", () => {
+  const workflow = readFileSync(new URL("../.github/workflows/game-platform-governance.yml", import.meta.url), "utf8");
+  const filters = [...workflow.split("\njobs:")[0].matchAll(/^\s+- "([^"]+)"$/gmu)].map((match) => match[1]);
+  const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: new URL("../", import.meta.url), encoding: "utf8" }).split("\0").filter(Boolean);
+  const examples = ["invite.html", "css/page.css", "activity-link.html"];
+  for (const root of ["", "js/", "css/", "games/shared/vnext/", "liar-game/", "the-game/", "marble-game/", "assets/"]) {
+    for (const extension of ["js", "mjs", "html", "css", "JS", "MJS", "HTML", "CSS"]) examples.push(root + "probe." + extension);
+  }
+  for (const filename of [...tracked, ...examples].filter(isBrowserAsset)) {
+    assert.ok(filters.some((filter) => path.matchesGlob(filename, filter)), "Boundary CI misses " + filename);
+  }
+  assert.equal(filters.some((filter) => path.matchesGlob("unrelated-server/file.js", filter)), false);
 });

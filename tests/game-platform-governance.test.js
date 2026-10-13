@@ -57,6 +57,44 @@ test("applied genre revision is conditional but cannot infer compatibility from 
   assert.match(validateRepositoryState(fixture).join("\n"), /unsupported applied contract/u);
 });
 
+test("the entire explicit applied-contract field is checked rather than valid revision substrings", () => {
+  for (const value of [
+    "GP-GENRE-BOARD/latest", "GP-GENRE-BOARD", "arbitrary text", "GP-GENRE-BOARD/1junk",
+    "GP-GENRE-BOARD/1, GP-CAPABILITIES/latest", "GP-GENRE-BOARD/1 arbitrary",
+    "N/A GP-GENRE-BOARD/latest", "GP-UNKNOWN/1",
+  ]) {
+    const fixture = vnextGameFixture();
+    fixture.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts: " + value;
+    assert.match(validateRepositoryState(fixture).join("\n"), /unsupported applied contract/u, value);
+  }
+});
+
+test("applied contracts permit approved lists and owner links without forcing a genre selection", () => {
+  for (const value of [
+    null, "UNSELECTED", "TBD", "미정", "N/A", "비적용", "미지원",
+    "GP-GENRE-BOARD/1, GP-CAPABILITIES/1",
+    "[GP-GENRE-BOARD/1](../../docs/game-platform-board-rules.md#bo1)",
+    "GP-GENRE-BOARD/1 [BO](../../docs/game-platform-board-rules.md#bo1)",
+    "GP-GENRE-BOARD/1 docs/game-platform-board-rules.md#bo1",
+  ]) {
+    const fixture = vnextGameFixture();
+    if (value !== null) fixture.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts: " + value;
+    assert.deepEqual(validateRepositoryState(fixture), [], String(value));
+  }
+});
+
+test("empty, duplicate and mismatched-owner applied declarations fail closed", () => {
+  const empty = vnextGameFixture();
+  empty.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts:";
+  assert.match(validateRepositoryState(empty).join("\n"), /explicit applied contract/u);
+  const duplicate = vnextGameFixture();
+  duplicate.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts: GP-GENRE-BOARD/1\n- Genre / capability contracts: N/A";
+  assert.match(validateRepositoryState(duplicate).join("\n"), /one unambiguous applied/u);
+  const mismatched = vnextGameFixture();
+  mismatched.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts: [GP-GENRE-BOARD/1](../../docs/game-platform-realtime-coop-rules.md#rt1)";
+  assert.match(validateRepositoryState(mismatched).join("\n"), /owner outside/u);
+});
+
 test("four-document local bootstrap remains allowed but actual vNext local runtime needs model oracle discovery", () => {
   const fixture = vnextGameFixture({ registered: true });
   assert.deepEqual(validateRepositoryState(fixture), []);

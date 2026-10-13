@@ -40,6 +40,40 @@ function vnextContractSelection(content) {
     : null;
 }
 
+function validateAppliedContracts(filename, content) {
+  const fields = [...content.matchAll(/^[ \t]*-[ \t]*Genre \/ capability contracts:[ \t]*([^\n]*)$/gmu)];
+  if (!fields.length) return []; // Optional applicability does not force a genre selection.
+  if (fields.length !== 1) return [filename + " must declare one unambiguous applied contract field."];
+  const value = fields[0][1].trim();
+  if (/^(?:UNSELECTED|TBD|미정|N\/A|비적용|미지원)$/iu.test(value)) return [];
+  const approved = new Map(Object.entries(VNEXT_POLICY_DOCUMENTS)
+    .filter(([, owner]) => owner.revision).map(([ownerPath, owner]) => [owner.revision, ownerPath]));
+  const references = [];
+  const text = value.replace(/\[([^\]]+)\]\(([^)\s]+)\)/gu, (link, label, href) => {
+    references.push(href);
+    return /^GP-/u.test(label) ? label : "";
+  }).replace(/\x60/gu, "");
+  const tokens = text.split(/[\s,;]+/u).filter(Boolean);
+  const revisions = [];
+  const errors = [];
+  for (const token of tokens) {
+    if (/^(?:\/?docs\/|\.\.?\/)/u.test(token)) { references.push(token); continue; }
+    if (!/^GP-[A-Z-]+\/[1-9]\d*$/u.test(token) || !approved.has(token)) {
+      errors.push(filename + " selects unsupported applied contract " + token + ".");
+    } else revisions.push(token);
+  }
+  if (!revisions.length && !errors.length) errors.push(filename + " requires an explicit applied contract or applicability marker.");
+  for (const href of references) {
+    const target = href.split("#")[0];
+    const ownerPath = target.startsWith("/") ? target.slice(1)
+      : target.startsWith("docs/") ? target : path.posix.normalize(path.posix.join(path.posix.dirname(filename), target));
+    if (!revisions.some((revision) => approved.get(revision) === ownerPath)) {
+      errors.push(filename + " references an owner outside its selected applied contracts: " + href + ".");
+    }
+  }
+  return errors;
+}
+
 function referencesPolicyDocument(filename, content, target) {
   if (typeof content !== "string") return false;
   if (content.includes(target)) return true;
@@ -483,11 +517,7 @@ export function validateRepositoryState({
       if (documents[VNEXT_ARCHITECTURE_PATH] == null) {
         errors.push(`vNext game ${gameId} requires the scoped architecture authority.`);
       }
-      const applied = gameSpec.match(/^\s*-\s*Genre \/ capability contracts:\s*([^\n]+)$/mu)?.[1] ?? "";
-      const approved = new Set(Object.values(VNEXT_POLICY_DOCUMENTS).map((owner) => owner.revision).filter(Boolean));
-      for (const revision of applied.match(/GP-[A-Z-]+\/\d+/gu) ?? []) {
-        if (!approved.has(revision)) errors.push(`games/${gameId}/GAME_SPEC.md selects unsupported applied contract ${revision}.`);
-      }
+      errors.push(...validateAppliedContracts('games/' + gameId + '/GAME_SPEC.md', gameSpec));
     }
 
     const game = sharedById.get(gameId);

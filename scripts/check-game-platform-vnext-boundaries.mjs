@@ -138,7 +138,7 @@ export function resolveRepositoryReference(sourcePath, reference) {
     try { clean = new URL(clean).pathname; } catch { return null; }
   }
   if (clean.startsWith("/")) return path.posix.normalize(clean).slice(1);
-  if (clean.startsWith(".")) return path.posix.normalize(path.posix.join(path.posix.dirname(sourcePath), clean));
+  if (clean.startsWith(".")) return path.posix.normalize(path.posix.join("/", path.posix.dirname(sourcePath), clean)).slice(1);
   return path.posix.normalize(clean);
 }
 
@@ -146,6 +146,33 @@ export function isBrowserAsset(filename) {
   return /\.(?:js|mjs|html|css)$/iu.test(filename)
     && (!filename.includes("/")
       || /^(?:js|css|games|liar-game|the-game|marble-game|assets)\//u.test(filename));
+}
+
+function cssReferences(source) {
+  const clean = source.replace(/\/\*[\s\S]*?\*\//gu, "");
+  return [...clean.matchAll(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|url\(\s*["']?([^)'"\s]+)|@import\s+["']([^"']+)["']/giu)]
+    .filter((match) => !match[1]).map((match) => match[2] ?? match[3]);
+}
+
+function htmlReferences(source) {
+  const references = [];
+  const clean = source.replace(/<!--[\s\S]*?-->/gu, "")
+    .replace(/<script\b([^>]*?)>([\s\S]*?)<\/script\s*>/giu, (tag, attributes, body) => {
+      const type = attributes.match(/(?:^|\s)type\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/iu);
+      const mime = (type?.[1] ?? type?.[2] ?? type?.[3] ?? "").trim().toLowerCase();
+      const executable = !mime || mime === "module"
+        || /^(?:text|application)\/(?:x-)?(?:javascript|ecmascript)(?:\s*;.*)?$/u.test(mime);
+      if (executable && !/(?:^|\s)src\s*=/iu.test(attributes)) references.push(...sourceModuleEdges(body));
+      // Keep resource attributes, but do not parse inert script text as HTML/CSS.
+      return "<script" + attributes + "></script>";
+    })
+    .replace(/<style\b([^>]*?)>([\s\S]*?)<\/style\s*>/giu, (tag, attributes, body) => {
+      references.push(...cssReferences(body));
+      return "<style" + attributes + "></style>";
+    });
+  references.push(...[...clean.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']|url\(\s*["']?([^)'"\s]+)/giu)]
+    .map((match) => match[1] ?? match[2]));
+  return references;
 }
 
 export function validateVnextBoundaries({ files, trackedPaths = Object.keys(files), assetOutputs = [] }) {
@@ -159,7 +186,7 @@ export function validateVnextBoundaries({ files, trackedPaths = Object.keys(file
     if (typeof source !== "string") { errors.push(`Boundary check could not read browser asset ${filename}.`); continue; }
     const js = /\.(?:js|mjs)$/iu.test(filename);
     const references = js ? [...sourceModuleEdges(source), ...sourceTokens(source).filter((token) => ["literal", "computed"].includes(token.type)).map((token) => token.value)]
-      : [...source.replace(/\/\*[\s\S]*?\*\/|<!--[\s\S]*?-->/gu, "").matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']|url\(\s*["']?([^)'"\s]+)/giu)].map((m) => m[1] ?? m[2]);
+      : /\.css$/iu.test(filename) ? cssReferences(source) : htmlReferences(source);
     for (const ref of references) {
       const target = resolveRepositoryReference(filename, ref);
       if (target === VNEXT_SERVER_ROOT.slice(0, -1) || target?.startsWith(VNEXT_SERVER_ROOT)) errors.push(`Browser/server boundary violation: ${filename} -> ${ref}`);

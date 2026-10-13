@@ -46,3 +46,9 @@
 ## 4. 다음 첫 작업 하나와 정지
 
 사용자의 STEP7B 정식 결과 최종 검토. 현재 **REVIEW_PENDING**이며 이번 제출로 완료/최종 승인·병합·main·7C 이후를 선언/진행하지 않는다. 최종 승인 시 실제 PR head를 특정하여 승인·완료 기록만 보존하는 별도 요청을 사용하고 integration 병합은 별도 게이트로 남긴다.
+
+## 5. 2026-10-14 최종 검토 F1~F4 보완 제출
+
+§1의 93/336개 및 최초18경로는 원 제출 head567d848572b29f933dcccf2cc31b3fc05271c236의 검증 이력이다. [보완 결과](step-7b-review-fixes.md)는 그 이후 변경을 구분한다. 관련 Guard/helper **101/101**, configured 계약 **344/344**, skip0, repository Guard·boundary helper·변경 checker syntax를 확인했다. 신규8사례는 CI 대상 누락·inline import/CSS @import·origin root 위 이동·명시 revision 전체와 정상 허용 사례를 검증한다.
+
+원격 보완 head/tree·기존 CI의 실제 run 결과는 PR422에서 제출 뒤 확인하며 로컬 성공으로 CI 성공을 추정하지 않는다. **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**, 실제 행동 **NOT_RUN**·실행/운영 **UNKNOWN**, 계획 §7 전체와 후속 의무를 유지한다. 승인/완료 기록·병합·main·7C 이후는 수행하지 않는다.

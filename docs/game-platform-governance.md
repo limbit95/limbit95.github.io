@@ -1568,6 +1568,8 @@ Game Platform 규칙을 보완할 때는 문서 계층의 높이만 보고 무�
 
 GAME_SPEC의 Platform contract 선언은 하나이며 현재 승인 GP-COMMON/1과 일치해야 한다. 명시한 Genre / capability contracts의 revision은 현재 승인 owner와 일치해야 한다. 더 큰 revision/latest·Invite v1·SQL v1.0.0·계획1.5를 호환 증거로 쓰지 않는다. 신규 vNext를 import하는 실제 게임은 적용 scope를 선언하고, runtime 추가 순간 단일 기존 Registry와 실제 선택 모델/검증 연결 요구가 적용된다. 기존 consumer를 vNext로 자동 전환하지 않는다.
 
+적용 계약 필드는 전체 ID/revision 토큰·목록과 제공한 owner 경로/링크를 검사하며 부분 문자열만 유효하다고 축소하지 않는다. 필드 부재 또는 명시 미선택/비적용/미지원 표시는 장르 선택이나 실제 모델 지원을 만들지 않으며, 별도 runtime/oracle·online DB·안전 의무를 면제하지 않는다.
+
 [모델 oracle 발견 설정](../tests/game-platform-vnext-model-oracles.json)은 **models: []**다. 실제 지원/선택 모델을 새로 등록하지 않았고 현재 신규 vNext online 및 미구현 local runtime 조합은 미지원이다. 네 문서만의 local bootstrap은 구현 지원을 주장하지 않는 준비 상태로 허용한다. 모델별 실제 정의와 oracle가 준비되지 않았다는 이유로 플랫폼 전체 준비를 보류하지 않는다.
 
 후속 허용된 모델 구현 시, checker용 descriptor는 model contract ID/revision·MO의 같은 명시 anchor/정의·online scope·기존 runner(node-contract/disposable-db)·실제 oracle 환경·승인 root의 구현 파일·coverage를 연결한다. coverage는 safety01~11·authorizationACP·lifetime·adoptionRecovery 각각의 discovered test 파일/실제 test 이름을 가리킨다. online의 안전11 항목을 private 정보 없음/N/A로 없애지 않는다. 실제 local의 비적용은 이유가 있어야 하고 전체 수명·최종 채택은 N/A로 면제하지 않는다. 기존 flat test/DB runner 밖의 파일이나 주석의 case 이름·없는 환경/구현·다른 owner anchor는 증거로 인정하지 않는다.
@@ -1577,6 +1579,8 @@ GAME_SPEC의 Platform contract 선언은 하나이며 현재 승인 GP-COMMON/1�
 ### browser/server import와 정적 공개 차단
 
 [경계 helper](../scripts/check-game-platform-vnext-boundaries.mjs)는 tracked browser .js/.mjs/.html/.css와 asset manifest 출력에서 server root 참조를 검사한다. static import/re-export·literal dynamic import·명시적인 server root template/resource URL 및 query/hash/encoded traversal을 확인하며 각 tracked browser 모듈을 읽어 중간 연결의 server edge도 발견한다. 기존 barrel→vNext 재수출도 거부한다. browser bytes/manifest를 읽을 수 없으면 빈 성공으로 처리하지 않는다.
+
+기존 Governance CI의 변경 필터는 css/와 모든 루트 browser 확장자도 포함한다. HTML의 실행 가능한 inline script module edge와 CSS/HTML style의 quoted @import를 검사하고, 상대경로의 origin root 위 이동을 root에 제한해 server 경계와 대조한다. 주석·비실행 script 본문을 실행 import로 간주하지 않는다.
 
 js/app.js를 entry로 하는 현재 browser bundle은 모든 게임 entry를 자동 포함한다는 증거가 아니다. .nojekyll의 존재나 services라는 폴더명·.gitignore·임의 manifest flag는 서버 비노출 증거가 아니다. 현재 tracked 배포 자료에서 새 server root의 공개 제외가 증명되지 않았고 실제 hosting 설정/loaded bytes는 미확인이다. 따라서 helper는 **server root의 tracked 파일/산출물 존재 자체를 fail closed로 차단**한다. 이를 해제하려면 후속 허용 단계에서 실제 배포 source/artifact 경계·제외 검사가 확보되어야 하며 단순 support/excluded flag를 추가하는 것으로 해제할 수 없다. 이번에는 실제 배포/운영 설정을 변경하지 않는다.
 
