@@ -2,6 +2,16 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0092](checkpoints/CP-0092-step-7a1-result-approved.md)다. STEP7A1 **COMPLETED / DESIGN_RESULT_APPROVED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 승인 기준은 PR #419 head `bc4e9f6559cd12bc215d409105ccc2e921d99b46`다. 승인·완료 기록만 같은 PR 브랜치에 원격 보존하며 PR은 OPEN / merged=false다. 마지막 승인 integration 반영은 STEP6이며 integration `90f14ceb3e609267aa559980994a07eacb0160f3`와 main은 유지한다. 행동 **NOT_RUN**·운영 **UNKNOWN** 및 구현/실행/오픈 후속 의무 유지. 다음 첫 작업은 사용자의 PR #419 integration 병합 여부 별도 결정이다. 병합·main·다음 단계는 진행하지 않는다.
+
+### CP0091 제출 당시 진입 설명 이력
+
+현재인수인계는[CURRENT](CURRENT.md)와[CP0091](checkpoints/CP-0091-step-7a1-formal-submitted.md)다. STEP6승인/동결/병합및PR418기록merge `90f14ceb3e609267aa559980994a07eacb0160f3` 실제확인. STEP7A1 **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**, AR/CO/LI/MO/CA본문·기존GV/진입/네템플릿·최소Guard/관련테스트를함께반영했다. [조항대응](artifacts/step-7a1-clause-correspondence.md), [trace](artifacts/step-7a1-source-trace.md), [게임영향도](artifacts/step-7a1-game-impact.md), [검증/최종검토](artifacts/step-7a1-validation.md). 다음첫작업은사용자의정식결과최종검토하나다. 행동NOT_RUN·UNKNOWN·후속의무유지. 병합/main/7A2이후미수행.
+
+아래CP0090이전의진입설명은당시이력이며현재상태는위포인터와실제Git을따른다. 원문/기존consumer를이관하거나검토대기를현재승인으로확대하지않는다.
+
+### CP0090 당시 진입 설명 이력
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0090](checkpoints/CP-0090-step-6-integration-merged.md)다. 마지막 승인 integration 반영은 STEP6 **COMPLETED / DESIGN_RESULT_APPROVED / TARGET_FROZEN / INTEGRATION_MERGED**. PR417 merged=true / merge `1a950b06ac895028330587dc53fae151b981123a` / final head `487fc8111a98d8f9966e58303b3f85cd81c8fc33`, 실제 부모·승인 tree 일치·integration ref를 확인했다. CP0087~89의 OPEN/미병합은 당시 이력이다.
 
 STEP6 정식 결과는 사용자가 PR #417 head `1f52c47335d741c68126187d32ad5b87b8fbdb8d`를 기준으로 승인하여 **COMPLETED / DESIGN_RESULT_APPROVED / TARGET_FROZEN**이다. 승인·완료 기록만 같은 STEP6 branch/PR에 원격 보존한다. PR417 **CLOSED / merged=true / INTEGRATION_MERGED**, merge `1a950b06ac895028330587dc53fae151b981123a`. 이번 병합과 사후 기록은 사용자 별도 승인을 적용했다. 실제 권위 전환·구현·행동 PASS·지원/오픈 완료가 아니다. hostless multiplayer 재대결 예외는 승인하지 않았으며 후속 의무를 유지한다. [Target](artifacts/step-6-target-architecture.md), [전수계승/ID·f](artifacts/step-6-clause-destinations.md), [세요청추적](artifacts/step-6-request-traces.md), [Slice/검증/후속의무](artifacts/step-6-slices-and-verification.md), [원본/승인/source trace](artifacts/step-6-source-trace.md), [문서검증/최종검토](artifacts/step-6-validation.md). 세원본identity/bytes/hash와Astra조건·제한·미확인보존, 새핵심판단/별도감사없음.

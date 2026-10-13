@@ -1,5 +1,11 @@
 # Game Platform
 
+## 신규 vNext 계약과 기존 consumer 적용 경계
+
+신규 vNext 상위 진입은 `docs/game-platform-architecture.md`, 공통 개발 규칙은 `docs/game-platform-common-rules.md`, 전체 수명은 `docs/game-platform-lifetime-contract.md`, 선택 모델은 `docs/game-platform-model-contracts.md`, 공통 기능은 `docs/game-platform-capability-contracts.md`다. 같은 topic+적용 계약/consumer scope에서 이 owner를 따른다. 기존 `docs/game-platform-development-rules.md`·`docs/game-platform-ui-rules.md`·DB 계약은 기존 consumer와 고정 원문 계승의 범위를 유지한다. 기존 게임/Auth/API/SQL/metadata/네 문서를 이관하지 않는다.
+
+보드 실제 새 본문은7A2, 실시간협동 실제 새 본문은7A3이다. 그전에는 AR4의 기존 원문/승인 artifact 경로를 계속 사용한다. 문서/권위 연결은 구현·지원/오픈 완료가 아니다. UI_DESIGN baseline·최신 유효 UI_DECISIONS override·Developer Manual Design Review / Detail Polish, `기능 체크포인트 기록하자`·`디자인 체크포인트 기록하자`를 유지한다. 새로운 의미 충돌은 topic-owner/ARCHITECTURE CHANGE 절차로 반환한다.
+
 이 디렉터리는 앞으로 추가되는 게임을 위한 공통 Game Platform 기반입니다.
 
 신규 platform-native 게임을 구현하거나 수정할 때는 [Game Platform Development Rules](../docs/game-platform-development-rules.md)와 [Game Platform UI Design Rules](../docs/game-platform-ui-rules.md)를 **필수 실행 기준**으로 먼저 확인합니다. 사용자가 매 작업마다 플랫폼 규칙이나 UI 조사/설계를 다시 설명하지 않아도 두 문서를 기본 전제로 적용합니다.

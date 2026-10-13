@@ -1,5 +1,8 @@
 # Game Platform UI Design Rules
 
+> **적용 범위:** 기존 계약/consumer; 신규 vNext는 AR의 해당 topic-owner를 따른다.
+> 신규 vNext 상위 진입: `docs/game-platform-architecture.md` / 공통 개발 `docs/game-platform-common-rules.md`. 이 문서의 기존 규범·원문/보드 계승 경로는 보존하며 같은 신규scope의 경쟁 최상위가 아니다.
+
 > **문서 분류:** CURRENT
 >
 > 현재 Game Platform의 최상위 실행 규칙은 `docs/game-platform-development-rules.md`다. 이 문서는 신규 platform-native 게임의 UI/UX 조사, 설계, 구현 및 검증에 추가로 적용하는 필수 규칙이다.

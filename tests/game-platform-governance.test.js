@@ -9,9 +9,115 @@ import {
   validatePlatformDocumentPolicy,
   validatePullRequestChanges,
   validateRepositoryState,
+  validateVnextDocumentAuthority,
 } from "../scripts/check-game-platform-governance.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function vnextPolicyDocuments() {
+  const filenames = [
+    "AGENTS.md", "games/README.md", "docs/game-platform-development-rules.md",
+    "docs/game-platform-ui-rules.md", "docs/game-platform-governance.md",
+    "docs/game-platform-architecture.md", "docs/game-platform-common-rules.md",
+    "docs/game-platform-lifetime-contract.md", "docs/game-platform-model-contracts.md",
+    "docs/game-platform-capability-contracts.md", "games/GAME_SPEC_TEMPLATE.md",
+    "games/DEVELOPMENT_TEMPLATE.md", "games/UI_DESIGN_TEMPLATE.md", "games/UI_DECISIONS_TEMPLATE.md",
+    "docs/game-platform-strategy.md", "docs/game-platform-invite-analysis.md",
+  ];
+  return Object.fromEntries(filenames.map((filename) => [
+    filename, readFileSync(path.join(repositoryRoot, filename), "utf8"),
+  ]));
+}
+
+function vnextGameFixture({ online = false, registered = false, revision = "GP-COMMON/1", model = "fixture-local/1", dbFiles = [] } = {}) {
+  return {
+    gameDirectories: ["scope-probe"],
+    registry: registered ? [game({ id: "scope-probe", online })] : [],
+    dbTestFiles: dbFiles,
+    gameFiles: { "scope-probe": ["GAME_SPEC.md", "DEVELOPMENT.md", "UI_DESIGN.md", "UI_DECISIONS.md"] },
+    gameSpecDocuments: { "scope-probe": `${gameSpecDocument()}\n- Platform contract: ${revision}\n- Selected model contract: ${model}` },
+    developmentDocuments: { "scope-probe": developmentDocument() },
+    uiDesignDocuments: { "scope-probe": uiDesignDocument() },
+    uiDecisionDocuments: { "scope-probe": uiDecisionDocument() },
+    documents: vnextPolicyDocuments(),
+  };
+}
+
+test("scoped vNext owners and legacy authority coexist through real relative links", () => {
+  assert.deepEqual(validateVnextDocumentAuthority({ documents: vnextPolicyDocuments() }), []);
+  assert.deepEqual(validatePlatformDocumentPolicy({ documents: vnextPolicyDocuments() }), []);
+});
+
+test("partial authority transition cannot omit a required lifetime owner", () => {
+  const documents = vnextPolicyDocuments();
+  delete documents["docs/game-platform-lifetime-contract.md"];
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /requires docs\/game-platform-lifetime-contract/u);
+});
+
+test("an owner heading without its body is not an installed contract", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-lifetime-contract.md"] = documents["docs/game-platform-lifetime-contract.md"]
+    .replace(/^## LI2[\s\S]*?(?=^## LI3)/mu, "## LI2 모든 완료·자원·정리\n\n");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /substantive LI2 body/u);
+});
+
+test("a different revision cannot silently replace the approved model contract", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-model-contracts.md"] = documents["docs/game-platform-model-contracts.md"]
+    .replace("> **계약 식별:** GP-MODELS/1", "> **계약 식별:** GP-MODELS/2");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /approved contract GP-MODELS\/1/u);
+  documents["docs/game-platform-model-contracts.md"] = documents["docs/game-platform-model-contracts.md"]
+    .replace("> **계약 식별:** GP-MODELS/2", "> **계약 식별:** GP-MODELS/10");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /approved contract GP-MODELS\/1/u);
+});
+
+test("new authority cannot silently expand into existing consumers", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-common-rules.md"] = documents["docs/game-platform-common-rules.md"]
+    .replace("신규 vNext (기존 consumer 제외)", "모든 기존 및 신규 게임");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /isolated vNext consumer scope/u);
+});
+
+test("legacy rulebooks must identify their separate scope during transition", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-development-rules.md"] = documents["docs/game-platform-development-rules.md"]
+    .replace("> **적용 범위:** 기존 계약/consumer", "> **적용 범위:** 미정");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /rather than competing for vNext authority/u);
+});
+
+test("entry links and not-yet-written genre discovery must remain reachable", () => {
+  const documents = vnextPolicyDocuments();
+  documents["AGENTS.md"] = documents["AGENTS.md"].replaceAll("docs/game-platform-architecture.md", "removed-entry.md");
+  documents["docs/game-platform-architecture.md"] = documents["docs/game-platform-architecture.md"]
+    .replaceAll("step-5c-board-rule-succession.md", "removed-board.md");
+  const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+  assert.match(errors, /AGENTS.md must identify the scoped vNext entry/u);
+  assert.match(errors, /genre discovery must preserve step-5c-board-rule-succession/u);
+});
+
+test("new current owners cannot fall back to only the old rulebook link", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-capability-contracts.md"] = documents["docs/game-platform-capability-contracts.md"]
+    .replaceAll("game-platform-architecture.md", "removed-architecture.md");
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /as its vNext entry/u);
+});
+
+test("four-document vNext bootstrap and local participation do not require a fake room", () => {
+  assert.deepEqual(validateRepositoryState(vnextGameFixture()), []);
+  assert.deepEqual(validateRepositoryState(vnextGameFixture({ registered: true })), []);
+});
+
+test("vNext online oracle absence is not waived by either missing or existing DB test names", () => {
+  const missing = validateRepositoryState(vnextGameFixture({ registered: true, online: true })).join("\n");
+  assert.match(missing, /requires tests\/game-db-integration\/scope-probe.test.js/u);
+  assert.match(missing, /model-specific oracle\/discovery support/u);
+  const named = validateRepositoryState(vnextGameFixture({ registered: true, online: true, dbFiles: ["scope-probe.test.js"] })).join("\n");
+  assert.match(named, /DB filename alone does not prove it/u);
+});
+
+test("a game cannot infer compatibility from a newer common revision number", () => {
+  assert.match(validateRepositoryState(vnextGameFixture({ revision: "GP-COMMON/2" })).join("\n"), /unsupported vNext contract GP-COMMON\/2/u);
+});
 
 function game({
   id,
@@ -930,4 +1036,22 @@ test("UI research records source, observation, and implementation decision", () 
   assert.match(uiRules, /출처 → 관찰한 디자인 요소 → 구현 결정/u);
   assert.match(uiRules, /visual reference를 직접 확인/u);
   assert.match(template, /Source → Observation → Decision/u);
+});
+
+
+test("a model undecided bootstrap stays possible but cannot silently become admitted runtime", () => {
+  assert.deepEqual(validateRepositoryState(vnextGameFixture({ model: "UNSELECTED" })), []);
+  assert.match(validateRepositoryState(vnextGameFixture({ registered: true, model: "UNSELECTED" })).join("\n"), /actual selected model contract before runtime admission/u);
+});
+
+
+test("a second CURRENT document cannot take an approved vNext topic", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-another-common.md"] = "> **문서 분류:** CURRENT\n> **적용 범위:** 신규 vNext (기존 consumer 제외)\n> **계약 식별:** GP-COMMON/1\ndocs/game-platform-development-rules.md";
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /competing CURRENT authority/u);
+});
+
+test("an isolated new scope cannot evade the owner bundle by omitting all canonical paths", () => {
+  const documents = { "docs/game-platform-another-common.md": "> **문서 분류:** CURRENT\n> **적용 범위:** 신규 vNext (기존 consumer 제외)\n> **계약 식별:** GP-COMMON/1" };
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /vNext authority requires docs\/game-platform-architecture/u);
 });
