@@ -2,6 +2,12 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0093](checkpoints/CP-0093-step-7a2-formal-submitted.md)다. STEP7A1 COMPLETED/FORMAL_RESULT_APPROVED/INTEGRATION_MERGED, PR419 merge 41c5b167e19a55095ea57732527a6947b48e7efe 실제 확인. CP0092 미병합은 당시 이력이다. STEP6승인/동결/병합 유지.
+
+STEP7A2 **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. [BO1~4](../game-platform-board-rules.md)·진입/네템플릿·최소Guard를 같이 반영했다. [조항대응](artifacts/step-7a2-clause-correspondence.md), [trace](artifacts/step-7a2-source-trace.md), [Registry영향도](artifacts/step-7a2-game-impact.md), [검증/최종검토](artifacts/step-7a2-validation.md). 기존게임/원본보존·행동NOT_RUN/UNKNOWN·후속의무유지. 다음 첫작업은 사용자 정식결과최종검토 하나다. 완료/병합/main/7A3이후 진행 없음.
+
+### CP0092 저장 당시 진입 이력
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0092](checkpoints/CP-0092-step-7a1-result-approved.md)다. STEP7A1 **COMPLETED / DESIGN_RESULT_APPROVED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 승인 기준은 PR #419 head `bc4e9f6559cd12bc215d409105ccc2e921d99b46`다. 승인·완료 기록만 같은 PR 브랜치에 원격 보존하며 PR은 OPEN / merged=false다. 마지막 승인 integration 반영은 STEP6이며 integration `90f14ceb3e609267aa559980994a07eacb0160f3`와 main은 유지한다. 행동 **NOT_RUN**·운영 **UNKNOWN** 및 구현/실행/오픈 후속 의무 유지. 다음 첫 작업은 사용자의 PR #419 integration 병합 여부 별도 결정이다. 병합·main·다음 단계는 진행하지 않는다.
 
 ### CP0091 제출 당시 진입 설명 이력

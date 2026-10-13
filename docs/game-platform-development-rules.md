@@ -872,3 +872,7 @@ Governance Guard가 문서 구조와 링크를 확인하더라도 이 영향도�
 
 보드 실제 새 본문은7A2, 실시간협동 실제 새 본문은7A3이다. 그전에는 AR4의 기존 원문/승인 artifact 경로를 계속 사용한다. 문서/권위 연결은 구현·지원/오픈 완료가 아니다. UI_DESIGN baseline·최신 유효 UI_DECISIONS override·Developer Manual Design Review / Detail Polish, `기능 체크포인트 기록하자`·`디자인 체크포인트 기록하자`를 유지한다. 새로운 의미 충돌은 topic-owner/ARCHITECTURE CHANGE 절차로 반환한다.
 
+
+## STEP7A2 보드 하위 규칙 연결 — 기존 적용 범위 유지
+
+신규 vNext 보드 경험의 추가 규칙은 [BO1~4](game-platform-board-rules.md)이며 상위 [AR](game-platform-architecture.md)의 공통/모델 owner를 참조한다. 기존 consumer·규범본문·고정 원문/계승과 네 문서 baseline은 유지한다. 실제 BO 발견과 최소 Guard 연결은 같은 적용 단위다. RT는7A3 후속으로 승인 artifact 발견을 유지하며 full 경로/모델 oracle/test발견은7B이다. 이 연결로 신규 온라인 미지원·기존 온라인 DB 검사·multiplayer 재대결 의무를 면제하지 않는다.
