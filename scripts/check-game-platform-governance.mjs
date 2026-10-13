@@ -12,6 +12,7 @@ const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
 const VNEXT_ARCHITECTURE_PATH = "docs/game-platform-architecture.md";
 const VNEXT_BOARD_PATH = "docs/game-platform-board-rules.md";
+const VNEXT_REALTIME_PATH = "docs/game-platform-realtime-coop-rules.md";
 const VNEXT_POLICY_DOCUMENTS = Object.freeze({
   [VNEXT_ARCHITECTURE_PATH]: { sections: ["AR1", "AR2", "AR3", "AR4"] },
   "docs/game-platform-common-rules.md": { revision: "GP-COMMON/1", sections: ["CO1", "CO2", "CO3", "CO4", "CO5"] },
@@ -19,6 +20,7 @@ const VNEXT_POLICY_DOCUMENTS = Object.freeze({
   "docs/game-platform-model-contracts.md": { revision: "GP-MODELS/1", sections: ["MO1", "MO2", "MO3", "MO4", "MO5", "MO6"] },
   "docs/game-platform-capability-contracts.md": { revision: "GP-CAPABILITIES/1", sections: ["CA1", "CA2", "CA3", "CA4", "CA5", "CA6"] },
   [VNEXT_BOARD_PATH]: { revision: "GP-GENRE-BOARD/1", sections: ["BO1", "BO2", "BO3", "BO4"] },
+  [VNEXT_REALTIME_PATH]: { revision: "GP-GENRE-REALTIME-COOP/1", sections: ["RT1", "RT2", "RT3", "RT4", "RT5", "RT6"] },
 });
 const VNEXT_ENTRY_PATHS = Object.freeze([
   "AGENTS.md", "games/README.md", RULEBOOK_PATH, UI_RULEBOOK_PATH,
@@ -99,6 +101,36 @@ export function validateVnextDocumentAuthority({ documents = {} }) {
     for (const filename of VNEXT_ENTRY_PATHS) {
       if (!referencesPolicyDocument(filename, documents[filename], VNEXT_BOARD_PATH)) {
         errors.push(`${filename} must connect the actual vNext board owner ${VNEXT_BOARD_PATH}.`);
+      }
+    }
+  }
+  // The genre document carries experience requirements; canonical owners retain engines.
+  const realtime = documents[VNEXT_REALTIME_PATH];
+  if (typeof realtime === "string") {
+    for (const target of [
+      "docs/game-platform-common-rules.md", "docs/game-platform-lifetime-contract.md",
+      "docs/game-platform-model-contracts.md", "docs/game-platform-capability-contracts.md",
+      "docs/game-platform-governance.md", VNEXT_BOARD_PATH, "docs/game-platform-db-test-contract.md",
+    ]) {
+      if (!referencesPolicyDocument(VNEXT_REALTIME_PATH, realtime, target)) {
+        errors.push("vNext realtime owner must reference " + target + " rather than redefine that responsibility.");
+      }
+    }
+    for (const filename of VNEXT_ENTRY_PATHS) {
+      if (!referencesPolicyDocument(filename, documents[filename], VNEXT_REALTIME_PATH)) {
+        errors.push(filename + " must connect the actual vNext realtime owner " + VNEXT_REALTIME_PATH + ".");
+      }
+    }
+    const lines = realtime.split("\n");
+    const start = lines.findIndex((line) => line === "## RT3" || line.startsWith("## RT3 "));
+    const next = lines.findIndex((line, index) => index > start && line.startsWith("## "));
+    const body = start < 0 ? [] : lines.slice(start + 1, next < 0 ? undefined : next);
+    for (let index = 1; index <= 13; index += 1) {
+      const id = "S5C-R" + String(index).padStart(2, "0");
+      const row = body.find((line) => line.startsWith("|") && line.includes("**" + id + " "));
+      const cells = row?.split("|").slice(1, -1) ?? [];
+      if (cells.length !== 3 || cells.some((cell) => !cell.trim() || /^(TODO|TBD|미작성)$/u.test(cell.trim()))) {
+        errors.push("vNext RT3 requires " + id + " content, owner/conditions, and follow-up observation.");
       }
     }
   }

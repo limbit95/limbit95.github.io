@@ -92,10 +92,16 @@
 - 실제 multiplayer 재대결·온라인 안전11을 N/A/no-op/local로 지우지 않음. hostless 재대결 예외는 미승인.
 - 정확히 네 문서의 bootstrap은 미등록 가능; runtime 추가 순간 Registry/선택모델 검사 적용. 미지원 oracle를 기존 DB 검사 제거로 허용하지 않음.
 
-이 추가 질문을 기존 game-local 네 문서의 새baseline으로 강제 적용하지 않는다. BO 실제본문은7A2의 하위 owner에 연결하고 RT는7A3 후속으로 AR4의 승인 계승 경로를 유지한다.
+이 추가 질문을 기존 game-local 네 문서의 새baseline으로 강제 적용하지 않는다. BO 실제본문은7A2의 하위 owner에 연결하고 RT 실제본문은7A3의 하위 owner로 연결하고 AR4의 고정 승인 계승 경로를 유지한다.
 
 ## Board Experience — 신규 vNext 보드 적용 시
 
 상위 `docs/game-platform-architecture.md` → 보드 `docs/game-platform-board-rules.md` BO1~4 → 실제 네 문서/선택 모델/검증으로 연결한다. 실제 보드 경험일 때 `GP-GENRE-BOARD/1` 적용과 선택 이유·제품/목표 판본·공식 규칙 출처/해석·실제 구성물·정보 공간·안내를 기능 현재 기준에 기록한다. 실제 선택 모델/Capability·비적용/미지원/미정과 안전/재대결 조건은 AR/MO/CA를 참조한다.
 
 이 질문은 실제 보드 경험에만 적용하며 기존 game-local 네 문서의 재작성/이관이나 모든 게임의 Room/host/DOM/winner/score/XP 강제가 아니다. multiplayer 재대결·온라인 안전 의무를 N/A/no-op/local로 제거하지 않는다. 장르 계약 존재를 runtime 지원/행동 PASS로 표시하지 않는다.
+
+## Realtime Cooperative / Spatial Experience — 해당 신규 vNext 경험 적용 시
+
+상위 docs/game-platform-architecture.md → 장르 docs/game-platform-realtime-coop-rules.md RT1~6/R01~13 → 실제네문서/모델/검증으로연결한다. 실제협동흐름/목표/실패/종료·지속intent/취소·공간/시간·역할·시작/재대결/결과유무·7축/선택모델·적용GP-GENRE-REALTIME-COOP/1·기능사용/비적용/미선택/미지원을현재기준에기록한다.
+
+없는Room/host/winner/score/XP를생성하지않고 실제multiplayer재대결/온라인안전/수명은 MO/LI의승인조건을따른다. cancel전달/시간공백·지원환경/표본은후속선택·검증이며임의기술/수치를동결하지않는다. 기존game-local네문서이관과행동지원PASS선언은아니다.
