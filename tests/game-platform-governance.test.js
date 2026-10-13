@@ -44,6 +44,26 @@ function vnextGameFixture({ online = false, registered = false, revision = "GP-C
   };
 }
 
+test("malformed and ambiguous explicit vNext revisions cannot evade contract scope checks", () => {
+  assert.match(validateRepositoryState(vnextGameFixture({ revision: "GP-COMMON" })).join("\n"), /unsupported vNext contract/u);
+  const duplicate = vnextGameFixture();
+  duplicate.gameSpecDocuments["scope-probe"] += "\n- Platform contract: GP-COMMON/2";
+  assert.match(validateRepositoryState(duplicate).join("\n"), /one unambiguous/u);
+});
+
+test("applied genre revision is conditional but cannot infer compatibility from a newer number", () => {
+  const fixture = vnextGameFixture();
+  fixture.gameSpecDocuments["scope-probe"] += "\n- Genre / capability contracts: GP-GENRE-REALTIME-COOP/2";
+  assert.match(validateRepositoryState(fixture).join("\n"), /unsupported applied contract/u);
+});
+
+test("four-document local bootstrap remains allowed but actual vNext local runtime needs model oracle discovery", () => {
+  const fixture = vnextGameFixture({ registered: true });
+  assert.deepEqual(validateRepositoryState(fixture), []);
+  fixture.gameFiles["scope-probe"].push("app.js");
+  assert.match(validateRepositoryState(fixture).join("\n"), /Selected model fixture-local\/1 is unsupported/u);
+});
+
 test("scoped vNext owners and legacy authority coexist through real relative links", () => {
   assert.deepEqual(validateVnextDocumentAuthority({ documents: vnextPolicyDocuments() }), []);
   assert.deepEqual(validatePlatformDocumentPolicy({ documents: vnextPolicyDocuments() }), []);
@@ -1124,7 +1144,7 @@ test("architecture must discover installed BO while preserving the RT approved a
 
 test("installing board rules never admits vNext online by supplying a DB test filename", () => {
   assert.match(validateRepositoryState(vnextGameFixture({ online: true, registered: true, dbFiles: ["scope-probe.test.js"] })).join("\n"),
-    /model-specific oracle\/discovery support, deferred to STEP7B/u);
+    /model-specific oracle\/discovery support/u);
 });
 
 const REALTIME_RULES_PATH = "docs/game-platform-realtime-coop-rules.md";
@@ -1210,5 +1230,5 @@ test("all four templates must reach the actual RT owner", () => {
 
 test("RT installation cannot admit vNext online with a DB filename instead of its model oracle", () => {
   assert.match(validateRepositoryState(vnextGameFixture({ online: true, registered: true, dbFiles: ["scope-probe.test.js"] })).join("\n"),
-    /model-specific oracle\/discovery support, deferred to STEP7B/u);
+    /model-specific oracle\/discovery support/u);
 });

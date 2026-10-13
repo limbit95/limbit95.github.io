@@ -2,6 +2,12 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0097](checkpoints/CP-0097-step-7b-formal-submitted.md)다. STEP7A3 COMPLETED/FORMAL_RESULT_APPROVED/INTEGRATION_MERGED, PR421 실제 merge f65537f0226457857b2084fd0a2c2d21d02c0804·최종 head/tree/ref 확인. CP0096 미병합은 당시 이력. STEP6 승인/동결·7A1/7A2 완료/병합 유지.
+
+STEP7B **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. [실제 검사/제한](../game-platform-governance.md#step7b-탐지검증-연결과-제한)·[공통 모듈 안내](../../games/README.md#step7b-공통-모듈-연결구현-상태-안내)·nested/server/CI/model oracle 연결. [대응](artifacts/step-7b-clause-correspondence.md), [trace](artifacts/step-7b-source-trace.md), [영향도](artifacts/step-7b-game-impact.md), [검증/최종 검토](artifacts/step-7b-validation.md). 모델 설정은 빈 상태·서버 공개 제외 미확인 차단·기존 소비자/원본 보존, 행동 NOT_RUN·UNKNOWN·후속 의무 유지. 다음 첫 작업은 사용자 정식 결과 최종 검토 하나. 완료/해당 PR 병합/main/7C 이후 진행 없음.
+
+### CP0096 저장 당시 진입 이력
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0096](checkpoints/CP-0096-step-7a3-result-approved.md)다. STEP7A3 **COMPLETED / DESIGN_RESULT_APPROVED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 승인 기준 PR #421 head 73839aea65679278888f26facc593f9c1180b5ad. 승인·완료 기록만 같은 STEP7A3 브랜치에 보존하며 PR OPEN / merged=false다.
 
 마지막 승인 integration 반영은 STEP7A2이며 integration 4dbe77010dec444f6e37e3c570e75dd5d9c6308a / main 69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09 유지. STEP6 승인/동결/병합·STEP7A1 완료/병합 유지. 행동 **NOT_RUN**·실행/운영 **UNKNOWN**·기존 구현/실행/오픈 후속 의무 유지. 다음 첫 작업은 사용자의 PR #421 integration 병합 여부 별도 결정이다. 병합·main·다음 단계는 진행하지 않는다.

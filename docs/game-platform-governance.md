@@ -15,6 +15,13 @@ games/**
 tests/game-platform-*.test.js
 tests/game-db-integration/**
 scripts/check-game-platform-governance.mjs
+scripts/check-game-platform-vnext-boundaries.mjs
+scripts/check-community-modules.mjs
+scripts/build-community-assets.mjs
+services/game-platform-vnext/**
+tests/game-platform-vnext-model-oracles.json
+js/** / liar-game/** / the-game/** / marble-game/** / assets/**
+index.html / index.template.html / .nojekyll / _config.yml / package.json
 docs/game-platform-*.md
 AGENTS.md
 .github/workflows/game-platform-governance.yml
@@ -1546,3 +1553,35 @@ Game Platform 규칙을 보완할 때는 문서 계층의 높이만 보고 무�
 ## STEP7A3 실시간 협동·공간 하위 규칙 연결
 
 신규 vNext의 제한 실시간협동/공간 경험은 [RT1~6](game-platform-realtime-coop-rules.md)을 상위 [AR](game-platform-architecture.md) 아래에서 적용한다. BO 실제발견·공통/모델 단일owner·기존consumer/규범본문은 보존한다. R01~13의제품질문/조건·둘째Probe/혼합/신규추가절차는 RT6에서 정확한승인owner를참조한다. 이 연결은 게임/기술/Runtime구현·지원인증이나 online안전/재대결면제가 아니다. full발견/모델oracle는7B후속이다.
+
+## STEP7B 탐지·검증 연결과 제한
+
+승인 경로의 browser 공통 구현은 games/shared/vnext/, 서버 전용 구현은 services/game-platform-vnext/다. 실제 runtime/서버 코드는 아직 없다. [AR](game-platform-architecture.md)의 책임/scope·[MO](game-platform-model-contracts.md)의 안전11/A·C·P/권위·복구·[LI](game-platform-lifetime-contract.md)의 전체 수명이 의미를 소유한다. 이 절과 검사 코드는 그 요구의 발견·전파/누락 거부만 소유한다. 모듈 exports/현재 상태 안내는 [games README](../games/README.md#step7b-공통-모듈-연결구현-상태-안내)다.
+
+### 발견과 기존 소비자 격리
+
+[Guard](../scripts/check-game-platform-governance.mjs)의 새 shared 모듈 발견은 기존 flat .js/.mjs와 nested vnext .js/.mjs를 포함한다. 기존 games/shared/index.js 예외는 정확히 그 기존 파일에만 유지하며 nested index 모듈은 계약 tests/문서 요구에서 제외하지 않는다. server root의 새 파일도 test/문서 변경을 요구한다. games 직계 shared 제외와 네 문서만 있는 bootstrap 미등록 허용을 유지한다. server-only 변경은 기존 Governance workflow의 paths와 검사에 들어가며 별도 workflow를 생성하지 않는다.
+
+기존 flat tests/game-platform-*.test.js에는 tests/game-platform-vnext-*.test.js가 포함된다. DB runner는 기존 tests/game-db-integration/<game-id>.test.js/disposable 경계를 유지한다. 기존 online consumer의 DB 테스트 요구는 삭제/면제하지 않는다. CI의 Game Platform syntax·community import/export 연결·configured contracts·actual base/head Guard도 유지한다. browser 경계에 영향을 주는 site/game/asset/entry 및 검사/config 변경이 기존 Governance workflow에서 발견되며, 전용 검사로 다루는 경로만 site-static PR ignore에 추가했다. site-static의 main push 검사나 실제 배포 설정은 바꾸지 않는다.
+
+### 선택 계약과 모델 oracle의 기계적 연결
+
+GAME_SPEC의 Platform contract 선언은 하나이며 현재 승인 GP-COMMON/1과 일치해야 한다. 명시한 Genre / capability contracts의 revision은 현재 승인 owner와 일치해야 한다. 더 큰 revision/latest·Invite v1·SQL v1.0.0·계획1.5를 호환 증거로 쓰지 않는다. 신규 vNext를 import하는 실제 게임은 적용 scope를 선언하고, runtime 추가 순간 단일 기존 Registry와 실제 선택 모델/검증 연결 요구가 적용된다. 기존 consumer를 vNext로 자동 전환하지 않는다.
+
+[모델 oracle 발견 설정](../tests/game-platform-vnext-model-oracles.json)은 **models: []**다. 실제 지원/선택 모델을 새로 등록하지 않았고 현재 신규 vNext online 및 미구현 local runtime 조합은 미지원이다. 네 문서만의 local bootstrap은 구현 지원을 주장하지 않는 준비 상태로 허용한다. 모델별 실제 정의와 oracle가 준비되지 않았다는 이유로 플랫폼 전체 준비를 보류하지 않는다.
+
+후속 허용된 모델 구현 시, checker용 descriptor는 model contract ID/revision·MO의 같은 명시 anchor/정의·online scope·기존 runner(node-contract/disposable-db)·실제 oracle 환경·승인 root의 구현 파일·coverage를 연결한다. coverage는 safety01~11·authorizationACP·lifetime·adoptionRecovery 각각의 discovered test 파일/실제 test 이름을 가리킨다. online의 안전11 항목을 private 정보 없음/N/A로 없애지 않는다. 실제 local의 비적용은 이유가 있어야 하고 전체 수명·최종 채택은 N/A로 면제하지 않는다. 기존 flat test/DB runner 밖의 파일이나 주석의 case 이름·없는 환경/구현·다른 owner anchor는 증거로 인정하지 않는다.
+
+이 설정은 **검사 내부 발견 형식**이며 runtime 공개 API/schema/wire·새 게임 metadata나 Profile 엔진이 아니다. 구현 Slice에서 실제 oracle/runner를 연결할 때 필요한 최소 검사 정합화가 가능하다. 파일/명칭/환경 선언이 있거나 descriptor 검사를 통과해도 테스트 의미 검토·실행/actual C·backend/두 client·지원 검증 완료가 아니다. unit fixture의 구조적 양성 결과를 production 모델 지원으로 표시하지 않는다. 새 상위 의미/인가/수명 완화가 필요한 경우 해당 원문/영향만 Architecture Change로 반환한다.
+
+### browser/server import와 정적 공개 차단
+
+[경계 helper](../scripts/check-game-platform-vnext-boundaries.mjs)는 tracked browser .js/.mjs/.html/.css와 asset manifest 출력에서 server root 참조를 검사한다. static import/re-export·literal dynamic import·명시적인 server root template/resource URL 및 query/hash/encoded traversal을 확인하며 각 tracked browser 모듈을 읽어 중간 연결의 server edge도 발견한다. 기존 barrel→vNext 재수출도 거부한다. browser bytes/manifest를 읽을 수 없으면 빈 성공으로 처리하지 않는다.
+
+js/app.js를 entry로 하는 현재 browser bundle은 모든 게임 entry를 자동 포함한다는 증거가 아니다. .nojekyll의 존재나 services라는 폴더명·.gitignore·임의 manifest flag는 서버 비노출 증거가 아니다. 현재 tracked 배포 자료에서 새 server root의 공개 제외가 증명되지 않았고 실제 hosting 설정/loaded bytes는 미확인이다. 따라서 helper는 **server root의 tracked 파일/산출물 존재 자체를 fail closed로 차단**한다. 이를 해제하려면 후속 허용 단계에서 실제 배포 source/artifact 경계·제외 검사가 확보되어야 하며 단순 support/excluded flag를 추가하는 것으로 해제할 수 없다. 이번에는 실제 배포/운영 설정을 변경하지 않는다.
+
+검사는 임의 eval/모든 계산된 URL의 완전한 JavaScript 보안 증명이 아니다. 현재 server 산출물 자체의 공개 제외 미확인 차단과 함께 사용하며, 미래 server 경계를 완화할 때 실제 build/import closure·artifact·loaded bytes 증거를 대신하지 않는다. HTTP/RPC 계약 통신과 서버 구현 모듈의 browser import를 구별한다.
+
+### 검증/상태의 구분
+
+관련 tests와 실제 repository/base-head 검사·원격 read-back을 확인한다. 기계 검사와 의미 대응/기존 모든 platform-native 영향도는 구별한다. 기존 게임/API/SQL/Auth/barrel/metadata/네 문서를 고쳐 MIGRATION_REQUIRED를 닫지 않는다. 행동 게임/DB/browser/audio/두 client/성능/운영 NOT_RUN·UNKNOWN 및 구현/실행/오픈 의무 유지. 새 Core·모델/backend/oracle·H1~3 최소 본체 보완·Probe 게임·transport/renderer/tick/physics/prediction·예산/운영 선택은 이번 검사 연결에서 구현/동결하지 않는다.
