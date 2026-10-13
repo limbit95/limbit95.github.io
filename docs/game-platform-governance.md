@@ -1538,3 +1538,7 @@ Game Platform 규칙을 보완할 때는 문서 계층의 높이만 보고 무�
 이 방식은 **세부 결정은 한 곳에서 소유하고 상위 문서는 그 결정을 참조하는 구조**를 유지해 규칙 중복과 drift를 줄인다. 따라서 topic-owner → 상위 참조 문서 → Governance/테스트 순서의 전파는 기존 Game Platform 구조를 훼손하는 방식이 아니라, 오히려 문서 권위와 책임 경계를 유지하기 위한 기본 변경 방식으로 사용한다.
 ```
 
+
+## STEP7A2 보드 하위 규칙 연결 — 기존 적용 범위 유지
+
+신규 vNext 보드 경험의 추가 규칙은 [BO1~4](game-platform-board-rules.md)이며 상위 [AR](game-platform-architecture.md)의 공통/모델 owner를 참조한다. 기존 consumer·규범본문·고정 원문/계승과 네 문서 baseline은 유지한다. 실제 BO 발견과 최소 Guard 연결은 같은 적용 단위다. RT는7A3 후속으로 승인 artifact 발견을 유지하며 full 경로/모델 oracle/test발견은7B이다. 이 연결로 신규 온라인 미지원·기존 온라인 DB 검사·multiplayer 재대결 의무를 면제하지 않는다.

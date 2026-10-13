@@ -72,4 +72,10 @@
 - 실제 multiplayer 재대결·온라인 안전11을 N/A/no-op/local로 지우지 않음. hostless 재대결 예외는 미승인.
 - 정확히 네 문서의 bootstrap은 미등록 가능; runtime 추가 순간 Registry/선택모델 검사 적용. 미지원 oracle를 기존 DB 검사 제거로 허용하지 않음.
 
-이 추가 질문을 기존 game-local 네 문서의 새baseline으로 강제 적용하지 않는다. BO/RT 실제본문은7A2/7A3이고 AR4의 유효 계승 경로를 유지한다.
+이 추가 질문을 기존 game-local 네 문서의 새baseline으로 강제 적용하지 않는다. BO 실제본문은7A2의 하위 owner에 연결하고 RT는7A3 후속으로 AR4의 승인 계승 경로를 유지한다.
+
+## Board Experience — 신규 vNext 보드 적용 시
+
+상위 `docs/game-platform-architecture.md` → 보드 `docs/game-platform-board-rules.md` BO1~4 → 실제 네 문서/선택 모델/검증으로 연결한다. GAME_SPEC/BO 적용 항목의 구현 진행·검증 증거·다음 행동만 기록한다. 문서/Guard·계약·실제 게임/DB/두 client/수동 플레이 검증을 구분하며 미실행은 NOT_RUN/UNKNOWN으로 남긴다. 설계/VI baseline이나 TODO를 독립 복제하지 않는다.
+
+이 질문은 실제 보드 경험에만 적용하며 기존 game-local 네 문서의 재작성/이관이나 모든 게임의 Room/host/DOM/winner/score/XP 강제가 아니다. multiplayer 재대결·온라인 안전 의무를 N/A/no-op/local로 제거하지 않는다. 장르 계약 존재를 runtime 지원/행동 PASS로 표시하지 않는다.

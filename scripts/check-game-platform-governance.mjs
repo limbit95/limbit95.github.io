@@ -11,12 +11,14 @@ const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
 const RULEBOOK_PATH = "docs/game-platform-development-rules.md";
 const UI_RULEBOOK_PATH = "docs/game-platform-ui-rules.md";
 const VNEXT_ARCHITECTURE_PATH = "docs/game-platform-architecture.md";
+const VNEXT_BOARD_PATH = "docs/game-platform-board-rules.md";
 const VNEXT_POLICY_DOCUMENTS = Object.freeze({
   [VNEXT_ARCHITECTURE_PATH]: { sections: ["AR1", "AR2", "AR3", "AR4"] },
   "docs/game-platform-common-rules.md": { revision: "GP-COMMON/1", sections: ["CO1", "CO2", "CO3", "CO4", "CO5"] },
   "docs/game-platform-lifetime-contract.md": { revision: "GP-LIFETIME/1", sections: ["LI1", "LI2", "LI3"] },
   "docs/game-platform-model-contracts.md": { revision: "GP-MODELS/1", sections: ["MO1", "MO2", "MO3", "MO4", "MO5", "MO6"] },
   "docs/game-platform-capability-contracts.md": { revision: "GP-CAPABILITIES/1", sections: ["CA1", "CA2", "CA3", "CA4", "CA5", "CA6"] },
+  [VNEXT_BOARD_PATH]: { revision: "GP-GENRE-BOARD/1", sections: ["BO1", "BO2", "BO3", "BO4"] },
 });
 const VNEXT_ENTRY_PATHS = Object.freeze([
   "AGENTS.md", "games/README.md", RULEBOOK_PATH, UI_RULEBOOK_PATH,
@@ -79,6 +81,25 @@ export function validateVnextDocumentAuthority({ documents = {} }) {
       && content.match(PLATFORM_DOCUMENT_CLASS_PATTERN)?.[1] === "CURRENT"
       && /^> \*\*적용 범위:\*\* 신규 vNext \(기존 consumer 제외\)\s*$/mu.test(content)) {
       errors.push(`${filename} must reference its existing vNext topic-owner, not introduce competing CURRENT authority.`);
+    }
+  }
+  // Approved board experience is a subordinate topic-owner, not a second platform.
+  // Requiring its document in this atomic bundle does not select board/Room/DB for a game.
+  const board = documents[VNEXT_BOARD_PATH];
+  if (typeof board === "string") {
+    for (const target of [
+      "docs/game-platform-common-rules.md", "docs/game-platform-lifetime-contract.md",
+      "docs/game-platform-model-contracts.md", "docs/game-platform-capability-contracts.md",
+      "docs/game-platform-governance.md", "docs/game-platform-db-test-contract.md",
+    ]) {
+      if (!referencesPolicyDocument(VNEXT_BOARD_PATH, board, target)) {
+        errors.push(`vNext board owner must reference ${target} rather than redefine that responsibility.`);
+      }
+    }
+    for (const filename of VNEXT_ENTRY_PATHS) {
+      if (!referencesPolicyDocument(filename, documents[filename], VNEXT_BOARD_PATH)) {
+        errors.push(`${filename} must connect the actual vNext board owner ${VNEXT_BOARD_PATH}.`);
+      }
     }
   }
   const architecture = documents[VNEXT_ARCHITECTURE_PATH];

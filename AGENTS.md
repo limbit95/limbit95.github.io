@@ -4,7 +4,7 @@
 
 신규 vNext 상위 진입은 `docs/game-platform-architecture.md`, 공통 개발 규칙은 `docs/game-platform-common-rules.md`, 전체 수명은 `docs/game-platform-lifetime-contract.md`, 선택 모델은 `docs/game-platform-model-contracts.md`, 공통 기능은 `docs/game-platform-capability-contracts.md`다. 같은 topic+적용 계약/consumer scope에서 이 owner를 따른다. 기존 `docs/game-platform-development-rules.md`·`docs/game-platform-ui-rules.md`·DB 계약은 기존 consumer와 고정 원문 계승의 범위를 유지한다. 기존 게임/Auth/API/SQL/metadata/네 문서를 이관하지 않는다.
 
-보드 실제 새 본문은7A2, 실시간협동 실제 새 본문은7A3이다. 그전에는 AR4의 기존 원문/승인 artifact 경로를 계속 사용한다. 문서/권위 연결은 구현·지원/오픈 완료가 아니다. UI_DESIGN baseline·최신 유효 UI_DECISIONS override·Developer Manual Design Review / Detail Polish, `기능 체크포인트 기록하자`·`디자인 체크포인트 기록하자`를 유지한다. 새로운 의미 충돌은 topic-owner/ARCHITECTURE CHANGE 절차로 반환한다.
+보드의 실제 하위 규칙은 `docs/game-platform-board-rules.md` BO1~4다. 신규 보드 경험에만 적용하고 공통·모델 본문은 AR의 단일 owner를 참조한다. 실시간협동 실제 새 본문은7A3 후속이며 AR4의 승인 artifact 발견 경로를 계속 사용한다. 문서/권위 연결은 구현·지원/오픈 완료가 아니다. UI_DESIGN baseline·최신 유효 UI_DECISIONS override·Developer Manual Design Review / Detail Polish, `기능 체크포인트 기록하자`·`디자인 체크포인트 기록하자`를 유지한다. 새로운 의미 충돌은 topic-owner/ARCHITECTURE CHANGE 절차로 반환한다.
 
 이 저장소는 `청파 같이` 사이트와 웹게임을 함께 관리하는 프로젝트입니다. Codex를 포함한 자동화 에이전트는 아래 규칙을 우선하여 작업합니다.
 

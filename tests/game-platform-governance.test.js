@@ -20,7 +20,7 @@ function vnextPolicyDocuments() {
     "docs/game-platform-ui-rules.md", "docs/game-platform-governance.md",
     "docs/game-platform-architecture.md", "docs/game-platform-common-rules.md",
     "docs/game-platform-lifetime-contract.md", "docs/game-platform-model-contracts.md",
-    "docs/game-platform-capability-contracts.md", "games/GAME_SPEC_TEMPLATE.md",
+    "docs/game-platform-capability-contracts.md", "docs/game-platform-board-rules.md", "games/GAME_SPEC_TEMPLATE.md",
     "games/DEVELOPMENT_TEMPLATE.md", "games/UI_DESIGN_TEMPLATE.md", "games/UI_DECISIONS_TEMPLATE.md",
     "docs/game-platform-strategy.md", "docs/game-platform-invite-analysis.md",
   ];
@@ -1054,4 +1054,74 @@ test("a second CURRENT document cannot take an approved vNext topic", () => {
 test("an isolated new scope cannot evade the owner bundle by omitting all canonical paths", () => {
   const documents = { "docs/game-platform-another-common.md": "> **문서 분류:** CURRENT\n> **적용 범위:** 신규 vNext (기존 consumer 제외)\n> **계약 식별:** GP-COMMON/1" };
   assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /vNext authority requires docs\/game-platform-architecture/u);
+});
+
+const BOARD_RULES_PATH = "docs/game-platform-board-rules.md";
+
+test("approved board owner joins the same scoped bundle while local non-board bootstrap remains valid", () => {
+  const documents = vnextPolicyDocuments();
+  assert.deepEqual(validateVnextDocumentAuthority({ documents }), []);
+  assert.deepEqual(validatePlatformDocumentPolicy({ documents }), []);
+  assert.deepEqual(validateRepositoryState(vnextGameFixture({ model: "fixture-local/1" })), []);
+});
+
+test("a board pointer without its actual owner cannot complete the transition", () => {
+  const documents = vnextPolicyDocuments();
+  delete documents[BOARD_RULES_PATH];
+  assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), /requires docs\/game-platform-board-rules/u);
+});
+
+test("board revision and isolated consumer scope cannot silently change", () => {
+  const documents = vnextPolicyDocuments();
+  documents[BOARD_RULES_PATH] = documents[BOARD_RULES_PATH].replace("GP-GENRE-BOARD/1", "GP-GENRE-BOARD/2")
+    .replace("신규 vNext (기존 consumer 제외)", "모든 기존 게임");
+  const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+  assert.match(errors, /approved contract GP-GENRE-BOARD\/1/u);
+  assert.match(errors, /isolated vNext consumer scope/u);
+});
+
+test("each BO section needs a substantive body or precise approved inheritance reference", () => {
+  for (const section of ["BO1", "BO2", "BO3", "BO4"]) {
+    const documents = vnextPolicyDocuments();
+    const parts = documents[BOARD_RULES_PATH].split(/^## /mu);
+    documents[BOARD_RULES_PATH] = parts.map((part, index) => index > 0 && part.startsWith(`${section} `)
+      ? `${section}\n\n` : part).join("## ");
+    assert.match(validateVnextDocumentAuthority({ documents }).join("\n"), new RegExp(`substantive ${section} body`, "u"));
+  }
+});
+
+test("board semantics must retain the canonical common model lifetime capability governance and DB references", () => {
+  for (const target of ["game-platform-common-rules.md", "game-platform-model-contracts.md",
+    "game-platform-lifetime-contract.md", "game-platform-capability-contracts.md",
+    "game-platform-governance.md", "game-platform-db-test-contract.md"]) {
+    const documents = vnextPolicyDocuments();
+    documents[BOARD_RULES_PATH] = documents[BOARD_RULES_PATH].split(target).join("removed-owner.md");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes(`board owner must reference docs/${target}`), errors);
+  }
+});
+
+test("every template must reach the actual conditional board owner", () => {
+  for (const template of ["GAME_SPEC", "DEVELOPMENT", "UI_DESIGN", "UI_DECISIONS"]) {
+    const documents = vnextPolicyDocuments();
+    const filename = `games/${template}_TEMPLATE.md`;
+    documents[filename] = documents[filename].split(BOARD_RULES_PATH).join("missing-board-owner.md");
+    const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+    assert.ok(errors.includes(`${filename} must connect the actual vNext board owner`), errors);
+  }
+});
+
+test("architecture must discover installed BO while preserving the RT approved artifact", () => {
+  const documents = vnextPolicyDocuments();
+  documents["docs/game-platform-architecture.md"] = documents["docs/game-platform-architecture.md"]
+    .split("game-platform-board-rules.md").join("missing-board.md")
+    .split("step-5c-realtime-coop-spatial-rules.md").join("missing-rt.md");
+  const errors = validateVnextDocumentAuthority({ documents }).join("\n");
+  assert.match(errors, /actual owner docs\/game-platform-board-rules/u);
+  assert.match(errors, /genre discovery must preserve step-5c-realtime-coop-spatial-rules/u);
+});
+
+test("installing board rules never admits vNext online by supplying a DB test filename", () => {
+  assert.match(validateRepositoryState(vnextGameFixture({ online: true, registered: true, dbFiles: ["scope-probe.test.js"] })).join("\n"),
+    /model-specific oracle\/discovery support, deferred to STEP7B/u);
 });
