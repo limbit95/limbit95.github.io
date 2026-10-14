@@ -150,7 +150,7 @@ export function isBrowserAsset(filename) {
 
 function cssReferences(source) {
   const clean = source.replace(/\/\*[\s\S]*?\*\//gu, "");
-  return [...clean.matchAll(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|url\(\s*["']?([^)'"\s]+)|@import\s+["']([^"']+)["']/giu)]
+  return [...clean.matchAll(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|url\(\s*["']?([^)'"\s]+)|@import\s*["']([^"']+)["']/giu)]
     .filter((match) => !match[1]).map((match) => match[2] ?? match[3]);
 }
 

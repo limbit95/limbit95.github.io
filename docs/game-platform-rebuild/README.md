@@ -8,6 +8,8 @@ STEP7B **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. [실제 검사/제한]
 
 2026-10-14 최종 검토 [F1~F4 보완 제출](artifacts/step-7b-review-fixes.md): 기존 PR422에서만 최소 수정·관련 검증. REVIEW_PENDING·NOT_RUN·UNKNOWN 유지, 다음 첫 작업은 Astra 역할의 보완본 최종 재검토다. CP0097/최초 검증은 당시 이력으로 보존한다.
 
+2026-10-14 13:08:59 KST 후속 요청에 따른 F2-R1만 추가 보완: 공백 없는/주석 경유 quoted CSS import와 HTML style의 동일 참조를 검사한다. 관련103/전체346 configured unit PASS·기존 CI 결과는 PR422의 새 head에서 별도 확인. 다음 첫 작업은 Astra의 F2-R1 보완본 재검토이며 REVIEW_PENDING·NOT_RUN·UNKNOWN과 계획 §7 전체를 유지한다. [보완 상세](artifacts/step-7b-review-fixes.md#f2-r1-추가-보완--2026-10-14).
+
 ### CP0096 저장 당시 진입 이력
 
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0096](checkpoints/CP-0096-step-7a3-result-approved.md)다. STEP7A3 **COMPLETED / DESIGN_RESULT_APPROVED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 승인 기준 PR #421 head 73839aea65679278888f26facc593f9c1180b5ad. 승인·완료 기록만 같은 STEP7A3 브랜치에 보존하며 PR OPEN / merged=false다.

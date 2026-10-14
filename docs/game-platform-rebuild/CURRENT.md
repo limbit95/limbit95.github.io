@@ -28,7 +28,8 @@
 - 원3232/305부모·16행58분할·관련85ID/111f·원 강도/부정/조건/예외/f0/명시f·한 owner/L/H/I 비승격 보존. 원본·승인 STEP1~6/7A1~3 artifacts·계획/DECISIONS·과거 CP·Auth/게임/API/SQL/Registry/barrel/game-local 네 문서·규범 owner 본체 유지. 숫자로 전수 새규범/의미 검토/행동 PASS 선언 없음.
 - 관련 Guard/helper·configured 계약 unit·syntax/repository/actual base-head·browser/server/static 경계·기존 site→shared link·문서 검증은 실제 수행 범위만 [검증](artifacts/step-7b-validation.md)에 기록. 실제 게임/DB/browser/audio/두 client/성능/운영 **NOT_RUN**, 실행/운영 **UNKNOWN**·구현/실행/오픈 및 모든 승인 조건 유지.
 - 2026-10-14 사용자 요청에 따른 [F1~F4 최소 보완](artifacts/step-7b-review-fixes.md)을 같은 PR422에 제출한다. 기존 CP0097·최초 결과/검증은 당시 이력으로 보존하며 보완본 head/CI는 실제 PR/Git에서 구분한다. 관련101/전체344 configured unit PASS·실제 행동 NOT_RUN·운영 UNKNOWN 유지.
-- 다음 첫 작업 하나: **Astra 역할의 STEP7B 보완본 최종 재검토**. 완료/최종 승인·해당 PR 병합·main·7C 이후·실제 구현/행동 시험·운영 변경은 별도 요청이며 검토 PR 제출 뒤 정지한다.
+- 2026-10-14 13:08:59 KST 사용자 후속 요청으로 F2-R1만 추가 보완: CSS/HTML style의 무공백·주석 경유 quoted @import 탐지 및 정상 자산/일반 문자열/주석 보존. 관련103/전체346 configured unit PASS, skip0. 직전 remote head69e6b7a8e7b79b6c478b43a031f901244601d0a3 이후 변경이며 새 head/tree/CI는 실제 PR/Git에서 확인한다. F1/F3/F4·승인 Target/D4·계획 §7 전체·REVIEW_PENDING/NOT_RUN/UNKNOWN 유지.
+- 다음 첫 작업 하나: **Astra 역할의 STEP7B F2-R1 보완본 고정 remote head 재검토**. 완료/최종 승인·해당 PR 병합·main·7C 이후·실제 구현/행동 시험·운영 변경은 별도 요청이며 검토 PR 제출 뒤 정지한다.
 
 ## 22개 검토 지점
 

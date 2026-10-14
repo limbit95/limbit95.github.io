@@ -52,3 +52,9 @@
 §1의 93/336개 및 최초18경로는 원 제출 head567d848572b29f933dcccf2cc31b3fc05271c236의 검증 이력이다. [보완 결과](step-7b-review-fixes.md)는 그 이후 변경을 구분한다. 관련 Guard/helper **101/101**, configured 계약 **344/344**, skip0, repository Guard·boundary helper·변경 checker syntax를 확인했다. 신규8사례는 CI 대상 누락·inline import/CSS @import·origin root 위 이동·명시 revision 전체와 정상 허용 사례를 검증한다.
 
 원격 보완 head/tree·기존 CI의 실제 run 결과는 PR422에서 제출 뒤 확인하며 로컬 성공으로 CI 성공을 추정하지 않는다. **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**, 실제 행동 **NOT_RUN**·실행/운영 **UNKNOWN**, 계획 §7 전체와 후속 의무를 유지한다. 승인/완료 기록·병합·main·7C 이후는 수행하지 않는다.
+
+## 6. 2026-10-14 F2-R1 추가 보완 검증
+
+§5의101/344개는 직전 보완 입력69e6b7a8e7b79b6c478b43a031f901244601d0a3의 이력이다. [F2-R1 보완](step-7b-review-fixes.md#f2-r1-추가-보완--2026-10-14)은 무공백/주석 경유 quoted CSS @import와 HTML style에서 같은 참조만 추가 검사한다. 수정 전 신규 차단 test 실패로 누락을 재현했으며 수정 후 관련 **103/103**, configured 전체 **346/346**, skip0. 두 신규 test는12개 차단 조합 및 정상 자산/주석/일반 문자열 허용을 검사한다. 변경 helper/test syntax·repository Guard·boundary helper PASS. base/head diff Guard와 새 원격 head/tree/기존 CI 실제 결과는 PR422에 별도 보고하며 로컬 성공을 CI로 대체하지 않는다.
+
+F1/F3/F4·승인 Target/D4·계획 §7 전체와 기존 증거/원본/consumer는 유지한다. 실제 모델·게임 지원 또는 행동 PASS가 아니다. **REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**, 행동 **NOT_RUN**, 실행/운영 **UNKNOWN**·후속 의무 유지. 승인/완료 기록·병합·main·7C 이후·실제 구현/행동 시험·전수/운영 재조사·별도 사후 감사 없음.

@@ -68,6 +68,33 @@ test("quoted CSS imports are checked in stylesheets and inline HTML styles", () 
   }
 });
 
+test("quoted CSS imports without whitespace or with separating comments cannot reach server code", () => {
+  for (const quote of ['"', "'"]) {
+    for (const separator of ["", "/*comment*/", " /*comment*/ "]) {
+      const body = "@import" + separator + quote + "/services/game-platform-vnext/theme.css" + quote + ";";
+      for (const [filename, source] of [
+        ["css/page.css", body],
+        ["invite.html", "<style>" + body + "</style>"],
+      ]) assert.match(validateVnextBoundaries({ files: { [filename]: source } }).join("\n"), /boundary violation/u,
+        filename + ": " + body);
+    }
+  }
+});
+
+test("compact quoted CSS imports preserve allowed assets and ignore comments and example strings", () => {
+  const body = [
+    '@import"/css/base.css";',
+    "@import/*comment*/'../games/shared/theme.css';",
+    '/* @import"/services/game-platform-vnext/theme.css"; */',
+    'a::before { content: "@import\'/services/game-platform-vnext/example.css\';"; }',
+    "a::after { content: '@import\"/services/game-platform-vnext/example.css\";'; }",
+  ].join("\n");
+  assert.deepEqual(validateVnextBoundaries({ files: {
+    "css/page.css": body,
+    "invite.html": "<style>" + body + "</style>",
+  } }), []);
+});
+
 test("comments, inert scripts and ignored external-script bodies do not create inline edges", () => {
   assert.deepEqual(validateVnextBoundaries({ files: {
     "invite.html": [

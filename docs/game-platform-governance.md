@@ -1580,7 +1580,7 @@ GAME_SPEC의 Platform contract 선언은 하나이며 현재 승인 GP-COMMON/1�
 
 [경계 helper](../scripts/check-game-platform-vnext-boundaries.mjs)는 tracked browser .js/.mjs/.html/.css와 asset manifest 출력에서 server root 참조를 검사한다. static import/re-export·literal dynamic import·명시적인 server root template/resource URL 및 query/hash/encoded traversal을 확인하며 각 tracked browser 모듈을 읽어 중간 연결의 server edge도 발견한다. 기존 barrel→vNext 재수출도 거부한다. browser bytes/manifest를 읽을 수 없으면 빈 성공으로 처리하지 않는다.
 
-기존 Governance CI의 변경 필터는 css/와 모든 루트 browser 확장자도 포함한다. HTML의 실행 가능한 inline script module edge와 CSS/HTML style의 quoted @import를 검사하고, 상대경로의 origin root 위 이동을 root에 제한해 server 경계와 대조한다. 주석·비실행 script 본문을 실행 import로 간주하지 않는다.
+기존 Governance CI의 변경 필터는 css/와 모든 루트 browser 확장자도 포함한다. HTML의 실행 가능한 inline script module edge와 CSS/HTML style의 quoted @import(공백 없음·주석 경유 포함)를 검사하고, 상대경로의 origin root 위 이동을 root에 제한해 server 경계와 대조한다. 주석·비실행 script 본문을 실행 import로 간주하지 않는다.
 
 js/app.js를 entry로 하는 현재 browser bundle은 모든 게임 entry를 자동 포함한다는 증거가 아니다. .nojekyll의 존재나 services라는 폴더명·.gitignore·임의 manifest flag는 서버 비노출 증거가 아니다. 현재 tracked 배포 자료에서 새 server root의 공개 제외가 증명되지 않았고 실제 hosting 설정/loaded bytes는 미확인이다. 따라서 helper는 **server root의 tracked 파일/산출물 존재 자체를 fail closed로 차단**한다. 이를 해제하려면 후속 허용 단계에서 실제 배포 source/artifact 경계·제외 검사가 확보되어야 하며 단순 support/excluded flag를 추가하는 것으로 해제할 수 없다. 이번에는 실제 배포/운영 설정을 변경하지 않는다.
 
