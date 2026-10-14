@@ -20,6 +20,7 @@
 
 ## 현재 상태
 
+- 2026-10-14 STEP7C 최종 검토 F1/F2만 보완 제출: 종료 scope/task/lease의 부모 보유 제거·pending cleanup/오류 관측 보존, advance의 child 역순 순차 정리. [보완 근거](artifacts/step-7c-review-fixes.md)·[검증 추가 절](artifacts/step-7c-validation.md#5-f1f2-보완-검증--2026-10-14). 새 Core33/33·전체379/379 configured unit PASS(기존 제출25/371은 당시 증거). 정식 remote head/tree·CI는 기존 PR423의 보완 제출 입력을 따른다. REVIEW_PENDING·NOT_RUN·UNKNOWN 유지, 다음 첫 작업은 Astra의 보완본 최종 재검토다. CP0099/원 계획/이전 trace는 제출 당시 이력으로 보존한다.
 - 마지막 승인 integration 반영: **STEP7B COMPLETED / FORMAL_RESULT_APPROVED / INTEGRATION_MERGED**. PR422 사용자 결과 승인 2026-10-14 13:52:41 KST, 결과 head2df7d78f55f800901f915e01c273fc876b0a316a, 기록 headddcdf779cc9e65f2c78c91c33b87dd06d2e0d26c. 13:57:14 KST 사용자 병합 승인 뒤 실제 merge e57e1fe8f34aa557259bf288f30c59e226db8f6c / treea0ebffe24a23819b5db1624b51f3699c467687e7. 병합 결과와 기록 head 파일 차이0. CP0098의 미병합/아래 옛 상태는 당시 이력이다.
 - **STEP7C REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. 사용자 2026-10-14 14:18:49 KST 요청으로 최소 실행 구성·수명 Core2파일/계약 테스트/작은 실행 예·필요 안내 및 기록을 제출한다. 상위 Target/I1·기존 승인 의미 재판단 없음. 실제 모델/backend/게임/Invite/BGM 구현 없음.
 - 기준 integration e57e1fe8f34aa557259bf288f30c59e226db8f6c, branch feature/game-platform-vnext-phase7c-core, PR base feature/game-platform-vnext-integration. 착수 기준 뒤 변경0. 실제 제출 PR/head/tree/원격 CI는 해당 PR/Git에 보고한다. integration/main 직접 commit·병합 없음.

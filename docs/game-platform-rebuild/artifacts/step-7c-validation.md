@@ -44,3 +44,19 @@ Core tests는 구성/로컬 수명/거부·허용 연결만 검증하며 fixture
 ## 4. 다음 첫 작업
 
 Astra가 정식 remote head를 고정해 Core·tests·사용 예·이 trace/검증 및 현재 기록을 검토한다. 승인 의미를 재판단하지 않고 실제 새 문제는 원문ID/줄/f·승인 원문·현재 consumer·예상 owner·영향·최소 보완으로 보고한다. 사용자 최종 승인 전 REVIEW_PENDING을 유지한다.
+
+## 5. F1/F2 보완 검증 — 2026-10-14
+
+원 최종 검토 head e72bffd135b8c943dc8d337bfbf17cc3c57833a4에 대해 [F1/F2만 보완](step-7c-review-fixes.md)했다. 위 최초 제출25/371 결과와 CP0099/trace/계획 원본은 당시 증거로 보존한다. 기존 PR423/phase7c branch·integration base 사용, 새 remote head/tree·CI는 PR/전달 인수인계에 별도 고정한다. 착수 원격의 head/base 이동0 확인.
+
+| 관련 검사 | 실제 결과·범위 |
+|---|---|
+| Core unit | **33/33 PASS**, 실패0/skip0. 기존25+F1/F2 추가8, 문서 예 실행 포함 |
+| npm run test:game-platform | **379/379 PASS**, 실패0/skip0. 기존346+Core33. 실제 모델/게임/DB 행동 시험 아님 |
+| F1 부모 보유/정리 | 실제 소스의 격리 VM collection 관측: 종료 scope/task/root lease/개별 release 보유0, pending 대기/실패 근거/반복 안전/교체 보호. 공개 진단 API·GC/메모리 용량/성능 측정 없음 |
+| F2 정리 순서 | 두 child/deferred release로 나중 정리 완료 뒤 앞 정리, 전부 선무효화, 동시 root dispose·실패 뒤 독립 정리 및 반복 해제 방지 |
+| 변경 JS syntax·repository Governance·tracked boundary·site module link | PASS. 기존78modules/games stub·비공개/server 인증 한계 유지, Node v24.19.0 |
+| 보완 diff 공백/보호·실제 base/head | commit 후 실행/원격 보존 결과를 해당 PR에 보고. 원본 계획 EOF 예외는 최초 제출 이력으로 불변 |
+| 기존 CI | 새 head 조회 결과를 PR/인수인계에 보고. 최초 run38517454981 success와 보완 head CI를 구분. NOT_TRIGGERED를 PASS로 대체하지 않음 |
+
+보완 변경은 Core2/tests1/관련 안내·현재 기록·이 validation 및 보완 artifact로 제한한다. 기존 Registry 영향도/보호 증거를 재사용하고 승인 Target/I1·STEP7B 계획 §7 전체·빈 모델/미지원 차단·현재 A/C/P/안전11/H1~4/hostless·미승인 재대결 예외 금지·전체 후속 의무를 유지한다. 실제 행동 **NOT_RUN**, 운영 **UNKNOWN**, STEP7C **REVIEW_PENDING**. 다음 첫 작업은 Astra의 고정 remote 보완본 최종 재검토다.

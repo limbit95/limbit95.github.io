@@ -3,6 +3,8 @@ import { test } from 'node:test';
 import { createExecutionScope } from '../games/shared/vnext/core/executionScope.js';
 import { createExecutionBindings } from '../games/shared/vnext/core/executionBindings.js';
 import { GAME_REGISTRY, getRegisteredGame } from '../games/shared/registry.js';
+import { readFileSync } from 'node:fs';
+import { runInNewContext } from 'node:vm';
 
 function deferred() {
   let resolve, reject;
@@ -282,4 +284,133 @@ test('documented small Core example executes the real implementation without a p
     cwd: new URL('../', import.meta.url), input: source, encoding: 'utf8',
   });
   assert.deepEqual(JSON.parse(result), { shown: 7, acceptedOld: false });
+});
+
+// Observe private ownership collections in an isolated evaluation of the actual
+// sources. Only module syntax is stripped; no production diagnostics/GC timing.
+function observedCore() {
+  const collections = [];
+  class OwnershipSet extends Set {
+    constructor(...args) { super(...args); collections.push(this); }
+  }
+  const source = ['executionScope.js', 'executionBindings.js'].map((file) =>
+    readFileSync(new URL('../games/shared/vnext/core/' + file, import.meta.url), 'utf8')
+      .replace(/^import .*;\n/gmu, '').replace(/^export /gmu, '')).join('\n');
+  const core = runInNewContext(source + '\n({ createExecutionScope, createExecutionBindings })', {
+    Set: OwnershipSet, AggregateError, getRegisteredGame,
+  });
+  return { ...core, retained: () => collections.reduce((count, set) => count + set.size, 0) };
+}
+
+test('F1 persistent registration drops finished runs through both dispose paths and initialization failure', async () => {
+  const core = observedCore(); const metadata = Object.freeze({ id: 'fixture' }); let fail = false;
+  const bindings = core.createExecutionBindings({ lookupGame: () => metadata,
+    resolveModel: () => ({ contract: 'fixture/1', isApplicable: () => true }) });
+  const lease = bindings.register('fixture', { modelContract: 'fixture/1', initialize: async ({ scope }) => {
+    await scope.own('acquired', () => {});
+    if (fail) throw new Error('partial initialization');
+    return scope.capture();
+  } });
+  for (const path of ['run', 'scope', 'run']) {
+    const run = await bindings.start('fixture');
+    await (path === 'scope' ? run.scope.dispose() : run.dispose());
+    assert.equal(core.retained(), 0, 'registration does not retain a completed execution');
+  }
+  fail = true; await assert.rejects(bindings.start('fixture'), /partial initialization/);
+  assert.equal(core.retained(), 0); await lease.dispose();
+});
+
+test('F1 a live scope drops finished task ownership after explicit disposal and each advance', async () => {
+  const core = observedCore(); const scope = core.createExecutionScope(); let releases = 0;
+  for (const path of ['task', 'advance', 'task', 'advance']) {
+    const task = scope.capture(); await task.own('owned', () => { releases++; });
+    await (path === 'task' ? task.dispose() : scope.advance());
+    assert.equal(core.retained(), 0, 'no completed child or root lease remains');
+    assert.equal(task.isCurrent(), false);
+  }
+  assert.equal(releases, 4); await scope.dispose(); assert.equal(releases, 4);
+});
+
+test('F1 individual lease release detaches ownership without requiring parent disposal', async () => {
+  const core = observedCore(); const scope = core.createExecutionScope(); let releases = 0;
+  for (const value of ['a', 'b', 'c']) {
+    const lease = await scope.own({ value }, () => { releases++; });
+    assert.equal(core.retained(), 1);
+    const release = lease.release(); assert.equal(release, lease.release());
+    await release; assert.equal(core.retained(), 0);
+  }
+  assert.equal(scope.isCurrent(), true); await scope.dispose(); assert.equal(releases, 3);
+});
+
+test('F1 pending individual cleanup stays awaited and its failure survives parent pruning', async () => {
+  const core = observedCore(); const scope = core.createExecutionScope(); const gate = deferred();
+  let started; const entered = new Promise((resolve) => { started = resolve; }); let settled = false, calls = 0;
+  const failure = new Error('release failed');
+  const lease = await scope.own('owned', async () => { calls++; started(); await gate.promise; throw failure; });
+  const releasing = lease.release(); const releaseFailure = assert.rejects(releasing, (e) => e === failure);
+  await entered; assert.equal(core.retained(), 1);
+  const disposal = scope.dispose(); assert.equal(disposal, scope.dispose());
+  const disposalFailure = assert.rejects(disposal, (e) => e instanceof AggregateError && e.errors[0] === failure);
+  void disposal.then(() => { settled = true; }, () => { settled = true; });
+  await Promise.resolve(); assert.equal(settled, false);
+  gate.resolve(); await releaseFailure; await disposalFailure;
+  assert.equal(core.retained(), 0); assert.equal(calls, 1);
+  await assert.rejects(scope.dispose(), AggregateError);
+  await assert.rejects(lease.release(), (e) => e === failure);
+});
+
+test('F1 already finished failed task is detached but root retains its cleanup failure evidence', async () => {
+  const core = observedCore(); const scope = core.createExecutionScope(); const task = scope.capture(); let calls = 0;
+  await task.own('old', () => { calls++; throw new Error('task cleanup'); });
+  await assert.rejects(task.dispose(), AggregateError);
+  assert.equal(core.retained(), 0);
+  await assert.rejects(scope.dispose(), AggregateError);
+  assert.equal(task.isCurrent(), false); assert.equal(calls, 1);
+});
+
+test('F1 replacement awaits a pending exposed scope disposal and preserves its error after detaching', async () => {
+  const core = observedCore(); const metadata = Object.freeze({ id: 'fixture' }); const gate = deferred();
+  const bindings = core.createExecutionBindings({ lookupGame: () => metadata,
+    resolveModel: () => ({ contract: 'fixture/1', isApplicable: () => true }) });
+  const old = bindings.register('fixture', { modelContract: 'fixture/1', initialize: async ({ scope }) => {
+    await scope.own('old', async () => { await gate.promise; throw new Error('pending cleanup'); });
+    return scope.capture();
+  } });
+  const run = await bindings.start('fixture');
+  const disposing = run.scope.dispose(); assert.equal(disposing, run.dispose());
+  const disposingFailure = assert.rejects(disposing, AggregateError);
+  const next = bindings.register('fixture', { modelContract: 'fixture/1', initialize: () => null }, { replace: true });
+  let done = false; const replacementFailure = assert.rejects(next.previousDisposal, AggregateError);
+  void next.previousDisposal.then(() => { done = true; }, () => { done = true; });
+  await Promise.resolve(); assert.equal(done, false); assert.equal(run.value.isCurrent(), false);
+  gate.resolve(); await disposingFailure; await replacementFailure;
+  assert.equal(core.retained(), 0); await assert.rejects(old.dispose(), AggregateError);
+  const fresh = await bindings.start('fixture'); await fresh.dispose(); await next.dispose();
+  assert.equal(core.retained(), 0);
+});
+
+test('F2 advance invalidates both children before waiting for later child cleanup then earlier cleanup', async () => {
+  const scope = createExecutionScope({ isApplicable: () => true }); const earlier = scope.capture(); const later = scope.capture();
+  const gate = deferred(); const entered = deferred(); const order = [];
+  await earlier.own('base', () => { order.push('base'); });
+  await later.own('dependent', async () => { order.push('dependent-start'); entered.resolve(); await gate.promise; order.push('dependent-end'); });
+  const advancing = scope.advance();
+  assert.equal(earlier.isCurrent(), false); assert.equal(later.isCurrent(), false);
+  await entered.promise; assert.deepEqual(order, ['dependent-start']);
+  const disposal = scope.dispose(); await Promise.resolve(); assert.deepEqual(order, ['dependent-start']);
+  gate.resolve(); await advancing; await disposal;
+  assert.deepEqual(order, ['dependent-start', 'dependent-end', 'base']);
+});
+
+test('F2 later child failure is observed after its cleanup and does not prevent earlier independent cleanup', async () => {
+  const scope = createExecutionScope(); const earlier = scope.capture(); const later = scope.capture();
+  const gate = deferred(); const entered = deferred(); const order = [];
+  await earlier.own('independent', () => { order.push('earlier'); });
+  await later.own('failed', async () => { entered.resolve(); await gate.promise; order.push('later-failed'); throw new Error('later cleanup'); });
+  const failure = assert.rejects(scope.advance(), AggregateError);
+  await entered.promise; assert.deepEqual(order, []); gate.resolve(); await failure;
+  assert.deepEqual(order, ['later-failed', 'earlier']);
+  await assert.rejects(scope.dispose(), AggregateError);
+  await assert.rejects(later.dispose(), AggregateError); await earlier.dispose();
+  assert.deepEqual(order, ['later-failed', 'earlier']);
 });

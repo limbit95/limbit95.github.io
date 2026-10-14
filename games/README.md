@@ -96,7 +96,9 @@ Scope의 isApplicable({context, completion})는 선택 모델/consumer가 실제
 
 await는 commit 바깥에서 수행하고 결과 반영 직전에 다시 commit한다. apply는 하나의 동기 반영만 수행하며 내부 await·맥락을 바꾸는 재진입·비보호 후속 callback을 시작하지 않는다. 추가 외부 호출/후속 완료는 새 반영 직전 같은 검사를 거쳐야 한다. async apply는 호출 전에 거부한다. 일반 함수가 promise를 반환하는 오용은 오류로 보고하지만 이미 시작한 임의 JavaScript를 되돌릴 수 있는 sandbox는 아니다. payload를 바꾸거나 old 작업에 새 label을 붙여 재채택하지 않는다. 현재 consumer의 명시적 authoritative·authorized 재검증은 현재 capture의 정책으로 표현한다.
 
-await scope.own(resource, release) 또는 task.own으로 **획득 직후** 반환/해제할 자기 소유권만 등록한다. release는 캡처한 자원을 해제하고 mutable 전역의 새 자원을 찾아 파괴하지 않는다. site 공유 본체 대신 자기 사용권만 반환한다. lease.release와 dispose는 해제를 한 번만 실행하고 같은 promise로 결과를 관측한다. 종료/advance는 먼저 반영권을 무효화하고 역순으로 정리하며 독립 실패를 AggregateError로 보고한다. 별도의 timeout/retry 엔진은 없다. 의존 자원은 획득 순서/해제 callback에서 실제 의존 순서를 맞춰야 한다.
+await scope.own(resource, release) 또는 task.own으로 **획득 직후** 반환/해제할 자기 소유권만 등록한다. release는 캡처한 자원을 해제하고 mutable 전역의 새 자원을 찾아 파괴하지 않는다. site 공유 본체 대신 자기 사용권만 반환한다. lease.release와 dispose는 해제를 한 번만 실행하고 같은 promise로 결과를 관측한다. 종료/advance는 먼저 반영권을 무효화하고 역순으로 정리하며 독립 실패를 AggregateError로 보고한다. advance는 이전 child를 생성 역순으로 하나씩 기다리며, 각 owner 내부 자원은 등록 역순이다. 서로 다른 child의 임의 획득 시점으로 의존관계를 추론하지 않는다. 의존 자원은 이 소유/등록 순서 또는 자신의 해제 callback에서 실제 의존 순서를 맞춰야 한다. 별도의 timeout/retry 엔진은 없다.
+
+개별 release·task dispose·advance·run/scope dispose의 정리가 끝나면 해당 자원/작업/실행은 부모 소유 목록에서 제거된다. 진행 중 정리는 부모가 계속 기다린다. 성공한 과거 객체를 부모에 누적하지 않으며, 실패는 오류 근거만 보존해 이후 부모 종료에서도 보고한다. 반복 dispose와 이미 반환한 lease의 결과는 유지한다. 등록은 실행 종료 뒤에도 유지되고 registration.dispose가 제거한다. [F1/F2 보완 근거](../docs/game-platform-rebuild/artifacts/step-7c-review-fixes.md)를 따른다.
 
 종료 후 late resource의 own은 old owner에서 즉시 release를 시작하며 실패를 생산자가 await해 관측한다. dispose promise는 등록된 자원의 정리 결과이지 아직 알 수 없는 외부 acquisition 전체가 끝났다는 뜻이 아니다. producer의 후속 own도 반드시 await한다. cleanup failure는 반영권을 되살리지 않으며 자동 재시도하지 않는다.
 

@@ -10,34 +10,48 @@ function synchronous(value, label) {
 function owner(isParentCurrent = () => true) {
   let closed = false;
   let disposal;
-  const resources = [];
+  const resources = new Set();
+  const errors = [];
   const current = () => !closed && isParentCurrent();
   const invalidate = () => { closed = true; };
-  async function own(resource, release) {
+  function track(resource, release) {
     callable(release, "Resource release");
     let released;
+    const tracked = current();
+    function settled(error) {
+      resources.delete(lease);
+      // Keep failure evidence, not completed resource/callback ownership.
+      if (error && tracked) errors.push(error.reason);
+      resource = release = undefined;
+    }
     // Memoize before invoking external code, including reentrant release callbacks.
     const lease = Object.freeze({ release() {
-      released ??= Promise.resolve().then(() => release(resource));
+      released ??= Promise.resolve().then(() => release(resource)).then(
+        (value) => { settled(); return value; },
+        (reason) => { settled({ reason }); throw reason; },
+      );
       return released;
     } });
-    if (current()) resources.push(lease);
-    else await lease.release(); // Late acquisition belongs to this old owner, never a new one.
+    if (tracked) resources.add(lease);
+    return lease;
+  }
+  async function own(resource, release) {
+    const lease = track(resource, release);
+    if (!current()) await lease.release(); // Late acquisition stays with its old owner.
     return lease;
   }
   function dispose() {
     invalidate();
     disposal ??= Promise.resolve().then(async () => {
-      const errors = [];
       // Reverse acquisition order; attempt each independent release even after failure.
-      while (resources.length) {
-        try { await resources.pop().release(); } catch (error) { errors.push(error); }
+      for (const lease of [...resources].reverse()) {
+        try { await lease.release(); } catch { /* track recorded this failure once. */ }
       }
       if (errors.length) throw new AggregateError(errors, "Execution resource cleanup failed.");
     });
     return disposal;
   }
-  return { current, invalidate, own, dispose };
+  return { current, invalidate, track, own, dispose };
 }
 
 /** Local ownership only. The selected model supplies current context/authorization/ordering. */
@@ -51,10 +65,19 @@ export function createExecutionScope({ isApplicable = () => false } = {}) {
     if (!root.current()) throw new Error("Cannot capture a disposed execution.");
     const capturedBoundary = boundary;
     const child = owner(() => root.current() && boundary === capturedBoundary);
+    let lease;
+    const owned = { invalidate: child.invalidate, dispose() {
+      child.invalidate();
+      return lease.release();
+    } };
+    lease = root.track(child, async (ownedTask) => {
+      try { await ownedTask.dispose(); } finally { tasks.delete(owned); }
+    });
+    tasks.add(owned);
     const task = Object.freeze({
       isCurrent: child.current,
       own: child.own,
-      dispose: child.dispose,
+      dispose: owned.dispose,
       commit(completion, apply) {
         synchronous(apply, "Completion application");
         if (!child.current()) return false;
@@ -68,9 +91,6 @@ export function createExecutionScope({ isApplicable = () => false } = {}) {
         return true;
       },
     });
-    tasks.add(child);
-    // Internal resource registration is synchronous before own's first possible await.
-    void root.own(child, (ownedTask) => ownedTask.dispose());
     return task;
   }
 
@@ -78,10 +98,12 @@ export function createExecutionScope({ isApplicable = () => false } = {}) {
     if (!root.current()) throw new Error("Cannot advance a disposed execution.");
     boundary = Symbol("execution boundary");
     const previous = [...tasks];
-    tasks.clear();
     for (const task of previous) task.invalidate();
-    return Promise.allSettled(previous.map((task) => task.dispose())).then((results) => {
-      const errors = results.filter((row) => row.status === "rejected").map((row) => row.reason);
+    return Promise.resolve().then(async () => {
+      const errors = [];
+      for (const task of previous.reverse()) {
+        try { await task.dispose(); } catch (error) { errors.push(error); }
+      }
       if (errors.length) throw new AggregateError(errors, "Previous execution context cleanup failed.");
     });
   }

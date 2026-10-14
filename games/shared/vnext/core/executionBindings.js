@@ -9,9 +9,8 @@ export function createExecutionBindings({ lookupGame = getRegisteredGame, resolv
   const bindings = new Map();
   function close(binding) {
     if (!binding) return Promise.resolve();
-    binding.disposal ??= Promise.allSettled([...binding.scopes].map((scope) => scope.dispose())).then((results) => {
-      const errors = results.filter((row) => row.status === "rejected").map((row) => row.reason);
-      if (errors.length) throw new AggregateError(errors, "Execution binding cleanup failed.");
+    binding.disposal ??= Promise.allSettled([...binding.scopes].map((scope) => scope.dispose())).then(() => {
+      if (binding.errors.length) throw new AggregateError(binding.errors, "Execution binding cleanup failed.");
     });
     return binding.disposal;
   }
@@ -26,7 +25,7 @@ export function createExecutionBindings({ lookupGame = getRegisteredGame, resolv
       || typeof initialize !== "function") throw new TypeError("Execution requires an explicit model revision and initializer.");
     if (bindings.has(gameId) && !replace) throw new Error(`Duplicate execution binding: ${gameId}`);
     const previous = bindings.get(gameId);
-    const binding = { modelContract, initialize, scopes: new Set(), disposal: null };
+    const binding = { modelContract, initialize, scopes: new Set(), errors: [], disposal: null };
     bindings.set(gameId, binding);
     // Dispose invalidates synchronously; its eventual failures remain observable to the caller.
     const previousDisposal = close(previous);
@@ -47,10 +46,20 @@ export function createExecutionBindings({ lookupGame = getRegisteredGame, resolv
       throw new Error(`Unsupported selected model: ${binding.modelContract}`);
     }
     if (bindings.get(gameId) !== binding) throw new Error("Execution binding changed during model resolution.");
-    const scope = createExecutionScope({ isApplicable: (input) => {
+    const execution = createExecutionScope({ isApplicable: (input) => {
       if (bindings.get(gameId) !== binding || lookupGame(gameId) !== metadata) return false;
       const accepted = model.isApplicable(input);
       return accepted === true && bindings.get(gameId) === binding && lookupGame(gameId) === metadata;
+    } });
+    let disposal;
+    // Both run.dispose and the initializer's exposed scope use this same boundary.
+    const scope = Object.freeze({ ...execution, dispose() {
+      const cleanup = execution.dispose(); // Invalidate before returning control.
+      disposal ??= cleanup.then(
+        () => { binding.scopes.delete(scope); },
+        (error) => { binding.scopes.delete(scope); binding.errors.push(error); throw error; },
+      );
+      return disposal;
     } });
     binding.scopes.add(scope);
     try {
