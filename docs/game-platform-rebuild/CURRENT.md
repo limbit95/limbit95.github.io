@@ -20,6 +20,14 @@
 
 ## 현재 상태
 
+- **STEP7C COMPLETED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-14 18:22:47 KST 최종 승인. 대상 PR423 remote head **746c4b899b6d0ec4d8e45d930f6d5b63c4ae3b3d** / tree **c7ba24068317831b8c600585a983518c3e93aef1**. Astra 재검토에서 F1/F2 해소·승인 차단0. 승인 대상 뒤 코드 변경 없음 확인, 기록 head는 승인 결과와 구분한다.
+- 최신 [CP0100](checkpoints/CP-0100-step-7c-result-approved.md). 기존 branch feature/game-platform-vnext-phase7c-core / PR423 base integration @ e57e1fe8f34aa557259bf288f30c59e226db8f6c, PR OPEN·미병합. STEP7B 승인/병합 유지. 아래 제출 상태와 CP0099/원 계획/trace/validation/보완 artifact는 당시 이력이다.
+- 승인 결과의 Core33/33·전체379/379 configured unit 및 governance run38539969644 success 증거 재사용. 이번에는 승인 기록/현재 문서만 정합화하며 코드·tests·Guard·CI 설정을 변경하지 않는다.
+- 승인 Target/I1·STEP7B 계획 §7 전체·기존 consumer/API/metadata/barrel/원본과 전체 후속 의무 유지. 빈 모델·미구현 미지원·runtime/online 차단·기존 online DB 요구·server 제외 미확인 차단, H1~4/단일채택·복구/안전11/current A/C/P/hostless·미승인 재대결 예외 금지 유지. 실제 행동 **NOT_RUN**, 운영 **UNKNOWN**. Core/fixture/Guard/CI 성공은 실제 모델/게임 지원·행동 PASS가 아니다.
+- 다음 첫 작업: **사용자의 PR423 integration 병합 여부 별도 결정**. 이번 승인으로 병합·main·STEP7D 이후·실제 구현/행동 시험을 진행하지 않는다. 승인 head 뒤 코드 변경을 자동 포함하지 않는다.
+
+## STEP7C 제출 당시 현재 상태 — CP0099 및 F1/F2 보완 이력
+
 - 2026-10-14 STEP7C 최종 검토 F1/F2만 보완 제출: 종료 scope/task/lease의 부모 보유 제거·pending cleanup/오류 관측 보존, advance의 child 역순 순차 정리. [보완 근거](artifacts/step-7c-review-fixes.md)·[검증 추가 절](artifacts/step-7c-validation.md#5-f1f2-보완-검증--2026-10-14). 새 Core33/33·전체379/379 configured unit PASS(기존 제출25/371은 당시 증거). 정식 remote head/tree·CI는 기존 PR423의 보완 제출 입력을 따른다. REVIEW_PENDING·NOT_RUN·UNKNOWN 유지, 다음 첫 작업은 Astra의 보완본 최종 재검토다. CP0099/원 계획/이전 trace는 제출 당시 이력으로 보존한다.
 - 마지막 승인 integration 반영: **STEP7B COMPLETED / FORMAL_RESULT_APPROVED / INTEGRATION_MERGED**. PR422 사용자 결과 승인 2026-10-14 13:52:41 KST, 결과 head2df7d78f55f800901f915e01c273fc876b0a316a, 기록 headddcdf779cc9e65f2c78c91c33b87dd06d2e0d26c. 13:57:14 KST 사용자 병합 승인 뒤 실제 merge e57e1fe8f34aa557259bf288f30c59e226db8f6c / treea0ebffe24a23819b5db1624b51f3699c467687e7. 병합 결과와 기록 head 파일 차이0. CP0098의 미병합/아래 옛 상태는 당시 이력이다.
 - **STEP7C REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. 사용자 2026-10-14 14:18:49 KST 요청으로 최소 실행 구성·수명 Core2파일/계약 테스트/작은 실행 예·필요 안내 및 기록을 제출한다. 상위 Target/I1·기존 승인 의미 재판단 없음. 실제 모델/backend/게임/Invite/BGM 구현 없음.

@@ -83,9 +83,11 @@ Invite 영향 분석과 Legacy 경계는 [Game Platform Invite Analysis](../docs
 
 탐지·모델 oracle/서버 공개 차단의 실제 검사와 제한은 [Governance STEP7B](../docs/game-platform-governance.md#step7b-탐지검증-연결과-제한)를 참조한다. 안내/검사 성공과 실제 구현·행동 검증·공개 activation은 구별한다.
 
-## STEP7C 최소 Core — 구현·검토 대기
+<a id="step7c-최소-core--구현검토-대기"></a>
 
-규범 owner는 [AR1](../docs/game-platform-architecture.md#ar1-적용책임의존)·[LI1~3](../docs/game-platform-lifetime-contract.md)이며 승인 STEP6 I1 범위다. 이 안내는 실제 API 사용/제약을 설명하고 상위 권한·모델·수명 의미를 재정의하지 않는다. **STEP7C REVIEW_PENDING**. 기존 games/shared/index.js에는 재수출하지 않는다.
+## STEP7C 최소 Core — 정식 결과 승인·미병합
+
+규범 owner는 [AR1](../docs/game-platform-architecture.md#ar1-적용책임의존)·[LI1~3](../docs/game-platform-lifetime-contract.md)이며 승인 STEP6 I1 범위다. 이 안내는 실제 API 사용/제약을 설명하고 상위 권한·모델·수명 의미를 재정의하지 않는다. **STEP7C COMPLETED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-14 18:22:47 KST 승인 대상은 PR423 head746c4b899b6d0ec4d8e45d930f6d5b63c4ae3b3d이며 [CP0100](../docs/game-platform-rebuild/checkpoints/CP-0100-step-7c-result-approved.md)에 기록한다. 실제 모델/게임 지원 승인이 아니며 행동 NOT_RUN·운영 UNKNOWN·후속 의무 유지. 기존 games/shared/index.js에는 재수출하지 않는다.
 
 | 실제 export / 파일 | 사용·owner·한계 |
 |---|---|
