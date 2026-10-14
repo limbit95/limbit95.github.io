@@ -64,7 +64,7 @@ Invite 영향 분석과 Legacy 경계는 [Game Platform Invite Analysis](../docs
 
 신규 vNext의 규범 owner는 [AR](../docs/game-platform-architecture.md), [LI](../docs/game-platform-lifetime-contract.md), [MO](../docs/game-platform-model-contracts.md), [CA](../docs/game-platform-capability-contracts.md)다. 아래는 현재 exports와 승인된 연결 조건의 안내이며 API 상세/새 규범을 독립 소유하지 않는다. [승인 STEP5A 선택표](../docs/game-platform-rebuild/artifacts/step-5a-common-module-selection.md)·[수명/검증 owner와 H1~4](../docs/game-platform-rebuild/artifacts/step-5a-compatibility-lifetime-verification.md)의 조건이 우선한다. 기존 consumer는 그대로 보존한다.
 
-현재 legacy shared barrel의 실제 export 출처는 [shared/index.js](shared/index.js)다. 신규 games/shared/vnext/ runtime/export와 services/game-platform-vnext/ 서버 구현은 아직 없다. 기존 barrel을 신규 재수출 통로로 바꾸지 않는다. 다음 symbol이 존재한다는 사실은 vNext의 전체 수명·권한·현재성 지원 완료가 아니다.
+현재 legacy shared barrel의 실제 export 출처는 [shared/index.js](shared/index.js)다. 신규 games/shared/vnext/core/의 최소 조립·수명 exports는 아래 STEP7C 안내에서 구분한다. 선택 모델/runtime 지원과 services/game-platform-vnext/ 서버 구현은 아직 없다. 기존 barrel을 신규 재수출 통로로 바꾸지 않는다. 다음 symbol이 존재한다는 사실은 vNext의 전체 수명·권한·현재성 지원 완료가 아니다.
 
 | 역할 / 실제 export 출처 | 현재 public exports | 적용 모델·consumer와 연결/정리 책임 | 구현·보완 상태 / 검증 위치 |
 |---|---|---|---|
@@ -82,3 +82,45 @@ Invite 영향 분석과 Legacy 경계는 [Game Platform Invite Analysis](../docs
 새 모델은 [MO](../docs/game-platform-model-contracts.md)의 실제 정의/ID·revision/조건과 검증 owner를 연결해야 한다. 문서 의미 계약 /1, Invite v1, legacy SQL v1.0.0, 계획1.5는 서로 다른 식별이다. Game-local 연결 파일은 본체 중복으로 단정하지 않으며 [STEP5A 중복 기준](../docs/game-platform-rebuild/artifacts/step-5a-duplication-prevention.md)을 따른다. Result/정정·여섯 중복·Publication·Profile은 CA의 승인 경계를 참조하고 없는 서비스/보상/엔진을 만들지 않는다.
 
 탐지·모델 oracle/서버 공개 차단의 실제 검사와 제한은 [Governance STEP7B](../docs/game-platform-governance.md#step7b-탐지검증-연결과-제한)를 참조한다. 안내/검사 성공과 실제 구현·행동 검증·공개 activation은 구별한다.
+
+## STEP7C 최소 Core — 구현·검토 대기
+
+규범 owner는 [AR1](../docs/game-platform-architecture.md#ar1-적용책임의존)·[LI1~3](../docs/game-platform-lifetime-contract.md)이며 승인 STEP6 I1 범위다. 이 안내는 실제 API 사용/제약을 설명하고 상위 권한·모델·수명 의미를 재정의하지 않는다. **STEP7C REVIEW_PENDING**. 기존 games/shared/index.js에는 재수출하지 않는다.
+
+| 실제 export / 파일 | 사용·owner·한계 |
+|---|---|
+| createExecutionScope / [executionScope.js](shared/vnext/core/executionScope.js) | 로컬 실행과 작업의 소유 수명. capture(context)로 작업 사용권, advance()로 맥락 경계를 갱신하고 이전 작업 무효화·정리, dispose()로 종료. context는 모델이 해석하는 불변 작업 근거이며 Room/host 필드는 강제하지 않음 |
+| createExecutionBindings / [executionBindings.js](shared/vnext/core/executionBindings.js) | 기존 Registry 조회 참조 + game ID별 modelContract/initialize 구성만 보관. metadata catalog 복제 없음. register의 반환 사용권 dispose는 해당 등록만 제거하고 실행을 종료. replace는 old 실행을 즉시 무효화하며 반환 previousDisposal의 정리 결과를 반드시 관측 |
+
+Scope의 isApplicable({context, completion})는 선택 모델/consumer가 실제 현재 context·정보/행위 권한·ordering 조건을 판단하는 **동기·부수효과 없는 검사**다. 기본값은 거부다. task.commit(completion, apply)는 모델 판단 전후 로컬 수명을 확인하며 현재일 때만 동기 apply를 호출한다. 성공/error/null/finally/cleanup/leave/effect/후속 완료 모두 같은 반영 경계를 사용한다. 반환 true는 해당 동기 반영 연결이 실행됐다는 뜻이며 backend 인가/actual C·모델 지원 인증이 아니다.
+
+await는 commit 바깥에서 수행하고 결과 반영 직전에 다시 commit한다. apply는 하나의 동기 반영만 수행하며 내부 await·맥락을 바꾸는 재진입·비보호 후속 callback을 시작하지 않는다. 추가 외부 호출/후속 완료는 새 반영 직전 같은 검사를 거쳐야 한다. async apply는 호출 전에 거부한다. 일반 함수가 promise를 반환하는 오용은 오류로 보고하지만 이미 시작한 임의 JavaScript를 되돌릴 수 있는 sandbox는 아니다. payload를 바꾸거나 old 작업에 새 label을 붙여 재채택하지 않는다. 현재 consumer의 명시적 authoritative·authorized 재검증은 현재 capture의 정책으로 표현한다.
+
+await scope.own(resource, release) 또는 task.own으로 **획득 직후** 반환/해제할 자기 소유권만 등록한다. release는 캡처한 자원을 해제하고 mutable 전역의 새 자원을 찾아 파괴하지 않는다. site 공유 본체 대신 자기 사용권만 반환한다. lease.release와 dispose는 해제를 한 번만 실행하고 같은 promise로 결과를 관측한다. 종료/advance는 먼저 반영권을 무효화하고 역순으로 정리하며 독립 실패를 AggregateError로 보고한다. 별도의 timeout/retry 엔진은 없다. 의존 자원은 획득 순서/해제 callback에서 실제 의존 순서를 맞춰야 한다.
+
+종료 후 late resource의 own은 old owner에서 즉시 release를 시작하며 실패를 생산자가 await해 관측한다. dispose promise는 등록된 자원의 정리 결과이지 아직 알 수 없는 외부 acquisition 전체가 끝났다는 뜻이 아니다. producer의 후속 own도 반드시 await한다. cleanup failure는 반영권을 되살리지 않으며 자동 재시도하지 않는다.
+
+Bindings의 기본 resolveModel은 null로 **모든 실제 조합을 미지원** 처리한다. 호스트가 resolver를 제공할 때 실제 승인 contract/revision/scope·구현/환경/oracle·검증 admission이 연결된 모델 handle만 반환해야 한다. handle의 contract와 isApplicable 함수 형식은 조립에 필요한 최소 형태일 뿐 구현 지원 증거가 아니다. fixture resolver를 production 지원으로 쓰지 않는다. initialize({metadata, model, scope})는 자신의 자원을 획득 즉시 own하고 부분 실패를 throw한다. 실패 시 획득 자원을 정리하며 원 오류와 cleanup 오류를 구분한다. initialize의 반환 value는 구성 결과이며 LIVE/fresh 상태·공식 결과가 아니다. 선택 모델의 reconciliation/adoption은 STEP7D 책임이다.
+
+[계약 tests](../tests/game-platform-vnext-core.test.js)와 [trace/범위](../docs/game-platform-rebuild/artifacts/step-7c-core-trace.md), [검증/영향도](../docs/game-platform-rebuild/artifacts/step-7c-validation.md)를 함께 읽는다. 빈 model oracle 설정·vNext runtime/online 미지원·기존 online DB 요구·server 제외 미확인 차단·H1~4/안전11/A/C/P/hostless·미승인 재대결 예외 금지 및 후속 의무 유지. 실제 모델/게임 행동 NOT_RUN·운영 UNKNOWN.
+
+### 실행 가능한 작은 Core 사용 예 — fixture이며 모델/게임 지원 아님
+
+저장소 루트에서 다음 코드를 node --input-type=module의 stdin으로 실행한다. 이 예는 계약 테스트에서도 실제 실행한다.
+
+<!-- STEP7C_CORE_EXAMPLE -->
+```js
+import { createExecutionScope } from './games/shared/vnext/core/executionScope.js';
+let currentContext = Object.freeze({ fixtureView: 'first' });
+const scope = createExecutionScope({ isApplicable: ({ context }) => context === currentContext });
+const task = scope.capture(currentContext);
+let shown;
+const completion = await Promise.resolve({ kind: 'success', value: 7 });
+task.commit(completion, (result) => { shown = result.value; });
+currentContext = Object.freeze({ fixtureView: 'second' });
+await scope.advance();
+const acceptedOld = task.commit(completion, () => { shown = 'stale'; });
+await scope.dispose();
+console.log(JSON.stringify({ shown, acceptedOld }));
+```
+<!-- /STEP7C_CORE_EXAMPLE -->

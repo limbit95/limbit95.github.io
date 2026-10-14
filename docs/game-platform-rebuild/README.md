@@ -2,6 +2,12 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0099](checkpoints/CP-0099-step-7c-core-submitted.md)다. STEP7B 승인/병합 완료, PR422 merge e57e1fe8f34aa557259bf288f30c59e226db8f6c·기록 head 동일 내용 확인. 아래 CP0098 미병합 표기는 당시 이력이다.
+
+**STEP7C REVIEW_PENDING / FORMAL_RESULT_REVIEW_PENDING**. 최소 [Core API/실행 예](../../games/README.md#step7c-최소-core--구현검토-대기), [계획 원본](artifacts/game-platform-vnext-step7c-plan-and-handoff.md), [trace/경계](artifacts/step-7c-core-trace.md), [검증/기존게임 영향도](artifacts/step-7c-validation.md). branch feature/game-platform-vnext-phase7c-core / PR base integration, 실제 head/CI는 PR/Git 조회를 따른다. Core unit과 실제 모델/게임 지원을 구분하고 행동 NOT_RUN·운영 UNKNOWN·후속 의무 유지. 다음 첫 작업은 Astra 최종 검토이며 승인/완료 기록·병합·main·STEP7D 이후는 진행하지 않는다.
+
+### STEP7B 승인 기록 당시 인수인계 — 이력 보존
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0098](checkpoints/CP-0098-step-7b-result-approved.md)다. STEP7A3 COMPLETED/FORMAL_RESULT_APPROVED/INTEGRATION_MERGED, PR421 실제 merge f65537f0226457857b2084fd0a2c2d21d02c0804·최종 head/tree/ref 확인. CP0096 미병합은 당시 이력. STEP6 승인/동결·7A1/7A2 완료/병합 유지.
 
 STEP7B **COMPLETED / FORMAL_RESULT_APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-14 13:52:41 KST 최종 승인 대상 PR422 head2df7d78f55f800901f915e01c273fc876b0a316a. CP0097·제출 artifacts 및 아래 보완 제출의 REVIEW_PENDING은 당시 이력이다. [실제 검사/제한](../game-platform-governance.md#step7b-탐지검증-연결과-제한)·[공통 모듈 안내](../../games/README.md#step7b-공통-모듈-연결구현-상태-안내)·nested/server/CI/model oracle 연결. [대응](artifacts/step-7b-clause-correspondence.md), [trace](artifacts/step-7b-source-trace.md), [영향도](artifacts/step-7b-game-impact.md), [검증/최종 검토](artifacts/step-7b-validation.md). 모델 설정은 빈 상태·서버 공개 제외 미확인 차단·기존 소비자/원본 보존, 행동 NOT_RUN·UNKNOWN·후속 의무 유지. 이번에는 승인·완료 기록만 기존 브랜치/PR에 보존한다. 다음 첫 작업은 사용자의 PR422 integration 병합 여부 별도 결정이다. 해당 PR 병합/main/7C 이후는 미허용·미수행이다.
