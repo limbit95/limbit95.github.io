@@ -4,9 +4,27 @@ on:
   pull_request:
     paths:
       - "games/**"
+      - "services/game-platform-vnext/**"
+      - "js/**"
+      - "css/**"
+      - "liar-game/**"
+      - "the-game/**"
+      - "marble-game/**"
+      - "assets/**"
+      - "*.[jJ][sS]"
+      - "*.[mM][jJ][sS]"
+      - "*.[hH][tT][mM][lL]"
+      - "*.[cC][sS][sS]"
+      - ".nojekyll"
+      - "_config.yml"
+      - "package.json"
       - "tests/game-platform-*.test.js"
+      - "tests/game-platform-vnext-model-oracles.json"
       - "tests/game-db-integration/**"
       - "scripts/check-game-platform-governance.mjs"
+      - "scripts/check-game-platform-vnext-boundaries.mjs"
+      - "scripts/check-community-modules.mjs"
+      - "scripts/build-community-assets.mjs"
       - "docs/game-platform-*.md"
       - "AGENTS.md"
       - ".github/workflows/game-platform-governance.yml"
@@ -38,6 +56,9 @@ jobs:
 
       - name: Test Game Platform contracts
         run: npm run test:game-platform
+
+      - name: Guard vNext browser-server and static publication boundaries
+        run: node scripts/check-game-platform-vnext-boundaries.mjs
 
       - name: Guard Game Platform boundaries
         run: >-

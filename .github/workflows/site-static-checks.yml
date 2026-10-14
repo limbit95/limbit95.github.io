@@ -12,6 +12,10 @@ on:
       - "games/**"
       - "tests/game-platform-*.test.js"
       - "scripts/check-game-platform-governance.mjs"
+      - "scripts/check-game-platform-vnext-boundaries.mjs"
+      - "tests/game-platform-vnext-model-oracles.json"
+      - "services/game-platform-vnext/**"
+      - ".github/workflows/game-platform-governance.yml"
 
 jobs:
   site-checks:

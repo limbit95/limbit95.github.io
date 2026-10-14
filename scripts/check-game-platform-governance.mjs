@@ -5,6 +5,11 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { GAME_REGISTRY } from "../games/shared/registry.js";
+import {
+  readModelOracleInputs,
+  validateModelOracleConfiguration,
+  validateModelOracleSelection,
+} from "./check-game-platform-vnext-boundaries.mjs";
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u;
 const LEGACY_ROOTS = Object.freeze(["liar-game/", "the-game/", "marble-game/"]);
@@ -31,8 +36,42 @@ const VNEXT_ENTRY_PATHS = Object.freeze([
 // Internal documentation selection, not a runtime/API/wire version field.
 function vnextContractSelection(content) {
   return typeof content === "string"
-    ? content.match(/^\s*-\s*Platform contract:\s*(GP-COMMON\/[^\s]+)\s*$/mu)?.[1] ?? null
+    ? content.match(/^\s*-\s*Platform contract:\s*([^\n]+)$/mu)?.[1]?.trim() ?? null
     : null;
+}
+
+function validateAppliedContracts(filename, content) {
+  const fields = [...content.matchAll(/^[ \t]*-[ \t]*Genre \/ capability contracts:[ \t]*([^\n]*)$/gmu)];
+  if (!fields.length) return []; // Optional applicability does not force a genre selection.
+  if (fields.length !== 1) return [filename + " must declare one unambiguous applied contract field."];
+  const value = fields[0][1].trim();
+  if (/^(?:UNSELECTED|TBD|미정|N\/A|비적용|미지원)$/iu.test(value)) return [];
+  const approved = new Map(Object.entries(VNEXT_POLICY_DOCUMENTS)
+    .filter(([, owner]) => owner.revision).map(([ownerPath, owner]) => [owner.revision, ownerPath]));
+  const references = [];
+  const text = value.replace(/\[([^\]]+)\]\(([^)\s]+)\)/gu, (link, label, href) => {
+    references.push(href);
+    return /^GP-/u.test(label) ? label : "";
+  }).replace(/\x60/gu, "");
+  const tokens = text.split(/[\s,;]+/u).filter(Boolean);
+  const revisions = [];
+  const errors = [];
+  for (const token of tokens) {
+    if (/^(?:\/?docs\/|\.\.?\/)/u.test(token)) { references.push(token); continue; }
+    if (!/^GP-[A-Z-]+\/[1-9]\d*$/u.test(token) || !approved.has(token)) {
+      errors.push(filename + " selects unsupported applied contract " + token + ".");
+    } else revisions.push(token);
+  }
+  if (!revisions.length && !errors.length) errors.push(filename + " requires an explicit applied contract or applicability marker.");
+  for (const href of references) {
+    const target = href.split("#")[0];
+    const ownerPath = target.startsWith("/") ? target.slice(1)
+      : target.startsWith("docs/") ? target : path.posix.normalize(path.posix.join(path.posix.dirname(filename), target));
+    if (!revisions.some((revision) => approved.get(revision) === ownerPath)) {
+      errors.push(filename + " references an owner outside its selected applied contracts: " + href + ".");
+    }
+  }
+  return errors;
 }
 
 function referencesPolicyDocument(filename, content, target) {
@@ -366,8 +405,11 @@ export function validateRepositoryState({
   uiDecisionDocuments = {},
   developmentDocuments = {},
   documents = {},
+  modelOracleConfig = { models: [] },
+  modelOracleFiles = {},
 }) {
   const errors = [];
+  errors.push(...validateModelOracleConfiguration({ config: modelOracleConfig, files: modelOracleFiles, documents }));
   const ids = registry.map((game) => game.id);
   const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
   if (duplicateIds.length) {
@@ -466,12 +508,16 @@ export function validateRepositoryState({
 
     const selectedVnextContract = vnextContractSelection(gameSpec);
     if (selectedVnextContract) {
+      if ((gameSpec.match(/^\s*-\s*Platform contract:/gmu) ?? []).length !== 1) {
+        errors.push(`games/${gameId}/GAME_SPEC.md must declare one unambiguous Platform contract.`);
+      }
       if (selectedVnextContract !== "GP-COMMON/1") {
         errors.push(`games/${gameId}/GAME_SPEC.md selects unsupported vNext contract ${selectedVnextContract}.`);
       }
       if (documents[VNEXT_ARCHITECTURE_PATH] == null) {
         errors.push(`vNext game ${gameId} requires the scoped architecture authority.`);
       }
+      errors.push(...validateAppliedContracts('games/' + gameId + '/GAME_SPEC.md', gameSpec));
     }
 
     const game = sharedById.get(gameId);
@@ -497,10 +543,13 @@ export function validateRepositoryState({
       }
     }
 
-    // STEP7A1 installs document authority only; model-specific oracle discovery is STEP7B.
-    // Never turn removal of the old DB requirement into support for an undeclared/non-DB model.
-    if (selectedVnextContract && game.capabilities?.online === true) {
-      errors.push(`vNext online runtime ${gameId} requires model-specific oracle/discovery support, deferred to STEP7B; a DB filename alone does not prove it.`);
+    // Discovery is structural evidence only; the shipped oracle configuration is empty.
+    // Online or actual runtime admission requires a real selected model and all its bindings.
+    const hasRuntime = (gameFiles[gameId] ?? []).some((file) => !BOOTSTRAP_ALLOWED_FILES.has(normalizePath(file)));
+    if (selectedVnextContract && (game.capabilities?.online === true || hasRuntime)) {
+      const contract = gameSpec.match(/^\s*-\s*Selected model contract:\s*([^\n]+)$/mu)?.[1]?.trim();
+      errors.push(...validateModelOracleSelection({ contract, online: game.capabilities?.online === true,
+        config: modelOracleConfig, files: modelOracleFiles, documents }));
     }
     if (game.capabilities?.online === true && !dbTestSet.has(`${gameId}.test.js`)) {
       errors.push(`Online shared game ${gameId} requires tests/game-db-integration/${gameId}.test.js.`);
@@ -556,7 +605,7 @@ export function validatePullRequestChanges({
   const paths = changedFiles.map((change) => normalizePath(change.path));
   const touchedLegacy = LEGACY_ROOTS.filter((root) => paths.some((file) => file.startsWith(root)));
   const platformRuntimeTouched = paths.some((file) =>
-    file.startsWith("games/shared/") || platformGameIdFromPath(file) != null,
+    file.startsWith("games/shared/") || file.startsWith("services/game-platform-vnext/") || platformGameIdFromPath(file) != null,
   );
 
   if (touchedLegacy.length && platformRuntimeTouched) {
@@ -583,7 +632,8 @@ export function validatePullRequestChanges({
   const addedSharedModules = changedFiles
     .filter((change) => change.status === "A")
     .map((change) => normalizePath(change.path))
-    .filter((file) => /^games\/shared\/[^/]+\.js$/u.test(file) && file !== "games/shared/index.js");
+    .filter((file) => (/^games\/shared\/(?:[^/]+|vnext\/.+)\.[cm]?js$/u.test(file)
+      || file.startsWith("services/game-platform-vnext/")) && file !== "games/shared/index.js");
 
   if (addedSharedModules.length) {
     const hasPlatformTestChange = paths.some((file) => /^tests\/game-platform-.+\.test\.js$/u.test(file));
@@ -723,6 +773,9 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   const uiDecisionDocuments = readGameDocuments(gamesDirectory, gameDirectories, "UI_DECISIONS.md");
   const developmentDocuments = readGameDocuments(gamesDirectory, gameDirectories, "DEVELOPMENT.md");
   const documents = readPlatformPolicyDocuments(repositoryRoot);
+  let modelOracleInputs;
+  try { modelOracleInputs = readModelOracleInputs(repositoryRoot); }
+  catch (error) { return [`Model oracle discovery configuration could not be read: ${error.message}`]; }
 
   const errors = validateRepositoryState({
     gameDirectories,
@@ -734,6 +787,8 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     uiDecisionDocuments,
     developmentDocuments,
     documents,
+    modelOracleConfig: modelOracleInputs.config,
+    modelOracleFiles: modelOracleInputs.files,
   });
 
   errors.push(...validatePlatformDocumentPolicy({
