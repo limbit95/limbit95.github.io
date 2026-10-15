@@ -1,7 +1,8 @@
 # Static publication preparation — STEP7D P1
 
-Status: publication preparation result **approved** on 2026-10-15; PR #424 is
-not merged or deployed. Approved result: `8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6`.
+Status: publication preparation result **approved** on 2026-10-15; PR #424 merged
+into integration at `73c9728b35b351d125f9a9853a4e21ede79b8273`, but not into main or deployed.
+Merge evidence: [CP0103](game-platform-rebuild/checkpoints/CP-0103-step-7d-p1-publication-merged.md). Approved result: `8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6`.
 Approval/current-record changes are separate; see [CP0102](game-platform-rebuild/checkpoints/CP-0102-step-7d-p1-publication-approved.md).
 P1 is **not resolved**. Actual game behavior is
 **NOT_RUN**; operation is **UNKNOWN**. No model, backend, or Adapter is implemented

@@ -20,6 +20,15 @@
 
 ## 현재 상태
 
+- **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_MERGED**. 사용자 2026-10-15 17:12 KST 병합 승인 뒤 PR424 실제 CLOSED/merged=true, merge **73c9728b35b351d125f9a9853a4e21ede79b8273**, tree **2c0a3cb2e354c68e13e3e31caf8109211bb0a95e**, 병합 시각 **2026-10-15 17:13:01 KST**를 확인했다. 최신 기록은 [CP0103](checkpoints/CP-0103-step-7d-p1-publication-merged.md)다.
+- 결과 승인 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6**와 승인 기록 포함 최종 head **108f78ae337fd19e566db6106498aaa38af2801d**를 구분한다. 실제 merge 부모는 기준 af1e2b4와 최종 head이며 merge tree는 최종 head tree와 같다. 현재 integration ref도 merge SHA와 일치한다. CP0101/CP0102 및 아래 미병합 표기는 당시 이력이다.
+- **P1 미해소 / STEP7D 모델·Adapter 미착수 / 실제 행동 NOT_RUN / 운영 UNKNOWN**. publication 준비의 integration 반영이며 실제 main/publication 전환·server 제외 증명·STEP7D 전체 완료·모델 지원 승인이 아니다. 기존 server fail-closed Guard 유지.
+- 최종 head 자동 CI5개(governance/publication/site static/E2E smoke/authenticated E2E)는 모두 completed/success를 병합 전에 확인했다. publication Pages package/deploy skipped, evidence는 검사 기록이며 public artifact/배포가 아니다. 기존 실제 검증 증거를 재사용하며 새 행동 시험은 하지 않는다.
+- 승인 Target·STEP7B 계획 §7 전체·미지원/runtime/online/기존 DB 요구·server 제외 미확인 차단·H1~4/단일채택·복구/안전11/current A/C/P/hostless·미승인 재대결 예외 금지·consumer/API/metadata/barrel/원본·전체 후속 의무 유지.
+- 사후 기록은 **docs/game-platform-vnext-phase7d-p1-merge-record**에서 integration base 검토 PR로 제출한다. 직접 integration commit이나 기록 PR 자동 병합은 하지 않는다. 다음은 **사후 기록 PR의 검토·integration 반영 여부에 대한 사용자 별도 결정**이며, 실제 게시 전환/P1 증거 확보의 별도 승인 범위는 남아 있다. main·Pages 설정·dispatch·실제 배포·Guard 해제·모델 구현은 진행하지 않는다.
+
+## STEP7D P1 승인 당시 현재 상태 — CP0102 이력 보존
+
 - **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-15 15:17 KST 승인 대상은 PR424 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6** / tree **15f0a87f2d8c0031b40eb3a15e618d549c808223**이다. 최신 기록은 [CP0102](checkpoints/CP-0102-step-7d-p1-publication-approved.md)이며 승인 대상과 기록 추가 후 head는 구분한다. 승인 직전 실제 PR head가 대상과 같아 승인 뒤 추가 코드 변경은 없었다.
 - 승인 범위는 publication 준비9파일과 최소 제출 기록3파일이다. **P1 미해소 / STEP7D 모델·Adapter 미착수 / 실제 행동 NOT_RUN / 운영 UNKNOWN**. STEP7D 전체 완료·실제 지원·행동 PASS·P1 해소 승인이 아니다.
 - PR424 OPEN/merged=false, 기존 branch **feature/game-platform-vnext-phase7d-model-adapter**, base **feature/game-platform-vnext-integration @ af1e2b4cc3c24a5c72ba64491473be7c0803ee33**. 이번 변경은 승인 기록과 최소 현재 문서뿐이며 source/tests/Guard/workflow/API/metadata/barrel·기존 consumer·승인 원본·과거 checkpoint를 바꾸지 않는다.
