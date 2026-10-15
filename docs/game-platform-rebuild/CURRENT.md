@@ -20,6 +20,15 @@
 
 ## 현재 상태
 
+- **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-15 15:17 KST 승인 대상은 PR424 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6** / tree **15f0a87f2d8c0031b40eb3a15e618d549c808223**이다. 최신 기록은 [CP0102](checkpoints/CP-0102-step-7d-p1-publication-approved.md)이며 승인 대상과 기록 추가 후 head는 구분한다. 승인 직전 실제 PR head가 대상과 같아 승인 뒤 추가 코드 변경은 없었다.
+- 승인 범위는 publication 준비9파일과 최소 제출 기록3파일이다. **P1 미해소 / STEP7D 모델·Adapter 미착수 / 실제 행동 NOT_RUN / 운영 UNKNOWN**. STEP7D 전체 완료·실제 지원·행동 PASS·P1 해소 승인이 아니다.
+- PR424 OPEN/merged=false, 기존 branch **feature/game-platform-vnext-phase7d-model-adapter**, base **feature/game-platform-vnext-integration @ af1e2b4cc3c24a5c72ba64491473be7c0803ee33**. 이번 변경은 승인 기록과 최소 현재 문서뿐이며 source/tests/Guard/workflow/API/metadata/barrel·기존 consumer·승인 원본·과거 checkpoint를 바꾸지 않는다.
+- 승인 head의 Game Platform396/396·publication17/17·public384와 자동 CI6개 success 증거를 재사용한다. CI 합성 merge tree 일치와 검사 evidence는 실제 Pages public artifact/배포가 아니다. Pages package/deploy는 skipped였다. 기록 commit CI는 별도 실제 결과를 따른다.
+- 승인 Target·STEP7B 계획 §7 전체·빈 모델/미구현 미지원·runtime/online 차단·기존 online DB 요구·server 제외 미확인 차단·H1~4/단일채택·복구/안전11/current A/C/P/hostless·미승인 재대결 예외 금지·기존 consumer/API/Registry metadata/barrel/게임/Auth/API/SQL/원본 및 전체 후속 의무 유지.
+- 다음 첫 작업은 **PR424 integration 병합 여부에 대한 사용자 별도 결정**이다. 실제 게시 전환·P1 제외 증거 확보는 별도 승인/실행 범위로 남긴다. 이번 승인으로 병합·main·Pages 설정·dispatch·실제 배포·Guard 해제·server/모델/Adapter 구현을 진행하지 않는다.
+
+## STEP7D P1 제출 당시 현재 상태 — CP0101 이력 보존
+
 - **STEP7D P1 publication 준비본 REVIEW_PENDING / P1 미해소 / 모델·Adapter 구현 미착수**. 현재 인수인계는 [CP0101](checkpoints/CP-0101-step-7d-p1-publication-submitted.md)과 [게시 준비 안내](../site-publication.md)다. 검토된 publication 9파일과 최소 현재 기록만 정식 검토 제출한다. 사용자 최종 승인·완료·실제 게시 전환 기록이 아니다.
 - 실제 PR423은 CLOSED/merged=true, merge **af1e2b4cc3c24a5c72ba64491473be7c0803ee33**, integration 기준 tree **66d3481f250a160bed516a08b28668656bf107a6**. 현재 원격 integration은 이 기준과 동일하다. CP0100 및 아래 미병합 표기는 당시 이력으로 보존한다. 기존 branch **feature/game-platform-vnext-phase7d-model-adapter**, PR base **feature/game-platform-vnext-integration**. 정식 제출 head/tree·PR·CI는 실제 Git/PR 및 저장소 밖 제출 인수인계로 식별한다.
 - exact public 384개 조립/검사와 workflow 준비뿐이다. 관측한 현재 Pages는 **Deploy from a branch / main / (root)**이며 변경하지 않는다. 새 workflow의 PR 실행은 검증용이고 main의 명시적 publish dispatch만 Pages package/deploy 가능하다. server 제외 미확인 Guard는 무변경이다.

@@ -1,6 +1,9 @@
 # Static publication preparation — STEP7D P1
 
-Status: local preparation only. P1 is **not resolved**. Actual game behavior is
+Status: publication preparation result **approved** on 2026-10-15; PR #424 is
+not merged or deployed. Approved result: `8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6`.
+Approval/current-record changes are separate; see [CP0102](game-platform-rebuild/checkpoints/CP-0102-step-7d-p1-publication-approved.md).
+P1 is **not resolved**. Actual game behavior is
 **NOT_RUN**; operation is **UNKNOWN**. No model, backend, or Adapter is implemented
 or supported by this change. Existing server admission Guard remains unchanged.
 

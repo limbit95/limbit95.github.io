@@ -2,6 +2,10 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0102](checkpoints/CP-0102-step-7d-p1-publication-approved.md)다. **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-15 15:17 KST 승인 대상은 PR424 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6** / tree **15f0a87f2d8c0031b40eb3a15e618d549c808223**. 이번에는 기존 phase7d branch/PR에 승인 기록과 최소 현재 문서 정합화만 보존한다. **P1 미해소·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN**, 승인 Target·STEP7B §7 전체·기존 consumer/원본·차단/후속 의무 유지. 승인 head 뒤 코드 변경 없음 확인, 기록 head/CI는 승인 결과와 구별한다. 다음은 사용자의 PR424 integration 병합 여부 별도 결정이며 병합·main·설정·dispatch·실제 배포·Guard 해제·모델 구현은 수행하지 않는다.
+
+### STEP7D P1 제출 당시 인수인계 — CP0101 이력 보존
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0101](checkpoints/CP-0101-step-7d-p1-publication-submitted.md)다. **STEP7D P1 publication 준비본 REVIEW_PENDING / P1 미해소 / 모델·Adapter 구현 미착수**. [게시 준비 안내](../site-publication.md)의 exact 384개 조립/검사·수동 gated workflow만 제출하며 Pages 설정·배포는 바꾸지 않는다. PR423 실제 merge **af1e2b4cc3c24a5c72ba64491473be7c0803ee33**, integration 기준 tree **66d3481f250a160bed516a08b28668656bf107a6** 확인. 기존 phase7d branch에서 integration base 검토 PR로 제출하며 새 head/tree/CI는 실제 Git/PR·전달 인수인계를 따른다. full checkout의 Game Platform396/396 및 관련 정적/unit 증거는 CP0101에 기록한다. 승인 Target·STEP7B §7 전체·기존 consumer/원본·미지원/차단·후속 의무와 행동 **NOT_RUN**·운영 **UNKNOWN** 유지. 다음은 Astra의 정식 원격 제출본 검토이며 승인/완료·병합·main·실제 Pages 업로드/배포·모델 구현을 진행하지 않는다.
 
 ### STEP7C 승인 기록 당시 인수인계 — CP0100 이력 보존
