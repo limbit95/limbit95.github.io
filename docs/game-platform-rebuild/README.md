@@ -2,6 +2,10 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0103](checkpoints/CP-0103-step-7d-p1-publication-merged.md)다. **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_MERGED**. PR424 실제 merge **73c9728b35b351d125f9a9853a4e21ede79b8273** / tree **2c0a3cb2e354c68e13e3e31caf8109211bb0a95e**, 최종 head **108f78ae337fd19e566db6106498aaa38af2801d** 및 merge 부모/integration ref 일치 확인. 사용자 병합 승인 2026-10-15 17:12 KST, 실제 병합 17:13:01 KST. **P1 미해소·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN**, 승인 Target·STEP7B §7 전체·미지원/차단·기존 consumer/원본·전체 후속 의무 유지. CP0101/CP0102와 아래 미병합 표기는 당시 이력이다. 사후 문서 기록은 별도 phase7d 기록 branch/integration base PR에 제출하며, 다음은 그 기록 PR의 검토·반영 여부 별도 결정이다. main·Pages 전환/dispatch/실제 배포·Guard 해제·모델 구현으로 진행하지 않는다.
+
+### STEP7D P1 승인 당시 인수인계 — CP0102 이력 보존
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0102](checkpoints/CP-0102-step-7d-p1-publication-approved.md)다. **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-15 15:17 KST 승인 대상은 PR424 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6** / tree **15f0a87f2d8c0031b40eb3a15e618d549c808223**. 이번에는 기존 phase7d branch/PR에 승인 기록과 최소 현재 문서 정합화만 보존한다. **P1 미해소·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN**, 승인 Target·STEP7B §7 전체·기존 consumer/원본·차단/후속 의무 유지. 승인 head 뒤 코드 변경 없음 확인, 기록 head/CI는 승인 결과와 구별한다. 다음은 사용자의 PR424 integration 병합 여부 별도 결정이며 병합·main·설정·dispatch·실제 배포·Guard 해제·모델 구현은 수행하지 않는다.
 
 ### STEP7D P1 제출 당시 인수인계 — CP0101 이력 보존
