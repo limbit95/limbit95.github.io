@@ -63,6 +63,48 @@ worker cache migration, Auth, database behavior or operational health. The
 existing service-worker bytes are preserved; production cutover/cache validation
 remains a separate authorized follow-up.
 
+## Slice A — uploaded artifact gate (REVIEW_PENDING)
+
+The preparation workflow now checks the actual uploaded Pages artifact before
+its dependent deployment job can start. It uses the upload action's artifact ID,
+reads run/artifact metadata with `actions: read`, downloads that ID through `gh`,
+and checks the downloaded ZIP SHA-256 against GitHub's artifact digest. Python
+3.11+ standard-library ZIP/tar readers inspect the payload without extracting it.
+The supported wrapper contains exactly `artifact.tar`; regular files must match
+the source manifest's path, source, size and SHA-256 exactly. Normal directory
+entries are allowed only for those files' ancestors. Duplicate/unsafe paths,
+links, sparse files, devices, extra/missing files, extended tar metadata and
+nonzero trailing content fail closed. Packages over 1 GiB are unsupported here.
+This restricted format passed a local GNU tar contract with all 384 public files;
+it is not evidence that an actual Pages upload/deployment has run.
+
+Checkout HEAD, manifest sourceRevision, run SHA, repository, explicit main dispatch,
+run ID/attempt and artifact origin must agree. Every attempt uses a distinct name
+`github-pages-<run-id>-<attempt>`. Before deployment, the job checks that this run
+still has exactly one artifact with that name and the same verified ID/digest.
+The pinned deploy action consumes that unique name from the same run. No overwrite
+or extra Pages upload occurs between verification and deployment. This relies on
+GitHub's immutable artifact identity and the reviewed workflow/permissions; it is
+not an atomic guarantee against an administrator replacing the workflow or an
+unrelated privileged actor. Re-running only failed jobs with a new attempt but
+an old prepare output fails closed; use a separately authorized full attempt.
+
+A verification error fails prepare (no continue-on-error); `needs: prepare`
+blocks deploy. The deployment identity recheck can also block the deploy action.
+The small verification report is retained outside public as
+`site-publication-verified-<run-id>-<attempt>`; it is still not the public artifact
+or a P1 certificate. Same-ref publication runs are serialized. `publish: true`
+continues to authorize the package-and-deploy path, not package-only execution.
+
+Tests: `node --test tests/game-platform-publication*.test.js` also executes the
+Python fixture contracts via the existing `test:game-platform` Node glob. No
+network is used by these fixtures. Current test/Guard success does not establish
+actual model/game support, behavior PASS, live exclusion or operational health.
+
+The next gate is Astra review of Slice A. Main-only publication separation and
+its root-plan exception remain a separate user decision; this Slice does not
+approve that exception, change the exact384 policy, or edit the root plan.
+
 ## Workflow and remaining gate
 
 `.github/workflows/site-pages-publication.yml` validates pull requests and manual
@@ -70,7 +112,7 @@ dispatches. No push event deploys. Pages packaging and deployment both require
 explicit `workflow_dispatch`, `publish: true`, and `refs/heads/main`. The build
 job is read-only; only the gated deployment job requests Pages/OIDC permissions.
 It uploads `.site-publication/public`, never repository root, and deployment
-consumes `github-pages` from the same run. The separate evidence artifact records
+consumes the verified attempt-specific Pages artifact from the same run. The separate evidence artifact records
 the checkout and exact inventory. The default dispatch does not deploy.
 
 This workflow does not change the current branch publisher. Actual adoption

@@ -2,6 +2,11 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+
+**STEP7D P1 Slice A — uploaded artifact gate REVIEW_PENDING**. 기준 integration **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3**, branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, PR base integration. [CP0104](checkpoints/CP-0104-step-7d-p1-artifact-gate-submitted.md). PR424/425 실제 병합 확인; 아래 기록 PR 대기는 당시 이력이다. actual upload ID/ZIP/tar 검증과 배포 직전 identity 재검사를 준비했다. Game Platform398/398·Python fixture13/13·public384·기존 Guard PASS는 정적/unit 증거다. 실제 업로드/배포·설정/dispatch 없음. **P1 미해소·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체 보존. 다음은 Astra 검토이며 main 분리 경로의 제한 예외·실행은 별도 결정이다. 승인/완료·병합·Guard 해제 없음.
+
+### PR424 병합 기록 당시 인수인계 — CP0103 이력 보존
+
 현재 인수인계는 [CURRENT](CURRENT.md)와 [CP0103](checkpoints/CP-0103-step-7d-p1-publication-merged.md)다. **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_MERGED**. PR424 실제 merge **73c9728b35b351d125f9a9853a4e21ede79b8273** / tree **2c0a3cb2e354c68e13e3e31caf8109211bb0a95e**, 최종 head **108f78ae337fd19e566db6106498aaa38af2801d** 및 merge 부모/integration ref 일치 확인. 사용자 병합 승인 2026-10-15 17:12 KST, 실제 병합 17:13:01 KST. **P1 미해소·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN**, 승인 Target·STEP7B §7 전체·미지원/차단·기존 consumer/원본·전체 후속 의무 유지. CP0101/CP0102와 아래 미병합 표기는 당시 이력이다. 사후 문서 기록은 별도 phase7d 기록 branch/integration base PR에 제출하며, 다음은 그 기록 PR의 검토·반영 여부 별도 결정이다. main·Pages 전환/dispatch/실제 배포·Guard 해제·모델 구현으로 진행하지 않는다.
 
 ### STEP7D P1 승인 당시 인수인계 — CP0102 이력 보존

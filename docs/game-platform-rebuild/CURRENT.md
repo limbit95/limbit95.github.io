@@ -20,6 +20,10 @@
 
 ## 현재 상태
 
+**STEP7D P1 Slice A — uploaded artifact gate REVIEW_PENDING**. 기준 integration **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3**, branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, PR base integration. [CP0104](checkpoints/CP-0104-step-7d-p1-artifact-gate-submitted.md). PR424/425 실제 병합 확인; 아래 기록 PR 대기는 당시 이력이다. actual upload ID/ZIP/tar 검증과 배포 직전 identity 재검사를 준비했다. Game Platform398/398·Python fixture13/13·public384·기존 Guard PASS는 정적/unit 증거다. 실제 업로드/배포·설정/dispatch 없음. **P1 미해소·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체 보존. 다음은 Astra 검토이며 main 분리 경로의 제한 예외·실행은 별도 결정이다. 승인/완료·병합·Guard 해제 없음.
+
+## PR424 병합 기록 당시 상태 — CP0103 이력 보존
+
 - **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_MERGED**. 사용자 2026-10-15 17:12 KST 병합 승인 뒤 PR424 실제 CLOSED/merged=true, merge **73c9728b35b351d125f9a9853a4e21ede79b8273**, tree **2c0a3cb2e354c68e13e3e31caf8109211bb0a95e**, 병합 시각 **2026-10-15 17:13:01 KST**를 확인했다. 최신 기록은 [CP0103](checkpoints/CP-0103-step-7d-p1-publication-merged.md)다.
 - 결과 승인 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6**와 승인 기록 포함 최종 head **108f78ae337fd19e566db6106498aaa38af2801d**를 구분한다. 실제 merge 부모는 기준 af1e2b4와 최종 head이며 merge tree는 최종 head tree와 같다. 현재 integration ref도 merge SHA와 일치한다. CP0101/CP0102 및 아래 미병합 표기는 당시 이력이다.
 - **P1 미해소 / STEP7D 모델·Adapter 미착수 / 실제 행동 NOT_RUN / 운영 UNKNOWN**. publication 준비의 integration 반영이며 실제 main/publication 전환·server 제외 증명·STEP7D 전체 완료·모델 지원 승인이 아니다. 기존 server fail-closed Guard 유지.
