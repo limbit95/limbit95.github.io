@@ -78,7 +78,7 @@ const outputs = Object.keys(result.metafile.outputs)
 
 await writeFile(
   path.join(outdir, "manifest.json"),
-  `${JSON.stringify({ entry: entryRelative, outputs }, null, 2)}\n`,
+  `${JSON.stringify({ entry: entryRelative, outputs, inputs: Object.keys(result.metafile.inputs).sort() }, null, 2)}\n`,
   "utf8",
 );
 
