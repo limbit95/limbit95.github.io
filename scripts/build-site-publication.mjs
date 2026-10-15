@@ -1,0 +1,230 @@
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { sourceModuleEdges, validateVnextBoundaries } from "./check-game-platform-vnext-boundaries.mjs";
+
+const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
+const POLICY = "scripts/site-publication-files.json";
+const STATE = ".site-publication";
+const SERVER = "services/game-platform-vnext/";
+const PUBLIC_ROOTS = /^(?:assets|css|js|games|liar-game|the-game|marble-game)\//u;
+const ROOT_FILES = new Set([".nojekyll", "CNAME", "index.html", "activity-link.html", "brand-gateway-ae.html", "invite.html", "manifest.webmanifest", "push-service-worker.js", "apple-touch-icon.png"]);
+const PUBLIC_EXTENSION = /\.(?:[cm]?js|html|css|json|webmanifest|png|svg|jpe?g|webp|gif|ico|woff2?|ttf|mp3|ogg|wav|mp4|webm)$/iu;
+
+function safePath(value) {
+  if (typeof value !== "string" || !value || value.includes("\\") || value.includes("%")
+    || value.startsWith("/") || value.includes(":") || value.includes("\0")
+    || value.split("/").some((part) => !part || part === "." || part === "..")) {
+    throw new Error(`Unsafe publication path: ${value}`);
+  }
+  return value;
+}
+
+function publicPath(filename) {
+  if (ROOT_FILES.has(filename) || filename === "liar-game/VERSION") return true;
+  return PUBLIC_ROOTS.test(filename) && PUBLIC_EXTENSION.test(filename)
+    && !filename.split("/").some((part) => part.startsWith(".") || ["tests", "test", "fixtures", "node_modules"].includes(part));
+}
+
+// Never follow a symlink, including one in a parent directory.
+function regularFile(root, filename) {
+  let target = root;
+  const parts = safePath(filename).split("/");
+  for (let i = 0; i < parts.length; i++) {
+    target = path.join(target, parts[i]);
+    const stat = fs.lstatSync(target);
+    if (stat.isSymbolicLink() || (i < parts.length - 1 ? !stat.isDirectory() : !stat.isFile())) {
+      throw new Error(`Publication requires a regular file without symlinks: ${filename}`);
+    }
+  }
+  return fs.readFileSync(target);
+}
+
+function trackedInventory(root) {
+  return execFileSync("git", ["ls-files", "--stage", "-z"], { cwd: root, encoding: "utf8" })
+    .split("\0").filter(Boolean).map((entry) => {
+      const [meta, filename] = entry.split("\t");
+      const [mode, , stage] = meta.split(" ");
+      if (stage !== "0") throw new Error(`Unmerged publication input: ${filename}`);
+      return { path: filename, mode };
+    });
+}
+
+function loadInputs(root, inventory) {
+  const policyBytes = regularFile(root, POLICY);
+  const policy = JSON.parse(policyBytes);
+  if (policy.schemaVersion !== 1 || !Array.isArray(policy.files) || !policy.files.length) throw new Error("Invalid publication file policy.");
+  const files = new Map();
+  const entries = new Map(inventory.map((entry) => [safePath(entry.path), entry.mode]));
+  const serverHashes = new Set();
+  for (const [filename, mode] of entries) {
+    if (filename.startsWith(SERVER)) {
+      if (!/^100(?:644|755)$/u.test(mode)) throw new Error(`Non-regular server source: ${filename}`);
+      serverHashes.add(digest(regularFile(root, filename)));
+    }
+  }
+  for (const filename of policy.files) {
+    safePath(filename);
+    if (!publicPath(filename) || files.has(filename)) throw new Error(`Forbidden or duplicate public file: ${filename}`);
+    if (!/^100(?:644|755)$/u.test(entries.get(filename) ?? "")) throw new Error(`Public file must be tracked and regular: ${filename}`);
+    const bytes = regularFile(root, filename);
+    if (serverHashes.has(digest(bytes))) throw new Error(`Public bytes alias a tracked server source/artifact: ${filename}`);
+    files.set(filename, bytes);
+  }
+  // A newly tracked runtime asset must be reviewed into the exact file list.
+  for (const filename of entries.keys()) {
+    if (publicPath(filename) && !files.has(filename)) throw new Error(`Unlisted public input: ${filename}`);
+  }
+  return { files, policy, policySha256: digest(policyBytes) };
+}
+
+function localTarget(filename, reference) {
+  if (!reference || reference.startsWith("#") || /^(?:[a-z][a-z\d+.-]*:|\/\/)/iu.test(reference)) return null;
+  let clean;
+  try { clean = decodeURIComponent(reference.split(/[?#]/u, 1)[0]); } catch { throw new Error(`Invalid URL in ${filename}`); }
+  if (!clean) return null;
+  const target = path.posix.normalize(clean.startsWith("/") ? clean.slice(1) : path.posix.join(path.posix.dirname(filename), clean));
+  if (target.startsWith("../") || target === ".." || target.includes("\\")) throw new Error(`Reference escapes publication: ${filename} -> ${reference}`);
+  return target === "." || target === "./" || target === "" ? "index.html" : target.endsWith("/") ? target + "index.html" : target;
+}
+
+function validateFiles(files, policy) {
+  const sources = Object.fromEntries([...files].map(([filename, bytes]) => [filename, bytes.toString("utf8")]));
+  const errors = validateVnextBoundaries({ files: sources, trackedPaths: [...files.keys()], assetOutputs: [...files.keys()] });
+  const requireTarget = (filename, reference) => {
+    const target = localTarget(filename, reference);
+    if (target && !files.has(target) && !files.has(target + "/index.html")) errors.push(`Missing public reference: ${filename} -> ${reference}`);
+  };
+  const moduleMaps = (policy.moduleMaps ?? []).map(({ entry, moduleRoot }) => {
+    safePath(entry); safePath(moduleRoot.replace(/\/$/u, ""));
+    if (!entry.endsWith(".html") || !files.has(entry) || !moduleRoot.startsWith(path.posix.dirname(entry) + "/")) throw new Error("Invalid scoped import-map entry.");
+    const source = files.get(entry).toString("utf8");
+    const text = source.match(/<script\b[^>]*\btype=["']importmap["'][^>]*>([\s\S]*?)<\/script\s*>/iu)?.[1];
+    if (!text) throw new Error(`Missing declared import map: ${entry}`);
+    const map = JSON.parse(text);
+    if (!map.imports || map.scopes) throw new Error(`Unsupported import-map shape: ${entry}`);
+    for (const reference of Object.values(map.imports)) {
+      if (typeof reference !== "string") throw new Error(`Invalid import-map target: ${entry}`);
+      requireTarget(entry, reference);
+    }
+    return { entry, moduleRoot, imports: map.imports };
+  });
+  for (const [filename, bytes] of files) {
+    const source = bytes.toString("utf8");
+    if (/\.[cm]?js$/iu.test(filename)) {
+      for (const ref of sourceModuleEdges(source)) {
+        if (ref.startsWith(".") || ref.startsWith("/")) requireTarget(filename, ref);
+        else if (!/^[a-z][a-z\d+.-]*:/iu.test(ref)) {
+          const binding = moduleMaps.filter((map) => filename.startsWith(map.moduleRoot)).sort((a, b) => b.moduleRoot.length - a.moduleRoot.length)[0];
+          if (!binding?.imports[ref]) errors.push(`Unresolved browser module: ${filename} -> ${ref}`);
+        }
+      }
+    }
+    if (/\.(?:html|css)$/iu.test(filename)) {
+      const clean = source.replace(/<!--[\s\S]*?-->|\/\*[\s\S]*?\*\//gu, "");
+      for (const match of clean.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']|url\(\s*["']?([^)'"\s]+)|@import\s*["']([^"']+)["']/giu)) {
+        requireTarget(filename, match[1] ?? match[2] ?? match[3]);
+      }
+    }
+    if (filename.endsWith(".webmanifest")) {
+      const manifest = JSON.parse(source);
+      for (const item of [...(manifest.icons ?? []), ...(manifest.screenshots ?? [])]) requireTarget(filename, item.src);
+      requireTarget(filename, manifest.start_url);
+    }
+  }
+  // Persisted esbuild inputs connect committed bundles to approved browser sources.
+  if (files.has("assets/build/manifest.json")) {
+    const bundle = JSON.parse(files.get("assets/build/manifest.json"));
+    if (!Array.isArray(bundle.inputs) || !bundle.inputs.length || !Array.isArray(bundle.outputs)) errors.push("Bundle manifest must record actual esbuild input/output paths.");
+    for (const input of bundle.inputs ?? []) {
+      if (typeof input !== "string" || !files.has(input) || !publicPath(input)) errors.push(`Bundle input outside public source policy: ${input}`);
+    }
+    for (const output of bundle.outputs ?? []) if (!files.has(output)) errors.push(`Missing public bundle output: ${output}`);
+    if (!files.has(bundle.entry)) errors.push("Missing public bundle entry.");
+  }
+  if (errors.length) throw new Error([...new Set(errors)].join("\n"));
+}
+
+function outputPaths(root) {
+  const state = path.join(root, STATE);
+  if (fs.existsSync(state) && (!fs.lstatSync(state).isDirectory() || fs.lstatSync(state).isSymbolicLink())) throw new Error("Publication state directory cannot be a symlink or file.");
+  const evidence = path.join(state, "manifest.json");
+  const evidenceStat = fs.lstatSync(evidence, { throwIfNoEntry: false });
+  if (evidenceStat && (!evidenceStat.isFile() || evidenceStat.isSymbolicLink())) throw new Error("Publication evidence must be a regular file.");
+  return { state, output: path.join(state, "public"), evidence };
+}
+
+function walkOutput(directory, prefix = "") {
+  const files = new Map();
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const filename = prefix + entry.name;
+    const target = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`Symlink in publish tree: ${filename}`);
+    if (entry.isDirectory()) for (const pair of walkOutput(target, filename + "/")) files.set(...pair);
+    else if (entry.isFile()) files.set(filename, fs.readFileSync(target));
+    else throw new Error(`Non-regular publish output: ${filename}`);
+  }
+  return files;
+}
+
+export function buildPublication(root, { inventory = trackedInventory(root), sourceRevision = null } = {}) {
+  const { files, policy, policySha256 } = loadInputs(root, inventory);
+  validateFiles(files, policy); // No output mutation until all source validation passes.
+  const { state, output, evidence } = outputPaths(root);
+  fs.mkdirSync(state, { recursive: true });
+  if (fs.existsSync(output) && (!fs.lstatSync(output).isDirectory() || fs.lstatSync(output).isSymbolicLink())) throw new Error("Unsafe existing publish output.");
+  // Only replace a generated tree with its own evidence, never an arbitrary directory.
+  if (fs.existsSync(output) && !fs.existsSync(evidence)) throw new Error("Refusing to overwrite an unmanaged publish directory.");
+  const staging = fs.mkdtempSync(path.join(state, "staging-"));
+  try {
+    for (const [filename, bytes] of files) {
+      const target = path.join(staging, filename);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, bytes);
+    }
+    const manifest = { schemaVersion: 1, sourceRevision, policySha256, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([filename, bytes]) => ({ path: filename, source: filename, size: bytes.length, sha256: digest(bytes) })) };
+    fs.rmSync(output, { force: true, recursive: true });
+    fs.renameSync(staging, output);
+    fs.writeFileSync(evidence, JSON.stringify(manifest, null, 2) + "\n");
+    verifyPublication(root, { inventory });
+    return manifest;
+  } finally {
+    fs.rmSync(staging, { force: true, recursive: true });
+  }
+}
+
+export function verifyPublication(root, { inventory = trackedInventory(root) } = {}) {
+  const { files, policy, policySha256 } = loadInputs(root, inventory);
+  validateFiles(files, policy);
+  const { output, evidence } = outputPaths(root);
+  // Check the output root itself as well as every descendant.
+  if (fs.lstatSync(output).isSymbolicLink() || !fs.lstatSync(output).isDirectory()) throw new Error("Unsafe publish root.");
+  const manifest = JSON.parse(regularFile(root, STATE + "/manifest.json"));
+  const actual = walkOutput(output);
+  if (manifest.schemaVersion !== 1 || manifest.policySha256 !== policySha256 || !Array.isArray(manifest.files)
+    || manifest.files.length !== files.size || actual.size !== files.size) throw new Error("Publish inventory/policy changed.");
+  const seen = new Set();
+  for (const item of manifest.files) {
+    if (seen.has(item.path) || item.path !== item.source || !files.has(item.path) || !actual.has(item.path)) throw new Error("Publish provenance mismatch.");
+    seen.add(item.path);
+    const bytes = files.get(item.path);
+    if (item.size !== bytes.length || item.sha256 !== digest(bytes) || !bytes.equals(actual.get(item.path))) throw new Error(`Publish bytes changed: ${item.path}`);
+  }
+  validateFiles(actual, policy);
+  return { files: files.size, output, evidence };
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    if (process.argv.slice(2).some((arg) => arg !== "--check")) throw new Error("Usage: node scripts/build-site-publication.mjs [--check]");
+    const root = process.cwd();
+    if (process.argv.includes("--check")) console.log(JSON.stringify(verifyPublication(root)));
+    else {
+      const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+      const manifest = buildPublication(root, { sourceRevision });
+      console.log(`Prepared ${manifest.files.length} public files; evidence: ${STATE}/manifest.json (not a deployment).`);
+    }
+  } catch (error) { console.error(error.message); process.exitCode = 1; }
+}
