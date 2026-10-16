@@ -75,6 +75,9 @@ the source manifest's path, source, size and SHA-256 exactly. Normal directory
 entries are allowed only for those files' ancestors. Duplicate/unsafe paths,
 links, sparse files, devices, extra/missing files, extended tar metadata and
 nonzero trailing content fail closed. Packages over 1 GiB are unsupported here.
+The raw tar header name and prefix/name are checked before accepting the parser's
+normalized path: absolute or empty names are rejected; only `.` and `./` are
+accepted as root directories. Normal parent directories remain supported.
 This restricted format passed a local GNU tar contract with all 384 public files;
 it is not evidence that an actual Pages upload/deployment has run.
 

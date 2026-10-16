@@ -3,7 +3,7 @@
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
 
-**STEP7D P1 Slice A — uploaded artifact gate REVIEW_PENDING**. 기준 integration **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3**, branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, PR base integration. [CP0104](checkpoints/CP-0104-step-7d-p1-artifact-gate-submitted.md). PR424/425 실제 병합 확인; 아래 기록 PR 대기는 당시 이력이다. actual upload ID/ZIP/tar 검증과 배포 직전 identity 재검사를 준비했다. Game Platform398/398·Python fixture13/13·public384·기존 Guard PASS는 정적/unit 증거다. 실제 업로드/배포·설정/dispatch 없음. **P1 미해소·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체 보존. 다음은 Astra 검토이며 main 분리 경로의 제한 예외·실행은 별도 결정이다. 승인/완료·병합·Guard 해제 없음.
+**STEP7D P1 Slice A — uploaded artifact gate REVIEW_PENDING**. 2026-10-16 [F1 최소 보완](artifacts/step-7d-p1-slice-a-review-fixes.md)을 기존 PR #426에 제출한다. 원 검토 head b604c332 뒤 raw tar 경로 검사/fixture 보완이며 다음은 Astra 재검토다. 기준 integration **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3**, branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, PR base integration. [CP0104](checkpoints/CP-0104-step-7d-p1-artifact-gate-submitted.md). PR424/425 실제 병합 확인; 아래 기록 PR 대기는 당시 이력이다. actual upload ID/ZIP/tar 검증과 배포 직전 identity 재검사를 준비했다. Game Platform398/398·Python fixture16/16·public384·기존 Guard PASS는 정적/unit 증거다. 실제 업로드/배포·설정/dispatch 없음. **P1 미해소·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체 보존. 다음은 Astra 검토이며 main 분리 경로의 제한 예외·실행은 별도 결정이다. 승인/완료·병합·Guard 해제 없음.
 
 ### PR424 병합 기록 당시 인수인계 — CP0103 이력 보존
 

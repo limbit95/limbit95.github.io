@@ -18,12 +18,12 @@ def require(condition, message):
 
 def safe_path(name, directory=False):
     require(isinstance(name, str), "Non-string path")
+    if directory and name in (".", "./"):
+        return ""
     if name.startswith("./"):
         name = name[2:]
     if directory:
-        name = name.rstrip("/")
-        if name in ("", "."):
-            return ""
+        name = name.removesuffix("/")
     require(name and not any(c in name for c in ("\\", "%", ":", "\0")), "Unsafe path")
     require(all(p not in ("", ".", "..") for p in name.split("/")), "Unsafe path")
     return name
@@ -60,11 +60,21 @@ def verify_package(filename, manifest, policy_bytes, revision):
                 end = 0
                 for member in archive:
                     require(member.offset == end, "Unexpected tar metadata")
-                    payload.seek(member.offset + 156)
-                    raw_type = payload.read(1)
+                    payload.seek(member.offset)
+                    header = payload.read(512)
+                    raw_type = header[156:157]
                     require(raw_type in (b"0", b"\0", b"5") and not member.pax_headers, "Unsupported tar metadata/type")
                     require(not member.linkname and not member.sparse, "Link/sparse member forbidden")
-                    name = safe_path(member.name, member.isdir())
+                    # tarfile strips directory slashes, turning '/' into ''.
+                    # Validate the original name and combined prefix/name before
+                    # accepting that lossy parser representation. These supported
+                    # types use the same prefix field as TarInfo.frombuf.
+                    raw_name = header[:100].split(b"\0", 1)[0].decode(archive.encoding, archive.errors)
+                    prefix = header[345:500].split(b"\0", 1)[0].decode(archive.encoding, archive.errors)
+                    require(raw_name and not raw_name.startswith("/"), "Unsafe raw tar name")
+                    raw_path = f"{prefix}/{raw_name}" if prefix else raw_name
+                    name = safe_path(raw_path, member.isdir())
+                    require(name == safe_path(member.name, member.isdir()), "Tar path interpretation mismatch")
                     if member.isdir():
                         require(name in directories and name not in seen_dirs and member.size == 0, "Unexpected/duplicate directory")
                         seen_dirs.add(name)

@@ -53,6 +53,41 @@ class PackageTests(unittest.TestCase):
     def verify(self):
         return v.verify_package(self.filename, self.manifest, self.policy, REV)
 
+    def rewrite_header_path(self, offset, name, prefix=""):
+        # Preserve literal header bytes (TarInfo normalizes directory names).
+        with zipfile.ZipFile(self.filename) as wrapper:
+            data = bytearray(wrapper.read("artifact.tar"))
+        header = data[offset:offset + 512]
+        header[:100] = name.encode().ljust(100, b"\0")
+        header[345:500] = prefix.encode().ljust(155, b"\0")
+        header[148:156] = b" " * 8
+        header[148:156] = f"{sum(header):06o}\0 ".encode()
+        data[offset:offset + 512] = header
+        with zipfile.ZipFile(self.filename, "w") as wrapper:
+            wrapper.writestr("artifact.tar", data)
+
+    def test_raw_root_replacement_rejects_absolute_and_empty_names(self):
+        for name in ("/", "////", "", ".//"):
+            with self.subTest(name=name):
+                self.package()
+                self.rewrite_header_path(0, name)
+                with self.assertRaises(ValueError): self.verify()
+
+    def test_raw_normal_roots_and_parent_prefix_preserved(self):
+        for root in (".", "./"):
+            with self.subTest(root=root):
+                self.package()
+                self.rewrite_header_path(0, root)
+                self.rewrite_header_path(512, "js/", ".")
+                self.assertEqual(self.verify(), 2)
+
+    def test_raw_prefix_and_name_cannot_hide_unsafe_directory(self):
+        for name, prefix in (("js/", "/"), ("js/", ".."), ("/js/", "."), ("", "js")):
+            with self.subTest(name=name, prefix=prefix):
+                self.package()
+                self.rewrite_header_path(512, name, prefix)
+                with self.assertRaises(ValueError): self.verify()
+
     def test_valid_real_zip_tar_and_exact_bytes(self):
         self.package()
         self.assertEqual(self.verify(), 2)
