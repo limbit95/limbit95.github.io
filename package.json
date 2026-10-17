@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "build:assets": "node scripts/build-community-assets.mjs",
+    "build:publication": "node scripts/build-site-publication.mjs",
+    "check:publication": "node scripts/build-site-publication.mjs --check",
     "test:e2e": "playwright test",
     "test:web-push": "node --test tests/web-push.test.js tests/web-push-same-user-lifecycle.test.js tests/web-push-pr74-review.test.js tests/web-push-cleanup-finalization.test.js tests/join-request-admin-notifications.test.js tests/notification-preferences.test.js tests/desktop-pwa-push-stability.test.js tests/push-onboarding.test.js",
     "test:admin-permissions": "node --test tests/admin-permissions.test.js",
