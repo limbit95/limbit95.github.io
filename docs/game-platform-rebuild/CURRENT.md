@@ -20,6 +20,10 @@
 
 ## 현재 상태
 
+**STEP7D P1 Slice A publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-17 20:35:23 KST 최종 승인 대상은 PR #426 head **8876fc0bd5e0e6412409b4a9e234a5cd7f065289**, tree **385d578cb479b99c6772bc50954d04c59f84a094**다. Astra F1 해소·승인 차단0 판단 후 승인 기록과 최소 현재 문서만 반영한다. [CP0105](checkpoints/CP-0105-step-7d-p1-slice-a-approved.md). 기존 branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, integration base **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3** 유지. 승인 head 뒤 코드 변경 없음 확인; 기록 head/CI는 승인 결과와 구분한다. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체·기존 consumer/원본·전체 후속 의무 유지. 다음은 PR426 integration 병합 여부에 대한 사용자 별도 결정이다. 병합·main 제한 예외·Slice B·설정/dispatch·실제 업로드/배포·Guard 해제·모델 구현·행동 시험은 진행하지 않는다.
+
+## PR424 병합 기록 당시 상태 — CP0103 이력 보존
+
 - **STEP7D P1 publication 준비 결과 APPROVED / INTEGRATION_MERGED**. 사용자 2026-10-15 17:12 KST 병합 승인 뒤 PR424 실제 CLOSED/merged=true, merge **73c9728b35b351d125f9a9853a4e21ede79b8273**, tree **2c0a3cb2e354c68e13e3e31caf8109211bb0a95e**, 병합 시각 **2026-10-15 17:13:01 KST**를 확인했다. 최신 기록은 [CP0103](checkpoints/CP-0103-step-7d-p1-publication-merged.md)다.
 - 결과 승인 head **8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6**와 승인 기록 포함 최종 head **108f78ae337fd19e566db6106498aaa38af2801d**를 구분한다. 실제 merge 부모는 기준 af1e2b4와 최종 head이며 merge tree는 최종 head tree와 같다. 현재 integration ref도 merge SHA와 일치한다. CP0101/CP0102 및 아래 미병합 표기는 당시 이력이다.
 - **P1 미해소 / STEP7D 모델·Adapter 미착수 / 실제 행동 NOT_RUN / 운영 UNKNOWN**. publication 준비의 integration 반영이며 실제 main/publication 전환·server 제외 증명·STEP7D 전체 완료·모델 지원 승인이 아니다. 기존 server fail-closed Guard 유지.

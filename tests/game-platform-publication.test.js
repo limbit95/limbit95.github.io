@@ -158,7 +158,7 @@ test("Pages workflow permits deployment only on explicit main dispatch and uploa
   const workflow = readFileSync(new URL("../.github/workflows/site-pages-publication.yml", import.meta.url), "utf8");
   assert.match(workflow, /default: false/);
   const gate = "github.event_name == 'workflow_dispatch' && inputs.publish == true && github.ref == 'refs/heads/main'";
-  assert.equal(workflow.split(gate).length - 1, 2);
+  assert.equal(workflow.split(gate).length - 1, 3);
   assert.match(workflow, /needs: prepare/);
   assert.match(workflow, /path: \.site-publication\/public\n/);
   assert.doesNotMatch(workflow, /pull_request_target:|\n  push:|path: ['"]?\.['"]?\s*\n/);
