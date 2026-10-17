@@ -63,7 +63,7 @@ worker cache migration, Auth, database behavior or operational health. The
 existing service-worker bytes are preserved; production cutover/cache validation
 remains a separate authorized follow-up.
 
-## Slice A — uploaded artifact gate (REVIEW_PENDING)
+## Slice A — uploaded artifact gate (APPROVED / INTEGRATION_NOT_MERGED)
 
 The preparation workflow now checks the actual uploaded Pages artifact before
 its dependent deployment job can start. It uses the upload action's artifact ID,
@@ -104,9 +104,13 @@ Python fixture contracts via the existing `test:game-platform` Node glob. No
 network is used by these fixtures. Current test/Guard success does not establish
 actual model/game support, behavior PASS, live exclusion or operational health.
 
-The next gate is Astra review of Slice A. Main-only publication separation and
-its root-plan exception remain a separate user decision; this Slice does not
-approve that exception, change the exact384 policy, or edit the root plan.
+Slice A was approved by the user on 2026-10-17 at head
+`8876fc0bd5e0e6412409b4a9e234a5cd7f065289` after Astra found F1 resolved.
+See [CP0105](game-platform-rebuild/checkpoints/CP-0105-step-7d-p1-slice-a-approved.md).
+Integration merge remains a separate decision. P1 is unresolved and STEP7D as a
+whole is incomplete. Main-only publication separation and its root-plan exception
+also remain separate decisions; this approval does not change the exact384 policy
+or authorize settings, dispatch, upload, deployment, Guard release or model work.
 
 ## Workflow and remaining gate
 
