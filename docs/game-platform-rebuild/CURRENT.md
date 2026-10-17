@@ -5,8 +5,8 @@
 ## 기준
 
 - 실행 계획: `/game_platform_vnext_final_execution_plan.md`
-- 계획 개정: **1.5**
-- 계획 blob SHA: `da353e2e64daef6b1b0b7267c21997bfd7cda4ed`
+- 계획 개정: **1.6**
+- 계획 blob SHA: `5ce448431c9ed8fce2699160a744b7d92ed08ce8`
 - 작업 root-slug: `game-platform-vnext`
 - 계획의 이전 대조 기준 main: `c6b1e31b3fefef2c20a7a0f5841c5a16c996a559`
 - STEP 0 착수 main: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`
@@ -19,6 +19,10 @@
 - 개정 1.3 정합화 시점의 main과 integration: **identical**. 이후 각 STEP에서 반복 main 동기화를 기본 절차로 두지 않음.
 
 ## 현재 상태
+
+**STEP7D P1 Slice B preparation REVIEW_PENDING**. 사용자 2026-10-18 00:22:44 KST의 publication 한정 main 준비 예외를 계획1.6/[D-0011](DECISIONS.md#d-0011--p1-publication만의-main-기준-준비-pr-제한-예외)에 연결한다. main base publication 준비 branch와 integration base 계획 정합화 branch의 PR/head/tree·CI는 각각 실제 제출 인수인계를 따른다. PR426 실제 merge57da5eda0511af4b7b6cf23348887e9f2484770a; 아래 CP0105 미병합 표기는 당시 이력이다. main69a7 기준 Core2 없는 exact382 후보를 검증하고 integration384는 유지한다. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 전체 보존/후속 의무 유지. 다음은 Astra의 두 제출 범위 구분 검토이며 병합·설정·dispatch·실제 upload/deploy·Guard 해제·모델 구현은 허용되지 않았다.
+
+## Slice A 승인 당시 상태 — CP0105 이력 보존
 
 **STEP7D P1 Slice A publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-17 20:35:23 KST 최종 승인 대상은 PR #426 head **8876fc0bd5e0e6412409b4a9e234a5cd7f065289**, tree **385d578cb479b99c6772bc50954d04c59f84a094**다. Astra F1 해소·승인 차단0 판단 후 승인 기록과 최소 현재 문서만 반영한다. [CP0105](checkpoints/CP-0105-step-7d-p1-slice-a-approved.md). 기존 branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, integration base **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3** 유지. 승인 head 뒤 코드 변경 없음 확인; 기록 head/CI는 승인 결과와 구분한다. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체·기존 consumer/원본·전체 후속 의무 유지. 다음은 PR426 integration 병합 여부에 대한 사용자 별도 결정이다. 병합·main 제한 예외·Slice B·설정/dispatch·실제 업로드/배포·Guard 해제·모델 구현·행동 시험은 진행하지 않는다.
 
