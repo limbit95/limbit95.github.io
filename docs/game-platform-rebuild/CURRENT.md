@@ -20,7 +20,7 @@
 
 ## 현재 상태
 
-**STEP7D P1 Slice B preparation REVIEW_PENDING**. 사용자 2026-10-18 00:22:44 KST의 publication 한정 main 준비 예외를 계획1.6/[D-0011](DECISIONS.md#d-0011--p1-publication만의-main-기준-준비-pr-제한-예외)에 연결한다. main base publication 준비 branch와 integration base 계획 정합화 branch의 PR/head/tree·CI는 각각 실제 제출 인수인계를 따른다. PR426 실제 merge57da5eda0511af4b7b6cf23348887e9f2484770a; 아래 CP0105 미병합 표기는 당시 이력이다. main69a7 기준 Core2 없는 exact382 후보를 검증하고 integration384는 유지한다. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN** 및 전체 보존/후속 의무 유지. 다음은 Astra의 두 제출 범위 구분 검토이며 병합·설정·dispatch·실제 upload/deploy·Guard 해제·모델 구현은 허용되지 않았다.
+**STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST가 PR427 publication 준비 head **b7558eb4fa3d36a635a801b06fa44120b78695de**와 PR428 제한 예외 기록 head **7b5774be691a60e47322aff7a0b73c730f3ea3f8**의 결과를 각각 승인했다. [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md). main base69a7/integration base57da5e와 두 고정 tree·승인 기록 head/CI를 구분한다. 승인 head 이후 코드 변경 없음 확인. 이번 변경은 승인 기록·최소 현재 문서와 commit/push·기존 PR 갱신뿐이다. main exact382/integration exact384·Core 무추가 이식·계획1.6·승인 Target/STEP7B §7 전체·기존 consumer/원본·후속 의무 유지. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN**. PR426 실제 merge57da5e이며 아래 CP0105 미병합은 당시 이력이다. 다음은 PR428 병합 여부와 PR427 전환 전 한정 preflight/계획의 별도 사용자 결정이며 자동 실행하지 않는다. 두 PR 병합·Pages 설정/main 전환·dispatch/실제 upload/deploy·Guard 해제·모델 구현·행동 시험은 이번 승인에 포함되지 않는다.
 
 ## Slice A 승인 당시 상태 — CP0105 이력 보존
 

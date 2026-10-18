@@ -3,7 +3,7 @@
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
 
-**STEP7D P1 Slice B preparation REVIEW_PENDING**. 사용자 허용의 publication 한정 main 준비 경로는 계획1.6/DECISIONS D-0011/CURRENT에서 확인한다. main 준비 PR과 integration 계획 정합화 PR은 별도 검토 입력이며 병합/배포 승인이 아니다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지.
+**STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST의 두 고정 결과 승인은 [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md)/CURRENT/DECISIONS D-0011에서 확인한다. main 준비 PR과 integration 예외 기록 PR의 base·승인 head·기록 head를 구분한다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지. 병합/설정/dispatch/배포·Guard 해제·모델 구현 승인은 아니다.
 
 ### Slice A 승인 당시 인수인계 — CP0105 이력 보존
 

@@ -97,11 +97,13 @@
 
 ## D-0011 — P1 publication만의 main 기준 준비 PR 제한 예외
 
-- 상태: **USER_AUTHORIZED_PREPARATION / RESULT_REVIEW_PENDING**. 2026-10-18 00:22:44 KST. 이 번호는 결정 기록 순번이며 legacy 조항/f를 새로 만든 것이 아니다.
+- 상태: **USER_AUTHORIZED_PREPARATION / RESULTS_APPROVED / BOTH_PRS_UNMERGED**. 준비 허용 2026-10-18 00:22:44 KST, 두 고정 제출 결과 승인 2026-10-18 15:12:01 KST. 이 번호는 결정 기록 순번이며 legacy 조항/f를 새로 만든 것이 아니다.
 - 사용자 원문: “P1 publication에 한해서, 전체 vNext 최종 main 반영과 분리된 main 기준 최소 준비 PR 경로를 허용한다.” “이번 허용은 준비·검증·commit/push·검토 PR 제출까지만이다.”
 - 근거: 루트 계획 §4의 기본 integration 경로/별도 main 게이트에 대한 publication 준비 한정 예외. 승인 Target/provider/운영 구조·기존 승인 의미는 변경하지 않는다.
 - 기준: Slice A PR426 실제 merge57da5eda0511af4b7b6cf23348887e9f2484770a. main69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09. 착수 시 두 ref 이후 변경 없음. CP0105의 미병합은 당시 이력으로 보존한다.
 - 구현 owner: Sol/Codex. main base branch chore/game-platform-vnext-phase7d-publication-main은 publication 최소 이식·exact382 검증·제출 기록을 소유한다. Core2를 가져오지 않으며 기존 governance/consumer/API/metadata/barrel·게임/Auth/API/SQL/원본 보존. integration384 불변.
 - 계획 owner: 이 integration base branch docs/game-platform-vnext-phase7d-publication-exception의 계획1.6/DECISIONS/CURRENT/README만 수정. main에 전체 integration 문서를 복사하지 않는다. 이 PR은 제한 예외의 계획 정합화이며 PR426 병합 기록 전용 PR이 아니다. 두 PR을 구별해 검토하며 모두 자동 병합하지 않는다. 실제 PR/head/tree는 전달 인수인계에서 식별한다.
-- 불포함: 최종 승인/완료·main/integration 병합·Pages 설정·dispatch·실제 upload/deploy·Guard 해제·server/model/Adapter 구현·실제 게임/DB/browser/audio/두 client/성능/운영 시험·전수 source/SQL 감사·외부 운영 재조사·별도 사후 감사.
+- 최초 준비 허용의 불포함(당시 이력): 최종 승인/완료·main/integration 병합·Pages 설정·dispatch·실제 upload/deploy·Guard 해제·server/model/Adapter 구현·실제 게임/DB/browser/audio/두 client/성능/운영 시험·전수 source/SQL 감사·외부 운영 재조사·별도 사후 감사.
 - 유지: 승인 Target/STEP7B §7 전체, 빈 모델/미구현 미지원·runtime/online 차단·기존 online DB 요구·server 제외 미확인 차단·H1~4/단일채택·복구/안전11/current A/C/P/hostless·미승인 재대결 예외 금지·원ID/줄/f/원본·전체 후속 의무. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN**.
+
+- 결과 승인: 사용자 PR427 headb7558eb4fa3d36a635a801b06fa44120b78695de publication 준비 결과와 PR428 head7b5774be691a60e47322aff7a0b73c730f3ea3f8 예외 기록 결과를 각각 최종 승인. [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md). 승인 기록·현재 문서 정합화·관련 검증·commit/push·기존 PR 갱신만 추가 허용하며 이후 코드를 자동 포함하지 않는다. P1/STEP7D 전체 완료·병합·설정/dispatch/upload/deploy·Guard 해제·모델/행동 작업은 여전히 불포함이다. 계획의 범위나 기존 승인 의미는 바꾸지 않는다.
