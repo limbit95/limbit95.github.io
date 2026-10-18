@@ -1,5 +1,7 @@
 # 청파 같이 통합 게임 플랫폼 vNext — 단계별 실행 계획 확정본
 
+> **개정 1.6 · 2026-10-18**: 사용자가 P1 publication에 한정한 main 기준 최소 준비 PR 경로를 허용했다. §4의 제한 예외와 DECISIONS D-0011을 추가한다. 준비·검증·commit/push·검토 PR 제출까지만이며 main/integration 병합·설정/dispatch/업로드/배포·Guard 해제·모델 구현 승인은 아니다. 기존 개정1.5 의미·22단계·기존게임 무이관·전체 보존 조건은 유지한다.
+
 > **개정 1.5 · 2026-10-07**: 사용자 승인 D0010에 따라 STEP4B의 최종 인가·착수 A와 실제 commit C를 구분한다. 이미 적법하게 착수한 동일 transaction의 일반 저장 지연 C를 수용하며 새 A/P·known expiry·인지 실패/60초·owner 보호는 유지한다. CP0075에서 설계 산출물 완료/§4.2 사용자 결과 검토 대기를 구분한다. 개정1.4의 Z1 HOLD는 당시 이력이며 아래1.5 보완으로 대체한다. 22단계·STEP6 전 구현 제한·기존게임 무이관·integration/main 별도 승인 유지. 코드/운영 적용 변경 없음.
 
 > **개정 1.4 · 2026-10-07**: 사용자 허용에 따라 STEP4B의 D0006~D0008 보장 범위, 설계/실행/오픈 상태와 정식 계약 연결만 정합화했다. 22개 검토 지점·integration 운영·기존게임 무이관·STEP6 전 runtime 구현 금지는 유지한다. 아래 개정1.3 설명은 그 개정의 이력이며 현재 STEP4B에는 해당 절의1.4 보완이 우선한다. 결정은 `docs/game-platform-rebuild/DECISIONS.md` D-0009, 상태는 CURRENT/CP0074에서 추적한다. 변경은 기존 게임 코드/DB 계약에 소급 적용하지 않는다.
@@ -170,6 +172,8 @@ integration 생성 이후 새 단계는 **최신 integration 상태 → CURRENT/
 한 단계 결과 보고에는 최소 **(1) 결정/남은 쟁점 (2) 변경 파일과 STEP PR의 base/head·검토/승인/integration 병합 상태 (3) 검증 결과 및 미실행 이유 (4) 기존 게임 영향도 (5) 규칙 계승/장르 문서/상위 계약 연결의 변경 사항 (6) 다음 단계의 정확한 입력과 integration 기준선**이 들어가야 한다. `통과`는 다음 단계에 갈 준비를 뜻하며 전체 아키텍처가 완성됐다는 뜻이 아니다. integration → main 반영 상태는 STEP PR 상태와 별도로 보고한다.
 
 **이 문서의 저장소 내 기준 위치는 루트의 `game_platform_vnext_final_execution_plan.md`로 고정한다.** 사용자가 루트에 놓은 파일을 STEP 0에서 실제 작업 기준으로 확인하고 버전 관리한다. 진행 기록 디렉토리에 계획 전문을 다시 복제하지 않는다. 작업 범위·순서·통과 기준은 이 문서가 정하고, 아래 기록은 실제 진행과 승인된 결정을 전달한다. 단계 진행만으로 기준 계획을 매번 수정하지 않는다. 제품/플랫폼 규칙의 본격 개편은 STEP 7에서 수행한다. STEP 0에서 허용하는 `AGENTS.md` 수정은 **이번 재구축에 한정된 브랜치/PR 운영 참조와 기록·재개 진입 경로 연결**에 한정한다.
+
+**P1 publication 준비의 제한 예외 — 2026-10-18 사용자 허용:** STEP7D P1의 실제 게시 전환을 준비하는 publication 변경에 한해서는 승인된 integration57da5eda0511af4b7b6cf23348887e9f2484770a를 이식 근거로 사용하여 실제 main 기준 별도 branch/main base 검토 PR을 제출할 수 있다. 전체 vNext의 최종 main 반영을 앞당기지 않는다. main에 없는 Core2·새 계약/전체 계획을 가져오지 않고 main 기존 governance/consumer/API/Registry metadata/barrel·게임/Auth/API/SQL/원본을 보존한다. exact382 후보는 실제 main tree/참조/bytes로 검증하고 integration exact384는 유지한다. 허용은 준비·검증·commit/push·검토 PR 제출까지이며 결과 승인·완료·main/integration 병합·Pages 설정·dispatch·실제 upload/deploy·Guard 해제·server/model/Adapter 구현·실제 행동 시험은 포함하지 않는다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN과 STEP7B §7 전체를 유지한다. 예외 기록은 이 integration 계획/DECISIONS/CURRENT가, main 준비 사실은 해당 publication 안내/제출 문서가 소유한다. 각 PR의 고정 head/tree를 별도로 검토하며 자동 병합하지 않는다. 결정 원문과 제한은 DECISIONS D-0011에 기록한다.
 
 ### 4.1 진행 기록 디렉토리와 책임
 

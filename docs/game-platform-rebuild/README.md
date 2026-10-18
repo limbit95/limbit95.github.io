@@ -1,7 +1,11 @@
 # Game Platform vNext 재구축 진행 기록
 
-이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.5(1.3의 integration 운영 계승)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
+이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+
+**STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST의 두 고정 결과 승인은 [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md)/CURRENT/DECISIONS D-0011에서 확인한다. main 준비 PR과 integration 예외 기록 PR의 base·승인 head·기록 head를 구분한다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지. 병합/설정/dispatch/배포·Guard 해제·모델 구현 승인은 아니다.
+
+### Slice A 승인 당시 인수인계 — CP0105 이력 보존
 
 **STEP7D P1 Slice A publication 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**. 사용자 2026-10-17 20:35:23 KST 최종 승인 대상은 PR #426 head **8876fc0bd5e0e6412409b4a9e234a5cd7f065289**, tree **385d578cb479b99c6772bc50954d04c59f84a094**다. Astra F1 해소·승인 차단0 판단 후 승인 기록과 최소 현재 문서만 반영한다. [CP0105](checkpoints/CP-0105-step-7d-p1-slice-a-approved.md). 기존 branch **chore/game-platform-vnext-phase7d-publication-artifact-gate**, integration base **50f5ec49cfa5d6932ae29814ab3326bf0a9be5e3** 유지. 승인 head 뒤 코드 변경 없음 확인; 기록 head/CI는 승인 결과와 구분한다. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·실제 행동 NOT_RUN·운영 UNKNOWN** 및 승인 Target/STEP7B §7 전체·기존 consumer/원본·전체 후속 의무 유지. 다음은 PR426 integration 병합 여부에 대한 사용자 별도 결정이다. 병합·main 제한 예외·Slice B·설정/dispatch·실제 업로드/배포·Guard 해제·모델 구현·행동 시험은 진행하지 않는다.
 
