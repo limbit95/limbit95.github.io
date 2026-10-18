@@ -1,6 +1,15 @@
 # STEP7D P1 Slice B — main preparation submission
 
-2026-10-18 KST. **REVIEW_PENDING / P1 unresolved / STEP7D incomplete / model·Adapter not started / behavior NOT_RUN / operations UNKNOWN**.
+2026-10-18 KST. **PUBLICATION_PREPARATION_APPROVED / MAIN_NOT_MERGED / P1 unresolved / STEP7D incomplete / model·Adapter not started / behavior NOT_RUN / operations UNKNOWN**.
+
+## User result approval — 2026-10-18 15:12:01 KST
+
+- PR #427 approved publication preparation: head `b7558eb4fa3d36a635a801b06fa44120b78695de`, tree `745ae1e36e5083c2edda8354a6ec582ab29c885f`, base main @ `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`.
+- PR #428 separately approved exception record: head `7b5774be691a60e47322aff7a0b73c730f3ea3f8`, tree `c342181c3e8b8cb659ef4eac1d001c0dae79ce1f`, base integration @ `57da5eda0511af4b7b6cf23348887e9f2484770a`.
+- Astra's `game-platform-vnext-step7d-p1-slice-b-final-review-2026-10-18.md` found no pre-approval blockers for either fixed result. Approval does not resolve P1 or complete STEP7D.
+- At approval-record start, both PRs were OPEN/unmerged with these exact heads/bases; no later code changes existed. This branch changes only this record and the publication guide. The record commit's remote head/tree and CI are reported separately, not precomputed here.
+- The user authorized approval records, minimal current-document alignment, document validation, commit/push and existing PR updates only. Main/integration merge, Pages settings/cutover, dispatch/upload/deploy, Guard release and server/model/Adapter or behavior work remain prohibited. Later code is not automatically included in either approval.
+- Existing validation below is reused for the approved source. New record validation checks documentation, unchanged non-document bytes and existing guards; no game behavior test is claimed.
 
 ## Authorization and owners
 
@@ -12,7 +21,7 @@ User at 2026-10-18 00:22:44 KST: “P1 publication에 한해서, 전체 vNext �
 - Main and integration refs matched these inputs at start. Existing unrelated open PRs are excluded.
 - Branch: `chore/game-platform-vnext-phase7d-publication-main`, review PR base main.
 - Main guide/submission owns this preparation's policy, implementation, validation and pending cutover.
-- Integration branch `docs/game-platform-vnext-phase7d-publication-exception` owns the minimal plan1.6/D-0011/CURRENT/README exception record. Its separate integration-base PR is not a PR426 merge-record PR. Both PRs require review; neither is merged automatically.
+- Integration branch `docs/game-platform-vnext-phase7d-publication-exception` owns the minimal plan1.6/D-0011/CURRENT/README exception record. Its separate integration-base PR is not a PR426 merge-record PR. Both fixed results are now user-approved; neither PR is merged or authorized to merge.
 - Main's existing root plan/AGENTS/rulebooks/governance remain unchanged. Full vNext plans/contracts/Core are not ported. Integration's exact384 policy is unchanged.
 
 ## Exact port and intentional differences
@@ -56,6 +65,6 @@ Actual commit/run/attempt/artifact ID/digest/deployment and limited live/cache e
 
 Approved Target and STEP7B plan §7 in full are retained through the approved integration source: empty-model/unsupported-combination and vNext runtime/online blocking, existing online DB requirements, unverified server exclusion blocking, H1–4/single adoption/recovery/safety11/current A/C/P/hostless, no unapproved rematch exception, original IDs/lines/f/source and all later obligations. No provider/operational architecture or owner responsibility changes.
 
-No final approval/completion, main/integration merge, Pages settings, dispatch/upload/deploy, Guard release, server/model/Adapter implementation, actual game/DB/browser/audio/two-client/performance/operations tests, full source/SQL audit or separate after-the-fact audit.
+The original preparation run performed no final approval/completion, main/integration merge, Pages settings, dispatch/upload/deploy, Guard release, server/model/Adapter implementation, actual game/DB/browser/audio/two-client/performance/operations tests, full source/SQL audit or separate after-the-fact audit. The later user result approval above is limited to the two fixed submissions; the remaining actions are still not performed or authorized.
 
-Next: Astra review of fixed main-base submission head/tree and separate plan exception record head/tree. Stay **REVIEW_PENDING / P1 unresolved / STEP7D incomplete / models unstarted / NOT_RUN / UNKNOWN**.
+Next: a separate user decision on PR #428 integration merge and separately scoped cutover preflight/planning before any PR #427 main merge. No automatic next-stage action. Stay **PREPARATION_RESULTS_APPROVED / MAIN_NOT_MERGED / INTEGRATION_NOT_MERGED / P1 unresolved / STEP7D incomplete / models unstarted / NOT_RUN / UNKNOWN**.

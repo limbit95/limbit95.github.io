@@ -1,10 +1,17 @@
 # Static publication preparation — STEP7D P1
 
-Status: **Slice B REVIEW_PENDING**. This is a main-base preparation branch,
-not an approved main result, a merge or a deployment. The user authorized this
-publication-only preparation exception on 2026-10-18 00:22:44 KST. Approved
-integration input: `57da5eda0511af4b7b6cf23348887e9f2484770a` (PR #426 merged).
+Status: **SLICE_B_PUBLICATION_PREPARATION_APPROVED / MAIN_NOT_MERGED**.
+On 2026-10-18 15:12:01 KST, the user approved PR #427's preparation result at
+head `b7558eb4fa3d36a635a801b06fa44120b78695de`, tree
+`745ae1e36e5083c2edda8354a6ec582ab29c885f`. This is result approval only,
+not main merge or publication cutover authorization. The separate PR #428
+exception-record approval does not authorize either PR's merge.
+The publication-only preparation exception was authorized on 2026-10-18
+00:22:44 KST. Approved integration input:
+`57da5eda0511af4b7b6cf23348887e9f2484770a` (PR #426 merged).
 Main baseline: `69a7fcb268df0d2eb9b4fd2f1f8e418fe4fe1a09`.
+Only approval records/current documentation change after the approved head;
+code, helpers, workflow, tests and the exact382 policy remain unchanged.
 
 P1 is **unresolved**; STEP7D overall is **incomplete**; model/Adapter work has
 not started. Actual behavior **NOT_RUN**, operations **UNKNOWN**. Tests and CI
