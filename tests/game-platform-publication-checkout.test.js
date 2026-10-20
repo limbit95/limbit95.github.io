@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -94,4 +94,87 @@ test("actual output tampering fails and a failed dirty-source build leaves no ne
   rmSync(path.join(f.root, ".site-publication"), { recursive: true }); f.put("js/app.js", "dirty input");
   const result = f.cli(); assert.equal(result.status, 1); assert.equal(result.stdout, "");
   assert.equal(existsSync(f.manifestPath), false);
+});
+
+test("F1 staged and worktree edits cannot cancel each other in production build or check", (t) => {
+  const f = fixture(t); const original = readFileSync(path.join(f.root, "js/app.js"));
+  const evidence = readFileSync(f.manifestPath);
+  f.put("js/app.js", "export const value = 2;"); f.git("add", "js/app.js"); f.put("js/app.js", original);
+  assert.equal(f.git("diff", "--name-only", "HEAD", "--"), "");
+  assert.equal(f.git("diff", "--cached", "--name-only", "HEAD", "--"), "js/app.js");
+  for (const args of [[], ["--check"]]) {
+    const result = f.cli(...args); assert.equal(result.status, 1); assert.equal(result.stdout, "");
+    assert.match(result.stderr, /must match HEAD/);
+  }
+  assert.throws(() => verifyCheckoutPublication(f.root), /must match HEAD/);
+  assert.deepEqual(readFileSync(f.manifestPath), evidence);
+});
+
+// Test-only deterministic interleavings; production has no hook/override input.
+function interruptedBuild(f, mode) {
+  const hook = path.join(f.root, "tests/interleave.cjs");
+  f.put("tests/interleave.cjs", `
+    const fs = require("node:fs"), path = require("node:path");
+    const rename = fs.renameSync, read = fs.readFileSync, write = fs.writeFileSync;
+    const mode = ${JSON.stringify(mode)}, root = process.cwd();
+    let installed = false, fired = false;
+    function interrupt() {
+      if (fired) return;
+      fired = true;
+      const name = mode === "output" ? ".site-publication/public/js/app.js"
+        : mode === "final-checkout" ? "docs/note.md" : "js/app.js";
+      write(path.join(root, name), "changed during publication");
+    }
+    fs.renameSync = function(from, to) {
+      const result = rename.call(this, from, to);
+      if (String(to) === path.join(root, ".site-publication/manifest.json")) {
+        installed = true;
+        if (mode !== "final-checkout") interrupt();
+      }
+      return result;
+    };
+    fs.readFileSync = function(filename, ...args) {
+      const result = read.call(this, filename, ...args);
+      if (installed && mode === "final-checkout"
+        && String(filename) === path.join(root, ".site-publication/public/js/app.js")) interrupt();
+      return result;
+    };
+  `);
+  return spawnSync(process.execPath, ["--require", hook, path.join(f.root, "scripts/build-site-publication.mjs")], { cwd: f.root, encoding: "utf8" });
+}
+
+test("F2 a first build failing after manifest installation leaves no new public tree or success evidence", (t) => {
+  for (const mode of ["source", "output"]) {
+    const f = fixture(t); rmSync(path.join(f.root, ".site-publication"), { recursive: true });
+    const result = interruptedBuild(f, mode);
+    assert.equal(result.status, 1); assert.equal(result.stdout, "");
+    assert.match(result.stderr, mode === "source" ? /must match HEAD/ : /bytes changed/);
+    assert.equal(existsSync(f.manifestPath), false);
+    assert.equal(existsSync(path.join(f.root, ".site-publication/public")), false);
+    assert.deepEqual(readdirSync(path.join(f.root, ".site-publication")), []);
+  }
+});
+
+test("F2 a failed replacement restores the previous evidence and public bytes, including final checkout failure", (t) => {
+  for (const mode of ["source", "final-checkout"]) {
+    const f = fixture(t, { "docs/note.md": "original note" });
+    const evidence = readFileSync(f.manifestPath);
+    const oldPublic = readFileSync(path.join(f.root, ".site-publication/public/js/app.js"));
+    f.put("js/app.js", "export const value = 2;"); const next = f.commit();
+    const result = interruptedBuild(f, mode);
+    assert.equal(result.status, 1); assert.equal(result.stdout, ""); assert.match(result.stderr, /must match HEAD/);
+    assert.deepEqual(readFileSync(f.manifestPath), evidence);
+    assert.deepEqual(readFileSync(path.join(f.root, ".site-publication/public/js/app.js")), oldPublic);
+    assert.notEqual(JSON.parse(readFileSync(f.manifestPath)).sourceRevision, next);
+    assert.deepEqual(readdirSync(path.join(f.root, ".site-publication")).sort(), ["manifest.json", "public"]);
+  }
+});
+
+test("F2 read-only failed check preserves the existing evidence and output without repairing them", (t) => {
+  const f = fixture(t); f.put(".site-publication/public/js/app.js", "tampered");
+  const evidence = readFileSync(f.manifestPath);
+  const result = f.cli("--check"); assert.equal(result.status, 1); assert.equal(result.stdout, "");
+  assert.match(result.stderr, /bytes changed/);
+  assert.deepEqual(readFileSync(f.manifestPath), evidence);
+  assert.equal(readFileSync(path.join(f.root, ".site-publication/public/js/app.js"), "utf8"), "tampered");
 });

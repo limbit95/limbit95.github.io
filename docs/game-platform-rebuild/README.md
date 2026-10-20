@@ -9,6 +9,9 @@
 고정 M의 별도 P1 증거 판단과 이번 새 revision의 검증을 구분한다. browser/cache/SW UNKNOWN·미완료 후속 의무,
 STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN·전체 보존 조건 유지.
 
+2026-10-20 F1/F2만 보완 제출했다. [보완 근거/검증](artifacts/step-7d-publication-checkout-review-fixes.md)을
+확인하고 기존 PR429의 새 고정 remote 제출본을 Astra가 재검토한다. REVIEW_PENDING 유지.
+
 ### Slice B 승인 당시 인수인계 — CP0106 이력 보존
 
 **STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST의 두 고정 결과 승인은 [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md)/CURRENT/DECISIONS D-0011에서 확인한다. main 준비 PR과 integration 예외 기록 PR의 base·승인 head·기록 head를 구분한다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지. 병합/설정/dispatch/배포·Guard 해제·모델 구현 승인은 아니다.

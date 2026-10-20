@@ -30,7 +30,8 @@ function readCheckout(root) {
   }
   const sourceRevision = git(["rev-parse", "HEAD"]).trim();
   // Reject staged/unstaged tracked changes, not generated ignored output.
-  if (git(["diff", "--name-only", "HEAD", "--"]).trim()) throw new Error("Publication checkout must match HEAD (tracked changes).");
+  if (git(["diff", "--cached", "--name-only", "HEAD", "--"]).trim()
+    || git(["diff", "--name-only", "--"]).trim()) throw new Error("Publication checkout must match HEAD (tracked changes).");
   const inventory = trackedInventory(root);
   const tree = new Map(git(["ls-tree", "-r", "-z", "HEAD"]).split("\0").filter(Boolean).map((entry) => {
     const tab = entry.indexOf("\t");
@@ -211,7 +212,7 @@ function walkOutput(directory, prefix = "") {
   return files;
 }
 
-export function buildPublication(root, { inventory = trackedInventory(root), sourceRevision = null } = {}) {
+function writePublication(root, { inventory, sourceRevision }, verify) {
   const { files, policy, policySha256 } = loadInputs(root, inventory);
   validateFiles(files, policy); // No output mutation until all source validation passes.
   const { state, output, evidence } = outputPaths(root);
@@ -220,21 +221,45 @@ export function buildPublication(root, { inventory = trackedInventory(root), sou
   // Only replace a generated tree with its own evidence, never an arbitrary directory.
   if (fs.existsSync(output) && !fs.existsSync(evidence)) throw new Error("Refusing to overwrite an unmanaged publish directory.");
   const staging = fs.mkdtempSync(path.join(state, "staging-"));
+  const candidate = path.join(staging, "public");
+  const candidateEvidence = path.join(staging, "manifest.json");
+  const previousOutput = path.join(staging, "previous-public");
+  const previousEvidence = path.join(staging, "previous-manifest.json");
+  let savedOutput = false, savedEvidence = false, installedOutput = false, installedEvidence = false;
+  let preserveRecovery = false;
   try {
     for (const [filename, bytes] of files) {
-      const target = path.join(staging, filename);
+      const target = path.join(candidate, filename);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, bytes);
     }
     const manifest = { schemaVersion: 1, sourceRevision, policySha256, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([filename, bytes]) => ({ path: filename, source: filename, size: bytes.length, sha256: digest(bytes) })) };
-    fs.rmSync(output, { force: true, recursive: true });
-    fs.renameSync(staging, output);
-    fs.writeFileSync(evidence, JSON.stringify(manifest, null, 2) + "\n");
-    verifyPublication(root, { inventory });
+    fs.writeFileSync(candidateEvidence, JSON.stringify(manifest, null, 2) + "\n");
+    // Keep the previous managed pair until all production checkout checks finish.
+    if (fs.existsSync(output)) { fs.renameSync(output, previousOutput); savedOutput = true; }
+    if (fs.existsSync(evidence)) { fs.renameSync(evidence, previousEvidence); savedEvidence = true; }
+    fs.renameSync(candidate, output); installedOutput = true;
+    fs.renameSync(candidateEvidence, evidence); installedEvidence = true;
+    verify();
     return manifest;
+  } catch (error) {
+    try {
+      if (installedEvidence) fs.rmSync(evidence, { force: true });
+      if (installedOutput) fs.rmSync(output, { force: true, recursive: true });
+      if (savedOutput) fs.renameSync(previousOutput, output);
+      if (savedEvidence) fs.renameSync(previousEvidence, evidence);
+    } catch (recoveryError) {
+      preserveRecovery = true;
+      throw new AggregateError([error, recoveryError], `Publication failed; recovery inputs retained at ${staging}`, { cause: error });
+    }
+    throw error;
   } finally {
-    fs.rmSync(staging, { force: true, recursive: true });
+    if (!preserveRecovery) fs.rmSync(staging, { force: true, recursive: true });
   }
+}
+
+export function buildPublication(root, { inventory = trackedInventory(root), sourceRevision = null } = {}) {
+  return writePublication(root, { inventory, sourceRevision }, () => verifyPublication(root, { inventory }));
 }
 
 export function verifyPublication(root, { inventory = trackedInventory(root) } = {}) {
@@ -274,8 +299,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     if (process.argv.includes("--check")) console.log(JSON.stringify(verifyCheckoutPublication(root)));
     else {
       const checkout = readCheckout(root);
-      const manifest = buildPublication(root, checkout);
-      verifyCheckoutPublication(root);
+      const manifest = writePublication(root, checkout, () => verifyCheckoutPublication(root));
       console.log(`Prepared ${manifest.files.length} local checkout public files; evidence: ${STATE}/manifest.json (not a deployment).`);
     }
   } catch (error) { console.error(error.message); process.exitCode = 1; }

@@ -33,6 +33,13 @@ PR427 실제 main merge `0e4089f345c1f0a33c86c96a1f07a9dab484cc2e`, PR428 실제
 STEP7D 전체 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN 및 승인 Target/STEP7B §7 전체 보존.
 다음 첫 작업은 Astra의 정식 remote 제출본 검토다. 실제 head/tree/PR/CI는 PR/Git과 전달 인수인계에서 구분한다.
 
+2026-10-20 Astra 최종 검토 F1/F2만 보완 제출: HEAD↔index와 index↔worktree 분리,
+생성 후 최종 검증 실패 시 새 결과 제거/이전 manifest·public 쌍 복원.
+[보완 근거](artifacts/step-7d-publication-checkout-review-fixes.md). publication30/30·Game Platform409/409,
+기존 Guard·모듈 연결·build:assets 통과. commit된 snapshot의 build/check:publication·public384 bytes 및
+새 remote head/tree/CI는 실제 최종 검증/전달본으로 구분한다. 기존 PR429/branch/base 유지,
+REVIEW_PENDING·Guard 유지·NOT_RUN·UNKNOWN과 전체 후속 의무 유지. 다음은 Astra 보완본 재검토다.
+
 ## Slice B 승인 당시 상태 — CP0106 이력 보존
 
 **STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST가 PR427 publication 준비 head **b7558eb4fa3d36a635a801b06fa44120b78695de**와 PR428 제한 예외 기록 head **7b5774be691a60e47322aff7a0b73c730f3ea3f8**의 결과를 각각 승인했다. [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md). main base69a7/integration base57da5e와 두 고정 tree·승인 기록 head/CI를 구분한다. 승인 head 이후 코드 변경 없음 확인. 이번 변경은 승인 기록·최소 현재 문서와 commit/push·기존 PR 갱신뿐이다. main exact382/integration exact384·Core 무추가 이식·계획1.6·승인 Target/STEP7B §7 전체·기존 consumer/원본·후속 의무 유지. **P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·행동 NOT_RUN·운영 UNKNOWN**. PR426 실제 merge57da5e이며 아래 CP0105 미병합은 당시 이력이다. 다음은 PR428 병합 여부와 PR427 전환 전 한정 preflight/계획의 별도 사용자 결정이며 자동 실행하지 않는다. 두 PR 병합·Pages 설정/main 전환·dispatch/실제 upload/deploy·Guard 해제·모델 구현·행동 시험은 이번 승인에 포함되지 않는다.

@@ -9,6 +9,12 @@ also fail. Relevant public/server source, policy, template and build/verifier to
 bytes are compared with HEAD, including files marked assume-unchanged. Generated
 ignored `.site-publication/` output is checked separately and is not a source edit.
 Commit the intended source/docs snapshot before running these production commands.
+F1 checks HEAD-to-index and index-to-worktree separately, including edits that
+cancel in a direct HEAD-to-worktree comparison. F2 retains the previous managed
+manifest/public pair through final checkout verification and restores it on
+failure; a failed first build leaves neither new success evidence nor public tree.
+Read-only checks never repair or remove existing evidence/output. Recovery I/O
+failure is reported with its retained staging location, without success output.
 
 `check:publication` requires manifest.sourceRevision=actual HEAD, then reuses the
 existing exact policy, current server hash/alias, reference, bundle provenance and
