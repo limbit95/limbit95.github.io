@@ -2,6 +2,20 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+**현재: STEP7D 첫 선택 모델/Adapter S0 문서 결과 REVIEW_PENDING / 모델·Adapter 미착수**.
+[CURRENT](CURRENT.md) → [CP0109](checkpoints/CP-0109-step-7d-model-adapter-s0-submitted.md) →
+[부분 모델 계약 명세](artifacts/step-7d-coop-session-contract.md) →
+[검증/제출 근거](artifacts/step-7d-model-adapter-s0-validation.md)를 읽는다.
+새 구체화안의 단계적 접근 A/S0 문서만 정식화하며 초기 원문 복원·과거 모델 정책 승인으로 기록하지 않는다.
+작업 branch `docs/game-platform-vnext-phase7d-model-adapter-s0`, integration base **bb037653ca81bb294aafa16c248030ccc7eb7a87**.
+PR429 실제 merge가 이 bb037653…이며 CP0108의 미병합은 당시 이력이다. 별도 병합 기록 PR 없음.
+main M·main382/integration384/public bytes·Core 미이식·Guard/빈 모델/미지원·기존 consumer/API/metadata/barrel/
+원본·승인 Target/STEP7B §7 전체·fixed M의 별도 P1 판단·browser/cache/SW UNKNOWN 및 전체 후속 의무 유지.
+다음 담당 **Astra**, 이번 고정 remote S0 문서 결과 최종 검토. **STEP7D 미완료·모델/Adapter 미착수·
+vNext 행동 NOT_RUN·운영 UNKNOWN**이며 승인/완료 기록·병합·후속 코드·실제 행동 시험은 진행하지 않는다.
+
+### Checkout 준비 승인 당시 인수인계 — CP0108 이력 보존
+
 **현재: STEP7D publication checkout 검증 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**.
 [CURRENT](CURRENT.md) → [CP0108](checkpoints/CP-0108-step-7d-publication-checkout-proof-approved.md) →
 [게시 검사 안내](../site-publication.md)를 읽는다. 사용자 2026-10-20 16:30:57 KST 승인 대상은 PR429

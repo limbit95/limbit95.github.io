@@ -20,6 +20,29 @@
 
 ## 현재 상태
 
+**STEP7D 첫 선택 모델/Adapter S0 문서 결과 REVIEW_PENDING / 모델·Adapter 미착수**.
+사용자 2026-10-20 23:20:53 KST 지시에 따라 새 구체화안의 단계적 접근 A와 S0만 정식화한다.
+[CP0109](checkpoints/CP-0109-step-7d-model-adapter-s0-submitted.md) →
+[부분 모델 계약 명세](artifacts/step-7d-coop-session-contract.md) →
+[검증/제출 근거](artifacts/step-7d-model-adapter-s0-validation.md)를 읽는다.
+branch **docs/game-platform-vnext-phase7d-model-adapter-s0**, base integration
+**bb037653ca81bb294aafa16c248030ccc7eb7a87** / tree **760d5d13f0f98ec16fcc8c4f29fed21389b7c942**.
+실제 제출 remote head/tree·PR/CI는 Git/PR·전달 인수인계에서 확인한다. 초기 STEP7D 두 원문은 미확보이며
+이번 문서는 과거 정책 복원이 아니다. GP-COOP-SESSION/1은 저빈도 세션/단일 채택 부분의 설계 revision 후보,
+연속 상태는 미지원/후속이다. runtime/oracle/Registry 지원 등록·source/Guard/정책 변경 없음.
+
+PR429는 **2026-10-20 17:31:58 KST 실제 integration 병합**됐으며 merge는 위 bb037653…다.
+승인 대상 head22b9baa…와 기록 포함 head6b630c18…를 구분한다. CP0108 미병합 표시는 당시 이력으로 보존한다.
+현재 main은 고정 M **0e4089f345c1f0a33c86c96a1f07a9dab484cc2e** / tree **d4f9b568f705a17cca3274f0862d46f5b56b3b76**,
+착수 시 고정 main/integration 이후 변경0이다. 별도 병합 기록 PR을 만들지 않는다.
+main382/integration384·public bytes·Core 미이식·기존 consumer/API/metadata/barrel/원본·승인 Target/STEP7B §7 전체 유지.
+빈 모델/미구현 미지원·runtime/online/서버 차단·기존 online DB 요구·H1~4/단일채택/복구/안전11/current A/C/P/
+hostless·미승인 재대결 예외 금지, fixed M의 별도 P1 판단과 browser/cache/SW UNKNOWN·전체 후속 의무 유지.
+다음 첫 작업은 **Astra의 이번 고정 remote S0 문서 결과 최종 검토**다. 최종 승인/완료 기록·병합·main/배포·
+후속 코드/실제 행동 시험은 수행하지 않는다. **STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN**.
+
+## Checkout 준비 승인 기록 당시 상태 — CP0108 이력 보존
+
 **STEP7D publication checkout 검증 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**.
 사용자 2026-10-20 16:30:57 KST 승인 대상은 PR429 head
 **22b9baa2cc6c37d9cc8b19bb6bfbb878229217b8** / tree **ba2192f9f883300cb9daaad5e76c4993ee85465d**다.
@@ -140,8 +163,8 @@ REVIEW_PENDING·Guard 유지·NOT_RUN·UNKNOWN과 전체 후속 의무 유지. �
 | 7A2 | COMPLETED |
 | 7A3 | COMPLETED |
 | 7B | COMPLETED |
-| 7C | REVIEW_PENDING |
-| 7D | NOT_STARTED |
+| 7C | COMPLETED |
+| 7D | IN_PROGRESS (S0 문서 REVIEW_PENDING / 모델·Adapter 미착수) |
 | 8 | NOT_STARTED |
 | 9A | NOT_STARTED |
 | 9B | NOT_STARTED |
