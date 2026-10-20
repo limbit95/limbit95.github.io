@@ -2,6 +2,14 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+**현재: STEP7D publication checkout 검증 준비 REVIEW_PENDING**.
+[CURRENT](CURRENT.md) → [CP0107](checkpoints/CP-0107-step-7d-publication-checkout-proof-submitted.md) →
+[게시 검사 안내](../site-publication.md)를 읽는다. integration base b59994ce에서 실제 Git HEAD/source/policy/output
+결속만 준비하며 production server 차단·미지원 상태는 유지한다. PR427/428은 실제 각각 main/integration에 병합됐다.
+고정 M의 별도 P1 증거 판단과 이번 새 revision의 검증을 구분한다. browser/cache/SW UNKNOWN·미완료 후속 의무,
+STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN·전체 보존 조건 유지.
+
+### Slice B 승인 당시 인수인계 — CP0106 이력 보존
 
 **STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST의 두 고정 결과 승인은 [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md)/CURRENT/DECISIONS D-0011에서 확인한다. main 준비 PR과 integration 예외 기록 PR의 base·승인 head·기록 head를 구분한다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지. 병합/설정/dispatch/배포·Guard 해제·모델 구현 승인은 아니다.
 

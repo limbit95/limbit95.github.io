@@ -1,5 +1,39 @@
 # Static publication preparation — STEP7D P1
 
+## Checkout-bound preparation — REVIEW_PENDING (2026-10-20)
+
+`build:publication` and `check:publication` now read the actual repository root,
+Git HEAD and tracked inventory. Tracked staged/unstaged changes fail; public/server
+input candidates that are untracked (including ignored candidates in those roots)
+also fail. Relevant public/server source, policy, template and build/verifier tool
+bytes are compared with HEAD, including files marked assume-unchanged. Generated
+ignored `.site-publication/` output is checked separately and is not a source edit.
+Commit the intended source/docs snapshot before running these production commands.
+
+`check:publication` requires manifest.sourceRevision=actual HEAD, then reuses the
+existing exact policy, current server hash/alias, reference, bundle provenance and
+output byte checks. HEAD/input cleanliness is checked again before success.
+Its result kind is `LOCAL_CHECKOUT_PUBLICATION`; it certifies no remote artifact,
+deployment, browser state or model support. The lower-level `buildPublication` /
+`verifyPublication` fixture options are not production checkout evidence and cannot
+be supplied to the CLI or override `verifyCheckoutPublication`'s Git inputs.
+The manifest schema and public bytes are unchanged. The independent boundary
+Guard still rejects any tracked server file; no conditional admission is added.
+
+Read-only PR/Git checks confirmed PR427 merged into main at
+`0e4089f345c1f0a33c86c96a1f07a9dab484cc2e` (exact382) and PR428 into integration at
+`b59994ce6a8435220229a77b52c136a7e6ad9495` (exact384).
+The separate preserved publication run39191903797/attempt1/public artifact12160182245
+belongs to that fixed main revision. On 2026-10-20 the user separated existing-site
+browser/cache/SW evidence from that revision's P1 prerequisite, keeping it UNKNOWN
+and an unfinished obligation. Astra's independent assessment found the changed
+scope's evidence sufficient; this preparation does not record final user result
+approval or certify this new revision's remote publication. STEP7D is incomplete,
+models/Adapters unstarted, vNext behavior NOT_RUN and operations UNKNOWN.
+See [CP0107](game-platform-rebuild/checkpoints/CP-0107-step-7d-publication-checkout-proof-submitted.md).
+
+## Historical preparation snapshot (preserved)
+
 Status: publication preparation result **approved** on 2026-10-15; PR #424 merged
 into integration at `73c9728b35b351d125f9a9853a4e21ede79b8273`, but not into main or deployed.
 Merge evidence: [CP0103](game-platform-rebuild/checkpoints/CP-0103-step-7d-p1-publication-merged.md). Approved result: `8b58bdeaa47653f8ea74d2ceef04c2ab903cedd6`.
