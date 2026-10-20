@@ -12,6 +12,49 @@ const SERVER = "services/game-platform-vnext/";
 const PUBLIC_ROOTS = /^(?:assets|css|js|games|liar-game|the-game|marble-game)\//u;
 const ROOT_FILES = new Set([".nojekyll", "CNAME", "index.html", "activity-link.html", "brand-gateway-ae.html", "invite.html", "manifest.webmanifest", "push-service-worker.js", "apple-touch-icon.png"]);
 const PUBLIC_EXTENSION = /\.(?:[cm]?js|html|css|json|webmanifest|png|svg|jpe?g|webp|gif|ico|woff2?|ttf|mp3|ogg|wav|mp4|webm)$/iu;
+const CHECKOUT_TOOLS = [POLICY, "index.template.html", "package.json", "package-lock.json",
+  "scripts/build-community-assets.mjs", "scripts/build-site-publication.mjs",
+  "scripts/check-game-platform-vnext-boundaries.mjs", "scripts/verify-site-publication-artifact.py"];
+const CHECKOUT_ROOTS = ["assets", "css", "js", "games", "liar-game", "the-game", "marble-game", SERVER, ...ROOT_FILES, ...CHECKOUT_TOOLS];
+
+function publicationInput(filename) {
+  return publicPath(filename) || filename.startsWith(SERVER) || CHECKOUT_TOOLS.includes(filename);
+}
+
+// Production evidence always reads Git itself; fixture inventory/revision options
+// on the lower-level assembly functions are not checkout verification inputs.
+function readCheckout(root) {
+  const git = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  if (fs.realpathSync(root) !== fs.realpathSync(git(["rev-parse", "--show-toplevel"]).trim())) {
+    throw new Error("Publication checkout must be the repository root.");
+  }
+  const sourceRevision = git(["rev-parse", "HEAD"]).trim();
+  // Reject staged/unstaged tracked changes, not generated ignored output.
+  if (git(["diff", "--cached", "--name-only", "HEAD", "--"]).trim()
+    || git(["diff", "--name-only", "--"]).trim()) throw new Error("Publication checkout must match HEAD (tracked changes).");
+  const inventory = trackedInventory(root);
+  const tree = new Map(git(["ls-tree", "-r", "-z", "HEAD"]).split("\0").filter(Boolean).map((entry) => {
+    const tab = entry.indexOf("\t");
+    const [mode, type, sha] = entry.slice(0, tab).split(" ");
+    return [entry.slice(tab + 1), { mode, type, sha }];
+  }));
+  for (const { path: filename, mode } of inventory.filter((entry) => publicationInput(entry.path))) {
+    const expected = tree.get(filename);
+    const bytes = regularFile(root, filename);
+    const sha = createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
+    if (expected?.type !== "blob" || expected.mode !== mode || expected.sha !== sha) {
+      throw new Error(`Publication input does not match HEAD: ${filename}`);
+    }
+  }
+  // Include ignored candidates under the public/server roots; do not inspect
+  // node_modules, browser profiles, or arbitrary files outside this checkout.
+  const untracked = [git(["ls-files", "--others", "--exclude-standard", "-z"]),
+    git(["ls-files", "--others", "--ignored", "--exclude-standard", "-z", "--", ...CHECKOUT_ROOTS])]
+    .join("\0").split("\0").filter((filename) => filename && publicationInput(filename));
+  if (untracked.length) throw new Error(`Untracked publication input: ${untracked.join(", ")}`);
+  if (git(["rev-parse", "HEAD"]).trim() !== sourceRevision) throw new Error("Publication checkout revision changed during inspection.");
+  return { sourceRevision, inventory };
+}
 
 function safePath(value) {
   if (typeof value !== "string" || !value || value.includes("\\") || value.includes("%")
@@ -169,7 +212,7 @@ function walkOutput(directory, prefix = "") {
   return files;
 }
 
-export function buildPublication(root, { inventory = trackedInventory(root), sourceRevision = null } = {}) {
+function writePublication(root, { inventory, sourceRevision }, verify) {
   const { files, policy, policySha256 } = loadInputs(root, inventory);
   validateFiles(files, policy); // No output mutation until all source validation passes.
   const { state, output, evidence } = outputPaths(root);
@@ -178,21 +221,45 @@ export function buildPublication(root, { inventory = trackedInventory(root), sou
   // Only replace a generated tree with its own evidence, never an arbitrary directory.
   if (fs.existsSync(output) && !fs.existsSync(evidence)) throw new Error("Refusing to overwrite an unmanaged publish directory.");
   const staging = fs.mkdtempSync(path.join(state, "staging-"));
+  const candidate = path.join(staging, "public");
+  const candidateEvidence = path.join(staging, "manifest.json");
+  const previousOutput = path.join(staging, "previous-public");
+  const previousEvidence = path.join(staging, "previous-manifest.json");
+  let savedOutput = false, savedEvidence = false, installedOutput = false, installedEvidence = false;
+  let preserveRecovery = false;
   try {
     for (const [filename, bytes] of files) {
-      const target = path.join(staging, filename);
+      const target = path.join(candidate, filename);
       fs.mkdirSync(path.dirname(target), { recursive: true });
       fs.writeFileSync(target, bytes);
     }
     const manifest = { schemaVersion: 1, sourceRevision, policySha256, files: [...files].sort(([a], [b]) => a.localeCompare(b)).map(([filename, bytes]) => ({ path: filename, source: filename, size: bytes.length, sha256: digest(bytes) })) };
-    fs.rmSync(output, { force: true, recursive: true });
-    fs.renameSync(staging, output);
-    fs.writeFileSync(evidence, JSON.stringify(manifest, null, 2) + "\n");
-    verifyPublication(root, { inventory });
+    fs.writeFileSync(candidateEvidence, JSON.stringify(manifest, null, 2) + "\n");
+    // Keep the previous managed pair until all production checkout checks finish.
+    if (fs.existsSync(output)) { fs.renameSync(output, previousOutput); savedOutput = true; }
+    if (fs.existsSync(evidence)) { fs.renameSync(evidence, previousEvidence); savedEvidence = true; }
+    fs.renameSync(candidate, output); installedOutput = true;
+    fs.renameSync(candidateEvidence, evidence); installedEvidence = true;
+    verify();
     return manifest;
+  } catch (error) {
+    try {
+      if (installedEvidence) fs.rmSync(evidence, { force: true });
+      if (installedOutput) fs.rmSync(output, { force: true, recursive: true });
+      if (savedOutput) fs.renameSync(previousOutput, output);
+      if (savedEvidence) fs.renameSync(previousEvidence, evidence);
+    } catch (recoveryError) {
+      preserveRecovery = true;
+      throw new AggregateError([error, recoveryError], `Publication failed; recovery inputs retained at ${staging}`, { cause: error });
+    }
+    throw error;
   } finally {
-    fs.rmSync(staging, { force: true, recursive: true });
+    if (!preserveRecovery) fs.rmSync(staging, { force: true, recursive: true });
   }
+}
+
+export function buildPublication(root, { inventory = trackedInventory(root), sourceRevision = null } = {}) {
+  return writePublication(root, { inventory, sourceRevision }, () => verifyPublication(root, { inventory }));
 }
 
 export function verifyPublication(root, { inventory = trackedInventory(root) } = {}) {
@@ -216,15 +283,24 @@ export function verifyPublication(root, { inventory = trackedInventory(root) } =
   return { files: files.size, output, evidence };
 }
 
+export function verifyCheckoutPublication(root) {
+  const checkout = readCheckout(root);
+  const manifest = JSON.parse(regularFile(root, STATE + "/manifest.json"));
+  if (manifest.sourceRevision !== checkout.sourceRevision) throw new Error("Publication manifest revision does not match checkout HEAD.");
+  const result = verifyPublication(root, { inventory: checkout.inventory });
+  if (readCheckout(root).sourceRevision !== checkout.sourceRevision) throw new Error("Publication checkout revision changed during verification.");
+  return { kind: "LOCAL_CHECKOUT_PUBLICATION", sourceRevision: checkout.sourceRevision, ...result };
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     if (process.argv.slice(2).some((arg) => arg !== "--check")) throw new Error("Usage: node scripts/build-site-publication.mjs [--check]");
     const root = process.cwd();
-    if (process.argv.includes("--check")) console.log(JSON.stringify(verifyPublication(root)));
+    if (process.argv.includes("--check")) console.log(JSON.stringify(verifyCheckoutPublication(root)));
     else {
-      const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
-      const manifest = buildPublication(root, { sourceRevision });
-      console.log(`Prepared ${manifest.files.length} public files; evidence: ${STATE}/manifest.json (not a deployment).`);
+      const checkout = readCheckout(root);
+      const manifest = writePublication(root, checkout, () => verifyCheckoutPublication(root));
+      console.log(`Prepared ${manifest.files.length} local checkout public files; evidence: ${STATE}/manifest.json (not a deployment).`);
     }
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }

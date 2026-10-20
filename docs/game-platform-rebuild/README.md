@@ -2,6 +2,28 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+**현재: STEP7D publication checkout 검증 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**.
+[CURRENT](CURRENT.md) → [CP0108](checkpoints/CP-0108-step-7d-publication-checkout-proof-approved.md) →
+[게시 검사 안내](../site-publication.md)를 읽는다. 사용자 2026-10-20 16:30:57 KST 승인 대상은 PR429
+head **22b9baa2cc6c37d9cc8b19bb6bfbb878229217b8** / tree **ba2192f9f883300cb9daaad5e76c4993ee85465d**다.
+Astra F1/F2 해소·차단0. 기존 branch에서 승인 기록·최소 현재 문서만 반영하며 기록 head/CI는 별도다.
+고정 M의 P1 판단·browser/cache/SW UNKNOWN/후속 의무, Guard·main382/integration384·Core 미이식·
+승인 Target/STEP7B §7 전체·STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN 유지.
+다음은 **사용자의 PR429 integration 병합 여부 별도 결정**이며 병합·main·배포·모델 구현은 수행하지 않는다.
+
+### Checkout 준비 제출 당시 인수인계 — CP0107 이력 보존
+
+**당시: STEP7D publication checkout 검증 준비 REVIEW_PENDING**.
+[CURRENT](CURRENT.md) → [CP0107](checkpoints/CP-0107-step-7d-publication-checkout-proof-submitted.md) →
+[게시 검사 안내](../site-publication.md)를 읽는다. integration base b59994ce에서 실제 Git HEAD/source/policy/output
+결속만 준비하며 production server 차단·미지원 상태는 유지한다. PR427/428은 실제 각각 main/integration에 병합됐다.
+고정 M의 별도 P1 증거 판단과 이번 새 revision의 검증을 구분한다. browser/cache/SW UNKNOWN·미완료 후속 의무,
+STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN·전체 보존 조건 유지.
+
+2026-10-20 F1/F2만 보완 제출했다. [보완 근거/검증](artifacts/step-7d-publication-checkout-review-fixes.md)을
+확인하고 기존 PR429의 새 고정 remote 제출본을 Astra가 재검토한다. REVIEW_PENDING 유지.
+
+### Slice B 승인 당시 인수인계 — CP0106 이력 보존
 
 **STEP7D P1 Slice B preparation results APPROVED / PR427 MAIN_NOT_MERGED / PR428 INTEGRATION_NOT_MERGED**. 사용자 2026-10-18 15:12:01 KST의 두 고정 결과 승인은 [CP0106](checkpoints/CP-0106-step-7d-p1-slice-b-results-approved.md)/CURRENT/DECISIONS D-0011에서 확인한다. main 준비 PR과 integration 예외 기록 PR의 base·승인 head·기록 head를 구분한다. P1 미해소·STEP7D 전체 미완료·모델/Adapter 미착수·NOT_RUN·UNKNOWN 및 전체 보존 조건 유지. 병합/설정/dispatch/배포·Guard 해제·모델 구현 승인은 아니다.
 
