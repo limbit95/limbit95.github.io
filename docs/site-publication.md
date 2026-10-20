@@ -1,6 +1,18 @@
 # Static publication preparation — STEP7D P1
 
-## Checkout-bound preparation — REVIEW_PENDING (2026-10-20)
+## Checkout-bound preparation — result APPROVED / INTEGRATION_NOT_MERGED (2026-10-20)
+
+The user approved PR429 head **22b9baa2cc6c37d9cc8b19bb6bfbb878229217b8**,
+tree **ba2192f9f883300cb9daaad5e76c4993ee85465d**, on 2026-10-20 at 16:30:57 KST
+after Astra found F1/F2 resolved and no approval blocker. Only the preparation
+result is approved; subsequent code is not included. The existing branch receives
+approval records and minimal current documentation; its record head/CI remain
+separate. See [CP0108](game-platform-rebuild/checkpoints/CP-0108-step-7d-publication-checkout-proof-approved.md).
+PR429 is not merged. STEP7D remains incomplete, models/Adapters unstarted, vNext
+behavior NOT_RUN and operations UNKNOWN. Browser/cache/SW UNKNOWN and all follow-up
+obligations, the production Guard and the separate fixed-M P1 judgment remain.
+This approval does not authorize merge, main changes, deployment, Guard release or
+model implementation.
 
 `build:publication` and `check:publication` now read the actual repository root,
 Git HEAD and tracked inventory. Tracked staged/unstaged changes fail; public/server

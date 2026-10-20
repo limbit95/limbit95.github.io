@@ -20,6 +20,20 @@
 
 ## 현재 상태
 
+**STEP7D publication checkout 검증 준비 결과 APPROVED / INTEGRATION_NOT_MERGED**.
+사용자 2026-10-20 16:30:57 KST 승인 대상은 PR429 head
+**22b9baa2cc6c37d9cc8b19bb6bfbb878229217b8** / tree **ba2192f9f883300cb9daaad5e76c4993ee85465d**다.
+Astra F1/F2 재검토 해소·승인 차단0 후, 17:19:27 KST 지시에 따라 기존 branch에서 승인 기록과
+최소 현재 문서만 반영한다. [CP0108](checkpoints/CP-0108-step-7d-publication-checkout-proof-approved.md).
+기존 branch/base b59994ce… 유지, 승인 head 뒤 변경0 확인. 실제 기록 head/tree·CI는 승인 결과와 구분한다.
+main exact382/integration exact384·Core 추가 이식 없음·Guard 유지·승인 Target/STEP7B §7 전체 보존.
+고정 M의 별도 P1 판단과 이번 준비 결과 승인은 별개다. browser/cache/SW UNKNOWN·미완료 후속 의무,
+STEP7D 전체 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN 유지.
+다음 첫 작업은 **사용자의 PR429 integration 병합 여부 별도 결정**이다. 병합·main/설정/dispatch/배포·
+Guard 해제·모델 구현은 수행하지 않는다.
+
+## 제출 당시 상태 — CP0107 이력 보존
+
 **STEP7D publication checkout 검증 준비 REVIEW_PENDING**. 작업 branch
 `chore/game-platform-vnext-phase7d-publication-checkout-proof`, base integration
 `b59994ce6a8435220229a77b52c136a7e6ad9495`. 실제 Git HEAD/inventory·현재 source/policy/output에
