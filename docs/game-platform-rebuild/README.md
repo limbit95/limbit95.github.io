@@ -2,6 +2,17 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
+**현재: STEP7D 첫 선택 모델/Adapter S0 문서 결과 APPROVED / INTEGRATION_NOT_MERGED**.
+[CURRENT](CURRENT.md) → [CP0110](checkpoints/CP-0110-step-7d-model-adapter-s0-approved.md)를 읽는다.
+2026-10-21 KST 사용자 `진행하자`에 따른 승인 기록이며 대상은 PR430 head **ddc1000b8ceb2b5119e020d81284fd0ef136478d** /
+tree **c4decf5a719a64011d2c9a88a43ef0af3b6919d7**다. 승인 대상 뒤 변경0 확인 후 기존 branch/PR의 최소 현재 기록만 반영한다.
+CP0109·계약/validation·Astra 원문은 제출 이력으로 보존한다. 초기 두 원문 복원·과거 모델 승인·실제 구현/지원 승인이 아니다.
+다음은 사용자 PR430 integration 병합 결정이며 담당 **Sol/Codex**. 병합·후속 코드·main/배포는 자동 수행하지 않는다.
+main382/integration384·Core 미이식·Guard·승인 Target/STEP7B §7 전체·기존 consumer/원본·fixed M 별도 P1 판단·후속 의무 유지.
+**STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**.
+
+### S0 제출 당시 인수인계 — CP0109 이력 보존
+
 **현재: STEP7D 첫 선택 모델/Adapter S0 문서 결과 REVIEW_PENDING / 모델·Adapter 미착수**.
 [CURRENT](CURRENT.md) → [CP0109](checkpoints/CP-0109-step-7d-model-adapter-s0-submitted.md) →
 [부분 모델 계약 명세](artifacts/step-7d-coop-session-contract.md) →

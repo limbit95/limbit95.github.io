@@ -20,6 +20,23 @@
 
 ## 현재 상태
 
+**STEP7D 첫 선택 모델/Adapter S0 문서 결과 APPROVED / INTEGRATION_NOT_MERGED**.
+사용자는 2026-10-21 KST Astra의 승인 가능·신규 차단0 보고 뒤 `진행하자`로 이 고정 결과의 승인 기록 진행을 지시했다.
+승인 대상은 [PR430](https://github.com/limbit95/limbit95.github.io/pull/430) head
+**ddc1000b8ceb2b5119e020d81284fd0ef136478d** / tree **c4decf5a719a64011d2c9a88a43ef0af3b6919d7**의 6문서 결과다.
+[CP0110](checkpoints/CP-0110-step-7d-model-adapter-s0-approved.md)에서 승인 범위·검증 재사용·후속 제한을 확인한다.
+기존 branch **docs/game-platform-vnext-phase7d-model-adapter-s0**, base integration **bb037653ca81bb294aafa16c248030ccc7eb7a87** 유지.
+착수 시 remote head/base/main은 고정 입력과 같고 승인 대상 뒤 변경0. 기록 포함 head/tree·CI는 PR/Git·전달 인수인계로 구분한다.
+이번 기록은 CP0110/CURRENT/README만이며 CP0109·계약·validation·보존 Astra 원문은 제출 당시 이력으로 유지한다.
+S0 문서 결과 승인은 모델 구현·runtime/oracle 지원·WSS/intent 수치·wire/제품 세부 확정·server Guard 허용·policy 변경 승인이 아니다.
+main382/integration384/public bytes·Core 미이식·승인 Target/STEP7B §7 전체·기존 consumer/원본·후속 의무를 유지한다.
+fixed M의 별도 P1 판단과 미래 revision, browser/cache/SW UNKNOWN도 유지한다.
+다음은 **사용자의 PR430 integration 병합 여부 별도 결정**이다. 허용될 경우 담당 **Sol/Codex**가 고정 기록 head/CI를 확인해 병합만 수행한다.
+실제 코드 Slice의 진입 범위는 그 뒤 별도 판단이며 자동 실행하지 않는다.
+**STEP7D 미완료·모델/Adapter 미착수·vNext 행동 NOT_RUN·운영 UNKNOWN**.
+
+## S0 제출 당시 상태 — CP0109 이력 보존
+
 **STEP7D 첫 선택 모델/Adapter S0 문서 결과 REVIEW_PENDING / 모델·Adapter 미착수**.
 사용자 2026-10-20 23:20:53 KST 지시에 따라 새 구체화안의 단계적 접근 A와 S0만 정식화한다.
 [CP0109](checkpoints/CP-0109-step-7d-model-adapter-s0-submitted.md) →
@@ -164,7 +181,7 @@ REVIEW_PENDING·Guard 유지·NOT_RUN·UNKNOWN과 전체 후속 의무 유지. �
 | 7A3 | COMPLETED |
 | 7B | COMPLETED |
 | 7C | COMPLETED |
-| 7D | IN_PROGRESS (S0 문서 REVIEW_PENDING / 모델·Adapter 미착수) |
+| 7D | IN_PROGRESS (S0 문서 APPROVED / INTEGRATION_NOT_MERGED / 모델·Adapter 미착수) |
 | 8 | NOT_STARTED |
 | 9A | NOT_STARTED |
 | 9B | NOT_STARTED |
