@@ -2,7 +2,29 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-**현재: STEP7D 첫 선택 모델/Adapter S0 문서 결과 APPROVED / INTEGRATION_NOT_MERGED**.
+**현재: STEP7D S1 정식 부분 코드 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+[CURRENT](CURRENT.md) → [CP0112](checkpoints/CP-0112-step-7d-s1-partial-result-approved.md)를 읽는다.
+2026-10-22 사용자 `진행하자`에 따른 승인 기록이며 대상은 PR431 head **5c639ff0ffd6e81e9382d42873f58e7586c1becc** /
+tree **42a74a1ec3b45d7d6137dc76bb1701e029a7694a**의 정식 부분 결과다. 승인 대상 뒤 코드 변경0 확인 후 기존 branch/PR의 문서4곳만 정합화한다.
+부분 model/server·동일 변경의 checkout 공개 제외/독립 fail-closed·branch385 결과 승인과 전체 S1/STEP7D 완료·실제 지원/배포·병합을 구분한다.
+CP0111/제출 근거·S0/과거 원문은 당시 이력으로 보존한다. main382/integration384·Core main 미이식·branch385 미병합·빈 oracle/runtime/online 미지원 유지.
+승인 Target/STEP7B §7 전체·기존 consumer/원본·fixed M의 별도 P1 판단·전체 후속 의무 유지.
+다음은 사용자 PR431 integration 병합 별도 결정이며 담당 **Sol/Codex**. 자동 병합/후속 구현은 하지 않는다.
+**STEP7D 미완료·실제 지원 미입증·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**.
+
+### S1 제출 당시 인수인계 — CP0111 이력 보존
+
+**당시: STEP7D S1 부분 코드 결과 REVIEW_PENDING / integration-base 검토 제출 / 실제 지원 미입증**.
+[CURRENT](CURRENT.md) → [CP0111](checkpoints/CP-0111-step-7d-s1-code-submitted.md) →
+[제출/검증 범위](artifacts/step-7d-s1-submission-validation.md) → [F1~F3/F1-R1 보완 근거](artifacts/step-7d-s1-candidate-review-fixes.md)를 읽는다.
+PR430 실제 merge `e987d38829334bd6435a5a74b1fbf9f3851cbaa0` / tree `272fafcfcd357c41f962984803fb1eb2a2e2cf82`가 base다.
+검토된 후보 fb030329…의 누적16파일과 최소 현재 문서만 제출한다. branch 정책385는 기존384 bytes+model1이며 server public0을 같은 checkout에서 검증한다.
+정식 main382/integration384·Core main 미이식·기존 production Guard는 미병합 상태로 유지한다. 제출 허용과 최종 결과 승인/병합/실제 지원·배포를 구분한다.
+부분 구현 제출/실제 지원 미입증·STEP7D 미완료·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN·전체 후속 의무 유지. 다음 담당 **Astra**.
+
+### S0 승인 기록 당시 인수인계 — CP0110 이력 보존
+
+**당시: STEP7D 첫 선택 모델/Adapter S0 문서 결과 APPROVED / INTEGRATION_NOT_MERGED**.
 [CURRENT](CURRENT.md) → [CP0110](checkpoints/CP-0110-step-7d-model-adapter-s0-approved.md)를 읽는다.
 2026-10-21 KST 사용자 `진행하자`에 따른 승인 기록이며 대상은 PR430 head **ddc1000b8ceb2b5119e020d81284fd0ef136478d** /
 tree **c4decf5a719a64011d2c9a88a43ef0af3b6919d7**다. 승인 대상 뒤 변경0 확인 후 기존 branch/PR의 최소 현재 기록만 반영한다.

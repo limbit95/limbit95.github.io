@@ -36,9 +36,9 @@ jobs:
       - name: Require committed generated assets
         run: git diff --exit-code -- index.html assets/build
       - run: node --test tests/game-platform-publication*.test.js
+      - run: npm run build:publication
       - run: node scripts/check-game-platform-governance.mjs
       - run: node scripts/check-game-platform-vnext-boundaries.mjs
-      - run: npm run build:publication
       - run: npm run check:publication
       - name: Retain source revision and exact file-byte evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

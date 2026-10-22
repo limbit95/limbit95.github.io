@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import fs from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { verifyCheckoutPublication } from "../scripts/build-site-publication.mjs";
+import { verifyCheckoutPublication, verifyPublication } from "../scripts/build-site-publication.mjs";
+import { runGovernanceCheck } from "../scripts/check-game-platform-governance.mjs";
 
 function fixture(t, extra = {}) {
   const root = mkdtempSync(path.join(os.tmpdir(), "publication-checkout-"));
@@ -16,7 +18,7 @@ function fixture(t, extra = {}) {
   for (const [name, bytes] of Object.entries({ ...files, ...extra })) put(name, bytes);
   put("scripts/site-publication-files.json", JSON.stringify({ schemaVersion: 1, files: Object.keys(files) }));
   put(".gitignore", ".site-publication/\nassets/ignored.js\nservices/game-platform-vnext/ignored.bin\n");
-  for (const name of ["build-site-publication.mjs", "check-game-platform-vnext-boundaries.mjs"]) {
+  for (const name of ["build-site-publication.mjs", "check-game-platform-vnext-boundaries.mjs", "game-platform-vnext-boundary-rules.mjs"]) {
     copyFileSync(new URL(`../scripts/${name}`, import.meta.url), path.join(root, "scripts", name));
   }
   git("init", "-q"); git("config", "user.name", "Publication fixture"); git("config", "user.email", "fixture@example.invalid");
@@ -75,17 +77,162 @@ test("new untracked and ignored public/server inputs are not hidden by the polic
   }
 });
 
-test("current server inventory participates in exclusion checks while the independent production Guard still blocks it", (t) => {
+test("current server inventory exclusion is required by the candidate independent checkout Guard", (t) => {
   const name = "services/game-platform-vnext/canary.bin"; const f = fixture(t, { [name]: "SERVER_CANARY" });
   assert.equal(verifyCheckoutPublication(f.root).files, 2);
   assert.equal(existsSync(path.join(f.root, ".site-publication/public", name)), false);
   const guard = spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
-  assert.equal(guard.status, 1); assert.match(guard.stderr, /exclusion is unverified/);
+  assert.equal(guard.status, 0, guard.stderr);
+  f.put(".site-publication/public/js/app.js", "tampered");
+  const badGuard = spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
+  assert.equal(badGuard.status, 1); assert.match(badGuard.stderr, /exclusion failed/);
+  assert.equal(f.cli().status, 0);
   f.put(name, "changed server only"); assert.throws(() => verifyCheckoutPublication(f.root), /must match HEAD/);
   f.commit(); assert.throws(() => verifyCheckoutPublication(f.root), /manifest revision/);
   f.put("js/app.js", "changed server only"); f.commit();
   const failedBuild = f.cli(); assert.notEqual(failedBuild.status, 0); assert.match(failedBuild.stderr, /alias a tracked server/);
   assert.notEqual(JSON.parse(readFileSync(f.manifestPath)).sourceRevision, f.git("rev-parse", "HEAD"));
+});
+
+test("candidate server Guard requires current proof, not presence, CLI flags or an old manifest", (t) => {
+  const f = fixture(t, { "services/game-platform-vnext/session.mjs": "export const candidate = 1;", "tests/game-platform-vnext-model-oracles.json": '{"models":[]}' });
+  const guard = (...args) => spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs"), ...args], { cwd: f.root, encoding: "utf8" });
+  rmSync(path.join(f.root, ".site-publication"), { recursive: true });
+  assert.equal(guard().status, 1); assert.equal(guard("--allow-server").status, 1);
+  assert.match(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), /Server publication exclusion failed/);
+  assert.equal(f.cli().status, 0); assert.equal(guard().status, 0);
+  f.put("docs/next.md", "different revision"); f.commit();
+  assert.equal(guard().status, 1); assert.match(guard().stderr, /manifest revision/);
+});
+
+test("candidate independent Guard rejects hidden server/rules edits and does not print success", (t) => {
+  for (const name of ["services/game-platform-vnext/session.mjs", "scripts/game-platform-vnext-boundary-rules.mjs"]) {
+    const f = fixture(t, { "services/game-platform-vnext/session.mjs": "export const candidate = 1;" });
+    const original = readFileSync(path.join(f.root, name), "utf8");
+    f.git("update-index", "--assume-unchanged", name); f.put(name, original + "\n// hidden tracked input change\n");
+    const guard = spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
+    assert.equal(guard.status, 1); assert.equal(guard.stdout, ""); assert.match(guard.stderr, /does not match HEAD/);
+  }
+});
+
+test("F1 independent CLI and governance cannot hide server inputs by removing the index entry or leaving them untracked/ignored", (t) => {
+  for (const mode of ["index-removed", "untracked", "ignored"]) {
+    const name = `services/game-platform-vnext/${mode === "ignored" ? "ignored.bin" : "session.mjs"}`;
+    const f = fixture(t, { "tests/game-platform-vnext-model-oracles.json": '{"models":[]}',
+      ...(mode === "index-removed" ? { [name]: "export const ready = true;" } : {}) });
+    if (mode === "index-removed") f.git("rm", "--cached", name);
+    else f.put(name, "unreviewed server bytes");
+    rmSync(path.join(f.root, ".site-publication"), { recursive: true });
+    const guard = spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
+    assert.equal(guard.status, 1, mode); assert.equal(guard.stdout, "", mode);
+    assert.match(guard.stderr, /Server publication exclusion failed/, mode);
+    assert.match(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), /Server publication exclusion failed/, mode);
+  }
+});
+
+test("F1 normal no-server inspection needs no publication receipt, but a symlinked server root cannot hide inputs", (t) => {
+  const f = fixture(t, { "tests/game-platform-vnext-model-oracles.json": '{"models":[]}' });
+  rmSync(path.join(f.root, ".site-publication"), { recursive: true });
+  const guard = () => spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
+  assert.equal(guard().status, 0);
+  assert.doesNotMatch(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), /Server publication exclusion failed/);
+  mkdirSync(path.join(f.root, "services/game-platform-vnext"), { recursive: true });
+  assert.equal(guard().status, 0); // Empty directory is not an exclusion certificate or a server input.
+  rmSync(path.join(f.root, "services/game-platform-vnext"), { recursive: true });
+  symlinkSync(path.join(f.root, "js"), path.join(f.root, "services/game-platform-vnext"), "dir");
+  assert.equal(guard().status, 1); assert.equal(guard().stdout, "");
+  assert.match(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), /Server publication exclusion failed/);
+});
+
+// A matching fixture manifest deliberately isolates root validation from stale/missing evidence.
+// It is not a production checkout/publication receipt.
+function trackedRootFixture(t, name, kind) {
+  const f = fixture(t, { "tests/game-platform-vnext-model-oracles.json": '{"models":[]}' });
+  mkdirSync(path.dirname(path.join(f.root, name)), { recursive: true });
+  if (kind === "symlink") symlinkSync(path.join(f.root, "js"), path.join(f.root, name), "dir");
+  else f.put(name, "not a server directory");
+  const revision = f.commit();
+  assert.match(f.git("ls-tree", "HEAD", "--", name), kind === "symlink" ? /^120000 / : /^100644 /);
+  f.editManifest((manifest) => { manifest.sourceRevision = revision; });
+  assert.equal(verifyPublication(f.root).files, 2); // Public bytes/policy are otherwise valid.
+  assert.equal(f.git("status", "--porcelain"), "");
+  return f;
+}
+
+function assertRootRejected(f, error) {
+  const evidence = readFileSync(f.manifestPath);
+  const output = readFileSync(path.join(f.root, ".site-publication/public/js/app.js"));
+  assert.throws(() => verifyCheckoutPublication(f.root), error);
+  for (const args of [[], ["--check"]]) {
+    const result = f.cli(...args);
+    assert.equal(result.status, 1); assert.equal(result.stdout, ""); assert.match(result.stderr, error);
+  }
+  const guard = spawnSync(process.execPath, [path.join(f.root, "scripts/check-game-platform-vnext-boundaries.mjs")], { cwd: f.root, encoding: "utf8" });
+  assert.equal(guard.status, 1); assert.equal(guard.stdout, ""); assert.match(guard.stderr, error);
+  assert.match(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), error);
+  assert.deepEqual(readFileSync(f.manifestPath), evidence);
+  assert.deepEqual(readFileSync(path.join(f.root, ".site-publication/public/js/app.js")), output);
+}
+
+test("F1-R1 tracked exact server root symlink/file cannot use an otherwise matching public manifest", (t) => {
+  for (const kind of ["symlink", "file"]) {
+    const f = trackedRootFixture(t, "services/game-platform-vnext", kind);
+    assertRootRejected(f, /Unsafe server input directory: services\/game-platform-vnext/);
+  }
+});
+
+test("F1-R1 tracked services parent symlink/file is rejected before following it", (t) => {
+  for (const kind of ["symlink", "file"]) {
+    const f = trackedRootFixture(t, "services", kind);
+    assertRootRejected(f, /Unsafe server input directory: services/);
+  }
+});
+
+test("F1-R1 missing assume-unchanged tracked root cannot turn into a successful no-server checkout", (t) => {
+  for (const name of ["services", "services/game-platform-vnext"]) {
+    for (const kind of ["symlink", "file"]) {
+      const f = trackedRootFixture(t, name, kind);
+      f.git("update-index", "--assume-unchanged", name); rmSync(path.join(f.root, name));
+      assert.equal(f.git("diff", "--name-only"), "");
+      assertRootRejected(f, /ENOENT/);
+    }
+  }
+});
+
+test("F1-R1 unreadable server directory fails build/check and independent guards despite tracked server entries", (t) => {
+  const f = fixture(t, { "services/game-platform-vnext/session.mjs": "export const ready = true;",
+    "tests/game-platform-vnext-model-oracles.json": '{"models":[]}' });
+  const directory = path.join(f.root, "services/game-platform-vnext"), readdir = fs.readdirSync;
+  const evidence = readFileSync(f.manifestPath);
+  t.mock.method(fs, "readdirSync", function(filename, ...args) {
+    if (path.resolve(String(filename)) === directory) throw Object.assign(new Error("EACCES: server directory unreadable"), { code: "EACCES" });
+    return readdir.call(this, filename, ...args);
+  });
+  assert.throws(() => verifyCheckoutPublication(f.root), /EACCES/);
+  assert.match(runGovernanceCheck({ repositoryRoot: f.root }).join("\n"), /EACCES/);
+  const hook = path.join(f.root, "tests/deny-server-directory.cjs");
+  f.put("tests/deny-server-directory.cjs", `
+    const fs = require("node:fs"), path = require("node:path"), readdir = fs.readdirSync;
+    const directory = path.join(process.cwd(), "services/game-platform-vnext");
+    fs.readdirSync = function(filename, ...args) {
+      if (path.resolve(String(filename)) === directory) throw Object.assign(new Error("EACCES: server directory unreadable"), { code: "EACCES" });
+      return readdir.call(this, filename, ...args);
+    };
+  `);
+  for (const [script, args] of [["build-site-publication.mjs", []], ["build-site-publication.mjs", ["--check"]], ["check-game-platform-vnext-boundaries.mjs", []]]) {
+    const result = spawnSync(process.execPath, ["--require", hook, path.join(f.root, "scripts", script), ...args], { cwd: f.root, encoding: "utf8" });
+    assert.equal(result.status, 1); assert.equal(result.stdout, ""); assert.match(result.stderr, /EACCES/);
+  }
+  assert.deepEqual(readFileSync(f.manifestPath), evidence);
+});
+
+test("candidate CI builds before independent server boundary and retains guarded deployment", () => {
+  const publication = readFileSync(new URL("../.github/workflows/site-pages-publication.yml", import.meta.url), "utf8");
+  const governance = readFileSync(new URL("../.github/workflows/game-platform-governance.yml", import.meta.url), "utf8");
+  assert.ok(publication.indexOf("- run: npm run build:publication") < publication.indexOf("- run: node scripts/check-game-platform-vnext-boundaries.mjs"));
+  assert.ok(governance.indexOf("- run: npm run build:publication") < governance.indexOf("run: node scripts/check-game-platform-vnext-boundaries.mjs"));
+  assert.match(governance, /scripts\/game-platform-vnext-boundary-rules.mjs/);
+  assert.equal(publication.includes("continue-on-error"), false);
 });
 
 test("actual output tampering fails and a failed dirty-source build leaves no new success manifest", (t) => {

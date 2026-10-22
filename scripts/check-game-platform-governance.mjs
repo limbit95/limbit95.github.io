@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { GAME_REGISTRY } from "../games/shared/registry.js";
 import {
+  runVnextBoundaryCheck,
   readModelOracleInputs,
   validateModelOracleConfiguration,
   validateModelOracleSelection,
@@ -777,7 +778,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
   try { modelOracleInputs = readModelOracleInputs(repositoryRoot); }
   catch (error) { return [`Model oracle discovery configuration could not be read: ${error.message}`]; }
 
-  const errors = validateRepositoryState({
+  const errors = [...runVnextBoundaryCheck(repositoryRoot), ...validateRepositoryState({
     gameDirectories,
     registry: GAME_REGISTRY,
     dbTestFiles,
@@ -789,7 +790,7 @@ export function runGovernanceCheck({ repositoryRoot, base = null, head = "HEAD" 
     documents,
     modelOracleConfig: modelOracleInputs.config,
     modelOracleFiles: modelOracleInputs.files,
-  });
+  })];
 
   errors.push(...validatePlatformDocumentPolicy({
     documents,

@@ -3,31 +3,61 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { sourceModuleEdges, validateVnextBoundaries } from "./check-game-platform-vnext-boundaries.mjs";
+import { sourceModuleEdges, validateVnextBoundaries } from "./game-platform-vnext-boundary-rules.mjs";
 
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const POLICY = "scripts/site-publication-files.json";
 const STATE = ".site-publication";
 const SERVER = "services/game-platform-vnext/";
+const SERVER_DIRECTORIES = ["services", SERVER.slice(0, -1)];
 const PUBLIC_ROOTS = /^(?:assets|css|js|games|liar-game|the-game|marble-game)\//u;
 const ROOT_FILES = new Set([".nojekyll", "CNAME", "index.html", "activity-link.html", "brand-gateway-ae.html", "invite.html", "manifest.webmanifest", "push-service-worker.js", "apple-touch-icon.png"]);
 const PUBLIC_EXTENSION = /\.(?:[cm]?js|html|css|json|webmanifest|png|svg|jpe?g|webp|gif|ico|woff2?|ttf|mp3|ogg|wav|mp4|webm)$/iu;
 const CHECKOUT_TOOLS = [POLICY, "index.template.html", "package.json", "package-lock.json",
   "scripts/build-community-assets.mjs", "scripts/build-site-publication.mjs",
-  "scripts/check-game-platform-vnext-boundaries.mjs", "scripts/verify-site-publication-artifact.py"];
+  "scripts/check-game-platform-vnext-boundaries.mjs", "scripts/game-platform-vnext-boundary-rules.mjs", "scripts/verify-site-publication-artifact.py"];
 const CHECKOUT_ROOTS = ["assets", "css", "js", "games", "liar-game", "the-game", "marble-game", SERVER, ...ROOT_FILES, ...CHECKOUT_TOOLS];
 
+const serverInput = (filename) => filename.startsWith(SERVER) || SERVER_DIRECTORIES.includes(filename);
 function publicationInput(filename) {
-  return publicPath(filename) || filename.startsWith(SERVER) || CHECKOUT_TOOLS.includes(filename);
+  return publicPath(filename) || serverInput(filename) || CHECKOUT_TOOLS.includes(filename);
 }
 
 // Production evidence always reads Git itself; fixture inventory/revision options
 // on the lower-level assembly functions are not checkout verification inputs.
-function readCheckout(root) {
+function checkoutGit(root) {
   const git = (args) => execFileSync("git", args, { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   if (fs.realpathSync(root) !== fs.realpathSync(git(["rev-parse", "--show-toplevel"]).trim())) {
     throw new Error("Publication checkout must be the repository root.");
   }
+  return git;
+}
+
+// Shared by discovery and production checkout inspection; never follow a root symlink.
+function serverDirectoryEntries(root) {
+  for (const name of SERVER_DIRECTORIES) {
+    const stat = fs.lstatSync(path.join(root, name), { throwIfNoEntry: false });
+    if (!stat) return [];
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error(`Unsafe server input directory: ${name}`);
+  }
+  return fs.readdirSync(path.join(root, SERVER));
+}
+
+// Discovery only: the presence of any of these inputs REQUIRES verification;
+// it never constitutes evidence of exclusion. Inspect actual roots even when Git has entries.
+export function hasServerPublicationInputs(root) {
+  const git = checkoutGit(root);
+  const entries = serverDirectoryEntries(root);
+  // Includes untracked/ignored entries, even though neither is in the index.
+  // An empty, ordinary directory alone is not a server source/artifact.
+  const tracked = [git(["ls-tree", "-r", "--name-only", "-z", "HEAD", "--", ...SERVER_DIRECTORIES]),
+    git(["ls-files", "-z", "--", ...SERVER_DIRECTORIES])].join("\0").split("\0");
+  return tracked.some(serverInput) || entries.length > 0;
+}
+
+function readCheckout(root) {
+  const git = checkoutGit(root);
+  serverDirectoryEntries(root);
   const sourceRevision = git(["rev-parse", "HEAD"]).trim();
   // Reject staged/unstaged tracked changes, not generated ignored output.
   if (git(["diff", "--cached", "--name-only", "HEAD", "--"]).trim()

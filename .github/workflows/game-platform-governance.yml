@@ -23,6 +23,9 @@ on:
       - "tests/game-db-integration/**"
       - "scripts/check-game-platform-governance.mjs"
       - "scripts/check-game-platform-vnext-boundaries.mjs"
+      - "scripts/game-platform-vnext-boundary-rules.mjs"
+      - "scripts/build-site-publication.mjs"
+      - "scripts/site-publication-files.json"
       - "scripts/check-community-modules.mjs"
       - "scripts/build-community-assets.mjs"
       - "docs/game-platform-*.md"
@@ -56,6 +59,11 @@ jobs:
 
       - name: Test Game Platform contracts
         run: npm run test:game-platform
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:assets
+      - run: git diff --exit-code -- index.html assets/build
+      - run: npm run build:publication
 
       - name: Guard vNext browser-server and static publication boundaries
         run: node scripts/check-game-platform-vnext-boundaries.mjs
