@@ -20,6 +20,21 @@
 
 ## 현재 상태
 
+**STEP7D S1 정식 부분 코드 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+2026-10-22 사용자 `진행하자`는 Astra 최종 검토의 승인 가능·신규 차단0 보고에 따른 고정 부분 결과 승인 및 기록 진행 지시다.
+승인 대상은 [PR431](https://github.com/limbit95/limbit95.github.io/pull/431) head **5c639ff0ffd6e81e9382d42873f58e7586c1becc** /
+tree **42a74a1ec3b45d7d6137dc76bb1701e029a7694a**의18파일 결과다. [CP0112](checkpoints/CP-0112-step-7d-s1-partial-result-approved.md)를 읽는다.
+승인은 부분 model/server·동일 변경의 fail-closed checkout 공개 제외 연결·branch policy385·workflow 최소 연결/기록에 한정한다.
+기존 branch/PR에서 승인 기록·최소 현재 문서4곳만 정합화하며 승인 head 뒤 코드 자동 포함0이다.
+base integration **e987d38829334bd6435a5a74b1fbf9f3851cbaa0** / main M은 그대로다. branch385는 미병합이며 정식 integration384/main382·Core main 미이식을 유지한다.
+실제 admission/A/PG finalizer/actual C/native P·durable dedupe·start/rematch/terminal 쓰기·최초60초 강제·Adapter는 미구현이다.
+빈 oracle/runtime·online 미지원·기존 online DB 요구·server 제외 미확인 차단 및 승인 Target/STEP7B §7 전체·consumer/원본/후속 의무 유지.
+fixed M의 별도 P1 판단과 미래 revision, browser/cache/SW UNKNOWN을 구분한다. 기록 head/tree·CI는 기존 PR/Git·외부 인수인계에서 확인한다.
+다음은 사용자 PR431 integration 병합 여부 별도 결정이며 담당 **Sol/Codex**. 이번 승인으로 병합·main/배포·후속 구현을 진행하지 않는다.
+**STEP7D 미완료·실제 지원 미입증·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**.
+
+## S1 제출 당시 상태 — CP0111 이력 보존
+
 **STEP7D S1 부분 코드 결과 REVIEW_PENDING / integration-base 검토 제출 / 실제 지원 미입증**.
 사용자는 2026-10-22 Astra F1-R1 해소·부분 PR 제출 가능 보고 뒤 `바로 진행하자`로 보고서 §7의 제출 작업을 지시했다.
 검토된 local candidate **fb030329647cfc7abed38ba07b40f33eb95393e0** / tree **aa51b47936370b713286ba4e8cfea1ece5c2c62b**의

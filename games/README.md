@@ -1,6 +1,6 @@
 # Game Platform
 
-## STEP7D S1 — 저장소 밖 구현 후보
+## STEP7D S1 — 부분 코드 결과 승인 / integration·main 미병합
 
 `shared/vnext/models/coopSession.js`의 `createCoopSession`은 current full-state 채택/복구·명령 identity 보유의 후보다.
 Core 단일 동기 반영을 소비하며 실제 backend admission/PG commit/native P/transport·site Adapter는 미구현이다.
@@ -8,7 +8,7 @@ Core 단일 동기 반영을 소비하며 실제 backend admission/PG commit/nat
 [후보 범위·경계·미지원](../docs/game-platform-rebuild/artifacts/step-7d-s1-candidate.md),
 `tests/game-platform-vnext-coop-session.test.js`의 offline 계약을 함께 읽는다.
 실제 runtime/oracle/Registry 지원 등록 없음. H1~3 본체의 무보완 wrapper 지원을 선언하지 않는다.
-STEP7D 미완료·후보 구현 작성/정식 반영 없음·vNext 행동 NOT_RUN·운영 UNKNOWN.
+STEP7D 미완료·부분 결과 승인/실제 지원 미입증·integration/main 미병합·vNext 행동 NOT_RUN·운영 UNKNOWN.
 
 ## 신규 vNext 계약과 기존 consumer 적용 경계
 
