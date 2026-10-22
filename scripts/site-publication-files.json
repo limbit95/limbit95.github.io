@@ -128,6 +128,7 @@
     "games/shared/snapshotCoordinator.js",
     "games/shared/vnext/core/executionBindings.js",
     "games/shared/vnext/core/executionScope.js",
+    "games/shared/vnext/models/coopSession.js",
     "index.html",
     "invite.html",
     "js/accessTracker.js",

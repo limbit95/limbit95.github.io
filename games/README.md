@@ -1,5 +1,15 @@
 # Game Platform
 
+## STEP7D S1 — 저장소 밖 구현 후보
+
+`shared/vnext/models/coopSession.js`의 `createCoopSession`은 current full-state 채택/복구·명령 identity 보유의 후보다.
+Core 단일 동기 반영을 소비하며 실제 backend admission/PG commit/native P/transport·site Adapter는 미구현이다.
+`services/game-platform-vnext/sessionControl.mjs`의 ready 변경은 write proposal이며 실제 mutation/인가/commit이 아니다.
+[후보 범위·경계·미지원](../docs/game-platform-rebuild/artifacts/step-7d-s1-candidate.md),
+`tests/game-platform-vnext-coop-session.test.js`의 offline 계약을 함께 읽는다.
+실제 runtime/oracle/Registry 지원 등록 없음. H1~3 본체의 무보완 wrapper 지원을 선언하지 않는다.
+STEP7D 미완료·후보 구현 작성/정식 반영 없음·vNext 행동 NOT_RUN·운영 UNKNOWN.
+
 ## 신규 vNext 계약과 기존 consumer 적용 경계
 
 신규 vNext 상위 진입은 `docs/game-platform-architecture.md`, 공통 개발 규칙은 `docs/game-platform-common-rules.md`, 전체 수명은 `docs/game-platform-lifetime-contract.md`, 선택 모델은 `docs/game-platform-model-contracts.md`, 공통 기능은 `docs/game-platform-capability-contracts.md`다. 같은 topic+적용 계약/consumer scope에서 이 owner를 따른다. 기존 `docs/game-platform-development-rules.md`·`docs/game-platform-ui-rules.md`·DB 계약은 기존 consumer와 고정 원문 계승의 범위를 유지한다. 기존 게임/Auth/API/SQL/metadata/네 문서를 이관하지 않는다.
