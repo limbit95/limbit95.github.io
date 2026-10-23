@@ -20,6 +20,21 @@
 
 ## 현재 상태
 
+**STEP7D S1 비공개 PG 저장부 부분 코드 결과 REVIEW_PENDING / integration-base 검토 제출 / 실제 지원 미입증**.
+2026-10-23 사용자 `바로 진행하자`에 따라 Astra PG 후보 검토 §7의 정식 제출을 수행한다.
+[CP0113](checkpoints/CP-0113-step-7d-s1-pg-storage-submitted.md) →
+[제출/검증·실제 구현과 미구현](artifacts/step-7d-s1-pg-storage-submission-validation.md)을 읽는다.
+base/current integration **990ad56adde4e2f798fdd974fbe5b4d21863173e** / tree **07db48045ee6b095bf306229eda0be12d43c4879**.
+PR431은 실제 merge990ad56…로 병합됐다. 현재 **integration385/main382·Core main 미이식**이며 CP0112의 미병합/384는 당시 이력이다.
+검토 local candidate **4aae50f4b6351cc0433359dddccfcf9ab55fd0c9** / tree **20cb3a4ff4165818846b0bc03fff54f5ccda00ef**의
+SQL/JS/DB README/tests bytes를 그대로 제출하고 현재 진입/제출 기록만 최소 정합화한다. branch는 `feature/game-platform-vnext-phase7d-s1-pg-storage`다.
+설치 owner 전용 SQL 저장 primitive와 transaction 호출 부분이며 실제 DB 설치·runtime admission/actual A/C/native P·bootstrap·Adapter 지원은 미입증이다.
+빈 oracle/runtime/online 미지원·기존 DB 요구·server fail-closed·기존385 public bytes/정책/consumer/원본과 승인 Target/STEP7B §7 전체·후속 의무 유지.
+fixed M의 별도 P1과 미래 revision, browser/cache/SW UNKNOWN을 구분한다. remote head/tree·CI는 실제 PR/Git·외부 인수인계에서 확인한다.
+다음 담당은 **Astra**의 정식 부분 결과 검토다. **STEP7D 미완료·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**.
+
+## S1 부분 결과 승인 당시 상태 — CP0112 이력 보존
+
 **STEP7D S1 정식 부분 코드 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 2026-10-22 사용자 `진행하자`는 Astra 최종 검토의 승인 가능·신규 차단0 보고에 따른 고정 부분 결과 승인 및 기록 진행 지시다.
 승인 대상은 [PR431](https://github.com/limbit95/limbit95.github.io/pull/431) head **5c639ff0ffd6e81e9382d42873f58e7586c1becc** /

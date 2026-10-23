@@ -1,5 +1,15 @@
 # Game Platform
 
+## STEP7D S1 — 비공개 PG 저장부 부분 코드 검토 제출
+
+PR431은 integration `990ad56…`에 병합됐다(integration385/main382·Core main 미이식).
+아래 PR431 미병합 표시는 승인 기록 당시 이력이다. 이번 `services/game-platform-vnext/sessionStorage.mjs`와
+[private SQL/호출·미지원 경계](../supabase/game-platform-vnext/README.md)는 integration-base 검토 제출 결과이며 **REVIEW_PENDING / integration·main 미병합**이다.
+`tests/game-platform-vnext-session-storage.test.js`는 offline I/O/정적 SQL 계약이다. 실제 DB/admission/A/C/native P는 미입증.
+network/runtime 호출·지원/oracle 등록 없이 STEP7D 미완료·vNext 행동 NOT_RUN·운영 UNKNOWN을 유지한다.
+[제출/검증 및 미구현](../docs/game-platform-rebuild/artifacts/step-7d-s1-pg-storage-submission-validation.md)을 읽는다.
+DB README의 후보/정식 반영 없음은 저장소 밖 후보 작성 당시 상태이며 실제 DB 미설치·미지원 제한은 그대로다.
+
 ## STEP7D S1 — 부분 코드 결과 승인 / integration·main 미병합
 
 `shared/vnext/models/coopSession.js`의 `createCoopSession`은 current full-state 채택/복구·명령 identity 보유의 후보다.

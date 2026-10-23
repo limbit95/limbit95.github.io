@@ -2,7 +2,18 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-**현재: STEP7D S1 정식 부분 코드 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+**현재: STEP7D S1 비공개 PG 저장부 부분 코드 결과 REVIEW_PENDING / integration-base 검토 제출 / 실제 지원 미입증**.
+[CURRENT](CURRENT.md) → [CP0113](checkpoints/CP-0113-step-7d-s1-pg-storage-submitted.md) →
+[제출/검증·미구현](artifacts/step-7d-s1-pg-storage-submission-validation.md)을 읽는다.
+2026-10-23 사용자 `바로 진행하자`에 따른 Astra 후보 검토 §7의 정식 부분 제출이다. 검토된 SQL/JS/tests/DB README bytes 변경0, 최소 현재 기록만 추가한다.
+PR431 실제 병합은 integration **990ad56…/tree07db4804…**, 현재 integration385/main382·Core main 미이식이다. 아래 CP0112 미병합/384는 당시 이력이다.
+새 결과는 runtime 미개방 저장 primitive이며 실제 DB/admission/A/C/native P·모델 지원은 미입증이다. 정식 부분 결과 승인·병합·배포를 수행하지 않는다.
+승인 Target/STEP7B §7 전체·기존 consumer/API/Registry/barrel/원본·fixed M 별도 P1·모든 후속 의무 유지.
+다음 담당 **Astra**. **STEP7D 미완료·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**.
+
+### S1 부분 결과 승인 당시 안내 — CP0112 이력 보존
+
+**당시: STEP7D S1 정식 부분 코드 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 [CURRENT](CURRENT.md) → [CP0112](checkpoints/CP-0112-step-7d-s1-partial-result-approved.md)를 읽는다.
 2026-10-22 사용자 `진행하자`에 따른 승인 기록이며 대상은 PR431 head **5c639ff0ffd6e81e9382d42873f58e7586c1becc** /
 tree **42a74a1ec3b45d7d6137dc76bb1701e029a7694a**의 정식 부분 결과다. 승인 대상 뒤 코드 변경0 확인 후 기존 branch/PR의 문서4곳만 정합화한다.
