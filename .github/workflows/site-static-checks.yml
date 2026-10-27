@@ -34,6 +34,10 @@ jobs:
       - name: Install deterministic build dependencies
         run: npm ci --no-audit --no-fund
 
+      - name: Prepare private Game Platform test dependencies
+        id: private-test-deps
+        run: node scripts/prepare-game-platform-vnext-test-deps.mjs prepare
+
       - name: Rebuild content-hashed community assets
         run: npm run build:assets
 
@@ -104,3 +108,9 @@ jobs:
 
       - name: Check site file integrity
         run: node scripts/check-site.mjs
+
+      - name: Clean owned private Game Platform test dependencies
+        if: ${{ always() && steps.private-test-deps.outputs.owner != '' }}
+        env:
+          GAME_PLATFORM_TEST_DEPS_OWNER: ${{ steps.private-test-deps.outputs.owner }}
+        run: node scripts/prepare-game-platform-vnext-test-deps.mjs cleanup

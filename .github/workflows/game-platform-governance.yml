@@ -22,6 +22,7 @@ on:
       - "tests/game-platform-vnext-model-oracles.json"
       - "tests/game-db-integration/**"
       - "scripts/check-game-platform-governance.mjs"
+      - "scripts/prepare-game-platform-vnext-test-deps.mjs"
       - "scripts/check-game-platform-vnext-boundaries.mjs"
       - "scripts/game-platform-vnext-boundary-rules.mjs"
       - "scripts/build-site-publication.mjs"
@@ -47,6 +48,12 @@ jobs:
         with:
           node-version: 22
 
+      - run: npm ci --no-audit --no-fund
+
+      - name: Prepare private Game Platform test dependencies
+        id: private-test-deps
+        run: node scripts/prepare-game-platform-vnext-test-deps.mjs prepare
+
       - name: Check Game Platform JavaScript syntax
         shell: bash
         run: |
@@ -60,7 +67,6 @@ jobs:
       - name: Test Game Platform contracts
         run: npm run test:game-platform
 
-      - run: npm ci --no-audit --no-fund
       - run: npm run build:assets
       - run: git diff --exit-code -- index.html assets/build
       - run: npm run build:publication
@@ -73,3 +79,9 @@ jobs:
           node scripts/check-game-platform-governance.mjs
           --base "${{ github.event.pull_request.base.sha }}"
           --head "${{ github.event.pull_request.head.sha }}"
+
+      - name: Clean owned private Game Platform test dependencies
+        if: ${{ always() && steps.private-test-deps.outputs.owner != '' }}
+        env:
+          GAME_PLATFORM_TEST_DEPS_OWNER: ${{ steps.private-test-deps.outputs.owner }}
+        run: node scripts/prepare-game-platform-vnext-test-deps.mjs cleanup

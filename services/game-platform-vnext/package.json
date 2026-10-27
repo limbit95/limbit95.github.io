@@ -1,0 +1,6 @@
+{
+  "name": "game-platform-vnext-private-io-candidate",
+  "private": true,
+  "type": "module",
+  "dependencies": { "pg": "8.23.1" }
+}
