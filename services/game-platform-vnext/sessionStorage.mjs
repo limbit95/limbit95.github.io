@@ -35,7 +35,7 @@ export function createSessionStorage({ connect } = {}) {
   if (typeof connect !== "function") throw new TypeError("An explicit exclusive storage connection lease is required.");
   async function run(sql, params, signal, mutation) {
     abort(signal);
-    const client = await connect();
+    const client = await connect({ signal });
     if (!client || (typeof client !== "object" && typeof client !== "function")
       || typeof client.release !== "function") throw new TypeError("Invalid exclusive storage lease.");
     // A broken lease provider must not release someone else's active client.

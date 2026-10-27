@@ -1,0 +1,18 @@
+{
+  "disposable": true,
+  "kind": "isolated-local-supabase-direct-pg",
+  "runId": "REPLACE_WITH_UUID",
+  "gitHead": "REPLACE_WITH_CANDIDATE_HEAD",
+  "imageDigest": "REPLACE_WITH_ACTUAL_IMAGE_DIGEST",
+  "supabaseCliVersion": "REPLACE_WITH_ACTUAL_VERSION",
+  "pgVersion": "REPLACE_WITH_ACTUAL_SERVER_VERSION",
+  "host": "127.0.0.1",
+  "port": 54322,
+  "database": "vnext_lease_candidate_REPLACE_WITH_UUID",
+  "user": "postgres",
+  "passwordFile": "/absolute/path/to/private-password-file",
+  "ssl": false,
+  "timings": { "connectMs": 3000, "queryMs": 3000, "cleanupMs": 1000, "observeMs": 5000 },
+  "allowSqlInstallAndCleanup": true,
+  "allowLocalFaultProxy": true
+}
