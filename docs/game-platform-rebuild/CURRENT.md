@@ -20,6 +20,17 @@
 
 ## 현재 상태
 
+**STEP7D IN_PROGRESS / PR434 부분 소스 INTEGRATION_MERGED / 실제 지원 미입증**.
+[PR434](https://github.com/limbit95/limbit95.github.io/pull/434)는 사용자 병합 승인 후 merge **b53562baaaa429f6b37a311edfacc7d775994f67**로 integration에 반영됐다.
+제출 head **8f310a938390736d3570955d290a89a6e4738010**와 기존 검토 후보 **4a966f59de126466a3388ebd2cb100b777ca418c** 및 실제 merge의 전체 tree는 **3ee5c5e22b4d1df24a0c97efd06d340989a1b2ea**로 같다. commit identity와 receipt는 각각 구분한다.
+[CP0116](checkpoints/CP-0116-step-7d-private-library-integration-merged.md)에 병합·CI·DB 시험 보류·후속 경계를 기록한다. PR432도 merge I로 병합됐으며, PR433의 CP0115는 미병합 문서 H의 별도 기록이다. 자동 포함·병합하지 않았다.
+실제 DB 시험은 사용자가 미검증으로 보류해 **NOT_RUN**이다. 기존 public-binding **UNKNOWN_OPAQUE_EDGES/exit1**과 제한 source 해석 수용·필수 보완0 판단을 유지한다. 기존 private library 부분 후보 판단을 반복하지 않는다.
+다음 기술 과제는 **Astra의 trusted caller/current 인가·writer fence 연결 최소 범위 판단**이다. 기존 승인 계약과 실제 누락 consumer를 입력으로 삼으며 runtime/GRANT/DB 실행·S2/S3 전체 구현을 자동 허용하지 않는다. 이 기록 PR의 검토/병합과 다음 기술 과제는 구분한다.
+integration385/main382·public385 source/output/I bytes·server public0·Core main 미이식·services 밖 SQL 별도 제외·고정 M P1 비상속은 기존 증거와 범위로 유지한다. 새 기록 head의 시험/공개 증거로 상속하지 않는다.
+**STEP7D 미완료·실제 지원 미입증·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN·production runtime/actual 배포 artifact/채택·공개 제외 전체 OPEN**.
+
+## PG 저장부 부분 결과 승인 당시 상태 — CP0114 이력 보존
+
 **STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 2026-10-23 사용자의 `진행해`는 Astra 최종 검토의 승인 가능·필수 보완0·신규 차단0 보고에 따른 고정 부분 결과 승인 및 기록 진행 지시다.
 승인 대상은 [PR432](https://github.com/limbit95/limbit95.github.io/pull/432) head **92d5471dce6b61d770118055579a825b3637f74a** /
@@ -241,7 +252,7 @@ REVIEW_PENDING·Guard 유지·NOT_RUN·UNKNOWN과 전체 후속 의무 유지. �
 | 7A3 | COMPLETED |
 | 7B | COMPLETED |
 | 7C | COMPLETED |
-| 7D | IN_PROGRESS (S0 문서 APPROVED / INTEGRATION_NOT_MERGED / 모델·Adapter 미착수) |
+| 7D | IN_PROGRESS (PR434 부분 소스 INTEGRATION_MERGED / 실제 DB NOT_RUN / runtime·Adapter 미완료) |
 | 8 | NOT_STARTED |
 | 9A | NOT_STARTED |
 | 9B | NOT_STARTED |
