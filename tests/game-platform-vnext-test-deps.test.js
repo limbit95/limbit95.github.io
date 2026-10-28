@@ -252,3 +252,19 @@ test("both full-test workflows prepare after root ci and always clean without na
   assert.match(governance, /timeout-minutes: 5/u);
   assert.match(governance, /--base "\$\{\{ github\.event\.pull_request\.base\.sha \}\}"/u);
 });
+
+test('jose existing dangling link is refused before allocation', (t)=>{
+ const f=fixture(t), link=path.join(f.root,'node_modules/jose');fs.symlinkSync(path.join(f.tempParent,'absent'),link);
+ assert.throws(()=>createOwner(f),{code:'EXISTING_JOSE_NOT_OWNED'});assert.deepEqual(fs.readdirSync(f.tempParent),[]);
+});
+test('jose creation gap preserves both links and install without spending another deletion attempt', (t)=>{
+ const f=fixture(t),s=createOwner(f);ownedLink(s);fs.symlinkSync(s.joseTarget,s.joseLink);
+ assert.throws(()=>cleanupOwner(s.ownerFile,{root:f.root}),{code:'CLEANUP_UNCONFIRMED'});
+ assert.equal(fs.lstatSync(s.link).isSymbolicLink(),true);assert.equal(fs.existsSync(s.installDirectory),true);
+ assert.throws(()=>cleanupOwner(s.ownerFile,{root:f.root}),{code:'CLEANUP_UNCONFIRMED'});
+});
+test('both owned dependency links clean once; later jose replacement survives', (t)=>{
+ const f=fixture(t),s=createOwner(f);ownedLink(s);fs.symlinkSync(s.joseTarget,s.joseLink);const st=fs.lstatSync(s.joseLink);s.joseIdentity={dev:st.dev,ino:st.ino};write(s);
+ cleanupOwner(s.ownerFile,{root:f.root});assert.equal(fs.existsSync(s.joseLink),false);
+ fs.symlinkSync(f.tempParent,s.joseLink);assert.throws(()=>cleanupOwner(s.ownerFile,{root:f.root}),{code:'CLEANUP_UNCONFIRMED'});assert.equal(fs.readlinkSync(s.joseLink),f.tempParent);
+});
