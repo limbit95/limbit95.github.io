@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { exactPrivateLock } from "./private-game-dependency-lock.mjs";
 import path from "node:path";
 import os from "node:os";
 import { createHash, randomUUID } from "node:crypto";
@@ -36,13 +37,13 @@ function inputs(repository) {
   const source = path.join(repository, SOURCE);
   const bytes = Object.fromEntries(["package.json", "package-lock.json"].map((name) => [name, fs.readFileSync(path.join(source, name))]));
   const pkg = JSON.parse(bytes["package.json"]), lock = JSON.parse(bytes["package-lock.json"]);
-  if (pkg.private !== true || pkg.dependencies?.pg !== "8.23.1" || lock.lockfileVersion !== 3
-    || lock.packages?.[""]?.dependencies?.pg !== "8.23.1" || lock.packages?.["node_modules/pg"]?.version !== "8.23.1") throw fault("EXACT_PRIVATE_PG_LOCK_REQUIRED");
+  if (!exactPrivateLock(pkg, lock)) throw fault("EXACT_PRIVATE_PG_LOCK_REQUIRED");
   return { bytes, lock, hashes: Object.fromEntries(Object.entries(bytes).map(([name, value]) => [name, hash(value)])) };
 }
 
 export function createOwner({ root, tempParent, githubOutput } = {}) {
   const roots = rootInfo(root);
+  if (info(path.join(roots.modules, "jose"))) throw fault("EXISTING_JOSE_NOT_OWNED");
   if (info(roots.link)) throw fault("EXISTING_PG_NOT_OWNED"); // includes dangling links
   const parent = fs.realpathSync(tempParent);
   if (inside(roots.repository, parent)) throw fault("INSTALL_MUST_BE_OUTSIDE_CHECKOUT");
@@ -51,10 +52,11 @@ export function createOwner({ root, tempParent, githubOutput } = {}) {
   fs.chmodSync(ownerDirectory, 0o700);
   const installDirectory = path.join(ownerDirectory, "install");
   fs.mkdirSync(installDirectory, { mode: 0o700 });
-  const state = { schemaVersion: 1, scope: "OFFLINE_TEST_DEPENDENCIES_ONLY", owner: randomUUID(),
+  const state = { schemaVersion: 2, scope: "OFFLINE_TEST_DEPENDENCIES_ONLY", owner: randomUUID(),
     ...roots, ownerDirectory, ownerDirectoryIdentity: directory(ownerDirectory),
     ownerFile: path.join(ownerDirectory, "owner.json"), installDirectory, installIdentity: directory(installDirectory),
     target: path.join(installDirectory, "node_modules/pg"), linkIdentity: null,
+    joseLink: path.join(roots.modules, "jose"), joseTarget: path.join(installDirectory, "node_modules/jose"), joseIdentity: null,
     sourceHashes: source.hashes, node: process.version, platform: process.platform, arch: process.arch,
     preparerPid: process.pid, preparation: "PREPARING", cleanup: "PENDING", cleanupAttempts: [], operations: [], installer: { status: "NOT_STARTED" } };
   try {
@@ -163,6 +165,7 @@ async function verifyConsumers(state, signal) {
   // actual module and the actual runner; do not create a Client or runCandidate.
   const program = `
     import pg from 'pg';
+    import { jwtVerify } from 'jose';
     import fs from 'node:fs';
     import { createRequire } from 'node:module';
     import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -171,14 +174,21 @@ async function verifyConsumers(state, signal) {
     const runner = await import(pathToFileURL(${JSON.stringify(path.join(state.repository, "tests/game-db-integration/vnext-storage-candidate/run.mjs"))}));
     console.log(JSON.stringify({ esmEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('pg'))),
       requireEntry: fs.realpathSync(req.resolve('pg')), sameClient: pg.Client === req('pg').Client,
+      joseEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('jose'))),
+      verifierFactory: typeof (await import(pathToFileURL(${JSON.stringify(path.join(state.repository, SOURCE, "tokenVerifier.mjs"))}))).createTokenVerifier,
       leaseFactory: typeof lease.createPgLeaseSource, runnerValidator: typeof runner.validateManifest, node: process.version }));
   `;
   const proof = JSON.parse(await ownedCommand(state, process.execPath, ["--input-type=module", "--eval", program],
     { cwd: path.join(state.repository, SOURCE), signal, capture: true, timeoutMs: 10_000 }));
+  const rootProof = JSON.parse(await ownedCommand(state, process.execPath, ["--input-type=module", "--eval",
+    "import fs from 'node:fs'; import {fileURLToPath} from 'node:url'; console.log(JSON.stringify({entry:fs.realpathSync(fileURLToPath(import.meta.resolve('jose')))}))"],
+    { cwd: state.repository, signal, capture: true, timeoutMs: 10_000 }));
+  if (!inside(fs.realpathSync(state.joseTarget), proof.joseEntry) || rootProof.entry !== proof.joseEntry || proof.verifierFactory !== "function") throw fault("JOSE_CONSUMER_MISMATCH");
+  proof.rootJoseEntry = rootProof.entry;
   const target = fs.realpathSync(state.target);
   if (!inside(target, proof.esmEntry) || !inside(target, proof.requireEntry) || proof.sameClient !== true
     || proof.leaseFactory !== "function" || proof.runnerValidator !== "function") throw fault("CONSUMER_RESOLUTION_MISMATCH");
-  proof.sourceHashes = Object.fromEntries([`${SOURCE}/connectionLease.mjs`, "tests/game-db-integration/vnext-storage-candidate/run.mjs"]
+  proof.sourceHashes = Object.fromEntries([`${SOURCE}/connectionLease.mjs`, `${SOURCE}/tokenVerifier.mjs`, "tests/game-db-integration/vnext-storage-candidate/run.mjs"]
     .map((name) => [name, hash(fs.readFileSync(path.join(state.repository, name)))]));
   return proof;
 }
@@ -187,12 +197,14 @@ function readOwner(ownerFile, root) {
   if (!info(ownerFile)?.isFile() || info(ownerFile).isSymbolicLink()) throw fault("REGULAR_OWNER_FILE_REQUIRED");
   const state = JSON.parse(fs.readFileSync(ownerFile));
   const repository = fs.realpathSync(root), ownerDirectory = fs.realpathSync(path.dirname(ownerFile));
-  if (state.schemaVersion !== 1 || state.scope !== "OFFLINE_TEST_DEPENDENCIES_ONLY" || !/^[0-9a-f-]{36}$/u.test(state.owner)
+  if (state.schemaVersion !== 2 || state.scope !== "OFFLINE_TEST_DEPENDENCIES_ONLY" || !/^[0-9a-f-]{36}$/u.test(state.owner)
     || state.repository !== repository || state.ownerFile !== path.join(ownerDirectory, "owner.json")
     || path.resolve(ownerFile) !== state.ownerFile || state.ownerDirectory !== ownerDirectory
     || inside(repository, ownerDirectory) || !path.basename(ownerDirectory).startsWith(PREFIX)
     || !same(directory(ownerDirectory), state.ownerDirectoryIdentity)
     || state.installDirectory !== path.join(ownerDirectory, "install")
+    || state.joseLink !== path.join(repository, "node_modules/jose")
+    || state.joseTarget !== path.join(state.installDirectory, "node_modules/jose")
     || state.target !== path.join(state.installDirectory, "node_modules/pg")
     || state.modules !== path.join(repository, "node_modules") || state.link !== path.join(state.modules, "pg")) throw fault("OWNER_IDENTITY_MISMATCH");
   return state;
@@ -205,7 +217,7 @@ export function cleanupOwner(ownerFile, { root, removeInstall = (directory) => f
   try {
     if (state.cleanupOwnershipLost) throw fault("OWNERSHIP_PREVIOUSLY_LOST");
     if (state.cleanupCompleted
-      && (info(state.link) || info(state.installDirectory))) throw fault("RESOURCE_PATH_REAPPEARED");
+      && (info(state.link) || info(state.joseLink) || info(state.installDirectory))) throw fault("RESOURCE_PATH_REAPPEARED");
     if (state.cleanupAuthorityClosed && !state.cleanupCompleted) throw fault("CLEANUP_AUTHORITY_CLOSED");
     if (state.preparation === "PREPARING" && state.preparerPid !== process.pid && processAlive(state.preparerPid)) throw fault("PREPARER_STILL_ACTIVE");
     if (state.installer.status === "RUNNING" || state.installer.status === "UNCONFIRMED"
@@ -217,12 +229,19 @@ export function cleanupOwner(ownerFile, { root, removeInstall = (directory) => f
       state.cleanupAuthorityClosed = true;
       save(state);
       if (!same(directory(state.modules), state.modulesIdentity)) throw fault("ROOT_MODULES_OWNER_CHANGED");
+      const joseLink = info(state.joseLink);
+      if (joseLink && (!state.joseIdentity || !joseLink.isSymbolicLink() || !same(identity(joseLink), state.joseIdentity)
+        || path.resolve(path.dirname(state.joseLink), fs.readlinkSync(state.joseLink)) !== state.joseTarget)) throw fault("JOSE_LINK_OWNER_CHANGED");
       const link = info(state.link);
       if (link) {
         if (!link.isSymbolicLink() || !same(identity(link), state.linkIdentity)
           || path.resolve(path.dirname(state.link), fs.readlinkSync(state.link)) !== state.target) throw fault("PG_LINK_OWNER_CHANGED");
+      }
+      if (info(state.installDirectory) && !same(directory(state.installDirectory), state.installIdentity)) throw fault("INSTALL_OWNER_CHANGED");
+      if (link) {
         fs.unlinkSync(state.link);
       }
+      if (joseLink) fs.unlinkSync(state.joseLink);
       if (info(state.installDirectory)) {
         if (!same(directory(state.installDirectory), state.installIdentity)) throw fault("INSTALL_OWNER_CHANGED");
         removeInstall(state.installDirectory);
@@ -230,14 +249,14 @@ export function cleanupOwner(ownerFile, { root, removeInstall = (directory) => f
     }
     // Observe path absence too. A later/recreated object has no deletion grant
     // from this owner's old inode, even when it occupies the same name.
-    if (info(state.link) || info(state.installDirectory)) throw fault("RESOURCE_PATH_REAPPEARED");
+    if (info(state.link) || info(state.joseLink) || info(state.installDirectory)) throw fault("RESOURCE_PATH_REAPPEARED");
     state.cleanupCompleted = true;
     state.cleanup = "OWNED_LINK_AND_INSTALL_REMOVED_JOURNAL_RETAINED";
     delete state.cleanupCode;
   } catch (error) {
     state.cleanup = "INCONCLUSIVE_EXTERNAL_OWNER_REQUIRED";
     state.cleanupCode = error.code ?? "LOCAL_CLEANUP_FAILED";
-    if (["RESOURCE_PATH_REAPPEARED", "PG_LINK_OWNER_CHANGED", "INSTALL_OWNER_CHANGED", "ROOT_MODULES_OWNER_CHANGED", "OWNERSHIP_PREVIOUSLY_LOST"].includes(state.cleanupCode)) state.cleanupOwnershipLost = true;
+    if (["RESOURCE_PATH_REAPPEARED", "PG_LINK_OWNER_CHANGED", "JOSE_LINK_OWNER_CHANGED", "INSTALL_OWNER_CHANGED", "ROOT_MODULES_OWNER_CHANGED", "OWNERSHIP_PREVIOUSLY_LOST"].includes(state.cleanupCode)) state.cleanupOwnershipLost = true;
     state.cleanupAttempts.push({ status: state.cleanup, code: state.cleanupCode }); save(state);
     throw fault("CLEANUP_UNCONFIRMED");
   }
@@ -261,6 +280,8 @@ export async function prepare({ root, tempParent = process.env.RUNNER_TEMP ?? os
     if (!same(directory(state.modules), state.modulesIdentity)) throw fault("ROOT_MODULES_OWNER_CHANGED");
     fs.symlinkSync(state.target, state.link, "dir"); // EEXIST refuses a concurrent foreign link
     state.linkIdentity = identity(fs.lstatSync(state.link)); save(state);
+    fs.symlinkSync(state.joseTarget, state.joseLink, "dir");
+    state.joseIdentity = identity(fs.lstatSync(state.joseLink)); save(state);
     state.consumers = await verifyConsumers(state, signal);
     if (signal?.aborted) throw fault("PREPARATION_INTERRUPTED");
     state.preparation = "READY_OFFLINE_ONLY"; save(state);

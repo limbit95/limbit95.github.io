@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { exactPrivateLock } from "./private-game-dependency-lock.mjs";
 import path from "node:path";
 import os from "node:os";
 import vm from "node:vm";
@@ -10,7 +11,7 @@ import { verifyCheckoutPublication } from "./build-site-publication.mjs";
 import { collectTree, inventory, createArchive, verifyArchive, extractNew, sha256, fault } from "./private-library-archive.mjs";
 
 export const SERVICE = "services/game-platform-vnext";
-export const SOURCE_NAMES = Object.freeze(["connectionLease.mjs", "sessionStorage.mjs", "sessionControl.mjs", "package.json", "package-lock.json"]);
+export const SOURCE_NAMES = Object.freeze(["connectionLease.mjs", "sessionStorage.mjs", "sessionControl.mjs", "tokenVerifier.mjs", "package.json", "package-lock.json"]);
 const json = (o) => JSON.stringify(o, null, 2) + "\n";
 const inside = (parent, child) => child === parent || child.startsWith(parent + path.sep);
 const git = (root, ...args) => execFileSync("git", ["--no-optional-locks", ...args], { cwd: root });
@@ -35,15 +36,12 @@ export function readFixedSources(root) {
     sources[name] = { bytes, sha256: sha256(bytes), size: bytes.length, mode: st.mode & 0o777 };
   }
   const pkg = JSON.parse(sources["package.json"].bytes), lock = JSON.parse(sources["package-lock.json"].bytes);
-  if (pkg.private !== true || pkg.type !== "module" || pkg.dependencies?.pg !== "8.23.1"
-    || lock.lockfileVersion !== 3 || lock.packages?.[""]?.dependencies?.pg !== "8.23.1"
-    || lock.packages?.["node_modules/pg"]?.version !== "8.23.1"
-    || Object.keys(lock.packages).length !== 15 || Object.hasOwn(lock.packages, "node_modules/pg-native")) throw fault("EXACT_EXISTING_LOCK_REQUIRED");
+  if (!exactPrivateLock(pkg, lock)) throw fault("EXACT_EXISTING_LOCK_REQUIRED");
   return { sourceRevision, sourceTree, sources, lock };
 }
 export function assertNoAncestorPg(directory) {
   for (let p = path.resolve(directory);; p = path.dirname(p)) {
-    if (fs.lstatSync(path.join(p, "node_modules/pg"), { throwIfNoEntry: false })) throw fault("ANCESTOR_PG_SUPPLY");
+    if (["pg", "jose"].some(n => fs.lstatSync(path.join(p, "node_modules", n), { throwIfNoEntry: false }))) throw fault("ANCESTOR_PG_SUPPLY");
     if (p === path.dirname(p)) break;
   }
 }
@@ -71,9 +69,11 @@ function probeProgram(packageRoot, runner) {
     const root = ${JSON.stringify(packageRoot)}, req = createRequire(pathToFileURL(root+'/package.json'));
     const lease = await import(pathToFileURL(root+'/connectionLease.mjs'));
     const storage = await import(pathToFileURL(root+'/sessionStorage.mjs'));
+    const verifier = await import(pathToFileURL(root+'/tokenVerifier.mjs'));
     const control = await import(pathToFileURL(root+'/sessionControl.mjs'));
     ${runner ? `const runner = await import(pathToFileURL(${JSON.stringify(runner)}));` : ""}
     console.log(JSON.stringify({ node: process.version,
+      joseEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('jose'))), verifierFactory: typeof verifier.createTokenVerifier,
       esmEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('pg'))), requireEntry: fs.realpathSync(req.resolve('pg')),
       sameClient: pg.Client === req('pg').Client,
       exports: [typeof lease.createPgLeaseSource, typeof storage.createSessionStorage, typeof control.sessionCommandHash],
@@ -99,7 +99,8 @@ export async function verifyImports(owner, packageRoot, root, signal) {
   for (const runner of [null, path.join(runnerDir, "run.mjs")]) {
     const record = JSON.parse(await command(owner, process.execPath, ["--input-type=module", "--eval", probeProgram(packageRoot, runner)],
       { cwd: packageRoot, signal, capture: true, timeoutMs: 10_000 }));
-    if (![record.esmEntry, record.requireEntry].every((p) => inside(pgRoot, p)) || !record.sameClient
+    if (!inside(fs.realpathSync(path.join(packageRoot, "node_modules/jose")), record.joseEntry) || record.verifierFactory !== "function"
+      || ![record.esmEntry, record.requireEntry].every((p) => inside(pgRoot, p)) || !record.sameClient
       || record.exports.some((x) => x !== "function") || (runner && record.runnerExport !== "function")
       || !record.sourceRealpaths.every((p) => inside(packageRoot, p))) throw fault("UNPACK_IMPORT_RESOLUTION_MISMATCH");
     records.push(record);

@@ -1,4 +1,5 @@
 import test from "node:test";
+import { exactPrivateLock } from '../scripts/private-game-dependency-lock.mjs';
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -129,4 +130,12 @@ test("interrupted package creation retains only its new owner and never claims c
     return true;
   });
   assert.equal(fs.readFileSync(path.join(parent, "foreign"), "utf8"), "keep");
+});
+
+test('private source set includes verifier and rejects changed JOSE or original pg lock entries',()=>{
+ const f=readFixedSources(root);assert.ok(SOURCE_NAMES.includes('tokenVerifier.mjs'));
+ assert.equal(f.lock.packages['node_modules/jose'].version,'6.2.12');
+ const pkg=JSON.parse(f.sources['package.json'].bytes);assert.equal(exactPrivateLock(pkg,f.lock),true);
+ for(const name of ['node_modules/jose','node_modules/pg-types']){const lock=structuredClone(f.lock);lock.packages[name].version='0.0.0';assert.equal(exactPrivateLock(pkg,lock),false);}
+ const lock=structuredClone(f.lock);lock.packages['node_modules/unexpected']={version:'1.0.0'};assert.equal(exactPrivateLock(pkg,lock),false);
 });
