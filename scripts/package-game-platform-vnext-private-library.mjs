@@ -11,7 +11,7 @@ import { verifyCheckoutPublication } from "./build-site-publication.mjs";
 import { collectTree, inventory, createArchive, verifyArchive, extractNew, sha256, fault } from "./private-library-archive.mjs";
 
 export const SERVICE = "services/game-platform-vnext";
-export const SOURCE_NAMES = Object.freeze(["connectionLease.mjs", "sessionStorage.mjs", "sessionControl.mjs", "tokenVerifier.mjs", "package.json", "package-lock.json"]);
+export const SOURCE_NAMES = Object.freeze(["connectionLease.mjs", "sessionStorage.mjs", "sessionControl.mjs", "tokenVerifier.mjs", "commandBinding.mjs", "package.json", "package-lock.json"]);
 const json = (o) => JSON.stringify(o, null, 2) + "\n";
 const inside = (parent, child) => child === parent || child.startsWith(parent + path.sep);
 const git = (root, ...args) => execFileSync("git", ["--no-optional-locks", ...args], { cwd: root });
@@ -70,15 +70,17 @@ function probeProgram(packageRoot, runner) {
     const lease = await import(pathToFileURL(root+'/connectionLease.mjs'));
     const storage = await import(pathToFileURL(root+'/sessionStorage.mjs'));
     const verifier = await import(pathToFileURL(root+'/tokenVerifier.mjs'));
+    const binding = await import(pathToFileURL(root+'/commandBinding.mjs'));
     const control = await import(pathToFileURL(root+'/sessionControl.mjs'));
     ${runner ? `const runner = await import(pathToFileURL(${JSON.stringify(runner)}));` : ""}
     console.log(JSON.stringify({ node: process.version,
       joseEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('jose'))), verifierFactory: typeof verifier.createTokenVerifier,
+      bindingFactory: typeof binding.createCommandBinder,
       esmEntry: fs.realpathSync(fileURLToPath(import.meta.resolve('pg'))), requireEntry: fs.realpathSync(req.resolve('pg')),
       sameClient: pg.Client === req('pg').Client,
       exports: [typeof lease.createPgLeaseSource, typeof storage.createSessionStorage, typeof control.sessionCommandHash],
       ${runner ? "runnerExport: typeof runner.runCandidate," : ""}
-      sourceRealpaths: ['connectionLease.mjs','sessionStorage.mjs','sessionControl.mjs'].map(n=>fs.realpathSync(path.join(root,n))) }));
+      sourceRealpaths: ['connectionLease.mjs','sessionStorage.mjs','sessionControl.mjs','tokenVerifier.mjs','commandBinding.mjs'].map(n=>fs.realpathSync(path.join(root,n))) }));
   `;
 }
 export async function verifyImports(owner, packageRoot, root, signal) {
@@ -100,6 +102,7 @@ export async function verifyImports(owner, packageRoot, root, signal) {
     const record = JSON.parse(await command(owner, process.execPath, ["--input-type=module", "--eval", probeProgram(packageRoot, runner)],
       { cwd: packageRoot, signal, capture: true, timeoutMs: 10_000 }));
     if (!inside(fs.realpathSync(path.join(packageRoot, "node_modules/jose")), record.joseEntry) || record.verifierFactory !== "function"
+      || record.bindingFactory !== "function"
       || ![record.esmEntry, record.requireEntry].every((p) => inside(pgRoot, p)) || !record.sameClient
       || record.exports.some((x) => x !== "function") || (runner && record.runnerExport !== "function")
       || !record.sourceRealpaths.every((p) => inside(packageRoot, p))) throw fault("UNPACK_IMPORT_RESOLUTION_MISMATCH");

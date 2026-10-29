@@ -37,7 +37,7 @@ function headerEdit(bytes, edit) {
   return tar;
 }
 
-test("private archive roundtrip preserves all five fixed inputs and independent unpack modes/bytes", (t) => {
+test("private archive roundtrip preserves all fixed inputs and independent unpack modes/bytes", (t) => {
   const f = fixture(t), a = archive(f), checked = verifyArchive(a.bytes, a.expected), dest = path.join(f.directory, "unpack");
   extractNew(checked.entries, dest);
   assert.deepEqual(inventory(collectTree(path.join(dest, "payload"))), f.manifest.files);
@@ -45,6 +45,11 @@ test("private archive roundtrip preserves all five fixed inputs and independent 
 });
 test("private archive requires sessionControl even when a diff-only payload and manifest agree", (t) => {
   const f = fixture(t), entries = f.entries.filter((e) => !e.path.endsWith("/sessionControl.mjs"));
+  const a = archive(f, entries, { ...f.manifest, files: inventory(entries) });
+  assert.throws(() => verifyArchive(a.bytes, a.expected), { code: "SOURCE_PAYLOAD_MISMATCH" });
+});
+test("private archive requires command binding even when an omitted source and manifest agree", (t) => {
+  const f = fixture(t), entries = f.entries.filter((e) => !e.path.endsWith("/commandBinding.mjs"));
   const a = archive(f, entries, { ...f.manifest, files: inventory(entries) });
   assert.throws(() => verifyArchive(a.bytes, a.expected), { code: "SOURCE_PAYLOAD_MISMATCH" });
 });
