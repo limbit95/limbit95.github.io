@@ -20,6 +20,18 @@
 
 ## 현재 상태
 
+**STEP7D 비공개 JWT 검증·command 주체 결속 부분 소스 INTEGRATION_MERGED / 실제 지원 미입증**.
+2026-10-29 사용자 병합 승인 후 [PR438](https://github.com/limbit95/limbit95.github.io/pull/438)이 실제 병합됐다.
+현재 integration **c2da7ab13721ee52c63d63c9903fe866317c69f7** / tree **25e9fe56ba4866947d9086bacbdae0e1b80eaf25**.
+[CP0118](checkpoints/CP-0118-step-7d-command-binding-integration-merged.md)에서 검토 local·제출·합성 CI·실제 merge를 구분한다.
+PR436의 verifier와 PR438의 binder는 시험 설정·시험 키의 실제 서명 검증 및 offline 계약에 한정한다. command 결속은 current 허가·A/C/P·DB caller permit·재생 방지가 아니다.
+실제 DB와 배포용 private archive/unpack NOT_RUN, public UNKNOWN_OPAQUE_EDGES, 운영/browser/cache/SW UNKNOWN, 전체 STEP7D IN_PROGRESS/실제 지원 미입증을 유지한다.
+PR435/437은 별도 OPEN·미병합 기록이며 이식하지 않았다. 아래 CP0114 이전 문구는 당시 이력이다. main·배포 변경 없음.
+다음 기술 담당 **Astra(gpt-6-astra)**: 실제 service 경계와 기존 미구현 입력을 바탕으로 다음 최소 연결 범위를 판단한다. 이번 기록이 새 runtime/current/fence 구현 범위를 승인하지 않는다.
+원본 Astra §8·STEP7B §7 전체와 승인 Target·기존 consumer/원본/조건·예외·강도·원ID·줄·f·후속 의무를 유지한다.
+
+## PG 저장부 승인 당시 상태 — CP0114 이력 보존
+
 **STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 2026-10-23 사용자의 `진행해`는 Astra 최종 검토의 승인 가능·필수 보완0·신규 차단0 보고에 따른 고정 부분 결과 승인 및 기록 진행 지시다.
 승인 대상은 [PR432](https://github.com/limbit95/limbit95.github.io/pull/432) head **92d5471dce6b61d770118055579a825b3637f74a** /
