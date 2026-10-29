@@ -2,7 +2,18 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-**현재: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+**STEP7D IN_PROGRESS / PR436 JWT 부분 소스 INTEGRATION_MERGED / 실제 지원 미입증**.
+현재 소스 integration은 **2c3f5ba2ef223f2011009c42bc321c68b4bff9c4**, tree **e6e00bfdfbb8c549c7d86f47be4c731317dfbc0f**다. [PR436](https://github.com/limbit95/limbit95.github.io/pull/436)의 검토 후보·제출본·실제 merge는 같은 tree이며 receipt는 각각 구분한다.
+[CP0117](checkpoints/CP-0117-step-7d-jwt-integration-merged.md)에 승인·병합·CI·미입증·후속 입력을 기록했다. PR434/432도 병합됐으며 아래 미병합 표기는 당시 이력이다. PR435/CP0116과 PR433/H는 별도 미병합 기록으로 자동 포함하지 않았다.
+실제 서명을 검증하는 ES256/명시 issuer·audience/로컬 public JWKS 모듈이며 VERIFIED_TOKEN_CLAIMS는 current 허가·A/C/P가 아니다. 운영 설정·실제 current predicate·writer fence·runtime/Adapter 지원은 미입증이다.
+실제 DB는 사용자 보류로 **NOT_RUN**, 새 배포용 private archive/unpack도 **NOT_RUN**, public-binding **UNKNOWN_OPAQUE_EDGES**를 유지한다. 기존14package archive나 과거/PR CI를 새 문서 head·실제 배포artifact 인증으로 쓰지 않는다.
+**다음 기술 담당: Astra — 원본 판단§5와 실제 service 경계에 따른 trusted caller/current·writer fence의 다음 최소 연결 및 필요한 설정 입력 판단**. 이미 완료한 JWT 검토를 반복하거나 runtime 구현/GRANT/운영 조회를 자동 허용하지 않는다. 이 기록 PR의 검토·병합과 기술 판단은 구분한다.
+integration385/main382·public385 source/output/I bytes·serverpublic0·Core main 미이식·원SQL hash/별도 제외·고정M P1 비상속·원본 판단§8 전체/STEP7B§7 및 기존 후속 의무 유지.
+**STEP7D 미완료·실제 지원 미입증·vNext 행동 NOT_RUN·운영/browser/cache/SW UNKNOWN·production runtime/actual 배포artifact/채택·공개 제외 전체 OPEN**.
+
+### PG 저장부 부분 결과 승인 당시 안내 — CP0114 이력 보존
+
+**당시: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 [CURRENT](CURRENT.md) → [CP0114](checkpoints/CP-0114-step-7d-s1-pg-storage-partial-result-approved.md)를 읽는다.
 2026-10-23 사용자 `진행해`에 따른 승인 기록이며 대상은 PR432 head **92d5471dce6b61d770118055579a825b3637f74a** /
 tree **2ff349390ca1ab0df5ca0bf2cc8407b0689482da**의 비공개 PG 저장부 부분 결과다. 승인 head 뒤 코드 변경0, 기록4개 Markdown 외 변경0이다.
