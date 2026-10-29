@@ -1,6 +1,14 @@
 # Game Platform
 
-## STEP7D S1 — 비공개 PG 저장부 부분 결과 승인 / integration·main 미병합
+## STEP7D — 비공개 JWT 검증·command 주체 결속 부분 소스 integration 반영
+
+현재 재개 위치는 [CURRENT](../docs/game-platform-rebuild/CURRENT.md)와 [CP0118](../docs/game-platform-rebuild/checkpoints/CP-0118-step-7d-command-binding-integration-merged.md)다.
+PR438 실제 merge **c2da7ab13721ee52c63d63c9903fe866317c69f7** / tree **25e9fe56ba4866947d9086bacbdae0e1b80eaf25**이며 PR436의 verifier와 새 binder가 비공개 service에 있다.
+시험 issuer/audience·시험 키로 실제 서명을 검증하고 원본 subject와 고정 command를 결속하는 부분 소스다. 결속 성공은 current 허가·재생 방지·A/C/P·DB permit이 아니다.
+실제 DB/archive NOT_RUN·public UNKNOWN_OPAQUE_EDGES·STEP7D 미완료/실제 지원 미입증·운영/browser/cache/SW UNKNOWN 유지. main·배포·기존 게임/Auth 변경 없음.
+다음 기술 담당 **Astra(gpt-6-astra)**. PR435/437 문서와 아래 미병합 안내는 별도 기록/당시 이력이며 새 runtime 지원을 뜻하지 않는다.
+
+## PG 저장부 승인 당시 안내 — CP0114 이력 보존
 
 PR431은 integration `990ad56…`에 병합됐다(integration385/main382·Core main 미이식).
 아래 PR431 미병합 표시는 승인 기록 당시 이력이다. 이번 `services/game-platform-vnext/sessionStorage.mjs`와
@@ -11,7 +19,7 @@ network/runtime 호출·지원/oracle 등록 없이 STEP7D 미완료·vNext 행�
 DB README의 후보/정식 반영 없음은 저장소 밖 후보 작성 당시 상태이며 실제 DB 미설치·미지원 제한은 그대로다.
 [부분 결과 승인 범위](../docs/game-platform-rebuild/checkpoints/CP-0114-step-7d-s1-pg-storage-partial-result-approved.md)와 실제 지원·병합·배포를 구분한다.
 
-## STEP7D S1 — 부분 코드 결과 승인 / integration·main 미병합
+## S1 부분 결과 승인 당시 안내 — 이력 보존
 
 `shared/vnext/models/coopSession.js`의 `createCoopSession`은 current full-state 채택/복구·명령 identity 보유의 후보다.
 Core 단일 동기 반영을 소비하며 실제 backend admission/PG commit/native P/transport·site Adapter는 미구현이다.

@@ -2,7 +2,15 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-**현재: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+**현재: STEP7D 비공개 JWT 검증·command 주체 결속 부분 소스 INTEGRATION_MERGED / 실제 지원 미입증**.
+[CURRENT](CURRENT.md) → [CP0118](checkpoints/CP-0118-step-7d-command-binding-integration-merged.md)를 읽는다.
+PR438 실제 integration merge **c2da7ab13721ee52c63d63c9903fe866317c69f7** / tree **25e9fe56ba4866947d9086bacbdae0e1b80eaf25**다.
+기존 검토·제출·CI와 실제 merge를 구분하며 DB/archive NOT_RUN·public UNKNOWN·전체 STEP7D 미완료/실제 지원 미입증을 유지한다.
+PR435/437 문서는 미병합 별도 기록으로 자동 이식하지 않는다. 다음 기술 담당 **Astra(gpt-6-astra)**의 최소 후속 범위 판단이며 main·배포·runtime 연결 승인이 아니다.
+
+### PG 저장부 승인 당시 안내 — CP0114 이력 보존
+
+**당시: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 [CURRENT](CURRENT.md) → [CP0114](checkpoints/CP-0114-step-7d-s1-pg-storage-partial-result-approved.md)를 읽는다.
 2026-10-23 사용자 `진행해`에 따른 승인 기록이며 대상은 PR432 head **92d5471dce6b61d770118055579a825b3637f74a** /
 tree **2ff349390ca1ab0df5ca0bf2cc8407b0689482da**의 비공개 PG 저장부 부분 결과다. 승인 head 뒤 코드 변경0, 기록4개 Markdown 외 변경0이다.
