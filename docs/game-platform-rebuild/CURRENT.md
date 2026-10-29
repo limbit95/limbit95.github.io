@@ -20,6 +20,21 @@
 
 ## 현재 상태
 
+**STEP7D IN_PROGRESS / PR432 비공개 PG 저장부 부분 결과 integration 병합 / 실제 지원 미입증 / 다음 Astra 판단 대기**.
+사용자의 2026-10-23 GitHub 체크포인트 저장·다른 Work 방 재개 요청에 따른 중간 기록이다. 완료/새 구현 승인이 아니다.
+[CP0115](checkpoints/CP-0115-step-7d-post-pr432-resume-checkpoint.md) →
+[다른 Work 방 재개 프롬프트](artifacts/step-7d-post-pr432-resume-prompt.md)를 먼저 읽는다.
+실제 integration merge **ec8bb5e113346681ed3d38b23fd54de07de60765** / tree **36ed89d77cf4e2950ca6c619dff4605483f705fc**,
+main M **0e4089f345c1f0a33c86c96a1f07a9dab484cc2e** / tree **d4f9b568f705a17cca3274f0862d46f5b56b3b76**. 현재 integration385/main382·Core main 미이식.
+PR432는 2026-10-23 11:40:02 KST 실제 병합됐다. 아래 CP0114/과거 안내의 미병합 표기는 당시 이력이다.
+현재 기록 branch는 `chore/game-platform-vnext-phase7d-resume-checkpoint`, base는 위 integration이다. 실제 기록 head/PR은 해당 branch/Git에서 확인하며 이 기록만으로 integration에 병합하지 않는다.
+사용자가 지시한 **Astra의 S1 잔여 backend 경계/다음 최소 작업 판단은 아직 결과 미작성**이다. 다음 첫 작업은 병합된 저장부 재구현 없이 최소 backend Slice와 격리 PG 실제 검증 준비의 순서/owner/미확보 입력을 판단하는 것이다.
+판단은 계획까지만 허용됐다. 새 code/driver·DB 설치/시험·runtime GRANT·지원 등록·설정/배포·Guard 변경은 미허용이다.
+승인 Target/STEP7B §7 전체·current A/C/P/D0010·안전11/H1~4/단일 채택·복구/hostless·미승인 재대결 예외 금지·consumer/원본/전체 후속 의무 유지.
+fixed M 별도 P1과 미래 revision을 구분하고 **STEP7D 미완료·실제 지원 미입증·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**을 유지한다.
+
+## PG 저장부 승인 당시 상태 — CP0114 이력 보존
+
 **STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 2026-10-23 사용자의 `진행해`는 Astra 최종 검토의 승인 가능·필수 보완0·신규 차단0 보고에 따른 고정 부분 결과 승인 및 기록 진행 지시다.
 승인 대상은 [PR432](https://github.com/limbit95/limbit95.github.io/pull/432) head **92d5471dce6b61d770118055579a825b3637f74a** /

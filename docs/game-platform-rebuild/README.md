@@ -2,7 +2,16 @@
 
 이 디렉토리는 `game_platform_vnext_final_execution_plan.md` 개정 1.6(1.3의 integration 운영 계승·P1 publication 준비 한정 예외)에 따른 **플랫폼 재구축 작업의 인수인계 기록**이다.
 
-**현재: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
+**현재: STEP7D IN_PROGRESS / PR432 실제 integration 병합 / 다음 Astra 판단 대기 / 실제 지원 미입증**.
+[CURRENT](CURRENT.md) → [CP0115](checkpoints/CP-0115-step-7d-post-pr432-resume-checkpoint.md) → [다른 Work 방 재개 프롬프트](artifacts/step-7d-post-pr432-resume-prompt.md)를 읽는다.
+2026-10-23 사용자의 GitHub 체크포인트/재개 요청에 따른 진행 저장이다. 실제 integration **ec8bb5e…/tree36ed89d…**, main M 유지, integration385/main382·Core main 미이식.
+기록 branch `chore/game-platform-vnext-phase7d-resume-checkpoint`에서 현재 상태·다음 첫 작업·기존 판단 원문8개를 보존한다. 해당 기록 PR은 별도 미병합이며 완료/새 구현 승인이 아니다.
+다음 담당 **Astra**의 잔여 backend/격리 PG 검증 준비 판단은 아직 미작성이다. 아래 CP0114/CP0113 상태는 당시 이력으로 읽는다.
+**STEP7D 미완료·vNext 행동 NOT_RUN·운영 UNKNOWN·browser/cache/SW UNKNOWN**, 승인 Target/STEP7B §7 전체·기존 consumer/원본/후속 의무 유지.
+
+### PG 저장부 승인 당시 안내 — CP0114 이력 보존
+
+**당시: STEP7D S1 비공개 PG 저장부 부분 정식 결과 APPROVED / INTEGRATION_NOT_MERGED / 실제 지원 미입증**.
 [CURRENT](CURRENT.md) → [CP0114](checkpoints/CP-0114-step-7d-s1-pg-storage-partial-result-approved.md)를 읽는다.
 2026-10-23 사용자 `진행해`에 따른 승인 기록이며 대상은 PR432 head **92d5471dce6b61d770118055579a825b3637f74a** /
 tree **2ff349390ca1ab0df5ca0bf2cc8407b0689482da**의 비공개 PG 저장부 부분 결과다. 승인 head 뒤 코드 변경0, 기록4개 Markdown 외 변경0이다.
